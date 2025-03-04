@@ -62,6 +62,24 @@ const resources = {
       productCreated: "Product created successfully",
       productUpdated: "Product updated successfully",
       productDeleted: "Product deleted successfully",
+
+      // Order translations
+      newOrder: "New Order",
+      orderCreated: "Order created successfully",
+      orderUpdated: "Order updated successfully",
+      orderDeleted: "Order deleted successfully",
+      orderNumber: "Order #",
+      customer: "Customer",
+      selectCustomer: "Select a customer",
+      paymentMethod: "Payment Method",
+      selectPaymentMethod: "Select payment method",
+      cash: "Cash",
+      check: "Check",
+      creditCard: "Credit Card",
+      total: "Total",
+      pending: "Pending",
+      delivered: "Delivered",
+      cancelled: "Cancelled"
     }
   },
   es: {
@@ -124,6 +142,24 @@ const resources = {
       productCreated: "Producto creado exitosamente",
       productUpdated: "Producto actualizado exitosamente",
       productDeleted: "Producto eliminado exitosamente",
+
+      // Order translations
+      newOrder: "Nuevo Pedido",
+      orderCreated: "Pedido creado exitosamente",
+      orderUpdated: "Pedido actualizado exitosamente",
+      orderDeleted: "Pedido eliminado exitosamente",
+      orderNumber: "Pedido #",
+      customer: "Cliente",
+      selectCustomer: "Seleccionar cliente",
+      paymentMethod: "Método de Pago",
+      selectPaymentMethod: "Seleccionar método de pago",
+      cash: "Efectivo",
+      check: "Cheque",
+      creditCard: "Tarjeta de Crédito",
+      total: "Total",
+      pending: "Pendiente",
+      delivered: "Entregado",
+      cancelled: "Cancelado"
     }
   }
 };
