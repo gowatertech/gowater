@@ -46,7 +46,16 @@ const resources = {
       success: "Success",
       error: "Error",
       confirmDelete: "Are you sure you want to delete this item?",
-    },
+
+      // Customer translations
+      newCustomer: "New Customer",
+      customerCreated: "Customer created successfully",
+      customerUpdated: "Customer updated successfully",
+      customerDeleted: "Customer deleted successfully",
+      coordinates: "Coordinates",
+      balance: "Balance",
+      saving: "Saving...",
+    }
   },
   es: {
     translation: {
@@ -92,7 +101,16 @@ const resources = {
       success: "Éxito",
       error: "Error",
       confirmDelete: "¿Está seguro de que desea eliminar este elemento?",
-    },
+
+      // Customer translations
+      newCustomer: "Nuevo Cliente",
+      customerCreated: "Cliente creado exitosamente",
+      customerUpdated: "Cliente actualizado exitosamente",
+      customerDeleted: "Cliente eliminado exitosamente",
+      coordinates: "Coordenadas",
+      balance: "Balance",
+      saving: "Guardando...",
+    }
   },
 };
 
