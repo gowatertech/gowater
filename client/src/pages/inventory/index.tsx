@@ -52,14 +52,20 @@ export default function Inventory() {
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
       name: "",
-      price: "",
+      price: "0",
       stock: 0,
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Product) => {
-      const res = await apiRequest("POST", "/api/products", data);
+    mutationFn: async (data: any) => {
+      // Convert price to string and ensure stock is a number
+      const formattedData = {
+        ...data,
+        price: data.price.toString(),
+        stock: Number(data.stock)
+      };
+      const res = await apiRequest("POST", "/api/products", formattedData);
       return res.json();
     },
     onSuccess: () => {
@@ -80,7 +86,7 @@ export default function Inventory() {
     },
   });
 
-  const onSubmit = (data: Product) => {
+  const onSubmit = (data: any) => {
     createMutation.mutate(data);
   };
 
@@ -125,7 +131,12 @@ export default function Inventory() {
                     <FormItem>
                       <FormLabel>{t("price")} (RD$)</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" {...field} />
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          {...field} 
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -138,7 +149,12 @@ export default function Inventory() {
                     <FormItem>
                       <FormLabel>{t("stock")}</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} />
+                        <Input 
+                          type="number"
+                          {...field}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
