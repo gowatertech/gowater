@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
+import Inventory from "@/pages/inventory";
 
 // Import translations
 import "./lib/i18n";
@@ -18,6 +19,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/settings" component={Settings} />
         <Route path="/customers" component={Customers} />
+        <Route path="/inventory" component={Inventory} />
         {/* Add other routes as they are implemented */}
         <Route component={NotFound} />
       </Switch>

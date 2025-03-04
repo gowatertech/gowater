@@ -20,7 +20,6 @@ const resources = {
       totalSales: "Total Sales",
       pendingPayments: "Pending Payments",
       activeRoutes: "Active Routes",
-      inventory: "Inventory",
 
       // Common
       save: "Save",
@@ -41,6 +40,7 @@ const resources = {
       price: "Price",
       quantity: "Quantity",
       date: "Date",
+      stock: "Stock",
 
       // Messages
       success: "Success",
@@ -49,7 +49,6 @@ const resources = {
 
       // Customer translations
       businessName: "Business Name",
-      email: "Email",
       newCustomer: "New Customer",
       customerCreated: "Customer created successfully",
       customerUpdated: "Customer updated successfully",
@@ -57,6 +56,12 @@ const resources = {
       coordinates: "Coordinates",
       balance: "Balance",
       saving: "Saving...",
+
+      // Product translations
+      newProduct: "New Product",
+      productCreated: "Product created successfully",
+      productUpdated: "Product updated successfully",
+      productDeleted: "Product deleted successfully",
     }
   },
   es: {
@@ -77,7 +82,6 @@ const resources = {
       totalSales: "Ventas Totales",
       pendingPayments: "Pagos Pendientes",
       activeRoutes: "Rutas Activas",
-      inventory: "Inventario",
 
       // Common
       save: "Guardar",
@@ -98,6 +102,7 @@ const resources = {
       price: "Precio",
       quantity: "Cantidad",
       date: "Fecha",
+      stock: "Existencias",
 
       // Messages
       success: "Éxito",
@@ -106,7 +111,6 @@ const resources = {
 
       // Customer translations
       businessName: "Nombre del Negocio",
-      email: "Correo Electrónico",
       newCustomer: "Nuevo Cliente",
       customerCreated: "Cliente creado exitosamente",
       customerUpdated: "Cliente actualizado exitosamente",
@@ -114,8 +118,14 @@ const resources = {
       coordinates: "Coordenadas",
       balance: "Balance",
       saving: "Guardando...",
+
+      // Product translations
+      newProduct: "Nuevo Producto",
+      productCreated: "Producto creado exitosamente",
+      productUpdated: "Producto actualizado exitosamente",
+      productDeleted: "Producto eliminado exitosamente",
     }
-  },
+  }
 };
 
 i18n
