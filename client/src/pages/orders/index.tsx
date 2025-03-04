@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { type Order, type Customer, type Product, insertOrderSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -7,14 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -37,9 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
 
 export default function Orders() {
   const { t } = useTranslation();
@@ -50,11 +41,6 @@ export default function Orders() {
     quantity: number;
   }>>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-
-  // Fetch orders, customers and products
-  const { data: orders, isLoading: isLoadingOrders } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-  });
 
   const { data: customers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -93,17 +79,6 @@ export default function Orders() {
       }
       return [...prev, { product, quantity: 1 }];
     });
-    calculateTotal();
-  };
-
-  const handleUpdateQuantity = (productId: number, quantity: number) => {
-    setSelectedProducts(prev =>
-      prev.map(p =>
-        p.product.id === productId
-          ? { ...p, quantity: Math.max(0, quantity) }
-          : p
-      ).filter(p => p.quantity > 0)
-    );
     calculateTotal();
   };
 
@@ -156,9 +131,6 @@ export default function Orders() {
     createMutation.mutate(data);
   };
 
-  if (isLoadingOrders) {
-    return <div className="p-8">Loading...</div>;
-  }
 
   return (
     <div className="space-y-8">
@@ -166,262 +138,128 @@ export default function Orders() {
         <h1 className="text-3xl font-bold">{t("orders")}</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              {t("newOrder")}
-            </Button>
+            <Button>{t("newOrder")}</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>{t("newOrder")}</DialogTitle>
             </DialogHeader>
-
-            <div className="grid grid-cols-12 gap-6">
-              {/* Cliente y Productos */}
-              <div className="col-span-8">
-                <div className="bg-card rounded-lg border p-6">
-                  <h2 className="text-lg font-semibold mb-4">{t("customer")}</h2>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="customerId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <Select
-                              onValueChange={handleCustomerSelect}
-                              defaultValue={field.value.toString()}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={t("selectCustomer")} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {customers?.map((customer) => (
-                                  <SelectItem 
-                                    key={customer.id} 
-                                    value={customer.id.toString()}
-                                  >
-                                    {customer.name} - {customer.businessName}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {selectedCustomer && (
-                        <div className="mt-4 p-4 bg-muted rounded-lg">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm font-medium">{t("businessName")}:</p>
-                              <p className="text-sm">{selectedCustomer.businessName}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{t("email")}:</p>
-                              <p className="text-sm">{selectedCustomer.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{t("address")}:</p>
-                              <p className="text-sm">{selectedCustomer.address}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{t("phone")}:</p>
-                              <p className="text-sm">{selectedCustomer.phone}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-6">
-                        <h2 className="text-lg font-semibold mb-4">{t("products")}</h2>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            {products?.map((product) => (
-                              <div
-                                key={product.id}
-                                className="p-4 border rounded-lg cursor-pointer hover:bg-accent"
-                                onClick={() => handleAddProduct(product)}
+            <div className="space-y-4">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("customer")}</FormLabel>
+                        <Select
+                          onValueChange={handleCustomerSelect}
+                          defaultValue={field.value.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t("selectCustomer")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {customers?.map((customer) => (
+                              <SelectItem 
+                                key={customer.id} 
+                                value={customer.id.toString()}
                               >
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium">{product.name}</p>
-                                    <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
-                                  </div>
-                                  <p className="font-bold">RD$ {parseFloat(product.price.toString()).toFixed(2)}</p>
-                                </div>
-                              </div>
+                                {customer.name}
+                              </SelectItem>
                             ))}
-                          </div>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {selectedCustomer && (
+                    <div className="p-4 bg-muted rounded-lg">
+                      <p>{selectedCustomer.name}</p>
+                      <p>{selectedCustomer.address}</p>
+                      <p>{selectedCustomer.phone}</p>
+                    </div>
+                  )}
+
+                  <div className="mt-4">
+                    <h3 className="font-medium mb-2">{t("products")}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {products?.map((product) => (
+                        <div
+                          key={product.id}
+                          className="p-2 border rounded cursor-pointer hover:bg-accent"
+                          onClick={() => handleAddProduct(product)}
+                        >
+                          <p>{product.name}</p>
+                          <p>RD$ {parseFloat(product.price.toString()).toFixed(2)}</p>
                         </div>
-                      </div>
-                    </form>
-                  </Form>
-                </div>
-              </div>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* Resumen del Pedido */}
-              <div className="col-span-4">
-                <div className="bg-card rounded-lg border p-6">
-                  <h2 className="text-lg font-semibold mb-4">{t("orderSummary")}</h2>
-                  <div className="space-y-4">
-                    {selectedProducts.map(({ product, quantity }) => (
-                      <div key={product.id} className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleUpdateQuantity(product.id, quantity - 1)}
-                            >
-                              -
-                            </Button>
-                            <span className="mx-2">{quantity}</span>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={() => handleUpdateQuantity(product.id, quantity + 1)}
-                            >
-                              +
-                            </Button>
-                          </div>
+                  {selectedProducts.length > 0 && (
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                      <h3 className="font-medium mb-2">{t("orderSummary")}</h3>
+                      {selectedProducts.map(({ product, quantity }) => (
+                        <div key={product.id} className="flex justify-between py-1">
+                          <span>{product.name} x {quantity}</span>
+                          <span>RD$ {(parseFloat(product.price.toString()) * quantity).toFixed(2)}</span>
                         </div>
-                        <p className="font-medium">
-                          RD$ {(parseFloat(product.price.toString()) * quantity).toFixed(2)}
-                        </p>
-                      </div>
-                    ))}
-
-                    <hr className="my-4" />
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>{t("subtotal")}</span>
-                        <span>
-                          RD$ {selectedProducts.reduce(
-                            (sum, { product, quantity }) =>
-                              sum + parseFloat(product.price.toString()) * quantity,
-                            0
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>{t("tax")} (18%)</span>
-                        <span>
-                          RD$ {(selectedProducts.reduce(
-                            (sum, { product, quantity }) =>
-                              sum + parseFloat(product.price.toString()) * quantity,
-                            0
-                          ) * 0.18).toFixed(2)}
-                        </span>
-                      </div>
-                      <hr className="my-2" />
-                      <div className="flex justify-between text-lg font-bold">
-                        <span>{t("total")}</span>
-                        <span>RD$ {form.getValues("total")}</span>
+                      ))}
+                      <div className="mt-2 pt-2 border-t">
+                        <div className="flex justify-between">
+                          <span>{t("total")}</span>
+                          <span>RD$ {form.getValues("total")}</span>
+                        </div>
                       </div>
                     </div>
-
-                    <FormField
-                      control={form.control}
-                      name="paymentMethod"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("paymentMethod")}</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t("selectPaymentMethod")} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="cash">{t("cash")}</SelectItem>
-                              <SelectItem value="check">{t("check")}</SelectItem>
-                              <SelectItem value="credit_card">{t("creditCard")}</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      className="w-full"
-                      disabled={
-                        createMutation.isPending ||
-                        selectedProducts.length === 0 ||
-                        !selectedCustomer
-                      }
-                      onClick={form.handleSubmit(onSubmit)}
-                    >
-                      {createMutation.isPending ? t("saving") : t("createOrder")}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                  )}
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("paymentMethod")}</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t("selectPaymentMethod")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="cash">{t("cash")}</SelectItem>
+                            <SelectItem value="check">{t("check")}</SelectItem>
+                            <SelectItem value="credit_card">{t("creditCard")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={
+                      createMutation.isPending ||
+                      selectedProducts.length === 0 ||
+                      !selectedCustomer
+                    }
+                  >
+                    {createMutation.isPending ? t("saving") : t("createOrder")}
+                  </Button>
+                </form>
+              </Form>
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="bg-card rounded-lg border">
-        <div className="p-6">
-          <h2 className="text-lg font-semibold">{t("orderHistory")}</h2>
-          <p className="text-sm text-muted-foreground">{t("recentOrders")}</p>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t("orderNumber")}</TableHead>
-              <TableHead>{t("customer")}</TableHead>
-              <TableHead>{t("date")}</TableHead>
-              <TableHead>{t("total")}</TableHead>
-              <TableHead>{t("status")}</TableHead>
-              <TableHead>{t("paymentMethod")}</TableHead>
-              <TableHead>{t("actions")}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders?.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>#{order.id}</TableCell>
-                <TableCell>
-                  {customers?.find(c => c.id === order.customerId)?.name}
-                </TableCell>
-                <TableCell>
-                  {new Date(order.date).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  RD$ {parseFloat(order.total.toString()).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    order.status === "delivered" ? "bg-green-100 text-green-800" :
-                    order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                    "bg-red-100 text-red-800"
-                  }`}>
-                    {t(order.status)}
-                  </span>
-                </TableCell>
-                <TableCell>{t(order.paymentMethod || "")}</TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="icon">
-                    <PlusCircle className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
       </div>
     </div>
   );
