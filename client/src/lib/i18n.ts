@@ -79,7 +79,16 @@ const resources = {
       total: "Total",
       pending: "Pending",
       delivered: "Delivered",
-      cancelled: "Cancelled"
+      cancelled: "Cancelled",
+      orderHistory: "Order History",
+      recentOrders: "Recent Orders",
+      products: "Products",
+      searchProducts: "Search products...",
+      search: "Search",
+      orderSummary: "Order Summary",
+      subtotal: "Subtotal",
+      tax: "Tax",
+      createOrder: "Create Order"
     }
   },
   es: {
@@ -159,7 +168,16 @@ const resources = {
       total: "Total",
       pending: "Pendiente",
       delivered: "Entregado",
-      cancelled: "Cancelado"
+      cancelled: "Cancelado",
+      orderHistory: "Historial de Pedidos",
+      recentOrders: "Pedidos Recientes",
+      products: "Productos",
+      searchProducts: "Buscar productos...",
+      search: "Buscar",
+      orderSummary: "Resumen del Pedido",
+      subtotal: "Subtotal",
+      tax: "ITBIS",
+      createOrder: "Crear Pedido"
     }
   }
 };
