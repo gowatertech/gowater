@@ -32,9 +32,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-  PlusCircle, 
-  Pencil, 
+import {
+  PlusCircle,
+  Pencil,
   Trash
 } from "lucide-react";
 
@@ -52,6 +52,8 @@ export default function Customers() {
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       name: "",
+      businessName: "",
+      email: "",
       address: "",
       phone: "",
       coordinates: "",
@@ -121,6 +123,32 @@ export default function Customers() {
                 />
                 <FormField
                   control={form.control}
+                  name="businessName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("businessName")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("email")}</FormLabel>
+                      <FormControl>
+                        <Input type="email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="address"
                   render={({ field }) => (
                     <FormItem>
@@ -175,6 +203,8 @@ export default function Customers() {
         <TableHeader>
           <TableRow>
             <TableHead>{t("name")}</TableHead>
+            <TableHead>{t("businessName")}</TableHead>
+            <TableHead>{t("email")}</TableHead>
             <TableHead>{t("address")}</TableHead>
             <TableHead>{t("phone")}</TableHead>
             <TableHead>{t("balance")}</TableHead>
@@ -185,6 +215,8 @@ export default function Customers() {
           {customers?.map((customer) => (
             <TableRow key={customer.id}>
               <TableCell>{customer.name}</TableCell>
+              <TableCell>{customer.businessName}</TableCell>
+              <TableCell>{customer.email}</TableCell>
               <TableCell>{customer.address}</TableCell>
               <TableCell>{customer.phone}</TableCell>
               <TableCell>RD$ {parseFloat(customer.balance.toString()).toFixed(2)}</TableCell>

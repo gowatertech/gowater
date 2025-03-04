@@ -30,7 +30,7 @@ const resources = {
       create: "Create",
       status: "Status",
       actions: "Actions",
-      
+
       // Forms
       name: "Name",
       address: "Address",
@@ -41,13 +41,15 @@ const resources = {
       price: "Price",
       quantity: "Quantity",
       date: "Date",
-      
+
       // Messages
       success: "Success",
       error: "Error",
       confirmDelete: "Are you sure you want to delete this item?",
 
       // Customer translations
+      businessName: "Business Name",
+      email: "Email",
       newCustomer: "New Customer",
       customerCreated: "Customer created successfully",
       customerUpdated: "Customer updated successfully",
@@ -85,24 +87,26 @@ const resources = {
       create: "Crear",
       status: "Estado",
       actions: "Acciones",
-      
+
       // Forms
       name: "Nombre",
       address: "Dirección",
       phone: "Teléfono",
-      email: "Correo",
+      email: "Correo Electrónico",
       password: "Contraseña",
       role: "Rol",
       price: "Precio",
       quantity: "Cantidad",
       date: "Fecha",
-      
+
       // Messages
       success: "Éxito",
       error: "Error",
       confirmDelete: "¿Está seguro de que desea eliminar este elemento?",
 
       // Customer translations
+      businessName: "Nombre del Negocio",
+      email: "Correo Electrónico",
       newCustomer: "Nuevo Cliente",
       customerCreated: "Cliente creado exitosamente",
       customerUpdated: "Cliente actualizado exitosamente",

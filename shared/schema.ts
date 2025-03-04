@@ -16,6 +16,8 @@ export const users = pgTable("users", {
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  businessName: text("business_name"),
+  email: text("email"),
   address: text("address").notNull(),
   phone: text("phone").notNull(),
   coordinates: text("coordinates"), // For route planning
