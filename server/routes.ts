@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express) {
       const statusData = [
         { name: "Entregados", value: status.delivered, color: '#0088FE' },
         { name: "Pendientes", value: status.pending, color: '#00C49F' },
-        { name: "Cancelados", value: status.cancelled, color: '#FFBB28' }
+        { name: "Cancelados", value: status.cancelled, color: '#FF0000' }
       ];
 
       res.json(statusData);
