@@ -104,22 +104,33 @@ export default function Orders() {
       // Crear el pedido
       const orderResponse = await apiRequest("POST", "/api/orders", {
         customerId: data.customerId,
-        routeId: null, // Será asignado después
-        total: data.total,
+        routeId: null,
+        total: data.total.toString(),
         status: "pending",
         paymentMethod: "cash",
         date: new Date().toISOString()
       });
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json();
+        throw new Error(errorData.error || 'Error al crear el pedido');
+      }
+
       const order = await orderResponse.json();
 
       // Crear los items del pedido
-      for (const item of data.items) {
-        await apiRequest("POST", `/api/orders/${order.id}/items`, {
+      const validItems = data.items.filter((item: OrderItem) => item.quantity > 0);
+      for (const item of validItems) {
+        const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, {
           orderId: order.id,
           productId: parseInt(item.code),
           quantity: item.quantity,
           price: item.price.toString()
         });
+
+        if (!itemResponse.ok) {
+          throw new Error('Error al crear los items del pedido');
+        }
       }
 
       return order;
@@ -161,7 +172,7 @@ export default function Orders() {
     createMutation.mutate({
       customerId: selectedCustomer.id,
       items: validItems,
-      total: total.toString()
+      total
     });
   };
 
