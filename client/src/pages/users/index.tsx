@@ -58,11 +58,23 @@ export default function Users() {
   // Formulario
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      name: "",
+      username: "",
+      password: "",
+      role: "admin",
+      phone: "",
+      license: "",
+      licenseExpiry: "",
+      emergencyContact: "",
+      active: true,
+    }
   });
 
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Intentando crear usuario con datos:', data);
       const response = await apiRequest("POST", "/api/users", data);
       if (!response.ok) {
         const error = await response.json();
@@ -80,6 +92,7 @@ export default function Users() {
       form.reset();
     },
     onError: (error: Error) => {
+      console.error('Error en createUserMutation:', error);
       toast({
         variant: "destructive",
         title: t("error"),
@@ -91,6 +104,10 @@ export default function Users() {
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const response = await apiRequest("PUT", `/api/users/${id}`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar usuario');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -102,11 +119,23 @@ export default function Users() {
       setIsDialogOpen(false);
       setEditingUser(null);
     },
+    onError: (error: Error) => {
+      console.error('Error en updateUserMutation:', error);
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error.message,
+      });
+    },
   });
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await apiRequest("DELETE", `/api/users/${id}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar usuario');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -116,15 +145,27 @@ export default function Users() {
         description: t("userDeleted"),
       });
     },
+    onError: (error: Error) => {
+      console.error('Error en deleteUserMutation:', error);
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error.message,
+      });
+    },
   });
 
   const onSubmit = async (data: any) => {
     try {
+      console.log('Form data before submit:', data);
+
       const formattedData = {
         ...data,
         licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
         hireDate: new Date().toISOString(),
       };
+
+      console.log('Formatted data:', formattedData);
 
       if (editingUser) {
         await updateUserMutation.mutateAsync({ id: editingUser.id, data: formattedData });
@@ -158,18 +199,6 @@ export default function Users() {
   };
 
   const handleDialogOpen = (open: boolean) => {
-    if (open) {
-      form.reset({
-        name: "",
-        username: "",
-        password: "",
-        role: "admin",
-        phone: "",
-        license: "",
-        licenseExpiry: "",
-        emergencyContact: "",
-      });
-    }
     setIsDialogOpen(open);
   };
 
@@ -234,10 +263,7 @@ export default function Users() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("role")}</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder={t("selectRole")} />
