@@ -6,7 +6,6 @@ import { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -48,50 +47,22 @@ import { es } from "date-fns/locale";
 export default function Users() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [selectedTab, setSelectedTab] = useState("admin");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Consultas
+  // Consulta de usuarios
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
-
-  // Filtrar usuarios por rol
-  const roleGroups = {
-    admin: users.filter(user => user.role === "admin" && user.active),
-    supervisor: users.filter(user => user.role === "supervisor" && user.active),
-    cashier: users.filter(user => user.role === "cashier" && user.active),
-    driver: users.filter(user => user.role === "driver" && user.active),
-    assistant: users.filter(user => user.role === "assistant" && user.active),
-  };
 
   // Formulario
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
   });
 
-  // Resetear el formulario cuando se abre el diálogo
-  const handleDialogOpen = (open: boolean) => {
-    if (open) {
-      form.reset({
-        name: "",
-        username: "",
-        password: "",
-        role: selectedTab,
-        phone: "",
-        license: "",
-        licenseExpiry: "",
-        emergencyContact: "",
-      });
-    }
-    setIsDialogOpen(open);
-  };
-
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Sending data:', data);
       const response = await apiRequest("POST", "/api/users", data);
       if (!response.ok) {
         const error = await response.json();
@@ -149,7 +120,6 @@ export default function Users() {
 
   const onSubmit = async (data: any) => {
     try {
-      // Convertir licenseExpiry a formato ISO si existe
       const formattedData = {
         ...data,
         licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
@@ -185,6 +155,22 @@ export default function Users() {
     if (confirm(t("confirmDelete"))) {
       deleteUserMutation.mutate(id);
     }
+  };
+
+  const handleDialogOpen = (open: boolean) => {
+    if (open) {
+      form.reset({
+        name: "",
+        username: "",
+        password: "",
+        role: "admin",
+        phone: "",
+        license: "",
+        licenseExpiry: "",
+        emergencyContact: "",
+      });
+    }
+    setIsDialogOpen(open);
   };
 
   return (
@@ -334,82 +320,58 @@ export default function Users() {
         </Dialog>
       </div>
 
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList>
-          <TabsTrigger value="admin">{t("admin")}</TabsTrigger>
-          <TabsTrigger value="supervisor">{t("supervisor")}</TabsTrigger>
-          <TabsTrigger value="cashier">{t("cashier")}</TabsTrigger>
-          <TabsTrigger value="driver">{t("driver")}</TabsTrigger>
-          <TabsTrigger value="assistant">{t("assistant")}</TabsTrigger>
-        </TabsList>
-
-        {Object.entries(roleGroups).map(([role, users]) => (
-          <TabsContent key={role} value={role}>
-            <Card>
-              <ScrollArea className="h-[calc(100vh-300px)]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("name")}</TableHead>
-                      <TableHead>{t("username")}</TableHead>
-                      <TableHead>{t("phone")}</TableHead>
-                      {role === "driver" && (
-                        <>
-                          <TableHead>{t("license")}</TableHead>
-                          <TableHead>{t("licenseExpiry")}</TableHead>
-                        </>
-                      )}
-                      {(role === "driver" || role === "assistant") && (
-                        <TableHead>{t("emergencyContact")}</TableHead>
-                      )}
-                      <TableHead className="text-right">{t("actions")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>{user.phone || "-"}</TableCell>
-                        {role === "driver" && (
-                          <>
-                            <TableCell>{user.license || "-"}</TableCell>
-                            <TableCell>
-                              {user.licenseExpiry
-                                ? format(new Date(user.licenseExpiry), "PPP", { locale: es })
-                                : "-"}
-                            </TableCell>
-                          </>
-                        )}
-                        {(role === "driver" || role === "assistant") && (
-                          <TableCell>{user.emergencyContact || "-"}</TableCell>
-                        )}
-                        <TableCell className="text-right">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mr-2"
-                            onClick={() => handleEdit(user)}
-                          >
-                            {t("edit")}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(user.id)}
-                          >
-                            {t("delete")}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+      <Card>
+        <ScrollArea className="h-[calc(100vh-300px)]">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("name")}</TableHead>
+                <TableHead>{t("username")}</TableHead>
+                <TableHead>{t("role")}</TableHead>
+                <TableHead>{t("phone")}</TableHead>
+                <TableHead>{t("license")}</TableHead>
+                <TableHead>{t("licenseExpiry")}</TableHead>
+                <TableHead>{t("emergencyContact")}</TableHead>
+                <TableHead className="text-right">{t("actions")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.filter(user => user.active).map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>{user.name}</TableCell>
+                  <TableCell>{user.username}</TableCell>
+                  <TableCell>{t(user.role)}</TableCell>
+                  <TableCell>{user.phone || "-"}</TableCell>
+                  <TableCell>{user.role === "driver" ? user.license || "-" : "-"}</TableCell>
+                  <TableCell>
+                    {user.role === "driver" && user.licenseExpiry
+                      ? format(new Date(user.licenseExpiry), "PPP", { locale: es })
+                      : "-"}
+                  </TableCell>
+                  <TableCell>{user.emergencyContact || "-"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mr-2"
+                      onClick={() => handleEdit(user)}
+                    >
+                      {t("edit")}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(user.id)}
+                    >
+                      {t("delete")}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </Card>
     </div>
   );
 }
