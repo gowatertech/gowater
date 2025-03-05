@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type Zone, type Customer } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
+import { Pencil, X } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet icon issue
@@ -24,12 +25,19 @@ interface DrawingControlProps {
 function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   const [points, setPoints] = useState<LatLngExpression[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
+  const { toast } = useToast();
 
-  useMapEvents({
+  const map = useMapEvents({
     click(e) {
       if (!isDrawing) return;
       const newPoint: LatLngExpression = [e.latlng.lat, e.latlng.lng];
       setPoints([...points, newPoint]);
+
+      // Feedback visual
+      toast({
+        description: `Punto añadido (${points.length + 1})`,
+        duration: 1000,
+      });
     },
   });
 
@@ -38,30 +46,61 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
       onPolygonComplete(points);
       setPoints([]);
       setIsDrawing(false);
+      map.dragging.enable();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Se necesitan al menos 3 puntos para crear una zona",
+      });
     }
+  };
+
+  const handleStartDrawing = () => {
+    setIsDrawing(true);
+    setPoints([]);
+    map.dragging.disable(); // Deshabilitar el arrastre del mapa mientras se dibuja
+    toast({
+      title: "Modo dibujo activado",
+      description: "Haz clic en el mapa para añadir puntos a la zona",
+    });
+  };
+
+  const handleCancel = () => {
+    setIsDrawing(false);
+    setPoints([]);
+    map.dragging.enable();
   };
 
   return (
     <div className="absolute top-2 right-2 z-[1000] bg-white p-2 rounded-lg shadow-lg">
-      <Button
-        variant={isDrawing ? "destructive" : "default"}
-        onClick={() => {
-          if (isDrawing) {
-            setPoints([]);
-          }
-          setIsDrawing(!isDrawing);
-        }}
-      >
-        {isDrawing ? "Cancelar" : "Dibujar Zona"}
-      </Button>
-      {isDrawing && (
+      {!isDrawing ? (
         <Button
-          className="ml-2"
-          disabled={points.length < 3}
-          onClick={handleComplete}
+          variant="default"
+          onClick={handleStartDrawing}
+          className="flex items-center gap-2"
         >
-          Completar
+          <Pencil size={16} />
+          Dibujar Zona
         </Button>
+      ) : (
+        <div className="flex gap-2">
+          <Button
+            variant="destructive"
+            onClick={handleCancel}
+            className="flex items-center gap-2"
+          >
+            <X size={16} />
+            Cancelar
+          </Button>
+          <Button
+            variant="default"
+            disabled={points.length < 3}
+            onClick={handleComplete}
+          >
+            Completar ({points.length} puntos)
+          </Button>
+        </div>
       )}
     </div>
   );
