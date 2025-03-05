@@ -4,7 +4,6 @@ import { Sidebar } from "./Sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   SidebarProvider,
-  SidebarTrigger,
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -14,15 +13,10 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [open, setOpen] = useState(true);
   const [openMobile, setOpenMobile] = useState(false);
 
   return (
-    <SidebarProvider 
-      defaultOpen={true} 
-      open={open} 
-      onOpenChange={setOpen}
-    >
+    <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen bg-background">
         {/* Botón de menú móvil */}
         <Button
