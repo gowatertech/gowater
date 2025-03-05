@@ -161,5 +161,112 @@ export async function registerRoutes(app: Express) {
     res.json(updatedStats);
   });
 
+  // Dashboard Stats
+  app.get("/api/stats/sales", async (req, res) => {
+    try {
+      const orders = await storage.listOrders();
+      const today = new Date();
+      const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+
+      // Calcular ventas totales y del mes anterior
+      const currentMonthSales = orders
+        .filter(order => new Date(order.date) >= lastMonth)
+        .reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
+
+      const previousMonthSales = orders
+        .filter(order => {
+          const orderDate = new Date(order.date);
+          return orderDate >= new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, lastMonth.getDate()) &&
+                 orderDate < lastMonth;
+        })
+        .reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
+
+      const percentageChange = previousMonthSales === 0 ? 100 : 
+        ((currentMonthSales - previousMonthSales) / previousMonthSales) * 100;
+
+      res.json({
+        totalSales: currentMonthSales.toFixed(2),
+        percentageChange: percentageChange.toFixed(1)
+      });
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/stats/sales-trend", async (req, res) => {
+    try {
+      const orders = await storage.listOrders();
+      const salesByDate = new Map();
+
+      // Agrupar ventas por fecha
+      orders.forEach(order => {
+        const date = new Date(order.date).toISOString().split('T')[0];
+        const total = parseFloat(order.total.toString());
+        salesByDate.set(date, (salesByDate.get(date) || 0) + total);
+      });
+
+      // Convertir a array y ordenar por fecha
+      const trend = Array.from(salesByDate.entries())
+        .map(([date, sales]) => ({ date, sales }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .slice(-7); // Últimos 7 días
+
+      res.json(trend);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/stats/order-status", async (req, res) => {
+    try {
+      const orders = await storage.listOrders();
+      const status = {
+        pending: 0,
+        delivered: 0,
+        cancelled: 0
+      };
+
+      orders.forEach(order => {
+        status[order.status]++;
+      });
+
+      const statusData = [
+        { name: "Entregados", value: status.delivered, color: '#0088FE' },
+        { name: "Pendientes", value: status.pending, color: '#00C49F' },
+        { name: "Cancelados", value: status.cancelled, color: '#FFBB28' }
+      ];
+
+      res.json(statusData);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/stats/top-customers", async (req, res) => {
+    try {
+      const orders = await storage.listOrders();
+      const customers = await storage.listCustomers();
+
+      // Contar pedidos por cliente
+      const ordersByCustomer = orders.reduce((acc, order) => {
+        acc[order.customerId] = (acc[order.customerId] || 0) + 1;
+        return acc;
+      }, {});
+
+      // Crear array de top clientes
+      const topCustomers = Object.entries(ordersByCustomer)
+        .map(([customerId, count]) => ({
+          name: customers.find(c => c.id === parseInt(customerId))?.name || 'Cliente Desconocido',
+          orders: count
+        }))
+        .sort((a, b) => b.orders - a.orders)
+        .slice(0, 5);
+
+      res.json(topCustomers);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   return httpServer;
 }
