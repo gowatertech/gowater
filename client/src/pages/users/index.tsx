@@ -84,7 +84,12 @@ export default function Users() {
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Sending data:', data); // Agregamos logging
       const response = await apiRequest("POST", "/api/users", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al crear usuario');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -95,6 +100,13 @@ export default function Users() {
       });
       setIsDialogOpen(false);
       form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error.message,
+      });
     },
   });
 
@@ -128,11 +140,22 @@ export default function Users() {
     },
   });
 
-  const onSubmit = (data: any) => {
-    if (editingUser) {
-      updateUserMutation.mutate({ id: editingUser.id, data });
-    } else {
-      createUserMutation.mutate(data);
+  const onSubmit = async (data: any) => {
+    try {
+      // Convertir licenseExpiry a formato ISO si existe
+      const formattedData = {
+        ...data,
+        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
+        hireDate: new Date().toISOString(),
+      };
+
+      if (editingUser) {
+        await updateUserMutation.mutateAsync({ id: editingUser.id, data: formattedData });
+      } else {
+        await createUserMutation.mutateAsync(formattedData);
+      }
+    } catch (error) {
+      console.error('Error en submit:', error);
     }
   };
 
