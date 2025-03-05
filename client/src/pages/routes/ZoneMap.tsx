@@ -118,8 +118,7 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
             <Marker 
               key={index} 
               position={point}
-            >
-            </Marker>
+            />
           ))}
         </>
       )}
@@ -132,6 +131,7 @@ export default function ZoneMap() {
   const [newZoneName, setNewZoneName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#3B82F6");
 
+  // Consultas
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
   });
@@ -148,7 +148,7 @@ export default function ZoneMap() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
       toast({
-        title: "Zona creada",
+        title: "¡Zona creada!",
         description: "La zona se ha creado exitosamente",
       });
       setNewZoneName("");

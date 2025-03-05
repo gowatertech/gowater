@@ -86,12 +86,6 @@ export default function RouteOptimizer() {
     optimizeRouteMutation.mutate(selectedOrderIds);
   };
 
-  // Convertir coordenadas de texto a [lat, lng]
-  const parseCoordinates = (coordStr: string): LatLngExpression => {
-    const [lat, lng] = coordStr.split(",").map(Number);
-    return [lat, lng];
-  };
-
   // Obtener la ruta como array de coordenadas
   const getRouteCoordinates = (): LatLngExpression[] => {
     if (!optimizedRoute) return [];
@@ -217,53 +211,6 @@ export default function RouteOptimizer() {
           </div>
         </DialogContent>
       </Dialog>
-      {/* Tabla de Rutas */}
-      <div className="mt-6 bg-white rounded-lg shadow-sm border overflow-hidden">
-        <ScrollArea className="w-full">
-          <div className="min-w-[800px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("route")}</TableHead>
-                  <TableHead>{t("driver")}</TableHead>
-                  <TableHead>{t("status")}</TableHead>
-                  <TableHead>{t("orders")}</TableHead>
-                  <TableHead>{t("progress")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {routes?.map((route) => (
-                  <TableRow key={route.id}>
-                    <TableCell>#{route.id}</TableCell>
-                    <TableCell>{route.driverId}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        route.status === "completed" ? "bg-green-100 text-green-800" :
-                          route.status === "in_progress" ? "bg-blue-100 text-blue-800" :
-                            "bg-yellow-100 text-yellow-800"
-                      }`}>
-                        {t(route.status)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{route.deliverySequence?.length || 0}</TableCell>
-                    <TableCell>
-                      {route.status === "in_progress" && (
-                        <span>
-                          {route.currentLocation || t("noLocation")}
-                          <br />
-                          <span className="text-xs text-muted-foreground">
-                            {route.lastUpdate ? new Date(route.lastUpdate).toLocaleString() : ""}
-                          </span>
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </ScrollArea>
-      </div>
     </div>
   );
 }
