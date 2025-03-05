@@ -27,6 +27,14 @@ export default function Dashboard() {
     queryKey: ["/api/orders"],
   });
 
+  const { data: products } = useQuery({
+    queryKey: ["/api/products"],
+  });
+
+  // Calcular el total de inventario
+  const totalInventory = products?.reduce((sum, product) => sum + product.stock, 0) || 0;
+  const totalProducts = products?.length || 0;
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">{t("dashboard")}</h1>
@@ -66,24 +74,26 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("activeRoutes")}
+              {t("inventory")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">4 camiones en ruta</p>
+            <div className="text-2xl font-bold">{totalInventory}</div>
+            <p className="text-xs text-muted-foreground">{totalProducts} productos registrados</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("inventory")}
+              {t("deliveredOrders")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">Unidades disponibles</p>
+            <div className="text-2xl font-bold">
+              {orders?.filter(o => o.status === "delivered").length || 0}
+            </div>
+            <p className="text-xs text-muted-foreground">Pedidos entregados</p>
           </CardContent>
         </Card>
       </div>
@@ -165,7 +175,7 @@ export default function Dashboard() {
                   <p className="text-muted-foreground mb-1">
                     {new Date(order.date).toLocaleString()}
                   </p>
-                  <p>Pedido #{order.id} - {order.status}</p>
+                  <p>Pedido #{order.id} - {t(order.status)}</p>
                 </div>
               ))}
             </div>
