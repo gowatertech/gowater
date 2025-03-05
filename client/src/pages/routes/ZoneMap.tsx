@@ -135,7 +135,7 @@ export default function ZoneMap() {
   const center: LatLngExpression = [18.4955, -69.8734]; // Santo Domingo
 
   return (
-    <div className="h-[80vh] relative">
+    <div className="h-[60vh] relative">
       <div className="absolute top-2 left-2 z-[1000] bg-white p-2 rounded-lg shadow-lg flex gap-2">
         <Input
           placeholder="Nombre de la zona"
