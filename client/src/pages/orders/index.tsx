@@ -216,21 +216,21 @@ export default function Orders() {
           <DialogTrigger asChild>
             <Button className="w-full sm:w-auto text-base">{t("newOrder")}</Button>
           </DialogTrigger>
-          <DialogContent className="w-[98vw] sm:w-[95vw] max-w-3xl p-3 sm:p-6 gap-4">
+          <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-2 sm:p-4 gap-3">
             <DialogHeader>
-              <DialogTitle className="text-xl">{t("newOrder")}</DialogTitle>
+              <DialogTitle className="text-lg">{t("newOrder")}</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Cliente y Productos */}
-              <div className="grid gap-4">
+              <div className="grid gap-3">
                 <Select
                   onValueChange={(value) => {
                     const customer = customers?.find(c => c.id === parseInt(value));
                     setSelectedCustomer(customer || null);
                   }}
                 >
-                  <SelectTrigger className="h-12 text-base">
+                  <SelectTrigger className="h-9 text-sm">
                     <SelectValue placeholder={t("selectCustomer")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -238,7 +238,7 @@ export default function Orders() {
                       <SelectItem
                         key={customer.id}
                         value={customer.id.toString()}
-                        className="text-base py-3"
+                        className="text-sm py-2"
                       >
                         {customer.name}
                       </SelectItem>
@@ -247,7 +247,7 @@ export default function Orders() {
                 </Select>
 
                 {selectedCustomer && (
-                  <div className="text-base grid grid-cols-1 gap-3 bg-muted p-3 rounded">
+                  <div className="text-sm grid grid-cols-1 gap-2 bg-muted p-2 rounded">
                     <div>
                       <span className="font-medium">{t("businessName")}: </span>
                       {selectedCustomer.businessName}
@@ -262,26 +262,26 @@ export default function Orders() {
 
               {/* Tabla de Productos */}
               <div className="border rounded-lg overflow-hidden">
-                <ScrollArea className="h-[50vh] sm:h-[40vh]">
+                <ScrollArea className="h-[35vh] sm:h-[30vh]">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-24 text-base sticky top-0 bg-background">Código</TableHead>
-                        <TableHead className="text-base sticky top-0 bg-background">Descripción</TableHead>
-                        <TableHead className="w-20 text-right text-base sticky top-0 bg-background">Cant.</TableHead>
-                        <TableHead className="w-28 text-right text-base sticky top-0 bg-background">Precio</TableHead>
-                        <TableHead className="w-28 text-right text-base sticky top-0 bg-background">Total</TableHead>
+                        <TableHead className="w-20 text-sm sticky top-0 bg-background">Código</TableHead>
+                        <TableHead className="text-sm sticky top-0 bg-background">Descripción</TableHead>
+                        <TableHead className="w-16 text-right text-sm sticky top-0 bg-background">Cant.</TableHead>
+                        <TableHead className="w-24 text-right text-sm sticky top-0 bg-background">Precio</TableHead>
+                        <TableHead className="w-24 text-right text-sm sticky top-0 bg-background">Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {orderItems.map((item, index) => (
                         <TableRow key={index}>
-                          <TableCell className="p-1">
+                          <TableCell className="p-0.5">
                             <Select
                               value={item.code}
                               onValueChange={(value) => handleProductChange(index, value)}
                             >
-                              <SelectTrigger className="h-12 text-base">
+                              <SelectTrigger className="h-8 text-sm">
                                 <SelectValue placeholder="---" />
                               </SelectTrigger>
                               <SelectContent>
@@ -289,7 +289,7 @@ export default function Orders() {
                                   <SelectItem
                                     key={product.id}
                                     value={product.id.toString()}
-                                    className="text-base py-3"
+                                    className="text-sm py-1.5"
                                   >
                                     {product.id}
                                   </SelectItem>
@@ -297,34 +297,34 @@ export default function Orders() {
                               </SelectContent>
                             </Select>
                           </TableCell>
-                          <TableCell className="p-1">
+                          <TableCell className="p-0.5">
                             <Input
                               value={item.description}
                               readOnly
-                              className="bg-muted h-12 text-base"
+                              className="bg-muted h-8 text-sm"
                             />
                           </TableCell>
-                          <TableCell className="p-1">
+                          <TableCell className="p-0.5">
                             <Input
                               type="number"
                               min="0"
                               value={item.quantity}
                               onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                              className="text-right h-12 text-base"
+                              className="text-right h-8 text-sm"
                             />
                           </TableCell>
-                          <TableCell className="p-1">
+                          <TableCell className="p-0.5">
                             <Input
                               value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
                               readOnly
-                              className="text-right bg-muted h-12 text-base"
+                              className="text-right bg-muted h-8 text-sm"
                             />
                           </TableCell>
-                          <TableCell className="p-1">
+                          <TableCell className="p-0.5">
                             <Input
                               value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
                               readOnly
-                              className="text-right bg-muted h-12 text-base"
+                              className="text-right bg-muted h-8 text-sm"
                             />
                           </TableCell>
                         </TableRow>
@@ -339,12 +339,12 @@ export default function Orders() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Notas del pedido..."
-                className="h-24 text-base"
+                className="h-20 text-sm"
               />
 
               {/* Totales y Botón */}
-              <div className="flex flex-col gap-4">
-                <div className="bg-muted p-4 rounded-lg space-y-2 text-base">
+              <div className="flex flex-col gap-3">
+                <div className="bg-muted p-3 rounded-lg space-y-1.5 text-sm">
                   <div className="flex justify-between">
                     <span>Sub-total:</span>
                     <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
@@ -353,14 +353,14 @@ export default function Orders() {
                     <span>ITBIS (18%):</span>
                     <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-lg">
+                  <div className="flex justify-between font-bold text-base">
                     <span>Total:</span>
                     <span>RD$ {calculateTotal().total.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <Button
-                  className="w-full h-12 text-base"
+                  className="w-full h-9 text-sm"
                   disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
                   onClick={handleCreateOrder}
                 >
@@ -379,29 +379,29 @@ export default function Orders() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-base">No. Pedido</TableHead>
-                  <TableHead className="text-base">Cliente</TableHead>
-                  <TableHead className="text-base">Fecha</TableHead>
-                  <TableHead className="text-base">Total</TableHead>
-                  <TableHead className="text-base">Estado</TableHead>
-                  <TableHead className="text-base">Acciones</TableHead>
+                  <TableHead className="text-sm py-2">No. Pedido</TableHead>
+                  <TableHead className="text-sm py-2">Cliente</TableHead>
+                  <TableHead className="text-sm py-2">Fecha</TableHead>
+                  <TableHead className="text-sm py-2">Total</TableHead>
+                  <TableHead className="text-sm py-2">Estado</TableHead>
+                  <TableHead className="text-sm py-2">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders?.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="text-base">#{order.id}</TableCell>
-                    <TableCell className="text-base">
+                  <TableRow key={order.id} className="h-10">
+                    <TableCell className="text-sm py-1">#{order.id}</TableCell>
+                    <TableCell className="text-sm py-1">
                       {customers?.find(c => c.id === order.customerId)?.name}
                     </TableCell>
-                    <TableCell className="text-base">
+                    <TableCell className="text-sm py-1">
                       {new Date(order.date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-base">
+                    <TableCell className="text-sm py-1">
                       RD$ {parseFloat(order.total.toString()).toFixed(2)}
                     </TableCell>
-                    <TableCell>
-                      <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                    <TableCell className="py-1">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         order.status === "delivered" ? "bg-green-100 text-green-800" :
                           order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
                             "bg-red-100 text-red-800"
@@ -409,8 +409,8 @@ export default function Orders() {
                         {t(order.status)}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" className="h-10 text-base">
+                    <TableCell className="py-1">
+                      <Button variant="ghost" size="sm" className="h-8 text-sm">
                         Ver detalles
                       </Button>
                     </TableCell>
