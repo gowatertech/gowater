@@ -28,10 +28,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="fixed top-4 left-4 z-50 md:hidden"
+          className="fixed top-3 left-4 z-50 md:hidden"
           onClick={() => setOpenMobile(!openMobile)}
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </Button>
 
         {/* Sidebar */}
