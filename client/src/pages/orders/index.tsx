@@ -100,31 +100,32 @@ export default function Orders() {
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
-        // 1. Crear pedido con datos mínimos necesarios
         const orderData = {
-          customerId: parseInt(data.customerId), // Asegurarnos que es número
-          total: data.total.toString(), // Asegurarnos que es string
+          customerId: parseInt(data.customerId),
+          total: data.total.toString(),
           status: "pending",
-          date: new Date().toISOString(), // Formato ISO para timestamp
+          paymentMethod: "cash",
+          date: new Date().toISOString()
         };
 
-        console.log('Intentando crear pedido con:', orderData);
+        console.log('Intento crear pedido:', JSON.stringify(orderData, null, 2));
         const orderResponse = await apiRequest("POST", "/api/orders", orderData);
         const responseText = await orderResponse.text();
-        console.log('Respuesta completa:', {
+
+        console.log('Respuesta del servidor:', {
           status: orderResponse.status,
-          text: responseText
+          headers: Object.fromEntries(orderResponse.headers.entries()),
+          body: responseText
         });
 
         if (!orderResponse.ok) {
-          throw new Error(responseText);
+          throw new Error(`Error del servidor: ${responseText}`);
         }
 
         const order = JSON.parse(responseText);
-        console.log('Pedido creado exitosamente:', order);
         return order;
       } catch (error) {
-        console.error('Error completo:', error);
+        console.error('Error detallado:', error);
         throw error;
       }
     },
@@ -145,10 +146,11 @@ export default function Orders() {
       }));
     },
     onError: (error: any) => {
+      console.error('Error completo:', error);
       toast({
         variant: "destructive",
         title: t("error"),
-        description: `Error: ${error.message}`,
+        description: error.message
       });
     }
   });
@@ -160,7 +162,7 @@ export default function Orders() {
 
     createMutation.mutate({
       customerId: selectedCustomer.id,
-      total: total.toString() // Asegurarnos que es string
+      total: total.toFixed(2) // Asegurar 2 decimales
     });
   };
 
