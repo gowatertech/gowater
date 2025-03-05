@@ -10,9 +10,14 @@ import {
   insertOrderSchema,
   insertOrderItemSchema,
   insertSettingsSchema,
-  insertCustomerOrdersSchema
+  insertCustomerOrdersSchema,
+  insertZoneSchema,
+  zones,
+  customers
 } from "@shared/schema";
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
+import { eq } from 'drizzle-orm';
+import { db } from './db';
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -365,6 +370,48 @@ export async function registerRoutes(app: Express) {
       );
 
       res.json(route);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+
+  // Zonas
+  app.get("/api/zones", async (req, res) => {
+    try {
+      const allZones = await db.select().from(zones);
+      res.json(allZones);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/zones", async (req, res) => {
+    try {
+      const result = insertZoneSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      const [zone] = await db.insert(zones).values(result.data).returning();
+      res.json(zone);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.put("/api/customers/:id/zone", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { zoneId } = req.body;
+
+      const [customer] = await db
+        .update(customers)
+        .set({ zoneId })
+        .where(eq(customers.id, parseInt(id)))
+        .returning();
+
+      res.json(customer);
     } catch (error) {
       res.status(500).json({ error: String(error) });
     }

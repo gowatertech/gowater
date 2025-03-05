@@ -20,7 +20,8 @@ export const customers = pgTable("customers", {
   email: text("email"),
   address: text("address").notNull(),
   phone: text("phone").notNull(),
-  coordinates: text("coordinates"), // For route planning
+  coordinates: text("coordinates"), // "lat,lng"
+  zoneId: integer("zone_id").references(() => zones.id),
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
 });
 
@@ -110,6 +111,16 @@ export const customerOrders = pgTable("customer_orders", {
   notes: text("notes"),
 });
 
+// Zonas
+export const zones = pgTable("zones", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  coordinates: text("coordinates").array().notNull(), // Array de coordenadas que forman el polígono
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+
 // Create insert schemas
 export const insertUserSchema = createInsertSchema(users);
 export const insertCustomerSchema = createInsertSchema(customers);
@@ -142,6 +153,9 @@ export const insertOrderSchema = createInsertSchema(orders, {
 export const insertOrderItemSchema = createInsertSchema(orderItems);
 export const insertSettingsSchema = createInsertSchema(settings);
 export const insertCustomerOrdersSchema = createInsertSchema(customerOrders);
+export const insertZoneSchema = createInsertSchema(zones, {
+  coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
+});
 
 // Export types
 export type User = typeof users.$inferSelect;
@@ -153,6 +167,7 @@ export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
+export type Zone = typeof zones.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
@@ -163,3 +178,4 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
+export type InsertZone = z.infer<typeof insertZoneSchema>;
