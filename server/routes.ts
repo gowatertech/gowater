@@ -12,6 +12,7 @@ import {
   insertSettingsSchema,
   insertCustomerOrdersSchema
 } from "@shared/schema";
+import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
 
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
@@ -263,6 +264,103 @@ export async function registerRoutes(app: Express) {
         .slice(0, 5);
 
       res.json(topCustomers);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // New endpoints for route optimization and tracking
+  app.post("/api/routes/optimize", async (req, res) => {
+    try {
+      const { orderIds } = req.body;
+
+      // Obtener los pedidos
+      const orders = await Promise.all(
+        orderIds.map((id: number) => storage.getOrder(id))
+      );
+
+      // Filtrar pedidos válidos
+      const validOrders = orders.filter((o): o is Order => 
+        o !== undefined && o.deliveryCoordinates !== null
+      );
+
+      if (validOrders.length === 0) {
+        return res.status(400).json({ error: "No hay pedidos válidos para optimizar" });
+      }
+
+      // Calcular la ruta óptima
+      const optimizedRoute = calculateOptimalRoute(validOrders);
+
+      res.json(optimizedRoute);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/routes/:id/start", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { currentLocation } = req.body;
+
+      // Actualizar estado de la ruta
+      const route = await storage.updateRouteStatus(
+        parseInt(id),
+        "in_progress",
+        currentLocation
+      );
+
+      // Obtener pedidos de la ruta
+      const orders = await Promise.all(
+        (route.deliverySequence || []).map(orderId => 
+          storage.getOrder(parseInt(orderId))
+        )
+      );
+
+      // Actualizar tiempos estimados
+      const updatedOrders = updateEstimatedDeliveryTimes(
+        route,
+        orders.filter((o): o is Order => o !== undefined),
+        new Date()
+      );
+
+      // Guardar actualizaciones
+      await storage.updateOrderDeliveryTimes(route.id, updatedOrders);
+
+      res.json({ route, orders: updatedOrders });
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/routes/:id/location", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { currentLocation } = req.body;
+
+      const route = await storage.updateRouteProgress(
+        parseInt(id),
+        currentLocation,
+        new Date()
+      );
+
+      res.json(route);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/routes/:id/complete", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { currentLocation } = req.body;
+
+      const route = await storage.updateRouteStatus(
+        parseInt(id),
+        "completed",
+        currentLocation
+      );
+
+      res.json(route);
     } catch (error) {
       res.status(500).json({ error: String(error) });
     }

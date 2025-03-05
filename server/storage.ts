@@ -42,7 +42,9 @@ export interface IStorage {
   getRoute(id: number): Promise<Route | undefined>;
   createRoute(route: InsertRoute): Promise<Route>;
   listRoutes(): Promise<Route[]>;
-  updateRouteStatus(id: number, status: string): Promise<Route>;
+  updateRouteStatus(id: number, status: string, currentLocation?: string): Promise<Route>;
+  updateRouteProgress(id: number, currentLocation: string, lastUpdate: Date): Promise<Route>;
+  updateOrderDeliveryTimes(routeId: number, updates: Partial<Order>[]): Promise<Order[]>;
 
   // Orders
   getOrder(id: number): Promise<Order | undefined>;
@@ -197,21 +199,71 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(routes);
   }
 
-  async updateRouteStatus(id: number, status: "pending" | "in_progress" | "completed"): Promise<Route> {
+  async updateRouteStatus(
+    id: number,
+    status: "pending" | "in_progress" | "completed",
+    currentLocation?: string
+  ): Promise<Route> {
+    const updates: Partial<Route> = {
+      status,
+      lastUpdate: new Date()
+    };
+
+    if (currentLocation) {
+      updates.currentLocation = currentLocation;
+    }
+
+    if (status === "in_progress" && !updates.startTime) {
+      updates.startTime = new Date();
+    } else if (status === "completed" && !updates.endTime) {
+      updates.endTime = new Date();
+    }
+
     const [route] = await db
-      .select()
-      .from(routes)
-      .where(eq(routes.id, id));
-
-    if (!route) throw new Error("Route not found");
-
-    const [updatedRoute] = await db
       .update(routes)
-      .set({ status })
+      .set(updates)
       .where(eq(routes.id, id))
       .returning();
 
-    return updatedRoute;
+    return route;
+  }
+
+  async updateRouteProgress(
+    id: number,
+    currentLocation: string,
+    lastUpdate: Date
+  ): Promise<Route> {
+    const [route] = await db
+      .update(routes)
+      .set({
+        currentLocation,
+        lastUpdate
+      })
+      .where(eq(routes.id, id))
+      .returning();
+
+    return route;
+  }
+
+  async updateOrderDeliveryTimes(
+    routeId: number,
+    updates: Partial<Order>[]
+  ): Promise<Order[]> {
+    const updatedOrders: Order[] = [];
+
+    for (const update of updates) {
+      if (!update.id) continue;
+
+      const [order] = await db
+        .update(orders)
+        .set(update)
+        .where(eq(orders.id, update.id))
+        .returning();
+
+      updatedOrders.push(order);
+    }
+
+    return updatedOrders;
   }
 
   // Orders
