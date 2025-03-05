@@ -157,12 +157,16 @@ export default function Users() {
 
   const onSubmit = async (data: any) => {
     try {
+      console.log('OnSubmit ejecutado');
       console.log('Form data before submit:', data);
+      console.log('Form state:', form.formState);
+
       const formattedData = {
         ...data,
         licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
         hireDate: new Date().toISOString(),
       };
+
       console.log('Formatted data:', formattedData);
 
       if (editingUser) {
