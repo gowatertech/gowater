@@ -26,55 +26,89 @@ const sidebarItems = [
 ];
 
 import {
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
+  Sidebar as UISidebar,
+  SidebarContent as UISidebarContent,
+  SidebarHeader as UISidebarHeader,
+  SidebarMenu as UISidebarMenu,
+  SidebarMenuItem as UISidebarMenuItem,
+  SidebarMenuButton as UISidebarMenuButton,
 } from "@/components/ui/sidebar";
 
-export function Sidebar() {
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+
+interface SidebarProps {
+  openMobile: boolean;
+  setOpenMobile: (open: boolean) => void;
+}
+
+export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
   const [location] = useLocation();
 
+  const SidebarContent = () => (
+    <div className="flex h-full flex-col">
+      <UISidebarHeader className="px-6 py-4">
+        <div className="flex items-center gap-2 text-sidebar-foreground">
+          <Droplet className="h-6 w-6 text-primary" />
+          <span className="text-xl font-bold">GoWater</span>
+        </div>
+      </UISidebarHeader>
+
+      <UISidebarMenu>
+        {sidebarItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = location === item.href;
+
+          return (
+            <UISidebarMenuItem key={item.href}>
+              <Link href={item.href}>
+                <UISidebarMenuButton
+                  asChild
+                  isActive={isActive}
+                  tooltip={t(item.label)}
+                  className={cn(
+                    "w-full justify-start gap-4",
+                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  )}
+                  onClick={() => setOpenMobile(false)}
+                >
+                  <a>
+                    <Icon className="h-4 w-4" />
+                    <span>{t(item.label)}</span>
+                  </a>
+                </UISidebarMenuButton>
+              </Link>
+            </UISidebarMenuItem>
+          );
+        })}
+      </UISidebarMenu>
+    </div>
+  );
+
+  // Versión móvil usando Sheet
+  const MobileSidebar = () => (
+    <Sheet open={openMobile} onOpenChange={setOpenMobile}>
+      <SheetContent side="left" className="p-0 w-[280px]">
+        <SidebarContent />
+      </SheetContent>
+    </Sheet>
+  );
+
+  // Versión desktop usando UISidebar
+  const DesktopSidebar = () => (
+    <UISidebar>
+      <SidebarContent />
+    </UISidebar>
+  );
+
   return (
-    <aside data-sidebar="sidebar" className="group peer hidden md:block">
-      <SidebarContent>
-        <SidebarHeader className="px-6 py-4">
-          <div className="flex items-center gap-2 text-sidebar-foreground">
-            <Droplet className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">GoWater</span>
-          </div>
-        </SidebarHeader>
-
-        <SidebarMenu>
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location === item.href;
-
-            return (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive}
-                    tooltip={t(item.label)}
-                    className={cn(
-                      "w-full justify-start gap-4",
-                      isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                    )}
-                  >
-                    <a>
-                      <Icon className="h-4 w-4" />
-                      <span>{t(item.label)}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarContent>
-    </aside>
+    <>
+      <div className="hidden md:block">
+        <DesktopSidebar />
+      </div>
+      <div className="md:hidden">
+        <MobileSidebar />
+      </div>
+    </>
   );
 }

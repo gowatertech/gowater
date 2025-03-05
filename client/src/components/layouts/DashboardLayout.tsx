@@ -15,27 +15,32 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [open, setOpen] = useState(true);
+  const [openMobile, setOpenMobile] = useState(false);
 
   return (
-    <SidebarProvider defaultOpen={true} open={open} onOpenChange={setOpen}>
+    <SidebarProvider 
+      defaultOpen={true} 
+      open={open} 
+      onOpenChange={setOpen}
+    >
       <div className="flex min-h-screen bg-background">
         {/* Botón de menú móvil */}
         <Button
           variant="ghost"
           size="icon"
           className="fixed top-4 left-4 z-50 md:hidden"
-          onClick={() => setOpen(!open)}
+          onClick={() => setOpenMobile(!openMobile)}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar openMobile={openMobile} setOpenMobile={setOpenMobile} />
 
         {/* Contenido principal */}
         <SidebarInset>
           <ScrollArea className="h-full">
-            <div className="container mx-auto py-8 px-4">
+            <div className="container mx-auto py-8 px-4 md:py-6 md:px-6">
               {children}
             </div>
           </ScrollArea>
