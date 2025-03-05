@@ -31,7 +31,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlusCircle } from "lucide-react";
 
 interface OrderItem {
   code: string;
@@ -57,7 +56,6 @@ export default function Orders() {
     })
   );
 
-  // Queries
   const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
@@ -102,17 +100,21 @@ export default function Orders() {
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       // Crear el pedido
-      const orderResponse = await apiRequest("POST", "/api/orders", {
+      const orderData = {
         customerId: data.customerId,
         routeId: null,
         total: data.total.toString(),
         status: "pending",
         paymentMethod: "cash",
-        date: data.date
-      });
+        date: new Date().toISOString()
+      };
+
+      console.log('Sending order data:', orderData);
+      const orderResponse = await apiRequest("POST", "/api/orders", orderData);
 
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
+        console.error('Order creation error:', errorData);
         throw new Error(errorData.error || 'Error al crear el pedido');
       }
 
@@ -121,14 +123,18 @@ export default function Orders() {
       // Crear los items del pedido
       const validItems = data.items.filter((item: OrderItem) => item.quantity > 0);
       for (const item of validItems) {
-        const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, {
+        const itemData = {
           orderId: order.id,
           productId: parseInt(item.code),
           quantity: item.quantity,
           price: item.price.toString()
-        });
+        };
+
+        console.log('Sending item data:', itemData);
+        const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
 
         if (!itemResponse.ok) {
+          console.error('Item creation error:', await itemResponse.json());
           throw new Error('Error al crear los items del pedido');
         }
       }
@@ -153,6 +159,7 @@ export default function Orders() {
       }));
     },
     onError: (error) => {
+      console.error('Mutation error:', error);
       toast({
         variant: "destructive",
         title: t("error"),
@@ -172,8 +179,7 @@ export default function Orders() {
     createMutation.mutate({
       customerId: selectedCustomer.id,
       items: validItems,
-      total,
-      date: new Date().toISOString() // Formato ISO para PostgreSQL
+      total
     });
   };
 
