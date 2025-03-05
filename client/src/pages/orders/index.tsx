@@ -101,12 +101,12 @@ export default function Orders() {
     mutationFn: async (data: any) => {
       // Crear el pedido
       const orderData = {
-        customerId: data.customerId,
+        customerId: parseInt(data.customerId),
         routeId: null,
         total: data.total.toString(),
         status: "pending",
         paymentMethod: "cash",
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
       };
 
       console.log('Sending order data:', orderData);
@@ -179,7 +179,7 @@ export default function Orders() {
     createMutation.mutate({
       customerId: selectedCustomer.id,
       items: validItems,
-      total
+      total: total.toString()
     });
   };
 
