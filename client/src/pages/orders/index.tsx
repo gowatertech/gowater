@@ -99,31 +99,58 @@ export default function Orders() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Validate and format data according to schema
-      const validatedData = {
+      // 1. Validar items primero
+      const validItems = orderItems.filter(item => item.quantity > 0);
+      if (validItems.length === 0) {
+        throw new Error('Debe agregar al menos un producto');
+      }
+
+      // 2. Calcular totales
+      const subtotal = validItems.reduce((sum, item) => sum + item.total, 0);
+      const tax = subtotal * 0.18;
+      const total = subtotal + tax;
+
+      // 3. Crear el pedido
+      const orderData = {
         customerId: data.customerId,
-        total: data.total,
+        total: total.toFixed(2),
         status: "pending",
         paymentMethod: "cash",
         date: new Date().toISOString(),
         routeId: null
       };
 
-      // Parse through schema to ensure data is valid
-      const result = insertOrderSchema.safeParse(validatedData);
-      if (!result.success) {
-        throw new Error(`Validation error: ${result.error.message}`);
-      }
-
-      // Send validated data
-      const orderResponse = await apiRequest("POST", "/api/orders", result.data);
+      console.log('Enviando pedido:', orderData);
+      const orderResponse = await apiRequest("POST", "/api/orders", orderData);
 
       if (!orderResponse.ok) {
         const errorText = await orderResponse.text();
+        console.error('Error en pedido:', errorText);
         throw new Error(errorText);
       }
 
-      return orderResponse.json();
+      const order = await orderResponse.json();
+      console.log('Pedido creado:', order);
+
+      // 4. Crear los items del pedido
+      for (const item of validItems) {
+        const itemData = {
+          orderId: order.id,
+          productId: parseInt(item.code),
+          quantity: item.quantity,
+          price: item.price.toString()
+        };
+
+        console.log('Enviando item:', itemData);
+        const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
+
+        if (!itemResponse.ok) {
+          console.error('Error en item:', await itemResponse.text());
+          throw new Error('Error al crear items del pedido');
+        }
+      }
+
+      return order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -133,6 +160,7 @@ export default function Orders() {
       });
       setIsDialogOpen(false);
       setSelectedCustomer(null);
+      setNotes("");
       setOrderItems(Array(5).fill({
         code: "",
         description: "",
@@ -151,13 +179,28 @@ export default function Orders() {
   });
 
   const handleCreateOrder = () => {
-    if (!selectedCustomer) return;
+    if (!selectedCustomer) {
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: "Debe seleccionar un cliente"
+      });
+      return;
+    }
 
-    const { total } = calculateTotal();
+    const validItems = orderItems.filter(item => item.quantity > 0);
+    if (validItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: "Debe agregar al menos un producto"
+      });
+      return;
+    }
 
     createMutation.mutate({
       customerId: selectedCustomer.id,
-      total: total.toFixed(2)
+      items: validItems
     });
   };
 
