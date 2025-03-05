@@ -61,23 +61,21 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
 
           return (
             <UISidebarMenuItem key={item.href}>
-              <Link href={item.href}>
-                <UISidebarMenuButton
-                  asChild
-                  isActive={isActive}
-                  tooltip={t(item.label)}
-                  className={cn(
-                    "w-full justify-start gap-4",
-                    isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                  )}
-                  onClick={() => setOpenMobile(false)}
-                >
-                  <a>
-                    <Icon className="h-4 w-4" />
-                    <span>{t(item.label)}</span>
-                  </a>
-                </UISidebarMenuButton>
-              </Link>
+              <UISidebarMenuButton
+                isActive={isActive}
+                tooltip={t(item.label)}
+                className={cn(
+                  "w-full justify-start gap-4",
+                  isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                )}
+                onClick={() => {
+                  setOpenMobile(false);
+                  window.location.href = item.href;
+                }}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{t(item.label)}</span>
+              </UISidebarMenuButton>
             </UISidebarMenuItem>
           );
         })}
