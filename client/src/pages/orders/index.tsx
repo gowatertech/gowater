@@ -100,29 +100,26 @@ export default function Orders() {
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
-        // Datos mínimos según el schema
         const orderData = {
           customerId: data.customerId,
           routeId: null,
           total: data.total.toString(),
-          status: "pending" as const,
-          paymentMethod: "cash" as const,
+          status: "pending",
+          paymentMethod: "cash",
           date: new Date().toISOString()
         };
 
-        console.log('Intentando crear pedido con:', orderData);
+        console.log('Order data:', orderData);
         const orderResponse = await apiRequest("POST", "/api/orders", orderData);
 
         if (!orderResponse.ok) {
           const errorData = await orderResponse.json();
-          console.error('Error detallado:', errorData);
+          console.error('Error:', errorData);
           throw new Error(JSON.stringify(errorData));
         }
 
         const order = await orderResponse.json();
-        console.log('Pedido creado:', order);
 
-        // Crear items después de tener un pedido exitoso
         const validItems = data.items.filter((item: OrderItem) => item.quantity > 0);
         for (const item of validItems) {
           const itemData = {
@@ -132,19 +129,16 @@ export default function Orders() {
             price: item.price.toString()
           };
 
-          console.log('Creando item:', itemData);
           const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
 
           if (!itemResponse.ok) {
-            const itemError = await itemResponse.json();
-            console.error('Error al crear item:', itemError);
-            throw new Error(JSON.stringify(itemError));
+            throw new Error('Error creating order items');
           }
         }
 
         return order;
       } catch (error) {
-        console.error('Error completo:', error);
+        console.error('Error:', error);
         throw error;
       }
     },
@@ -156,6 +150,7 @@ export default function Orders() {
       });
       setIsDialogOpen(false);
       setSelectedCustomer(null);
+      setNotes("");
       setOrderItems(Array(5).fill({
         code: "",
         description: "",
@@ -165,7 +160,6 @@ export default function Orders() {
       }));
     },
     onError: (error: any) => {
-      console.error('Error en mutación:', error);
       toast({
         variant: "destructive",
         title: t("error"),
@@ -185,7 +179,7 @@ export default function Orders() {
     createMutation.mutate({
       customerId: selectedCustomer.id,
       items: validItems,
-      total: total.toString()
+      total
     });
   };
 
