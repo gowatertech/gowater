@@ -132,10 +132,11 @@ export default function ZoneMap() {
     }
   };
 
-  const center: LatLngExpression = [18.4955, -69.8734]; // Santo Domingo
+  // Ajustar el centro más hacia la derecha
+  const center: LatLngExpression = [18.4955, -69.8534]; // Movido 0.02 grados hacia el este
 
   return (
-    <div className="h-[60vh] relative">
+    <div className="relative" style={{ height: "60vh", minWidth: "calc(100% + 480px)", marginRight: "-480px" }}>
       <div className="absolute top-2 left-2 z-[1000] bg-white p-2 rounded-lg shadow-lg flex gap-2">
         <Input
           placeholder="Nombre de la zona"
@@ -152,7 +153,7 @@ export default function ZoneMap() {
 
       <MapContainer
         center={center}
-        zoom={13}
+        zoom={14}
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
