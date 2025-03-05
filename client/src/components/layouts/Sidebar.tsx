@@ -48,8 +48,8 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
       <UISidebarHeader className="px-8 py-4">
-        <div className="flex items-center gap-2 text-sidebar-foreground">
-          <Droplet className="h-6 w-6 text-primary" />
+        <div className="flex items-center gap-2 text-blue-600">
+          <Droplet className="h-6 w-6 text-blue-600" />
           <span className="text-xl font-bold">GoWater</span>
         </div>
       </UISidebarHeader>
@@ -65,8 +65,8 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 isActive={isActive}
                 tooltip={t(item.label)}
                 className={cn(
-                  "w-full justify-start gap-4",
-                  isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                  "w-full justify-start gap-4 text-blue-600/75 hover:text-blue-700 hover:bg-blue-50",
+                  isActive && "bg-blue-50 text-blue-700 shadow-sm"
                 )}
                 onClick={() => {
                   setOpenMobile(false);
