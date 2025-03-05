@@ -47,14 +47,14 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
-      <UISidebarHeader className="px-6 py-4">
+      <UISidebarHeader className="px-8 py-4">
         <div className="flex items-center gap-2 text-sidebar-foreground">
           <Droplet className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">GoWater</span>
+          <span className="text-xl font-bold pl-5">GoWater</span>
         </div>
       </UISidebarHeader>
 
-      <UISidebarMenu>
+      <UISidebarMenu className="px-3">
         {sidebarItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href;
