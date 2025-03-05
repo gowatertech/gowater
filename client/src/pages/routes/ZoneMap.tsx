@@ -6,8 +6,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type Zone, type Customer } from "@shared/schema";
-import { LatLngExpression, LatLng } from 'leaflet';
+import { LatLngExpression, LatLng, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet icon issue
+delete (Icon.Default.prototype as any)._getIconUrl;
+Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 interface DrawingControlProps {
   onPolygonComplete: (coordinates: LatLngExpression[]) => void;
@@ -97,14 +105,31 @@ export default function ZoneMap() {
       return;
     }
 
-    createZoneMutation.mutate({
-      name: newZoneName,
-      color: selectedColor,
-      coordinates: coordinates.map(coord => {
-        const [lat, lng] = Array.isArray(coord) ? coord : [coord.lat, coord.lng];
-        return `${lat},${lng}`;
-      }),
-    });
+    try {
+      const coordStrings = coordinates.map(coord => {
+        if (Array.isArray(coord)) {
+          const [lat, lng] = coord;
+          if (typeof lat === 'number' && typeof lng === 'number') {
+            return `${lat},${lng}`;
+          }
+        } else if (coord instanceof LatLng) {
+          return `${coord.lat},${coord.lng}`;
+        }
+        throw new Error('Coordenadas inválidas');
+      });
+
+      createZoneMutation.mutate({
+        name: newZoneName,
+        color: selectedColor,
+        coordinates: coordStrings,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error al procesar las coordenadas",
+      });
+    }
   };
 
   const center: LatLngExpression = [18.4955, -69.8734]; // Santo Domingo
@@ -137,28 +162,46 @@ export default function ZoneMap() {
 
         <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
-        {/* Render zonas */}
-        {zones.map((zone) => (
-          <Polygon
-            key={zone.id}
-            positions={zone.coordinates.map((coord): LatLngExpression => {
+        {zones.map((zone) => {
+          try {
+            const positions = zone.coordinates.map((coord): LatLngExpression => {
               const [lat, lng] = coord.split(",").map(Number);
+              if (isNaN(lat) || isNaN(lng)) {
+                throw new Error(`Coordenadas inválidas en zona ${zone.id}: ${coord}`);
+              }
               return [lat, lng];
-            })}
-            pathOptions={{ color: zone.color }}
-          />
-        ))}
+            });
 
-        {/* Render clientes */}
+            return (
+              <Polygon
+                key={zone.id}
+                positions={positions}
+                pathOptions={{ color: zone.color }}
+              />
+            );
+          } catch (error) {
+            console.error(`Error al renderizar zona ${zone.id}:`, error);
+            return null;
+          }
+        })}
+
         {customers.map((customer) => {
           if (!customer.coordinates) return null;
-          const [lat, lng] = customer.coordinates.split(",").map(Number);
-          return (
-            <Marker
-              key={customer.id}
-              position={[lat, lng] as LatLngExpression}
-            />
-          );
+          try {
+            const [lat, lng] = customer.coordinates.split(",").map(Number);
+            if (isNaN(lat) || isNaN(lng)) {
+              throw new Error(`Coordenadas inválidas para cliente ${customer.id}`);
+            }
+            return (
+              <Marker
+                key={customer.id}
+                position={[lat, lng] as LatLngExpression}
+              />
+            );
+          } catch (error) {
+            console.error(`Error al renderizar cliente ${customer.id}:`, error);
+            return null;
+          }
         })}
       </MapContainer>
     </div>
