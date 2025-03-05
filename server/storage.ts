@@ -221,8 +221,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
-    return newOrder;
+    try {
+      const total = parseFloat(order.total);
+      if (isNaN(total)) {
+        throw new Error("El total debe ser un número válido");
+      }
+
+      // Convertir los tipos según lo que espera PostgreSQL
+      const orderData = {
+        customerId: order.customerId,
+        total: total,  // Convertir a número para PostgreSQL
+        status: order.status,
+        paymentMethod: order.paymentMethod,
+        date: new Date(order.date), // Convertir a Date para PostgreSQL
+        routeId: order.routeId
+      };
+
+      // Insertar en la base de datos
+      const [newOrder] = await db.insert(orders).values(orderData).returning();
+      return newOrder;
+    } catch (error) {
+      console.error('Error en createOrder:', error);
+      throw error;
+    }
   }
 
   async listOrders(): Promise<Order[]> {

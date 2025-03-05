@@ -58,7 +58,7 @@ export const orders = pgTable("orders", {
   routeId: integer("route_id"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "delivered", "cancelled"] }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "check", "credit_card"] }),
+  paymentMethod: text("payment_method", { enum: ["cash", "check", "credit_card"] }).notNull(),
   date: timestamp("date").notNull(),
 });
 
@@ -102,7 +102,14 @@ export const insertCustomerSchema = createInsertSchema(customers);
 export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);
 export const insertRouteSchema = createInsertSchema(routes);
-export const insertOrderSchema = createInsertSchema(orders);
+export const insertOrderSchema = createInsertSchema(orders, {
+  customerId: z.number(),
+  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  status: z.enum(["pending", "delivered", "cancelled"]),
+  paymentMethod: z.enum(["cash", "check", "credit_card"]),
+  date: z.string().datetime("La fecha debe estar en formato ISO"),
+  routeId: z.number().nullable(),
+}).strict(); // Asegurarse de que no haya campos adicionales
 export const insertOrderItemSchema = createInsertSchema(orderItems);
 export const insertSettingsSchema = createInsertSchema(settings);
 export const insertCustomerOrdersSchema = createInsertSchema(customerOrders);
