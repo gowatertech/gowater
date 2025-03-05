@@ -17,6 +17,9 @@ import ZoneMap from "./ZoneMap";
 // Componente de rutas
 import RouteOptimizer from "./RouteOptimizer";
 
+// Vista del chofer
+import DriverView from "./DriverView";
+
 export default function Routes() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("zones");
@@ -42,6 +45,7 @@ export default function Routes() {
         <TabsList>
           <TabsTrigger value="zones">{t("zones")}</TabsTrigger>
           <TabsTrigger value="routes">{t("routeOptimization")}</TabsTrigger>
+          <TabsTrigger value="driver">Vista del Chofer</TabsTrigger>
         </TabsList>
 
         <TabsContent value="zones" className="mt-4">
@@ -101,6 +105,10 @@ export default function Routes() {
               </ScrollArea>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="driver" className="mt-4">
+          <DriverView />
         </TabsContent>
       </Tabs>
     </div>
