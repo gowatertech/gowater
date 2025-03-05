@@ -24,17 +24,25 @@ export async function registerRoutes(app: Express) {
 
   // Users
   app.get("/api/users", async (req, res) => {
-    const users = await storage.listUsers();
-    res.json(users);
+    try {
+      const users = await storage.listUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   app.post("/api/users", async (req, res) => {
-    const result = insertUserSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
+    try {
+      const result = insertUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      const user = await storage.createUser(result.data);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
     }
-    const user = await storage.createUser(result.data);
-    res.json(user);
   });
 
   app.put("/api/users/:id", async (req, res) => {

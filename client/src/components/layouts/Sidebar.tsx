@@ -24,15 +24,15 @@ const menuColors = {
   orders: "#FFBB28",    // Amarillo
   reports: "#FF8042",   // Naranja
   settings: "#8884d8",  // Púrpura
+  users: "#0088FE",     // Azul brillante
 };
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "dashboard", href: "/" },
+  { icon: Users, label: "users", href: "/users" },
   { icon: Users, label: "customers", href: "/customers" },
   { icon: Package, label: "inventory", href: "/inventory" },
   { icon: Route, label: "routes", href: "/routes" },
-  { icon: Users, label: "drivers", href: "/drivers" },
-  { icon: Users, label: "assistants", href: "/assistants" },
   { icon: Truck, label: "trucks", href: "/trucks" },
   { icon: FileText, label: "orders", href: "/orders" },
   { icon: FileText, label: "reports", href: "/reports" },
