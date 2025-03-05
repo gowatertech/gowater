@@ -82,6 +82,20 @@ export const settings = pgTable("settings", {
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).notNull(),
 });
 
+// Pedidos por Tipo de Cliente
+export const customerOrders = pgTable("customer_orders", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  orderType: text("order_type", { enum: ["regular", "wholesale", "special"] }).notNull(),
+  frequency: text("frequency", { enum: ["daily", "weekly", "monthly", "occasional"] }).notNull(),
+  lastOrderDate: timestamp("last_order_date"),
+  totalOrders: integer("total_orders").notNull().default(0),
+  averageOrderValue: decimal("average_order_value", { precision: 10, scale: 2 }).notNull().default("0"),
+  preferredPaymentMethod: text("preferred_payment_method", { enum: ["cash", "check", "credit_card"] }),
+  status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
+  notes: text("notes"),
+});
+
 // Create insert schemas
 export const insertUserSchema = createInsertSchema(users);
 export const insertCustomerSchema = createInsertSchema(customers);
@@ -91,6 +105,7 @@ export const insertRouteSchema = createInsertSchema(routes);
 export const insertOrderSchema = createInsertSchema(orders);
 export const insertOrderItemSchema = createInsertSchema(orderItems);
 export const insertSettingsSchema = createInsertSchema(settings);
+export const insertCustomerOrdersSchema = createInsertSchema(customerOrders);
 
 // Export types
 export type User = typeof users.$inferSelect;
@@ -101,6 +116,7 @@ export type Route = typeof routes.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
+export type CustomerOrders = typeof customerOrders.$inferSelect;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
@@ -110,3 +126,4 @@ export type InsertRoute = z.infer<typeof insertRouteSchema>;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;

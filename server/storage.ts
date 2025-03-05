@@ -7,7 +7,8 @@ import {
   type Route, type InsertRoute,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
-  type Settings, type InsertSettings
+  type Settings, type InsertSettings,
+  customerOrders, type CustomerOrders, type InsertCustomerOrders,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -56,6 +57,11 @@ export interface IStorage {
   // Settings
   getSettings(): Promise<Settings | undefined>;
   updateSettings(settings: InsertSettings): Promise<Settings>;
+
+  // Customer Orders
+  getCustomerOrders(customerId: number): Promise<CustomerOrders[]>;
+  createCustomerOrder(customerOrder: InsertCustomerOrders): Promise<CustomerOrders>;
+  updateCustomerOrderStats(customerId: number): Promise<CustomerOrders>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -275,6 +281,52 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return newSettings;
     }
+  }
+
+  // Customer Orders
+  async getCustomerOrders(customerId: number): Promise<CustomerOrders[]> {
+    return db
+      .select()
+      .from(customerOrders)
+      .where(eq(customerOrders.customerId, customerId));
+  }
+
+  async createCustomerOrder(customerOrder: InsertCustomerOrders): Promise<CustomerOrders> {
+    const [newCustomerOrder] = await db
+      .insert(customerOrders)
+      .values(customerOrder)
+      .returning();
+    return newCustomerOrder;
+  }
+
+  async updateCustomerOrderStats(customerId: number): Promise<CustomerOrders> {
+    // Calcular estadísticas basadas en los pedidos del cliente
+    const orders = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.customerId, customerId));
+
+    const totalOrders = orders.length;
+    const totalValue = orders.reduce(
+      (sum, order) => sum + parseFloat(order.total.toString()),
+      0
+    );
+    const averageOrderValue = totalOrders > 0 ? totalValue / totalOrders : 0;
+    const lastOrderDate = orders.length > 0
+      ? orders[orders.length - 1].date
+      : null;
+
+    const [updated] = await db
+      .update(customerOrders)
+      .set({
+        totalOrders,
+        averageOrderValue: averageOrderValue.toString(),
+        lastOrderDate
+      })
+      .where(eq(customerOrders.customerId, customerId))
+      .returning();
+
+    return updated;
   }
 }
 

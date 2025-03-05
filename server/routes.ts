@@ -9,7 +9,8 @@ import {
   insertRouteSchema,
   insertOrderSchema,
   insertOrderItemSchema,
-  insertSettingsSchema
+  insertSettingsSchema,
+  insertCustomerOrdersSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express) {
@@ -133,6 +134,24 @@ export async function registerRoutes(app: Express) {
     }
     const settings = await storage.updateSettings(result.data);
     res.json(settings);
+  });
+
+  // Customer Orders
+  app.get("/api/customer-orders/:customerId", async (req, res) => {
+    const customerOrders = await storage.getCustomerOrders(parseInt(req.params.customerId));
+    res.json(customerOrders);
+  });
+
+  app.post("/api/customer-orders", async (req, res) => {
+    const result = insertCustomerOrdersSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    const customerOrder = await storage.createCustomerOrder(result.data);
+
+    // Actualizar estadísticas
+    const updatedStats = await storage.updateCustomerOrderStats(result.data.customerId);
+    res.json(updatedStats);
   });
 
   return httpServer;
