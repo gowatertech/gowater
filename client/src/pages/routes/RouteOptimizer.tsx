@@ -4,6 +4,17 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { type Order, type Route } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
+import { LatLngExpression, Icon } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet icon issue
+delete (Icon.Default.prototype as any)._getIconUrl;
+Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 // Componentes UI
 import { Button } from "@/components/ui/button";
@@ -32,11 +43,7 @@ export default function RouteOptimizer() {
   const [optimizedRoute, setOptimizedRoute] = useState<any>(null);
 
   // Consultas
-  const { data: routes } = useQuery<Route[]>({
-    queryKey: ["/api/routes"],
-  });
-
-  const { data: orders } = useQuery<Order[]>({
+  const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/orders");
@@ -79,6 +86,22 @@ export default function RouteOptimizer() {
     optimizeRouteMutation.mutate(selectedOrderIds);
   };
 
+  // Convertir coordenadas de texto a [lat, lng]
+  const parseCoordinates = (coordStr: string): LatLngExpression => {
+    const [lat, lng] = coordStr.split(",").map(Number);
+    return [lat, lng];
+  };
+
+  // Obtener la ruta como array de coordenadas
+  const getRouteCoordinates = (): LatLngExpression[] => {
+    if (!optimizedRoute) return [];
+
+    const points = optimizedRoute.points || [];
+    return points.map((point: any) => 
+      point.geometry.coordinates.reverse() as LatLngExpression
+    );
+  };
+
   return (
     <div className="p-4">
       <Dialog>
@@ -104,7 +127,7 @@ export default function RouteOptimizer() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders?.map((order) => (
+                    {orders.map((order) => (
                       <TableRow
                         key={order.id}
                         className="cursor-pointer"
@@ -139,17 +162,61 @@ export default function RouteOptimizer() {
             </Button>
 
             {optimizedRoute && (
-              <Card className="p-4 space-y-2">
-                <h3 className="font-medium">{t("optimizationResults")}</h3>
-                <p>{t("totalDistance")}: {optimizedRoute.totalDistance} km</p>
-                <p>{t("estimatedDuration")}: {optimizedRoute.estimatedDuration} min</p>
-                <p>{t("sequence")}: {optimizedRoute.sequence.join(" → ")}</p>
-              </Card>
+              <div className="space-y-4">
+                <Card className="p-4 space-y-2">
+                  <h3 className="font-medium">{t("optimizationResults")}</h3>
+                  <p>{t("totalDistance")}: {optimizedRoute.totalDistance} km</p>
+                  <p>{t("estimatedDuration")}: {optimizedRoute.estimatedDuration} min</p>
+                  <p>{t("sequence")}: {optimizedRoute.sequence.join(" → ")}</p>
+                </Card>
+
+                <div className="bg-white rounded-lg shadow-sm" style={{ 
+                  height: "500px",
+                  width: "650px",
+                  margin: "0 auto"
+                }}>
+                  <MapContainer
+                    center={[18.4955, -69.8734]}
+                    zoom={13}
+                    style={{ height: "100%", width: "100%" }}
+                    className="rounded-lg"
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+
+                    {/* Dibujar la línea de la ruta */}
+                    <Polyline
+                      positions={getRouteCoordinates()}
+                      color="blue"
+                      weight={3}
+                      opacity={0.7}
+                    />
+
+                    {/* Marcadores de puntos de entrega */}
+                    {optimizedRoute.points?.map((point: any, index: number) => (
+                      <Marker
+                        key={index}
+                        position={point.geometry.coordinates.reverse() as LatLngExpression}
+                      >
+                        <Popup>
+                          <div className="text-sm">
+                            <strong>Parada #{index + 1}</strong><br />
+                            {point.properties?.estimatedTime && 
+                              `Tiempo estimado: ${point.properties.estimatedTime} min`
+                            }
+                          </div>
+                        </Popup>
+                      </Marker>
+                    ))}
+                  </MapContainer>
+                </div>
+              </div>
             )}
           </div>
         </DialogContent>
       </Dialog>
-
       {/* Tabla de Rutas */}
       <div className="mt-6 bg-white rounded-lg shadow-sm border overflow-hidden">
         <ScrollArea className="w-full">
