@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { type Customer, type Product, type Order } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // Componentes UI
 import { Input } from "@/components/ui/input";
@@ -28,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PlusCircle } from "lucide-react";
 
 interface OrderItem {
   code: string;
@@ -40,6 +41,7 @@ interface OrderItem {
 
 export default function Orders() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>(
@@ -52,10 +54,7 @@ export default function Orders() {
     })
   );
 
-  // Constantes
-  const currentDate = new Date().toLocaleDateString();
-  const orderNumber = 101; // Esto debería venir de la base de datos
-
+  // Queries
   const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
@@ -91,10 +90,54 @@ export default function Orders() {
     setOrderItems(newItems);
   };
 
-  const calculateTotals = () => {
+  const calculateTotal = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
     const tax = subtotal * 0.18; // 18% ITBIS
     return { subtotal, tax, total: subtotal + tax };
+  };
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/orders", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({
+        title: t("success"),
+        description: t("orderCreated"),
+      });
+      setIsDialogOpen(false);
+      setSelectedCustomer(null);
+      setOrderItems(Array(5).fill({
+        code: "",
+        description: "",
+        quantity: 0,
+        price: 0,
+        total: 0
+      }));
+    },
+  });
+
+  const handleCreateOrder = () => {
+    if (!selectedCustomer) return;
+
+    const validItems = orderItems.filter(item => item.quantity > 0);
+    if (validItems.length === 0) return;
+
+    const { total } = calculateTotal();
+
+    createMutation.mutate({
+      customerId: selectedCustomer.id,
+      total: total.toString(),
+      status: "pending",
+      date: new Date().toISOString(),
+      items: validItems.map(item => ({
+        productId: parseInt(item.code),
+        quantity: item.quantity,
+        price: item.price.toString()
+      }))
+    });
   };
 
   return (
@@ -104,35 +147,16 @@ export default function Orders() {
         <h1 className="text-3xl font-bold">{t("orders")}</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              {t("newOrder")}
-            </Button>
+            <Button>{t("newOrder")}</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>{t("newOrder")}</DialogTitle>
             </DialogHeader>
 
-            {/* Formulario de Pedido */}
-            <div className="bg-white rounded-lg p-6">
-              {/* Encabezado */}
-              <div className="flex justify-between items-start mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold">Nota de Pedido</h2>
-                  <p className="text-sm text-muted-foreground mt-1">No. {orderNumber}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-muted-foreground">Fecha:</p>
-                  <p className="font-medium">{currentDate}</p>
-                </div>
-              </div>
-
+            <div className="space-y-4">
               {/* Selección de Cliente */}
-              <div className="mb-8">
-                <label className="block text-sm font-medium mb-2">
-                  {t("customer")}
-                </label>
+              <div>
                 <Select onValueChange={(value) => {
                   const customer = customers?.find(c => c.id === parseInt(value));
                   setSelectedCustomer(customer || null);
@@ -146,126 +170,105 @@ export default function Orders() {
                         key={customer.id} 
                         value={customer.id.toString()}
                       >
-                        {customer.name} - {customer.businessName}
+                        {customer.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-
-                {selectedCustomer && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium">{t("businessName")}:</p>
-                        <p>{selectedCustomer.businessName}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{t("address")}:</p>
-                        <p>{selectedCustomer.address}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{t("phone")}:</p>
-                        <p>{selectedCustomer.phone}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Tabla de Productos */}
-              <div className="mt-8">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-muted border-b">
-                      <th className="p-2 text-left">Código</th>
-                      <th className="p-2 text-left">Descripción</th>
-                      <th className="p-2 text-right">Cantidad</th>
-                      <th className="p-2 text-right">Precio Unit.</th>
-                      <th className="p-2 text-right">Total</th>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Código</th>
+                    <th className="text-left p-2">Descripción</th>
+                    <th className="text-right p-2">Cantidad</th>
+                    <th className="text-right p-2">Precio</th>
+                    <th className="text-right p-2">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orderItems.map((item, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="p-2">
+                        <Select
+                          value={item.code}
+                          onValueChange={(value) => handleProductChange(index, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Código" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products?.map((product) => (
+                              <SelectItem 
+                                key={product.id} 
+                                value={product.id.toString()}
+                              >
+                                {product.id}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td className="p-2">
+                        <Input 
+                          value={item.description} 
+                          readOnly 
+                          className="bg-muted"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={item.quantity}
+                          onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                          className="text-right"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <Input
+                          value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
+                          readOnly
+                          className="text-right bg-muted"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <Input
+                          value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
+                          readOnly
+                          className="text-right bg-muted"
+                        />
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {orderItems.map((item, index) => (
-                      <tr key={index} className="border-b">
-                        <td className="p-2">
-                          <Select
-                            value={item.code}
-                            onValueChange={(value) => handleProductChange(index, value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccionar" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products?.map((product) => (
-                                <SelectItem 
-                                  key={product.id} 
-                                  value={product.id.toString()}
-                                >
-                                  {product.id} - {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="p-2">
-                          <Input 
-                            value={item.description} 
-                            readOnly 
-                            className="bg-muted"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={item.quantity}
-                            onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                            className="text-right"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
-                            readOnly
-                            className="text-right bg-muted"
-                          />
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
-                            readOnly
-                            className="text-right bg-muted"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
 
-              {/* Totales */}
-              <div className="mt-8 border-t pt-4">
+              {/* Totales y Botón Crear */}
+              <div className="space-y-4">
                 <div className="flex justify-end">
                   <div className="w-64 space-y-2">
                     <div className="flex justify-between">
                       <span>Sub-total:</span>
-                      <span>RD$ {calculateTotals().subtotal.toFixed(2)}</span>
+                      <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>ITBIS (18%):</span>
-                      <span>RD$ {calculateTotals().tax.toFixed(2)}</span>
+                      <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-lg font-bold">
-                      <span>TOTAL:</span>
-                      <span>RD$ {calculateTotals().total.toFixed(2)}</span>
+                    <div className="flex justify-between font-bold">
+                      <span>Total:</span>
+                      <span>RD$ {calculateTotal().total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mt-8 flex justify-end">
                 <Button
+                  className="w-full"
                   disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
+                  onClick={handleCreateOrder}
                 >
                   {t("createOrder")}
                 </Button>
