@@ -132,16 +132,8 @@ export default function ZoneMap() {
     }
   };
 
-  // Ajustar el centro más hacia la derecha
-  const center: LatLngExpression = [18.4955, -69.8534]; // Movido 0.02 grados hacia el este
-
   return (
-    <div className="relative" style={{ 
-      height: "70vh",  
-      width: "100%",   
-      marginRight: "-400px", 
-      paddingRight: "400px"  
-    }}>
+    <div className="flex flex-col" style={{ height: "70vh" }}>
       <div className="absolute top-2 left-2 z-[1000] bg-white p-2 rounded-lg shadow-lg flex gap-2">
         <Input
           placeholder="Nombre de la zona"
@@ -156,60 +148,67 @@ export default function ZoneMap() {
         />
       </div>
 
-      <MapContainer
-        center={center}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+      <div style={{ 
+        height: "100%",
+        width: "calc(100% + 400px)",
+        marginLeft: "-200px",
+        position: "relative"
+      }}>
+        <MapContainer
+          center={[18.4955, -69.8534]}
+          zoom={13}
+          style={{ height: "100%", width: "100%" }}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
 
-        <DrawingControl onPolygonComplete={handlePolygonComplete} />
+          <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
-        {zones.map((zone) => {
-          try {
-            const positions = zone.coordinates.map((coord): LatLngExpression => {
-              const [lat, lng] = coord.split(",").map(Number);
-              if (isNaN(lat) || isNaN(lng)) {
-                throw new Error(`Coordenadas inválidas en zona ${zone.id}: ${coord}`);
-              }
-              return [lat, lng];
-            });
+          {zones.map((zone) => {
+            try {
+              const positions = zone.coordinates.map((coord): LatLngExpression => {
+                const [lat, lng] = coord.split(",").map(Number);
+                if (isNaN(lat) || isNaN(lng)) {
+                  throw new Error(`Coordenadas inválidas en zona ${zone.id}: ${coord}`);
+                }
+                return [lat, lng];
+              });
 
-            return (
-              <Polygon
-                key={zone.id}
-                positions={positions}
-                pathOptions={{ color: zone.color }}
-              />
-            );
-          } catch (error) {
-            console.error(`Error al renderizar zona ${zone.id}:`, error);
-            return null;
-          }
-        })}
-
-        {customers.map((customer) => {
-          if (!customer.coordinates) return null;
-          try {
-            const [lat, lng] = customer.coordinates.split(",").map(Number);
-            if (isNaN(lat) || isNaN(lng)) {
-              throw new Error(`Coordenadas inválidas para cliente ${customer.id}`);
+              return (
+                <Polygon
+                  key={zone.id}
+                  positions={positions}
+                  pathOptions={{ color: zone.color }}
+                />
+              );
+            } catch (error) {
+              console.error(`Error al renderizar zona ${zone.id}:`, error);
+              return null;
             }
-            return (
-              <Marker
-                key={customer.id}
-                position={[lat, lng] as LatLngExpression}
-              />
-            );
-          } catch (error) {
-            console.error(`Error al renderizar cliente ${customer.id}:`, error);
-            return null;
-          }
-        })}
-      </MapContainer>
+          })}
+
+          {customers.map((customer) => {
+            if (!customer.coordinates) return null;
+            try {
+              const [lat, lng] = customer.coordinates.split(",").map(Number);
+              if (isNaN(lat) || isNaN(lng)) {
+                throw new Error(`Coordenadas inválidas para cliente ${customer.id}`);
+              }
+              return (
+                <Marker
+                  key={customer.id}
+                  position={[lat, lng] as LatLngExpression}
+                />
+              );
+            } catch (error) {
+              console.error(`Error al renderizar cliente ${customer.id}:`, error);
+              return null;
+            }
+          })}
+        </MapContainer>
+      </div>
     </div>
   );
 }
