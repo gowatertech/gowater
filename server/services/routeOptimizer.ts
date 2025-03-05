@@ -27,9 +27,19 @@ const DELIVERY_TIME = 10; // minutos por entrega
 const DEPOT_COORDINATES: [number, number] = [-69.8734, 18.4955]; // Santo Domingo
 
 export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
+  console.log("Optimizando ruta para pedidos:", orders.map(o => ({ id: o.id, coords: o.deliveryCoordinates })));
+
   // Convertir órdenes a puntos para el cálculo
   const points: Point[] = orders.map(order => {
-    const [lat, lng] = order.deliveryCoordinates?.split(",").map(Number) || [0, 0];
+    if (!order.deliveryCoordinates) {
+      throw new Error(`Pedido ${order.id} no tiene coordenadas de entrega`);
+    }
+
+    const [lat, lng] = order.deliveryCoordinates.split(",").map(Number);
+    if (isNaN(lat) || isNaN(lng)) {
+      throw new Error(`Coordenadas inválidas para pedido ${order.id}: ${order.deliveryCoordinates}`);
+    }
+
     return {
       type: 'Feature',
       properties: {
@@ -69,6 +79,8 @@ export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
     })
   );
 
+  console.log("Matriz de distancias calculada:", distances);
+
   // Algoritmo del vecino más cercano
   const visited = new Set([0]);
   const sequence = [0];
@@ -102,6 +114,12 @@ export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
     (totalDistance / AVERAGE_SPEED) * 60 + // Tiempo de viaje en minutos
     points.reduce((sum, p) => sum + p.properties.estimatedTime, 0) // Tiempo de entrega
   );
+
+  console.log("Ruta optimizada:", {
+    sequence: sequence.slice(1, -1).map(i => points[i].properties.id),
+    totalDistance,
+    estimatedDuration
+  });
 
   return {
     sequence: sequence.slice(1, -1).map(i => points[i].properties.id),

@@ -276,12 +276,15 @@ export async function registerRoutes(app: Express) {
 
       // Obtener los pedidos
       const orders = await Promise.all(
-        orderIds.map((id: number) => storage.getOrder(id))
+        orderIds.map(async (id: number) => {
+          const order = await storage.getOrder(id);
+          return order;
+        })
       );
 
       // Filtrar pedidos válidos
-      const validOrders = orders.filter((o): o is Order => 
-        o !== undefined && o.deliveryCoordinates !== null
+      const validOrders = orders.filter((order): order is NonNullable<typeof order> => 
+        order !== undefined && order.deliveryCoordinates !== null && order.deliveryCoordinates !== undefined
       );
 
       if (validOrders.length === 0) {
@@ -293,6 +296,7 @@ export async function registerRoutes(app: Express) {
 
       res.json(optimizedRoute);
     } catch (error) {
+      console.error("Error en /api/routes/optimize:", error);
       res.status(500).json({ error: String(error) });
     }
   });
