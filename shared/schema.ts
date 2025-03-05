@@ -8,7 +8,9 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role", { enum: ["admin", "driver", "assistant"] }).notNull(),
+  role: text("role", { 
+    enum: ["admin", "supervisor", "cashier", "driver", "assistant"] 
+  }).notNull(),
   active: boolean("active").notNull().default(true),
   phone: text("phone"),
   license: text("license"), // Para choferes
@@ -17,6 +19,18 @@ export const users = pgTable("users", {
   emergencyContact: text("emergency_contact"),
   currentLocation: text("current_location"), // Para tracking en tiempo real
   lastLocationUpdate: timestamp("last_location_update"),
+});
+
+// Update the insert schema
+export const insertUserSchema = createInsertSchema(users, {
+  role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
+  phone: z.string().optional(),
+  license: z.string().optional(),
+  licenseExpiry: z.string().datetime().optional(),
+  hireDate: z.string().datetime().optional(),
+  emergencyContact: z.string().optional(),
+  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+  lastLocationUpdate: z.string().datetime().optional(),
 });
 
 // Customers
@@ -129,16 +143,6 @@ export const zones = pgTable("zones", {
 
 
 // Create insert schemas
-export const insertUserSchema = createInsertSchema(users, {
-  role: z.enum(["admin", "driver", "assistant"]),
-  phone: z.string().optional(),
-  license: z.string().optional(),
-  licenseExpiry: z.string().datetime().optional(),
-  hireDate: z.string().datetime().optional(),
-  emergencyContact: z.string().optional(),
-  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-  lastLocationUpdate: z.string().datetime().optional(),
-});
 export const insertCustomerSchema = createInsertSchema(customers);
 export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);

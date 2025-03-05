@@ -48,7 +48,7 @@ import { es } from "date-fns/locale";
 export default function Users() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [selectedTab, setSelectedTab] = useState("drivers");
+  const [selectedTab, setSelectedTab] = useState("admin");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -57,8 +57,14 @@ export default function Users() {
     queryKey: ["/api/users"],
   });
 
-  const drivers = users.filter(user => user.role === "driver" && user.active);
-  const assistants = users.filter(user => user.role === "assistant" && user.active);
+  // Filtrar usuarios por rol
+  const roleGroups = {
+    admin: users.filter(user => user.role === "admin" && user.active),
+    supervisor: users.filter(user => user.role === "supervisor" && user.active),
+    cashier: users.filter(user => user.role === "cashier" && user.active),
+    driver: users.filter(user => user.role === "driver" && user.active),
+    assistant: users.filter(user => user.role === "assistant" && user.active),
+  };
 
   // Formulario
   const form = useForm({
@@ -67,7 +73,7 @@ export default function Users() {
       name: "",
       username: "",
       password: "",
-      role: selectedTab === "drivers" ? "driver" : "assistant",
+      role: selectedTab,
       phone: "",
       license: "",
       licenseExpiry: "",
@@ -222,6 +228,9 @@ export default function Users() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="admin">{t("admin")}</SelectItem>
+                          <SelectItem value="supervisor">{t("supervisor")}</SelectItem>
+                          <SelectItem value="cashier">{t("cashier")}</SelectItem>
                           <SelectItem value="driver">{t("driver")}</SelectItem>
                           <SelectItem value="assistant">{t("assistant")}</SelectItem>
                         </SelectContent>
@@ -297,101 +306,79 @@ export default function Users() {
 
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList>
-          <TabsTrigger value="drivers">{t("drivers")}</TabsTrigger>
-          <TabsTrigger value="assistants">{t("assistants")}</TabsTrigger>
+          <TabsTrigger value="admin">{t("admin")}</TabsTrigger>
+          <TabsTrigger value="supervisor">{t("supervisor")}</TabsTrigger>
+          <TabsTrigger value="cashier">{t("cashier")}</TabsTrigger>
+          <TabsTrigger value="driver">{t("driver")}</TabsTrigger>
+          <TabsTrigger value="assistant">{t("assistant")}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="drivers">
-          <Card>
-            <ScrollArea className="h-[calc(100vh-300px)]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("name")}</TableHead>
-                    <TableHead>{t("phone")}</TableHead>
-                    <TableHead>{t("license")}</TableHead>
-                    <TableHead>{t("licenseExpiry")}</TableHead>
-                    <TableHead className="text-right">{t("actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {drivers.map((driver) => (
-                    <TableRow key={driver.id}>
-                      <TableCell>{driver.name}</TableCell>
-                      <TableCell>{driver.phone || "-"}</TableCell>
-                      <TableCell>{driver.license || "-"}</TableCell>
-                      <TableCell>
-                        {driver.licenseExpiry
-                          ? format(new Date(driver.licenseExpiry), "PPP", { locale: es })
-                          : "-"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mr-2"
-                          onClick={() => handleEdit(driver)}
-                        >
-                          {t("edit")}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(driver.id)}
-                        >
-                          {t("delete")}
-                        </Button>
-                      </TableCell>
+        {Object.entries(roleGroups).map(([role, users]) => (
+          <TabsContent key={role} value={role}>
+            <Card>
+              <ScrollArea className="h-[calc(100vh-300px)]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("name")}</TableHead>
+                      <TableHead>{t("username")}</TableHead>
+                      <TableHead>{t("phone")}</TableHead>
+                      {role === "driver" && (
+                        <>
+                          <TableHead>{t("license")}</TableHead>
+                          <TableHead>{t("licenseExpiry")}</TableHead>
+                        </>
+                      )}
+                      {(role === "driver" || role === "assistant") && (
+                        <TableHead>{t("emergencyContact")}</TableHead>
+                      )}
+                      <TableHead className="text-right">{t("actions")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="assistants">
-          <Card>
-            <ScrollArea className="h-[calc(100vh-300px)]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("name")}</TableHead>
-                    <TableHead>{t("phone")}</TableHead>
-                    <TableHead>{t("emergencyContact")}</TableHead>
-                    <TableHead className="text-right">{t("actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {assistants.map((assistant) => (
-                    <TableRow key={assistant.id}>
-                      <TableCell>{assistant.name}</TableCell>
-                      <TableCell>{assistant.phone || "-"}</TableCell>
-                      <TableCell>{assistant.emergencyContact || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mr-2"
-                          onClick={() => handleEdit(assistant)}
-                        >
-                          {t("edit")}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(assistant.id)}
-                        >
-                          {t("delete")}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-          </Card>
-        </TabsContent>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{user.phone || "-"}</TableCell>
+                        {role === "driver" && (
+                          <>
+                            <TableCell>{user.license || "-"}</TableCell>
+                            <TableCell>
+                              {user.licenseExpiry
+                                ? format(new Date(user.licenseExpiry), "PPP", { locale: es })
+                                : "-"}
+                            </TableCell>
+                          </>
+                        )}
+                        {(role === "driver" || role === "assistant") && (
+                          <TableCell>{user.emergencyContact || "-"}</TableCell>
+                        )}
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mr-2"
+                            onClick={() => handleEdit(user)}
+                          >
+                            {t("edit")}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(user.id)}
+                          >
+                            {t("delete")}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </Card>
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
   );
