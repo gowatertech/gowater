@@ -37,6 +37,30 @@ export async function registerRoutes(app: Express) {
     res.json(user);
   });
 
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertUserSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      const user = await storage.updateUser(parseInt(id), result.data);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deactivateUser(parseInt(id));
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Customers
   app.get("/api/customers", async (req, res) => {
     const customers = await storage.listCustomers();

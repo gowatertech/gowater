@@ -10,6 +10,7 @@ import Customers from "@/pages/customers";
 import Inventory from "@/pages/inventory";
 import Orders from "@/pages/orders";
 import Routes from "@/pages/routes";
+import Users from "@/pages/users";
 
 // Import translations
 import "./lib/i18n";
@@ -24,6 +25,7 @@ function Router() {
         <Route path="/inventory" component={Inventory} />
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
+        <Route path="/users" component={Users} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>
