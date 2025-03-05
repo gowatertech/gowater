@@ -98,12 +98,19 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post("/api/orders", async (req, res) => {
+    console.log("Recibido POST /api/orders:", req.body);
     const result = insertOrderSchema.safeParse(req.body);
     if (!result.success) {
+      console.error("Error de validación:", result.error.format());
       return res.status(400).json({ error: result.error });
     }
-    const order = await storage.createOrder(result.data);
-    res.json(order);
+    try {
+      const order = await storage.createOrder(result.data);
+      res.json(order);
+    } catch (error) {
+      console.error("Error al crear orden:", error);
+      res.status(500).json({ message: "Error al crear la orden", error: String(error) });
+    }
   });
 
   // Order Items

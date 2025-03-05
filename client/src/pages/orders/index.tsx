@@ -115,11 +115,13 @@ export default function Orders() {
       const orderData = {
         customerId: parseInt(data.customerId),
         total: total.toFixed(2),
-        status: "pending" as const,
-        paymentMethod: "cash" as const,
+        status: "pending",
+        paymentMethod: "cash",
         date: new Date().toISOString(),
         routeId: null
       };
+
+      console.log("Datos del pedido a enviar:", orderData);
 
       const orderResponse = await apiRequest("POST", "/api/orders", orderData);
 
@@ -130,6 +132,7 @@ export default function Orders() {
       }
 
       const order = await orderResponse.json();
+      console.log("Respuesta del servidor:", order);
 
       // 4. Crear los items del pedido
       for (const item of validItems) {

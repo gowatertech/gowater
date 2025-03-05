@@ -301,19 +301,19 @@ export class DatabaseStorage implements IStorage {
 
   async updateCustomerOrderStats(customerId: number): Promise<CustomerOrders> {
     // Calcular estadísticas basadas en los pedidos del cliente
-    const orders = await db
+    const ordersList = await db
       .select()
       .from(orders)
       .where(eq(orders.customerId, customerId));
 
-    const totalOrders = orders.length;
-    const totalValue = orders.reduce(
+    const totalOrders = ordersList.length;
+    const totalValue = ordersList.reduce(
       (sum, order) => sum + parseFloat(order.total.toString()),
       0
     );
     const averageOrderValue = totalOrders > 0 ? totalValue / totalOrders : 0;
-    const lastOrderDate = orders.length > 0
-      ? orders[orders.length - 1].date
+    const lastOrderDate = ordersList.length > 0
+      ? ordersList[ordersList.length - 1].date
       : null;
 
     const [updated] = await db
