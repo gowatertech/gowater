@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type Customer, type Product, type Order } from "@shared/schema";
+import { type Customer, type Product, type Order, insertOrderSchema } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -99,39 +99,31 @@ export default function Orders() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      try {
-        // Formatear los datos según el schema de inserción
-        const orderData = {
-          customerId: parseInt(data.customerId),
-          total: data.total.toString(),
-          status: "pending",
-          paymentMethod: "cash",
-          date: new Date().toISOString(),
-          routeId: null // Este campo es opcional pero está en el schema
-        };
+      // Validate and format data according to schema
+      const validatedData = {
+        customerId: data.customerId,
+        total: data.total,
+        status: "pending",
+        paymentMethod: "cash",
+        date: new Date().toISOString(),
+        routeId: null
+      };
 
-        console.log('Intento crear pedido:', JSON.stringify(orderData, null, 2));
-        const orderResponse = await apiRequest("POST", "/api/orders", orderData);
-        const responseText = await orderResponse.text();
-
-        console.log('Respuesta del servidor:', {
-          status: orderResponse.status,
-          headers: Object.fromEntries(orderResponse.headers.entries()),
-          body: responseText
-        });
-
-        if (!orderResponse.ok) {
-          const errorData = JSON.parse(responseText);
-          console.error('Error detallado:', errorData);
-          throw new Error(errorData.error?.message || 'Error al crear el pedido');
-        }
-
-        const order = JSON.parse(responseText);
-        return order;
-      } catch (error) {
-        console.error('Error completo:', error);
-        throw error;
+      // Parse through schema to ensure data is valid
+      const result = insertOrderSchema.safeParse(validatedData);
+      if (!result.success) {
+        throw new Error(`Validation error: ${result.error.message}`);
       }
+
+      // Send validated data
+      const orderResponse = await apiRequest("POST", "/api/orders", result.data);
+
+      if (!orderResponse.ok) {
+        const errorText = await orderResponse.text();
+        throw new Error(errorText);
+      }
+
+      return orderResponse.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -150,7 +142,6 @@ export default function Orders() {
       }));
     },
     onError: (error: any) => {
-      console.error('Error completo:', error);
       toast({
         variant: "destructive",
         title: t("error"),
@@ -166,7 +157,7 @@ export default function Orders() {
 
     createMutation.mutate({
       customerId: selectedCustomer.id,
-      total: total.toFixed(2) // Asegurar 2 decimales
+      total: total.toFixed(2)
     });
   };
 
