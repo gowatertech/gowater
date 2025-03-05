@@ -206,17 +206,17 @@ export default function Orders() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       {/* Header con botón nuevo pedido */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-2xl md:text-3xl font-bold">{t("orders")}</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto">{t("newOrder")}</Button>
+            <Button className="w-full sm:w-auto text-base">{t("newOrder")}</Button>
           </DialogTrigger>
-          <DialogContent className="w-[95vw] max-w-3xl">
+          <DialogContent className="w-[98vw] sm:w-[95vw] max-w-3xl p-3 sm:p-6 gap-4">
             <DialogHeader>
-              <DialogTitle>{t("newOrder")}</DialogTitle>
+              <DialogTitle className="text-xl">{t("newOrder")}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -228,7 +228,7 @@ export default function Orders() {
                     setSelectedCustomer(customer || null);
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue placeholder={t("selectCustomer")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -236,6 +236,7 @@ export default function Orders() {
                       <SelectItem
                         key={customer.id}
                         value={customer.id.toString()}
+                        className="text-base py-3"
                       >
                         {customer.name}
                       </SelectItem>
@@ -244,7 +245,7 @@ export default function Orders() {
                 </Select>
 
                 {selectedCustomer && (
-                  <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-2 bg-muted p-2 rounded">
+                  <div className="text-base grid grid-cols-1 gap-3 bg-muted p-3 rounded">
                     <div>
                       <span className="font-medium">{t("businessName")}: </span>
                       {selectedCustomer.businessName}
@@ -259,15 +260,15 @@ export default function Orders() {
 
               {/* Tabla de Productos */}
               <div className="border rounded-lg overflow-hidden">
-                <ScrollArea className="h-[300px] md:h-auto">
+                <ScrollArea className="h-[50vh] sm:h-[40vh]">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-20 md:w-24">Código</TableHead>
-                        <TableHead>Descripción</TableHead>
-                        <TableHead className="w-20 md:w-24 text-right">Cant.</TableHead>
-                        <TableHead className="w-24 md:w-28 text-right">Precio</TableHead>
-                        <TableHead className="w-24 md:w-28 text-right">Total</TableHead>
+                        <TableHead className="w-24 text-base sticky top-0 bg-background">Código</TableHead>
+                        <TableHead className="text-base sticky top-0 bg-background">Descripción</TableHead>
+                        <TableHead className="w-20 text-right text-base sticky top-0 bg-background">Cant.</TableHead>
+                        <TableHead className="w-28 text-right text-base sticky top-0 bg-background">Precio</TableHead>
+                        <TableHead className="w-28 text-right text-base sticky top-0 bg-background">Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -278,7 +279,7 @@ export default function Orders() {
                               value={item.code}
                               onValueChange={(value) => handleProductChange(index, value)}
                             >
-                              <SelectTrigger className="h-8">
+                              <SelectTrigger className="h-12 text-base">
                                 <SelectValue placeholder="---" />
                               </SelectTrigger>
                               <SelectContent>
@@ -286,6 +287,7 @@ export default function Orders() {
                                   <SelectItem
                                     key={product.id}
                                     value={product.id.toString()}
+                                    className="text-base py-3"
                                   >
                                     {product.id}
                                   </SelectItem>
@@ -297,7 +299,7 @@ export default function Orders() {
                             <Input
                               value={item.description}
                               readOnly
-                              className="bg-muted h-8"
+                              className="bg-muted h-12 text-base"
                             />
                           </TableCell>
                           <TableCell className="p-1">
@@ -306,21 +308,21 @@ export default function Orders() {
                               min="0"
                               value={item.quantity}
                               onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                              className="text-right h-8"
+                              className="text-right h-12 text-base"
                             />
                           </TableCell>
                           <TableCell className="p-1">
                             <Input
                               value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
                               readOnly
-                              className="text-right bg-muted h-8"
+                              className="text-right bg-muted h-12 text-base"
                             />
                           </TableCell>
                           <TableCell className="p-1">
                             <Input
                               value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
                               readOnly
-                              className="text-right bg-muted h-8"
+                              className="text-right bg-muted h-12 text-base"
                             />
                           </TableCell>
                         </TableRow>
@@ -335,12 +337,12 @@ export default function Orders() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Notas del pedido..."
-                className="h-20"
+                className="h-24 text-base"
               />
 
               {/* Totales y Botón */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-                <div className="w-full sm:w-64 space-y-1 text-sm">
+              <div className="flex flex-col gap-4">
+                <div className="bg-muted p-4 rounded-lg space-y-2 text-base">
                   <div className="flex justify-between">
                     <span>Sub-total:</span>
                     <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
@@ -349,14 +351,14 @@ export default function Orders() {
                     <span>ITBIS (18%):</span>
                     <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between font-bold text-lg">
                     <span>Total:</span>
                     <span>RD$ {calculateTotal().total.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <Button
-                  className="w-full sm:w-auto"
+                  className="w-full h-12 text-base"
                   disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
                   onClick={handleCreateOrder}
                 >
@@ -370,49 +372,51 @@ export default function Orders() {
 
       {/* Tabla de Pedidos */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <ScrollArea>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>No. Pedido</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {orders?.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>#{order.id}</TableCell>
-                  <TableCell>
-                    {customers?.find(c => c.id === order.customerId)?.name}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    RD$ {parseFloat(order.total.toString()).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === "delivered" ? "bg-green-100 text-green-800" :
-                        order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
-                    }`}>
-                      {t(order.status)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm" className="h-8">
-                      Ver detalles
-                    </Button>
-                  </TableCell>
+        <ScrollArea className="w-full">
+          <div className="min-w-[800px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-base">No. Pedido</TableHead>
+                  <TableHead className="text-base">Cliente</TableHead>
+                  <TableHead className="text-base">Fecha</TableHead>
+                  <TableHead className="text-base">Total</TableHead>
+                  <TableHead className="text-base">Estado</TableHead>
+                  <TableHead className="text-base">Acciones</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {orders?.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="text-base">#{order.id}</TableCell>
+                    <TableCell className="text-base">
+                      {customers?.find(c => c.id === order.customerId)?.name}
+                    </TableCell>
+                    <TableCell className="text-base">
+                      {new Date(order.date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-base">
+                      RD$ {parseFloat(order.total.toString()).toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                        order.status === "delivered" ? "bg-green-100 text-green-800" :
+                          order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                            "bg-red-100 text-red-800"
+                      }`}>
+                        {t(order.status)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" className="h-10 text-base">
+                        Ver detalles
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </ScrollArea>
       </div>
     </div>
