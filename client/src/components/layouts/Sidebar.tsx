@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
   Users,
@@ -26,40 +25,56 @@ const sidebarItems = [
   { icon: Settings, label: "settings", href: "/settings" },
 ];
 
+import {
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
+
 export function Sidebar() {
   const { t } = useTranslation();
   const [location] = useLocation();
 
   return (
-    <div className="flex flex-col w-64 bg-sidebar border-r border-sidebar-border">
-      <div className="p-6">
-        <div className="flex items-center gap-2 text-sidebar-foreground">
-          <Droplet className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">GoWater</span>
-        </div>
-      </div>
+    <aside data-sidebar="sidebar" className="group peer hidden md:block">
+      <SidebarContent>
+        <SidebarHeader className="px-6 py-4">
+          <div className="flex items-center gap-2 text-sidebar-foreground">
+            <Droplet className="h-6 w-6 text-primary" />
+            <span className="text-xl font-bold">GoWater</span>
+          </div>
+        </SidebarHeader>
 
-      <nav className="flex-1 px-4">
-        {sidebarItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = location === item.href;
+        <SidebarMenu>
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.href;
 
-          return (
-            <Link key={item.href} href={item.href}>
-              <Button
-                variant={isActive ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start gap-4 mb-1",
-                  isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {t(item.label)}
-              </Button>
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+            return (
+              <SidebarMenuItem key={item.href}>
+                <Link href={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive}
+                    tooltip={t(item.label)}
+                    className={cn(
+                      "w-full justify-start gap-4",
+                      isActive && "bg-sidebar-accent text-sidebar-accent-foreground"
+                    )}
+                  >
+                    <a>
+                      <Icon className="h-4 w-4" />
+                      <span>{t(item.label)}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarContent>
+    </aside>
   );
 }
