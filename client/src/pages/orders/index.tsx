@@ -32,7 +32,7 @@ import { PlusCircle } from "lucide-react";
 
 interface OrderItem {
   code: string;
-  product: Product;
+  description: string;
   quantity: number;
   price: number;
   total: number;
@@ -42,14 +42,15 @@ export default function Orders() {
   const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [currentProduct, setCurrentProduct] = useState<{
-    code: string;
-    quantity: number;
-  }>({
-    code: "",
-    quantity: 1
-  });
+  const [orderItems, setOrderItems] = useState<OrderItem[]>(
+    Array(5).fill({
+      code: "",
+      description: "",
+      quantity: 0,
+      price: 0,
+      total: 0
+    })
+  );
 
   // Constantes
   const currentDate = new Date().toLocaleDateString();
@@ -67,29 +68,33 @@ export default function Orders() {
     queryKey: ["/api/products"],
   });
 
-  const handleAddProduct = () => {
-    const product = products?.find(p => p.id.toString() === currentProduct.code);
+  const handleProductChange = (index: number, code: string) => {
+    const product = products?.find(p => p.id.toString() === code);
     if (!product) return;
 
-    const price = parseFloat(product.price.toString());
-    const total = price * currentProduct.quantity;
+    const newItems = [...orderItems];
+    newItems[index] = {
+      code,
+      description: product.name,
+      quantity: 1,
+      price: parseFloat(product.price.toString()),
+      total: parseFloat(product.price.toString())
+    };
+    setOrderItems(newItems);
+  };
 
-    setOrderItems(prev => [...prev, {
-      code: currentProduct.code,
-      product,
-      quantity: currentProduct.quantity,
-      price,
-      total
-    }]);
-
-    setCurrentProduct({ code: "", quantity: 1 });
+  const handleQuantityChange = (index: number, quantity: number) => {
+    const newItems = [...orderItems];
+    const item = newItems[index];
+    item.quantity = quantity;
+    item.total = item.price * quantity;
+    setOrderItems(newItems);
   };
 
   const calculateTotals = () => {
-    const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+    const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
     const tax = subtotal * 0.18; // 18% ITBIS
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
+    return { subtotal, tax, total: subtotal + tax };
   };
 
   return (
@@ -110,21 +115,21 @@ export default function Orders() {
             </DialogHeader>
 
             {/* Formulario de Pedido */}
-            <div className="bg-white rounded-lg">
+            <div className="bg-white rounded-lg p-6">
               {/* Encabezado */}
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex justify-between items-start mb-8">
                 <div>
-                  <h2 className="text-xl font-bold">Nota de Pedido</h2>
-                  <p className="text-sm text-muted-foreground">No. {orderNumber}</p>
+                  <h2 className="text-2xl font-bold">Nota de Pedido</h2>
+                  <p className="text-sm text-muted-foreground mt-1">No. {orderNumber}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm">Fecha:</p>
+                  <p className="text-sm text-muted-foreground">Fecha:</p>
                   <p className="font-medium">{currentDate}</p>
                 </div>
               </div>
 
               {/* Selección de Cliente */}
-              <div className="mb-6">
+              <div className="mb-8">
                 <label className="block text-sm font-medium mb-2">
                   {t("customer")}
                 </label>
@@ -167,60 +172,11 @@ export default function Orders() {
                 )}
               </div>
 
-              {/* Entrada de Productos */}
-              <div className="mb-4 grid grid-cols-12 gap-4">
-                <div className="col-span-2">
-                  <Input
-                    placeholder="Código"
-                    value={currentProduct.code}
-                    onChange={(e) => setCurrentProduct(prev => ({
-                      ...prev,
-                      code: e.target.value
-                    }))}
-                  />
-                </div>
-                <div className="col-span-5">
-                  <Input
-                    placeholder="Descripción"
-                    value={products?.find(p => p.id.toString() === currentProduct.code)?.name || ""}
-                    readOnly
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="Cantidad"
-                    value={currentProduct.quantity}
-                    onChange={(e) => setCurrentProduct(prev => ({
-                      ...prev,
-                      quantity: parseInt(e.target.value) || 1
-                    }))}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Input
-                    placeholder="Precio Unit."
-                    value={products?.find(p => p.id.toString() === currentProduct.code)?.price || ""}
-                    readOnly
-                  />
-                </div>
-                <div className="col-span-1">
-                  <Button 
-                    variant="secondary"
-                    onClick={handleAddProduct}
-                    disabled={!currentProduct.code}
-                  >
-                    +
-                  </Button>
-                </div>
-              </div>
-
               {/* Tabla de Productos */}
-              <div className="mt-6">
+              <div className="mt-8">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-muted">
+                    <tr className="bg-muted border-b">
                       <th className="p-2 text-left">Código</th>
                       <th className="p-2 text-left">Descripción</th>
                       <th className="p-2 text-right">Cantidad</th>
@@ -231,14 +187,55 @@ export default function Orders() {
                   <tbody>
                     {orderItems.map((item, index) => (
                       <tr key={index} className="border-b">
-                        <td className="p-2">{item.code}</td>
-                        <td className="p-2">{item.product.name}</td>
-                        <td className="p-2 text-right">{item.quantity}</td>
-                        <td className="p-2 text-right">
-                          RD$ {item.price.toFixed(2)}
+                        <td className="p-2">
+                          <Select
+                            value={item.code}
+                            onValueChange={(value) => handleProductChange(index, value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products?.map((product) => (
+                                <SelectItem 
+                                  key={product.id} 
+                                  value={product.id.toString()}
+                                >
+                                  {product.id} - {product.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </td>
-                        <td className="p-2 text-right">
-                          RD$ {item.total.toFixed(2)}
+                        <td className="p-2">
+                          <Input 
+                            value={item.description} 
+                            readOnly 
+                            className="bg-muted"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.quantity}
+                            onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                            className="text-right"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
+                            readOnly
+                            className="text-right bg-muted"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
+                            readOnly
+                            className="text-right bg-muted"
+                          />
                         </td>
                       </tr>
                     ))}
@@ -247,36 +244,28 @@ export default function Orders() {
               </div>
 
               {/* Totales */}
-              <div className="mt-6 border-t pt-4">
-                <div className="flex justify-end space-y-2">
-                  <table className="w-64">
-                    <tbody>
-                      <tr>
-                        <td className="py-1">Sub-total:</td>
-                        <td className="text-right">
-                          RD$ {calculateTotals().subtotal.toFixed(2)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="py-1">ITBIS (18%):</td>
-                        <td className="text-right">
-                          RD$ {calculateTotals().tax.toFixed(2)}
-                        </td>
-                      </tr>
-                      <tr className="font-bold">
-                        <td className="py-1">TOTAL:</td>
-                        <td className="text-right">
-                          RD$ {calculateTotals().total.toFixed(2)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <div className="mt-8 border-t pt-4">
+                <div className="flex justify-end">
+                  <div className="w-64 space-y-2">
+                    <div className="flex justify-between">
+                      <span>Sub-total:</span>
+                      <span>RD$ {calculateTotals().subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>ITBIS (18%):</span>
+                      <span>RD$ {calculateTotals().tax.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold">
+                      <span>TOTAL:</span>
+                      <span>RD$ {calculateTotals().total.toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-8 flex justify-end">
                 <Button
-                  disabled={!selectedCustomer || orderItems.length === 0}
+                  disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
                 >
                   {t("createOrder")}
                 </Button>
