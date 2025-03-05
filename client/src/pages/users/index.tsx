@@ -69,22 +69,29 @@ export default function Users() {
   // Formulario
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
-    defaultValues: {
-      name: "",
-      username: "",
-      password: "",
-      role: selectedTab,
-      phone: "",
-      license: "",
-      licenseExpiry: "",
-      emergencyContact: "",
-    },
   });
+
+  // Resetear el formulario cuando se abre el diálogo
+  const handleDialogOpen = (open: boolean) => {
+    if (open) {
+      form.reset({
+        name: "",
+        username: "",
+        password: "",
+        role: selectedTab,
+        phone: "",
+        license: "",
+        licenseExpiry: "",
+        emergencyContact: "",
+      });
+    }
+    setIsDialogOpen(open);
+  };
 
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Sending data:', data); // Agregamos logging
+      console.log('Sending data:', data);
       const response = await apiRequest("POST", "/api/users", data);
       if (!response.ok) {
         const error = await response.json();
@@ -184,7 +191,7 @@ export default function Users() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t("users")}</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
           <DialogTrigger asChild>
             <Button>{t("addUser")}</Button>
           </DialogTrigger>
