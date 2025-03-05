@@ -108,7 +108,7 @@ export default function Orders() {
         total: data.total.toString(),
         status: "pending",
         paymentMethod: "cash",
-        date: new Date().toISOString()
+        date: data.date
       });
 
       if (!orderResponse.ok) {
@@ -172,7 +172,8 @@ export default function Orders() {
     createMutation.mutate({
       customerId: selectedCustomer.id,
       items: validItems,
-      total
+      total,
+      date: new Date().toISOString() // Formato ISO para PostgreSQL
     });
   };
 
