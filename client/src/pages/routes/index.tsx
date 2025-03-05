@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 
 // Componente de zonas
 import ZoneMap from "./ZoneMap";
@@ -19,6 +20,8 @@ import RouteOptimizer from "./RouteOptimizer";
 export default function Routes() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("zones");
+  const [newZoneName, setNewZoneName] = useState("");
+  const [selectedColor, setSelectedColor] = useState("#3B82F6");
 
   // Consultas
   const { data: zones = [] } = useQuery<Zone[]>({
@@ -42,8 +45,22 @@ export default function Routes() {
         </TabsList>
 
         <TabsContent value="zones" className="mt-4">
-          <Card className="p-0">
-            <ZoneMap />
+          <Card className="p-4">
+            <div className="flex gap-4 mb-4">
+              <Input
+                placeholder="Nombre de la zona"
+                value={newZoneName}
+                onChange={(e) => setNewZoneName(e.target.value)}
+                className="w-48"
+              />
+              <Input
+                type="color"
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                className="w-16"
+              />
+            </div>
+            <ZoneMap newZoneName={newZoneName} selectedColor={selectedColor} onZoneCreated={() => setNewZoneName("")} />
           </Card>
         </TabsContent>
 

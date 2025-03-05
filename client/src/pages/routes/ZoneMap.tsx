@@ -4,7 +4,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { type Zone, type Customer } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
 import { Pencil, X } from "lucide-react";
@@ -126,10 +125,14 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   );
 }
 
-export default function ZoneMap() {
+interface ZoneMapProps {
+  newZoneName: string;
+  selectedColor: string;
+  onZoneCreated: () => void;
+}
+
+export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: ZoneMapProps) {
   const { toast } = useToast();
-  const [newZoneName, setNewZoneName] = useState("");
-  const [selectedColor, setSelectedColor] = useState("#3B82F6");
 
   // Consultas
   const { data: zones = [] } = useQuery<Zone[]>({
@@ -151,7 +154,7 @@ export default function ZoneMap() {
         title: "¡Zona creada!",
         description: "La zona se ha creado exitosamente",
       });
-      setNewZoneName("");
+      onZoneCreated();
     },
   });
 
@@ -199,20 +202,6 @@ export default function ZoneMap() {
       margin: "0 auto",
       position: "relative"
     }}>
-      <div className="absolute top-2 left-2 z-[1000] bg-white p-2 rounded-lg shadow-lg flex gap-2">
-        <Input
-          placeholder="Nombre de la zona"
-          value={newZoneName}
-          onChange={(e) => setNewZoneName(e.target.value)}
-          className="w-48"
-        />
-        <Input
-          type="color"
-          value={selectedColor}
-          onChange={(e) => setSelectedColor(e.target.value)}
-          className="w-16"
-        />
-      </div>
       <MapContainer
         center={[18.4955, -69.8534]}
         zoom={13}
