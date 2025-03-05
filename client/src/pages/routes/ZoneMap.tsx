@@ -6,22 +6,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { type Zone, type Customer } from "@shared/schema";
-import type { LeafletMouseEvent } from 'leaflet';
+import { LatLngExpression, LatLng } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 interface DrawingControlProps {
-  onPolygonComplete: (coordinates: [number, number][]) => void;
+  onPolygonComplete: (coordinates: LatLngExpression[]) => void;
 }
 
 function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
-  const [points, setPoints] = useState<[number, number][]>([]);
+  const [points, setPoints] = useState<LatLngExpression[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
 
   useMapEvents({
-    click(e: LeafletMouseEvent) {
+    click(e) {
       if (!isDrawing) return;
-
-      const newPoint: [number, number] = [e.latlng.lat, e.latlng.lng];
+      const newPoint: LatLngExpression = [e.latlng.lat, e.latlng.lng];
       setPoints([...points, newPoint]);
     },
   });
@@ -88,7 +87,7 @@ export default function ZoneMap() {
     },
   });
 
-  const handlePolygonComplete = (coordinates: [number, number][]) => {
+  const handlePolygonComplete = (coordinates: LatLngExpression[]) => {
     if (!newZoneName) {
       toast({
         variant: "destructive",
@@ -101,9 +100,14 @@ export default function ZoneMap() {
     createZoneMutation.mutate({
       name: newZoneName,
       color: selectedColor,
-      coordinates: coordinates.map(([lat, lng]) => `${lat},${lng}`),
+      coordinates: coordinates.map(coord => {
+        const [lat, lng] = Array.isArray(coord) ? coord : [coord.lat, coord.lng];
+        return `${lat},${lng}`;
+      }),
     });
   };
+
+  const center: LatLngExpression = [18.4955, -69.8734]; // Santo Domingo
 
   return (
     <div className="h-[80vh] relative">
@@ -122,9 +126,8 @@ export default function ZoneMap() {
       </div>
 
       <MapContainer
-        center={[18.4955, -69.8734]} // Santo Domingo
+        center={center}
         zoom={13}
-        className="h-full w-full"
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
@@ -138,9 +141,9 @@ export default function ZoneMap() {
         {zones.map((zone) => (
           <Polygon
             key={zone.id}
-            positions={zone.coordinates.map((coord) => {
+            positions={zone.coordinates.map((coord): LatLngExpression => {
               const [lat, lng] = coord.split(",").map(Number);
-              return [lat, lng] as [number, number];
+              return [lat, lng];
             })}
             pathOptions={{ color: zone.color }}
           />
@@ -153,9 +156,8 @@ export default function ZoneMap() {
           return (
             <Marker
               key={customer.id}
-              position={[lat, lng]}
-            >
-            </Marker>
+              position={[lat, lng] as LatLngExpression}
+            />
           );
         })}
       </MapContainer>
