@@ -99,47 +99,54 @@ export default function Orders() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Crear el pedido
-      const orderData = {
-        customerId: parseInt(data.customerId),
-        routeId: null,
-        total: data.total.toString(),
-        status: "pending",
-        paymentMethod: "cash",
-        date: new Date().toISOString(),
-      };
-
-      console.log('Sending order data:', orderData);
-      const orderResponse = await apiRequest("POST", "/api/orders", orderData);
-
-      if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        console.error('Order creation error:', errorData);
-        throw new Error(errorData.error || 'Error al crear el pedido');
-      }
-
-      const order = await orderResponse.json();
-
-      // Crear los items del pedido
-      const validItems = data.items.filter((item: OrderItem) => item.quantity > 0);
-      for (const item of validItems) {
-        const itemData = {
-          orderId: order.id,
-          productId: parseInt(item.code),
-          quantity: item.quantity,
-          price: item.price.toString()
+      try {
+        // Datos mínimos según el schema
+        const orderData = {
+          customerId: data.customerId,
+          routeId: null,
+          total: data.total.toString(),
+          status: "pending" as const,
+          paymentMethod: "cash" as const,
+          date: new Date().toISOString()
         };
 
-        console.log('Sending item data:', itemData);
-        const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
+        console.log('Intentando crear pedido con:', orderData);
+        const orderResponse = await apiRequest("POST", "/api/orders", orderData);
 
-        if (!itemResponse.ok) {
-          console.error('Item creation error:', await itemResponse.json());
-          throw new Error('Error al crear los items del pedido');
+        if (!orderResponse.ok) {
+          const errorData = await orderResponse.json();
+          console.error('Error detallado:', errorData);
+          throw new Error(JSON.stringify(errorData));
         }
-      }
 
-      return order;
+        const order = await orderResponse.json();
+        console.log('Pedido creado:', order);
+
+        // Crear items después de tener un pedido exitoso
+        const validItems = data.items.filter((item: OrderItem) => item.quantity > 0);
+        for (const item of validItems) {
+          const itemData = {
+            orderId: order.id,
+            productId: parseInt(item.code),
+            quantity: item.quantity,
+            price: item.price.toString()
+          };
+
+          console.log('Creando item:', itemData);
+          const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
+
+          if (!itemResponse.ok) {
+            const itemError = await itemResponse.json();
+            console.error('Error al crear item:', itemError);
+            throw new Error(JSON.stringify(itemError));
+          }
+        }
+
+        return order;
+      } catch (error) {
+        console.error('Error completo:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -149,7 +156,6 @@ export default function Orders() {
       });
       setIsDialogOpen(false);
       setSelectedCustomer(null);
-      setNotes("");
       setOrderItems(Array(5).fill({
         code: "",
         description: "",
@@ -158,12 +164,12 @@ export default function Orders() {
         total: 0
       }));
     },
-    onError: (error) => {
-      console.error('Mutation error:', error);
+    onError: (error: any) => {
+      console.error('Error en mutación:', error);
       toast({
         variant: "destructive",
         title: t("error"),
-        description: error.message,
+        description: error.message || 'Error al crear el pedido',
       });
     }
   });
