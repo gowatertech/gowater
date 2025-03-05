@@ -114,10 +114,10 @@ export default function Orders() {
       // 3. Crear el pedido
       const orderData = {
         customerId: parseInt(data.customerId),
-        total: total.toString(), // Convertir a string
+        total: total.toFixed(2),
         status: "pending",
         paymentMethod: "cash",
-        date: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+        date: new Date().toISOString(), // formato ISO completo
         routeId: null
       };
 
@@ -139,7 +139,7 @@ export default function Orders() {
           orderId: order.id,
           productId: parseInt(item.code),
           quantity: item.quantity,
-          price: item.price.toString() // Convertir a string
+          price: item.price.toFixed(2) // Formato con 2 decimales
         };
 
         console.log('Enviando item:', itemData);
