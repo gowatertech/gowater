@@ -40,7 +40,6 @@ export default function DriverView() {
   const { t } = useTranslation();
   const [selectedDelivery, setSelectedDelivery] = useState<number | null>(null);
   const [completedDeliveries, setCompletedDeliveries] = useState<number[]>([]);
-  const [showMap, setShowMap] = useState(false);
 
   const handleComplete = (deliveryId: number) => {
     setCompletedDeliveries([...completedDeliveries, deliveryId]);
@@ -48,7 +47,6 @@ export default function DriverView() {
 
   const handleShowMap = (deliveryId: number) => {
     setSelectedDelivery(deliveryId);
-    setShowMap(true);
   };
 
   const selectedDeliveryData = deliveries.find(d => d.id === selectedDelivery);
@@ -56,7 +54,7 @@ export default function DriverView() {
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Entregas del día</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Lista de entregas */}
         <Card className="p-4">
@@ -112,7 +110,7 @@ export default function DriverView() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            
+
             {selectedDeliveryData && (
               <Marker position={selectedDeliveryData.coordinates as LatLngExpression}>
                 <Popup>
