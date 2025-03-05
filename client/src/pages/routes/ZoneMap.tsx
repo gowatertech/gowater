@@ -193,7 +193,12 @@ export default function ZoneMap() {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="bg-white rounded-lg shadow-sm" style={{ 
+      height: "500px",
+      width: "650px",
+      margin: "0 auto",
+      position: "relative"
+    }}>
       <div className="absolute top-2 left-2 z-[1000] bg-white p-2 rounded-lg shadow-lg flex gap-2">
         <Input
           placeholder="Nombre de la zona"
@@ -208,68 +213,61 @@ export default function ZoneMap() {
           className="w-16"
         />
       </div>
+      <MapContainer
+        center={[18.4955, -69.8534]}
+        zoom={13}
+        style={{ height: "100%", width: "100%" }}
+        className="rounded-lg"
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
 
-      <div className="bg-white rounded-lg shadow-sm" style={{ 
-        height: "500px",
-        width: "650px",
-        margin: "0 auto"
-      }}>
-        <MapContainer
-          center={[18.4955, -69.8534]}
-          zoom={13}
-          style={{ height: "100%", width: "100%" }}
-          className="rounded-lg"
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
+        <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
-          <DrawingControl onPolygonComplete={handlePolygonComplete} />
-
-          {zones.map((zone) => {
-            try {
-              const positions = zone.coordinates.map((coord): LatLngExpression => {
-                const [lat, lng] = coord.split(",").map(Number);
-                if (isNaN(lat) || isNaN(lng)) {
-                  throw new Error(`Coordenadas inválidas en zona ${zone.id}: ${coord}`);
-                }
-                return [lat, lng];
-              });
-
-              return (
-                <Polygon
-                  key={zone.id}
-                  positions={positions}
-                  pathOptions={{ color: zone.color }}
-                />
-              );
-            } catch (error) {
-              console.error(`Error al renderizar zona ${zone.id}:`, error);
-              return null;
-            }
-          })}
-
-          {customers.map((customer) => {
-            if (!customer.coordinates) return null;
-            try {
-              const [lat, lng] = customer.coordinates.split(",").map(Number);
+        {zones.map((zone) => {
+          try {
+            const positions = zone.coordinates.map((coord): LatLngExpression => {
+              const [lat, lng] = coord.split(",").map(Number);
               if (isNaN(lat) || isNaN(lng)) {
-                throw new Error(`Coordenadas inválidas para cliente ${customer.id}`);
+                throw new Error(`Coordenadas inválidas en zona ${zone.id}: ${coord}`);
               }
-              return (
-                <Marker
-                  key={customer.id}
-                  position={[lat, lng] as LatLngExpression}
-                />
-              );
-            } catch (error) {
-              console.error(`Error al renderizar cliente ${customer.id}:`, error);
-              return null;
+              return [lat, lng];
+            });
+
+            return (
+              <Polygon
+                key={zone.id}
+                positions={positions}
+                pathOptions={{ color: zone.color }}
+              />
+            );
+          } catch (error) {
+            console.error(`Error al renderizar zona ${zone.id}:`, error);
+            return null;
+          }
+        })}
+
+        {customers.map((customer) => {
+          if (!customer.coordinates) return null;
+          try {
+            const [lat, lng] = customer.coordinates.split(",").map(Number);
+            if (isNaN(lat) || isNaN(lng)) {
+              throw new Error(`Coordenadas inválidas para cliente ${customer.id}`);
             }
-          })}
-        </MapContainer>
-      </div>
+            return (
+              <Marker
+                key={customer.id}
+                position={[lat, lng] as LatLngExpression}
+              />
+            );
+          } catch (error) {
+            console.error(`Error al renderizar cliente ${customer.id}:`, error);
+            return null;
+          }
+        })}
+      </MapContainer>
     </div>
   );
 }
