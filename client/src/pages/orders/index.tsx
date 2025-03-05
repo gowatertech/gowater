@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type Customer, type Product, type Order, type CustomerOrders } from "@shared/schema";
+import { type Customer, type Product, type Order } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PlusCircle } from "lucide-react";
 
 interface OrderItem {
   code: string;
@@ -100,31 +101,31 @@ export default function Orders() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Primero crear el pedido
-      const orderRes = await apiRequest("POST", "/api/orders", {
+      // Crear el pedido
+      const orderResponse = await apiRequest("POST", "/api/orders", {
         customerId: data.customerId,
+        routeId: null, // Será asignado después
         total: data.total,
         status: "pending",
-        date: new Date().toISOString(),
-        notes: data.notes,
-        items: data.items,
-        paymentMethod: data.paymentMethod,
+        paymentMethod: "cash",
+        date: new Date().toISOString()
       });
-      const order = await orderRes.json();
+      const order = await orderResponse.json();
 
-      // Luego actualizar las estadísticas del cliente
-      await apiRequest("POST", "/api/customer-orders", {
-        customerId: data.customerId,
-        orderType: "regular", // Por defecto, luego se puede hacer configurable
-        frequency: "occasional", // Por defecto, se puede calcular basado en patrones
-        paymentMethod: data.paymentMethod,
-      });
+      // Crear los items del pedido
+      for (const item of data.items) {
+        await apiRequest("POST", `/api/orders/${order.id}/items`, {
+          orderId: order.id,
+          productId: parseInt(item.code),
+          quantity: item.quantity,
+          price: item.price.toString()
+        });
+      }
 
       return order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/customer-orders"] });
       toast({
         title: t("success"),
         description: t("orderCreated"),
@@ -159,16 +160,8 @@ export default function Orders() {
 
     createMutation.mutate({
       customerId: selectedCustomer.id,
-      total: total.toString(),
-      status: "pending",
-      paymentMethod: "cash", // Por defecto, se puede hacer seleccionable
-      date: new Date().toISOString(),
-      notes,
-      items: validItems.map(item => ({
-        productId: parseInt(item.code),
-        quantity: item.quantity,
-        price: item.price.toString()
-      }))
+      items: validItems,
+      total: total.toString()
     });
   };
 
@@ -181,21 +174,20 @@ export default function Orders() {
           <DialogTrigger asChild>
             <Button>{t("newOrder")}</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>{t("newOrder")}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
-              {/* Selección de Cliente */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  {t("customer")}
-                </label>
-                <Select onValueChange={(value) => {
-                  const customer = customers?.find(c => c.id === parseInt(value));
-                  setSelectedCustomer(customer || null);
-                }}>
+              {/* Cliente y Productos */}
+              <div className="grid gap-4">
+                <Select
+                  onValueChange={(value) => {
+                    const customer = customers?.find(c => c.id === parseInt(value));
+                    setSelectedCustomer(customer || null);
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder={t("selectCustomer")} />
                   </SelectTrigger>
@@ -212,128 +204,116 @@ export default function Orders() {
                 </Select>
 
                 {selectedCustomer && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm font-medium">{t("businessName")}:</p>
-                        <p>{selectedCustomer.businessName}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{t("address")}:</p>
-                        <p>{selectedCustomer.address}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{t("phone")}:</p>
-                        <p>{selectedCustomer.phone}</p>
-                      </div>
+                  <div className="text-sm grid grid-cols-2 gap-2 bg-muted p-2 rounded">
+                    <div>
+                      <span className="font-medium">{t("businessName")}: </span>
+                      {selectedCustomer.businessName}
+                    </div>
+                    <div>
+                      <span className="font-medium">{t("address")}: </span>
+                      {selectedCustomer.address}
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Tabla de Productos */}
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Código</th>
-                    <th className="text-left p-2">Descripción</th>
-                    <th className="text-right p-2">Cantidad</th>
-                    <th className="text-right p-2">Precio</th>
-                    <th className="text-right p-2">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orderItems.map((item, index) => (
-                    <tr key={index} className="border-b">
-                      <td className="p-2">
-                        <Select
-                          value={item.code}
-                          onValueChange={(value) => handleProductChange(index, value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Código" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products?.map((product) => (
-                              <SelectItem
-                                key={product.id}
-                                value={product.id.toString()}
-                              >
-                                {product.id}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          value={item.description}
-                          readOnly
-                          className="bg-muted"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={item.quantity}
-                          onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                          className="text-right"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
-                          readOnly
-                          className="text-right bg-muted"
-                        />
-                      </td>
-                      <td className="p-2">
-                        <Input
-                          value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
-                          readOnly
-                          className="text-right bg-muted"
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Notas */}
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Notas
-                </label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Agregar notas al pedido..."
-                  className="h-20"
-                />
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-24">Código</TableHead>
+                      <TableHead>Descripción</TableHead>
+                      <TableHead className="w-24 text-right">Cant.</TableHead>
+                      <TableHead className="w-28 text-right">Precio</TableHead>
+                      <TableHead className="w-28 text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orderItems.map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="p-1">
+                          <Select
+                            value={item.code}
+                            onValueChange={(value) => handleProductChange(index, value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="---" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {products?.map((product) => (
+                                <SelectItem
+                                  key={product.id}
+                                  value={product.id.toString()}
+                                >
+                                  {product.id}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <Input
+                            value={item.description}
+                            readOnly
+                            className="bg-muted"
+                          />
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.quantity}
+                            onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                            className="text-right"
+                          />
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <Input
+                            value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
+                            readOnly
+                            className="text-right bg-muted"
+                          />
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <Input
+                            value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
+                            readOnly
+                            className="text-right bg-muted"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
 
-              {/* Totales y Botón Crear */}
-              <div className="space-y-4">
-                <div className="flex justify-end">
-                  <div className="w-64 space-y-2">
-                    <div className="flex justify-between">
-                      <span>Sub-total:</span>
-                      <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ITBIS (18%):</span>
-                      <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>RD$ {calculateTotal().total.toFixed(2)}</span>
-                    </div>
+              {/* Notas */}
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Notas del pedido..."
+                className="h-20"
+              />
+
+              {/* Totales y Botón */}
+              <div className="flex justify-between items-end">
+                <div className="w-64 space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span>Sub-total:</span>
+                    <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>ITBIS (18%):</span>
+                    <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span>Total:</span>
+                    <span>RD$ {calculateTotal().total.toFixed(2)}</span>
                   </div>
                 </div>
 
                 <Button
-                  className="w-full"
                   disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
                   onClick={handleCreateOrder}
                 >
@@ -374,8 +354,8 @@ export default function Orders() {
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     order.status === "delivered" ? "bg-green-100 text-green-800" :
-                      order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-red-100 text-red-800"
+                    order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                    "bg-red-100 text-red-800"
                   }`}>
                     {t(order.status)}
                   </span>
