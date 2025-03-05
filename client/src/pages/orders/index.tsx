@@ -31,6 +31,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface OrderItem {
   code: string;
@@ -173,7 +174,7 @@ export default function Orders() {
       toast({
         variant: "destructive",
         title: t("error"),
-        description: error.message
+        description: error.message,
       });
     }
   });
@@ -205,15 +206,15 @@ export default function Orders() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header con botón nuevo pedido */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{t("orders")}</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold">{t("orders")}</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button>{t("newOrder")}</Button>
+            <Button className="w-full sm:w-auto">{t("newOrder")}</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="w-[95vw] max-w-3xl">
             <DialogHeader>
               <DialogTitle>{t("newOrder")}</DialogTitle>
             </DialogHeader>
@@ -243,7 +244,7 @@ export default function Orders() {
                 </Select>
 
                 {selectedCustomer && (
-                  <div className="text-sm grid grid-cols-2 gap-2 bg-muted p-2 rounded">
+                  <div className="text-sm grid grid-cols-1 sm:grid-cols-2 gap-2 bg-muted p-2 rounded">
                     <div>
                       <span className="font-medium">{t("businessName")}: </span>
                       {selectedCustomer.businessName}
@@ -258,73 +259,75 @@ export default function Orders() {
 
               {/* Tabla de Productos */}
               <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-24">Código</TableHead>
-                      <TableHead>Descripción</TableHead>
-                      <TableHead className="w-24 text-right">Cant.</TableHead>
-                      <TableHead className="w-28 text-right">Precio</TableHead>
-                      <TableHead className="w-28 text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orderItems.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="p-1">
-                          <Select
-                            value={item.code}
-                            onValueChange={(value) => handleProductChange(index, value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="---" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {products?.map((product) => (
-                                <SelectItem
-                                  key={product.id}
-                                  value={product.id.toString()}
-                                >
-                                  {product.id}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input
-                            value={item.description}
-                            readOnly
-                            className="bg-muted"
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input
-                            type="number"
-                            min="0"
-                            value={item.quantity}
-                            onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                            className="text-right"
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input
-                            value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
-                            readOnly
-                            className="text-right bg-muted"
-                          />
-                        </TableCell>
-                        <TableCell className="p-1">
-                          <Input
-                            value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
-                            readOnly
-                            className="text-right bg-muted"
-                          />
-                        </TableCell>
+                <ScrollArea className="h-[300px] md:h-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-20 md:w-24">Código</TableHead>
+                        <TableHead>Descripción</TableHead>
+                        <TableHead className="w-20 md:w-24 text-right">Cant.</TableHead>
+                        <TableHead className="w-24 md:w-28 text-right">Precio</TableHead>
+                        <TableHead className="w-24 md:w-28 text-right">Total</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {orderItems.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="p-1">
+                            <Select
+                              value={item.code}
+                              onValueChange={(value) => handleProductChange(index, value)}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="---" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products?.map((product) => (
+                                  <SelectItem
+                                    key={product.id}
+                                    value={product.id.toString()}
+                                  >
+                                    {product.id}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input
+                              value={item.description}
+                              readOnly
+                              className="bg-muted h-8"
+                            />
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input
+                              type="number"
+                              min="0"
+                              value={item.quantity}
+                              onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                              className="text-right h-8"
+                            />
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input
+                              value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
+                              readOnly
+                              className="text-right bg-muted h-8"
+                            />
+                          </TableCell>
+                          <TableCell className="p-1">
+                            <Input
+                              value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
+                              readOnly
+                              className="text-right bg-muted h-8"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               </div>
 
               {/* Notas */}
@@ -336,8 +339,8 @@ export default function Orders() {
               />
 
               {/* Totales y Botón */}
-              <div className="flex justify-between items-end">
-                <div className="w-64 space-y-1 text-sm">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                <div className="w-full sm:w-64 space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span>Sub-total:</span>
                     <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
@@ -353,6 +356,7 @@ export default function Orders() {
                 </div>
 
                 <Button
+                  className="w-full sm:w-auto"
                   disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
                   onClick={handleCreateOrder}
                 >
@@ -365,49 +369,51 @@ export default function Orders() {
       </div>
 
       {/* Tabla de Pedidos */}
-      <div className="bg-white rounded-lg shadow-sm border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>No. Pedido</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders?.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>#{order.id}</TableCell>
-                <TableCell>
-                  {customers?.find(c => c.id === order.customerId)?.name}
-                </TableCell>
-                <TableCell>
-                  {new Date(order.date).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  RD$ {parseFloat(order.total.toString()).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    order.status === "delivered" ? "bg-green-100 text-green-800" :
-                      order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-red-100 text-red-800"
-                  }`}>
-                    {t(order.status)}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="sm">
-                    Ver detalles
-                  </Button>
-                </TableCell>
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <ScrollArea>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No. Pedido</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Acciones</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {orders?.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell>#{order.id}</TableCell>
+                  <TableCell>
+                    {customers?.find(c => c.id === order.customerId)?.name}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(order.date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    RD$ {parseFloat(order.total.toString()).toFixed(2)}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      order.status === "delivered" ? "bg-green-100 text-green-800" :
+                        order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                          "bg-red-100 text-red-800"
+                    }`}>
+                      {t(order.status)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm" className="h-8">
+                      Ver detalles
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollArea>
       </div>
     </div>
   );
