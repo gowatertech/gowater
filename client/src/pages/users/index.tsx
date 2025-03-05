@@ -68,7 +68,7 @@ export default function Users() {
       licenseExpiry: "",
       emergencyContact: "",
       active: true,
-    }
+    },
   });
 
   // Mutaciones
@@ -158,13 +158,11 @@ export default function Users() {
   const onSubmit = async (data: any) => {
     try {
       console.log('Form data before submit:', data);
-
       const formattedData = {
         ...data,
         licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
         hireDate: new Date().toISOString(),
       };
-
       console.log('Formatted data:', formattedData);
 
       if (editingUser) {
@@ -174,6 +172,11 @@ export default function Users() {
       }
     } catch (error) {
       console.error('Error en submit:', error);
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error instanceof Error ? error.message : 'Error desconocido',
+      });
     }
   };
 
@@ -198,15 +201,12 @@ export default function Users() {
     }
   };
 
-  const handleDialogOpen = (open: boolean) => {
-    setIsDialogOpen(open);
-  };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t("users")}</h1>
-        <Dialog open={isDialogOpen} onOpenChange={handleDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>{t("addUser")}</Button>
           </DialogTrigger>
