@@ -191,7 +191,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRoute(route: InsertRoute): Promise<Route> {
-    const [newRoute] = await db.insert(routes).values(route).returning();
+    const [newRoute] = await db.insert(routes).values([route]).returning();
     return newRoute;
   }
 
@@ -281,16 +281,13 @@ export class DatabaseStorage implements IStorage {
 
       // Convertir los tipos según lo que espera PostgreSQL
       const orderData = {
-        customerId: order.customerId,
-        total: total,  // Convertir a número para PostgreSQL
-        status: order.status,
-        paymentMethod: order.paymentMethod,
+        ...order,
         date: new Date(order.date), // Convertir a Date para PostgreSQL
-        routeId: order.routeId
+        total: total.toString(),  // Mantener como string para PostgreSQL
       };
 
       // Insertar en la base de datos
-      const [newOrder] = await db.insert(orders).values(orderData).returning();
+      const [newOrder] = await db.insert(orders).values([orderData]).returning();
       return newOrder;
     } catch (error) {
       console.error('Error en createOrder:', error);

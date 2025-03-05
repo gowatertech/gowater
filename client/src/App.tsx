@@ -9,6 +9,7 @@ import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
 import Inventory from "@/pages/inventory";
 import Orders from "@/pages/orders";
+import Routes from "@/pages/routes";
 
 // Import translations
 import "./lib/i18n";
@@ -22,6 +23,7 @@ function Router() {
         <Route path="/customers" component={Customers} />
         <Route path="/inventory" component={Inventory} />
         <Route path="/orders" component={Orders} />
+        <Route path="/routes" component={Routes} />
         <Route component={NotFound} />
       </Switch>
     </DashboardLayout>

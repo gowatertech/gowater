@@ -1,6 +1,6 @@
 import * as turf from '@turf/turf';
-import { addMinutes, parseISO } from 'date-fns';
-import type { Order, Route } from '@shared/schema';
+import { addMinutes } from 'date-fns';
+import { type Order, type Route } from '@shared/schema';
 
 interface Point {
   type: 'Feature';
@@ -24,12 +24,12 @@ interface OptimizedRoute {
 
 const AVERAGE_SPEED = 30; // km/h
 const DELIVERY_TIME = 10; // minutos por entrega
-const DEPOT_COORDINATES = [-69.8734, 18.4955]; // Santo Domingo
+const DEPOT_COORDINATES: [number, number] = [-69.8734, 18.4955]; // Santo Domingo
 
 export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
   // Convertir órdenes a puntos para el cálculo
   const points: Point[] = orders.map(order => {
-    const [lat, lng] = (order.deliveryCoordinates || "").split(",").map(Number);
+    const [lat, lng] = order.deliveryCoordinates?.split(",").map(Number) || [0, 0];
     return {
       type: 'Feature',
       properties: {
@@ -39,7 +39,7 @@ export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
       },
       geometry: {
         type: 'Point',
-        coordinates: [lng, lat]
+        coordinates: [lng, lat] as [number, number]
       }
     };
   });
@@ -118,7 +118,7 @@ export function updateEstimatedDeliveryTimes(
 ): Order[] {
   const sequence = route.deliverySequence || [];
   let currentTime = startTime;
-  
+
   return orders.map(order => {
     const sequenceIndex = sequence.indexOf(order.id.toString());
     if (sequenceIndex === -1) return order;
