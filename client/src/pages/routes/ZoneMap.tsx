@@ -70,7 +70,7 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
 export default function ZoneMap() {
   const { toast } = useToast();
   const [newZoneName, setNewZoneName] = useState("");
-  const [selectedColor, setSelectedColor] = useState("#3B82F6"); // Blue default
+  const [selectedColor, setSelectedColor] = useState("#3B82F6");
 
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
@@ -133,12 +133,13 @@ export default function ZoneMap() {
   };
 
   return (
-    <div className="flex flex-col" style={{ height: "70vh" }}>
+    <div className="flex flex-col">
       <div className="absolute top-2 left-2 z-[1000] bg-white p-2 rounded-lg shadow-lg flex gap-2">
         <Input
           placeholder="Nombre de la zona"
           value={newZoneName}
           onChange={(e) => setNewZoneName(e.target.value)}
+          className="w-48"
         />
         <Input
           type="color"
@@ -148,16 +149,16 @@ export default function ZoneMap() {
         />
       </div>
 
-      <div style={{ 
-        height: "100%",
-        width: "calc(100% + 400px)",
-        marginLeft: "-200px",
-        position: "relative"
+      <div className="bg-white rounded-lg shadow-sm" style={{ 
+        height: "500px",
+        width: "650px",
+        margin: "0 auto"
       }}>
         <MapContainer
           center={[18.4955, -69.8534]}
           zoom={13}
           style={{ height: "100%", width: "100%" }}
+          className="rounded-lg"
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
