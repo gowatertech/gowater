@@ -31,6 +31,7 @@ import {
 import { PlusCircle } from "lucide-react";
 
 interface OrderItem {
+  code: string;
   product: Product;
   quantity: number;
   price: number;
@@ -42,8 +43,17 @@ export default function Orders() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [orderNumber] = useState(Math.floor(Math.random() * 90000) + 10000);
-  const [currentDate] = useState(new Date().toLocaleDateString());
+  const [currentProduct, setCurrentProduct] = useState<{
+    code: string;
+    quantity: number;
+  }>({
+    code: "",
+    quantity: 1
+  });
+
+  // Constantes
+  const currentDate = new Date().toLocaleDateString();
+  const orderNumber = 101; // Esto debería venir de la base de datos
 
   const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
@@ -56,6 +66,24 @@ export default function Orders() {
   const { data: products } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
+
+  const handleAddProduct = () => {
+    const product = products?.find(p => p.id.toString() === currentProduct.code);
+    if (!product) return;
+
+    const price = parseFloat(product.price.toString());
+    const total = price * currentProduct.quantity;
+
+    setOrderItems(prev => [...prev, {
+      code: currentProduct.code,
+      product,
+      quantity: currentProduct.quantity,
+      price,
+      total
+    }]);
+
+    setCurrentProduct({ code: "", quantity: 1 });
+  };
 
   const calculateTotals = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
@@ -84,11 +112,14 @@ export default function Orders() {
             {/* Formulario de Pedido */}
             <div className="bg-white rounded-lg">
               {/* Encabezado */}
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-primary">Nota de Pedido</h2>
-                <div className="mt-2">
-                  <p>Fecha: {currentDate}</p>
-                  <p>No. {orderNumber}</p>
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-xl font-bold">Nota de Pedido</h2>
+                  <p className="text-sm text-muted-foreground">No. {orderNumber}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm">Fecha:</p>
+                  <p className="font-medium">{currentDate}</p>
                 </div>
               </div>
 
@@ -136,6 +167,55 @@ export default function Orders() {
                 )}
               </div>
 
+              {/* Entrada de Productos */}
+              <div className="mb-4 grid grid-cols-12 gap-4">
+                <div className="col-span-2">
+                  <Input
+                    placeholder="Código"
+                    value={currentProduct.code}
+                    onChange={(e) => setCurrentProduct(prev => ({
+                      ...prev,
+                      code: e.target.value
+                    }))}
+                  />
+                </div>
+                <div className="col-span-5">
+                  <Input
+                    placeholder="Descripción"
+                    value={products?.find(p => p.id.toString() === currentProduct.code)?.name || ""}
+                    readOnly
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Cantidad"
+                    value={currentProduct.quantity}
+                    onChange={(e) => setCurrentProduct(prev => ({
+                      ...prev,
+                      quantity: parseInt(e.target.value) || 1
+                    }))}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Input
+                    placeholder="Precio Unit."
+                    value={products?.find(p => p.id.toString() === currentProduct.code)?.price || ""}
+                    readOnly
+                  />
+                </div>
+                <div className="col-span-1">
+                  <Button 
+                    variant="secondary"
+                    onClick={handleAddProduct}
+                    disabled={!currentProduct.code}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+
               {/* Tabla de Productos */}
               <div className="mt-6">
                 <table className="w-full">
@@ -151,11 +231,11 @@ export default function Orders() {
                   <tbody>
                     {orderItems.map((item, index) => (
                       <tr key={index} className="border-b">
-                        <td className="p-2">{item.product.id}</td>
+                        <td className="p-2">{item.code}</td>
                         <td className="p-2">{item.product.name}</td>
                         <td className="p-2 text-right">{item.quantity}</td>
                         <td className="p-2 text-right">
-                          RD$ {parseFloat(item.product.price.toString()).toFixed(2)}
+                          RD$ {item.price.toFixed(2)}
                         </td>
                         <td className="p-2 text-right">
                           RD$ {item.total.toFixed(2)}
@@ -164,32 +244,6 @@ export default function Orders() {
                     ))}
                   </tbody>
                 </table>
-              </div>
-
-              {/* Productos Disponibles */}
-              <div className="mt-6">
-                <h3 className="font-medium mb-2">{t("products")}</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {products?.map((product) => (
-                    <div
-                      key={product.id}
-                      className="p-3 border rounded cursor-pointer hover:bg-accent"
-                      onClick={() => {
-                        const price = parseFloat(product.price.toString());
-                        const quantity = 1;
-                        const total = price * quantity;
-
-                        setOrderItems(prev => [
-                          ...prev,
-                          { product, quantity, price, total }
-                        ]);
-                      }}
-                    >
-                      <p className="font-medium">{product.name}</p>
-                      <p>RD$ {parseFloat(product.price.toString()).toFixed(2)}</p>
-                    </div>
-                  ))}
-                </div>
               </div>
 
               {/* Totales */}
