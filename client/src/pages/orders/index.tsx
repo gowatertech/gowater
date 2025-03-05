@@ -100,45 +100,31 @@ export default function Orders() {
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
+        // 1. Crear pedido con datos mínimos necesarios
         const orderData = {
-          customerId: data.customerId,
-          routeId: null,
-          total: data.total.toString(),
+          customerId: parseInt(data.customerId), // Asegurarnos que es número
+          total: data.total.toString(), // Asegurarnos que es string
           status: "pending",
-          paymentMethod: "cash",
-          date: new Date().toISOString()
+          date: new Date().toISOString(), // Formato ISO para timestamp
         };
 
-        console.log('Order data:', orderData);
+        console.log('Intentando crear pedido con:', orderData);
         const orderResponse = await apiRequest("POST", "/api/orders", orderData);
+        const responseText = await orderResponse.text();
+        console.log('Respuesta completa:', {
+          status: orderResponse.status,
+          text: responseText
+        });
 
         if (!orderResponse.ok) {
-          const errorData = await orderResponse.json();
-          console.error('Error:', errorData);
-          throw new Error(JSON.stringify(errorData));
+          throw new Error(responseText);
         }
 
-        const order = await orderResponse.json();
-
-        const validItems = data.items.filter((item: OrderItem) => item.quantity > 0);
-        for (const item of validItems) {
-          const itemData = {
-            orderId: order.id,
-            productId: parseInt(item.code),
-            quantity: item.quantity,
-            price: item.price.toString()
-          };
-
-          const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
-
-          if (!itemResponse.ok) {
-            throw new Error('Error creating order items');
-          }
-        }
-
+        const order = JSON.parse(responseText);
+        console.log('Pedido creado exitosamente:', order);
         return order;
       } catch (error) {
-        console.error('Error:', error);
+        console.error('Error completo:', error);
         throw error;
       }
     },
@@ -150,7 +136,6 @@ export default function Orders() {
       });
       setIsDialogOpen(false);
       setSelectedCustomer(null);
-      setNotes("");
       setOrderItems(Array(5).fill({
         code: "",
         description: "",
@@ -163,7 +148,7 @@ export default function Orders() {
       toast({
         variant: "destructive",
         title: t("error"),
-        description: error.message || 'Error al crear el pedido',
+        description: `Error: ${error.message}`,
       });
     }
   });
@@ -171,15 +156,11 @@ export default function Orders() {
   const handleCreateOrder = () => {
     if (!selectedCustomer) return;
 
-    const validItems = orderItems.filter(item => item.quantity > 0);
-    if (validItems.length === 0) return;
-
     const { total } = calculateTotal();
 
     createMutation.mutate({
       customerId: selectedCustomer.id,
-      items: validItems,
-      total
+      total: total.toString() // Asegurarnos que es string
     });
   };
 
@@ -372,8 +353,8 @@ export default function Orders() {
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     order.status === "delivered" ? "bg-green-100 text-green-800" :
-                    order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                    "bg-red-100 text-red-800"
+                      order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-red-100 text-red-800"
                   }`}>
                     {t(order.status)}
                   </span>
