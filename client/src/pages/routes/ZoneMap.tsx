@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MapContainer, TileLayer, Polygon, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Polygon, Marker, Polyline, useMapEvents } from "react-leaflet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -31,11 +31,11 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
     click(e) {
       if (!isDrawing) return;
       const newPoint: LatLngExpression = [e.latlng.lat, e.latlng.lng];
-      setPoints([...points, newPoint]);
+      setPoints(prev => [...prev, newPoint]);
 
       // Feedback visual
       toast({
-        description: `Punto añadido (${points.length + 1})`,
+        description: `Punto añadido (${points.length})`,
         duration: 1000,
       });
     },
@@ -59,7 +59,7 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   const handleStartDrawing = () => {
     setIsDrawing(true);
     setPoints([]);
-    map.dragging.disable(); // Deshabilitar el arrastre del mapa mientras se dibuja
+    map.dragging.disable();
     toast({
       title: "Modo dibujo activado",
       description: "Haz clic en el mapa para añadir puntos a la zona",
@@ -73,36 +73,57 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   };
 
   return (
-    <div className="absolute top-2 right-2 z-[1000] bg-white p-2 rounded-lg shadow-lg">
-      {!isDrawing ? (
-        <Button
-          variant="default"
-          onClick={handleStartDrawing}
-          className="flex items-center gap-2"
-        >
-          <Pencil size={16} />
-          Dibujar Zona
-        </Button>
-      ) : (
-        <div className="flex gap-2">
-          <Button
-            variant="destructive"
-            onClick={handleCancel}
-            className="flex items-center gap-2"
-          >
-            <X size={16} />
-            Cancelar
-          </Button>
+    <>
+      <div className="absolute top-2 right-2 z-[1000] bg-white p-2 rounded-lg shadow-lg">
+        {!isDrawing ? (
           <Button
             variant="default"
-            disabled={points.length < 3}
-            onClick={handleComplete}
+            onClick={handleStartDrawing}
+            className="flex items-center gap-2"
           >
-            Completar ({points.length} puntos)
+            <Pencil size={16} />
+            Dibujar Zona
           </Button>
-        </div>
+        ) : (
+          <div className="flex gap-2">
+            <Button
+              variant="destructive"
+              onClick={handleCancel}
+              className="flex items-center gap-2"
+            >
+              <X size={16} />
+              Cancelar
+            </Button>
+            <Button
+              variant="default"
+              disabled={points.length < 3}
+              onClick={handleComplete}
+            >
+              Completar ({points.length} puntos)
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Visualizar los puntos mientras se dibuja */}
+      {isDrawing && points.length > 0 && (
+        <>
+          <Polyline 
+            positions={points} 
+            color="blue" 
+            weight={2} 
+            dashArray="5,10"
+          />
+          {points.map((point, index) => (
+            <Marker 
+              key={index} 
+              position={point}
+            >
+            </Marker>
+          ))}
+        </>
       )}
-    </div>
+    </>
   );
 }
 
