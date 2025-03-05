@@ -100,12 +100,14 @@ export default function Orders() {
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       try {
+        // Formatear los datos según el schema de inserción
         const orderData = {
           customerId: parseInt(data.customerId),
           total: data.total.toString(),
           status: "pending",
           paymentMethod: "cash",
-          date: new Date().toISOString()
+          date: new Date().toISOString(),
+          routeId: null // Este campo es opcional pero está en el schema
         };
 
         console.log('Intento crear pedido:', JSON.stringify(orderData, null, 2));
@@ -119,13 +121,15 @@ export default function Orders() {
         });
 
         if (!orderResponse.ok) {
-          throw new Error(`Error del servidor: ${responseText}`);
+          const errorData = JSON.parse(responseText);
+          console.error('Error detallado:', errorData);
+          throw new Error(errorData.error?.message || 'Error al crear el pedido');
         }
 
         const order = JSON.parse(responseText);
         return order;
       } catch (error) {
-        console.error('Error detallado:', error);
+        console.error('Error completo:', error);
         throw error;
       }
     },
