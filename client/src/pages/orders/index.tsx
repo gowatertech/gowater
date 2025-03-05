@@ -115,23 +115,21 @@ export default function Orders() {
       const orderData = {
         customerId: parseInt(data.customerId),
         total: total.toFixed(2),
-        status: "pending",
-        paymentMethod: "cash",
-        date: new Date().toISOString(), // formato ISO completo
+        status: "pending" as const,
+        paymentMethod: "cash" as const,
+        date: new Date().toISOString(),
         routeId: null
       };
 
-      console.log('Enviando pedido:', orderData);
       const orderResponse = await apiRequest("POST", "/api/orders", orderData);
 
       if (!orderResponse.ok) {
-        const errorText = await orderResponse.text();
-        console.error('Error en pedido:', errorText);
-        throw new Error(errorText);
+        const errorData = await orderResponse.json();
+        console.error('Error al crear pedido:', errorData);
+        throw new Error(errorData.error?.issues?.[0]?.message || 'Error al crear el pedido');
       }
 
       const order = await orderResponse.json();
-      console.log('Pedido creado:', order);
 
       // 4. Crear los items del pedido
       for (const item of validItems) {
@@ -139,14 +137,14 @@ export default function Orders() {
           orderId: order.id,
           productId: parseInt(item.code),
           quantity: item.quantity,
-          price: item.price.toFixed(2) // Formato con 2 decimales
+          price: item.price.toFixed(2)
         };
 
-        console.log('Enviando item:', itemData);
         const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
 
         if (!itemResponse.ok) {
-          console.error('Error en item:', await itemResponse.text());
+          const errorData = await itemResponse.json();
+          console.error('Error al crear item:', errorData);
           throw new Error('Error al crear items del pedido');
         }
       }
@@ -171,6 +169,7 @@ export default function Orders() {
       }));
     },
     onError: (error: any) => {
+      console.error('Error completo:', error);
       toast({
         variant: "destructive",
         title: t("error"),
