@@ -47,6 +47,8 @@ vite.config.ts.*
 # Backup files
 *.bak
 *.tar.gz
+backup/
+backup/*
 
-# Original entries (keeping these for completeness, though some might be redundant)
+# Server public files
 server/public
