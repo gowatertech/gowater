@@ -116,6 +116,50 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/products/:id", async (req, res) => {
+    const result = insertProductSchema.safeParse(req.body);
+    if (!result.success) {
+      console.error("Error de validación:", result.error.format());
+      return res.status(400).json({ error: result.error });
+    }
+    try {
+      const [product] = await db
+        .update(products)
+        .set({
+          name: result.data.name,
+          price: result.data.price,
+          stock: result.data.stock,
+        })
+        .where(eq(products.id, parseInt(req.params.id)))
+        .returning();
+
+      console.log("Producto actualizado:", product);
+      res.json(product);
+    } catch (error) {
+      console.error("Error al actualizar producto:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      const [product] = await db
+        .delete(products)
+        .where(eq(products.id, parseInt(req.params.id)))
+        .returning();
+
+      if (!product) {
+        return res.status(404).json({ error: "Producto no encontrado" });
+      }
+
+      console.log("Producto eliminado:", product);
+      res.json(product);
+    } catch (error) {
+      console.error("Error al eliminar producto:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
 
   // Routes
   app.get("/api/routes", async (req, res) => {
