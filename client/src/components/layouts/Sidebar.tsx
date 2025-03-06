@@ -12,7 +12,6 @@ import {
   Droplet,
 } from "lucide-react";
 
-// Updated menuColors with billing option
 const menuColors = {
   dashboard: "#0088FE", // Azul brillante
   billing: "#00C49F",   // Verde turquesa para facturación
@@ -29,19 +28,19 @@ const menuColors = {
   users: "#0088FE",     // Azul brillante
 };
 
-// Updated sidebarItems with billing option
+// Actualizado con etiquetas en español
 const sidebarItems = [
-  { icon: LayoutDashboard, label: "dashboard", href: "/" },
-  { icon: FileText, label: "billing", href: "/billing" },
-  { icon: FileText, label: "payments", href: "/payments" },
-  { icon: Users, label: "users", href: "/users" },
-  { icon: Users, label: "customers", href: "/customers" },
-  { icon: Package, label: "inventory", href: "/inventory" },
-  { icon: Route, label: "routes", href: "/routes" },
-  { icon: Truck, label: "trucks", href: "/trucks" },
-  { icon: FileText, label: "orders", href: "/orders" },
-  { icon: FileText, label: "reports", href: "/reports" },
-  { icon: Settings, label: "settings", href: "/settings" },
+  { icon: LayoutDashboard, label: "Panel", href: "/" },
+  { icon: FileText, label: "Facturación", href: "/billing" },
+  { icon: FileText, label: "Pagos", href: "/payments" },
+  { icon: Users, label: "Usuarios", href: "/users" },
+  { icon: Users, label: "Clientes", href: "/customers" },
+  { icon: Package, label: "Inventario", href: "/inventory" },
+  { icon: Route, label: "Rutas", href: "/routes" },
+  { icon: Truck, label: "Vehículos", href: "/trucks" },
+  { icon: FileText, label: "Pedidos", href: "/orders" },
+  { icon: FileText, label: "Reportes", href: "/reports" },
+  { icon: Settings, label: "Ajustes", href: "/settings" },
 ];
 
 import {
