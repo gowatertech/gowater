@@ -47,24 +47,24 @@ export default function Payments() {
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{t("payments")}</h1>
+        <h1 className="text-3xl font-bold">Pagos</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>{t("paymentHistory")}</CardTitle>
+          <CardTitle>Historial de Pagos</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("client")}</TableHead>
-                <TableHead>{t("date")}</TableHead>
-                <TableHead>{t("invoiceNo")}</TableHead>
-                <TableHead>{t("details")}</TableHead>
-                <TableHead>{t("paymentMethod")}</TableHead>
-                <TableHead>{t("reference")}</TableHead>
-                <TableHead className="text-right">{t("amount")}</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Factura No.</TableHead>
+                <TableHead>Detalle</TableHead>
+                <TableHead>Método de Pago</TableHead>
+                <TableHead>Referencia</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -86,25 +86,33 @@ export default function Payments() {
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>{t("paymentDetails")}</DialogTitle>
+                            <DialogTitle>Detalles del Pago</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
-                            <p>{t("invoiceNo")}: #{payment.orderId}</p>
-                            <p>{t("client")}: {customer?.name}</p>
-                            <p>{t("amount")}: RD$ {parseFloat(payment.amount.toString()).toFixed(2)}</p>
-                            <p>{t("paymentMethod")}: {t(payment.paymentMethod)}</p>
-                            <p>{t("date")}: {new Date(payment.date).toLocaleDateString()}</p>
+                            <p>Factura No.: #{payment.orderId}</p>
+                            <p>Cliente: {customer?.name}</p>
+                            <p>Monto: RD$ {parseFloat(payment.amount.toString()).toFixed(2)}</p>
+                            <p>Método de Pago: {payment.paymentMethod === 'cash' ? 'Efectivo' : 
+                                              payment.paymentMethod === 'credit' ? 'Crédito' : 
+                                              payment.paymentMethod === 'card' ? 'Tarjeta' : 
+                                              payment.paymentMethod}</p>
+                            <p>Fecha: {new Date(payment.date).toLocaleDateString()}</p>
                             {payment.reference && (
-                              <p>{t("reference")}: {payment.reference}</p>
+                              <p>Referencia: {payment.reference}</p>
                             )}
                             {payment.notes && (
-                              <p>{t("notes")}: {payment.notes}</p>
+                              <p>Notas: {payment.notes}</p>
                             )}
                           </div>
                         </DialogContent>
                       </Dialog>
                     </TableCell>
-                    <TableCell>{t(payment.paymentMethod)}</TableCell>
+                    <TableCell>
+                      {payment.paymentMethod === 'cash' ? 'Efectivo' : 
+                       payment.paymentMethod === 'credit' ? 'Crédito' : 
+                       payment.paymentMethod === 'card' ? 'Tarjeta' : 
+                       payment.paymentMethod}
+                    </TableCell>
                     <TableCell>{payment.reference || "-"}</TableCell>
                     <TableCell className="text-right">
                       RD$ {parseFloat(payment.amount.toString()).toFixed(2)}
