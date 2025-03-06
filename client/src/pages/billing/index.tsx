@@ -294,7 +294,7 @@ export default function Billing() {
 
   const handlePayment = (invoice: any, amount: string) => {
     // Validar que los valores existan y sean números válidos
-    if (!invoice?.total || !amount) {
+    if (!invoice?.pendingAmount || !amount) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -304,14 +304,12 @@ export default function Billing() {
     }
 
     // Convertir valores a números con 2 decimales
-    const total = Number(parseFloat(invoice.total).toFixed(2));
-    const totalPaid = Number(parseFloat(invoice.totalPaid || "0").toFixed(2));
-    const pendingAmount = Number((total - totalPaid).toFixed(2));
+    const pendingAmount = Number(parseFloat(invoice.pendingAmount).toFixed(2));
     const paymentAmount = Number(parseFloat(amount).toFixed(2));
 
     console.log("Cálculo de montos:", {
-      total,
-      totalPaid,
+      total: Number(parseFloat(invoice.total).toFixed(2)),
+      totalPaid: Number(parseFloat(invoice.totalPaid || "0").toFixed(2)),
       pendingAmount,
       paymentAmount
     });
@@ -672,7 +670,7 @@ export default function Billing() {
                             <div className="flex justify-between font-medium">
                               <span>Saldo Pendiente:</span>
                               <span className="text-primary">
-                                RD$ {(parseFloat(invoice.total) - (parseFloat(invoice.totalPaid || "0"))).toFixed(2)}
+                                RD$ {parseFloat(invoice.pendingAmount || "0").toFixed(2)}
                               </span>
                             </div>
                           </div>
@@ -683,7 +681,7 @@ export default function Billing() {
                               <Button
                                 variant="outline"
                                 className="flex-1"
-                                onClick={() => handlePayment(invoice, (parseFloat(invoice.total) - (parseFloat(invoice.totalPaid || "0"))).toFixed(2))}
+                                onClick={() => handlePayment(invoice, invoice.pendingAmount)}
                               >
                                 Pagar Total Pendiente
                               </Button>

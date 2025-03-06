@@ -391,6 +391,8 @@ export async function registerRoutes(app: Express) {
         .select({
           id: invoices.id,
           customerId: invoices.customerId,
+          customerName: customers.name,
+          businessName: customers.businessName,
           total: invoices.total,
           status: invoices.status,
           paymentMethod: invoices.paymentMethod,
@@ -401,9 +403,16 @@ export async function registerRoutes(app: Express) {
             FROM ${payments}
             WHERE ${payments.invoiceId} = ${invoices.id}
           ), '0.00')`,
+          pendingAmount: sql<string>`(CAST(${invoices.total} AS DECIMAL(10,2)) - 
+            COALESCE((
+              SELECT SUM(CAST(${payments.amount} AS DECIMAL(10,2)))
+              FROM ${payments}
+              WHERE ${payments.invoiceId} = ${invoices.id}
+            ), 0))::TEXT`,
           invoiceNumber: invoices.invoiceNumber
         })
         .from(invoices)
+        .leftJoin(customers, eq(invoices.customerId, customers.id))
         .orderBy(desc(invoices.date));
 
       // Verificación detallada de totales para cada factura
@@ -411,7 +420,7 @@ export async function registerRoutes(app: Express) {
         // Convertir valores a números con 2 decimales para el log
         const total = Number(parseFloat(invoice.total).toFixed(2));
         const totalPaid = Number(parseFloat(invoice.totalPaid).toFixed(2));
-        const pendingAmount = Number((total - totalPaid).toFixed(2));
+        const pendingAmount = Number(parseFloat(invoice.pendingAmount).toFixed(2));
 
         console.log(`Factura ${invoice.id} - Desglose:`, {
           total,
@@ -419,6 +428,17 @@ export async function registerRoutes(app: Express) {
           pendingAmount,
           status: invoice.status
         });
+        
+        // Verificar si el saldo pendiente es cero y actualizar el estado a 'paid'
+        if (pendingAmount <= 0 && invoice.status !== 'paid') {
+          await db
+            .update(invoices)
+            .set({ status: "paid" })
+            .where(eq(invoices.id, invoice.id));
+          
+          console.log(`Factura ${invoice.id} actualizada automáticamente a pagada`);
+          invoice.status = 'paid';
+        }
       }
 
       res.json(allInvoices);
