@@ -155,16 +155,16 @@ export default function Users() {
     },
   });
 
-  // Actualizar el onSubmit para manejar mejor las fechas
+  // Actualizar la función onSubmit
   const onSubmit = async (data: any) => {
     try {
       console.log('OnSubmit ejecutado');
       console.log('Form data before submit:', data);
 
-      // Formatear la fecha solo si existe
+      // Asegurarnos de que las fechas estén en el formato correcto
       const formattedData = {
         ...data,
-        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
+        licenseExpiry: data.licenseExpiry || undefined,
         hireDate: new Date().toISOString(),
       };
 
@@ -205,7 +205,6 @@ export default function Users() {
       deleteUserMutation.mutate(id);
     }
   };
-
 
   return (
     <div className="p-6">
