@@ -2,13 +2,13 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { type Order, type Customer, type Product } from "@shared/schema";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import {
   Card,
@@ -57,6 +57,7 @@ export default function Billing() {
       total: 0
     })
   );
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
   const { data: orders } = useQuery<Order[]>({
@@ -227,13 +228,23 @@ export default function Billing() {
                 </ScrollArea>
               </div>
 
-              {/* Notas */}
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Notas de la factura..."
-                className="h-20 text-sm"
-              />
+              {/* Método de Pago */}
+              <div className="grid gap-2">
+                <label className="text-sm font-medium">Método de Pago</label>
+                <Select 
+                  value={paymentMethod}
+                  onValueChange={(value) => setPaymentMethod(value as 'cash' | 'credit' | 'card')}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Efectivo</SelectItem>
+                    <SelectItem value="credit">Crédito</SelectItem>
+                    <SelectItem value="card">Tarjeta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               {/* Totales y Botón */}
               <div className="flex flex-col gap-3">
@@ -287,12 +298,12 @@ export default function Billing() {
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       order.status === "delivered" ? "bg-green-100 text-green-800" :
-                      order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                      "bg-red-100 text-red-800"
+                        order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                          "bg-red-100 text-red-800"
                     }`}>
                       {order.status === "delivered" ? "Pagada" :
-                       order.status === "pending" ? "Pendiente" :
-                       "Cancelada"}
+                        order.status === "pending" ? "Pendiente" :
+                          "Cancelada"}
                     </span>
                   </TableCell>
                   <TableCell>RD$ {parseFloat(order.total.toString()).toFixed(2)}</TableCell>
