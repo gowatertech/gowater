@@ -162,30 +162,33 @@ export default function Users() {
   // Actualizar la función onSubmit
   const onSubmit = async (data: any) => {
     try {
-      console.log('Form data before submit:', data);
-
-      // Mantener el formato de fecha simple
-      const formattedData = {
-        ...data,
-        licenseExpiry: data.licenseExpiry || undefined,
-      };
-
-      console.log('Formatted data:', formattedData);
-
+      // Si estamos editando, proceder con la actualización
       if (editingUser) {
         await updateUserMutation.mutateAsync({
           id: editingUser.id,
-          data: formattedData
+          data
         });
-      } else {
-        await createUserMutation.mutateAsync(formattedData);
+        return;
       }
+
+      // Verificar si el usuario ya existe antes de crear
+      const existingUser = users.find(u => u.username === data.username);
+      if (existingUser) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Este usuario ya existe"
+        });
+        return;
+      }
+
+      // Si no existe, crear el usuario
+      await createUserMutation.mutateAsync(data);
     } catch (error) {
-      console.error('Error en submit:', error);
       toast({
         variant: "destructive",
-        title: t("error"),
-        description: error instanceof Error ? error.message : 'Error desconocido',
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
   };
