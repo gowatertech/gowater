@@ -106,13 +106,25 @@ export const orders = pgTable("orders", {
   routeId: integer("route_id"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "in_transit", "delivered", "cancelled"] }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "check", "credit_card"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  paymentStatus: text("payment_status", { enum: ["pending", "paid", "partial"] }).notNull().default("pending"),
   date: timestamp("date").notNull(),
   estimatedDeliveryTime: timestamp("estimated_delivery_time"),
   actualDeliveryTime: timestamp("actual_delivery_time"),
-  deliverySequence: integer("delivery_sequence"), // Posición en la ruta
-  // Heredar coordenadas del cliente o usar específicas para este pedido
-  deliveryCoordinates: text("delivery_coordinates"), // "lat,lng"
+  deliverySequence: integer("delivery_sequence"),
+  deliveryCoordinates: text("delivery_coordinates"),
+  notes: text("notes"),
+});
+
+// New payments table
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  reference: text("reference"), // For credit/card payments
   notes: text("notes"),
 });
 
@@ -179,7 +191,8 @@ export const insertOrderSchema = createInsertSchema(orders, {
   customerId: z.number(),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "in_transit", "delivered", "cancelled"]),
-  paymentMethod: z.enum(["cash", "check", "credit_card"]),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  paymentStatus: z.enum(["pending", "paid", "partial"]).default("pending"),
   date: z.string().datetime("La fecha debe estar en formato ISO"),
   routeId: z.number().nullable(),
   estimatedDeliveryTime: z.string().datetime().optional(),
@@ -195,6 +208,16 @@ export const insertZoneSchema = createInsertSchema(zones, {
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
+// Payment schema
+export const insertPaymentSchema = createInsertSchema(payments, {
+  orderId: z.number(),
+  customerId: z.number(),
+  amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  reference: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
@@ -206,6 +229,7 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type Zone = typeof zones.$inferSelect;
+export type Payment = typeof payments.$inferSelect;
 
 // Definir el tipo para la ubicación del conductor
 export type DriverLocation = {
@@ -224,3 +248,4 @@ export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type InsertZone = z.infer<typeof insertZoneSchema>;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;

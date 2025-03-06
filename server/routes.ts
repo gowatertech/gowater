@@ -18,10 +18,12 @@ import {
   orderItems,
   products,
   orders,
-  routes
+  routes,
+  payments,
+  insertPaymentSchema,
 } from "@shared/schema";
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { db } from './db';
 
 // Almacenar las conexiones activas de los conductores
@@ -201,7 +203,7 @@ export async function registerRoutes(app: Express) {
         .insert(orders)
         .values({
           ...result.data,
-          date: new Date(result.data.date) // Convertir la cadena ISO a objeto Date
+          date: new Date(result.data.date)
         })
         .returning();
 
@@ -221,12 +223,29 @@ export async function registerRoutes(app: Express) {
             continue;
           }
 
-          const [orderItem] = await db
+          await db
             .insert(orderItems)
             .values(itemResult.data)
             .returning();
+        }
+      }
 
-          console.log("Item creado:", orderItem);
+      // 3. Si el método de pago es efectivo, crear el pago automáticamente
+      if (result.data.paymentMethod === "cash") {
+        const paymentData = {
+          orderId: order.id,
+          customerId: result.data.customerId,
+          amount: result.data.total,
+          paymentMethod: "cash",
+          date: new Date(),
+        };
+
+        const paymentResult = insertPaymentSchema.safeParse(paymentData);
+        if (paymentResult.success) {
+          await db
+            .insert(payments)
+            .values(paymentResult.data)
+            .returning();
         }
       }
 
@@ -280,6 +299,31 @@ export async function registerRoutes(app: Express) {
       res.json(item);
     } catch (error) {
       console.error("Error al crear item del pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/payments", async (req, res) => {
+    try {
+      const allPayments = await db
+        .select({
+          id: payments.id,
+          orderId: payments.orderId,
+          customerId: payments.customerId,
+          amount: payments.amount,
+          paymentMethod: payments.paymentMethod,
+          date: payments.date,
+          reference: payments.reference,
+          notes: payments.notes,
+          customerName: customers.name,
+        })
+        .from(payments)
+        .leftJoin(customers, eq(payments.customerId, customers.id))
+        .orderBy(desc(payments.date));
+
+      res.json(allPayments);
+    } catch (error) {
+      console.error("Error al obtener pagos:", error);
       res.status(500).json({ error: String(error) });
     }
   });
