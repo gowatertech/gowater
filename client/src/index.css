@@ -1,10 +1,9 @@
+@import "./styles/map-responsive.css";
+@import './styles/responsive.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import "./styles/map-responsive.css";
-
-@import './styles/responsive.css';
 
 @layer base {
   * {

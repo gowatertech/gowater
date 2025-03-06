@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { type Zone, type Customer } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
@@ -20,6 +20,31 @@ import RouteOptimizer from "./RouteOptimizer";
 // Vista del chofer
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
+
+// Implementamos el hook useIsMobile aquí si no está correctamente importado
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Llamada inicial
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  return isMobile;
+};
+
 
 export default function Routes() {
   const { t } = useTranslation();
