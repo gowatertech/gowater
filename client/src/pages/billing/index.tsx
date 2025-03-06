@@ -645,6 +645,16 @@ export default function Billing() {
                               <span>Total Factura:</span>
                               <span className="font-medium">RD$ {parseFloat(invoice.total).toFixed(2)}</span>
                             </div>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Total Pagado:</span>
+                              <span>RD$ {invoice.totalPaid || "0.00"}</span>
+                            </div>
+                            <div className="flex justify-between font-medium">
+                              <span>Saldo Pendiente:</span>
+                              <span className="text-primary">
+                                RD$ {(parseFloat(invoice.total) - (parseFloat(invoice.totalPaid || "0"))).toFixed(2)}
+                              </span>
+                            </div>
                           </div>
 
                           <div className="space-y-2">
@@ -653,9 +663,9 @@ export default function Billing() {
                               <Button
                                 variant="outline"
                                 className="flex-1"
-                                onClick={() => handlePayment(invoice, invoice.total)}
+                                onClick={() => handlePayment(invoice, (parseFloat(invoice.total) - (parseFloat(invoice.totalPaid || "0"))).toFixed(2))}
                               >
-                                Pagar Total
+                                Pagar Total Pendiente
                               </Button>
                               <div className="flex gap-2 flex-1">
                                 <Input
@@ -918,8 +928,8 @@ export default function Billing() {
                         </Select>                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
                             selectedInvoice.paymentMethod === "credit" ? "Crédito" :
                               "Tarjeta"
-                        }
-                      </p>
+                          }
+                        </p>
                       </div>
                     </DialogContent>
                   </Dialog>

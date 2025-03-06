@@ -24,6 +24,7 @@ import {
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
 import { eq, desc } from 'drizzle-orm';
 import { db } from './db';
+import { sql } from 'drizzle-orm/sql';
 
 // Almacenar las conexiones activas de los conductores
 const driverConnections = new Map<number, WebSocket>();
@@ -374,10 +375,26 @@ export async function registerRoutes(app: Express) {
   app.get("/api/invoices", async (req, res) => {
     try {
       const allInvoices = await db
-        .select()
+        .select({
+          id: invoices.id,
+          customerId: invoices.customerId,
+          total: invoices.total,
+          status: invoices.status,
+          paymentMethod: invoices.paymentMethod,
+          date: invoices.date,
+          notes: invoices.notes,
+          // Subconsulta para obtener el total pagado
+          totalPaid: db
+            .select({
+              total: sql`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL(10,2))), 0)::TEXT`
+            })
+            .from(payments)
+            .where(eq(payments.invoiceId, invoices.id))
+        })
         .from(invoices)
         .orderBy(desc(invoices.date));
 
+      console.log("Retrieved invoices with payments:", allInvoices);
       res.json(allInvoices);
     } catch (error) {
       console.error("Error al obtener facturas:", error);
