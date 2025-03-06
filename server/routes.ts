@@ -196,7 +196,37 @@ export async function registerRoutes(app: Express) {
       return res.status(400).json({ error: result.error });
     }
     try {
-      const order = await storage.createOrder(result.data);
+      // 1. Crear el pedido
+      const [order] = await db
+        .insert(orders)
+        .values(result.data)
+        .returning();
+
+      // 2. Si hay items, crearlos
+      if (req.body.items && Array.isArray(req.body.items)) {
+        for (const item of req.body.items) {
+          const itemData = {
+            orderId: order.id,
+            productId: parseInt(item.code),
+            quantity: item.quantity,
+            price: parseFloat(item.price.toString())
+          };
+
+          const itemResult = insertOrderItemSchema.safeParse(itemData);
+          if (!itemResult.success) {
+            console.error("Error de validación item:", itemResult.error.format());
+            continue;
+          }
+
+          const [orderItem] = await db
+            .insert(orderItems)
+            .values(itemResult.data)
+            .returning();
+
+          console.log("Item creado:", orderItem);
+        }
+      }
+
       res.json(order);
     } catch (error) {
       console.error("Error al crear orden:", error);
@@ -224,6 +254,29 @@ export async function registerRoutes(app: Express) {
       res.json(items);
     } catch (error) {
       console.error("Error al obtener items del pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Order Items
+  app.post("/api/orders/:orderId/items", async (req, res) => {
+    console.log("Creando item para pedido:", req.params.orderId, "datos:", req.body);
+    try {
+      const result = insertOrderItemSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Error de validación:", result.error.format());
+        return res.status(400).json({ error: result.error });
+      }
+
+      const [item] = await db
+        .insert(orderItems)
+        .values(result.data)
+        .returning();
+
+      console.log("Item creado:", item);
+      res.json(item);
+    } catch (error) {
+      console.error("Error al crear item del pedido:", error);
       res.status(500).json({ error: String(error) });
     }
   });
