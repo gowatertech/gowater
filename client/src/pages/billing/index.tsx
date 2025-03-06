@@ -257,7 +257,7 @@ export default function Billing() {
         customerId: selectedInvoice?.customerId,
         amount,
         paymentMethod: "cash",
-        date: new Date(),
+        date: new Date().toISOString(),
         reference: "",
         notes: `Pago de factura #${invoiceId}`
       });
