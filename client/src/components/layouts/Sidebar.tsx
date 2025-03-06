@@ -37,10 +37,10 @@ const sidebarItems = [
   {
     icon: Package,
     label: "Inventario",
-    href: "/productos",
+    href: "/inventario/productos",
     subItems: [
-      { label: "Productos", href: "/productos" },
-      { label: "Carga de Productos", href: "/productos/load" },
+      { label: "Productos", href: "/inventario/productos" },
+      { label: "Carga de Productos", href: "/inventario/carga" },
     ],
   },
   { icon: Route, label: "Rutas", href: "/routes" },
@@ -57,9 +57,9 @@ import {
   SidebarMenu as UISidebarMenu,
   SidebarMenuItem as UISidebarMenuItem,
   SidebarMenuButton as UISidebarMenuButton,
-  SidebarMenuSub as UISidebarMenuSub,
-  SidebarMenuSubItem as UISidebarMenuSubItem,
-  SidebarMenuSubButton as UISidebarMenuSubButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -118,10 +118,9 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               {item.subItems && (
                 <div 
                   className={cn(
-                    "absolute left-0 top-0 translate-x-full w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
+                    "absolute right-0 top-0 left-full pl-1 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
                     isHovered ? "opacity-100 visible" : "opacity-0 invisible"
                   )}
-                  style={{ marginLeft: "0" }}
                 >
                   {item.subItems.map((subItem) => {
                     const isSubActive = location === subItem.href;
