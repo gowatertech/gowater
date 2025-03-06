@@ -31,18 +31,21 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
       if (!isDrawing) return;
       const newPoint: LatLngExpression = [e.latlng.lat, e.latlng.lng];
       setPoints(prev => [...prev, newPoint]);
+
+      // Feedback visual
+      toast({
+        description: `Punto añadido (${points.length + 1})`,
+        duration: 1000,
+      });
     },
   });
 
   const handleComplete = () => {
     if (points.length >= 3) {
-      onPolygonComplete(points);
+      onPolygonComplete([...points]); // Send a copy of points
       setPoints([]);
       setIsDrawing(false);
       map.dragging.enable();
-      toast({
-        description: "Zona creada exitosamente",
-      });
     } else {
       toast({
         variant: "destructive",
@@ -57,7 +60,6 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
     setPoints([]);
     map.dragging.disable();
     toast({
-      title: "Modo dibujo activado",
       description: "Haz clic en el mapa para añadir puntos a la zona",
     });
   };
@@ -101,6 +103,7 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
         )}
       </div>
 
+      {/* Visualizar los puntos mientras se dibuja */}
       {isDrawing && points.length > 0 && (
         <>
           <Polyline 
@@ -146,8 +149,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
       toast({
-        title: "¡Zona creada!",
-        description: "La zona se ha creado exitosamente",
+        description: "¡Zona creada exitosamente!",
       });
       onZoneCreated();
     },
@@ -171,16 +173,17 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
 
     try {
+      // Convert coordinates to strings
       const coordStrings = coordinates.map(coord => {
         if (Array.isArray(coord)) {
-          const [lat, lng] = coord;
-          return `${lat},${lng}`;
+          return `${coord[0]},${coord[1]}`;
         } else if (coord instanceof LatLng) {
           return `${coord.lat},${coord.lng}`;
         }
-        throw new Error('Coordenadas inválidas');
+        throw new Error('Formato de coordenadas inválido');
       });
 
+      // Create the zone
       createZoneMutation.mutate({
         name: newZoneName,
         color: selectedColor,
@@ -202,7 +205,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
       position: "relative"
     }}>
       <MapContainer
-        center={[18.4955, -69.8534]}
+        center={[18.4955, -69.8534]} // Santo Domingo coordinates
         zoom={13}
         style={{ height: "100%", width: "100%" }}
         className="rounded-lg"
@@ -230,8 +233,8 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
                 key={zone.id}
                 positions={positions}
                 pathOptions={{ 
-                  color: zone.color || '#3388ff',
-                  fillColor: zone.color || '#3388ff',
+                  color: zone.color,
+                  fillColor: zone.color,
                   fillOpacity: 0.2,
                   weight: 2
                 }}
@@ -254,7 +257,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
             return (
               <Marker
                 key={customer.id}
-                position={[lat, lng] as LatLngExpression}
+                position={[lat, lng]}
                 title={customer.name}
               />
             );
