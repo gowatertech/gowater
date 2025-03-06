@@ -17,23 +17,43 @@ Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Datos de ejemplo de entregas
+// Datos de ejemplo de entregas actualizados con más detalles y ubicaciones reales
 const deliveries = [
   {
     id: 1,
-    address: "Av. Winston Churchill 123, Santo Domingo",
-    coordinates: [18.4955, -69.8734],
-    customerName: "Juan Pérez",
-    order: "2 Botellones de agua",
-    time: "10:00 AM"
+    address: "Av. Winston Churchill, Plaza Acrópolis, Santo Domingo",
+    coordinates: [18.4739, -69.9345],
+    customerName: "Supermercado Nacional",
+    order: "5 Botellones de agua",
+    time: "9:00 AM",
+    status: "pending"
   },
   {
     id: 2,
-    address: "Av. Abraham Lincoln 456, Santo Domingo",
-    coordinates: [18.4880, -69.8710],
-    customerName: "María García",
-    order: "3 Botellones de agua",
-    time: "10:30 AM"
+    address: "Av. Abraham Lincoln, Blue Mall, Santo Domingo",
+    coordinates: [18.4663, -69.9317],
+    customerName: "Restaurante La Plaza",
+    order: "8 Botellones de agua",
+    time: "9:30 AM",
+    status: "pending"
+  },
+  {
+    id: 3,
+    address: "Av. Sarasota, Torre Empresarial, Santo Domingo",
+    coordinates: [18.4572, -69.9331],
+    customerName: "Oficina Corporativa XYZ",
+    order: "10 Botellones de agua",
+    time: "10:00 AM",
+    status: "pending"
+  },
+  {
+    id: 4,
+    address: "Av. Tiradentes, Plaza Central, Santo Domingo",
+    coordinates: [18.4697, -69.9277],
+    customerName: "Gimnasio PowerFit",
+    order: "6 Botellones de agua",
+    time: "10:30 AM",
+    status: "pending"
   }
 ];
 
@@ -109,7 +129,7 @@ export default function DriverView() {
           <ScrollArea className="h-[70vh]">
             <div className="space-y-4">
               {deliveries.map((delivery) => (
-                <Card 
+                <Card
                   key={delivery.id}
                   className={`p-4 transition-opacity ${
                     completedDeliveries.includes(delivery.id) ? 'opacity-50' : ''
@@ -172,7 +192,7 @@ export default function DriverView() {
             </Marker>
 
             {/* Marcadores de entregas */}
-            {selectedDelivery && deliveries.map(delivery => 
+            {selectedDelivery && deliveries.map(delivery =>
               delivery.id === selectedDelivery && (
                 <Marker key={delivery.id} position={delivery.coordinates as LatLngExpression}>
                   <Popup>
