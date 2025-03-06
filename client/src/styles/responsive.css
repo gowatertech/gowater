@@ -1,4 +1,3 @@
-
 @layer utilities {
   /* Mejoras para espaciado responsive */
   .responsive-padding {
@@ -8,69 +7,68 @@
   .responsive-margin {
     @apply m-2 sm:m-3 md:m-4 lg:m-6;
   }
-  
+
   /* Mejoras para tipografía responsive */
   .responsive-text {
     @apply text-sm sm:text-base md:text-lg;
   }
-  
+
   .responsive-heading {
     @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold;
   }
-  
+
   /* Mejoras para grids responsive */
   .responsive-grid {
     @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4;
   }
-  
+
   /* Mejoras para flex responsive */
   .responsive-flex {
     @apply flex flex-col sm:flex-row;
   }
-  
+
   /* Mejoras para stack responsive */
   .responsive-stack {
     @apply flex flex-col gap-2 sm:gap-3 md:gap-4;
   }
-  
+
   /* Nuevos estilos para formularios responsivos */
   .responsive-form {
     @apply w-full max-w-full sm:max-w-md md:max-w-lg;
   }
-  
+
   .responsive-form-group {
     @apply flex flex-col gap-1 mb-2 sm:mb-3;
   }
-  
+
   .responsive-form-label {
     @apply text-sm font-medium mb-1;
   }
-  
+
   .responsive-form-input {
     @apply text-sm py-1 px-2 rounded-md;
   }
-  
+
   .responsive-form-button {
     @apply py-1 px-3 text-sm sm:text-base;
   }
-  
+
   /* Ajustes adicionales para contenedores de formularios */
   .form-container-mobile {
     @apply px-2 py-2 overflow-x-hidden;
   }
-  
+
   /* Mejorar visualización de tablas en móviles */
   .responsive-table {
     @apply w-full overflow-x-auto;
   }
-  
+
   .responsive-table-compact {
     @apply text-xs sm:text-sm;
   }
-  
+
   .responsive-table-compact th,
   .responsive-table-compact td {
     @apply py-1 px-1 sm:py-2 sm:px-2;
   }
-}
 }
