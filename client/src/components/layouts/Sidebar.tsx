@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from "react-i18next";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -11,8 +11,6 @@ import {
   FileText,
   Settings,
   Droplet,
-  BoxIcon,
-  Loader,
 } from "lucide-react";
 
 const menuColors = {
@@ -21,7 +19,7 @@ const menuColors = {
   pagos: "#00C49F",      // Verde turquesa para pagos
   usuarios: "#0088FE",   // Azul brillante
   clientes: "#00C49F",   // Verde turquesa
-  productos: "#FFBB28",  // Amarillo cálido
+  inventario: "#FFBB28", // Amarillo cálido
   rutas: "#FF8042",      // Naranja
   vehiculos: "#00C49F",  // Verde turquesa
   pedidos: "#FFBB28",    // Amarillo
@@ -36,7 +34,15 @@ const sidebarItems = [
   { icon: FileText, label: "Pagos", href: "/payments" },
   { icon: Users, label: "Usuarios", href: "/users" },
   { icon: Users, label: "Clientes", href: "/customers" },
-  { icon: Package, label: "Productos", href: "/productos" },
+  {
+    icon: Package,
+    label: "Inventario",
+    href: "/productos",
+    subItems: [
+      { label: "Productos", href: "/productos" },
+      { label: "Carga de Productos", href: "/productos/load" },
+    ],
+  },
   { icon: Route, label: "Rutas", href: "/routes" },
   { icon: Truck, label: "Vehículos", href: "/trucks" },
   { icon: FileText, label: "Pedidos", href: "/orders" },
@@ -111,7 +117,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
 
               {item.subItems && (
                 <div className={cn(
-                  "absolute right-0 top-full mt-0.5 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
+                  "absolute left-full ml-0.5 top-0 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
                   isHovered ? "opacity-100 visible" : "opacity-0 invisible"
                 )}>
                   {item.subItems.map((subItem) => {
