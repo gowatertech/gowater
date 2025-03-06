@@ -57,3 +57,15 @@
     max-width: 200px;
   }
 }
+
+/* Ajustes adicionales para móviles */
+@media (max-width: 480px) {
+  .map-container-responsive {
+    height: 40vh !important;
+  }
+  
+  .leaflet-container {
+    touch-action: pan-y pinch-zoom;
+  }
+}
+}

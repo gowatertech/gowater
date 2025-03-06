@@ -1,5 +1,4 @@
-
-import * as React from "react"
+import { useState, useEffect } from "react";
 
 export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl"
 
@@ -12,19 +11,19 @@ const BREAKPOINTS = {
 }
 
 export function useBreakpoint(breakpoint: Breakpoint = "md") {
-  const [isBelow, setIsBelow] = React.useState<boolean | undefined>(undefined)
+  const [isBelow, setIsBelow] = useState<boolean | undefined>(undefined)
 
-  React.useEffect(() => {
+  useEffect(() => {
     const breakpointValue = BREAKPOINTS[breakpoint]
     const mql = window.matchMedia(`(max-width: ${breakpointValue - 1}px)`)
-    
+
     const onChange = () => {
       setIsBelow(window.innerWidth < breakpointValue)
     }
-    
+
     mql.addEventListener("change", onChange)
     setIsBelow(window.innerWidth < breakpointValue)
-    
+
     return () => mql.removeEventListener("change", onChange)
   }, [breakpoint])
 
@@ -35,8 +34,28 @@ export function useBreakpoint(breakpoint: Breakpoint = "md") {
 }
 
 export function useIsMobile() {
-  const { isBelow } = useBreakpoint("md")
-  return !!isBelow
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Llamada inicial para establecer el valor correcto
+    handleResize();
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  return isMobile;
 }
 
 export function useIsTablet() {

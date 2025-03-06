@@ -5,13 +5,27 @@ import { LatLngExpression } from "leaflet";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { type User } from "@shared/schema";
-import { useIsMobile } from "@/hooks/use-mobile";
 import "@/styles/map-responsive.css";
+
+// Added basic implementation of useIsMobile hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isMobile;
+};
+
 
 export default function DeliveryTracking() {
   const { toast } = useToast();
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [driverLocations, setDriverLocations] = useState<Map<number, { lat: number; lng: number; timestamp: Date }>>(new Map());
+  const isMobile = useIsMobile(); // Use the new hook
 
   // Obtener lista de conductores activos
   const { data: drivers = [] } = useQuery<User[]>({
@@ -71,7 +85,7 @@ export default function DeliveryTracking() {
           center={[18.4955, -69.8734]}
           zoom={13}
           style={{ height: "100%", width: "100%" }}
-          className="rounded-lg"
+          className={`rounded-lg ${isMobile ? 'mobile-map' : ''}`} // Add conditional class for mobile responsiveness
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
