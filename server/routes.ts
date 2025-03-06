@@ -392,7 +392,23 @@ export async function registerRoutes(app: Express) {
         .from(invoices)
         .orderBy(desc(invoices.date));
 
-      console.log("Retrieved invoices with payments:", allInvoices);
+      // Debugging logs
+      console.log("Retrieved invoices:", allInvoices);
+
+      // Fetch payments for each invoice for verification
+      for (const invoice of allInvoices) {
+        const paymentsForInvoice = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.invoiceId, invoice.id));
+
+        console.log(`Payments for invoice ${invoice.id}:`, paymentsForInvoice);
+        const manualSum = paymentsForInvoice.reduce((sum, p) => 
+          sum + parseFloat(p.amount.toString()), 0
+        );
+        console.log(`Manual sum for invoice ${invoice.id}: ${manualSum}`);
+      }
+
       res.json(allInvoices);
     } catch (error) {
       console.error("Error al obtener facturas:", error);

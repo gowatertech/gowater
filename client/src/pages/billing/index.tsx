@@ -250,10 +250,18 @@ export default function Billing() {
   });
 
   const handlePayment = (invoice: any, amount: string) => {
+    // Depuración
+    console.log("Invoice data:", invoice);
+    console.log("Total de factura:", parseFloat(invoice.total));
+    console.log("Total pagado:", parseFloat(invoice.totalPaid || "0"));
+
     const total = parseFloat(invoice.total);
     const totalPaid = parseFloat(invoice.totalPaid || "0");
     const pendingAmount = total - totalPaid;
     const paymentAmount = parseFloat(amount);
+
+    console.log("Monto pendiente calculado:", pendingAmount);
+    console.log("Monto a pagar:", paymentAmount);
 
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
       toast({
@@ -268,7 +276,7 @@ export default function Billing() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "El monto no puede ser mayor al saldo pendiente"
+        description: `El monto (${paymentAmount}) no puede ser mayor al saldo pendiente (${pendingAmount})`
       });
       return;
     }
