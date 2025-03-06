@@ -76,7 +76,7 @@ export default function Payments() {
                     <TableCell>
                       {new Date(payment.date).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>#{payment.orderId}</TableCell>
+                    <TableCell>#{payment.invoiceId}</TableCell>
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
@@ -89,13 +89,13 @@ export default function Payments() {
                             <DialogTitle>Detalles del Pago</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
-                            <p>Factura No.: #{payment.orderId}</p>
+                            <p>Factura No.: #{payment.invoiceId}</p>
                             <p>Cliente: {customer?.name}</p>
                             <p>Monto: RD$ {parseFloat(payment.amount.toString()).toFixed(2)}</p>
                             <p>Método de Pago: {payment.paymentMethod === 'cash' ? 'Efectivo' : 
-                                              payment.paymentMethod === 'credit' ? 'Crédito' : 
-                                              payment.paymentMethod === 'card' ? 'Tarjeta' : 
-                                              payment.paymentMethod}</p>
+                                             payment.paymentMethod === 'credit' ? 'Crédito' : 
+                                             payment.paymentMethod === 'card' ? 'Tarjeta' : 
+                                             payment.paymentMethod}</p>
                             <p>Fecha: {new Date(payment.date).toLocaleDateString()}</p>
                             {payment.reference && (
                               <p>Referencia: {payment.reference}</p>

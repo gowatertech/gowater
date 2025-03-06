@@ -479,6 +479,8 @@ export async function registerRoutes(app: Express) {
         const totalPaid = allPayments.reduce((sum, p) => 
           sum + parseFloat(p.amount.toString()), 0);
 
+        console.log("Invoice total:", invoice.total, "Total paid:", totalPaid);
+
         if (totalPaid >= parseFloat(invoice.total.toString())) {
           await db
             .update(invoices)
