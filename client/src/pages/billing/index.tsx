@@ -253,8 +253,8 @@ export default function Billing() {
   const createPaymentMutation = useMutation({
     mutationFn: async ({ invoiceId, amount }: { invoiceId: number, amount: string }) => {
       const paymentData = {
-        invoiceId,
-        customerId: selectedInvoice?.customerId,
+        orderId: invoiceId,
+        customerId: invoiceId ? invoices?.find(inv => inv.id === invoiceId)?.customerId : null,
         amount: parseFloat(amount).toFixed(2),
         paymentMethod: "cash",
         date: new Date().toISOString(),
@@ -915,13 +915,12 @@ export default function Billing() {
                             <SelectItem value="card">Tarjeta</SelectItem>
                           </SelectContent>
                         </Select>
-                        <p className="text-sm text-muted-foreground">
-                          Método de pago actual: {
-                            selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
-                                                        selectedInvoice.paymentMethod === "credit" ? "Crédito" :
-                            "Tarjeta"
-                          }
-                        </p>
+                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {
+                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
+                            selectedInvoice.paymentMethod === "credit" ? "Crédito" :
+                              "Tarjeta"
+                        }
+                      </p>
                       </div>
                     </DialogContent>
                   </Dialog>
