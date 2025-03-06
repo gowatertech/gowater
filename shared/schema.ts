@@ -127,6 +127,28 @@ export const payments = pgTable("payments", {
   notes: text("notes"),
 });
 
+// Bills (Facturas)
+export const bills = pgTable("bills", {
+  id: serial("id").primaryKey(),
+  billNumber: serial("bill_number").unique(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  notes: text("notes").notNull(),
+});
+
+// Bill Items (Items de Factura)
+export const billItems = pgTable("bill_items", {
+  id: serial("id").primaryKey(),
+  billId: integer("bill_id").notNull().references(() => bills.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+});
+
 // Order Items
 export const orderItems = pgTable("order_items", {
   id: serial("id").primaryKey(),
@@ -170,6 +192,28 @@ export const zones = pgTable("zones", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+
+// Invoices (Facturas)
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: serial("invoice_number").unique(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  notes: text("notes"),
+});
+
+// Invoice Items (Items de Factura)
+export const invoiceItems = pgTable("invoice_items", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+});
 
 // Create insert schemas
 export const insertCustomerSchema = createInsertSchema(customers);
@@ -216,6 +260,24 @@ export const insertPaymentSchema = createInsertSchema(payments, {
   notes: z.string().optional(),
 });
 
+// Agregar los schemas de inserción
+export const insertBillSchema = createInsertSchema(bills, {
+  status: z.enum(["pending", "paid", "cancelled"]),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  notes: z.string().max(200),
+});
+
+export const insertBillItemSchema = createInsertSchema(billItems);
+
+// Schemas para las nuevas tablas
+export const insertInvoiceSchema = createInsertSchema(invoices, {
+  status: z.enum(["pending", "paid", "cancelled"]),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  notes: z.string().max(200).optional(),
+});
+
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems);
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
@@ -228,6 +290,15 @@ export type Settings = typeof settings.$inferSelect;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type Zone = typeof zones.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
+export type Bill = typeof bills.$inferSelect;
+export type BillItem = typeof billItems.$inferSelect;
+
+// Nuevos tipos
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+
 
 // Definir el tipo para la ubicación del conductor
 export type DriverLocation = {
@@ -247,3 +318,5 @@ export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type InsertZone = z.infer<typeof insertZoneSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type InsertBill = z.infer<typeof insertBillSchema>;
+export type InsertBillItem = z.infer<typeof insertBillItemSchema>;

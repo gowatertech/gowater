@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { 
   users, customers, products, trucks, routes, orders, orderItems, settings,
+  invoices, invoiceItems, 
   insertUserSchema,
   insertCustomerSchema,
   insertProductSchema,
@@ -17,6 +18,8 @@ import {
   zones,
   payments,
   insertPaymentSchema,
+  insertInvoiceSchema, 
+  insertInvoiceItemSchema, 
 } from "@shared/schema";
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
 import { eq, desc } from 'drizzle-orm';
@@ -297,6 +300,77 @@ export async function registerRoutes(app: Express) {
       res.json(allPayments);
     } catch (error) {
       console.error("Error al obtener pagos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Rutas para facturas
+  app.get("/api/invoices", async (req, res) => {
+    try {
+      const allInvoices = await db
+        .select()
+        .from(invoices)
+        .orderBy(desc(invoices.date));
+
+      res.json(allInvoices);
+    } catch (error) {
+      console.error("Error al obtener facturas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/invoices", async (req, res) => {
+    console.log("Recibido POST /api/invoices:", req.body);
+    const result = insertInvoiceSchema.safeParse(req.body);
+    if (!result.success) {
+      console.error("Error de validación:", result.error.format());
+      return res.status(400).json({ error: result.error });
+    }
+    try {
+      const [invoice] = await db
+        .insert(invoices)
+        .values(result.data)
+        .returning();
+
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error al crear factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Rutas para items de factura
+  app.get("/api/invoices/:invoiceId/items", async (req, res) => {
+    try {
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, parseInt(req.params.invoiceId)));
+
+      res.json(items);
+    } catch (error) {
+      console.error("Error al obtener items de factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/invoices/:invoiceId/items", async (req, res) => {
+    console.log("Creando item para factura:", req.params.invoiceId, "datos:", req.body);
+    try {
+      const result = insertInvoiceItemSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("Error de validación:", result.error.format());
+        return res.status(400).json({ error: result.error });
+      }
+
+      const [item] = await db
+        .insert(invoiceItems)
+        .values(result.data)
+        .returning();
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error al crear item de factura:", error);
       res.status(500).json({ error: String(error) });
     }
   });

@@ -1,7 +1,9 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { type Order, type Customer, type Product } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import {
   Table,
   TableBody,
@@ -45,6 +47,7 @@ interface OrderItem {
 }
 
 export default function Billing() {
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
@@ -60,8 +63,8 @@ export default function Billing() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
-  const { data: orders } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
+  const { data: invoices } = useQuery({
+    queryKey: ["/api/invoices"],
   });
 
   const { data: customers } = useQuery<Customer[]>({
@@ -99,6 +102,106 @@ export default function Billing() {
     const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
     const tax = subtotal * 0.18; // 18% ITBIS
     return { subtotal, tax, total: subtotal + tax };
+  };
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      // 1. Validar items
+      const validItems = orderItems.filter(item => item.quantity > 0);
+      if (validItems.length === 0) {
+        throw new Error('Debe agregar al menos un producto');
+      }
+
+      // 2. Calcular totales
+      const subtotal = validItems.reduce((sum, item) => sum + item.total, 0);
+      const tax = subtotal * 0.18;
+      const total = subtotal + tax;
+
+      // 3. Crear la factura
+      const invoiceData = {
+        customerId: parseInt(data.customerId),
+        total: total.toFixed(2),
+        status: "pending" as const,
+        paymentMethod,
+        notes,
+      };
+
+      // 4. Enviar la factura
+      const invoiceResponse = await apiRequest("POST", "/api/invoices", invoiceData);
+      if (!invoiceResponse.ok) {
+        throw new Error('Error al crear la factura');
+      }
+
+      const invoice = await invoiceResponse.json();
+
+      // 5. Crear los items de la factura
+      for (const item of validItems) {
+        const itemData = {
+          invoiceId: invoice.id,
+          productId: parseInt(item.code),
+          quantity: item.quantity,
+          price: item.price.toFixed(2),
+          total: item.total.toFixed(2)
+        };
+
+        const itemResponse = await apiRequest("POST", `/api/invoices/${invoice.id}/items`, itemData);
+        if (!itemResponse.ok) {
+          throw new Error('Error al crear items de la factura');
+        }
+      }
+
+      return invoice;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      toast({
+        title: "Éxito",
+        description: "Factura creada exitosamente",
+      });
+      setIsDialogOpen(false);
+      setSelectedCustomer(null);
+      setNotes("");
+      setOrderItems(Array(5).fill({
+        code: "",
+        description: "",
+        quantity: 0,
+        price: 0,
+        total: 0
+      }));
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+
+  const handleCreateInvoice = () => {
+    if (!selectedCustomer) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debe seleccionar un cliente"
+      });
+      return;
+    }
+
+    const validItems = orderItems.filter(item => item.quantity > 0);
+    if (validItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debe agregar al menos un producto"
+      });
+      return;
+    }
+
+    createMutation.mutate({
+      customerId: selectedCustomer.id,
+      items: validItems
+    });
   };
 
   return (
@@ -285,8 +388,9 @@ export default function Billing() {
                 <Button
                   className="w-full h-9 text-sm"
                   disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
+                  onClick={handleCreateInvoice}
                 >
-                  Crear Factura
+                  {createMutation.isPending ? "Creando..." : "Crear Factura"}
                 </Button>
               </div>
             </div>
@@ -309,23 +413,23 @@ export default function Billing() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders?.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>{customers?.find(c => c.id === order.customerId)?.name}</TableCell>
-                  <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
-                  <TableCell>#{order.id}</TableCell>
+              {invoices?.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell>{customers?.find(c => c.id === invoice.customerId)?.name}</TableCell>
+                  <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
+                  <TableCell>#{invoice.id}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      order.status === "delivered" ? "bg-green-100 text-green-800" :
-                        order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                      invoice.status === "delivered" ? "bg-green-100 text-green-800" :
+                        invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
                           "bg-red-100 text-red-800"
                     }`}>
-                      {order.status === "delivered" ? "Pagada" :
-                        order.status === "pending" ? "Pendiente" :
+                      {invoice.status === "delivered" ? "Pagada" :
+                        invoice.status === "pending" ? "Pendiente" :
                           "Cancelada"}
                     </span>
                   </TableCell>
-                  <TableCell>RD$ {parseFloat(order.total.toString()).toFixed(2)}</TableCell>
+                  <TableCell>RD$ {parseFloat(invoice.total).toFixed(2)}</TableCell>
                   <TableCell>
                     <Button variant="ghost" size="sm" className="h-8 text-sm">
                       Ver detalles
