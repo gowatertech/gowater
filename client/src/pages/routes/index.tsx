@@ -21,10 +21,10 @@ import RouteOptimizer from "./RouteOptimizer";
 // Vista del chofer
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-// Usando el hook importado de use-mobile.tsx
-
-
+// Usando el hook importado
+const isMobile = useIsMobile();
 
 export default function Routes() {
   const { t } = useTranslation();
