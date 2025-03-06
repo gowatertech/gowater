@@ -116,10 +116,13 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               </UISidebarMenuButton>
 
               {item.subItems && (
-                <div className={cn(
-                  "absolute left-full ml-0.5 top-0 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
-                  isHovered ? "opacity-100 visible" : "opacity-0 invisible"
-                )}>
+                <div 
+                  className={cn(
+                    "absolute left-0 top-0 translate-x-full w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
+                    isHovered ? "opacity-100 visible" : "opacity-0 invisible"
+                  )}
+                  style={{ marginLeft: "0" }}
+                >
                   {item.subItems.map((subItem) => {
                     const isSubActive = location === subItem.href;
                     return (
