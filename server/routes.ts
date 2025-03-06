@@ -409,5 +409,39 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Rutas para items de factura
+  app.patch("/api/invoices/:invoiceId/items/:itemId", async (req, res) => {
+    try {
+      const [item] = await db
+        .update(invoiceItems)
+        .set({
+          quantity: req.body.quantity,
+          price: req.body.price,
+          total: req.body.total,
+        })
+        .where(eq(invoiceItems.id, parseInt(req.params.itemId)))
+        .returning();
+
+      // Actualizar el total de la factura
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, parseInt(req.params.invoiceId)));
+
+      const subtotal = items.reduce((sum, item) => sum + parseFloat(item.total.toString()), 0);
+      const total = (subtotal * 1.18).toFixed(2); // Incluye 18% de ITBIS
+
+      await db
+        .update(invoices)
+        .set({ total })
+        .where(eq(invoices.id, parseInt(req.params.invoiceId)));
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error al actualizar item de factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   return httpServer;
 }
