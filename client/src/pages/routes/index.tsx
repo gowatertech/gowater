@@ -1,9 +1,8 @@
-import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { type Zone, type Customer } from "@shared/schema";
-import { queryClient } from "@/lib/queryClient";
+import { useTranslation } from "react-i18next";
+import { Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+
 
 // Componentes UI
 import { Button } from "@/components/ui/button";
@@ -16,114 +15,98 @@ import { Input } from "@/components/ui/input";
 import ZoneMap from "./ZoneMap";
 
 // Componente de rutas
-import RouteOptimizer from "./RouteOptimizer";
+//import RouteOptimizer from "./RouteOptimizer"; //Removed as it's redefined in the edited code
 
 // Vista del chofer
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
 
-// Usando el hook importado ya importado en la línea 7
-const isMobile = useIsMobile();
-const isMobile = useIsMobile();
-
 export default function Routes() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("zones");
-  const [newZoneName, setNewZoneName] = useState("");
-  const [selectedColor, setSelectedColor] = useState("#3B82F6");
-
-  // Consultas
-  const { data: zones = [] } = useQuery<Zone[]>({
-    queryKey: ["/api/zones"],
-  });
-
-  const { data: customers = [] } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
-  });
-
+  const [tab, setTab] = useState("routes");
   const isMobile = useIsMobile();
 
   return (
-    <div className="p-2 md:p-6 space-y-3 md:space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 md:gap-3">
-        <h1 className="text-xl md:text-3xl font-bold">{t("routes")}</h1>
+    <div className="relative flex h-full w-full flex-col gap-6 md:gap-8 items-center p-3 md:p-6">
+      {/* Selector de pestañas para móvil */}
+      {isMobile && (
+        <div className="w-full max-w-3xl bg-white dark:bg-slate-950 rounded-lg p-2 shadow-sm">
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setTab("routes")}
+              className={cn(
+                "flex-1 py-2 text-center rounded-md transition-all",
+                tab === "routes"
+                  ? "bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-medium"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              )}
+            >
+              {t("routes.title")}
+            </button>
+            <button
+              onClick={() => setTab("tracking")}
+              className={cn(
+                "flex-1 py-2 text-center rounded-md transition-all",
+                tab === "tracking"
+                  ? "bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-medium"
+                  : "text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              )}
+            >
+              {t("tracking.title")}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Contenido basado en la pestaña seleccionada para móvil */}
+      {isMobile ? (
+        <>
+          {tab === "routes" && (
+            <div className="w-full flex-1 flex flex-col">
+              <RouteOptimizer />
+            </div>
+          )}
+          {tab === "tracking" && (
+            <div className="w-full flex-1 flex flex-col">
+              <DeliveryTracking />
+            </div>
+          )}
+        </>
+      ) : (
+        // Vista de escritorio con ambos componentes
+        <div className="w-full flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="w-full h-full flex flex-col">
+            <RouteOptimizer />
+          </div>
+          <div className="w-full h-full flex flex-col">
+            <DeliveryTracking />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RouteOptimizer() {
+  const { t } = useTranslation();
+  const [driverLoading, setDriverLoading] = useState(false);
+
+  // Vista del chofer (implementación simple)
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          {t("routes.title")}
+        </h2>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="zones">{t("zones")}</TabsTrigger>
-          <TabsTrigger value="routes">{t("routeOptimization")}</TabsTrigger>
-          <TabsTrigger value="tracking">Seguimiento en Tiempo Real</TabsTrigger>
-          <TabsTrigger value="driver">Vista del Chofer</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="zones" className="mt-4">
-          <Card className="p-4">
-            <div className="flex gap-4 mb-4">
-              <Input
-                placeholder="Nombre de la zona"
-                value={newZoneName}
-                onChange={(e) => setNewZoneName(e.target.value)}
-                className="w-48"
-              />
-              <Input
-                type="color"
-                value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
-                className="w-16"
-              />
-            </div>
-            <ZoneMap newZoneName={newZoneName} selectedColor={selectedColor} onZoneCreated={() => setNewZoneName("")} />
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="routes" className="mt-4">
-          <div className="flex gap-4">
-            <Card className="p-0 flex-1">
-              <RouteOptimizer />
-            </Card>
-
-            {/* Lista de zonas al lado derecho */}
-            <Card className="p-4 w-80">
-              <h3 className="text-lg font-medium mb-3">{t("zones")}</h3>
-              <ScrollArea className="h-[calc(100vh-300px)]">
-                <div className="space-y-2">
-                  {zones.map((zone) => (
-                    <div
-                      key={zone.id}
-                      className="flex items-center justify-between p-2 bg-muted rounded-lg"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-4 h-4 rounded"
-                          style={{ backgroundColor: zone.color }}
-                        />
-                        <span className="font-medium">{zone.name}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {zone.coordinates.length} puntos
-                      </span>
-                    </div>
-                  ))}
-                  {zones.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No hay zonas creadas
-                    </p>
-                  )}
-                </div>
-              </ScrollArea>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="tracking" className="mt-4">
-          <DeliveryTracking />
-        </TabsContent>
-
-        <TabsContent value="driver" className="mt-4">
-          <DriverView />
-        </TabsContent>
-      </Tabs>
+      {driverLoading ? (
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <DriverView />
+      )}
     </div>
   );
 }
