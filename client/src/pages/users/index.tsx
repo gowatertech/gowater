@@ -74,10 +74,13 @@ export default function Users() {
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Intentando crear usuario con datos:', data);
       const response = await apiRequest("POST", "/api/users", data);
       if (!response.ok) {
         const error = await response.json();
+        // Verificar si es un error de usuario duplicado
+        if (error.error?.includes('duplicate key value violates unique constraint')) {
+          throw new Error('Este nombre de usuario ya existe');
+        }
         throw new Error(error.error || 'Error al crear usuario');
       }
       return response.json();
