@@ -293,18 +293,28 @@ export default function Billing() {
   });
 
   const handlePayment = (invoice: any, amount: string) => {
-    // Depuración
-    console.log("Invoice data:", invoice);
-    console.log("Total de factura:", parseFloat(invoice.total));
-    console.log("Total pagado:", parseFloat(invoice.totalPaid || "0"));
+    // Validar que los valores existan y sean números válidos
+    if (!invoice?.total || !amount) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Datos de factura inválidos"
+      });
+      return;
+    }
 
-    const total = parseFloat(invoice.total);
-    const totalPaid = parseFloat(invoice.totalPaid || "0");
-    const pendingAmount = total - totalPaid;
-    const paymentAmount = parseFloat(amount);
+    // Convertir valores a números con 2 decimales
+    const total = Number(parseFloat(invoice.total).toFixed(2));
+    const totalPaid = Number(parseFloat(invoice.totalPaid || "0").toFixed(2));
+    const pendingAmount = Number((total - totalPaid).toFixed(2));
+    const paymentAmount = Number(parseFloat(amount).toFixed(2));
 
-    console.log("Monto pendiente calculado:", pendingAmount);
-    console.log("Monto a pagar:", paymentAmount);
+    console.log("Cálculo de montos:", {
+      total,
+      totalPaid,
+      pendingAmount,
+      paymentAmount
+    });
 
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
       toast({

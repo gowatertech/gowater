@@ -406,23 +406,24 @@ export async function registerRoutes(app: Express) {
         .from(invoices)
         .orderBy(desc(invoices.date));
 
-      // Verificación de totales para cada factura
+      // Verificación detallada de totales para cada factura
       for (const invoice of allInvoices) {
-        const paymentsForInvoice = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.invoiceId, invoice.id));
+        // Convertir valores a números con 2 decimales
+        const total = Number(parseFloat(invoice.total).toFixed(2));
+        const totalPaid = Number(parseFloat(invoice.totalPaid).toFixed(2));
+        const pendingAmount = Number((total - totalPaid).toFixed(2));
 
-        const manualTotalPaid = paymentsForInvoice.reduce((sum, p) => 
-          sum + parseFloat(p.amount.toString()), 0
-        );
-
-        console.log(`Invoice ${invoice.id}:`, {
-          total: parseFloat(invoice.total),
-          totalPaid: parseFloat(invoice.totalPaid),
-          manualTotalPaid,
-          pendingAmount: parseFloat(invoice.total) - parseFloat(invoice.totalPaid)
+        console.log(`Factura ${invoice.id} - Desglose:`, {
+          total,
+          totalPaid,
+          pendingAmount,
+          status: invoice.status
         });
+
+        // Verificar si el estado coincide con los montos
+        if (totalPaid >= total && invoice.status !== 'paid') {
+          console.log(`Advertencia: Factura ${invoice.id} debería estar pagada`);
+        }
       }
 
       res.json(allInvoices);
