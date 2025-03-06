@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -15,6 +14,7 @@ import RouteStats from "@/components/routes/RouteStats";
 import RouteTimeline from "@/components/routes/RouteTimeline";
 import NewRouteForm from "@/components/routes/NewRouteForm";
 import RouteSummary from "@/components/routes/RouteSummary";
+import RouteOptimizer from "./RouteOptimizer"; // Added import
 import { formatCurrency } from "@/lib/format";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -106,6 +106,8 @@ export default function Routes() {
           </Button>
         </div>
       </div>
+
+      <RouteOptimizer /> {/* Added RouteOptimizer component */}
 
       <Tabs
         defaultValue="active"
