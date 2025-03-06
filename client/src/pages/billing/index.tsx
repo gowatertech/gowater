@@ -50,7 +50,13 @@ export default function Billing() {
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([{
+    code: "",
+    description: "",
+    quantity: 0,
+    price: 0,
+    total: 0
+  }]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
@@ -90,12 +96,26 @@ export default function Billing() {
       price: parseFloat(product.price.toString()),
       total: parseFloat(product.price.toString())
     };
+
+    // Si este es el último item y tiene datos, agregar una nueva fila vacía
+    if (index === orderItems.length - 1 && code !== "") {
+      newItems.push({
+        code: "",
+        description: "",
+        quantity: 0,
+        price: 0,
+        total: 0
+      });
+    }
+
     setOrderItems(newItems);
   };
 
   const handleQuantityChange = (index: number, quantity: number) => {
     const newItems = [...orderItems];
     const item = newItems[index];
+    if (!item) return;
+
     item.quantity = quantity;
     item.total = item.price * quantity;
     setOrderItems(newItems);
@@ -164,7 +184,13 @@ export default function Billing() {
       setIsDialogOpen(false);
       setSelectedCustomer(null);
       setNotes("");
-      setOrderItems([]);
+      setOrderItems([{
+        code: "",
+        description: "",
+        quantity: 0,
+        price: 0,
+        total: 0
+      }]);
     },
     onError: (error: any) => {
       toast({
@@ -892,7 +918,7 @@ export default function Billing() {
                                     </TableCell>
                                     <TableCell className="p-0.5">
                                       <Input
-                                        value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
+                                        value={item.price ? `RD$ ${item.price.toFixed(2)}` :""}
                                         readOnly
                                         className="text-right bg-muted h-8"
                                       />
