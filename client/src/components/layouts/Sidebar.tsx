@@ -12,10 +12,11 @@ import {
   Droplet,
 } from "lucide-react";
 
-// Define los colores modernos para cada icono
+// Updated menuColors with billing option
 const menuColors = {
   dashboard: "#0088FE", // Azul brillante
-  payments: "#00C49F", // Verde turquesa para pagos
+  billing: "#00C49F",   // Verde turquesa para facturación
+  payments: "#00C49F",  // Verde turquesa para pagos
   customers: "#00C49F", // Verde turquesa
   inventory: "#FFBB28", // Amarillo cálido
   routes: "#FF8042",    // Naranja
@@ -28,8 +29,10 @@ const menuColors = {
   users: "#0088FE",     // Azul brillante
 };
 
+// Updated sidebarItems with billing option
 const sidebarItems = [
   { icon: LayoutDashboard, label: "dashboard", href: "/" },
+  { icon: FileText, label: "billing", href: "/billing" },
   { icon: FileText, label: "payments", href: "/payments" },
   { icon: Users, label: "users", href: "/users" },
   { icon: Users, label: "customers", href: "/customers" },
