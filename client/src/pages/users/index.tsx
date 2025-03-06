@@ -158,20 +158,21 @@ export default function Users() {
   // Actualizar la función onSubmit
   const onSubmit = async (data: any) => {
     try {
-      console.log('OnSubmit ejecutado');
       console.log('Form data before submit:', data);
 
-      // Asegurarnos de que las fechas estén en el formato correcto
+      // Mantener el formato de fecha simple
       const formattedData = {
         ...data,
         licenseExpiry: data.licenseExpiry || undefined,
-        hireDate: new Date().toISOString(),
       };
 
       console.log('Formatted data:', formattedData);
 
       if (editingUser) {
-        await updateUserMutation.mutateAsync({ id: editingUser.id, data: formattedData });
+        await updateUserMutation.mutateAsync({ 
+          id: editingUser.id, 
+          data: formattedData 
+        });
       } else {
         await createUserMutation.mutateAsync(formattedData);
       }
@@ -325,10 +326,6 @@ export default function Users() {
                               type="date"
                               {...field}
                               value={field.value || ''}
-                              onChange={(e) => {
-                                const date = e.target.value;
-                                field.onChange(date);
-                              }}
                             />
                           </FormControl>
                           <FormMessage />

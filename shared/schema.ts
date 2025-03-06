@@ -13,40 +13,43 @@ export const users = pgTable("users", {
   }).notNull(),
   active: boolean("active").notNull().default(true),
   phone: text("phone"),
-  license: text("license"), // Para choferes
-  licenseExpiry: timestamp("license_expiry", { mode: 'string' }), // Para choferes
+  license: text("license"),
+  licenseExpiry: timestamp("license_expiry", { mode: 'string' }),
   hireDate: timestamp("hire_date").notNull().defaultNow(),
   emergencyContact: text("emergency_contact"),
-  currentLocation: text("current_location"), // Para tracking en tiempo real
+  currentLocation: text("current_location"),
   lastLocationUpdate: timestamp("last_location_update"),
 });
 
-// Schema de validación actualizado para usuarios
-export const insertUserSchema = createInsertSchema(users, {
-  role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
-  phone: z.string().optional(),
-  license: z.string().optional(),
-  licenseExpiry: z.string()
-    .transform((str) => str ? new Date(str).toISOString() : undefined)
-    .optional(),
-  hireDate: z.string()
-    .transform((str) => new Date(str).toISOString())
-    .optional(),
-  emergencyContact: z.string().optional(),
-  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-  lastLocationUpdate: z.string()
-    .transform((str) => str ? new Date(str).toISOString() : undefined)
-    .optional(),
-  active: z.boolean().default(true),
-}).refine((data) => {
-  // Validación adicional para licenseExpiry cuando el rol es conductor
-  if (data.role === 'driver' && !data.licenseExpiry) {
-    return false;
-  }
-  return true;
-}, {
-  message: "La fecha de vencimiento de la licencia es requerida para conductores"
-});
+// Schema simplificado para usuarios
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
+    phone: z.string().optional(),
+    license: z.string().optional(),
+    licenseExpiry: z.string().optional(),
+    emergencyContact: z.string().optional(),
+    currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+    active: z.boolean().default(true),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === 'driver') {
+      if (!data.license) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Número de licencia requerido para conductores",
+          path: ["license"]
+        });
+      }
+      if (!data.licenseExpiry) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Fecha de vencimiento de licencia requerida para conductores",
+          path: ["licenseExpiry"]
+        });
+      }
+    }
+  });
 
 // Customers
 export const customers = pgTable("customers", {
