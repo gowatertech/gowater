@@ -182,8 +182,14 @@ export default function Users() {
         return;
       }
 
+      // Formatear los datos antes de enviar
+      const formattedData = {
+        ...data,
+        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
+      };
+
       // Si no existe, crear el usuario
-      await createUserMutation.mutateAsync(data);
+      await createUserMutation.mutateAsync(formattedData);
     } catch (error) {
       toast({
         variant: "destructive",
