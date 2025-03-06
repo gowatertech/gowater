@@ -79,8 +79,8 @@ export default function Users() {
         const error = await response.json();
         console.error('Error response:', error);
         // Verificar si es un error de usuario duplicado
-        if (error.error?.includes('duplicate key value violates unique constraint')) {
-          throw new Error('Este nombre de usuario ya existe');
+        if (error.error?.includes('duplicate key value violates unique constraint "users_username_unique"')) {
+          throw new Error('Este usuario ya existe');
         }
         throw new Error(error.error || 'Error al crear usuario');
       }
