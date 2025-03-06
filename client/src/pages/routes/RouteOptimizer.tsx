@@ -20,7 +20,6 @@ Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Componentes UI
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
