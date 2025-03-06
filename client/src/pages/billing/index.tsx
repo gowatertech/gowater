@@ -249,6 +249,49 @@ export default function Billing() {
     }
   });
 
+  // Actualizar la mutación de pagos
+  const createPaymentMutation = useMutation({
+    mutationFn: async ({ invoiceId, amount, customerId }: { invoiceId: number, amount: string, customerId: number }) => {
+      const paymentData = {
+        invoiceId,
+        customerId,
+        amount,
+        paymentMethod: "cash",
+        date: new Date().toISOString(),
+        reference: "",
+        notes: `Pago de factura #${invoiceId}`
+      };
+
+      console.log("Sending payment:", paymentData);
+
+      const response = await apiRequest("POST", "/api/payments", paymentData);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al procesar el pago');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidar todas las consultas relacionadas para forzar su actualización
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      toast({
+        title: "Éxito",
+        description: "Pago procesado exitosamente",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Payment error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+
   const handlePayment = (invoice: any, amount: string) => {
     // Depuración
     console.log("Invoice data:", invoice);
@@ -276,7 +319,7 @@ export default function Billing() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: `El monto (${paymentAmount}) no puede ser mayor al saldo pendiente (${pendingAmount})`
+        description: `El monto (${paymentAmount.toFixed(2)}) excede el saldo pendiente (${pendingAmount.toFixed(2)})`
       });
       return;
     }
@@ -287,48 +330,6 @@ export default function Billing() {
       customerId: invoice.customerId
     });
   };
-
-  // Update the createPaymentMutation
-  const createPaymentMutation = useMutation({
-    mutationFn: async ({ invoiceId, amount, customerId }: { invoiceId: number, amount: string, customerId: number }) => {
-      const paymentData = {
-        invoiceId,
-        customerId,
-        amount,
-        paymentMethod: "cash",
-        date: new Date().toISOString(),
-        reference: "",
-        notes: `Pago de factura #${invoiceId}`
-      };
-
-      console.log("Sending payment:", paymentData);
-
-      const response = await apiRequest("POST", "/api/payments", paymentData);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al procesar el pago');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
-      toast({
-        title: "Éxito",
-        description: "Pago procesado exitosamente",
-      });
-    },
-    onError: (error: any) => {
-      console.error("Payment error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    }
-  });
 
   const handleCreateInvoice = () => {
     if (!selectedCustomer) {

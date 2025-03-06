@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { type Payment, type Customer } from "@shared/schema";
+import { type Payment } from "@shared/schema";
 import {
   Table,
   TableBody,
@@ -29,7 +29,7 @@ import { FileText } from "lucide-react";
 export default function Payments() {
   const { t } = useTranslation();
 
-  // Fetch payments and customers data
+  // Fetch payments data
   const { data: payments } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
   });
