@@ -10,6 +10,8 @@ import {
   FileText,
   Settings,
   Droplet,
+  BoxIcon,
+  Loader,
 } from "lucide-react";
 
 const menuColors = {
@@ -26,14 +28,23 @@ const menuColors = {
   ajustes: "#8884d8",    // Púrpura
 };
 
-// Actualizado con etiquetas en español
+// Actualizado con submenús
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Panel", href: "/" },
   { icon: FileText, label: "Facturación", href: "/billing" },
   { icon: FileText, label: "Pagos", href: "/payments" },
   { icon: Users, label: "Usuarios", href: "/users" },
   { icon: Users, label: "Clientes", href: "/customers" },
-  { icon: Package, label: "Inventario", href: "/inventory" },
+  {
+    icon: Package,
+    label: "Inventario",
+    href: "/inventory",
+    subItems: [
+      { label: "Productos", href: "/inventory/products" },
+      { label: "Carga Productos", href: "/inventory/load-products" },
+      { label: "Carga Camión", href: "/inventory/load-truck" },
+    ],
+  },
   { icon: Route, label: "Rutas", href: "/routes" },
   { icon: Truck, label: "Vehículos", href: "/trucks" },
   { icon: FileText, label: "Pedidos", href: "/orders" },
@@ -48,6 +59,9 @@ import {
   SidebarMenu as UISidebarMenu,
   SidebarMenuItem as UISidebarMenuItem,
   SidebarMenuButton as UISidebarMenuButton,
+  SidebarMenuSub as UISidebarMenuSub,
+  SidebarMenuSubItem as UISidebarMenuSubItem,
+  SidebarMenuSubButton as UISidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -73,7 +87,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
       <UISidebarMenu className="px-5">
         {sidebarItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location === item.href;
+          const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
           const itemColor = menuColors[item.label.toLowerCase() as keyof typeof menuColors];
 
           return (
@@ -86,13 +100,36 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                   isActive && "bg-blue-50 shadow-sm"
                 )}
                 onClick={() => {
-                  setOpenMobile(false);
-                  window.location.href = item.href;
+                  if (!item.subItems) {
+                    setOpenMobile(false);
+                    window.location.href = item.href;
+                  }
                 }}
               >
                 <Icon className="h-4 w-4" style={{ color: itemColor }} />
                 <span style={{ color: isActive ? itemColor : "#64748b" }}>{t(item.label)}</span>
               </UISidebarMenuButton>
+
+              {item.subItems && (
+                <UISidebarMenuSub>
+                  {item.subItems.map((subItem) => {
+                    const isSubActive = location === subItem.href;
+                    return (
+                      <UISidebarMenuSubItem key={subItem.href}>
+                        <UISidebarMenuSubButton
+                          isActive={isSubActive}
+                          onClick={() => {
+                            setOpenMobile(false);
+                            window.location.href = subItem.href;
+                          }}
+                        >
+                          <span>{t(subItem.label)}</span>
+                        </UISidebarMenuSubButton>
+                      </UISidebarMenuSubItem>
+                    );
+                  })}
+                </UISidebarMenuSub>
+              )}
             </UISidebarMenuItem>
           );
         })}
