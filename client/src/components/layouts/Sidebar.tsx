@@ -118,10 +118,14 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               {item.subItems && (
                 <div 
                   className={cn(
-                    "absolute top-full left-0 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
-                    "mt-1", 
+                    "absolute top-[100%] right-0 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
+                    "mt-0 -mr-2", // Ajuste fino de la posición
                     isHovered ? "opacity-100 visible" : "opacity-0 invisible"
                   )}
+                  style={{
+                    transform: 'translateX(100%)', // Mover el menú hacia la derecha
+                    marginTop: '-2.5rem' // Ajustar verticalmente para alinear con el texto
+                  }}
                 >
                   {item.subItems.map((subItem) => {
                     const isSubActive = location === subItem.href;
