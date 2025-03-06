@@ -95,6 +95,39 @@ export async function registerRoutes(app: Express) {
 
   // ... (resto de rutas de usuarios)
 
+  // Customers
+  app.get("/api/customers", async (req, res) => {
+    try {
+      const allCustomers = await db
+        .select()
+        .from(customers);
+
+      console.log("Retrieved customers:", allCustomers);
+      res.json(allCustomers);
+    } catch (error) {
+      console.error("Error al obtener clientes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/customers", async (req, res) => {
+    const result = insertCustomerSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+    try {
+      const [customer] = await db
+        .insert(customers)
+        .values(result.data)
+        .returning();
+      res.json(customer);
+    } catch (error) {
+      console.error("Error al crear cliente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+
   // Orders
   app.get("/api/orders", async (req, res) => {
     try {

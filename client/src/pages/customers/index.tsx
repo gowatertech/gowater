@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { z } from "zod";
 
 import {
   Table,
@@ -48,7 +49,9 @@ export default function Customers() {
     queryKey: ["/api/customers"],
   });
 
-  const form = useForm({
+  type CustomerFormData = z.infer<typeof insertCustomerSchema>;
+
+  const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       name: "",
@@ -61,7 +64,7 @@ export default function Customers() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: Customer) => {
+    mutationFn: async (data: CustomerFormData) => {
       const res = await apiRequest("POST", "/api/customers", data);
       return res.json();
     },
@@ -83,7 +86,7 @@ export default function Customers() {
     },
   });
 
-  const onSubmit = (data: Customer) => {
+  const onSubmit = (data: CustomerFormData) => {
     createMutation.mutate(data);
   };
 
