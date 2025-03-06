@@ -21,9 +21,9 @@ import RouteOptimizer from "./RouteOptimizer";
 // Vista del chofer
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
-import { useIsMobile } from "@/hooks/use-mobile";
 
-// Usando el hook importado
+// Usando el hook importado ya importado en la línea 7
+const isMobile = useIsMobile();
 const isMobile = useIsMobile();
 
 export default function Routes() {
