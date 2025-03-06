@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Customer, type Product } from "@shared/schema";
+import { type Customer, type Product, type Invoice } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,11 +43,17 @@ interface OrderItem {
   total: number;
 }
 
+interface InvoiceWithDetails extends Invoice {
+  customerName?: string;
+  totalPaid?: string;
+  pendingAmount?: string;
+}
+
 export default function Billing() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([{
@@ -60,7 +66,7 @@ export default function Billing() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [] } = useQuery<InvoiceWithDetails[]>({
     queryKey: ["/api/invoices"],
   });
 
@@ -318,7 +324,7 @@ export default function Billing() {
     }
   });
 
-  const handlePayment = (invoice: any, amount: string) => {
+  const handlePayment = (invoice: InvoiceWithDetails, amount: string) => {
     // Validar que los valores existan y sean números válidos
     if (!invoice?.pendingAmount || !amount) {
       toast({
@@ -910,7 +916,7 @@ export default function Billing() {
                                     <TableCell className="p-0.5">
                                       <Input
                                         type="number"
-                                        min="0"
+                                       min="0"
                                         value={item.quantity}
                                         onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
                                         className="text-right h-8"
