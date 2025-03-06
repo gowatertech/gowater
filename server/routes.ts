@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { 
+  users, customers, products, trucks, routes, orders, orderItems, settings,
   insertUserSchema,
   insertCustomerSchema,
   insertProductSchema,
@@ -14,11 +15,6 @@ import {
   insertCustomerOrdersSchema,
   insertZoneSchema,
   zones,
-  customers,
-  orderItems,
-  products,
-  orders,
-  routes,
   payments,
   insertPaymentSchema,
 } from "@shared/schema";
@@ -198,7 +194,6 @@ export async function registerRoutes(app: Express) {
       return res.status(400).json({ error: result.error });
     }
     try {
-      // 1. Crear el pedido
       const [order] = await db
         .insert(orders)
         .values({
@@ -207,30 +202,7 @@ export async function registerRoutes(app: Express) {
         })
         .returning();
 
-      // 2. Si hay items, crearlos
-      if (req.body.items && Array.isArray(req.body.items)) {
-        for (const item of req.body.items) {
-          const itemData = {
-            orderId: order.id,
-            productId: parseInt(item.code),
-            quantity: item.quantity,
-            price: parseFloat(item.price.toString())
-          };
-
-          const itemResult = insertOrderItemSchema.safeParse(itemData);
-          if (!itemResult.success) {
-            console.error("Error de validación item:", itemResult.error.format());
-            continue;
-          }
-
-          await db
-            .insert(orderItems)
-            .values(itemResult.data)
-            .returning();
-        }
-      }
-
-      // 3. Si el método de pago es efectivo, crear el pago automáticamente
+      // Si el método de pago es efectivo, crear el pago automáticamente
       if (result.data.paymentMethod === "cash") {
         const paymentData = {
           orderId: order.id,
@@ -303,6 +275,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Payments endpoint
   app.get("/api/payments", async (req, res) => {
     try {
       const allPayments = await db

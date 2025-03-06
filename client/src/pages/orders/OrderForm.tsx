@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 export default function OrderForm() {
   const { t } = useTranslation();
@@ -35,7 +34,6 @@ export default function OrderForm() {
       date: new Date().toISOString(),
       status: "pending",
       paymentMethod: "cash",
-      paymentStatus: "pending",
     },
   });
 
@@ -46,11 +44,6 @@ export default function OrderForm() {
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertOrder) => {
-      // If payment method is cash, automatically set payment status to paid
-      if (data.paymentMethod === "cash") {
-        data.paymentStatus = "paid";
-      }
-
       const res = await apiRequest("POST", "/api/orders", data);
       return res.json();
     },

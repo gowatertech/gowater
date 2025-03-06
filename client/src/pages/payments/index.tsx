@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 import { type Payment, type Customer } from "@shared/schema";
 import { 
   Table, 
@@ -30,11 +31,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Search, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 
 export default function Payments() {
   const { t } = useTranslation();
-  
+  const [selectedCustomer, setSelectedCustomer] = useState<string>("all");
+
   // Fetch payments and customers data
   const { data: payments } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
@@ -44,23 +46,20 @@ export default function Payments() {
     queryKey: ["/api/customers"],
   });
 
-  // State for customer filter
-  const [selectedCustomer, setSelectedCustomer] = useState<string>("all");
-
   // Filter and sort payments
   const filteredPayments = useMemo(() => {
     if (!payments) return [];
-    
+
     let filtered = [...payments];
-    
+
     // Filter by customer if selected
     if (selectedCustomer !== "all") {
       filtered = filtered.filter(p => p.customerId === parseInt(selectedCustomer));
     }
-    
+
     // Sort by date, newest first
     filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
+
     return filtered;
   }, [payments, selectedCustomer]);
 
@@ -68,7 +67,7 @@ export default function Payments() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{t("payments")}</h1>
-        
+
         {/* Customer filter */}
         <div className="flex gap-4 items-center">
           <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
@@ -106,7 +105,7 @@ export default function Payments() {
             <TableBody>
               {filteredPayments.map((payment) => {
                 const customer = customers?.find(c => c.id === payment.customerId);
-                
+
                 return (
                   <TableRow key={payment.id}>
                     <TableCell>

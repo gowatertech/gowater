@@ -99,7 +99,7 @@ export const routes = pgTable("routes", {
   lastUpdate: timestamp("last_update"),
 });
 
-// Orders
+// Orders - Agregar solo el campo de método de pago
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").notNull(),
@@ -107,7 +107,6 @@ export const orders = pgTable("orders", {
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   status: text("status", { enum: ["pending", "in_transit", "delivered", "cancelled"] }).notNull(),
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
-  paymentStatus: text("payment_status", { enum: ["pending", "paid", "partial"] }).notNull().default("pending"),
   date: timestamp("date").notNull(),
   estimatedDeliveryTime: timestamp("estimated_delivery_time"),
   actualDeliveryTime: timestamp("actual_delivery_time"),
@@ -116,7 +115,7 @@ export const orders = pgTable("orders", {
   notes: text("notes"),
 });
 
-// New payments table
+// Nueva tabla de pagos
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
   orderId: integer("order_id").notNull().references(() => orders.id),
@@ -124,7 +123,7 @@ export const payments = pgTable("payments", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
-  reference: text("reference"), // For credit/card payments
+  reference: text("reference"), // Para pagos con tarjeta/crédito
   notes: text("notes"),
 });
 
@@ -192,7 +191,6 @@ export const insertOrderSchema = createInsertSchema(orders, {
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "in_transit", "delivered", "cancelled"]),
   paymentMethod: z.enum(["cash", "credit", "card"]),
-  paymentStatus: z.enum(["pending", "paid", "partial"]).default("pending"),
   date: z.string().datetime("La fecha debe estar en formato ISO"),
   routeId: z.number().nullable(),
   estimatedDeliveryTime: z.string().datetime().optional(),
@@ -208,7 +206,7 @@ export const insertZoneSchema = createInsertSchema(zones, {
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
-// Payment schema
+// Schema para pagos
 export const insertPaymentSchema = createInsertSchema(payments, {
   orderId: z.number(),
   customerId: z.number(),
