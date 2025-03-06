@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
@@ -17,10 +16,14 @@ import NewRouteForm from "@/components/routes/NewRouteForm";
 import RouteSummary from "@/components/routes/RouteSummary";
 import { formatCurrency } from "@/lib/format";
 import useMediaQuery from "@/hooks/use-media-query";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Vista del chofer
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
+
+// Usando el hook importado
+const isMobile = useIsMobile();
 
 export default function Routes() {
   const { t } = useTranslation();
@@ -29,7 +32,7 @@ export default function Routes() {
   const { routes, loading, error } = useRoutes();
   const [selectedTab, setSelectedTab] = useState("active");
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+
 
   const isDriver = user?.role === "driver";
   const isAssistant = user?.role === "assistant";
