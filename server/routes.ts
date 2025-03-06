@@ -408,7 +408,7 @@ export async function registerRoutes(app: Express) {
 
       // Verificación detallada de totales para cada factura
       for (const invoice of allInvoices) {
-        // Convertir valores a números con 2 decimales
+        // Convertir valores a números con 2 decimales para el log
         const total = Number(parseFloat(invoice.total).toFixed(2));
         const totalPaid = Number(parseFloat(invoice.totalPaid).toFixed(2));
         const pendingAmount = Number((total - totalPaid).toFixed(2));
@@ -419,11 +419,6 @@ export async function registerRoutes(app: Express) {
           pendingAmount,
           status: invoice.status
         });
-
-        // Verificar si el estado coincide con los montos
-        if (totalPaid >= total && invoice.status !== 'paid') {
-          console.log(`Advertencia: Factura ${invoice.id} debería estar pagada`);
-        }
       }
 
       res.json(allInvoices);
