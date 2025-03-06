@@ -21,8 +21,9 @@ import RouteOptimizer from "./RouteOptimizer";
 // Vista del chofer
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
-// Utilizar el hook importado
-const isMobile = useIsMobile();
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
