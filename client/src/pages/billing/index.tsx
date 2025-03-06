@@ -187,6 +187,67 @@ export default function Billing() {
     }
   });
 
+  // Nueva mutación para actualizar el método de pago
+  const updatePaymentMethodMutation = useMutation({
+    mutationFn: async ({ invoiceId, paymentMethod }: { invoiceId: number, paymentMethod: string }) => {
+      const response = await apiRequest("PATCH", `/api/invoices/${invoiceId}`, {
+        paymentMethod,
+      });
+      if (!response.ok) {
+        throw new Error('Error al actualizar el método de pago');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      setIsDetailsDialogOpen(false);
+      toast({
+        title: "Éxito",
+        description: "Método de pago actualizado exitosamente",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+
+  // Nueva mutación para agregar items a una factura existente
+  const addInvoiceItemsMutation = useMutation({
+    mutationFn: async ({ invoiceId, items }: { invoiceId: number, items: any[] }) => {
+      for (const item of items) {
+        const response = await apiRequest("POST", `/api/invoices/${invoiceId}/items`, {
+          invoiceId,
+          productId: parseInt(item.code),
+          quantity: item.quantity,
+          price: item.price.toFixed(2),
+          total: item.total.toFixed(2),
+        });
+        if (!response.ok) {
+          throw new Error('Error al agregar items a la factura');
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      setIsDetailsDialogOpen(false);
+      toast({
+        title: "Éxito",
+        description: "Items agregados exitosamente",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+
   const handleCreateInvoice = () => {
     if (!selectedCustomer) {
       toast({
@@ -211,6 +272,23 @@ export default function Billing() {
       customerId: selectedCustomer.id,
       items: validItems
     });
+  };
+
+  const handlePaymentMethodChange = async (invoiceId: number, newPaymentMethod: 'cash' | 'credit' | 'card') => {
+    updatePaymentMethodMutation.mutate({ invoiceId, paymentMethod: newPaymentMethod });
+  };
+
+  const handleAddItems = async (invoiceId: number) => {
+    const validItems = orderItems.filter(item => item.quantity > 0);
+    if (validItems.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debe agregar al menos un producto"
+      });
+      return;
+    }
+    addInvoiceItemsMutation.mutate({ invoiceId, items: validItems });
   };
 
   return (
@@ -543,24 +621,133 @@ export default function Billing() {
                     </div>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => {
-                        // TODO: Implementar edición
-                      }}
-                    >
-                      Editar Factura
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        // TODO: Implementar cambio de método de pago
-                      }}
-                    >
-                      Cambiar Método de Pago
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="flex-1">
+                          Editar Factura
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Agregar Productos</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          {/* Tabla de Productos */}
+                          <div className="border rounded-lg overflow-hidden">
+                            <ScrollArea className="h-[35vh]">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Código</TableHead>
+                                    <TableHead>Descripción</TableHead>
+                                    <TableHead className="text-right">Cant.</TableHead>
+                                    <TableHead className="text-right">Precio</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {orderItems.map((item, index) => (
+                                    <TableRow key={index}>
+                                      <TableCell className="p-0.5">
+                                        <Select
+                                          value={item.code}
+                                          onValueChange={(value) => handleProductChange(index, value)}
+                                        >
+                                          <SelectTrigger className="h-8">
+                                            <SelectValue placeholder="---" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {products?.map((product) => (
+                                              <SelectItem
+                                                key={product.id}
+                                                value={product.id.toString()}
+                                              >
+                                                {product.id}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </TableCell>
+                                      <TableCell className="p-0.5">
+                                        <Input
+                                          value={item.description}
+                                          readOnly
+                                          className="bg-muted h-8"
+                                        />
+                                      </TableCell>
+                                      <TableCell className="p-0.5">
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          value={item.quantity}
+                                          onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                                          className="text-right h-8"
+                                        />
+                                      </TableCell>
+                                      <TableCell className="p-0.5">
+                                        <Input
+                                          value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
+                                          readOnly
+                                          className="text-right bg-muted h-8"
+                                        />
+                                      </TableCell>
+                                      <TableCell className="p-0.5">
+                                        <Input
+                                          value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
+                                          readOnly
+                                          className="text-right bg-muted h-8"
+                                        />
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </ScrollArea>
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={() => handleAddItems(selectedInvoice.id)}
+                            disabled={!orderItems.some(item => item.quantity > 0)}
+                          >
+                            Guardar Cambios
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="flex-1">
+                          Cambiar Método de Pago
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Cambiar Método de Pago</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <Select
+                            defaultValue={selectedInvoice.paymentMethod}
+                            onValueChange={(value) => handlePaymentMethodChange(selectedInvoice.id, value as 'cash' | 'credit' | 'card')}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cash">Efectivo</SelectItem>
+                              <SelectItem value="credit">Crédito</SelectItem>
+                              <SelectItem value="card">Tarjeta</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-sm text-muted-foreground">
+                            Método de pago actual: {
+                              selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
+                              selectedInvoice.paymentMethod === "credit" ? "Crédito" :
+                              "Tarjeta"
+                            }
+                          </p>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </Card>
               </div>
