@@ -8,7 +8,6 @@ import { type Zone, type Customer } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
 import { Pencil, X } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -32,12 +31,6 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
       if (!isDrawing) return;
       const newPoint: LatLngExpression = [e.latlng.lat, e.latlng.lng];
       setPoints(prev => [...prev, newPoint]);
-
-      // Feedback visual
-      toast({
-        description: `Punto añadido (${points.length})`,
-        duration: 1000,
-      });
     },
   });
 
@@ -47,6 +40,9 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
       setPoints([]);
       setIsDrawing(false);
       map.dragging.enable();
+      toast({
+        description: "Zona creada exitosamente",
+      });
     } else {
       toast({
         variant: "destructive",
@@ -105,7 +101,6 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
         )}
       </div>
 
-      {/* Visualizar los puntos mientras se dibuja */}
       {isDrawing && points.length > 0 && (
         <>
           <Polyline 
@@ -135,7 +130,6 @@ interface ZoneMapProps {
 export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: ZoneMapProps) {
   const { toast } = useToast();
 
-  // Consultas
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
   });
@@ -157,6 +151,13 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
       });
       onZoneCreated();
     },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Error al crear la zona: " + error.message,
+      });
+    }
   });
 
   const handlePolygonComplete = (coordinates: LatLngExpression[]) => {
@@ -173,9 +174,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
       const coordStrings = coordinates.map(coord => {
         if (Array.isArray(coord)) {
           const [lat, lng] = coord;
-          if (typeof lat === 'number' && typeof lng === 'number') {
-            return `${lat},${lng}`;
-          }
+          return `${lat},${lng}`;
         } else if (coord instanceof LatLng) {
           return `${coord.lat},${coord.lng}`;
         }
@@ -199,8 +198,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   return (
     <div className="bg-white rounded-lg shadow-sm" style={{ 
       height: "500px",
-      width: "650px",
-      margin: "0 auto",
+      width: "100%",
       position: "relative"
     }}>
       <MapContainer
@@ -216,6 +214,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
 
         <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
+        {/* Render existing zones */}
         {zones.map((zone) => {
           try {
             const positions = zone.coordinates.map((coord): LatLngExpression => {
@@ -230,7 +229,12 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
               <Polygon
                 key={zone.id}
                 positions={positions}
-                pathOptions={{ color: zone.color }}
+                pathOptions={{ 
+                  color: zone.color || '#3388ff',
+                  fillColor: zone.color || '#3388ff',
+                  fillOpacity: 0.2,
+                  weight: 2
+                }}
               />
             );
           } catch (error) {
@@ -239,6 +243,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
           }
         })}
 
+        {/* Render customer markers */}
         {customers.map((customer) => {
           if (!customer.coordinates) return null;
           try {
@@ -250,6 +255,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
               <Marker
                 key={customer.id}
                 position={[lat, lng] as LatLngExpression}
+                title={customer.name}
               />
             );
           } catch (error) {
