@@ -209,7 +209,7 @@ export async function registerRoutes(app: Express) {
       if (result.data.paymentMethod === "cash") {
         const paymentData = {
           orderId: order.id,
-          customerId: result.data.customerId,
+          customerId: result.data.customerId, // Added customerId
           amount: result.data.total,
           paymentMethod: "cash",
           date: new Date(),
@@ -439,6 +439,44 @@ export async function registerRoutes(app: Express) {
       res.json(item);
     } catch (error) {
       console.error("Error al actualizar item de factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Add this handler for payments
+  app.post("/api/payments", async (req, res) => {
+    try {
+      // Create the payment
+      const [payment] = await db
+        .insert(payments)
+        .values(req.body)
+        .returning();
+
+      // Get the invoice and its total payments
+      const allPayments = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.invoiceId, req.body.invoiceId));
+
+      const totalPaid = allPayments.reduce((sum, payment) => 
+        sum + parseFloat(payment.amount.toString()), 0);
+
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, req.body.invoiceId));
+
+      // If total paid equals or exceeds invoice total, mark as paid
+      if (totalPaid >= parseFloat(invoice.total.toString())) {
+        await db
+          .update(invoices)
+          .set({ status: "paid" })
+          .where(eq(invoices.id, req.body.invoiceId));
+      }
+
+      res.json(payment);
+    } catch (error) {
+      console.error("Error al procesar pago:", error);
       res.status(500).json({ error: String(error) });
     }
   });

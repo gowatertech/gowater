@@ -35,7 +35,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface OrderItem {
-  id?: number; // Added id field
+  id?: number;
   code: string;
   description: string;
   quantity: number;
@@ -50,7 +50,7 @@ export default function Billing() {
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]); // Initialize as empty array
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
@@ -83,7 +83,7 @@ export default function Billing() {
 
     const newItems = [...orderItems];
     newItems[index] = {
-      ...newItems[index], //Preserve existing ID if any
+      ...newItems[index],
       code,
       description: product.name,
       quantity: 1,
@@ -103,7 +103,7 @@ export default function Billing() {
 
   const calculateTotal = () => {
     const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
-    const tax = subtotal * 0.18; // 18% ITBIS
+    const tax = subtotal * 0.18;
     return { subtotal, tax, total: subtotal + tax };
   };
 
@@ -164,7 +164,7 @@ export default function Billing() {
       setIsDialogOpen(false);
       setSelectedCustomer(null);
       setNotes("");
-      setOrderItems([]); // Clear orderItems after successful creation
+      setOrderItems([]);
     },
     onError: (error: any) => {
       toast({
@@ -249,6 +249,68 @@ export default function Billing() {
     }
   });
 
+  // Add new mutation after other mutations
+  const createPaymentMutation = useMutation({
+    mutationFn: async ({ invoiceId, amount }: { invoiceId: number, amount: string }) => {
+      const response = await apiRequest("POST", "/api/payments", {
+        invoiceId,
+        customerId: selectedInvoice?.customerId,
+        amount,
+        paymentMethod: "cash",
+        date: new Date(),
+        reference: "",
+        notes: `Pago de factura #${invoiceId}`
+      });
+      if (!response.ok) {
+        throw new Error('Error al procesar el pago');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] }); //Invalidate payments query
+      toast({
+        title: "Éxito",
+        description: "Pago procesado exitosamente",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+
+  // Add this function before return statement
+  const handlePayment = (invoice: any, amount: string) => {
+    const total = parseFloat(invoice.total);
+    const paymentAmount = parseFloat(amount);
+
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El monto debe ser mayor a 0"
+      });
+      return;
+    }
+
+    if (paymentAmount > total) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El monto no puede ser mayor al total de la factura"
+      });
+      return;
+    }
+
+    createPaymentMutation.mutate({
+      invoiceId: invoice.id,
+      amount: paymentAmount.toFixed(2)
+    });
+  };
 
   const handleCreateInvoice = () => {
     if (!selectedCustomer) {
@@ -558,6 +620,54 @@ export default function Billing() {
                     >
                       Ver detalles
                     </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 text-sm ml-2">
+                          Pagar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Procesar Pago de Factura #{invoice.id}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="text-sm space-y-2">
+                            <div className="flex justify-between">
+                              <span>Total Factura:</span>
+                              <span className="font-medium">RD$ {parseFloat(invoice.total).toFixed(2)}</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">Monto a Pagar</label>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => handlePayment(invoice, invoice.total)}
+                              >
+                                Pagar Total
+                              </Button>
+                              <div className="flex-1">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  max={invoice.total}
+                                  placeholder="Monto parcial"
+                                  onChange={(e) => {
+                                    if (e.target.value) {
+                                      handlePayment(invoice, e.target.value);
+                                    }
+                                  }}
+                                  className="text-right"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </TableCell>
                 </TableRow>
               ))}
@@ -658,8 +768,8 @@ export default function Billing() {
                 <div className="mt-4 flex gap-2">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="flex-1"
                         onClick={handleStartEdit}
                       >
