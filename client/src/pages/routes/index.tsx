@@ -14,7 +14,7 @@ import RouteStats from "@/components/routes/RouteStats";
 import RouteTimeline from "@/components/routes/RouteTimeline";
 import NewRouteForm from "@/components/routes/NewRouteForm";
 import RouteSummary from "@/components/routes/RouteSummary";
-import RouteOptimizer from "./RouteOptimizer"; // Added import
+import ZoneMap from "./ZoneMap";
 import { formatCurrency } from "@/lib/format";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -29,10 +29,10 @@ export default function Routes() {
   const { routes, loading, error } = useRoutes();
   const [selectedTab, setSelectedTab] = useState("active");
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
+  const [isCreatingZone, setIsCreatingZone] = useState(false);
+  const [zoneName, setZoneName] = useState("");
+  const [zoneColor, setZoneColor] = useState("#0088FE");
   const isMobile = useIsMobile();
-
-  const isDriver = user?.role === "driver";
-  const isAssistant = user?.role === "assistant";
 
   // La interfaz del conductor muestra el estado actual y próximas entregas
   if (isDriver) {
@@ -43,6 +43,12 @@ export default function Routes() {
   if (isAssistant) {
     return <DeliveryTracking />;
   }
+
+  // When a zone is created successfully
+  const handleZoneCreated = () => {
+    setIsCreatingZone(false);
+    setZoneName("");
+  };
 
   // Click handler para el botón de crear ruta
   const handleCreateRoute = () => {
@@ -99,6 +105,15 @@ export default function Routes() {
             variant="default"
             size="sm"
             className="h-8 gap-1"
+            onClick={() => setIsCreatingZone(true)}
+          >
+            <MapPin className="h-3.5 w-3.5" />
+            <span>{t("createZone")}</span>
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            className="h-8 gap-1"
             onClick={handleCreateRoute}
           >
             <PlusCircle className="h-3.5 w-3.5" />
@@ -107,7 +122,39 @@ export default function Routes() {
         </div>
       </div>
 
-      <RouteOptimizer /> {/* Added RouteOptimizer component */}
+      {isCreatingZone && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>{t("createZone")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <input
+                  type="text"
+                  value={zoneName}
+                  onChange={(e) => setZoneName(e.target.value)}
+                  placeholder={t("zoneName")}
+                  className="w-full px-3 py-2 border rounded-md"
+                />
+              </div>
+              <div>
+                <input
+                  type="color"
+                  value={zoneColor}
+                  onChange={(e) => setZoneColor(e.target.value)}
+                  className="w-full h-10"
+                />
+              </div>
+              <ZoneMap
+                newZoneName={zoneName}
+                selectedColor={zoneColor}
+                onZoneCreated={handleZoneCreated}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs
         defaultValue="active"
