@@ -58,10 +58,14 @@ app.use((req, res, next) => {
 
   // Try to serve on port 5000, fall back to another port if needed
   const startServer = (port = 5000) => {
+    // First, try to close any existing server if it exists
+    if (server.listening) {
+      server.close();
+    }
+    
     server.listen({
       port,
       host: "0.0.0.0",
-      reusePort: true,
     }, () => {
       log(`serving on port ${port}`);
     }).on('error', (err: any) => {
@@ -69,7 +73,15 @@ app.use((req, res, next) => {
         log(`Port ${port} is in use, trying ${port + 1}`);
         startServer(port + 1);
       } else {
-        throw err;
+        log(`Error starting server: ${err.message}`);
+        // Try a random port as last resort
+        if (err.code === 'EADDRINUSE') {
+          const randomPort = Math.floor(Math.random() * 10000) + 10000;
+          log(`Trying random port ${randomPort}`);
+          startServer(randomPort);
+        } else {
+          throw err;
+        }
       }
     });
   };

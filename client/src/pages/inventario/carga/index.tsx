@@ -34,12 +34,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type ProductBatchItem = {
   productId: number;
+  productName?: string;
   quantity: number;
   cost: string;
-  productName?: string;
+  total: string;
 };
 
 export default function CargaProductos() {
@@ -60,6 +62,7 @@ export default function CargaProductos() {
       productId: 0,
       quantity: 0,
       cost: "0.00",
+      total: "0.00",
     },
   });
 
@@ -99,11 +102,18 @@ export default function CargaProductos() {
     },
   });
 
+  const calculateTotal = (quantity: number, cost: string) => {
+    return (Number(quantity) * Number(cost)).toFixed(2);
+  };
+
   const addItemToBatch = (data: ProductBatchItem) => {
     const product = products?.find(p => p.id === data.productId);
+    const total = calculateTotal(data.quantity, data.cost);
+
     setBatchItems([...batchItems, { 
       ...data,
-      productName: product?.name 
+      productName: product?.name,
+      total,
     }]);
     form.reset();
   };
@@ -132,72 +142,75 @@ export default function CargaProductos() {
     createBatchMutation.mutate(batches);
   };
 
-  const totalCost = batchItems.reduce((sum, item) => 
-    sum + (Number(item.cost) * item.quantity), 0
-  );
+  const totalCost = batchItems.reduce((sum, item) => sum + Number(item.total), 0);
+
+  // Watch quantity and cost to calculate total
+  const quantity = form.watch("quantity");
+  const cost = form.watch("cost");
+  const currentTotal = calculateTotal(quantity || 0, cost || "0.00");
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">{t("addProducts")}</h2>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(addItemToBatch)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="productId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("product")}</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      value={field.value.toString()}
-                    >
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("batchDetails")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...mainForm}>
+            <form onSubmit={mainForm.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={mainForm.control}
+                  name="warehouse"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("warehouse")}</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("selectProduct")} />
-                        </SelectTrigger>
+                        <Input {...field} />
                       </FormControl>
-                      <SelectContent>
-                        {products?.map((product) => (
-                          <SelectItem
-                            key={product.id}
-                            value={product.id.toString()}
-                          >
-                            {product.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={mainForm.control}
+                  name="userId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("user")}</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("selectUser")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users?.map((user) => (
+                            <SelectItem
+                              key={user.id}
+                              value={user.id.toString()}
+                            >
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
-                control={form.control}
-                name="quantity"
+                control={mainForm.control}
+                name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("quantity")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("cost")} (RD$)</FormLabel>
+                    <FormLabel>{t("notes")}</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -205,35 +218,117 @@ export default function CargaProductos() {
                   </FormItem>
                 )}
               />
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
 
-              <Button type="submit">
-                {t("addToBatch")}
-              </Button>
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("addProducts")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(addItemToBatch)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <FormField
+                  control={form.control}
+                  name="productId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("product")}</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("selectProduct")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {products?.map((product) => (
+                            <SelectItem
+                              key={product.id}
+                              value={product.id.toString()}
+                            >
+                              {product.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="quantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("quantity")}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...field}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("unitCost")} (RD$)</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div>
+                  <FormLabel>{t("lineTotal")}</FormLabel>
+                  <div className="h-10 px-3 py-2 border rounded-md bg-muted">
+                    RD$ {currentTotal}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="submit">
+                  {t("addToBatch")}
+                </Button>
+              </div>
             </form>
           </Form>
 
           {batchItems.length > 0 && (
             <div className="mt-8">
-              <h3 className="text-lg font-medium mb-4">{t("batchItems")}</h3>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("product")}</TableHead>
-                    <TableHead>{t("quantity")}</TableHead>
-                    <TableHead>{t("cost")}</TableHead>
-                    <TableHead>{t("total")}</TableHead>
-                    <TableHead>{t("actions")}</TableHead>
+                    <TableHead className="text-right">{t("quantity")}</TableHead>
+                    <TableHead className="text-right">{t("unitCost")}</TableHead>
+                    <TableHead className="text-right">{t("total")}</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {batchItems.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell>{item.productName}</TableCell>
-                      <TableCell>{item.quantity}</TableCell>
-                      <TableCell>RD$ {item.cost}</TableCell>
-                      <TableCell>
-                        RD$ {(Number(item.cost) * item.quantity).toFixed(2)}
-                      </TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">RD$ {item.cost}</TableCell>
+                      <TableCell className="text-right">RD$ {item.total}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -249,91 +344,26 @@ export default function CargaProductos() {
                     <TableCell colSpan={3} className="text-right font-bold">
                       {t("total")}:
                     </TableCell>
-                    <TableCell className="font-bold">
+                    <TableCell className="text-right font-bold">
                       RD$ {totalCost.toFixed(2)}
                     </TableCell>
                     <TableCell />
                   </TableRow>
                 </TableBody>
               </Table>
+
+              <div className="mt-4 flex justify-end">
+                <Button
+                  onClick={mainForm.handleSubmit(onSubmit)}
+                  disabled={createBatchMutation.isPending}
+                >
+                  {createBatchMutation.isPending ? t("saving") : t("saveBatch")}
+                </Button>
+              </div>
             </div>
           )}
-        </div>
-
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">{t("batchDetails")}</h2>
-          <Form {...mainForm}>
-            <form onSubmit={mainForm.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={mainForm.control}
-                name="warehouse"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("warehouse")}</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={mainForm.control}
-                name="userId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("user")}</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      value={field.value.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("selectUser")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {users?.map((user) => (
-                          <SelectItem
-                            key={user.id}
-                            value={user.id.toString()}
-                          >
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={mainForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("notes")}</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={createBatchMutation.isPending || batchItems.length === 0}
-              >
-                {createBatchMutation.isPending ? t("saving") : t("save")}
-              </Button>
-            </form>
-          </Form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
