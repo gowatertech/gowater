@@ -21,7 +21,7 @@ const menuColors = {
   pagos: "#00C49F",      // Verde turquesa para pagos
   usuarios: "#0088FE",   // Azul brillante
   clientes: "#00C49F",   // Verde turquesa
-  inventario: "#FFBB28", // Amarillo cálido
+  productos: "#FFBB28",  // Amarillo cálido
   rutas: "#FF8042",      // Naranja
   vehiculos: "#00C49F",  // Verde turquesa
   pedidos: "#FFBB28",    // Amarillo
@@ -36,16 +36,7 @@ const sidebarItems = [
   { icon: FileText, label: "Pagos", href: "/payments" },
   { icon: Users, label: "Usuarios", href: "/users" },
   { icon: Users, label: "Clientes", href: "/customers" },
-  {
-    icon: Package,
-    label: "Inventario",
-    href: "/inventory",
-    subItems: [
-      { label: "Productos", href: "/inventory" },
-      { label: "Carga Productos", href: "/inventory/load-products" },
-      { label: "Carga Camión", href: "/inventory/load-truck" },
-    ],
-  },
+  { icon: Package, label: "Productos", href: "/productos" },
   { icon: Route, label: "Rutas", href: "/routes" },
   { icon: Truck, label: "Vehículos", href: "/trucks" },
   { icon: FileText, label: "Pedidos", href: "/orders" },
@@ -94,7 +85,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
           const isHovered = hoveredItem === item.label;
 
           return (
-            <UISidebarMenuItem 
+            <UISidebarMenuItem
               key={item.href}
               onMouseEnter={() => setHoveredItem(item.label)}
               onMouseLeave={() => setHoveredItem(null)}
