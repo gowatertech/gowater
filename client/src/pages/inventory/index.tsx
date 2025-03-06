@@ -43,6 +43,7 @@ export default function Inventory() {
   const { toast } = useToast();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -57,9 +58,17 @@ export default function Inventory() {
     },
   });
 
+  const editForm = useForm({
+    resolver: zodResolver(insertProductSchema),
+    defaultValues: {
+      name: "",
+      price: "0",
+      stock: 0,
+    },
+  });
+
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Convert price to string and ensure stock is a number
       const formattedData = {
         ...data,
         price: data.price.toString(),
@@ -86,8 +95,79 @@ export default function Inventory() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const formattedData = {
+        ...data,
+        price: data.price.toString(),
+        stock: Number(data.stock)
+      };
+      const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: t("success"),
+        description: t("productUpdated"),
+      });
+      editForm.reset();
+      setIsEditDialogOpen(false);
+      setEditingProduct(null);
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error.message,
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiRequest("DELETE", `/api/products/${id}`);
+      if (!res.ok) throw new Error(t("deleteError"));
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: t("success"),
+        description: t("productDeleted"),
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error.message,
+      });
+    },
+  });
+
   const onSubmit = (data: any) => {
     createMutation.mutate(data);
+  };
+
+  const onEdit = (data: any) => {
+    updateMutation.mutate(data);
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    editForm.reset({
+      name: product.name,
+      price: product.price.toString(),
+      stock: product.stock,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm(t("confirmDelete"))) {
+      deleteMutation.mutate(id);
+    }
   };
 
   if (isLoading) {
@@ -173,6 +253,75 @@ export default function Inventory() {
         </Dialog>
       </div>
 
+      {/* Dialog de edición */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("editProduct")}</DialogTitle>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("name")}</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("price")} (RD$)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field} 
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="stock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("stock")}</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={updateMutation.isPending}
+              >
+                {updateMutation.isPending ? t("saving") : t("save")}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -189,10 +338,18 @@ export default function Inventory() {
               <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
               <TableCell>{product.stock}</TableCell>
               <TableCell className="space-x-2">
-                <Button variant="ghost" size="icon">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => handleEdit(product)}
+                >
                   <Pencil className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => handleDelete(product.id)}
+                >
                   <Trash className="h-4 w-4" />
                 </Button>
               </TableCell>
