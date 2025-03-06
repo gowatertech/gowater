@@ -118,7 +118,7 @@ export const orders = pgTable("orders", {
 // Nueva tabla de pagos
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull().references(() => orders.id),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
   customerId: integer("customer_id").notNull().references(() => customers.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
@@ -252,7 +252,7 @@ export const insertZoneSchema = createInsertSchema(zones, {
 
 // Schema para pagos
 export const insertPaymentSchema = createInsertSchema(payments, {
-  orderId: z.number(),
+  invoiceId: z.number(),
   customerId: z.number(),
   amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
   paymentMethod: z.enum(["cash", "credit", "card"]),

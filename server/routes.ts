@@ -447,7 +447,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/payments", async (req, res) => {
     try {
       const paymentData = {
-        orderId: req.body.invoiceId,
+        invoiceId: req.body.invoiceId,
         customerId: req.body.customerId,
         amount: req.body.amount,
         paymentMethod: req.body.paymentMethod,
@@ -474,7 +474,7 @@ export async function registerRoutes(app: Express) {
         const allPayments = await db
           .select()
           .from(payments)
-          .where(eq(payments.orderId, req.body.invoiceId));
+          .where(eq(payments.invoiceId, req.body.invoiceId));
 
         const totalPaid = allPayments.reduce((sum, p) => 
           sum + parseFloat(p.amount.toString()), 0);

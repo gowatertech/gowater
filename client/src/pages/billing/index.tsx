@@ -249,13 +249,43 @@ export default function Billing() {
     }
   });
 
-  // Add new mutation after other mutations
+  // Add this function before return statement
+  const handlePayment = (invoice: any, amount: string) => {
+    const total = parseFloat(invoice.total);
+    const paymentAmount = parseFloat(amount);
+
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El monto debe ser mayor a 0"
+      });
+      return;
+    }
+
+    if (paymentAmount > total) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El monto no puede ser mayor al total de la factura"
+      });
+      return;
+    }
+
+    createPaymentMutation.mutate({
+      invoiceId: invoice.id,
+      amount: paymentAmount.toFixed(2),
+      customerId: invoice.customerId // Aseguramos pasar el customerId de la factura
+    });
+  };
+
+  // Update the createPaymentMutation
   const createPaymentMutation = useMutation({
-    mutationFn: async ({ invoiceId, amount }: { invoiceId: number, amount: string }) => {
+    mutationFn: async ({ invoiceId, amount, customerId }: { invoiceId: number, amount: string, customerId: number }) => {
       const paymentData = {
-        orderId: invoiceId,
-        customerId: invoiceId ? invoices?.find(inv => inv.id === invoiceId)?.customerId : null,
-        amount: parseFloat(amount).toFixed(2),
+        invoiceId,
+        customerId,
+        amount,
         paymentMethod: "cash",
         date: new Date().toISOString(),
         reference: "",
@@ -290,35 +320,6 @@ export default function Billing() {
       });
     }
   });
-
-  // Add this function before return statement
-  const handlePayment = (invoice: any, amount: string) => {
-    const total = parseFloat(invoice.total);
-    const paymentAmount = parseFloat(amount);
-
-    if (isNaN(paymentAmount) || paymentAmount <= 0) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "El monto debe ser mayor a 0"
-      });
-      return;
-    }
-
-    if (paymentAmount > total) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "El monto no puede ser mayor al total de la factura"
-      });
-      return;
-    }
-
-    createPaymentMutation.mutate({
-      invoiceId: invoice.id,
-      amount: paymentAmount.toFixed(2)
-    });
-  };
 
   const handleCreateInvoice = () => {
     if (!selectedCustomer) {
@@ -914,9 +915,7 @@ export default function Billing() {
                             <SelectItem value="credit">Crédito</SelectItem>
                             <SelectItem value="card">Tarjeta</SelectItem>
                           </SelectContent>
-                        </Select>
-                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {
-                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
+                        </Select>                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
                             selectedInvoice.paymentMethod === "credit" ? "Crédito" :
                               "Tarjeta"
                         }
