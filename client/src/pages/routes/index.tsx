@@ -23,7 +23,6 @@ import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
 // Utilizar el hook importado
 const isMobile = useIsMobile();
-  );
 
   useEffect(() => {
     if (typeof window === "undefined") return;
