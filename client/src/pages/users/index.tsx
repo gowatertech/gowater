@@ -77,6 +77,7 @@ export default function Users() {
       const response = await apiRequest("POST", "/api/users", data);
       if (!response.ok) {
         const error = await response.json();
+        console.error('Error response:', error);
         // Verificar si es un error de usuario duplicado
         if (error.error?.includes('duplicate key value violates unique constraint')) {
           throw new Error('Este nombre de usuario ya existe');
@@ -98,7 +99,7 @@ export default function Users() {
       console.error('Error en createUserMutation:', error);
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
@@ -172,9 +173,9 @@ export default function Users() {
       console.log('Formatted data:', formattedData);
 
       if (editingUser) {
-        await updateUserMutation.mutateAsync({ 
-          id: editingUser.id, 
-          data: formattedData 
+        await updateUserMutation.mutateAsync({
+          id: editingUser.id,
+          data: formattedData
         });
       } else {
         await createUserMutation.mutateAsync(formattedData);
