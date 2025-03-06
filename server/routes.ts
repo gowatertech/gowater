@@ -20,6 +20,8 @@ import {
   insertPaymentSchema,
   insertInvoiceSchema, 
   insertInvoiceItemSchema, 
+  productionBatches,
+  insertProductionBatchSchema
 } from "@shared/schema";
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
 import { eq, desc } from 'drizzle-orm';
@@ -181,6 +183,69 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+
+  // Production Batches
+  app.get("/api/production-batches", async (req, res) => {
+    try {
+      const batches = await db
+        .select({
+          id: productionBatches.id,
+          productId: productionBatches.productId,
+          quantity: productionBatches.quantity,
+          cost: productionBatches.cost,
+          warehouse: productionBatches.warehouse,
+          date: productionBatches.date,
+          userId: productionBatches.userId,
+          notes: productionBatches.notes,
+          productName: products.name,
+          userName: users.name,
+        })
+        .from(productionBatches)
+        .leftJoin(products, eq(productionBatches.productId, products.id))
+        .leftJoin(users, eq(productionBatches.userId, users.id))
+        .orderBy(desc(productionBatches.date));
+
+      res.json(batches);
+    } catch (error) {
+      console.error("Error al obtener lotes de producción:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/production-batches", async (req, res) => {
+    const result = insertProductionBatchSchema.safeParse(req.body);
+    if (!result.success) {
+      console.error("Error de validación:", result.error.format());
+      return res.status(400).json({ error: result.error });
+    }
+
+    try {
+      // Iniciar transacción para actualizar tanto el lote como el stock
+      const [batch] = await db.transaction(async (tx) => {
+        // Crear el lote
+        const [newBatch] = await tx
+          .insert(productionBatches)
+          .values(result.data)
+          .returning();
+
+        // Actualizar el stock del producto
+        await tx
+          .update(products)
+          .set({
+            stock: sql`${products.stock} + ${result.data.quantity}`,
+          })
+          .where(eq(products.id, result.data.productId));
+
+        return [newBatch];
+      });
+
+      console.log("Lote de producción creado:", batch);
+      res.json(batch);
+    } catch (error) {
+      console.error("Error al crear lote de producción:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Routes
   app.get("/api/routes", async (req, res) => {

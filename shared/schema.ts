@@ -73,6 +73,18 @@ export const products = pgTable("products", {
   icon: text("icon"), // Nuevo campo para el ícono
 });
 
+// Production Batches - Para registrar cargas de inventario
+export const productionBatches = pgTable("production_batches", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
+  warehouse: text("warehouse").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  notes: text("notes"),
+});
+
 // Trucks
 export const trucks = pgTable("trucks", {
   id: serial("id").primaryKey(),
@@ -279,6 +291,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices, {
 
 export const insertInvoiceItemSchema = createInsertSchema(invoiceItems);
 
+export const insertProductionBatchSchema = createInsertSchema(productionBatches);
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
@@ -321,3 +335,5 @@ export type InsertZone = z.infer<typeof insertZoneSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type InsertBill = z.infer<typeof insertBillSchema>;
 export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
+export type ProductionBatch = typeof productionBatches.$inferSelect;
+export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
