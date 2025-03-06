@@ -116,6 +116,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/products", async (req, res) => {
+    const result = insertProductSchema.safeParse(req.body);
+    if (!result.success) {
+      console.error("Error de validación:", result.error.format());
+      return res.status(400).json({ error: result.error });
+    }
+    try {
+      const [product] = await db
+        .insert(products)
+        .values(result.data)
+        .returning();
+
+      console.log("Producto creado:", product);
+      res.json(product);
+    } catch (error) {
+      console.error("Error al crear producto:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.patch("/api/products/:id", async (req, res) => {
     const result = insertProductSchema.safeParse(req.body);
     if (!result.success) {
