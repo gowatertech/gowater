@@ -104,7 +104,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 className={cn(
                   "w-full justify-start gap-4 hover:bg-blue-50/50",
                   isActive && "bg-blue-50 shadow-sm",
-                  item.subItems && "pr-8" 
+                  item.subItems && "pr-8"
                 )}
                 onClick={() => {
                   if (!item.subItems) {
@@ -116,7 +116,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 <Icon className="h-4 w-4" style={{ color: itemColor }} />
                 <span style={{ color: isActive ? itemColor : "#64748b" }}>{t(item.label)}</span>
                 {item.subItems && (
-                  <ChevronRight 
+                  <ChevronRight
                     className={cn(
                       "h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 transition-transform",
                       isHovered && "rotate-90"
@@ -126,34 +126,33 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               </UISidebarMenuButton>
 
               {item.subItems && (
-                <div 
+                <div
                   className={cn(
-                    "absolute left-0 w-48 py-1 rounded-md bg-white shadow-lg",
-                    "opacity-0 invisible group-hover:opacity-100 group-hover:visible",
-                    "transition-all duration-200 ease-in-out",
-                    "origin-top scale-y-0 group-hover:scale-y-100",
-                    "top-full"
+                    "overflow-hidden transition-[max-height] duration-200 ease-in-out",
+                    isHovered ? "max-h-32" : "max-h-0"
                   )}
                 >
-                  {item.subItems.map((subItem) => {
-                    const isSubActive = location === subItem.href;
-                    return (
-                      <button
-                        key={subItem.href}
-                        onClick={() => {
-                          setOpenMobile(false);
-                          window.location.href = subItem.href;
-                        }}
-                        className={cn(
-                          "w-full px-4 py-2 text-left text-sm",
-                          "hover:bg-blue-50 transition-colors duration-150",
-                          isSubActive && "bg-blue-50 font-medium"
-                        )}
-                      >
-                        {t(subItem.label)}
-                      </button>
-                    );
-                  })}
+                  <div className="py-1 px-2 space-y-1">
+                    {item.subItems.map((subItem) => {
+                      const isSubActive = location === subItem.href;
+                      return (
+                        <button
+                          key={subItem.href}
+                          onClick={() => {
+                            setOpenMobile(false);
+                            window.location.href = subItem.href;
+                          }}
+                          className={cn(
+                            "w-full px-4 py-2 text-left text-sm rounded-md",
+                            "hover:bg-blue-50 transition-colors duration-150",
+                            isSubActive && "bg-blue-50 font-medium"
+                          )}
+                        >
+                          {t(subItem.label)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </UISidebarMenuItem>
