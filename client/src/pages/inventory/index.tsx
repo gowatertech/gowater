@@ -1,13 +1,11 @@
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
 import { type Product, insertProductSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Pencil, Trash, Package } from "lucide-react";
-import { Link } from "wouter";
+import { PlusCircle, Pencil, Trash } from "lucide-react";
 
 import {
   Table,
@@ -41,6 +39,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+
+import { InventoryLoad } from "./load";
 
 const productTypes = [
   { 
@@ -213,172 +219,180 @@ export default function Inventory() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{t("inventory")}</h1>
-        <div className="flex gap-4">
-          <Link href="/inventory/load">
-            <Button variant="outline">
-              <Package className="h-4 w-4 mr-2" />
-              {t("inventoryLoad")}
-            </Button>
-          </Link>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                {t("newProduct")}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t("newProduct")}</DialogTitle>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="icon"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("productType")}</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t("selectProductType")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {productTypes.map((item) => (
-                              <SelectItem
-                                key={item.id}
-                                value={item.id}
-                                className="flex items-center gap-2"
-                              >
-                                <img 
-                                  src={item.imageSrc} 
-                                  alt={item.label}
-                                  className="h-24 w-24 object-contain"
-                                />
-                                <span>{item.label}</span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("name")}</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("price")} (RD$)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="stock"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("stock")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={createMutation.isPending}
-                  >
-                    {createMutation.isPending ? t("saving") : t("save")}
-                  </Button>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("type")}</TableHead>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("price")}</TableHead>
-            <TableHead>{t("stock")}</TableHead>
-            <TableHead>{t("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products?.map((product) => {
-            const productType = productTypes.find(i => i.id === product.icon);
-            return (
-              <TableRow key={product.id}>
-                <TableCell className="p-4 w-32">
-                  {productType ? (
-                    <img 
-                      src={productType.imageSrc} 
-                      alt={productType.label}
-                      className="h-30 w-30 object-contain mx-auto"
+      <Tabs defaultValue="products">
+        <TabsList>
+          <TabsTrigger value="products">{t("products")}</TabsTrigger>
+          <TabsTrigger value="load">{t("inventoryLoad")}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products" className="space-y-4">
+          <div className="flex justify-end">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  {t("newProduct")}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>{t("newProduct")}</DialogTitle>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="icon"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("productType")}</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t("selectProductType")} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {productTypes.map((item) => (
+                                <SelectItem
+                                  key={item.id}
+                                  value={item.id}
+                                  className="flex items-center gap-2"
+                                >
+                                  <img 
+                                    src={item.imageSrc} 
+                                    alt={item.label}
+                                    className="h-24 w-24 object-contain"
+                                  />
+                                  <span>{item.label}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
-                  ) : (
-                    <div className="h-30 w-30 bg-gray-100 rounded-md mx-auto" />
-                  )}
-                </TableCell>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
-                <TableCell>{product.stock}</TableCell>
-                <TableCell className="space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleEdit(product)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(product.id)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("name")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("price")} (RD$)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="stock"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("stock")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                              value={field.value}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={createMutation.isPending}
+                    >
+                      {createMutation.isPending ? t("saving") : t("save")}
+                    </Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("type")}</TableHead>
+                <TableHead>{t("name")}</TableHead>
+                <TableHead>{t("price")}</TableHead>
+                <TableHead>{t("stock")}</TableHead>
+                <TableHead>{t("actions")}</TableHead>
               </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+              {products?.map((product) => {
+                const productType = productTypes.find(i => i.id === product.icon);
+                return (
+                  <TableRow key={product.id}>
+                    <TableCell className="p-4 w-32">
+                      {productType ? (
+                        <img 
+                          src={productType.imageSrc} 
+                          alt={productType.label}
+                          className="h-30 w-30 object-contain mx-auto"
+                        />
+                      ) : (
+                        <div className="h-30 w-30 bg-gray-100 rounded-md mx-auto" />
+                      )}
+                    </TableCell>
+                    <TableCell>{product.name}</TableCell>
+                    <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    <TableCell className="space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(product.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TabsContent>
+
+        <TabsContent value="load">
+          <InventoryLoad />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>

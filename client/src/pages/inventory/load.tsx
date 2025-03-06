@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 
-export default function InventoryLoad() {
+export function InventoryLoad() {
   const { t } = useTranslation();
   const { toast } = useToast();
 
@@ -95,10 +95,6 @@ export default function InventoryLoad() {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{t("inventoryLoad")}</h1>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">{t("newBatch")}</h2>

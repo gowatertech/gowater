@@ -8,7 +8,6 @@ import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
 import Inventory from "@/pages/inventory";
-import InventoryLoad from "@/pages/inventory/load";
 import Orders from "@/pages/orders";
 import Routes from "@/pages/routes";
 import Users from "@/pages/users";
@@ -28,7 +27,6 @@ function Router() {
         <Route path="/settings" component={Settings} />
         <Route path="/customers" component={Customers} />
         <Route path="/inventory" component={Inventory} />
-        <Route path="/inventory/load" component={InventoryLoad} />
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/users" component={Users} />
