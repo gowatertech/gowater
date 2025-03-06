@@ -656,19 +656,30 @@ export default function Billing() {
                               >
                                 Pagar Total
                               </Button>
-                              <div className="flex-1">
+                              <div className="flex gap-2 flex-1">
                                 <Input
                                   type="text"
                                   pattern="^\d*\.?\d{0,2}$"
                                   placeholder="Monto parcial"
                                   onChange={(e) => {
                                     const value = e.target.value;
-                                    if (value && /^\d*\.?\d{0,2}$/.test(value)) {
-                                      handlePayment(invoice, value);
+                                    if (!value || /^\d*\.?\d{0,2}$/.test(value)) {
+                                      e.target.value = value;
                                     }
                                   }}
                                   className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
+                                <Button
+                                  variant="default"
+                                  onClick={() => {
+                                    const input = document.querySelector('input[placeholder="Monto parcial"]') as HTMLInputElement;
+                                    if (input && input.value) {
+                                      handlePayment(invoice, input.value);
+                                    }
+                                  }}
+                                >
+                                  Pagar
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -907,7 +918,7 @@ export default function Billing() {
                         <p className="text-sm text-muted-foreground">
                           Método de pago actual: {
                             selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
-                            selectedInvoice.paymentMethod === "credit" ? "Crédito" :
+                                                        selectedInvoice.paymentMethod === "credit" ? "Crédito" :
                             "Tarjeta"
                           }
                         </p>
@@ -915,7 +926,8 @@ export default function Billing() {
                     </DialogContent>
                   </Dialog>
                 </div>
-              </Card></div>
+              </Card>
+            </div>
           )}
         </DialogContent>
       </Dialog>

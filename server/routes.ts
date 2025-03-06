@@ -447,11 +447,11 @@ export async function registerRoutes(app: Express) {
   app.post("/api/payments", async (req, res) => {
     try {
       const paymentData = {
-        orderId: req.body.invoiceId, // referencia a la factura
+        orderId: req.body.invoiceId,
         customerId: req.body.customerId,
         amount: req.body.amount,
         paymentMethod: req.body.paymentMethod,
-        date: new Date(req.body.date),
+        date: new Date(),
         reference: req.body.reference || "",
         notes: req.body.notes || ""
       };
