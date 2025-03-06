@@ -1,23 +1,14 @@
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Order, type Customer, type Product } from "@shared/schema";
+import { type Customer, type Product } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
+// Componentes UI
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +16,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -35,8 +23,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { FileText } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface OrderItem {
   code: string;
@@ -49,6 +45,8 @@ interface OrderItem {
 export default function Billing() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>(
@@ -63,16 +61,27 @@ export default function Billing() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
-  const { data: invoices } = useQuery({
+  const { data: invoices = [] } = useQuery({
     queryKey: ["/api/invoices"],
   });
 
-  const { data: customers } = useQuery<Customer[]>({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  const { data: products } = useQuery<Product[]>({
+  const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+
+  // Nueva consulta para obtener los items de una factura específica
+  const { data: invoiceDetails = [] } = useQuery({
+    queryKey: ["/api/invoices", selectedInvoice?.id, "items"],
+    queryFn: async () => {
+      if (!selectedInvoice) return [];
+      const response = await apiRequest("GET", `/api/invoices/${selectedInvoice.id}/items`);
+      return response.json();
+    },
+    enabled: !!selectedInvoice,
   });
 
   const handleProductChange = (index: number, code: string) => {
@@ -400,7 +409,7 @@ export default function Billing() {
 
       {/* Tabla de Facturas */}
       <Card>
-        <CardContent>
+        <ScrollArea className="h-[calc(100vh-200px)]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -420,18 +429,26 @@ export default function Billing() {
                   <TableCell>#{invoice.id}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      invoice.status === "delivered" ? "bg-green-100 text-green-800" :
+                      invoice.status === "paid" ? "bg-green-100 text-green-800" :
                         invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
                           "bg-red-100 text-red-800"
                     }`}>
-                      {invoice.status === "delivered" ? "Pagada" :
+                      {invoice.status === "paid" ? "Pagada" :
                         invoice.status === "pending" ? "Pendiente" :
                           "Cancelada"}
                     </span>
                   </TableCell>
                   <TableCell>RD$ {parseFloat(invoice.total).toFixed(2)}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm" className="h-8 text-sm">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-sm"
+                      onClick={() => {
+                        setSelectedInvoice(invoice);
+                        setIsDetailsDialogOpen(true);
+                      }}
+                    >
                       Ver detalles
                     </Button>
                   </TableCell>
@@ -439,8 +456,117 @@ export default function Billing() {
               ))}
             </TableBody>
           </Table>
-        </CardContent>
+        </ScrollArea>
       </Card>
+
+      {/* Dialog para ver detalles de la factura */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+          <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-2 sm:p-4 gap-3">
+            <DialogHeader>
+              <DialogTitle>Detalles de la Factura #{selectedInvoice?.id}</DialogTitle>
+            </DialogHeader>
+
+            {selectedInvoice && (
+              <div className="space-y-4">
+                {/* Información del cliente */}
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">Información del Cliente</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium">Cliente: </span>
+                      {customers?.find(c => c.id === selectedInvoice.customerId)?.name}
+                    </div>
+                    <div>
+                      <span className="font-medium">Fecha: </span>
+                      {new Date(selectedInvoice.date).toLocaleString()}
+                    </div>
+                    <div>
+                      <span className="font-medium">Estado: </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        selectedInvoice.status === "paid" ? "bg-green-100 text-green-800" :
+                        selectedInvoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-red-100 text-red-800"
+                      }`}>
+                        {selectedInvoice.status === "paid" ? "Pagada" :
+                         selectedInvoice.status === "pending" ? "Pendiente" :
+                         "Cancelada"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Método de Pago: </span>
+                      {selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
+                       selectedInvoice.paymentMethod === "credit" ? "Crédito" :
+                       "Tarjeta"}
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Items de la factura */}
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">Productos</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Producto</TableHead>
+                        <TableHead className="text-right">Cantidad</TableHead>
+                        <TableHead className="text-right">Precio</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invoiceDetails.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            {products?.find(p => p.id === item.productId)?.name}
+                          </TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            RD$ {parseFloat(item.price.toString()).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            RD$ {parseFloat(item.total.toString()).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+
+                {/* Totales y Botones de Acción */}
+                <Card className="p-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Total:</span>
+                      <span className="font-medium">
+                        RD$ {parseFloat(selectedInvoice.total.toString()).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        // TODO: Implementar edición
+                      }}
+                    >
+                      Editar Factura
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        // TODO: Implementar cambio de método de pago
+                      }}
+                    >
+                      Cambiar Método de Pago
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }

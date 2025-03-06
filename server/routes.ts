@@ -339,6 +339,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Actualizar factura (para cambiar método de pago)
+  app.patch("/api/invoices/:id", async (req, res) => {
+    try {
+      const [invoice] = await db
+        .update(invoices)
+        .set({
+          paymentMethod: req.body.paymentMethod,
+          status: req.body.status,
+          notes: req.body.notes,
+        })
+        .where(eq(invoices.id, parseInt(req.params.id)))
+        .returning();
+
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error al actualizar factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Rutas para items de factura
   app.get("/api/invoices/:invoiceId/items", async (req, res) => {
     try {
@@ -367,6 +387,20 @@ export async function registerRoutes(app: Express) {
         .insert(invoiceItems)
         .values(result.data)
         .returning();
+
+      // Actualizar el total de la factura
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, parseInt(req.params.invoiceId)));
+
+      const subtotal = items.reduce((sum, item) => sum + parseFloat(item.total.toString()), 0);
+      const total = (subtotal * 1.18).toFixed(2); // Incluye 18% de ITBIS
+
+      await db
+        .update(invoices)
+        .set({ total })
+        .where(eq(invoices.id, parseInt(req.params.invoiceId)));
 
       res.json(item);
     } catch (error) {
