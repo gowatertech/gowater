@@ -72,12 +72,11 @@ export async function registerRoutes(app: Express) {
 
     ws.on('close', () => {
       // Eliminar la conexión cuando se cierra
-      for (const [driverId, connection] of driverConnections.entries()) {
+      driverConnections.forEach((connection, driverId) => {
         if (connection === ws) {
           driverConnections.delete(driverId);
-          break;
         }
-      }
+      });
     });
   });
 
