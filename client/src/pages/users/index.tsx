@@ -164,8 +164,8 @@ export default function Users() {
       // Formatear la fecha solo si existe
       const formattedData = {
         ...data,
-        licenseExpiry: data.licenseExpiry ? data.licenseExpiry : undefined,
-        hireDate: new Date().toISOString().split('T')[0],
+        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
+        hireDate: new Date().toISOString(),
       };
 
       console.log('Formatted data:', formattedData);
