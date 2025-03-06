@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Pencil, Trash } from "lucide-react";
+import { useState } from "react";
 
 import {
   Table,
@@ -236,97 +237,103 @@ export default function Inventory() {
                   {t("newProduct")}
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-md md:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>{t("newProduct")}</DialogTitle>
+                  <DialogTitle className="text-center text-xl">{t("newProduct")}</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="icon"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("productType")}</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                    <div className="grid gap-4 py-2">
+                      <FormField
+                        control={form.control}
+                        name="icon"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="text-base">{t("productType")}</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full h-12">
+                                  <SelectValue placeholder={t("selectProductType")} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <div className="grid grid-cols-1 gap-2 p-2">
+                                  {productTypes.map((item) => (
+                                    <SelectItem
+                                      key={item.id}
+                                      value={item.id}
+                                      className="flex items-center gap-2 h-16"
+                                    >
+                                      <img 
+                                        src={item.imageSrc} 
+                                        alt={item.label}
+                                        className="h-10 w-10 object-contain"
+                                      />
+                                      <span>{item.label}</span>
+                                    </SelectItem>
+                                  ))}
+                                </div>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="text-base">{t("name")}</FormLabel>
                             <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t("selectProductType")} />
-                              </SelectTrigger>
+                              <Input {...field} className="h-12" />
                             </FormControl>
-                            <SelectContent>
-                              {productTypes.map((item) => (
-                                <SelectItem
-                                  key={item.id}
-                                  value={item.id}
-                                  className="flex items-center gap-2"
-                                >
-                                  <img 
-                                    src={item.imageSrc} 
-                                    alt={item.label}
-                                    className="h-24 w-24 object-contain"
-                                  />
-                                  <span>{item.label}</span>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("name")}</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("price")} (RD$)</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              onChange={(e) => field.onChange(e.target.value)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="stock"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("stock")}</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                              value={field.value}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="text-base">{t("price")} (RD$)</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                className="h-12"
+                                onChange={(e) => field.onChange(e.target.value)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="stock"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="text-base">{t("stock")}</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                className="h-12"
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                value={field.value}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <Button
                       type="submit"
-                      className="w-full"
+                      className="w-full h-12 mt-6"
                       disabled={createMutation.isPending}
                     >
                       {createMutation.isPending ? t("saving") : t("save")}
@@ -337,56 +344,64 @@ export default function Inventory() {
             </Dialog>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("type")}</TableHead>
-                <TableHead>{t("name")}</TableHead>
-                <TableHead>{t("price")}</TableHead>
-                <TableHead>{t("stock")}</TableHead>
-                <TableHead>{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {products?.map((product) => {
-                const productType = productTypes.find(i => i.id === product.icon);
-                return (
-                  <TableRow key={product.id}>
-                    <TableCell className="p-4 w-32">
-                      {productType ? (
-                        <img 
-                          src={productType.imageSrc} 
-                          alt={productType.label}
-                          className="h-30 w-30 object-contain mx-auto"
-                        />
-                      ) : (
-                        <div className="h-30 w-30 bg-gray-100 rounded-md mx-auto" />
-                      )}
-                    </TableCell>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
-                    <TableCell className="space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(product)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px] md:w-[150px]">{t("type")}</TableHead>
+                  <TableHead>{t("name")}</TableHead>
+                  <TableHead className="w-[100px] text-center">{t("price")}</TableHead>
+                  <TableHead className="w-[80px] text-center">{t("stock")}</TableHead>
+                  <TableHead className="w-[100px] text-center">{t("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products?.map((product) => {
+                  const productType = productTypes.find(i => i.id === product.icon);
+                  return (
+                    <TableRow key={product.id} className="h-20">
+                      <TableCell className="p-4">
+                        {productType ? (
+                          <div className="flex justify-center">
+                            <img 
+                              src={productType.imageSrc} 
+                              alt={productType.label}
+                              className="h-16 w-16 object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-16 w-16 bg-gray-100 rounded-md mx-auto" />
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell className="text-center">RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
+                      <TableCell className="text-center">{product.stock}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(product)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(product.id)}
+                            className="h-8 w-8 p-0 text-destructive focus:ring-destructive"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         <TabsContent value="load">
@@ -395,97 +410,103 @@ export default function Inventory() {
       </Tabs>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{t("editProduct")}</DialogTitle>
+            <DialogTitle className="text-center text-xl">{t("editProduct")}</DialogTitle>
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4">
-              <FormField
-                control={editForm.control}
-                name="icon"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("productType")}</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+              <div className="grid gap-4 py-2">
+                <FormField
+                  control={editForm.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-base">{t("productType")}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full h-12">
+                            <SelectValue placeholder={t("selectProductType")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <div className="grid grid-cols-1 gap-2 p-2">
+                            {productTypes.map((item) => (
+                              <SelectItem
+                                key={item.id}
+                                value={item.id}
+                                className="flex items-center gap-2 h-16"
+                              >
+                                <img 
+                                  src={item.imageSrc} 
+                                  alt={item.label}
+                                  className="h-10 w-10 object-contain"
+                                />
+                                <span>{item.label}</span>
+                              </SelectItem>
+                            ))}
+                          </div>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-base">{t("name")}</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("selectProductType")} />
-                        </SelectTrigger>
+                        <Input {...field} className="h-12" />
                       </FormControl>
-                      <SelectContent>
-                        {productTypes.map((item) => (
-                          <SelectItem
-                            key={item.id}
-                            value={item.id}
-                            className="flex items-center gap-2"
-                          >
-                            <img 
-                              src={item.imageSrc} 
-                              alt={item.label}
-                              className="h-24 w-24 object-contain"
-                            />
-                            <span>{item.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("name")}</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("price")} (RD$)</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        onChange={(e) => field.onChange(e.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="stock"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("stock")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-base">{t("price")} (RD$)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          className="h-12"
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="stock"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-base">{t("stock")}</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          className="h-12"
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 mt-6"
                 disabled={updateMutation.isPending}
               >
                 {updateMutation.isPending ? t("saving") : t("save")}
