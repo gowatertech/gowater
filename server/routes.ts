@@ -383,8 +383,8 @@ export async function registerRoutes(app: Express) {
           paymentMethod: invoices.paymentMethod,
           date: invoices.date,
           notes: invoices.notes,
-          totalPaid: sql`COALESCE((
-            SELECT SUM(CAST(amount AS DECIMAL(10,2)))::TEXT
+          totalPaid: sql<string>`COALESCE((
+            SELECT SUM(CAST(${payments.amount} AS DECIMAL(10,2)))::TEXT
             FROM ${payments}
             WHERE ${payments.invoiceId} = ${invoices.id}
           ), '0.00')`

@@ -249,9 +249,10 @@ export default function Billing() {
     }
   });
 
-  // Add this function before return statement
   const handlePayment = (invoice: any, amount: string) => {
     const total = parseFloat(invoice.total);
+    const totalPaid = parseFloat(invoice.totalPaid || "0");
+    const pendingAmount = total - totalPaid;
     const paymentAmount = parseFloat(amount);
 
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
@@ -263,11 +264,11 @@ export default function Billing() {
       return;
     }
 
-    if (paymentAmount > total) {
+    if (paymentAmount > pendingAmount) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "El monto no puede ser mayor al total de la factura"
+        description: "El monto no puede ser mayor al saldo pendiente"
       });
       return;
     }
@@ -275,7 +276,7 @@ export default function Billing() {
     createPaymentMutation.mutate({
       invoiceId: invoice.id,
       amount: paymentAmount.toFixed(2),
-      customerId: invoice.customerId // Aseguramos pasar el customerId de la factura
+      customerId: invoice.customerId
     });
   };
 
