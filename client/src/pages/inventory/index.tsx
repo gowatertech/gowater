@@ -53,7 +53,7 @@ export default function Inventory() {
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
       name: "",
-      price: "0",
+      price: "0.00",
       stock: 0,
     },
   });
@@ -62,7 +62,7 @@ export default function Inventory() {
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
       name: "",
-      price: "0",
+      price: "0.00",
       stock: 0,
     },
   });
@@ -71,7 +71,7 @@ export default function Inventory() {
     mutationFn: async (data: any) => {
       const formattedData = {
         ...data,
-        price: data.price.toString(),
+        price: Number(data.price).toFixed(2),
         stock: Number(data.stock)
       };
       const res = await apiRequest("POST", "/api/products", formattedData);
@@ -99,7 +99,7 @@ export default function Inventory() {
     mutationFn: async (data: any) => {
       const formattedData = {
         ...data,
-        price: data.price.toString(),
+        price: Number(data.price).toFixed(2),
         stock: Number(data.stock)
       };
       const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
@@ -212,8 +212,6 @@ export default function Inventory() {
                       <FormLabel>{t("price")} (RD$)</FormLabel>
                       <FormControl>
                         <Input 
-                          type="number" 
-                          step="0.01" 
                           {...field} 
                           onChange={(e) => field.onChange(e.target.value)}
                         />
@@ -230,7 +228,6 @@ export default function Inventory() {
                       <FormLabel>{t("stock")}</FormLabel>
                       <FormControl>
                         <Input 
-                          type="number"
                           {...field}
                           onChange={(e) => field.onChange(Number(e.target.value))}
                           value={field.value}
@@ -282,8 +279,6 @@ export default function Inventory() {
                     <FormLabel>{t("price")} (RD$)</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number" 
-                        step="0.01" 
                         {...field} 
                         onChange={(e) => field.onChange(e.target.value)}
                       />
@@ -300,7 +295,6 @@ export default function Inventory() {
                     <FormLabel>{t("stock")}</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                         value={field.value}
