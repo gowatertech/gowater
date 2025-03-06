@@ -9,6 +9,7 @@ import { LatLngExpression, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
+import { MobileOnly, DesktopOnly } from "@/components/ui/responsive-display";
 import "@/styles/map-responsive.css";
 
 // Fix Leaflet icon issue

@@ -21,7 +21,7 @@ export function ResponsiveMapContainer({
     <div 
       className={cn(
         "bg-white rounded-lg shadow-sm w-full map-container-responsive",
-        isMobile ? "h-[40vh]" : "h-[50vh] max-h-[500px]",
+        isMobile ? "h-[30vh] max-h-[250px]" : "h-[50vh] max-h-[500px]",
         className
       )}
       style={style}
