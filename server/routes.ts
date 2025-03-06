@@ -16,7 +16,8 @@ import {
   zones,
   customers,
   orderItems,
-  products
+  products,
+  orders // Assuming 'orders' table is defined and imported
 } from "@shared/schema";
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
 import { eq } from 'drizzle-orm';
@@ -94,6 +95,34 @@ export async function registerRoutes(app: Express) {
 
   // ... (resto de rutas de usuarios)
 
+  // Orders
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const orders = await db.select().from(orders);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error al obtener pedidos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/orders", async (req, res) => {
+    console.log("Recibido POST /api/orders:", req.body);
+    const result = insertOrderSchema.safeParse(req.body);
+    if (!result.success) {
+      console.error("Error de validación:", result.error.format());
+      return res.status(400).json({ error: result.error });
+    }
+    try {
+      const order = await storage.createOrder(result.data);
+      res.json(order);
+    } catch (error) {
+      console.error("Error al crear orden:", error);
+      res.status(500).json({ message: "Error al crear la orden", error: String(error) });
+    }
+  });
+
+
   // Order Items
   app.get("/api/orders/:orderId/items", async (req, res) => {
     try {
@@ -115,15 +144,6 @@ export async function registerRoutes(app: Express) {
       console.error("Error al obtener items del pedido:", error);
       res.status(500).json({ error: String(error) });
     }
-  });
-
-  app.post("/api/orders/:orderId/items", async (req, res) => {
-    const result = insertOrderItemSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ error: result.error });
-    }
-    const item = await storage.createOrderItem(result.data);
-    res.json(item);
   });
 
   // ... (resto de rutas)
