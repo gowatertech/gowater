@@ -345,7 +345,7 @@ export async function registerRoutes(app: Express) {
 
       if (paymentAmount > pendingAmount) {
         return res.status(400).json({ 
-          error: `El monto (${paymentAmount}) excede el saldo pendiente (${pendingAmount})` 
+          error: `El monto (${paymentAmount.toFixed(2)}) excede el saldo pendiente (${pendingAmount.toFixed(2)})` 
         });
       }
 
@@ -356,7 +356,7 @@ export async function registerRoutes(app: Express) {
         paymentMethod: req.body.paymentMethod || "cash",
         date: new Date(),
         reference: req.body.reference || "",
-        notes: req.body.notes || ""
+        notes: req.body.notes || `Pago de factura #${req.body.invoiceId}`
       };
 
       // Crear el pago
