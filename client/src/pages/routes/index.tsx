@@ -23,25 +23,7 @@ import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
 
 // Usando el hook importado de use-mobile.tsx
-const isMobile = useIsMobile();
 
-useEffect(() => {
-  if (typeof window === "undefined") return;
-
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    window.addEventListener("resize", handleResize);
-    handleResize(); // Llamada inicial
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  return isMobile;
-};
 
 
 export default function Routes() {
