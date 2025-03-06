@@ -22,11 +22,11 @@ import RouteOptimizer from "./RouteOptimizer";
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
 
-const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(false);
+// Usando el hook importado de use-mobile.tsx
+const isMobile = useIsMobile();
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+useEffect(() => {
+  if (typeof window === "undefined") return;
 
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
