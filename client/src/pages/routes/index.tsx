@@ -34,6 +34,9 @@ export default function Routes() {
   const [zoneColor, setZoneColor] = useState("#0088FE");
   const isMobile = useIsMobile();
 
+  const isDriver = user?.role === "driver";
+  const isAssistant = user?.role === "assistant";
+
   // La interfaz del conductor muestra el estado actual y próximas entregas
   if (isDriver) {
     return <DriverView />;
