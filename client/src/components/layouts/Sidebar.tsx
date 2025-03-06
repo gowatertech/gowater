@@ -118,7 +118,8 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               {item.subItems && (
                 <div 
                   className={cn(
-                    "absolute right-0 top-0 left-full pl-1 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
+                    "absolute top-0 left-full pl-1 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
+                    "transform -translate-x-20", // Ajuste para alinear con la última letra
                     isHovered ? "opacity-100 visible" : "opacity-0 invisible"
                   )}
                 >

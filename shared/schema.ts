@@ -107,9 +107,13 @@ export const routes = pgTable("routes", {
   estimatedDuration: integer("estimated_duration"), // en minutos
   actualDuration: integer("actual_duration"), // en minutos
   totalDistance: decimal("total_distance", { precision: 10, scale: 2 }), // en kilómetros
+  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }), // total de ingresos
   deliverySequence: text("delivery_sequence").array(), // Array de IDs de pedidos en orden óptimo
   currentLocation: text("current_location"), // Coordenadas actuales "lat,lng"
   lastUpdate: timestamp("last_update"),
+  driverStartedAt: timestamp("driver_started_at"), // Cuando el conductor inició la ruta
+  isCompleted: boolean("is_completed").notNull().default(false),
+  stops: text("stops").array(), // Array de paradas con detalles
 });
 
 // Orders - Agregar solo el campo de método de pago
@@ -233,15 +237,18 @@ export const insertCustomerSchema = createInsertSchema(customers);
 export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);
 export const insertRouteSchema = createInsertSchema(routes, {
-  // Campos opcionales para la creación inicial
   startTime: z.string().datetime().optional(),
   endTime: z.string().datetime().optional(),
   estimatedDuration: z.number().optional(),
   actualDuration: z.number().optional(),
   totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
   deliverySequence: z.array(z.string()).optional(),
   currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   lastUpdate: z.string().datetime().optional(),
+  driverStartedAt: z.string().datetime().optional(),
+  isCompleted: z.boolean().default(false),
+  stops: z.array(z.string()).optional(),
 });
 export const insertOrderSchema = createInsertSchema(orders, {
   customerId: z.number(),
