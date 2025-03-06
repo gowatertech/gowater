@@ -13,6 +13,12 @@ import {
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
+export interface DriverLocation {
+  latitude: number;
+  longitude: number;
+  timestamp: Date;
+}
+
 export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
@@ -66,6 +72,10 @@ export interface IStorage {
   getCustomerOrders(customerId: number): Promise<CustomerOrders[]>;
   createCustomerOrder(customerOrder: InsertCustomerOrders): Promise<CustomerOrders>;
   updateCustomerOrderStats(customerId: number): Promise<CustomerOrders>;
+
+  // Métodos para el tracking de ubicación
+  updateDriverLocation(driverId: number, location: DriverLocation): Promise<User>;
+  getDriverLocation(driverId: number): Promise<DriverLocation | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -415,6 +425,41 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return updated;
+  }
+
+  async updateDriverLocation(
+    driverId: number,
+    location: DriverLocation
+  ): Promise<User> {
+    const locationString = `${location.latitude},${location.longitude}`;
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        currentLocation: locationString,
+        lastLocationUpdate: location.timestamp
+      })
+      .where(eq(users.id, driverId))
+      .returning();
+
+    return updatedUser;
+  }
+
+  async getDriverLocation(driverId: number): Promise<DriverLocation | null> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, driverId));
+
+    if (!user || !user.currentLocation || !user.lastLocationUpdate) {
+      return null;
+    }
+
+    const [latitude, longitude] = user.currentLocation.split(',').map(Number);
+    return {
+      latitude,
+      longitude,
+      timestamp: user.lastLocationUpdate
+    };
   }
 }
 

@@ -207,6 +207,13 @@ export type Settings = typeof settings.$inferSelect;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type Zone = typeof zones.$inferSelect;
 
+// Definir el tipo para la ubicación del conductor
+export type DriverLocation = {
+  latitude: number;
+  longitude: number;
+  timestamp: Date;
+};
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;

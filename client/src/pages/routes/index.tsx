@@ -19,6 +19,7 @@ import RouteOptimizer from "./RouteOptimizer";
 
 // Vista del chofer
 import DriverView from "./DriverView";
+import DeliveryTracking from "./DeliveryTracking";
 
 export default function Routes() {
   const { t } = useTranslation();
@@ -45,6 +46,7 @@ export default function Routes() {
         <TabsList>
           <TabsTrigger value="zones">{t("zones")}</TabsTrigger>
           <TabsTrigger value="routes">{t("routeOptimization")}</TabsTrigger>
+          <TabsTrigger value="tracking">Seguimiento en Tiempo Real</TabsTrigger>
           <TabsTrigger value="driver">Vista del Chofer</TabsTrigger>
         </TabsList>
 
@@ -105,6 +107,10 @@ export default function Routes() {
               </ScrollArea>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="tracking" className="mt-4">
+          <DeliveryTracking />
         </TabsContent>
 
         <TabsContent value="driver" className="mt-4">

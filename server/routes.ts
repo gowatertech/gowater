@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { 
   insertUserSchema,
@@ -19,8 +20,66 @@ import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 
+// Almacenar las conexiones activas de los conductores
+const driverConnections = new Map<number, WebSocket>();
+
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
+
+  // Configurar WebSocket Server
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'
+  });
+
+  wss.on('connection', (ws) => {
+    console.log('Nueva conexión WebSocket');
+
+    ws.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+
+        if (data.type === 'driver_location') {
+          // Almacenar la conexión del conductor
+          driverConnections.set(data.driverId, ws);
+
+          // Actualizar ubicación en la base de datos
+          await storage.updateDriverLocation(data.driverId, {
+            latitude: data.latitude,
+            longitude: data.longitude,
+            timestamp: new Date()
+          });
+
+          // Broadcast a todos los clientes conectados
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'location_update',
+                driverId: data.driverId,
+                location: {
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  timestamp: new Date()
+                }
+              }));
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error procesando mensaje WebSocket:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      // Eliminar la conexión cuando se cierra
+      for (const [driverId, connection] of driverConnections.entries()) {
+        if (connection === ws) {
+          driverConnections.delete(driverId);
+          break;
+        }
+      }
+    });
+  });
 
   // Users
   app.get("/api/users", async (req, res) => {
@@ -444,6 +503,17 @@ export async function registerRoutes(app: Express) {
         .returning();
 
       res.json(customer);
+    } catch (error) {
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Nueva ruta para obtener la última ubicación de un conductor
+  app.get("/api/drivers/:id/location", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const location = await storage.getDriverLocation(parseInt(id));
+      res.json(location);
     } catch (error) {
       res.status(500).json({ error: String(error) });
     }
