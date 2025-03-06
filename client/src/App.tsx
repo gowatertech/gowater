@@ -11,6 +11,7 @@ import Inventory from "@/pages/inventory";
 import Orders from "@/pages/orders";
 import Routes from "@/pages/routes";
 import Users from "@/pages/users";
+import Payments from "@/pages/payments";
 
 // Import translations
 import "./lib/i18n";
@@ -20,6 +21,7 @@ function Router() {
     <DashboardLayout>
       <Switch>
         <Route path="/" component={Dashboard} />
+        <Route path="/payments" component={Payments} />
         <Route path="/settings" component={Settings} />
         <Route path="/customers" component={Customers} />
         <Route path="/inventory" component={Inventory} />
