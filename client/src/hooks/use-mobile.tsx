@@ -1,19 +1,51 @@
+
 import * as React from "react"
 
-const MOBILE_BREAKPOINT = 768
+export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl"
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+const BREAKPOINTS = {
+  xs: 480,
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280
+}
+
+export function useBreakpoint(breakpoint: Breakpoint = "md") {
+  const [isBelow, setIsBelow] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const breakpointValue = BREAKPOINTS[breakpoint]
+    const mql = window.matchMedia(`(max-width: ${breakpointValue - 1}px)`)
+    
     const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+      setIsBelow(window.innerWidth < breakpointValue)
     }
+    
     mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    setIsBelow(window.innerWidth < breakpointValue)
+    
     return () => mql.removeEventListener("change", onChange)
-  }, [])
+  }, [breakpoint])
 
-  return !!isMobile
+  return {
+    isBelow,
+    isAbove: isBelow === undefined ? undefined : !isBelow
+  }
+}
+
+export function useIsMobile() {
+  const { isBelow } = useBreakpoint("md")
+  return !!isBelow
+}
+
+export function useIsTablet() {
+  const { isBelow: isBelowLg } = useBreakpoint("lg")
+  const { isBelow: isBelowMd } = useBreakpoint("md")
+  return !!isBelowLg && !isBelowMd
+}
+
+export function useIsDesktop() {
+  const { isAbove } = useBreakpoint("lg")
+  return !!isAbove
 }

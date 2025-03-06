@@ -1,0 +1,35 @@
+
+@layer utilities {
+  /* Mejoras para espaciado responsive */
+  .responsive-padding {
+    @apply p-2 sm:p-3 md:p-4 lg:p-6;
+  }
+
+  .responsive-margin {
+    @apply m-2 sm:m-3 md:m-4 lg:m-6;
+  }
+  
+  /* Mejoras para tipografía responsive */
+  .responsive-text {
+    @apply text-sm sm:text-base md:text-lg;
+  }
+  
+  .responsive-heading {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold;
+  }
+  
+  /* Mejoras para grids responsive */
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4;
+  }
+  
+  /* Mejoras para flex responsive */
+  .responsive-flex {
+    @apply flex flex-col sm:flex-row;
+  }
+  
+  /* Mejoras para stack responsive */
+  .responsive-stack {
+    @apply flex flex-col gap-3 sm:gap-4 md:gap-6;
+  }
+}
