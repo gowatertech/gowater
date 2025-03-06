@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { type Payment, type Order } from "@shared/schema";
+import { type Payment, type Customer } from "@shared/schema";
 import { 
   Table, 
   TableBody, 
@@ -29,9 +29,13 @@ import { FileText } from "lucide-react";
 export default function Payments() {
   const { t } = useTranslation();
 
-  // Fetch payments data
+  // Fetch payments and customers data
   const { data: payments } = useQuery<Payment[]>({
     queryKey: ["/api/payments"],
+  });
+
+  const { data: customers } = useQuery<Customer[]>({
+    queryKey: ["/api/customers"],
   });
 
   // Sort payments by date
@@ -56,6 +60,7 @@ export default function Payments() {
               <TableRow>
                 <TableHead>{t("date")}</TableHead>
                 <TableHead>{t("invoiceNumber")}</TableHead>
+                <TableHead>{t("customer")}</TableHead>
                 <TableHead>{t("amount")}</TableHead>
                 <TableHead>{t("paymentMethod")}</TableHead>
                 <TableHead>{t("reference")}</TableHead>
@@ -63,45 +68,50 @@ export default function Payments() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedPayments.map((payment) => (
-                <TableRow key={payment.id}>
-                  <TableCell>
-                    {new Date(payment.date).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>#{payment.orderId}</TableCell>
-                  <TableCell>
-                    RD$ {parseFloat(payment.amount.toString()).toFixed(2)}
-                  </TableCell>
-                  <TableCell>{t(payment.paymentMethod)}</TableCell>
-                  <TableCell>{payment.reference || "-"}</TableCell>
-                  <TableCell>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>{t("paymentDetails")}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <p>{t("invoiceNumber")}: #{payment.orderId}</p>
-                          <p>{t("amount")}: RD$ {parseFloat(payment.amount.toString()).toFixed(2)}</p>
-                          <p>{t("paymentMethod")}: {t(payment.paymentMethod)}</p>
-                          <p>{t("date")}: {new Date(payment.date).toLocaleDateString()}</p>
-                          {payment.reference && (
-                            <p>{t("reference")}: {payment.reference}</p>
-                          )}
-                          {payment.notes && (
-                            <p>{t("notes")}: {payment.notes}</p>
-                          )}
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {sortedPayments.map((payment) => {
+                const customer = customers?.find(c => c.id === payment.customerId);
+                return (
+                  <TableRow key={payment.id}>
+                    <TableCell>
+                      {new Date(payment.date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>#{payment.orderId}</TableCell>
+                    <TableCell>{customer?.name || '-'}</TableCell>
+                    <TableCell>
+                      RD$ {parseFloat(payment.amount.toString()).toFixed(2)}
+                    </TableCell>
+                    <TableCell>{t(payment.paymentMethod)}</TableCell>
+                    <TableCell>{payment.reference || "-"}</TableCell>
+                    <TableCell>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>{t("paymentDetails")}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <p>{t("invoiceNumber")}: #{payment.orderId}</p>
+                            <p>{t("customer")}: {customer?.name}</p>
+                            <p>{t("amount")}: RD$ {parseFloat(payment.amount.toString()).toFixed(2)}</p>
+                            <p>{t("paymentMethod")}: {t(payment.paymentMethod)}</p>
+                            <p>{t("date")}: {new Date(payment.date).toLocaleDateString()}</p>
+                            {payment.reference && (
+                              <p>{t("reference")}: {payment.reference}</p>
+                            )}
+                            {payment.notes && (
+                              <p>{t("notes")}: {payment.notes}</p>
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
