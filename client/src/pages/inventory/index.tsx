@@ -6,6 +6,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Droplet,
+  Package,
+  GlassWater,
+  DropletsIcon,
+  Waves
+} from "lucide-react";
 
 import {
   Table,
@@ -33,10 +40,26 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
   PlusCircle,
   Pencil,
   Trash,
 } from "lucide-react";
+
+const productIcons = [
+  { id: "water5gl", label: "Botellón de Agua 5GL", icon: Droplet },
+  { id: "water24pack", label: "Sixpack de Agua 24 Botellas", icon: Package },
+  { id: "water16oz", label: "Botella de Agua 16 oz", icon: GlassWater },
+  { id: "water8oz", label: "Botella de Agua 8 oz", icon: DropletsIcon },
+  { id: "waterBag", label: "Funditas de Agua", icon: Waves },
+];
 
 export default function Inventory() {
   const { t } = useTranslation();
@@ -55,6 +78,7 @@ export default function Inventory() {
       name: "",
       price: "0.00",
       stock: 0,
+      icon: "",
     },
   });
 
@@ -64,6 +88,7 @@ export default function Inventory() {
       name: "",
       price: "0.00",
       stock: 0,
+      icon: "",
     },
   });
 
@@ -160,6 +185,7 @@ export default function Inventory() {
       name: product.name,
       price: product.price.toString(),
       stock: product.stock,
+      icon: product.icon,
     });
     setIsEditDialogOpen(true);
   };
@@ -193,6 +219,41 @@ export default function Inventory() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("productType")}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t("selectProductType")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {productIcons.map((item) => {
+                            const IconComponent = item.icon;
+                            return (
+                              <SelectItem
+                                key={item.id}
+                                value={item.id}
+                                className="flex items-center gap-2"
+                              >
+                                <IconComponent className="h-4 w-4 text-blue-500" />
+                                <span>{item.label}</span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
@@ -211,8 +272,8 @@ export default function Inventory() {
                     <FormItem>
                       <FormLabel>{t("price")} (RD$)</FormLabel>
                       <FormControl>
-                        <Input 
-                          {...field} 
+                        <Input
+                          {...field}
                           onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
@@ -227,7 +288,7 @@ export default function Inventory() {
                     <FormItem>
                       <FormLabel>{t("stock")}</FormLabel>
                       <FormControl>
-                        <Input 
+                        <Input
                           {...field}
                           onChange={(e) => field.onChange(Number(e.target.value))}
                           value={field.value}
@@ -250,7 +311,49 @@ export default function Inventory() {
         </Dialog>
       </div>
 
-      {/* Dialog de edición */}
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t("type")}</TableHead>
+            <TableHead>{t("name")}</TableHead>
+            <TableHead>{t("price")}</TableHead>
+            <TableHead>{t("stock")}</TableHead>
+            <TableHead>{t("actions")}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {products?.map((product) => {
+            const IconComponent = productIcons.find(i => i.id === product.icon)?.icon || Droplet;
+            return (
+              <TableRow key={product.id}>
+                <TableCell>
+                  <IconComponent className="h-5 w-5 text-blue-500" />
+                </TableCell>
+                <TableCell>{product.name}</TableCell>
+                <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
+                <TableCell>{product.stock}</TableCell>
+                <TableCell className="space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(product)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(product.id)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -258,6 +361,41 @@ export default function Inventory() {
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="icon"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("productType")}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("selectProductType")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {productIcons.map((item) => {
+                          const IconComponent = item.icon;
+                          return (
+                            <SelectItem
+                              key={item.id}
+                              value={item.id}
+                              className="flex items-center gap-2"
+                            >
+                              <IconComponent className="h-4 w-4 text-blue-500" />
+                              <span>{item.label}</span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={editForm.control}
                 name="name"
@@ -278,8 +416,8 @@ export default function Inventory() {
                   <FormItem>
                     <FormLabel>{t("price")} (RD$)</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
+                      <Input
+                        {...field}
                         onChange={(e) => field.onChange(e.target.value)}
                       />
                     </FormControl>
@@ -294,7 +432,7 @@ export default function Inventory() {
                   <FormItem>
                     <FormLabel>{t("stock")}</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                         value={field.value}
@@ -315,42 +453,6 @@ export default function Inventory() {
           </Form>
         </DialogContent>
       </Dialog>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>{t("name")}</TableHead>
-            <TableHead>{t("price")}</TableHead>
-            <TableHead>{t("stock")}</TableHead>
-            <TableHead>{t("actions")}</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {products?.map((product) => (
-            <TableRow key={product.id}>
-              <TableCell>{product.name}</TableCell>
-              <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
-              <TableCell>{product.stock}</TableCell>
-              <TableCell className="space-x-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => handleEdit(product)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => handleDelete(product.id)}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
     </div>
   );
 }

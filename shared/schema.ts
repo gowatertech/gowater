@@ -70,6 +70,7 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").notNull().default(0),
+  icon: text("icon"), // Nuevo campo para el ícono
 });
 
 // Trucks
