@@ -308,10 +308,46 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add this handler for payments
+  // Actualizar la ruta de pagos para validar montos
   app.post("/api/payments", async (req, res) => {
     try {
       console.log("Processing payment request:", req.body);
+
+      // Obtener la factura primero para validar el monto
+      const [invoice] = await db
+        .select({
+          id: invoices.id,
+          total: invoices.total,
+          totalPaid: sql<string>`COALESCE((
+            SELECT SUM(CAST(${payments.amount} AS DECIMAL(10,2)))::TEXT
+            FROM ${payments}
+            WHERE ${payments.invoiceId} = ${invoices.id}
+          ), '0.00')`
+        })
+        .from(invoices)
+        .where(eq(invoices.id, req.body.invoiceId));
+
+      if (!invoice) {
+        return res.status(404).json({ error: "Factura no encontrada" });
+      }
+
+      const totalInvoice = parseFloat(invoice.total);
+      const totalPaid = parseFloat(invoice.totalPaid);
+      const paymentAmount = parseFloat(req.body.amount);
+      const pendingAmount = totalInvoice - totalPaid;
+
+      console.log("Payment validation:", {
+        totalInvoice,
+        totalPaid,
+        paymentAmount,
+        pendingAmount
+      });
+
+      if (paymentAmount > pendingAmount) {
+        return res.status(400).json({ 
+          error: `El monto (${paymentAmount}) excede el saldo pendiente (${pendingAmount})` 
+        });
+      }
 
       const paymentData = {
         invoiceId: req.body.invoiceId,
@@ -323,9 +359,7 @@ export async function registerRoutes(app: Express) {
         notes: req.body.notes || ""
       };
 
-      console.log("Creating payment with data:", paymentData);
-
-      // Create the payment
+      // Crear el pago
       const [payment] = await db
         .insert(payments)
         .values(paymentData)
@@ -333,35 +367,14 @@ export async function registerRoutes(app: Express) {
 
       console.log("Payment created:", payment);
 
-      // Get the invoice
-      const [invoice] = await db
-        .select()
-        .from(invoices)
-        .where(eq(invoices.id, req.body.invoiceId));
-
-      if (invoice) {
-        // Get all payments for this invoice
-        const allPayments = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.invoiceId, req.body.invoiceId));
-
-        const totalPaid = allPayments.reduce((sum, p) => 
-          sum + parseFloat(p.amount.toString()), 0);
-
-        console.log("Invoice:", invoice.id);
-        console.log("Total invoice:", parseFloat(invoice.total));
-        console.log("Total paid:", totalPaid);
-
-        // Update invoice status if fully paid
-        if (totalPaid >= parseFloat(invoice.total)) {
-          await db
-            .update(invoices)
-            .set({ status: "paid" })
-            .where(eq(invoices.id, req.body.invoiceId));
-
-          console.log("Invoice marked as paid");
-        }
+      // Verificar si con este pago la factura está completamente pagada
+      const newTotalPaid = totalPaid + paymentAmount;
+      if (newTotalPaid >= totalInvoice) {
+        await db
+          .update(invoices)
+          .set({ status: "paid" })
+          .where(eq(invoices.id, req.body.invoiceId));
+        console.log("Invoice marked as paid");
       }
 
       res.json(payment);
@@ -387,26 +400,29 @@ export async function registerRoutes(app: Express) {
             SELECT SUM(CAST(${payments.amount} AS DECIMAL(10,2)))::TEXT
             FROM ${payments}
             WHERE ${payments.invoiceId} = ${invoices.id}
-          ), '0.00')`
+          ), '0.00')`,
+          invoiceNumber: invoices.invoiceNumber
         })
         .from(invoices)
         .orderBy(desc(invoices.date));
 
-      // Debugging logs
-      console.log("Retrieved invoices:", allInvoices);
-
-      // Fetch payments for each invoice for verification
+      // Verificación de totales para cada factura
       for (const invoice of allInvoices) {
         const paymentsForInvoice = await db
           .select()
           .from(payments)
           .where(eq(payments.invoiceId, invoice.id));
 
-        console.log(`Payments for invoice ${invoice.id}:`, paymentsForInvoice);
-        const manualSum = paymentsForInvoice.reduce((sum, p) => 
+        const manualTotalPaid = paymentsForInvoice.reduce((sum, p) => 
           sum + parseFloat(p.amount.toString()), 0
         );
-        console.log(`Manual sum for invoice ${invoice.id}: ${manualSum}`);
+
+        console.log(`Invoice ${invoice.id}:`, {
+          total: parseFloat(invoice.total),
+          totalPaid: parseFloat(invoice.totalPaid),
+          manualTotalPaid,
+          pendingAmount: parseFloat(invoice.total) - parseFloat(invoice.totalPaid)
+        });
       }
 
       res.json(allInvoices);
