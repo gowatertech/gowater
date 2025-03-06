@@ -650,17 +650,16 @@ export default function Billing() {
                               </Button>
                               <div className="flex-1">
                                 <Input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  max={invoice.total}
+                                  type="text"
+                                  pattern="^\d*\.?\d{0,2}$"
                                   placeholder="Monto parcial"
                                   onChange={(e) => {
-                                    if (e.target.value) {
-                                      handlePayment(invoice, e.target.value);
+                                    const value = e.target.value;
+                                    if (value && /^\d*\.?\d{0,2}$/.test(value)) {
+                                      handlePayment(invoice, value);
                                     }
                                   }}
-                                  className="text-right"
+                                  className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                               </div>
                             </div>
