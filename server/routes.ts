@@ -143,7 +143,7 @@ export async function registerRoutes(app: Express) {
         .leftJoin(products, eq(orderItems.productId, products.id))
         .where(eq(orderItems.orderId, parseInt(req.params.orderId)));
 
-      console.log("Retrieved order items:", items);
+      console.log("Retrieved order items for order", req.params.orderId, ":", items);
       res.json(items);
     } catch (error) {
       console.error("Error al obtener items del pedido:", error);
