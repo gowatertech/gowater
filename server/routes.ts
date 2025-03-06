@@ -17,7 +17,7 @@ import {
   customers,
   orderItems,
   products,
-  orders // Assuming 'orders' table is defined and imported
+  orders
 } from "@shared/schema";
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
 import { eq } from 'drizzle-orm';
@@ -98,8 +98,20 @@ export async function registerRoutes(app: Express) {
   // Orders
   app.get("/api/orders", async (req, res) => {
     try {
-      const orders = await db.select().from(orders);
-      res.json(orders);
+      const allOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
+          status: orders.status,
+          date: orders.date,
+          paymentMethod: orders.paymentMethod,
+          notes: orders.notes
+        })
+        .from(orders);
+
+      console.log("Retrieved orders:", allOrders);
+      res.json(allOrders);
     } catch (error) {
       console.error("Error al obtener pedidos:", error);
       res.status(500).json({ error: String(error) });
@@ -139,6 +151,7 @@ export async function registerRoutes(app: Express) {
         .leftJoin(products, eq(orderItems.productId, products.id))
         .where(eq(orderItems.orderId, parseInt(req.params.orderId)));
 
+      console.log("Retrieved order items:", items);
       res.json(items);
     } catch (error) {
       console.error("Error al obtener items del pedido:", error);
