@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { LatLngExpression, Icon } from 'leaflet';
-import { Check, Navigation2 } from "lucide-react";
+import { LatLngExpression, Icon, divIcon } from 'leaflet';
+import { Check, Navigation2, Truck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,7 +17,14 @@ Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Datos de ejemplo de entregas actualizados con más detalles y ubicaciones reales
+// Crear un icono personalizado para el conductor
+const driverIcon = divIcon({
+  className: 'bg-blue-500 rounded-full border-2 border-white shadow-lg',
+  iconSize: [20, 20],
+  html: '<div class="w-full h-full flex items-center justify-center"><svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg></div>'
+});
+
+// Datos de ejemplo de entregas
 const deliveries = [
   {
     id: 1,
@@ -64,8 +71,10 @@ export default function DriverView() {
   const [completedDeliveries, setCompletedDeliveries] = useState<number[]>([]);
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [currentLocation, setCurrentLocation] = useState<[number, number]>([18.4955, -69.8734]);
+  const [watchId, setWatchId] = useState<number | null>(null);
 
   useEffect(() => {
+    // Configurar WebSocket
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
@@ -77,22 +86,46 @@ export default function DriverView() {
         description: "Seguimiento en tiempo real activado",
       });
 
-      // Simular movimiento cada 5 segundos
-      const interval = setInterval(() => {
-        const newLat = currentLocation[0] + (Math.random() - 0.5) * 0.001;
-        const newLng = currentLocation[1] + (Math.random() - 0.5) * 0.001;
-        setCurrentLocation([newLat, newLng]);
+      // Iniciar seguimiento de ubicación
+      if ("geolocation" in navigator) {
+        const id = navigator.geolocation.watchPosition(
+          (position) => {
+            const newLocation: [number, number] = [
+              position.coords.latitude,
+              position.coords.longitude
+            ];
+            setCurrentLocation(newLocation);
 
-        // Enviar actualización de ubicación
-        ws.send(JSON.stringify({
-          type: 'driver_location',
-          driverId: 1, // ID del conductor actual
-          latitude: newLat,
-          longitude: newLng
-        }));
-      }, 5000);
-
-      return () => clearInterval(interval);
+            // Enviar actualización de ubicación
+            ws.send(JSON.stringify({
+              type: 'driver_location',
+              driverId: 1, // ID del conductor actual
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            }));
+          },
+          (error) => {
+            console.error("Error de geolocalización:", error);
+            toast({
+              variant: "destructive",
+              title: "Error de ubicación",
+              description: "No se pudo obtener la ubicación actual"
+            });
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          }
+        );
+        setWatchId(id);
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Geolocalización no disponible en este dispositivo"
+        });
+      }
     };
 
     ws.onerror = (error) => {
@@ -100,13 +133,17 @@ export default function DriverView() {
       toast({
         variant: "destructive",
         title: "Error de conexión",
-        description: "No se pudo establecer la conexión para el seguimiento",
+        description: "No se pudo establecer la conexión para el seguimiento"
       });
     };
 
     setSocket(ws);
 
+    // Cleanup
     return () => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
       ws.close();
     };
   }, []);
@@ -115,7 +152,7 @@ export default function DriverView() {
     setCompletedDeliveries([...completedDeliveries, deliveryId]);
     toast({
       title: "Entrega Completada",
-      description: `La entrega #${deliveryId} ha sido marcada como completada`,
+      description: `La entrega #${deliveryId} ha sido marcada como completada`
     });
   };
 
@@ -180,7 +217,7 @@ export default function DriverView() {
             />
 
             {/* Marcador de ubicación actual */}
-            <Marker position={currentLocation}>
+            <Marker position={currentLocation} icon={driverIcon}>
               <Popup>
                 <div className="p-2">
                   <h3 className="font-medium">Mi ubicación actual</h3>
