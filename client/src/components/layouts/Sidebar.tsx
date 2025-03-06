@@ -102,9 +102,9 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 isActive={isActive}
                 tooltip={t(item.label)}
                 className={cn(
-                  "w-full justify-start gap-4 hover:bg-blue-50/50 peer",
+                  "w-full justify-start gap-4 hover:bg-blue-50/50",
                   isActive && "bg-blue-50 shadow-sm",
-                  item.subItems && "pr-8" // Espacio para el ícono
+                  item.subItems && "pr-8" 
                 )}
                 onClick={() => {
                   if (!item.subItems) {
@@ -129,9 +129,9 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 <div 
                   className={cn(
                     "absolute left-0 w-48 py-1 rounded-md bg-white shadow-lg",
-                    "opacity-0 invisible peer-hover:opacity-100 peer-hover:visible",
-                    "transition-all duration-200 ease-in-out transform",
-                    "translate-y-0 peer-hover:translate-y-1",
+                    "opacity-0 invisible group-hover:opacity-100 group-hover:visible",
+                    "transition-all duration-200 ease-in-out",
+                    "origin-top scale-y-0 group-hover:scale-y-100",
                     "top-full"
                   )}
                 >
