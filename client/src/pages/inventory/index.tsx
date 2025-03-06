@@ -6,13 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Droplet,
-  Package,
-  GlassWater,
-  DropletsIcon,
-  Waves
-} from "lucide-react";
+import { PlusCircle, Pencil, Trash } from "lucide-react";
 
 import {
   Table,
@@ -47,18 +41,32 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import {
-  PlusCircle,
-  Pencil,
-  Trash,
-} from "lucide-react";
-
-const productIcons = [
-  { id: "water5gl", label: "Botellón de Agua 5GL", icon: Droplet },
-  { id: "water24pack", label: "Sixpack de Agua 24 Botellas", icon: Package },
-  { id: "water16oz", label: "Botella de Agua 16 oz", icon: GlassWater },
-  { id: "water8oz", label: "Botella de Agua 8 oz", icon: DropletsIcon },
-  { id: "waterBag", label: "Funditas de Agua", icon: Waves },
+const productTypes = [
+  { 
+    id: "water5gl", 
+    label: "Botellón de Agua 5GL",
+    imageSrc: "/images/water-5gl.svg"
+  },
+  { 
+    id: "water24pack", 
+    label: "Sixpack de Agua 24 Botellas",
+    imageSrc: "/images/water-24pack.svg"
+  },
+  { 
+    id: "water16oz", 
+    label: "Botella de Agua 16 oz",
+    imageSrc: "/images/water-16oz.svg"
+  },
+  { 
+    id: "water8oz", 
+    label: "Botella de Agua 8 oz",
+    imageSrc: "/images/water-8oz.svg"
+  },
+  { 
+    id: "waterBag", 
+    label: "Funditas de Agua",
+    imageSrc: "/images/water-bag.svg"
+  },
 ];
 
 export default function Inventory() {
@@ -233,19 +241,20 @@ export default function Inventory() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {productIcons.map((item) => {
-                            const IconComponent = item.icon;
-                            return (
-                              <SelectItem
-                                key={item.id}
-                                value={item.id}
-                                className="flex items-center gap-2"
-                              >
-                                <IconComponent className="h-4 w-4 text-blue-500" />
-                                <span>{item.label}</span>
-                              </SelectItem>
-                            );
-                          })}
+                          {productTypes.map((item) => (
+                            <SelectItem
+                              key={item.id}
+                              value={item.id}
+                              className="flex items-center gap-2"
+                            >
+                              <img 
+                                src={item.imageSrc} 
+                                alt={item.label}
+                                className="h-8 w-8 object-contain"
+                              />
+                              <span>{item.label}</span>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -323,11 +332,19 @@ export default function Inventory() {
         </TableHeader>
         <TableBody>
           {products?.map((product) => {
-            const IconComponent = productIcons.find(i => i.id === product.icon)?.icon || Droplet;
+            const productType = productTypes.find(i => i.id === product.icon);
             return (
               <TableRow key={product.id}>
                 <TableCell>
-                  <IconComponent className="h-5 w-5 text-blue-500" />
+                  {productType ? (
+                    <img 
+                      src={productType.imageSrc} 
+                      alt={productType.label}
+                      className="h-10 w-10 object-contain"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 bg-gray-100 rounded-md" />
+                  )}
                 </TableCell>
                 <TableCell>{product.name}</TableCell>
                 <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
@@ -377,19 +394,20 @@ export default function Inventory() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {productIcons.map((item) => {
-                          const IconComponent = item.icon;
-                          return (
-                            <SelectItem
-                              key={item.id}
-                              value={item.id}
-                              className="flex items-center gap-2"
-                            >
-                              <IconComponent className="h-4 w-4 text-blue-500" />
-                              <span>{item.label}</span>
-                            </SelectItem>
-                          );
-                        })}
+                        {productTypes.map((item) => (
+                          <SelectItem
+                            key={item.id}
+                            value={item.id}
+                            className="flex items-center gap-2"
+                          >
+                            <img 
+                              src={item.imageSrc} 
+                              alt={item.label}
+                              className="h-8 w-8 object-contain"
+                            />
+                            <span>{item.label}</span>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
