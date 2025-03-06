@@ -446,32 +446,45 @@ export async function registerRoutes(app: Express) {
   // Add this handler for payments
   app.post("/api/payments", async (req, res) => {
     try {
+      const paymentData = {
+        orderId: req.body.invoiceId, // referencia a la factura
+        customerId: req.body.customerId,
+        amount: req.body.amount,
+        paymentMethod: req.body.paymentMethod,
+        date: new Date(req.body.date),
+        reference: req.body.reference || "",
+        notes: req.body.notes || ""
+      };
+
+      console.log("Processing payment:", paymentData);
+
       // Create the payment
       const [payment] = await db
         .insert(payments)
-        .values(req.body)
+        .values(paymentData)
         .returning();
 
-      // Get the invoice and its total payments
-      const allPayments = await db
-        .select()
-        .from(payments)
-        .where(eq(payments.invoiceId, req.body.invoiceId));
-
-      const totalPaid = allPayments.reduce((sum, payment) => 
-        sum + parseFloat(payment.amount.toString()), 0);
-
+      // Actualizar estado de la factura si corresponde
       const [invoice] = await db
         .select()
         .from(invoices)
         .where(eq(invoices.id, req.body.invoiceId));
 
-      // If total paid equals or exceeds invoice total, mark as paid
-      if (totalPaid >= parseFloat(invoice.total.toString())) {
-        await db
-          .update(invoices)
-          .set({ status: "paid" })
-          .where(eq(invoices.id, req.body.invoiceId));
+      if (invoice) {
+        const allPayments = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.orderId, req.body.invoiceId));
+
+        const totalPaid = allPayments.reduce((sum, p) => 
+          sum + parseFloat(p.amount.toString()), 0);
+
+        if (totalPaid >= parseFloat(invoice.total.toString())) {
+          await db
+            .update(invoices)
+            .set({ status: "paid" })
+            .where(eq(invoices.id, req.body.invoiceId));
+        }
       }
 
       res.json(payment);
