@@ -17,7 +17,8 @@ import {
   customers,
   orderItems,
   products,
-  orders
+  orders,
+  routes
 } from "@shared/schema";
 import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
 import { eq } from 'drizzle-orm';
@@ -83,6 +84,52 @@ export async function registerRoutes(app: Express) {
     });
   });
 
+  // Zones
+  app.get("/api/zones", async (req, res) => {
+    try {
+      const allZones = await db
+        .select()
+        .from(zones);
+
+      console.log("Retrieved zones:", allZones);
+      res.json(allZones);
+    } catch (error) {
+      console.error("Error al obtener zonas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Products
+  app.get("/api/products", async (req, res) => {
+    try {
+      const allProducts = await db
+        .select()
+        .from(products);
+
+      console.log("Retrieved products:", allProducts);
+      res.json(allProducts);
+    } catch (error) {
+      console.error("Error al obtener productos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+
+  // Routes
+  app.get("/api/routes", async (req, res) => {
+    try {
+      const allRoutes = await db
+        .select()
+        .from(routes);
+
+      console.log("Retrieved routes:", allRoutes);
+      res.json(allRoutes);
+    } catch (error) {
+      console.error("Error al obtener rutas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Users
   app.get("/api/users", async (req, res) => {
     try {
@@ -92,8 +139,6 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
-
-  // ... (resto de rutas de usuarios)
 
   // Customers
   app.get("/api/customers", async (req, res) => {
@@ -159,7 +204,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-
   // Order Items
   app.get("/api/orders/:orderId/items", async (req, res) => {
     try {
@@ -183,8 +227,6 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
-
-  // ... (resto de rutas)
 
   return httpServer;
 }
