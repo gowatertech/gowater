@@ -250,7 +250,7 @@ export default function Inventory() {
                               <img 
                                 src={item.imageSrc} 
                                 alt={item.label}
-                                className="h-8 w-8 object-contain"
+                                className="h-24 w-24 object-contain"
                               />
                               <span>{item.label}</span>
                             </SelectItem>
@@ -335,15 +335,15 @@ export default function Inventory() {
             const productType = productTypes.find(i => i.id === product.icon);
             return (
               <TableRow key={product.id}>
-                <TableCell>
+                <TableCell className="p-4 w-32">
                   {productType ? (
                     <img 
                       src={productType.imageSrc} 
                       alt={productType.label}
-                      className="h-10 w-10 object-contain"
+                      className="h-30 w-30 object-contain mx-auto"
                     />
                   ) : (
-                    <div className="h-10 w-10 bg-gray-100 rounded-md" />
+                    <div className="h-30 w-30 bg-gray-100 rounded-md mx-auto" />
                   )}
                 </TableCell>
                 <TableCell>{product.name}</TableCell>
@@ -403,7 +403,7 @@ export default function Inventory() {
                             <img 
                               src={item.imageSrc} 
                               alt={item.label}
-                              className="h-8 w-8 object-contain"
+                              className="h-24 w-24 object-contain"
                             />
                             <span>{item.label}</span>
                           </SelectItem>
