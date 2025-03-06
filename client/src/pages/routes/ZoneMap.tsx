@@ -8,6 +8,7 @@ import { type Zone, type Customer } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
 import { Pencil, X } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;

@@ -1,0 +1,59 @@
+
+/* Estilos responsivos para componentes de mapa */
+
+.map-container-responsive {
+  width: 100%;
+  height: 50vh;
+  max-height: 500px;
+  margin: 0 auto;
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* Ajustes para controles de mapa en móviles */
+@media (max-width: 768px) {
+  .leaflet-control-zoom {
+    display: none;
+  }
+  
+  .leaflet-control-attribution {
+    font-size: 0.6rem;
+  }
+  
+  .map-controls-mobile {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .map-controls-mobile button {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Ajustes para popups en móviles */
+@media (max-width: 768px) {
+  .leaflet-popup-content {
+    margin: 10px;
+    font-size: 0.8rem;
+  }
+  
+  .leaflet-popup {
+    max-width: 200px;
+  }
+}

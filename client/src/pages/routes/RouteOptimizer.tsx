@@ -7,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
 import { LatLngExpression, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
+import "@/styles/map-responsive.css";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -164,9 +167,9 @@ export default function RouteOptimizer() {
                   <p>{t("sequence")}: {optimizedRoute.sequence.join(" → ")}</p>
                 </Card>
 
-                <div className="bg-white rounded-lg shadow-sm" style={{ 
-                  height: "500px",
-                  width: "650px",
+                <div className="bg-white rounded-lg shadow-sm w-full" style={{ 
+                  height: "50vh",
+                  maxHeight: "500px",
                   margin: "0 auto"
                 }}>
                   <MapContainer

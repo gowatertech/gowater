@@ -5,6 +5,8 @@ import { LatLngExpression } from "leaflet";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { type User } from "@shared/schema";
+import { useIsMobile } from "@/hooks/use-mobile";
+import "@/styles/map-responsive.css";
 
 export default function DeliveryTracking() {
   const { toast } = useToast();
