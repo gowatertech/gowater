@@ -11,6 +11,7 @@ import {
   FileText,
   Settings,
   Droplet,
+  ChevronRight,
 } from "lucide-react";
 
 const menuColors = {
@@ -101,8 +102,9 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 isActive={isActive}
                 tooltip={t(item.label)}
                 className={cn(
-                  "w-full justify-start gap-4 hover:bg-blue-50/50",
-                  isActive && "bg-blue-50 shadow-sm"
+                  "w-full justify-start gap-4 hover:bg-blue-50/50 peer",
+                  isActive && "bg-blue-50 shadow-sm",
+                  item.subItems && "pr-8" // Espacio para el ícono
                 )}
                 onClick={() => {
                   if (!item.subItems) {
@@ -113,18 +115,25 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               >
                 <Icon className="h-4 w-4" style={{ color: itemColor }} />
                 <span style={{ color: isActive ? itemColor : "#64748b" }}>{t(item.label)}</span>
+                {item.subItems && (
+                  <ChevronRight 
+                    className={cn(
+                      "h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 transition-transform",
+                      isHovered && "rotate-90"
+                    )}
+                  />
+                )}
               </UISidebarMenuButton>
 
               {item.subItems && (
                 <div 
                   className={cn(
-                    "absolute left-0 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
-                    "mt-0", 
-                    isHovered ? "opacity-100 visible" : "opacity-0 invisible"
+                    "absolute left-0 w-48 py-1 rounded-md bg-white shadow-lg",
+                    "opacity-0 invisible peer-hover:opacity-100 peer-hover:visible",
+                    "transition-all duration-200 ease-in-out transform",
+                    "translate-y-0 peer-hover:translate-y-1",
+                    "top-full"
                   )}
-                  style={{
-                    top: '100%', // Posicionar justo debajo del elemento padre
-                  }}
                 >
                   {item.subItems.map((subItem) => {
                     const isSubActive = location === subItem.href;
@@ -136,7 +145,8 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                           window.location.href = subItem.href;
                         }}
                         className={cn(
-                          "w-full px-4 py-2 text-left text-sm hover:bg-blue-50",
+                          "w-full px-4 py-2 text-left text-sm",
+                          "hover:bg-blue-50 transition-colors duration-150",
                           isSubActive && "bg-blue-50 font-medium"
                         )}
                       >
