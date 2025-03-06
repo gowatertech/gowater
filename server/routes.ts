@@ -199,7 +199,10 @@ export async function registerRoutes(app: Express) {
       // 1. Crear el pedido
       const [order] = await db
         .insert(orders)
-        .values(result.data)
+        .values({
+          ...result.data,
+          date: new Date(result.data.date) // Convertir la cadena ISO a objeto Date
+        })
         .returning();
 
       // 2. Si hay items, crearlos
