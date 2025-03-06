@@ -383,13 +383,11 @@ export async function registerRoutes(app: Express) {
           paymentMethod: invoices.paymentMethod,
           date: invoices.date,
           notes: invoices.notes,
-          // Subconsulta para obtener el total pagado
-          totalPaid: db
-            .select({
-              total: sql`COALESCE(SUM(CAST(${payments.amount} AS DECIMAL(10,2))), 0)::TEXT`
-            })
-            .from(payments)
-            .where(eq(payments.invoiceId, invoices.id))
+          totalPaid: sql`COALESCE((
+            SELECT SUM(CAST(amount AS DECIMAL(10,2)))::TEXT
+            FROM ${payments}
+            WHERE ${payments.invoiceId} = ${invoices.id}
+          ), '0.00')`
         })
         .from(invoices)
         .orderBy(desc(invoices.date));
