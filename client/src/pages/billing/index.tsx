@@ -576,6 +576,12 @@ export default function Billing() {
                        selectedInvoice.paymentMethod === "credit" ? "Crédito" :
                        "Tarjeta"}
                     </div>
+                    {selectedInvoice.notes && (
+                      <div className="col-span-2 mt-2">
+                        <span className="font-medium">Notas: </span>
+                        <p className="mt-1 text-sm text-muted-foreground">{selectedInvoice.notes}</p>
+                      </div>
+                    )}
                   </div>
                 </Card>
 
