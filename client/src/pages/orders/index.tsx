@@ -33,6 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card } from "@/components/ui/card";
 
 interface OrderItem {
   code: string;
@@ -46,6 +47,8 @@ export default function Orders() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>(
@@ -58,16 +61,27 @@ export default function Orders() {
     })
   );
 
-  const { data: orders } = useQuery<Order[]>({
+  const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
-  const { data: customers } = useQuery<Customer[]>({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  const { data: products } = useQuery<Product[]>({
+  const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+
+  // Nueva consulta para obtener los items de un pedido específico
+  const { data: orderDetails = [] } = useQuery({
+    queryKey: ["/api/orders", selectedOrder?.id, "items"],
+    queryFn: async () => {
+      if (!selectedOrder) return [];
+      const response = await apiRequest("GET", `/api/orders/${selectedOrder.id}/items`);
+      return response.json();
+    },
+    enabled: !!selectedOrder,
   });
 
   const handleProductChange = (index: number, code: string) => {
@@ -410,7 +424,15 @@ export default function Orders() {
                       </span>
                     </TableCell>
                     <TableCell className="py-1">
-                      <Button variant="ghost" size="sm" className="h-8 text-sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-sm"
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setIsDetailsDialogOpen(true);
+                        }}
+                      >
                         Ver detalles
                       </Button>
                     </TableCell>
@@ -421,6 +443,90 @@ export default function Orders() {
           </div>
         </ScrollArea>
       </div>
+      {/* New Dialog for order details */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+          <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-2 sm:p-4 gap-3">
+            <DialogHeader>
+              <DialogTitle>Detalles del Pedido #{selectedOrder?.id}</DialogTitle>
+            </DialogHeader>
+
+            {selectedOrder && (
+              <div className="space-y-4">
+                {/* Información del cliente */}
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">Información del Cliente</h3>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="font-medium">Cliente: </span>
+                      {customers?.find(c => c.id === selectedOrder.customerId)?.name}
+                    </div>
+                    <div>
+                      <span className="font-medium">Fecha: </span>
+                      {new Date(selectedOrder.date).toLocaleString()}
+                    </div>
+                    <div>
+                      <span className="font-medium">Estado: </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        selectedOrder.status === "delivered" ? "bg-green-100 text-green-800" :
+                        selectedOrder.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-red-100 text-red-800"
+                      }`}>
+                        {t(selectedOrder.status)}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Método de Pago: </span>
+                      {t(selectedOrder.paymentMethod)}
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Items del pedido */}
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">Productos</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Producto</TableHead>
+                        <TableHead className="text-right">Cantidad</TableHead>
+                        <TableHead className="text-right">Precio</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orderDetails.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            {products?.find(p => p.id === item.productId)?.name}
+                          </TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            RD$ {parseFloat(item.price.toString()).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            RD$ {(item.quantity * parseFloat(item.price.toString())).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+
+                {/* Totales */}
+                <Card className="p-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Total:</span>
+                      <span className="font-medium">
+                        RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }
