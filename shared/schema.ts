@@ -21,16 +21,17 @@ export const users = pgTable("users", {
   lastLocationUpdate: timestamp("last_location_update"),
 });
 
-// Update the insert schema
+// Update the insert schema for users
 export const insertUserSchema = createInsertSchema(users, {
   role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
   phone: z.string().optional(),
   license: z.string().optional(),
-  licenseExpiry: z.string().datetime().optional(),
-  hireDate: z.string().datetime().optional(),
+  licenseExpiry: z.string().optional(),  // Cambiado de datetime() a string()
+  hireDate: z.string().optional(),
   emergencyContact: z.string().optional(),
   currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-  lastLocationUpdate: z.string().datetime().optional(),
+  lastLocationUpdate: z.string().optional(),
+  active: z.boolean().default(true),
 });
 
 // Customers

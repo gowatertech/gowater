@@ -155,16 +155,17 @@ export default function Users() {
     },
   });
 
+  // Actualizar el onSubmit para manejar mejor las fechas
   const onSubmit = async (data: any) => {
     try {
       console.log('OnSubmit ejecutado');
       console.log('Form data before submit:', data);
-      console.log('Form state:', form.formState);
 
+      // Formatear la fecha solo si existe
       const formattedData = {
         ...data,
-        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
-        hireDate: new Date().toISOString(),
+        licenseExpiry: data.licenseExpiry ? data.licenseExpiry : undefined,
+        hireDate: new Date().toISOString().split('T')[0],
       };
 
       console.log('Formatted data:', formattedData);
@@ -313,6 +314,7 @@ export default function Users() {
                         </FormItem>
                       )}
                     />
+                    {/* Actualizar el FormField para licenseExpiry */}
                     <FormField
                       control={form.control}
                       name="licenseExpiry"
@@ -320,7 +322,15 @@ export default function Users() {
                         <FormItem>
                           <FormLabel>{t("licenseExpiry")}</FormLabel>
                           <FormControl>
-                            <Input type="date" {...field} />
+                            <Input
+                              type="date"
+                              {...field}
+                              value={field.value || ''}
+                              onChange={(e) => {
+                                const date = e.target.value;
+                                field.onChange(date);
+                              }}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
