@@ -120,7 +120,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
 
               {item.subItems && (
                 <div className={cn(
-                  "absolute left-full top-0 ml-0.5 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
+                  "absolute right-0 top-full mt-0.5 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200 z-50",
                   isHovered ? "opacity-100 visible" : "opacity-0 invisible"
                 )}>
                   {item.subItems.map((subItem) => {
