@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { type Zone, type Customer } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Componentes UI
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,7 @@ import RouteOptimizer from "./RouteOptimizer";
 
 // Vista del chofer
 import DriverView from "./DriverView";
-import DeliveryTracking from "./DeliveryTracking";
-
-// Implementamos el hook useIsMobile aquí si no está correctamente importado
+import DeliveryTracking from "./DeliveryTracking";do
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false
