@@ -15,6 +15,7 @@ import {
 // Define los colores modernos para cada icono
 const menuColors = {
   dashboard: "#0088FE", // Azul brillante
+  payments: "#00C49F", // Verde turquesa para pagos
   customers: "#00C49F", // Verde turquesa
   inventory: "#FFBB28", // Amarillo cálido
   routes: "#FF8042",    // Naranja
@@ -29,6 +30,7 @@ const menuColors = {
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "dashboard", href: "/" },
+  { icon: FileText, label: "payments", href: "/payments" },
   { icon: Users, label: "users", href: "/users" },
   { icon: Users, label: "customers", href: "/customers" },
   { icon: Package, label: "inventory", href: "/inventory" },
