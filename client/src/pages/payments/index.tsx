@@ -58,13 +58,13 @@ export default function Payments() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>{t("client")}</TableHead>
                 <TableHead>{t("date")}</TableHead>
-                <TableHead>{t("invoiceNumber")}</TableHead>
-                <TableHead>{t("customer")}</TableHead>
-                <TableHead>{t("amount")}</TableHead>
+                <TableHead>{t("invoiceNo")}</TableHead>
+                <TableHead>{t("details")}</TableHead>
                 <TableHead>{t("paymentMethod")}</TableHead>
                 <TableHead>{t("reference")}</TableHead>
-                <TableHead>{t("details")}</TableHead>
+                <TableHead className="text-right">{t("amount")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -72,16 +72,11 @@ export default function Payments() {
                 const customer = customers?.find(c => c.id === payment.customerId);
                 return (
                   <TableRow key={payment.id}>
+                    <TableCell>{customer?.name || '-'}</TableCell>
                     <TableCell>
                       {new Date(payment.date).toLocaleDateString()}
                     </TableCell>
                     <TableCell>#{payment.orderId}</TableCell>
-                    <TableCell>{customer?.name || '-'}</TableCell>
-                    <TableCell>
-                      RD$ {parseFloat(payment.amount.toString()).toFixed(2)}
-                    </TableCell>
-                    <TableCell>{t(payment.paymentMethod)}</TableCell>
-                    <TableCell>{payment.reference || "-"}</TableCell>
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
@@ -94,8 +89,8 @@ export default function Payments() {
                             <DialogTitle>{t("paymentDetails")}</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4">
-                            <p>{t("invoiceNumber")}: #{payment.orderId}</p>
-                            <p>{t("customer")}: {customer?.name}</p>
+                            <p>{t("invoiceNo")}: #{payment.orderId}</p>
+                            <p>{t("client")}: {customer?.name}</p>
                             <p>{t("amount")}: RD$ {parseFloat(payment.amount.toString()).toFixed(2)}</p>
                             <p>{t("paymentMethod")}: {t(payment.paymentMethod)}</p>
                             <p>{t("date")}: {new Date(payment.date).toLocaleDateString()}</p>
@@ -108,6 +103,11 @@ export default function Payments() {
                           </div>
                         </DialogContent>
                       </Dialog>
+                    </TableCell>
+                    <TableCell>{t(payment.paymentMethod)}</TableCell>
+                    <TableCell>{payment.reference || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      RD$ {parseFloat(payment.amount.toString()).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 );
