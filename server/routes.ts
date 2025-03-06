@@ -149,6 +149,7 @@ export async function registerRoutes(app: Express) {
           name: result.data.name,
           price: result.data.price,
           stock: result.data.stock,
+          icon: result.data.icon,
         })
         .where(eq(products.id, parseInt(req.params.id)))
         .returning();
@@ -237,7 +238,6 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
-
 
   // Orders
   app.get("/api/orders", async (req, res) => {
