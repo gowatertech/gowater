@@ -252,29 +252,37 @@ export default function Billing() {
   // Add new mutation after other mutations
   const createPaymentMutation = useMutation({
     mutationFn: async ({ invoiceId, amount }: { invoiceId: number, amount: string }) => {
-      const response = await apiRequest("POST", "/api/payments", {
+      const paymentData = {
         invoiceId,
         customerId: selectedInvoice?.customerId,
-        amount,
+        amount: parseFloat(amount).toFixed(2),
         paymentMethod: "cash",
         date: new Date().toISOString(),
         reference: "",
         notes: `Pago de factura #${invoiceId}`
-      });
+      };
+
+      console.log("Sending payment:", paymentData);
+
+      const response = await apiRequest("POST", "/api/payments", paymentData);
+
       if (!response.ok) {
-        throw new Error('Error al procesar el pago');
+        const error = await response.json();
+        throw new Error(error.error || 'Error al procesar el pago');
       }
+
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/payments"] }); //Invalidate payments query
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
       toast({
         title: "Éxito",
         description: "Pago procesado exitosamente",
       });
     },
     onError: (error: any) => {
+      console.error("Payment error:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -907,8 +915,7 @@ export default function Billing() {
                     </DialogContent>
                   </Dialog>
                 </div>
-              </Card>
-            </div>
+              </Card></div>
           )}
         </DialogContent>
       </Dialog>
