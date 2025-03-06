@@ -13,19 +13,17 @@ import {
 } from "lucide-react";
 
 const menuColors = {
-  dashboard: "#0088FE", // Azul brillante
-  billing: "#00C49F",   // Verde turquesa para facturación
-  payments: "#00C49F",  // Verde turquesa para pagos
-  customers: "#00C49F", // Verde turquesa
-  inventory: "#FFBB28", // Amarillo cálido
-  routes: "#FF8042",    // Naranja
-  drivers: "#8884d8",   // Púrpura
-  assistants: "#0088FE", // Azul
-  trucks: "#00C49F",    // Verde turquesa
-  orders: "#FFBB28",    // Amarillo
-  reports: "#FF8042",   // Naranja
-  settings: "#8884d8",  // Púrpura
-  users: "#0088FE",     // Azul brillante
+  panel: "#0088FE",      // Azul brillante
+  facturacion: "#00C49F", // Verde turquesa para facturación
+  pagos: "#00C49F",      // Verde turquesa para pagos
+  usuarios: "#0088FE",   // Azul brillante
+  clientes: "#00C49F",   // Verde turquesa
+  inventario: "#FFBB28", // Amarillo cálido
+  rutas: "#FF8042",      // Naranja
+  vehiculos: "#00C49F",  // Verde turquesa
+  pedidos: "#FFBB28",    // Amarillo
+  reportes: "#FF8042",   // Naranja
+  ajustes: "#8884d8",    // Púrpura
 };
 
 // Actualizado con etiquetas en español
@@ -76,7 +74,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         {sidebarItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href;
-          const itemColor = menuColors[item.label as keyof typeof menuColors];
+          const itemColor = menuColors[item.label.toLowerCase() as keyof typeof menuColors];
 
           return (
             <UISidebarMenuItem key={item.href}>
