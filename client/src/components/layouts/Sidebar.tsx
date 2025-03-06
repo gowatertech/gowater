@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,7 @@ interface SidebarProps {
 export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
   const [location] = useLocation();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
@@ -89,9 +91,15 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
           const Icon = item.icon;
           const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
           const itemColor = menuColors[item.label.toLowerCase() as keyof typeof menuColors];
+          const isHovered = hoveredItem === item.label;
 
           return (
-            <UISidebarMenuItem key={item.href}>
+            <UISidebarMenuItem 
+              key={item.href}
+              onMouseEnter={() => setHoveredItem(item.label)}
+              onMouseLeave={() => setHoveredItem(null)}
+              className="relative group"
+            >
               <UISidebarMenuButton
                 isActive={isActive}
                 tooltip={t(item.label)}
@@ -111,24 +119,29 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               </UISidebarMenuButton>
 
               {item.subItems && (
-                <UISidebarMenuSub>
+                <div className={cn(
+                  "absolute left-full top-0 ml-1 w-48 rounded-md bg-white shadow-lg transition-opacity duration-200",
+                  isHovered ? "opacity-100 visible" : "opacity-0 invisible"
+                )}>
                   {item.subItems.map((subItem) => {
                     const isSubActive = location === subItem.href;
                     return (
-                      <UISidebarMenuSubItem key={subItem.href}>
-                        <UISidebarMenuSubButton
-                          isActive={isSubActive}
-                          onClick={() => {
-                            setOpenMobile(false);
-                            window.location.href = subItem.href;
-                          }}
-                        >
-                          <span>{t(subItem.label)}</span>
-                        </UISidebarMenuSubButton>
-                      </UISidebarMenuSubItem>
+                      <button
+                        key={subItem.href}
+                        onClick={() => {
+                          setOpenMobile(false);
+                          window.location.href = subItem.href;
+                        }}
+                        className={cn(
+                          "w-full px-4 py-2 text-left text-sm hover:bg-blue-50",
+                          isSubActive && "bg-blue-50 font-medium"
+                        )}
+                      >
+                        {t(subItem.label)}
+                      </button>
                     );
                   })}
-                </UISidebarMenuSub>
+                </div>
               )}
             </UISidebarMenuItem>
           );
