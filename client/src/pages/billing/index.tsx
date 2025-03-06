@@ -116,7 +116,7 @@ export default function Billing() {
             </DialogHeader>
 
             <div className="space-y-3">
-              {/* Cliente y Productos */}
+              {/* Cliente y Notas */}
               <div className="grid gap-3">
                 <Select
                   onValueChange={(value) => {
@@ -152,6 +152,25 @@ export default function Billing() {
                     </div>
                   </div>
                 )}
+
+                {/* Campo de Notas */}
+                <div className="grid gap-2">
+                  <label className="text-sm font-medium">Nota</label>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 200) {
+                        setNotes(e.target.value);
+                      }
+                    }}
+                    placeholder="Añadir nota a la factura (máximo 200 caracteres)"
+                    className="h-20 text-sm resize-none"
+                    maxLength={200}
+                  />
+                  <div className="text-xs text-muted-foreground text-right">
+                    {notes.length}/200 caracteres
+                  </div>
+                </div>
               </div>
 
               {/* Tabla de Productos */}
@@ -231,7 +250,7 @@ export default function Billing() {
               {/* Método de Pago */}
               <div className="grid gap-2">
                 <label className="text-sm font-medium">Método de Pago</label>
-                <Select 
+                <Select
                   value={paymentMethod}
                   onValueChange={(value) => setPaymentMethod(value as 'cash' | 'credit' | 'card')}
                 >
