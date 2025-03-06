@@ -99,15 +99,7 @@ export async function registerRoutes(app: Express) {
   app.get("/api/orders", async (req, res) => {
     try {
       const allOrders = await db
-        .select({
-          id: orders.id,
-          customerId: orders.customerId,
-          total: orders.total,
-          status: orders.status,
-          date: orders.date,
-          paymentMethod: orders.paymentMethod,
-          notes: orders.notes
-        })
+        .select()
         .from(orders);
 
       console.log("Retrieved orders:", allOrders);
