@@ -284,7 +284,7 @@ export async function registerRoutes(app: Express) {
       const allPayments = await db
         .select({
           id: payments.id,
-          orderId: payments.orderId,
+          invoiceId: payments.invoiceId,
           customerId: payments.customerId,
           amount: payments.amount,
           paymentMethod: payments.paymentMethod,
@@ -292,14 +292,80 @@ export async function registerRoutes(app: Express) {
           reference: payments.reference,
           notes: payments.notes,
           customerName: customers.name,
+          invoiceNumber: invoices.invoiceNumber
         })
         .from(payments)
         .leftJoin(customers, eq(payments.customerId, customers.id))
+        .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .orderBy(desc(payments.date));
 
+      console.log("Retrieved payments:", allPayments);
       res.json(allPayments);
     } catch (error) {
       console.error("Error al obtener pagos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Add this handler for payments
+  app.post("/api/payments", async (req, res) => {
+    try {
+      console.log("Processing payment request:", req.body);
+
+      const paymentData = {
+        invoiceId: req.body.invoiceId,
+        customerId: req.body.customerId,
+        amount: req.body.amount,
+        paymentMethod: req.body.paymentMethod || "cash",
+        date: new Date(),
+        reference: req.body.reference || "",
+        notes: req.body.notes || ""
+      };
+
+      console.log("Creating payment with data:", paymentData);
+
+      // Create the payment
+      const [payment] = await db
+        .insert(payments)
+        .values(paymentData)
+        .returning();
+
+      console.log("Payment created:", payment);
+
+      // Get the invoice
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, req.body.invoiceId));
+
+      if (invoice) {
+        // Get all payments for this invoice
+        const allPayments = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.invoiceId, req.body.invoiceId));
+
+        const totalPaid = allPayments.reduce((sum, p) => 
+          sum + parseFloat(p.amount.toString()), 0);
+
+        console.log("Invoice:", invoice.id);
+        console.log("Total invoice:", parseFloat(invoice.total));
+        console.log("Total paid:", totalPaid);
+
+        // Update invoice status if fully paid
+        if (totalPaid >= parseFloat(invoice.total)) {
+          await db
+            .update(invoices)
+            .set({ status: "paid" })
+            .where(eq(invoices.id, req.body.invoiceId));
+
+          console.log("Invoice marked as paid");
+        }
+      }
+
+      res.json(payment);
+    } catch (error) {
+      console.error("Error al procesar pago:", error);
       res.status(500).json({ error: String(error) });
     }
   });
@@ -439,59 +505,6 @@ export async function registerRoutes(app: Express) {
       res.json(item);
     } catch (error) {
       console.error("Error al actualizar item de factura:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  // Add this handler for payments
-  app.post("/api/payments", async (req, res) => {
-    try {
-      const paymentData = {
-        invoiceId: req.body.invoiceId,
-        customerId: req.body.customerId,
-        amount: req.body.amount,
-        paymentMethod: req.body.paymentMethod,
-        date: new Date(),
-        reference: req.body.reference || "",
-        notes: req.body.notes || ""
-      };
-
-      console.log("Processing payment:", paymentData);
-
-      // Create the payment
-      const [payment] = await db
-        .insert(payments)
-        .values(paymentData)
-        .returning();
-
-      // Actualizar estado de la factura si corresponde
-      const [invoice] = await db
-        .select()
-        .from(invoices)
-        .where(eq(invoices.id, req.body.invoiceId));
-
-      if (invoice) {
-        const allPayments = await db
-          .select()
-          .from(payments)
-          .where(eq(payments.invoiceId, req.body.invoiceId));
-
-        const totalPaid = allPayments.reduce((sum, p) => 
-          sum + parseFloat(p.amount.toString()), 0);
-
-        console.log("Invoice total:", invoice.total, "Total paid:", totalPaid);
-
-        if (totalPaid >= parseFloat(invoice.total.toString())) {
-          await db
-            .update(invoices)
-            .set({ status: "paid" })
-            .where(eq(invoices.id, req.body.invoiceId));
-        }
-      }
-
-      res.json(payment);
-    } catch (error) {
-      console.error("Error al procesar pago:", error);
       res.status(500).json({ error: String(error) });
     }
   });
