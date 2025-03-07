@@ -394,37 +394,51 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      console.log("Datos recibidos en la actualización:", req.body);
-      console.log("Archivo recibido:", req.file);
+      console.log("Datos recibidos para actualización:", {
+        body: req.body,
+        file: req.file ? {
+          fieldname: req.file.fieldname,
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size
+        } : null
+      });
 
       // Preparar los datos para actualizar
       const updateData = {
         ...req.body,
-        // Actualizar el logo solo si se recibió un nuevo archivo
-        logo: req.file ? req.file.buffer.toString('base64') : undefined,
       };
+
+      // Solo actualizar el logo si se recibió un nuevo archivo
+      if (req.file) {
+        console.log("Procesando nuevo archivo de logo");
+        updateData.logo = req.file.buffer.toString('base64');
+      }
 
       // Convertir valores numéricos
       if (updateData.provinceid) updateData.provinceid = Number(updateData.provinceid);
       if (updateData.municipalityid) updateData.municipalityid = Number(updateData.municipalityid);
       if (updateData.zoneid && updateData.zoneid !== 'null') updateData.zoneid = Number(updateData.zoneid);
 
-      // Limpiar los datos undefined
-      const cleanedData = Object.fromEntries(
-        Object.entries(updateData).filter(([_, value]) => value !== undefined)
-      );
-
-      console.log("Datos limpios para actualizar:", cleanedData);
+      console.log("Datos preparados para actualizar:", {
+        ...updateData,
+        logo: updateData.logo ? 'base64_data_present' : 'no_logo_update'
+      });
 
       const [updatedCustomer] = await db
         .update(customers)
-        .set(cleanedData)
+        .set(updateData)
         .where(eq(customers.id, customerId))
         .returning();
 
       if (!updatedCustomer) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
+
+      console.log("Cliente actualizado exitosamente:", {
+        id: updatedCustomer.id,
+        hasLogo: !!updatedCustomer.logo
+      });
 
       res.json(updatedCustomer);
     } catch (error) {

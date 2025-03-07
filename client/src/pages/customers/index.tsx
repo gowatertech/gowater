@@ -149,24 +149,35 @@ export default function Customers() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
-      console.log("Actualizando cliente con datos:", data);
       const formData = new FormData();
 
-      // Añadir todos los campos al FormData
+      console.log("Inicio de actualización:", { data });
+
+      // Agregar todos los campos excepto logo
       Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          if (key === 'logo') {
-            if (value instanceof File) {
-              console.log("Añadiendo archivo de logo:", value.name, value.size);
-              formData.append('logo', value);
-            }
-          } else {
-            formData.append(key, String(value));
-          }
+        if (key !== 'logo' && value !== undefined && value !== null) {
+          formData.append(key, String(value));
+          console.log(`Añadiendo campo ${key}:`, value);
         }
       });
 
-      console.log("FormData preparado:", Object.fromEntries(formData.entries()));
+      // Manejar el logo separadamente
+      if (data.logo instanceof File) {
+        console.log("Añadiendo archivo logo:", {
+          name: data.logo.name,
+          size: data.logo.size,
+          type: data.logo.type
+        });
+        formData.append('logo', data.logo);
+      } else if (typeof data.logo === 'string') {
+        console.log("Manteniendo logo existente");
+      }
+
+      console.log("FormData preparado:",
+        Array.from(formData.entries()).map(([key, value]) =>
+          `${key}: ${value instanceof File ? `File(${value.name})` : value}`
+        )
+      );
 
       const response = await fetch(`/api/customers/${data.id}`, {
         method: 'PATCH',
@@ -177,7 +188,10 @@ export default function Customers() {
         const error = await response.json();
         throw new Error(error.message || 'Error al actualizar el cliente');
       }
-      return response.json();
+
+      const result = await response.json();
+      console.log("Respuesta del servidor:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
@@ -368,7 +382,11 @@ export default function Customers() {
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  console.log("Archivo seleccionado:", file.name, file.size, file.type);
+                                  console.log("Archivo seleccionado:", {
+                                    name: file.name,
+                                    size: file.size,
+                                    type: file.type
+                                  });
 
                                   // Validar el tamaño (5MB)
                                   if (file.size > 5 * 1024 * 1024) {
