@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { InsertSettings } from "@shared/schema";
-import { insertSettingsSchema } from "@shared/schema"; // Added import statement
+import { insertSettingsSchema } from "@shared/schema";
 
 import {
   Form,
@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save } from "lucide-react";
 
-export default function Settings() {
+function Settings() {
   const { toast } = useToast();
 
   const form = useForm<InsertSettings>({
@@ -193,7 +193,7 @@ export default function Settings() {
                     <FormItem>
                       <FormLabel>RNC</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -244,7 +244,7 @@ export default function Settings() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {provinces.map((province) => (
+                          {provinces.map((province: {id: number, name: string}) => (
                             <SelectItem key={province.id} value={province.id.toString()}>
                               {province.name}
                             </SelectItem>
@@ -273,7 +273,7 @@ export default function Settings() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {municipalities.map((municipality) => (
+                          {municipalities.map((municipality: {id: number, name: string}) => (
                             <SelectItem key={municipality.id} value={municipality.id.toString()}>
                               {municipality.name}
                             </SelectItem>
@@ -306,7 +306,7 @@ export default function Settings() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input type="email" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -385,3 +385,5 @@ export default function Settings() {
     </div>
   );
 }
+
+export default Settings;
