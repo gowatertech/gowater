@@ -1,10 +1,11 @@
-import type { Express } from "express";
+import { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { zones, rutas, users, insertZoneSchema, insertRutaSchema } from "@shared/schema";
+import { zones, rutas, users } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
+import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from './services/routeOptimizer';
 
 // Almacenar las conexiones activas de los conductores
 const driverConnections = new Map<number, WebSocket>();
@@ -54,7 +55,6 @@ export async function registerRoutes(app: Express) {
         }
       } catch (error) {
         console.error('Error procesando mensaje WebSocket:', error);
-        // Enviar error al cliente
         ws.send(JSON.stringify({
           type: 'error',
           message: 'Error procesando el mensaje'
@@ -117,6 +117,24 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Obtener ubicación actual de una ruta
+  app.get("/api/rutas/:id/ubicacion", async (req, res) => {
+    try {
+      const ruta = await storage.getRuta(parseInt(req.params.id));
+      if (!ruta) {
+        return res.status(404).json({ error: "Ruta no encontrada" });
+      }
+
+      res.json({
+        ubicacionActual: ruta.ubicacionActual,
+        ultimaActualizacion: ruta.ultimaActualizacion
+      });
+    } catch (error) {
+      console.error("Error al obtener ubicación de ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.post("/api/rutas", async (req, res) => {
     console.log("Creando ruta con datos:", req.body);
 
@@ -132,16 +150,9 @@ export async function registerRoutes(app: Express) {
 
       console.log("Datos procesados de la ruta:", datosRuta);
 
-      const result = insertRutaSchema.safeParse(datosRuta);
-
-      if (!result.success) {
-        console.error("Error de validación:", result.error.format());
-        return res.status(400).json({ error: result.error.format() });
-      }
-
       const [ruta] = await db
         .insert(rutas)
-        .values(result.data)
+        .values(datosRuta)
         .returning();
 
       console.log("Ruta creada:", ruta);

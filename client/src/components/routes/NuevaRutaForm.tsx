@@ -119,7 +119,7 @@ export default function NuevaRutaForm({ onRutaCreada }: NuevaRutaFormProps) {
             <FormItem>
               <FormLabel>Conductor</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(Number(value))}
+                onValueChange={field.onChange}
                 value={field.value?.toString()}
               >
                 <FormControl>
@@ -128,7 +128,7 @@ export default function NuevaRutaForm({ onRutaCreada }: NuevaRutaFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {conductores.map((conductor) => (
+                  {conductores.map((conductor: any) => (
                     <SelectItem key={conductor.id} value={conductor.id.toString()}>
                       {conductor.name}
                     </SelectItem>
