@@ -249,7 +249,28 @@ export default function Customers() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Clientes</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (open) {
+            // Resetear el formulario con valores vacíos cuando se abre el diálogo de creación
+            form.reset({
+              logo: undefined,
+              rnc: "",
+              businessname: "",
+              managername: "",
+              phone: "",
+              email: "",
+              zoneid: undefined,
+              street: "",
+              streetnumber: "",
+              provinceid: undefined,
+              municipalityid: undefined,
+              reference: "",
+              creditlimit: "0.00",
+            });
+            setSelectedProvinceId(null);
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="h-4 w-4 mr-2" />
@@ -875,7 +896,7 @@ export default function Customers() {
                 />
               </div>
               {isEditing && (
-                <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
+                <Button type="submit" className="w-full mt-4" disabled={updateMutation.isPending}>
                   <Save className="h-4 w-4 mr-2" />
                   {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                 </Button>
