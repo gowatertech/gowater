@@ -100,6 +100,7 @@ export const routes = pgTable("routes", {
   driverId: integer("driver_id").notNull().references(() => users.id),
   assistantId: integer("assistant_id").references(() => users.id),
   truckId: integer("truck_id").notNull(),
+  zoneId: integer("zone_id").references(() => zones.id), // Nueva referencia a la zona
   status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull(),
   date: timestamp("date").notNull(),
   startTime: timestamp("start_time"),
@@ -242,6 +243,7 @@ export const insertRouteSchema = createInsertSchema(routes)
     driverId: z.number({ required_error: "Se requiere un conductor" }),
     date: z.coerce.date(),
     truckId: z.number().default(1),
+    zoneId: z.number({ required_error: "Se requiere una zona" }), // Validación para zoneId
     status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
     isCompleted: z.boolean().default(false),
     startTime: z.string().datetime().optional(),

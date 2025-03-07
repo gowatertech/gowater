@@ -36,11 +36,16 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
     queryKey: ["/api/users?role=driver"],
   });
 
+  const { data: zones = [] } = useQuery({
+    queryKey: ["/api/zones"],
+  });
+
   const form = useForm({
     resolver: zodResolver(insertRouteSchema),
     defaultValues: {
       name: "",
       driverId: undefined,
+      zoneId: undefined,
       date: new Date(),
       truckId: 1,
       status: "pending" as const,
@@ -55,6 +60,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
         ...data,
         date: new Date(data.date),
         driverId: Number(data.driverId),
+        zoneId: Number(data.zoneId),
         truckId: 1,
         status: "pending",
         isCompleted: false
@@ -130,6 +136,34 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
                   {drivers?.map((driver: any) => (
                     <SelectItem key={driver.id} value={driver.id.toString()}>
                       {driver.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="zoneId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("zone")}</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(Number(value))}
+                value={field.value?.toString()}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("selectZone")} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {zones?.map((zone: any) => (
+                    <SelectItem key={zone.id} value={zone.id.toString()}>
+                      {zone.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
