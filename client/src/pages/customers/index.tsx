@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Customer, type Province, type Municipality, type Zone, insertCustomerSchema } from "@shared/schema";
+import { type CustomerWithDetails, type Province, type Municipality, type Zone, insertCustomerSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -74,7 +74,7 @@ export default function Customers() {
 
 
   // Obtener clientes
-  const { data: customers = [], isLoading } = useQuery<Customer[]>({
+  const { data: customers = [], isLoading } = useQuery<CustomerWithDetails[]>({
     queryKey: ["/api/customers"],
   });
 
@@ -460,7 +460,6 @@ export default function Customers() {
               <TableHead>Teléfono</TableHead>
               <TableHead>Dirección</TableHead>
               <TableHead>Límite de Crédito</TableHead>
-              <TableHead>Balance</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -468,17 +467,14 @@ export default function Customers() {
             {customers?.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell>{customer.businessname}</TableCell>
-                <TableCell>{customer.rnc}</TableCell>
+                <TableCell>{customer.rnc || '-'}</TableCell>
                 <TableCell>{customer.managername}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell>
-                  {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName}, ${customer.provinceName}`}
+                  {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
                 </TableCell>
                 <TableCell>
                   RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  RD$ {parseFloat(customer.balance.toString()).toFixed(2)}
                 </TableCell>
                 <TableCell>
                   <Button

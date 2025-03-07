@@ -480,3 +480,23 @@ export type InsertCity = z.infer<typeof insertCitySchema>;
 export type InsertSector = z.infer<typeof insertSectorSchema>;
 export type Municipality = typeof municipalities.$inferSelect;
 export type InsertMunicipality = z.infer<typeof insertMunicipalitySchema>;
+
+// Actualizar el tipo Customer para incluir los campos de join
+export type CustomerWithDetails = {
+  id: number;
+  logo: string | null;
+  rnc: string | null;
+  businessname: string;
+  managername: string;
+  phone: string;
+  email: string | null;
+  zoneid: number | null;
+  street: string;
+  streetnumber: string;
+  provinceid: number;
+  municipalityid: number;
+  reference: string | null;
+  creditlimit: string;
+  municipalityName?: string;
+  provinceName?: string;
+};

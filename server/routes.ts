@@ -339,6 +339,7 @@ export async function registerRoutes(app: Express) {
         .leftJoin(provinces, eq(customers.provinceid, provinces.id))
         .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id));
 
+      console.log("Retrieved customers:", allCustomers);
       res.json(allCustomers);
     } catch (error) {
       console.error("Error al obtener clientes:", error);
