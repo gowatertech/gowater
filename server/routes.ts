@@ -67,22 +67,22 @@ export async function registerRoutes(app: Express) {
   });
 
   // Zonas
-  app.get("/api/zones", async (req, res) => {
+  app.get("/api/zonas", async (req, res) => {
     try {
-      const allZones = await db
+      const todasLasZonas = await db
         .select()
         .from(zones);
 
-      console.log("Retrieved zones:", allZones);
-      res.json(allZones);
+      console.log("Zonas recuperadas:", todasLasZonas);
+      res.json(todasLasZonas);
     } catch (error) {
       console.error("Error al obtener zonas:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
-  app.post("/api/zones", async (req, res) => {
-    console.log("Creating zone with data:", req.body);
+  app.post("/api/zonas", async (req, res) => {
+    console.log("Creando zona con datos:", req.body);
 
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
@@ -104,57 +104,57 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      const [zone] = await db
+      const [zona] = await db
         .insert(zones)
         .values(result.data)
         .returning();
 
-      console.log("Created zone:", zone);
-      res.json(zone);
+      console.log("Zona creada:", zona);
+      res.json(zona);
     } catch (error) {
       console.error("Error al crear zona:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
-  app.delete("/api/zones/:id", async (req, res) => {
+  app.delete("/api/zonas/:id", async (req, res) => {
     try {
-      const [deletedZone] = await db
+      const [zonaEliminada] = await db
         .delete(zones)
         .where(eq(zones.id, parseInt(req.params.id)))
         .returning();
 
-      if (!deletedZone) {
+      if (!zonaEliminada) {
         return res.status(404).json({ error: "Zona no encontrada" });
       }
 
-      console.log("Deleted zone:", deletedZone);
-      res.json(deletedZone);
+      console.log("Zona eliminada:", zonaEliminada);
+      res.json(zonaEliminada);
     } catch (error) {
       console.error("Error al eliminar zona:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
-  // Users
-  app.get("/api/users", async (req, res) => {
+  // Usuarios
+  app.get("/api/usuarios", async (req, res) => {
     try {
       // Si se especifica un rol, filtrar por ese rol
       const role = req.query.role as string;
-      let usersList;
+      let listaUsuarios;
 
       if (role) {
-        usersList = await db
+        listaUsuarios = await db
           .select()
           .from(users)
           .where(eq(users.role, role));
       } else {
-        usersList = await db
+        listaUsuarios = await db
           .select()
           .from(users);
       }
 
-      res.json(usersList);
+      res.json(listaUsuarios);
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
       res.status(500).json({ error: String(error) });
