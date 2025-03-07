@@ -8,6 +8,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { z } from "zod";
 
+// Componentes UI
 import {
   Table,
   TableBody,
@@ -45,50 +46,37 @@ import { PlusCircle, Pencil, Trash } from "lucide-react";
 interface City {
   id: number;
   name: string;
+  province_id: number;
   code: string;
-  type: 'city' | 'municipality';
-  provinceId: number;
-  municipality_id?: number;
+  type: string;
+  municipality_id: number | null;
 }
 
 export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<number | null>(null);
-  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
   // Obtener provincias
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/provinces"],
   });
 
-  // Obtener ciudades y municipios cuando se selecciona una provincia
+  // Obtener ciudades cuando se selecciona una provincia
   const { data: cities = [], isLoading: isLoadingCities } = useQuery<City[]>({
     queryKey: ["/api/cities", selectedProvinceId],
     queryFn: async () => {
       if (!selectedProvinceId) return [];
-      try {
-        const response = await apiRequest("GET", `/api/cities/${selectedProvinceId}`);
-        if (!response.ok) {
-          throw new Error(`Error fetching cities: ${response.statusText}`);
-        }
-        return response.json();
-      } catch (error) {
-        console.error("Error loading cities:", error);
-        toast({
-          variant: "destructive",
-          title: t("error"),
-          description: "Error al cargar las ciudades y municipios"
-        });
-        return [];
+      const response = await apiRequest("GET", `/api/cities/${selectedProvinceId}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching cities: ${response.statusText}`);
       }
+      return response.json();
     },
     enabled: !!selectedProvinceId,
   });
-
 
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -102,16 +90,15 @@ export default function Customers() {
       name: "",
       businessName: "",
       email: "",
+      phone: "",
       street: "",
       houseNumber: "",
-      phone: "",
       sectorId: undefined,
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
-      console.log("Enviando datos:", data); // Para debug
       const res = await apiRequest("POST", "/api/customers", data);
       return res.json();
     },
@@ -125,7 +112,6 @@ export default function Customers() {
       setIsDialogOpen(false);
       setSelectedProvinceId(null);
       setSelectedMunicipalityId(null);
-      setSelectedCityId(null);
     },
     onError: (error) => {
       toast({
@@ -144,18 +130,17 @@ export default function Customers() {
     return <div className="p-8">Loading...</div>;
   }
 
-  // Filtrar municipios y distritos
-  const municipalities = cities.filter(city =>
-    city.code.endsWith('-M') &&
-    city.provinceId === selectedProvinceId
+  // Filtrar municipios (type='municipality')
+  const municipalities = cities.filter(city => 
+    city.type === 'municipality' && 
+    city.province_id === selectedProvinceId
   );
 
-  const districts = cities.filter(city => {
-    if (!selectedMunicipalityId) return false;
-    const municipalityCode = municipalities.find(m => m.id === selectedMunicipalityId)?.code;
-    if (!municipalityCode) return false;
-    return city.code.endsWith('-C') && city.code.startsWith(municipalityCode.slice(0, -2));
-  });
+  // Filtrar distritos municipales (type='city')
+  const districts = cities.filter(city => 
+    city.type === 'city' && 
+    city.municipality_id === selectedMunicipalityId
+  );
 
   return (
     <div className="space-y-6">
@@ -182,7 +167,7 @@ export default function Customers() {
                       <FormItem>
                         <FormLabel>{t("name")}</FormLabel>
                         <FormControl>
-                          <Input {...field} className="h-8" />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -197,7 +182,7 @@ export default function Customers() {
                         <FormItem>
                           <FormLabel>{t("businessName")}</FormLabel>
                           <FormControl>
-                            <Input {...field} value={field.value || ''} className="h-8" />
+                            <Input {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -211,7 +196,7 @@ export default function Customers() {
                         <FormItem>
                           <FormLabel>{t("phone")}</FormLabel>
                           <FormControl>
-                            <Input {...field} className="h-8" />
+                            <Input {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -226,7 +211,7 @@ export default function Customers() {
                       <FormItem>
                         <FormLabel>{t("email")}</FormLabel>
                         <FormControl>
-                          <Input type="email" {...field} value={field.value || ''} className="h-8" />
+                          <Input type="email" {...field} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -242,21 +227,18 @@ export default function Customers() {
                       <Select
                         onValueChange={(value) => {
                           const numValue = parseInt(value);
-                          console.log("Provincia seleccionada:", numValue);
                           setSelectedProvinceId(numValue);
                           setSelectedMunicipalityId(null);
-                          setSelectedCityId(null);
-                          form.setValue("sectorId", undefined);
                         }}
                         value={selectedProvinceId?.toString()}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-8">
+                          <SelectTrigger>
                             <SelectValue placeholder={t("selectProvince")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {provinces?.map((province: any) => (
+                          {provinces.map((province: any) => (
                             <SelectItem key={province.id} value={province.id.toString()}>
                               {province.name}
                             </SelectItem>
@@ -270,16 +252,13 @@ export default function Customers() {
                       <Select
                         onValueChange={(value) => {
                           const numValue = parseInt(value);
-                          console.log("Municipio seleccionado:", numValue);
                           setSelectedMunicipalityId(numValue);
-                          setSelectedCityId(null);
-                          form.setValue("sectorId", undefined);
                         }}
                         value={selectedMunicipalityId?.toString()}
                         disabled={!selectedProvinceId || isLoadingCities}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-8">
+                          <SelectTrigger>
                             <SelectValue placeholder={t("selectMunicipality")} />
                           </SelectTrigger>
                         </FormControl>
@@ -296,17 +275,10 @@ export default function Customers() {
                     <FormItem>
                       <FormLabel>{t("districtMunicipality")}</FormLabel>
                       <Select
-                        onValueChange={(value) => {
-                          const numValue = parseInt(value);
-                          console.log("Distrito Municipal seleccionado:", numValue);
-                          setSelectedCityId(numValue);
-                          form.setValue("cityId", numValue);
-                        }}
-                        value={selectedCityId?.toString()}
                         disabled={!selectedMunicipalityId || isLoadingCities}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-8">
+                          <SelectTrigger>
                             <SelectValue placeholder={t("selectDistrict")} />
                           </SelectTrigger>
                         </FormControl>
@@ -320,7 +292,6 @@ export default function Customers() {
                       </Select>
                     </FormItem>
 
-
                     <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={form.control}
@@ -329,7 +300,7 @@ export default function Customers() {
                           <FormItem>
                             <FormLabel>{t("street")}</FormLabel>
                             <FormControl>
-                              <Input {...field} className="h-8" />
+                              <Input {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -343,7 +314,7 @@ export default function Customers() {
                           <FormItem>
                             <FormLabel>{t("houseNumber")}</FormLabel>
                             <FormControl>
-                              <Input {...field} className="h-8" />
+                              <Input {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -355,7 +326,7 @@ export default function Customers() {
 
                 <Button
                   type="submit"
-                  className="w-full h-8"
+                  className="w-full"
                   disabled={createMutation.isPending}
                 >
                   {createMutation.isPending ? t("saving") : t("save")}
