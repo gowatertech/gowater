@@ -149,7 +149,7 @@ export default function Customers() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
-      console.log("Actualizando cliente con datos:", data);
+      console.log("Iniciando actualización de cliente:", data.id);
       const formData = new FormData();
 
       // Añadir campos actualizados
@@ -175,7 +175,11 @@ export default function Customers() {
 
       // Añadir el logo si ha sido actualizado
       if (data.logo instanceof File) {
-        console.log("Añadiendo nuevo logo al FormData");
+        console.log("Añadiendo nuevo logo al FormData:", {
+          name: data.logo.name,
+          type: data.logo.type,
+          size: data.logo.size
+        });
         formData.append('logo', data.logo);
       }
 
@@ -191,9 +195,23 @@ export default function Customers() {
         const error = await response.json();
         throw new Error(error.message || 'Error al actualizar el cliente');
       }
-      return response.json();
+
+      const result = await response.json();
+      console.log("Respuesta de actualización recibida:", {
+        id: result.id,
+        hasLogo: !!result.logo,
+        logoLength: result.logo?.length
+      });
+
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Actualizando cache con nuevo cliente:", {
+        id: data.id,
+        hasLogo: !!data.logo,
+        logoLength: data.logo?.length
+      });
+
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({
         title: "Éxito",

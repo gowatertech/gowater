@@ -405,42 +405,39 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/customers/:id", upload.single('logo'), async (req: MulterRequest, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      console.log("Datos recibidos en la actualización:", req.body);
-      console.log("Archivo recibido:", {
-        fieldname: req.file?.fieldname,
-        originalname: req.file?.originalname,
-        mimetype: req.file?.mimetype,
-        size: req.file?.size,
-        buffer: req.file?.buffer ? 'Buffer presente' : 'Sin buffer'
+      console.log("Iniciando actualización de cliente:", customerId, {
+        hasFile: !!req.file,
+        fields: Object.keys(req.body)
       });
 
-      // Preparar los datos para actualizar
       let updateData: any = { ...req.body };
 
-      // Solo actualizar el logo si se recibió un archivo nuevo
       if (req.file) {
+        console.log("Procesando nuevo archivo de logo:", {
+          originalname: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+          bufferLength: req.file.buffer.length
+        });
+
         if (!req.file.buffer) {
           throw new Error('Buffer de archivo no válido');
         }
 
-        // Verificar el tipo MIME
         if (!req.file.mimetype.startsWith('image/')) {
           throw new Error('El archivo debe ser una imagen');
         }
 
-        // Convertir a base64 incluyendo el tipo MIME
         const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-        console.log("Logo convertido a base64:", {
+        console.log("Logo procesado:", {
           length: base64Image.length,
-          preview: base64Image.substring(0, 50) + '...',
-          mimeType: req.file.mimetype
+          preview: base64Image.substring(0, 50) + '...'
         });
 
         updateData.logo = base64Image;
-        console.log("Nuevo logo recibido y procesado");
       } else {
         delete updateData.logo;
-        console.log("No se recibió nuevo logo, manteniendo el existente");
+        console.log("No se recibió nuevo logo");
       }
 
       // Convertir campos numéricos
@@ -448,7 +445,6 @@ export async function registerRoutes(app: Express) {
       if (updateData.municipalityid) updateData.municipalityid = parseInt(updateData.municipalityid);
       if (updateData.zoneid) updateData.zoneid = parseInt(updateData.zoneid);
 
-      // Remover campos undefined o vacíos
       const cleanedData = Object.fromEntries(
         Object.entries(updateData).filter(([_, value]) => value !== undefined && value !== '')
       );
@@ -458,7 +454,7 @@ export async function registerRoutes(app: Express) {
         logo: cleanedData.logo ? 'BASE64_DATA' : 'NO_CHANGE'
       });
 
-      // Verificar datos actuales antes de actualizar
+      // Verificar cliente actual
       const [currentCustomer] = await db
         .select()
         .from(customers)
@@ -468,20 +464,23 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
 
+      console.log("Cliente actual:", {
+        id: currentCustomer.id,
+        hasLogo: !!currentCustomer.logo,
+        logoLength: currentCustomer.logo?.length
+      });
+
       const [updatedCustomer] = await db
         .update(customers)
         .set(cleanedData)
         .where(eq(customers.id, customerId))
         .returning();
 
-      // Verificar la actualización
-      console.log("Verificación post-actualización:", {
+      console.log("Cliente actualizado:", {
         id: updatedCustomer.id,
-        hasLogoBeforeUpdate: !!currentCustomer?.logo,
-        hasLogoAfterUpdate: !!updatedCustomer.logo,
+        hasLogo: !!updatedCustomer.logo,
         logoLength: updatedCustomer.logo?.length,
-        logoChanged: currentCustomer?.logo !== updatedCustomer.logo,
-        logoPreview: updatedCustomer.logo ? updatedCustomer.logo.substring(0, 50) + '...' : null
+        changed: currentCustomer.logo !== updatedCustomer.logo
       });
 
       res.json(updatedCustomer);
