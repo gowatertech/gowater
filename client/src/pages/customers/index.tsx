@@ -87,13 +87,24 @@ export default function Customers() {
       creditlimit: "0.00",
       provinceid: undefined,
       municipalityid: undefined,
-      logo: "",
+      logo: undefined,
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
-      const res = await apiRequest("POST", "/api/customers", data);
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined) {
+          if (key === 'logo' && value instanceof File) {
+            formData.append(key, value);
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      const res = await apiRequest("POST", "/api/customers", formData); // Use formData here
       return res.json();
     },
     onSuccess: () => {
@@ -229,11 +240,21 @@ export default function Customers() {
                   <FormField
                     control={form.control}
                     name="logo"
-                    render={({ field }) => (
+                    render={({ field: { value, onChange, ...field } }) => (
                       <FormItem>
                         <FormLabel>Logo</FormLabel>
                         <FormControl>
-                          <Input {...field} type="file" accept="image/*" />
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                onChange(file);
+                              }
+                            }}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
