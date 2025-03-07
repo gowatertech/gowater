@@ -1,11 +1,10 @@
-import { Express } from "express";
+import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { zones, rutas, users } from "@shared/schema";
+import { zones, routes, users, insertZoneSchema, insertRouteSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
-import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from './services/routeOptimizer';
 
 // Almacenar las conexiones activas de los conductores
 const driverConnections = new Map<number, WebSocket>();
@@ -16,16 +15,15 @@ export async function registerRoutes(app: Express) {
   // Configurar WebSocket Server
   const wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/backend-ws'
+    path: '/ws'
   });
 
-  wss.on('connection', (ws, req) => {
-    console.log('Nueva conexión WebSocket desde:', req.socket.remoteAddress);
+  wss.on('connection', (ws) => {
+    console.log('Nueva conexión WebSocket');
 
     ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
-        console.log('Mensaje WebSocket recibido:', data);
 
         if (data.type === 'driver_location') {
           // Almacenar la conexión del conductor
@@ -55,47 +53,108 @@ export async function registerRoutes(app: Express) {
         }
       } catch (error) {
         console.error('Error procesando mensaje WebSocket:', error);
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Error procesando el mensaje'
-        }));
       }
     });
 
-    ws.on('error', (error) => {
-      console.error('Error en la conexión WebSocket:', error);
-    });
-
     ws.on('close', () => {
-      console.log('Conexión WebSocket cerrada');
       // Eliminar la conexión cuando se cierra
       driverConnections.forEach((connection, driverId) => {
         if (connection === ws) {
-          console.log('Eliminando conexión del conductor:', driverId);
           driverConnections.delete(driverId);
         }
       });
     });
   });
 
-  // Usuarios
-  app.get("/api/usuarios", async (req, res) => {
+  // Zonas
+  app.get("/api/zones", async (req, res) => {
     try {
+      const allZones = await db
+        .select()
+        .from(zones);
+
+      console.log("Retrieved zones:", allZones);
+      res.json(allZones);
+    } catch (error) {
+      console.error("Error al obtener zonas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/zones", async (req, res) => {
+    console.log("Creating zone with data:", req.body);
+
+    const result = insertZoneSchema.safeParse(req.body);
+    if (!result.success) {
+      console.error("Error de validación:", result.error.format());
+      return res.status(400).json({ error: result.error.format() });
+    }
+
+    try {
+      // Validar el formato de las coordenadas antes de insertar
+      const coordinates = result.data.coordinates;
+      if (!Array.isArray(coordinates) || coordinates.length < 3) {
+        throw new Error("Se requieren al menos 3 puntos para crear una zona");
+      }
+
+      // Validar el formato de cada coordenada
+      for (const coord of coordinates) {
+        if (!/^-?\d+\.\d+,-?\d+\.\d+$/.test(coord)) {
+          throw new Error(`Formato de coordenada inválido: ${coord}`);
+        }
+      }
+
+      const [zone] = await db
+        .insert(zones)
+        .values(result.data)
+        .returning();
+
+      console.log("Created zone:", zone);
+      res.json(zone);
+    } catch (error) {
+      console.error("Error al crear zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.delete("/api/zones/:id", async (req, res) => {
+    try {
+      const [deletedZone] = await db
+        .delete(zones)
+        .where(eq(zones.id, parseInt(req.params.id)))
+        .returning();
+
+      if (!deletedZone) {
+        return res.status(404).json({ error: "Zona no encontrada" });
+      }
+
+      console.log("Deleted zone:", deletedZone);
+      res.json(deletedZone);
+    } catch (error) {
+      console.error("Error al eliminar zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Users
+  app.get("/api/users", async (req, res) => {
+    try {
+      // Si se especifica un rol, filtrar por ese rol
       const role = req.query.role as string;
-      let listaUsuarios;
+      let usersList;
 
       if (role) {
-        listaUsuarios = await db
+        usersList = await db
           .select()
           .from(users)
           .where(eq(users.role, role));
       } else {
-        listaUsuarios = await db
+        usersList = await db
           .select()
           .from(users);
       }
 
-      res.json(listaUsuarios);
+      res.json(usersList);
     } catch (error) {
       console.error("Error al obtener usuarios:", error);
       res.status(500).json({ error: String(error) });
@@ -103,60 +162,49 @@ export async function registerRoutes(app: Express) {
   });
 
   // Rutas
-  app.get("/api/rutas", async (req, res) => {
+  app.get("/api/routes", async (req, res) => {
     try {
-      const todasLasRutas = await db
+      const allRoutes = await db
         .select()
-        .from(rutas);
+        .from(routes);
 
-      console.log("Rutas recuperadas:", todasLasRutas);
-      res.json(todasLasRutas);
+      console.log("Retrieved routes:", allRoutes);
+      res.json(allRoutes);
     } catch (error) {
       console.error("Error al obtener rutas:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
-  // Obtener ubicación actual de una ruta
-  app.get("/api/rutas/:id/ubicacion", async (req, res) => {
-    try {
-      const ruta = await storage.getRuta(parseInt(req.params.id));
-      if (!ruta) {
-        return res.status(404).json({ error: "Ruta no encontrada" });
-      }
-
-      res.json({
-        ubicacionActual: ruta.ubicacionActual,
-        ultimaActualizacion: ruta.ultimaActualizacion
-      });
-    } catch (error) {
-      console.error("Error al obtener ubicación de ruta:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  app.post("/api/rutas", async (req, res) => {
-    console.log("Creando ruta con datos:", req.body);
+  app.post("/api/routes", async (req, res) => {
+    console.log("Creating route with data:", req.body);
 
     try {
-      const datosRuta = {
+      const routeData = {
         ...req.body,
-        fecha: new Date(req.body.fecha),
-        conductorId: Number(req.body.conductorId),
-        camionId: 1,
-        estado: "pendiente",
-        completada: false
+        date: new Date(req.body.date),
+        driverId: Number(req.body.driverId),
+        truckId: 1, // Valor temporal para pruebas
+        status: "pending",
+        isCompleted: false
       };
 
-      console.log("Datos procesados de la ruta:", datosRuta);
+      console.log("Processed route data:", routeData);
 
-      const [ruta] = await db
-        .insert(rutas)
-        .values(datosRuta)
+      const result = insertRouteSchema.safeParse(routeData);
+
+      if (!result.success) {
+        console.error("Validation error:", result.error.format());
+        return res.status(400).json({ error: result.error.format() });
+      }
+
+      const [route] = await db
+        .insert(routes)
+        .values(result.data)
         .returning();
 
-      console.log("Ruta creada:", ruta);
-      res.json(ruta);
+      console.log("Created route:", route);
+      res.json(route);
     } catch (error) {
       console.error("Error al crear ruta:", error);
       res.status(500).json({ error: String(error) });

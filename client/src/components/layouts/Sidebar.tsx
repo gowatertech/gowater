@@ -31,10 +31,10 @@ const menuColors = {
 // Actualizado con submenús
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Panel", href: "/" },
-  { icon: FileText, label: "Facturación", href: "/facturacion" },
-  { icon: FileText, label: "Pagos", href: "/pagos" },
-  { icon: Users, label: "Usuarios", href: "/usuarios" },
-  { icon: Users, label: "Clientes", href: "/clientes" },
+  { icon: FileText, label: "Facturación", href: "/billing" },
+  { icon: FileText, label: "Pagos", href: "/payments" },
+  { icon: Users, label: "Usuarios", href: "/users" },
+  { icon: Users, label: "Clientes", href: "/customers" },
   {
     icon: Package,
     label: "Inventario",
@@ -44,11 +44,11 @@ const sidebarItems = [
       { label: "Carga de Productos", href: "/inventario/carga" },
     ],
   },
-  { icon: Route, label: "Rutas", href: "/rutas" },
-  { icon: Truck, label: "Vehículos", href: "/vehiculos" },
-  { icon: FileText, label: "Pedidos", href: "/pedidos" },
-  { icon: FileText, label: "Reportes", href: "/reportes" },
-  { icon: Settings, label: "Ajustes", href: "/ajustes" },
+  { icon: Route, label: "Rutas", href: "/routes" },
+  { icon: Truck, label: "Vehículos", href: "/trucks" },
+  { icon: FileText, label: "Pedidos", href: "/orders" },
+  { icon: FileText, label: "Reportes", href: "/reports" },
+  { icon: Settings, label: "Ajustes", href: "/settings" },
 ];
 
 import {

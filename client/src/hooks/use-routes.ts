@@ -1,22 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { Ruta } from "@shared/schema";
+import type { Route } from "@shared/schema";
 
-export function useRutas() {
+export function useRoutes() {
   const { 
-    data: rutas, 
-    isLoading: cargando, 
+    data: routes, 
+    isLoading: loading, 
     error 
-  } = useQuery<Ruta[]>({
-    queryKey: ["/api/rutas"],
+  } = useQuery<Route[]>({
+    queryKey: ["/api/routes"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/rutas");
+      const response = await apiRequest("GET", "/api/routes");
       return response.json();
     }
   });
 
-  return { rutas, cargando, error };
+  return { routes, loading, error };
 }
-
-// Mantenemos la función useRoutes como alias para compatibilidad
-export const useRoutes = useRutas;

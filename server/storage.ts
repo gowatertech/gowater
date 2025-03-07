@@ -1,14 +1,14 @@
 import {
-  users, customers, products, trucks, rutas, orders, orderItems, settings,
+  users, customers, products, trucks, routes, orders, orderItems, settings,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
   type Truck, type InsertTruck,
-  type Ruta, type InsertRuta,
+  type Route, type InsertRoute,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
   type Settings, type InsertSettings,
-  type CustomerOrders, type InsertCustomerOrders,
+  customerOrders, type CustomerOrders, type InsertCustomerOrders,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -46,13 +46,13 @@ export interface IStorage {
   listTrucks(): Promise<Truck[]>;
   updateTruckStatus(id: number, status: string): Promise<Truck>;
 
-  // Rutas
-  getRuta(id: number): Promise<Ruta | undefined>;
-  createRuta(ruta: InsertRuta): Promise<Ruta>;
-  listRutas(): Promise<Ruta[]>;
-  updateRutaEstado(id: number, estado: string, ubicacionActual?: string): Promise<Ruta>;
-  updateRutaProgreso(id: number, ubicacionActual: string, ultimaActualizacion: Date): Promise<Ruta>;
-  updatePedidosHorasEntrega(rutaId: number, updates: Partial<Order>[]): Promise<Order[]>;
+  // Routes
+  getRoute(id: number): Promise<Route | undefined>;
+  createRoute(route: InsertRoute): Promise<Route>;
+  listRoutes(): Promise<Route[]>;
+  updateRouteStatus(id: number, status: string, currentLocation?: string): Promise<Route>;
+  updateRouteProgress(id: number, currentLocation: string, lastUpdate: Date): Promise<Route>;
+  updateOrderDeliveryTimes(routeId: number, updates: Partial<Order>[]): Promise<Order[]>;
 
   // Orders
   getOrder(id: number): Promise<Order | undefined>;
@@ -73,7 +73,7 @@ export interface IStorage {
   createCustomerOrder(customerOrder: InsertCustomerOrders): Promise<CustomerOrders>;
   updateCustomerOrderStats(customerId: number): Promise<CustomerOrders>;
 
-  // Ubicación del conductor
+  // Métodos para el tracking de ubicación
   updateDriverLocation(driverId: number, location: DriverLocation): Promise<User>;
   getDriverLocation(driverId: number): Promise<DriverLocation | null>;
 }
@@ -212,95 +212,75 @@ export class DatabaseStorage implements IStorage {
     return updatedTruck;
   }
 
-  // Rutas
-  async getRuta(id: number): Promise<Ruta | undefined> {
-    const [ruta] = await db.select().from(rutas).where(eq(rutas.id, id));
-    return ruta;
+  // Routes
+  async getRoute(id: number): Promise<Route | undefined> {
+    const [route] = await db.select().from(routes).where(eq(routes.id, id));
+    return route;
   }
 
-  async createRuta(ruta: InsertRuta): Promise<Ruta> {
-    try {
-      const [newRuta] = await db
-        .insert(rutas)
-        .values({
-          nombre: ruta.nombre,
-          conductorId: ruta.conductorId,
-          camionId: ruta.camionId,
-          estado: ruta.estado,
-          fecha: new Date(ruta.fecha),
-          horaInicio: ruta.horaInicio ? new Date(ruta.horaInicio) : null,
-          horaFin: ruta.horaFin ? new Date(ruta.horaFin) : null,
-          duracionEstimada: ruta.duracionEstimada,
-          duracionReal: ruta.duracionReal,
-          distanciaTotal: ruta.distanciaTotal,
-          ingresoTotal: ruta.ingresoTotal,
-          secuenciaEntrega: ruta.secuenciaEntrega || [],
-          ubicacionActual: ruta.ubicacionActual,
-          ultimaActualizacion: ruta.ultimaActualizacion ? new Date(ruta.ultimaActualizacion) : null,
-          inicioConductor: ruta.inicioConductor ? new Date(ruta.inicioConductor) : null,
-          completada: ruta.completada || false,
-          paradas: ruta.paradas || []
-        })
-        .returning();
-      return newRuta;
-    } catch (error) {
-      console.error('Error en createRuta:', error);
-      throw error;
-    }
+  async createRoute(route: InsertRoute): Promise<Route> {
+    const routeData = {
+      ...route,
+      startTime: route.startTime ? new Date(route.startTime) : null,
+      endTime: route.endTime ? new Date(route.endTime) : null,
+      lastUpdate: route.lastUpdate ? new Date(route.lastUpdate) : null,
+    };
+    const [newRoute] = await db.insert(routes).values(routeData).returning();
+    return newRoute;
   }
 
-  async listRutas(): Promise<Ruta[]> {
-    return db.select().from(rutas);
+  async listRoutes(): Promise<Route[]> {
+    return db.select().from(routes);
   }
 
-  async updateRutaEstado(
+  async updateRouteStatus(
     id: number,
-    estado: "pendiente" | "en_progreso" | "completada",
-    ubicacionActual?: string
-  ): Promise<Ruta> {
-    const updates: Partial<Ruta> = {
-      estado,
-      ultimaActualizacion: new Date()
+    status: "pending" | "in_progress" | "completed",
+    currentLocation?: string
+  ): Promise<Route> {
+    const updates: Partial<Route> = {
+      status,
+      lastUpdate: new Date()
     };
 
-    if (ubicacionActual) {
-      updates.ubicacionActual = ubicacionActual;
+    if (currentLocation) {
+      updates.currentLocation = currentLocation;
     }
 
-    if (estado === "en_progreso" && !updates.horaInicio) {
-      updates.horaInicio = new Date();
-    } else if (estado === "completada" && !updates.horaFin) {
-      updates.horaFin = new Date();
+    if (status === "in_progress" && !updates.startTime) {
+      updates.startTime = new Date();
+    } else if (status === "completed" && !updates.endTime) {
+      updates.endTime = new Date();
     }
 
-    const [ruta] = await db
-      .update(rutas)
+    const [route] = await db
+      .update(routes)
       .set(updates)
-      .where(eq(rutas.id, id))
+      .where(eq(routes.id, id))
       .returning();
 
-    return ruta;
+    return route;
   }
 
-  async updateRutaProgreso(
+  async updateRouteProgress(
     id: number,
-    ubicacionActual: string,
-    ultimaActualizacion: Date
-  ): Promise<Ruta> {
-    const [ruta] = await db
-      .update(rutas)
+    currentLocation: string,
+    lastUpdate: Date
+  ): Promise<Route> {
+    const [route] = await db
+      .update(routes)
       .set({
-        ubicacionActual,
-        ultimaActualizacion
+        currentLocation,
+        lastUpdate
       })
-      .where(eq(rutas.id, id))
+      .where(eq(routes.id, id))
       .returning();
 
-    return ruta;
+    return route;
   }
 
-  async updatePedidosHorasEntrega(
-    rutaId: number,
+  async updateOrderDeliveryTimes(
+    routeId: number,
     updates: Partial<Order>[]
   ): Promise<Order[]> {
     const updatedOrders: Order[] = [];
