@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { zones, routes, insertZoneSchema, insertRouteSchema } from "@shared/schema";
+import { zones, routes, users, insertZoneSchema, insertRouteSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 
@@ -132,6 +132,31 @@ export async function registerRoutes(app: Express) {
       res.json(deletedZone);
     } catch (error) {
       console.error("Error al eliminar zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Users
+  app.get("/api/users", async (req, res) => {
+    try {
+      // Si se especifica un rol, filtrar por ese rol
+      const role = req.query.role as string;
+      let usersList;
+
+      if (role) {
+        usersList = await db
+          .select()
+          .from(users)
+          .where(eq(users.role, role));
+      } else {
+        usersList = await db
+          .select()
+          .from(users);
+      }
+
+      res.json(usersList);
+    } catch (error) {
+      console.error("Error al obtener usuarios:", error);
       res.status(500).json({ error: String(error) });
     }
   });
