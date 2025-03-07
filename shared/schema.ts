@@ -1,5 +1,4 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
@@ -23,34 +22,19 @@ export const users = pgTable("users", {
 });
 
 // Schema simplificado para usuarios
-export const insertUserSchema = createInsertSchema(users)
-  .extend({
-    role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
-    phone: z.string().optional(),
-    license: z.string().optional(),
-    licenseExpiry: z.string().optional(),
-    emergencyContact: z.string().optional(),
-    currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-    active: z.boolean().default(true),
-  })
-  .superRefine((data, ctx) => {
-    if (data.role === 'driver') {
-      if (!data.license) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Número de licencia requerido para conductores",
-          path: ["license"]
-        });
-      }
-      if (!data.licenseExpiry) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Fecha de vencimiento de licencia requerida para conductores",
-          path: ["licenseExpiry"]
-        });
-      }
-    }
-  });
+export const insertUserSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  username: z.string().min(1, "El nombre de usuario es requerido"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
+  phone: z.string().optional(),
+  license: z.string().optional(),
+  licenseExpiry: z.string().optional(),
+  emergencyContact: z.string().optional(),
+  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+  active: z.boolean().default(true),
+});
+
 
 // Provincias, Ciudades y Sectores
 export const provinces = pgTable("provinces", {
@@ -80,7 +64,6 @@ export const municipalitiesRelations = relations(municipalities, ({ one }) => ({
   }),
 }));
 
-
 export const cities = pgTable("cities", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -95,21 +78,42 @@ export const sectors = pgTable("sectors", {
   code: text("code").notNull().unique(), // Código único del sector
 });
 
-// Updated customers table with new fields
+// Customers table
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
-  businessName: text("business_name").notNull(),
-  managerName: text("manager_name").notNull(),
-  logo: text("logo"),
+  businessname: text("businessname").notNull(),
+  managername: text("managername").notNull(),
+  rnc: text("rnc"),
+  tax: text("tax", { enum: ["S", "N"] }).notNull(),
   phone: text("phone").notNull(),
   street: text("street").notNull(),
-  streetNumber: text("street_number").notNull(),
-  provinceId: integer("province_id").notNull().references(() => provinces.id),
-  municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
+  streetnumber: text("streetnumber").notNull(),
+  provinceid: integer("provinceid").notNull().references(() => provinces.id),
+  municipalityid: integer("municipalityid").notNull().references(() => municipalities.id),
   country: text("country").notNull().default("República Dominicana"),
   reference: text("reference"),
-  creditLimit: decimal("credit_limit", { precision: 10, scale: 2 }).notNull().default("0"),
+  creditlimit: decimal("creditlimit", { precision: 10, scale: 2 }).notNull().default("0"),
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
+  logo: text("logo"),
+});
+
+// Customer insert schema
+export const insertCustomerSchema = z.object({
+  businessname: z.string().min(1, "El nombre del negocio es requerido"),
+  managername: z.string().min(1, "El nombre del encargado es requerido"),
+  rnc: z.string().optional(),
+  tax: z.enum(["S", "N"], {
+    required_error: "Debe especificar si aplica impuestos (S/N)",
+  }),
+  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  street: z.string().min(1, "La calle es requerida"),
+  streetnumber: z.string().min(1, "El número es requerido"),
+  provinceid: z.number({ required_error: "La provincia es requerida" }),
+  municipalityid: z.number({ required_error: "El municipio es requerido" }),
+  country: z.string().default("República Dominicana"),
+  reference: z.string().optional(),
+  creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  logo: z.string().optional(),
 });
 
 // Products
@@ -258,7 +262,6 @@ export const zones = pgTable("zones", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-
 // Invoices (Facturas)
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
@@ -281,50 +284,41 @@ export const invoiceItems = pgTable("invoice_items", {
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
 });
 
-// Create insert schemas
-export const insertCustomerSchema = createInsertSchema(customers, {
-  businessName: z.string().min(1, "El nombre del negocio es requerido"),
-  managerName: z.string().min(1, "El nombre del encargado es requerido"),
-  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  street: z.string().min(1, "La calle es requerida"),
-  streetNumber: z.string().min(1, "El número es requerido"),
-  provinceId: z.number({ required_error: "La provincia es requerida" }),
-  municipalityId: z.number({ required_error: "El municipio es requerido" }),
-  country: z.string().default("República Dominicana"),
-  reference: z.string().optional(),
-  creditLimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-  logo: z.string().optional(),
-}).strict();
-export const insertProductSchema = createInsertSchema(products);
-export const insertTruckSchema = createInsertSchema(trucks);
-export const insertRouteSchema = createInsertSchema(routes)
-  .extend({
-    name: z.string().min(1, "El nombre es requerido"),
-    driverId: z.number({ required_error: "Se requiere un conductor" }),
-    date: z.coerce.date(),
-    truckId: z.number().default(1),
-    zoneId: z.number({ required_error: "Se requiere una zona" }), // Validación para zoneId
-    status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
-    isCompleted: z.boolean().default(false),
-    startTime: z.string().datetime().optional(),
-    endTime: z.string().datetime().optional(),
-    estimatedDuration: z.number().optional(),
-    actualDuration: z.number().optional(),
-    totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
-    totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
-    deliverySequence: z.array(z.string()).optional(),
-    currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-    lastUpdate: z.string().datetime().optional(),
-    driverStartedAt: z.string().datetime().optional(),
-    stops: z.array(z.string()).optional(),
-  })
-  .transform((data) => ({
-    ...data,
-    truckId: data.truckId || 1,
-    status: data.status || "pending",
-    isCompleted: data.isCompleted ?? false
-  }));
-export const insertOrderSchema = createInsertSchema(orders, {
+export const insertProductSchema = z.object({
+  name: z.string().min(1, "El nombre del producto es requerido"),
+  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+  stock: z.number().default(0),
+  icon: z.string().optional(),
+});
+
+export const insertTruckSchema = z.object({
+  plate: z.string().min(1, "La placa es requerida"),
+  capacity: z.number({ required_error: "La capacidad es requerida" }),
+  status: z.enum(["available", "on_route", "maintenance"]),
+});
+
+export const insertRouteSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  driverId: z.number({ required_error: "Se requiere un conductor" }),
+  date: z.date(),
+  truckId: z.number().default(1),
+  zoneId: z.number({ required_error: "Se requiere una zona" }), // Validación para zoneId
+  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+  isCompleted: z.boolean().default(false),
+  startTime: z.string().datetime().optional(),
+  endTime: z.string().datetime().optional(),
+  estimatedDuration: z.number().optional(),
+  actualDuration: z.number().optional(),
+  totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  deliverySequence: z.array(z.string()).optional(),
+  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+  lastUpdate: z.string().datetime().optional(),
+  driverStartedAt: z.string().datetime().optional(),
+  stops: z.array(z.string()).optional(),
+});
+
+export const insertOrderSchema = z.object({
   customerId: z.number(),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "in_transit", "delivered", "cancelled"]),
@@ -337,15 +331,43 @@ export const insertOrderSchema = createInsertSchema(orders, {
   deliveryCoordinates: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   notes: z.string().optional(),
 }).strict();
-export const insertOrderItemSchema = createInsertSchema(orderItems);
-export const insertSettingsSchema = createInsertSchema(settings);
-export const insertCustomerOrdersSchema = createInsertSchema(customerOrders);
-export const insertZoneSchema = createInsertSchema(zones, {
+
+export const insertOrderItemSchema = z.object({
+  orderId: z.number(),
+  productId: z.number(),
+  quantity: z.number(),
+  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+});
+
+export const insertSettingsSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  address: z.string().min(1, "La dirección es requerida"),
+  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  logo: z.string().optional(),
+  driverCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  assistantCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+});
+
+export const insertCustomerOrdersSchema = z.object({
+  customerId: z.number(),
+  orderType: z.enum(["regular", "wholesale", "special"]),
+  frequency: z.enum(["daily", "weekly", "monthly", "occasional"]),
+  lastOrderDate: z.string().datetime().optional(),
+  totalOrders: z.number().default(0),
+  averageOrderValue: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  preferredPaymentMethod: z.enum(["cash", "check", "credit_card"]).optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
+  notes: z.string().optional(),
+});
+
+export const insertZoneSchema = z.object({
+  name: z.string().min(1, "El nombre de la zona es requerido"),
+  color: z.string().min(1, "El color es requerido"),
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
 // Schema para pagos
-export const insertPaymentSchema = createInsertSchema(payments, {
+export const insertPaymentSchema = z.object({
   invoiceId: z.number(),
   customerId: z.number(),
   amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
@@ -355,31 +377,59 @@ export const insertPaymentSchema = createInsertSchema(payments, {
 });
 
 // Agregar los schemas de inserción
-export const insertBillSchema = createInsertSchema(bills, {
+export const insertBillSchema = z.object({
+  customerId: z.number(),
+  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "paid", "cancelled"]),
   paymentMethod: z.enum(["cash", "credit", "card"]),
   notes: z.string().max(200),
+  date: z.date(),
 });
 
-export const insertBillItemSchema = createInsertSchema(billItems);
+export const insertBillItemSchema = z.object({
+  billId: z.number(),
+  productId: z.number(),
+  quantity: z.number(),
+  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+});
 
 // Schemas para las nuevas tablas
-export const insertInvoiceSchema = createInsertSchema(invoices, {
+export const insertInvoiceSchema = z.object({
+  customerId: z.number(),
+  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "paid", "cancelled"]),
   paymentMethod: z.enum(["cash", "credit", "card"]),
   notes: z.string().max(200).optional(),
+  date: z.date(),
 });
 
-export const insertInvoiceItemSchema = createInsertSchema(invoiceItems);
+export const insertInvoiceItemSchema = z.object({
+  invoiceId: z.number(),
+  productId: z.number(),
+  quantity: z.number(),
+  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+});
 
-export const insertProductionBatchSchema = createInsertSchema(productionBatches);
+export const insertProductionBatchSchema = z.object({
+  productId: z.number(),
+  quantity: z.number(),
+  cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
+  warehouse: z.string(),
+  notes: z.string().optional(),
+});
 
 // Schemas de inserción para los nuevos catálogos
-export const insertProvinceSchema = createInsertSchema(provinces);
-export const insertMunicipalitySchema = createInsertSchema(municipalities, {
-  type: z.enum(["municipality", "district"]),
+export const insertProvinceSchema = z.object({
+  name: z.string().min(1, "El nombre de la provincia es requerido"),
+  code: z.string().min(1, "El código de la provincia es requerido"),
 });
 
+export const insertMunicipalitySchema = z.object({
+  name: z.string().min(1, "El nombre del municipio es requerido"),
+  code: z.string().min(1, "El código del municipio es requerido"),
+  provinceId: z.number({ required_error: "El ID de la provincia es requerido" }),
+  type: z.enum(["municipality", "district"]),
+});
 
 // Export types
 export type User = typeof users.$inferSelect;

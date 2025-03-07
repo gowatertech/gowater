@@ -282,17 +282,19 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: result.error.format() });
       }
 
+      // Mapear los campos en camelCase a los nombres de columnas en snake_case
       const customerData = {
-        // Use the exact field names from schema.ts
-        businessName: result.data.businessName,
-        managerName: result.data.managerName,
+        businessname: result.data.businessName,
+        managername: result.data.managerName,
+        rnc: result.data.rnc,
+        tax: result.data.tax,
         phone: result.data.phone,
         street: result.data.street,
-        streetNumber: result.data.streetNumber,
-        provinceId: result.data.provinceId,
-        municipalityId: result.data.municipalityId,
+        streetnumber: result.data.streetNumber,
+        provinceid: result.data.provinceId,
+        municipalityid: result.data.municipalityId,
         reference: result.data.reference || '',
-        creditLimit: result.data.creditLimit || '0.00',
+        creditlimit: result.data.creditLimit || '0.00',
         balance: '0.00',
         country: result.data.country || 'República Dominicana',
       };

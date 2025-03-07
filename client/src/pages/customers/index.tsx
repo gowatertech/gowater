@@ -43,6 +43,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Eye } from "lucide-react";
 
+type CustomerFormData = z.infer<typeof insertCustomerSchema>;
+
 export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -70,13 +72,13 @@ export default function Customers() {
     queryKey: ["/api/customers"],
   });
 
-  type CustomerFormData = z.infer<typeof insertCustomerSchema>;
-
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       businessName: "",
       managerName: "",
+      rnc: "",
+      tax: undefined,
       phone: "",
       street: "",
       streetNumber: "",
@@ -139,20 +141,6 @@ export default function Customers() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="logo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Logo</FormLabel>
-                      <FormControl>
-                        <Input type="file" accept="image/*" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="businessName"
                   render={({ field }) => (
                     <FormItem>
@@ -181,13 +169,38 @@ export default function Customers() {
 
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="rnc"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
+                      <FormLabel>RNC</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tax"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Aplica Impuestos</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione S/N" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="S">Sí</SelectItem>
+                          <SelectItem value="N">No</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -337,6 +350,8 @@ export default function Customers() {
         <TableHeader>
           <TableRow>
             <TableHead>Nombre del Negocio</TableHead>
+            <TableHead>RNC</TableHead>
+            <TableHead>Impuestos</TableHead>
             <TableHead>Nombre del Encargado</TableHead>
             <TableHead>Teléfono</TableHead>
             <TableHead>Dirección</TableHead>
@@ -349,6 +364,8 @@ export default function Customers() {
           {customers?.map((customer) => (
             <TableRow key={customer.id}>
               <TableCell>{customer.businessName}</TableCell>
+              <TableCell>{customer.rnc}</TableCell>
+              <TableCell>{customer.tax}</TableCell>
               <TableCell>{customer.managerName}</TableCell>
               <TableCell>{customer.phone}</TableCell>
               <TableCell>
