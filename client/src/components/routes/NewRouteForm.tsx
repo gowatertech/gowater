@@ -51,22 +51,29 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
 
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/routes", {
+      console.log("Submitting data:", data);
+      const response = await apiRequest("POST", "/api/routes", {
         ...data,
         date: new Date(data.date),
       });
-      return res.json();
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al crear la ruta');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
       toast({
-        title: t("success"),
         description: t("routeCreated"),
       });
       form.reset();
       onRouteCreated();
     },
     onError: (error: Error) => {
+      console.error("Error creating route:", error);
       toast({
         variant: "destructive",
         title: t("error"),
@@ -75,8 +82,13 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
     },
   });
 
-  const onSubmit = (data: any) => {
-    createRouteMutation.mutate(data);
+  const onSubmit = async (data: any) => {
+    try {
+      console.log("Form data:", data);
+      await createRouteMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("Submit error:", error);
+    }
   };
 
   return (
@@ -136,7 +148,9 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
                   {...field} 
                   value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
                   onChange={(e) => {
-                    field.onChange(new Date(e.target.value));
+                    const date = new Date(e.target.value);
+                    console.log("Selected date:", date);
+                    field.onChange(date);
                   }}
                 />
               </FormControl>
