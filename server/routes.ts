@@ -89,27 +89,6 @@ export async function registerRoutes(app: Express) {
   });
 
   // Zones
-  app.post("/api/zones", async (req, res) => {
-    try {
-      const result = insertZoneSchema.safeParse(req.body);
-      if (!result.success) {
-        console.error("Error de validación:", result.error.format());
-        return res.status(400).json({ error: result.error });
-      }
-
-      const [zone] = await db
-        .insert(zones)
-        .values(result.data)
-        .returning();
-
-      console.log("Zona creada:", zone);
-      res.json(zone);
-    } catch (error) {
-      console.error("Error al crear zona:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
   app.get("/api/zones", async (req, res) => {
     try {
       const allZones = await db
