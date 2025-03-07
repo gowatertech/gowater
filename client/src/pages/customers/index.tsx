@@ -40,11 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  PlusCircle,
-  Pencil,
-  Trash
-} from "lucide-react";
+import { PlusCircle, Pencil, Trash } from "lucide-react";
 
 interface City {
   id: number;
@@ -59,9 +55,9 @@ export default function Customers() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
+  const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<number | null>(null);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
-  // Consultas para cargar los catálogos
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/provinces"],
   });
@@ -92,16 +88,16 @@ export default function Customers() {
   });
 
   const { data: sectors = [], isLoading: isLoadingSectors } = useQuery({
-    queryKey: ["/api/sectors", selectedCityId],
+    queryKey: ["/api/sectors", selectedMunicipalityId],
     queryFn: async () => {
-      if (!selectedCityId) return [];
+      if (!selectedMunicipalityId) return [];
       try {
-        const response = await apiRequest("GET", `/api/sectors/${selectedCityId}`);
+        const response = await apiRequest("GET", `/api/sectors/${selectedMunicipalityId}`);
         if (!response.ok) {
           throw new Error(`Error fetching sectors: ${response.statusText}`);
         }
         const data = await response.json();
-        console.log("Sectores cargados para ciudad", selectedCityId, ":", data);
+        console.log("Sectores cargados para municipio", selectedMunicipalityId, ":", data);
         return data;
       } catch (error) {
         console.error("Error loading sectors:", error);
@@ -113,7 +109,7 @@ export default function Customers() {
         return [];
       }
     },
-    enabled: !!selectedCityId,
+    enabled: !!selectedMunicipalityId,
   });
 
   const { data: customers, isLoading } = useQuery<Customer[]>({
@@ -150,6 +146,7 @@ export default function Customers() {
       form.reset();
       setIsDialogOpen(false);
       setSelectedProvinceId(null);
+      setSelectedMunicipalityId(null);
       setSelectedCityId(null);
     },
     onError: (error) => {
@@ -171,10 +168,12 @@ export default function Customers() {
 
   // Separar ciudades y municipios
   const municipalities = cities.filter(city => city.type === 'municipality');
-  const citiesOnly = cities.filter(city => city.type === 'city');
+  const districtsForMunicipality = cities.filter(city => 
+    city.type === 'city' && selectedMunicipalityId !== null
+  );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{t("customers")}</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -184,73 +183,88 @@ export default function Customers() {
               {t("newCustomer")}
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{t("newCustomer")}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("name")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                <div className="grid gap-3">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("name")}</FormLabel>
+                        <FormControl>
+                          <Input {...field} className="h-8" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="businessName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("businessName")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="businessName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("businessName")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ''} className="h-8" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("email")}</FormLabel>
-                      <FormControl>
-                        <Input type="email" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("phone")}</FormLabel>
+                          <FormControl>
+                            <Input {...field} className="h-8" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-                {/* Nueva sección de dirección */}
-                <div className="space-y-4 border p-4 rounded-lg">
-                  <h3 className="font-medium">{t("address")}</h3>
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("email")}</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} value={field.value || ''} className="h-8" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                  {/* Provincia */}
-                  <div>
-                    <FormLabel>{t("province")}</FormLabel>
+                <div className="space-y-3 border rounded-md p-3">
+                  <h3 className="text-sm font-medium">{t("address")}</h3>
+                  <div className="grid gap-3">
                     <Select
                       onValueChange={(value) => {
                         const numValue = parseInt(value);
-                        console.log("Provincia seleccionada:", numValue); // Debug
+                        console.log("Provincia seleccionada:", numValue);
                         setSelectedProvinceId(numValue);
+                        setSelectedMunicipalityId(null);
                         setSelectedCityId(null);
                         form.setValue("sectorId", undefined);
                       }}
                       value={selectedProvinceId?.toString()}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-8">
                           <SelectValue placeholder={t("selectProvince")} />
                         </SelectTrigger>
                       </FormControl>
@@ -262,23 +276,20 @@ export default function Customers() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
 
-                  {/* Municipio */}
-                  <div>
-                    <FormLabel>{t("municipality")}</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         const numValue = parseInt(value);
-                        console.log("Municipio seleccionado:", numValue); // Debug
-                        setSelectedCityId(numValue);
+                        console.log("Municipio seleccionado:", numValue);
+                        setSelectedMunicipalityId(numValue);
+                        setSelectedCityId(null);
                         form.setValue("sectorId", undefined);
                       }}
-                      value={selectedCityId?.toString()}
+                      value={selectedMunicipalityId?.toString()}
                       disabled={!selectedProvinceId || isLoadingCities}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-8">
                           <SelectValue placeholder={t("selectMunicipality")} />
                         </SelectTrigger>
                       </FormControl>
@@ -290,112 +301,94 @@ export default function Customers() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
 
-                  {/* Ciudad */}
-                  <div>
-                    <FormLabel>{t("city")}</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         const numValue = parseInt(value);
-                        console.log("Ciudad seleccionada:", numValue); // Debug
+                        console.log("Distrito Municipal seleccionado:", numValue);
+                        setSelectedCityId(numValue);
                         form.setValue("cityId", numValue);
                       }}
-                      disabled={!selectedCityId || isLoadingCities}
+                      value={selectedCityId?.toString()}
+                      disabled={!selectedMunicipalityId || isLoadingCities}
                     >
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("selectCity")} />
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder={t("selectDistrict")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {citiesOnly.map((city) => (
+                        {districtsForMunicipality.map((city) => (
                           <SelectItem key={city.id} value={city.id.toString()}>
                             {city.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+
+                    <FormField
+                      control={form.control}
+                      name="sectorId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Select
+                            onValueChange={(value) => field.onChange(parseInt(value))}
+                            value={field.value?.toString()}
+                            disabled={!selectedMunicipalityId || isLoadingSectors}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder={t("selectSector")} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {sectors.map((sector: any) => (
+                                <SelectItem key={sector.id} value={sector.id.toString()}>
+                                  {sector.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={form.control}
+                        name="street"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t("street")}</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-8" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="houseNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t("houseNumber")}</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-8" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
-
-                  {/* Sector */}
-                  <FormField
-                    control={form.control}
-                    name="sectorId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("sector")}</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                          disabled={!selectedCityId || isLoadingSectors}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t("selectSector")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {sectors.map((sector: any) => (
-                              <SelectItem key={sector.id} value={sector.id.toString()}>
-                                {sector.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Calle */}
-                  <FormField
-                    control={form.control}
-                    name="street"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("street")}</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Número */}
-                  <FormField
-                    control={form.control}
-                    name="houseNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("houseNumber")}</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("phone")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full h-8"
                   disabled={createMutation.isPending}
                 >
                   {createMutation.isPending ? t("saving") : t("save")}
