@@ -282,21 +282,21 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: result.error.format() });
       }
 
-      // Mapear los campos en camelCase a los nombres de columnas en snake_case
       const customerData = {
-        businessname: result.data.businessName,
-        managername: result.data.managerName,
+        businessname: result.data.businessname,
+        managername: result.data.managername,
         rnc: result.data.rnc,
         tax: result.data.tax,
         phone: result.data.phone,
         street: result.data.street,
-        streetnumber: result.data.streetNumber,
-        provinceid: result.data.provinceId,
-        municipalityid: result.data.municipalityId,
+        streetnumber: result.data.streetnumber,
+        provinceid: result.data.provinceid,
+        municipalityid: result.data.municipalityid,
         reference: result.data.reference || '',
-        creditlimit: result.data.creditLimit || '0.00',
+        creditlimit: result.data.creditlimit || '0.00',
         balance: '0.00',
         country: result.data.country || 'República Dominicana',
+        logo: result.data.logo,
       };
 
       console.log("Processed customer data:", customerData);

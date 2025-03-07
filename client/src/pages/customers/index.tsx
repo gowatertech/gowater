@@ -93,19 +93,23 @@ export default function Customers() {
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) {
-          if (key === 'logo' && value instanceof File) {
-            formData.append(key, value);
-          } else {
-            formData.append(key, String(value));
+      if (data.logo instanceof File) {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== undefined) {
+            if (key === 'logo') {
+              formData.append(key, value);
+            } else {
+              formData.append(key, String(value));
+            }
           }
-        }
-      });
-
-      const res = await apiRequest("POST", "/api/customers", formData); // Use formData here
-      return res.json();
+        });
+        const res = await apiRequest("POST", "/api/customers", formData);
+        return res.json();
+      } else {
+        const res = await apiRequest("POST", "/api/customers", data);
+        return res.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
