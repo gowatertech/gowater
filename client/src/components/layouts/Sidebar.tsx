@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from "react-i18next";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -12,7 +12,9 @@ import {
   Settings,
   Droplet,
   ChevronRight,
+  BookOpen,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const menuColors = {
   panel: "#0088FE",      // Azul brillante
@@ -28,26 +30,9 @@ const menuColors = {
   ajustes: "#8884d8",    // Púrpura
 };
 
-// Actualizado con submenús
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Panel", href: "/" },
   { icon: FileText, label: "Facturación", href: "/billing" },
-
-        </div>
-      </UISidebarHeader>
-
-      {/* Botón de Tutorial */}
-      <div className="mx-5 mb-4">
-        <Link href="/tutorial">
-          <Button variant="outline" className="w-full flex items-center justify-center gap-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
-            <BookOpen className="h-4 w-4" />
-            <span>{t("Tutorial Interactivo")}</span>
-          </Button>
-        </Link>
-      </div>
-
-      <UISidebarMenu className="px-5">
-
   { icon: FileText, label: "Pagos", href: "/payments" },
   { icon: Users, label: "Usuarios", href: "/users" },
   { icon: Users, label: "Clientes", href: "/customers" },
@@ -74,12 +59,9 @@ import {
   SidebarMenu as UISidebarMenu,
   SidebarMenuItem as UISidebarMenuItem,
   SidebarMenuButton as UISidebarMenuButton,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
-import { Sheet, SheetContent } from "@/components/ui/sheimport { BookOpen } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface SidebarProps {
   openMobile: boolean;
@@ -99,6 +81,16 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
           <span className="text-xl font-bold" style={{ color: "#0088FE" }}>GoWater</span>
         </div>
       </UISidebarHeader>
+
+      {/* Botón de Tutorial */}
+      <div className="mx-5 mb-4">
+        <Link href="/tutorial">
+          <Button variant="outline" className="w-full flex items-center justify-center gap-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+            <BookOpen className="h-4 w-4" />
+            <span>{t("Tutorial Interactivo")}</span>
+          </Button>
+        </Link>
+      </div>
 
       <UISidebarMenu className="px-5">
         {sidebarItems.map((item) => {
@@ -178,7 +170,6 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     </div>
   );
 
-  // Versión móvil usando Sheet
   const MobileSidebar = () => (
     <Sheet open={openMobile} onOpenChange={setOpenMobile}>
       <SheetContent side="left" className="p-0 w-[280px]">
@@ -187,7 +178,6 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     </Sheet>
   );
 
-  // Versión desktop usando UISidebar
   const DesktopSidebar = () => (
     <UISidebar>
       <SidebarContent />

@@ -296,7 +296,26 @@ export async function registerRoutes(app: Express) {
         ...req.body,
         logo: req.file ? req.file.buffer.toString('base64') : null,
         creditlimit: req.body.creditlimit || '0.00',
+        // Asegurar que los campos requeridos estén presentes
+        businessname: req.body.businessname,
+        managername: req.body.managername,
+        phone: req.body.phone,
+        street: req.body.street,
+        streetnumber: req.body.streetnumber,
+        provinceid: req.body.provinceid,
+        municipalityid: req.body.municipalityid,
       };
+
+      // Verificar campos requeridos
+      const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'provinceid', 'municipalityid'];
+      const missingFields = requiredFields.filter(field => !customerData[field]);
+
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          error: "Campos requeridos faltantes",
+          fields: missingFields
+        });
+      }
 
       console.log("Processed customer data:", customerData);
 
