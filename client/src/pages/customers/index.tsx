@@ -47,7 +47,7 @@ interface City {
   name: string;
   code: string;
   type: 'city' | 'municipality';
-  province_id: number;
+  provinceId: number;
   municipality_id?: number;
 }
 
@@ -168,23 +168,29 @@ export default function Customers() {
     return <div className="p-8">Loading...</div>;
   }
 
-  // Filtrar municipios y distritos
-  const municipalities = cities.filter(city => 
-    city.type === 'municipality' && city.province_id === selectedProvinceId
-  );
+  // Filtrar municipios por la provincia seleccionada
+  const municipalities = selectedProvinceId
+    ? cities.filter(city =>
+        city.code.endsWith('-M') &&
+        city.provinceId === selectedProvinceId
+      )
+    : [];
 
-  const districtsForMunicipality = cities.filter(city => 
-    city.type === 'city' && 
-    city.municipality_id === selectedMunicipalityId
-  );
+  // Filtrar distritos por el municipio seleccionado
+  const districts = selectedMunicipalityId
+    ? cities.filter(city =>
+        city.code.endsWith('-C') &&
+        // El código del distrito debe coincidir con el código del municipio seleccionado
+        city.code.slice(0, -2) === municipalities.find(m => m.id === selectedMunicipalityId)?.code.slice(0, -2)
+      )
+    : [];
 
-  // Agregar logs para debug
-  console.log('Datos cargados:', {
+  // Log para verificar el filtrado
+  console.log('Filtrado:', {
     selectedProvinceId,
     selectedMunicipalityId,
-    municipalities,
-    districtsForMunicipality,
-    allCities: cities
+    municipalities: municipalities.map(m => ({ name: m.name, code: m.code })),
+    districts: districts.map(d => ({ name: d.name, code: d.code }))
   });
 
   return (
@@ -341,7 +347,7 @@ export default function Customers() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {districtsForMunicipality.map((city) => (
+                          {districts.map((city) => (
                             <SelectItem key={city.id} value={city.id.toString()}>
                               {city.name}
                             </SelectItem>
