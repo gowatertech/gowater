@@ -77,8 +77,6 @@ export default function Customers() {
     defaultValues: {
       businessname: "",
       managername: "",
-      rnc: "",
-      tax: undefined,
       phone: "",
       street: "",
       streetnumber: "",
@@ -88,6 +86,8 @@ export default function Customers() {
       provinceid: undefined,
       municipalityid: undefined,
       logo: undefined,
+      rnc: "",
+      tax: undefined,
     },
   });
 
@@ -155,6 +155,7 @@ export default function Customers() {
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Nombre del Negocio y Nombre del Encargado */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -185,47 +186,7 @@ export default function Customers() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="rnc"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>RNC</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tax"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Aplica Impuestos</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione S/N" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="S">Sí</SelectItem>
-                            <SelectItem value="N">No</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
+                {/* Teléfono y Logo */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -266,6 +227,7 @@ export default function Customers() {
                   />
                 </div>
 
+                {/* Calle y Número */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -296,6 +258,7 @@ export default function Customers() {
                   />
                 </div>
 
+                {/* Provincia y Municipio */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -358,6 +321,49 @@ export default function Customers() {
                   />
                 </div>
 
+                {/* RNC y Aplica Impuestos */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="rnc"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>RNC</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tax"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Aplica Impuestos</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione S/N" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="S">Sí</SelectItem>
+                            <SelectItem value="N">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Referencia */}
                 <FormField
                   control={form.control}
                   name="reference"
@@ -372,6 +378,7 @@ export default function Customers() {
                   )}
                 />
 
+                {/* Límite de Crédito */}
                 <FormField
                   control={form.control}
                   name="creditlimit"
