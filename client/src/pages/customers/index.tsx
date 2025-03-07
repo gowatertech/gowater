@@ -339,13 +339,13 @@ export default function Customers() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t("businessName")}</TableHead>
-            <TableHead>{t("managerName")}</TableHead>
-            <TableHead>{t("phone")}</TableHead>
-            <TableHead>{t("address")}</TableHead>
-            <TableHead>{t("creditLimit")}</TableHead>
-            <TableHead>{t("balance")}</TableHead>
-            <TableHead>{t("actions")}</TableHead>
+            <TableHead>Nombre del Negocio</TableHead>
+            <TableHead>Nombre del Encargado</TableHead>
+            <TableHead>Teléfono</TableHead>
+            <TableHead>Dirección</TableHead>
+            <TableHead>Límite de Crédito</TableHead>
+            <TableHead>Balance</TableHead>
+            <TableHead>Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
