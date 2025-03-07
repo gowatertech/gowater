@@ -400,18 +400,19 @@ export async function registerRoutes(app: Express) {
       // Preparar los datos para actualizar
       const updateData = {
         ...req.body,
-        // Solo actualizar el logo si se recibió un nuevo archivo
-        logo: req.file ? req.file.buffer.toString('base64') : undefined
+        // Mantener los campos existentes si no se actualizan
+        logo: req.file ? req.file.buffer.toString('base64') : undefined,
+        rnc: req.body.rnc || undefined
       };
 
       // Convertir valores numéricos
       if (updateData.provinceid) updateData.provinceid = Number(updateData.provinceid);
       if (updateData.municipalityid) updateData.municipalityid = Number(updateData.municipalityid);
       if (updateData.zoneid && updateData.zoneid !== 'null') updateData.zoneid = Number(updateData.zoneid);
-      
-      // Solo incluir campos que están presentes en la solicitud
+
+      // Solo excluir campos que son explícitamente undefined
       const cleanedData = Object.fromEntries(
-        Object.entries(updateData).filter(([_, value]) => value !== undefined && value !== 'undefined')
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
       );
 
       console.log("Datos limpios para actualizar:", cleanedData);
