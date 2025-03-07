@@ -150,7 +150,6 @@ export default function Customers() {
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
       console.log("Actualizando cliente con datos:", data);
-
       const formData = new FormData();
 
       // Añadir campos actualizados
@@ -169,15 +168,18 @@ export default function Customers() {
 
       // Añadir cada campo al FormData
       Object.entries(updatedFields).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
+        if (value !== undefined && value !== null) {
           formData.append(key, String(value));
         }
       });
 
       // Añadir el logo si ha sido actualizado
       if (data.logo instanceof File) {
+        console.log("Añadiendo nuevo logo al FormData");
         formData.append('logo', data.logo);
       }
+
+      console.log("FormData preparado:", Object.fromEntries(formData.entries()));
 
       // Usar fetch directamente para enviar FormData
       const response = await fetch(`/api/customers/${data.id}`, {

@@ -375,6 +375,8 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
+      console.log("Datos recibidos en la actualización:", req.body);
+      console.log("Archivo recibido:", req.file);
 
       // Preparar los datos para actualizar
       const updateData = {
@@ -386,6 +388,8 @@ export async function registerRoutes(app: Express) {
       const cleanedData = Object.fromEntries(
         Object.entries(updateData).filter(([_, value]) => value !== undefined)
       );
+
+      console.log("Datos limpios para actualizar:", cleanedData);
 
       const [updatedCustomer] = await db
         .update(customers)
