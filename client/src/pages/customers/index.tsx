@@ -47,7 +47,8 @@ interface City {
   name: string;
   code: string;
   type: 'city' | 'municipality';
-  municipality_id?: number; // Added for filtering
+  province_id: number;
+  municipality_id?: number;
 }
 
 export default function Customers() {
@@ -59,11 +60,12 @@ export default function Customers() {
   const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<number | null>(null);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
-  // Consultas para cargar los catálogos
+  // Obtener provincias
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/provinces"],
   });
 
+  // Obtener ciudades y municipios cuando se selecciona una provincia
   const { data: cities = [], isLoading: isLoadingCities } = useQuery<City[]>({
     queryKey: ["/api/cities", selectedProvinceId],
     queryFn: async () => {
@@ -73,9 +75,7 @@ export default function Customers() {
         if (!response.ok) {
           throw new Error(`Error fetching cities: ${response.statusText}`);
         }
-        const data = await response.json();
-        console.log("Datos cargados para provincia", selectedProvinceId, ":", data);
-        return data;
+        return response.json();
       } catch (error) {
         console.error("Error loading cities:", error);
         toast({
@@ -168,16 +168,24 @@ export default function Customers() {
     return <div className="p-8">Loading...</div>;
   }
 
-  // Separar municipios y distritos municipales
-  const municipalities = cities.filter(city => city.type === 'municipality');
+  // Filtrar municipios y distritos
+  const municipalities = cities.filter(city => 
+    city.type === 'municipality' && city.province_id === selectedProvinceId
+  );
+
   const districtsForMunicipality = cities.filter(city => 
     city.type === 'city' && 
     city.municipality_id === selectedMunicipalityId
   );
 
-  console.log('Provincias:', provinces);
-  console.log('Municipios filtrados:', municipalities);
-  console.log('Distritos filtrados para municipio:', districtsForMunicipality);
+  // Agregar logs para debug
+  console.log('Datos cargados:', {
+    selectedProvinceId,
+    selectedMunicipalityId,
+    municipalities,
+    districtsForMunicipality,
+    allCities: cities
+  });
 
   return (
     <div className="space-y-6">
