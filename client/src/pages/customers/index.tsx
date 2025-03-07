@@ -151,7 +151,9 @@ export default function Customers() {
     mutationFn: async (data: CustomerFormData & { id: number }) => {
       console.log("Actualizando cliente con datos:", data);
 
-      // Solo enviar los datos que han cambiado
+      const formData = new FormData();
+
+      // Añadir campos actualizados
       const updatedFields = {
         businessname: data.businessname,
         managername: data.managername,
@@ -165,7 +167,23 @@ export default function Customers() {
         creditlimit: data.creditlimit.toString(),
       };
 
-      const response = await apiRequest("PATCH", `/api/customers/${data.id}`, updatedFields);
+      // Añadir cada campo al FormData
+      Object.entries(updatedFields).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          formData.append(key, String(value));
+        }
+      });
+
+      // Añadir el logo si ha sido actualizado
+      if (data.logo instanceof File) {
+        formData.append('logo', data.logo);
+      }
+
+      // Usar fetch directamente para enviar FormData
+      const response = await fetch(`/api/customers/${data.id}`, {
+        method: 'PATCH',
+        body: formData,
+      });
 
       if (!response.ok) {
         const error = await response.json();
@@ -558,14 +576,88 @@ export default function Customers() {
                       <FormLabel>Logo</FormLabel>
                       <FormControl>
                         {value ? (
-                          <img
-                            src={`data:image/jpeg;base64,${value}`}
-                            alt="Logo"
-                            className="w-32 h-32 object-contain"
-                          />
+                          <div className="space-y-2">
+                            <img
+                              src={`data:image/jpeg;base64,${value}`}
+                              alt="Logo"
+                              className="w-32 h-32 object-contain"
+                            />
+                            {isEditing && (
+                              <Input
+                                type="file"
+                                accept="image/jpeg,image/png"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    // Validar el tamaño (5MB)
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Error",
+                                        description: "El archivo debe ser menor a 5MB",
+                                      });
+                                      e.target.value = '';
+                                      return;
+                                    }
+
+                                    // Validar el tipo
+                                    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Error",
+                                        description: "El archivo debe ser JPG o PNG",
+                                      });
+                                      e.target.value = '';
+                                      return;
+                                    }
+
+                                    onChange(file);
+                                  }
+                                }}
+                                {...field}
+                              />
+                            )}
+                          </div>
                         ) : (
-                          <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
-                            No logo
+                          <div className="space-y-2">
+                            <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
+                              No logo
+                            </div>
+                            {isEditing && (
+                              <Input
+                                type="file"
+                                accept="image/jpeg,image/png"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    // Validar el tamaño (5MB)
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Error",
+                                        description: "El archivo debe ser menor a 5MB",
+                                      });
+                                      e.target.value = '';
+                                      return;
+                                    }
+
+                                    // Validar el tipo
+                                    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Error",
+                                        description: "El archivo debe ser JPG o PNG",
+                                      });
+                                      e.target.value = '';
+                                      return;
+                                    }
+
+                                    onChange(file);
+                                  }
+                                }}
+                                {...field}
+                              />
+                            )}
                           </div>
                         )}
                       </FormControl>

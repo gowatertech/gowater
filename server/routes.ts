@@ -372,12 +372,24 @@ export async function registerRoutes(app: Express) {
   });
 
   // Agregar después del endpoint GET /api/customers/:id
-  app.patch("/api/customers/:id", async (req, res) => {
+  app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
+
+      // Preparar los datos para actualizar
+      const updateData = {
+        ...req.body,
+        logo: req.file ? req.file.buffer.toString('base64') : undefined
+      };
+
+      // Solo incluir campos que están presentes en la solicitud
+      const cleanedData = Object.fromEntries(
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+      );
+
       const [updatedCustomer] = await db
         .update(customers)
-        .set(req.body)
+        .set(cleanedData)
         .where(eq(customers.id, customerId))
         .returning();
 
