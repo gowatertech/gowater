@@ -89,30 +89,6 @@ export default function Customers() {
     enabled: !!selectedProvinceId,
   });
 
-  const { data: sectors = [], isLoading: isLoadingSectors } = useQuery({
-    queryKey: ["/api/sectors", selectedMunicipalityId],
-    queryFn: async () => {
-      if (!selectedMunicipalityId) return [];
-      try {
-        const response = await apiRequest("GET", `/api/sectors/${selectedMunicipalityId}`);
-        if (!response.ok) {
-          throw new Error(`Error fetching sectors: ${response.statusText}`);
-        }
-        const data = await response.json();
-        console.log("Sectores cargados para municipio", selectedMunicipalityId, ":", data);
-        return data;
-      } catch (error) {
-        console.error("Error loading sectors:", error);
-        toast({
-          variant: "destructive",
-          title: t("error"),
-          description: "Error al cargar los sectores"
-        });
-        return [];
-      }
-    },
-    enabled: !!selectedMunicipalityId,
-  });
 
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -344,34 +320,6 @@ export default function Customers() {
                       </Select>
                     </FormItem>
 
-                    <FormField
-                      control={form.control}
-                      name="sectorId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("sector")}</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(parseInt(value))}
-                            value={field.value?.toString()}
-                            disabled={!selectedMunicipalityId || isLoadingSectors}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="h-8">
-                                <SelectValue placeholder={t("selectSector")} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {sectors.map((sector: any) => (
-                                <SelectItem key={sector.id} value={sector.id.toString()}>
-                                  {sector.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
 
                     <div className="grid grid-cols-2 gap-3">
                       <FormField

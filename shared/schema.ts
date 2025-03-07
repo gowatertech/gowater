@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // Users (drivers, admins, etc.)
 export const users = pgTable("users", {
@@ -58,10 +59,32 @@ export const provinces = pgTable("provinces", {
   code: text("code").notNull().unique(), // Código único de la provincia
 });
 
+// New municipalities table
+export const municipalities = pgTable("municipalities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  type: text("type", { enum: ["municipality", "district"] }).notNull(),
+});
+
+// Relations
+export const provincesRelations = relations(provinces, ({ many }) => ({
+  municipalities: many(municipalities),
+}));
+
+export const municipalitiesRelations = relations(municipalities, ({ one }) => ({
+  province: one(provinces, {
+    fields: [municipalities.provinceId],
+    references: [provinces.id],
+  }),
+}));
+
+
 export const cities = pgTable("cities", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
   code: text("code").notNull().unique(), // Código único de la ciudad
 });
 
@@ -347,6 +370,9 @@ export const insertProductionBatchSchema = createInsertSchema(productionBatches)
 export const insertProvinceSchema = createInsertSchema(provinces);
 export const insertCitySchema = createInsertSchema(cities);
 export const insertSectorSchema = createInsertSchema(sectors);
+export const insertMunicipalitySchema = createInsertSchema(municipalities, {
+  type: z.enum(["municipality", "district"]),
+});
 
 
 // Export types
@@ -399,3 +425,5 @@ export type Sector = typeof sectors.$inferSelect;
 export type InsertProvince = z.infer<typeof insertProvinceSchema>;
 export type InsertCity = z.infer<typeof insertCitySchema>;
 export type InsertSector = z.infer<typeof insertSectorSchema>;
+export type Municipality = typeof municipalities.$inferSelect;
+export type InsertMunicipality = z.infer<typeof insertMunicipalitySchema>;
