@@ -85,7 +85,8 @@ export async function registerRoutes(app: Express) {
     try {
       const allProvinces = await db
         .select()
-        .from(provinces);
+        .from(provinces)
+        .orderBy(provinces.name);
       res.json(allProvinces);
     } catch (error) {
       console.error("Error al obtener provincias:", error);
@@ -96,10 +97,16 @@ export async function registerRoutes(app: Express) {
   app.get("/api/municipalities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
+      if (isNaN(provinceId)) {
+        return res.status(400).json({ error: "ID de provincia inválido" });
+      }
+
       const municipalitiesInProvince = await db
         .select()
         .from(municipalities)
-        .where(eq(municipalities.provinceId, provinceId));
+        .where(eq(municipalities.provinceId, provinceId))
+        .orderBy(municipalities.name);
+
       res.json(municipalitiesInProvince);
     } catch (error) {
       console.error("Error al obtener municipios:", error);

@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import type { InsertSettings } from "@shared/schema";
+import type { InsertSettings, Province, Municipality } from "@shared/schema";
 import { insertSettingsSchema } from "@shared/schema";
 
 import {
@@ -51,14 +51,21 @@ function Settings() {
   });
 
   // Fetch provinces
-  const { data: provinces = [] } = useQuery({
+  const { data: provinces = [] } = useQuery<Province[]>({
     queryKey: ["/api/provinces"],
   });
 
   // Fetch municipalities based on selected province
-  const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery({
+  const { data: municipalities = [] } = useQuery<Municipality[]>({
     queryKey: ["/api/municipalities", form.watch("provinceId")],
     enabled: !!form.watch("provinceId"),
+    queryFn: async () => {
+      const response = await fetch(`/api/municipalities/${form.watch("provinceId")}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar los municipios');
+      }
+      return response.json();
+    },
   });
 
   // Fetch current settings
@@ -245,7 +252,7 @@ function Settings() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {provinces.map((province: {id: number, name: string}) => (
+                          {provinces.map((province) => (
                             <SelectItem key={province.id} value={province.id.toString()}>
                               {province.name}
                             </SelectItem>
@@ -266,7 +273,7 @@ function Settings() {
                       <Select
                         onValueChange={(value) => field.onChange(parseInt(value))}
                         value={field.value?.toString()}
-                        disabled={!form.watch("provinceId") || isLoadingMunicipalities}
+                        disabled={!form.watch("provinceId")}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -274,7 +281,7 @@ function Settings() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {municipalities.map((municipality: {id: number, name: string}) => (
+                          {municipalities.map((municipality) => (
                             <SelectItem key={municipality.id} value={municipality.id.toString()}>
                               {municipality.name}
                             </SelectItem>
