@@ -90,6 +90,7 @@ export default function Customers() {
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
+      console.log("Enviando datos:", data); // Para debug
       const res = await apiRequest("POST", "/api/customers", data);
       return res.json();
     },
@@ -159,7 +160,7 @@ export default function Customers() {
                     <FormItem>
                       <FormLabel>{t("businessName")}</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -173,7 +174,7 @@ export default function Customers() {
                     <FormItem>
                       <FormLabel>{t("email")}</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input type="email" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
