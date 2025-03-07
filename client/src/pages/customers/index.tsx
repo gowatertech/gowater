@@ -903,12 +903,14 @@ export default function Customers() {
                 <TableRow key={customer.id}>
                   <TableCell>
                     {customer.logo ? (
-                      <img
-                        src={`data:image/png;base64,${customer.logo}?t=${Date.now()}`}
-                        alt="Logo"
-                        className="w-12 h-12 object-contain"
-                        key={`${customer.id}-${Date.now()}`}
-                      />
+                      <div className="w-12 h-12">
+                        <img
+                          src={`${customer.logo}?t=${Date.now()}`}
+                          alt={`Logo de ${customer.businessname}`}
+                          className="w-full h-full object-contain"
+                          key={`logo-${customer.id}-${Date.now()}`}
+                        />
+                      </div>
                     ) : (
                       <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
                         No logo
