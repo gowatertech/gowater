@@ -133,8 +133,14 @@ interface ZoneMapProps {
 export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: ZoneMapProps) {
   const { toast } = useToast();
 
-  const { data: zones = [] } = useQuery<Zone[]>({
+  const { data: zones = [], onSuccess, onError } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
+    onSuccess: (data) => {
+      console.log("Zonas recuperadas:", data);
+    },
+    onError: (error) => {
+      console.error("Error al obtener zonas:", error);
+    }
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({
@@ -237,6 +243,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
         {/* Render existing zones */}
         {zones.map((zone) => {
           try {
+            console.log("Procesando zona:", zone);
             const positions = zone.coordinates.map((coord): LatLngExpression => {
               const [lat, lng] = coord.split(",").map(Number);
               if (isNaN(lat) || isNaN(lng)) {
@@ -244,6 +251,8 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
               }
               return [lat, lng];
             });
+
+            console.log("Posiciones procesadas para zona", zone.id, ":", positions);
 
             return (
               <Polygon
