@@ -1,5 +1,5 @@
 import {
-  users, customers, products, trucks, routes, orders, orderItems, settings,
+  users, customers, products, trucks, routes, orders, orderItems,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -7,7 +7,6 @@ import {
   type Route, type InsertRoute,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
-  type Settings, type InsertSettings,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
 } from "@shared/schema";
 import { db } from "./db";
@@ -64,16 +63,12 @@ export interface IStorage {
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
   listOrderItems(orderId: number): Promise<OrderItem[]>;
 
-  // Settings
-  getSettings(): Promise<Settings | undefined>;
-  updateSettings(settings: InsertSettings): Promise<Settings>;
-
   // Customer Orders
   getCustomerOrders(customerId: number): Promise<CustomerOrders[]>;
   createCustomerOrder(customerOrder: InsertCustomerOrders): Promise<CustomerOrders>;
   updateCustomerOrderStats(customerId: number): Promise<CustomerOrders>;
 
-  // Métodos para el tracking de ubicación
+  // Driver Location
   updateDriverLocation(driverId: number, location: DriverLocation): Promise<User>;
   getDriverLocation(driverId: number): Promise<DriverLocation | null>;
 }
@@ -363,29 +358,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orderItems.orderId, orderId));
   }
 
-  // Settings
-  async getSettings(): Promise<Settings | undefined> {
-    const settingsResult = await db.select().from(settings);
-    return settingsResult[0];
-  }
-
-  async updateSettings(settingsData: InsertSettings): Promise<Settings> {
-    const [existingSettings] = await db.select().from(settings);
-    if (existingSettings) {
-      const [updatedSettings] = await db
-        .update(settings)
-        .set(settingsData)
-        .where(eq(settings.id, existingSettings.id))
-        .returning();
-      return updatedSettings;
-    } else {
-      const [newSettings] = await db
-        .insert(settings)
-        .values({ ...settingsData, id: 1 })
-        .returning();
-      return newSettings;
-    }
-  }
 
   // Customer Orders
   async getCustomerOrders(customerId: number): Promise<CustomerOrders[]> {

@@ -9,7 +9,6 @@ import {
   Route,
   Package,
   FileText,
-  Settings,
   Droplet,
   ChevronRight,
   BookOpen,
@@ -38,7 +37,6 @@ const menuColors = {
   vehiculos: "#00C49F",  // Verde turquesa
   pedidos: "#FFBB28",    // Amarillo
   reportes: "#FF8042",   // Naranja
-  ajustes: "#8884d8",    // Púrpura
 };
 
 const sidebarItems = [
@@ -60,7 +58,6 @@ const sidebarItems = [
   { icon: Truck, label: "Vehículos", href: "/trucks" },
   { icon: FileText, label: "Pedidos", href: "/orders" },
   { icon: FileText, label: "Reportes", href: "/reports" },
-  { icon: Settings, label: "Ajustes", href: "/settings" },
 ];
 
 interface SidebarProps {

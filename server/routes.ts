@@ -146,7 +146,6 @@ export async function registerRoutes(app: Express) {
         .select()
         .from(zones);
 
-      console.log("Retrieved zones:", allZones);
       res.json(allZones);
     } catch (error) {
       console.error("Error al obtener zonas:", error);
@@ -155,22 +154,17 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post("/api/zones", async (req, res) => {
-    console.log("Creating zone with data:", req.body);
-
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
-      console.error("Error de validación:", result.error.format());
       return res.status(400).json({ error: result.error.format() });
     }
 
     try {
-      // Validar el formato de las coordenadas antes de insertar
       const coordinates = result.data.coordinates;
       if (!Array.isArray(coordinates) || coordinates.length < 3) {
         throw new Error("Se requieren al menos 3 puntos para crear una zona");
       }
 
-      // Validar el formato de cada coordenada
       for (const coord of coordinates) {
         if (!/^-?\d+\.\d+,-?\d+\.\d+$/.test(coord)) {
           throw new Error(`Formato de coordenada inválido: ${coord}`);
@@ -182,7 +176,6 @@ export async function registerRoutes(app: Express) {
         .values(result.data)
         .returning();
 
-      console.log("Created zone:", zone);
       res.json(zone);
     } catch (error) {
       console.error("Error al crear zona:", error);
@@ -201,7 +194,6 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Zona no encontrada" });
       }
 
-      console.log("Deleted zone:", deletedZone);
       res.json(deletedZone);
     } catch (error) {
       console.error("Error al eliminar zona:", error);
@@ -212,7 +204,6 @@ export async function registerRoutes(app: Express) {
   // Users
   app.get("/api/users", async (req, res) => {
     try {
-      // Si se especifica un rol, filtrar por ese rol
       const role = req.query.role as string;
       let usersList;
 
@@ -241,7 +232,6 @@ export async function registerRoutes(app: Express) {
         .select()
         .from(routes);
 
-      console.log("Retrieved routes:", allRoutes);
       res.json(allRoutes);
     } catch (error) {
       console.error("Error al obtener rutas:", error);
@@ -250,8 +240,6 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post("/api/routes", async (req, res) => {
-    console.log("Creating route with data:", req.body);
-
     try {
       const routeData = {
         ...req.body,
@@ -262,12 +250,9 @@ export async function registerRoutes(app: Express) {
         isCompleted: false
       };
 
-      console.log("Processed route data:", routeData);
-
       const result = insertRouteSchema.safeParse(routeData);
 
       if (!result.success) {
-        console.error("Validation error:", result.error.format());
         return res.status(400).json({ error: result.error.format() });
       }
 
@@ -276,7 +261,6 @@ export async function registerRoutes(app: Express) {
         .values(result.data)
         .returning();
 
-      console.log("Created route:", route);
       res.json(route);
     } catch (error) {
       console.error("Error al crear ruta:", error);
@@ -288,15 +272,11 @@ export async function registerRoutes(app: Express) {
   // Customer endpoints
   app.post("/api/customers", upload.single('logo'), async (req, res) => {
     try {
-      console.log("Received customer data:", req.body);
-      console.log("Received file:", req.file);
-
       // Validar los datos del cliente
       const customerData = {
         ...req.body,
         logo: req.file ? req.file.buffer.toString('base64') : null,
         creditlimit: req.body.creditlimit || '0.00',
-        // Asegurar que los campos requeridos estén presentes
         businessname: req.body.businessname,
         managername: req.body.managername,
         phone: req.body.phone,
@@ -306,7 +286,6 @@ export async function registerRoutes(app: Express) {
         municipalityid: req.body.municipalityid,
       };
 
-      // Verificar campos requeridos
       const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'provinceid', 'municipalityid'];
       const missingFields = requiredFields.filter(field => !customerData[field]);
 
@@ -317,14 +296,11 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      console.log("Processed customer data:", customerData);
-
       const [customer] = await db
         .insert(customers)
         .values(customerData)
         .returning();
 
-      console.log("Created customer:", customer);
       res.json(customer);
     } catch (error) {
       console.error("Error al crear cliente:", error);
@@ -357,7 +333,6 @@ export async function registerRoutes(app: Express) {
         .leftJoin(provinces, eq(customers.provinceid, provinces.id))
         .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id));
 
-      console.log("Retrieved customers:", allCustomers);
       res.json(allCustomers);
     } catch (error) {
       console.error("Error al obtener clientes:", error);
@@ -394,15 +369,6 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      console.log("Datos recibidos para actualización:", {
-        body: req.body,
-        file: req.file ? {
-          fieldname: req.file.fieldname,
-          originalname: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size
-        } : null
-      });
 
       // Preparar los datos para actualizar
       const updateData = {
@@ -411,7 +377,6 @@ export async function registerRoutes(app: Express) {
 
       // Solo actualizar el logo si se recibió un nuevo archivo
       if (req.file) {
-        console.log("Procesando nuevo archivo de logo");
         updateData.logo = req.file.buffer.toString('base64');
       }
 
@@ -419,11 +384,6 @@ export async function registerRoutes(app: Express) {
       if (updateData.provinceid) updateData.provinceid = Number(updateData.provinceid);
       if (updateData.municipalityid) updateData.municipalityid = Number(updateData.municipalityid);
       if (updateData.zoneid && updateData.zoneid !== 'null') updateData.zoneid = Number(updateData.zoneid);
-
-      console.log("Datos preparados para actualizar:", {
-        ...updateData,
-        logo: updateData.logo ? 'base64_data_present' : 'no_logo_update'
-      });
 
       const [updatedCustomer] = await db
         .update(customers)
@@ -434,11 +394,6 @@ export async function registerRoutes(app: Express) {
       if (!updatedCustomer) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
-
-      console.log("Cliente actualizado exitosamente:", {
-        id: updatedCustomer.id,
-        hasLogo: !!updatedCustomer.logo
-      });
 
       res.json(updatedCustomer);
     } catch (error) {

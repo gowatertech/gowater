@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
-import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
 import ProductosPage from "@/pages/inventario/productos";
 import CargaProductos from "@/pages/inventario/carga";
@@ -27,7 +26,6 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
-        <Route path="/settings" component={Settings} />
         <Route path="/customers" component={Customers} />
         <Route path="/inventario/productos" component={ProductosPage} />
         <Route path="/inventario/carga" component={CargaProductos} />

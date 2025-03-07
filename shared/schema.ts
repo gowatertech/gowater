@@ -225,17 +225,6 @@ export const orderItems = pgTable("order_items", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
 });
 
-// Company Settings
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  address: text("address").notNull(),
-  phone: text("phone").notNull(),
-  logo: text("logo"),
-  driverCommission: decimal("driver_commission", { precision: 10, scale: 2 }).notNull(),
-  assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).notNull(),
-});
-
 // Pedidos por Tipo de Cliente
 export const customerOrders = pgTable("customer_orders", {
   id: serial("id").primaryKey(),
@@ -336,14 +325,6 @@ export const insertOrderItemSchema = z.object({
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
 });
 
-export const insertSettingsSchema = z.object({
-  name: z.string().min(1, "El nombre es requerido"),
-  address: z.string().min(1, "La dirección es requerida"),
-  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  logo: z.string().optional(),
-  driverCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-  assistantCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-});
 
 export const insertCustomerOrdersSchema = z.object({
   customerId: z.number(),
@@ -436,12 +417,12 @@ export type Truck = typeof trucks.$inferSelect;
 export type Route = typeof routes.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
-export type Settings = typeof settings.$inferSelect;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type Zone = typeof zones.$inferSelect;
 export type Payment = typeof payments.$inferSelect;
 export type Bill = typeof bills.$inferSelect;
 export type BillItem = typeof billItems.$inferSelect;
+
 
 // Nuevos tipos
 export type Invoice = typeof invoices.$inferSelect;
@@ -464,7 +445,6 @@ export type InsertTruck = z.infer<typeof insertTruckSchema>;
 export type InsertRoute = z.infer<typeof insertRouteSchema>;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
-export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type InsertZone = z.infer<typeof insertZoneSchema>;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;

@@ -16,7 +16,6 @@ const resources = {
       trucks: "Trucks",
       orders: "Orders",
       reports: "Reports",
-      settings: "Settings",
 
       // Common
       save: "Save",
@@ -27,11 +26,11 @@ const resources = {
       status: "Status",
       actions: "Actions",
       saving: "Saving...",
-      points: "points", // Added
-      zones: "Zones", // Added
-      createZone: "Create Zone", // Added
-      noZones: "No zones created yet", // Added
-      zoneName: "Zone Name", // Added
+      points: "points",
+      zones: "Zones",
+      createZone: "Create Zone",
+      noZones: "No zones created yet",
+      zoneName: "Zone Name",
 
       // Forms
       name: "Name",
@@ -69,7 +68,6 @@ const resources = {
       trucks: "Camiones",
       orders: "Pedidos",
       reports: "Reportes",
-      settings: "Configuración",
 
       // Common
       save: "Guardar",
@@ -80,11 +78,11 @@ const resources = {
       status: "Estado",
       actions: "Acciones",
       saving: "Guardando...",
-      points: "puntos", // Added
-      zones: "Zonas", // Added
-      createZone: "Crear Zona", // Added
-      noZones: "No hay zonas creadas", // Added
-      zoneName: "Nombre de la Zona", // Added
+      points: "puntos",
+      zones: "Zonas",
+      createZone: "Crear Zona",
+      noZones: "No hay zonas creadas",
+      zoneName: "Nombre de la Zona",
 
       // Forms
       name: "Nombre",
