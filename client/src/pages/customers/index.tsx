@@ -613,7 +613,8 @@ export default function Customers() {
                                       return;
                                     }
 
-                                    onChange(file);
+                                    // Actualizar el valor en el formulario con el archivo
+                                    field.onChange(file);
                                   }
                                 }}
                                 {...field}
@@ -654,7 +655,8 @@ export default function Customers() {
                                       return;
                                     }
 
-                                    onChange(file);
+                                    // Actualizar el valor en el formulario con el archivo
+                                    field.onChange(file);
                                   }
                                 }}
                                 {...field}
