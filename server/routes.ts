@@ -282,17 +282,17 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: result.error.format() });
       }
 
-      // Asegurarse de que los campos requeridos estén presentes
       const customerData = {
-        business_name: result.data.businessName,
-        manager_name: result.data.managerName,
+        // Use the exact field names from schema.ts
+        businessName: result.data.businessName,
+        managerName: result.data.managerName,
         phone: result.data.phone,
         street: result.data.street,
-        street_number: result.data.streetNumber,
-        province_id: result.data.provinceId,
-        municipality_id: result.data.municipalityId,
+        streetNumber: result.data.streetNumber,
+        provinceId: result.data.provinceId,
+        municipalityId: result.data.municipalityId,
         reference: result.data.reference || '',
-        credit_limit: result.data.creditLimit || '0.00',
+        creditLimit: result.data.creditLimit || '0.00',
         balance: '0.00',
         country: result.data.country || 'República Dominicana',
       };
