@@ -39,7 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input"; // Corregida la importación
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Eye, Edit, Save } from "lucide-react";
 
@@ -115,7 +115,6 @@ export default function Customers() {
         }
       });
 
-      // Usar el formData para enviar al servidor
       const res = await fetch('/api/customers', {
         method: 'POST',
         body: formData
@@ -225,7 +224,6 @@ export default function Customers() {
     }
   };
 
-  // Función para ver/editar cliente
   const handleViewCustomer = (customer: CustomerWithDetails) => {
     setSelectedCustomer(customer);
     setSelectedProvinceId(customer.provinceid);
@@ -237,13 +235,13 @@ export default function Customers() {
     setIsViewDialogOpen(true);
   };
 
-  if (isLoading) {
-    return <div className="p-8">Cargando...</div>;
-  }
-
   const handleEditClick = () => {
     setIsEditing(true);
   };
+
+  if (isLoading) {
+    return <div className="p-8">Cargando...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -322,7 +320,225 @@ export default function Customers() {
                       </FormItem>
                     )}
                   />
-                  {/* ...rest of the form fields */}
+
+                  <FormField
+                    control={form.control}
+                    name="businessname"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Negocio</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="managername"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Encargado</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="zoneid"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Zona</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una zona" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {zones.map((zone) => (
+                              <SelectItem key={zone.id} value={zone.id.toString()}>
+                                {zone.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="street"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Calle</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="streetnumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="provinceid"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Provincia</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(parseInt(value));
+                            setSelectedProvinceId(parseInt(value));
+                          }}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una provincia" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {provinces.map((province) => (
+                              <SelectItem key={province.id} value={province.id.toString()}>
+                                {province.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="municipalityid"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Municipio</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                          disabled={!selectedProvinceId || isLoadingMunicipalities}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un municipio" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {municipalities.map((municipality) => (
+                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                                {municipality.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="reference"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Referencia</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="creditlimit"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Límite de Crédito</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            {...field}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^\d.]/g, '');
+                              const parts = value.split('.');
+                              if (parts.length > 2) return;
+                              if (parts[1]?.length > 2) return;
+                              field.onChange(value);
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value || '0';
+                              const number = parseFloat(value);
+                              if (!isNaN(number)) {
+                                field.onChange(number.toFixed(2));
+                              }
+                            }}
+                            defaultValue="0.00"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <Button
@@ -356,7 +572,7 @@ export default function Customers() {
                 <FormField
                   control={form.control}
                   name="logo"
-                  render={({ field: { value, ...field } }) => (
+                  render={({ field: { value, onChange, ...field } }) => (
                     <FormItem>
                       <FormLabel>Logo</FormLabel>
                       <FormControl>
@@ -410,18 +626,236 @@ export default function Customers() {
                                     return;
                                   }
 
-                                  field.onChange(file);
+                                  onChange(file);
                                 }
                               }}
                               disabled={!isEditing}
+                              {...field}
                             />
                           )}
                         </div>
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-                {/* ...rest of the form fields */}
+
+                <FormField
+                  control={form.control}
+                  name="rnc"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>RNC</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessname"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre del Negocio</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="managername"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre del Encargado</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="street"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Calle</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="streetnumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="provinceid"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provincia</FormLabel>
+                      {isEditing ? (
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(parseInt(value));
+                            setSelectedProvinceId(parseInt(value));
+                          }}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una provincia" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {provinces.map((province) => (
+                              <SelectItem key={province.id} value={province.id.toString()}>
+                                {province.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <FormControl>
+                          <Input value={selectedCustomer?.provinceName || ''} readOnly />
+                        </FormControl>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="municipalityid"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Municipio</FormLabel>
+                      {isEditing ? (
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                          disabled={!selectedProvinceId || isLoadingMunicipalities}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un municipio" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {municipalities.map((municipality) => (
+                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                                {municipality.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <FormControl>
+                          <Input value={selectedCustomer?.municipalityName || ''} readOnly />
+                        </FormControl>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="reference"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Referencia</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly={!isEditing} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="creditlimit"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Límite de Crédito</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d.]/g, '');
+                            const parts = value.split('.');
+                            if (parts.length > 2) return;
+                            if (parts[1]?.length > 2) return;
+                            field.onChange(value);
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value || '0';
+                            const number = parseFloat(value);
+                            if (!isNaN(number)) {
+                              field.onChange(number.toFixed(2));
+                            }
+                          }}
+                          readOnly={!isEditing}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               {isEditing && (
                 <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
