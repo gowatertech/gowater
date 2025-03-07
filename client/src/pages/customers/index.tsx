@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Customer, type Province, type Municipality, insertCustomerSchema } from "@shared/schema";
+import { type Customer, type Province, type Municipality, type Zone, insertCustomerSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -66,6 +66,12 @@ export default function Customers() {
     },
     enabled: !!selectedProvinceId,
   });
+
+  // Obtener zonas
+  const { data: zones = [] } = useQuery<Zone[]>({
+    queryKey: ["/api/zones"],
+  });
+
 
   // Obtener clientes
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
@@ -155,48 +161,45 @@ export default function Customers() {
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {/* Logo */}
-                <FormField
-                  control={form.control}
-                  name="logo"
-                  render={({ field: { value, onChange, ...field } }) => (
-                    <FormItem>
-                      <FormLabel>Logo</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              onChange(file);
-                            }
-                          }}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="logo"
+                    render={({ field: { value, onChange, ...field } }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Logo</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                onChange(file);
+                              }
+                            }}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {/* RNC */}
-                <FormField
-                  control={form.control}
-                  name="rnc"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>RNC</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="rnc"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>RNC</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {/* Nombre del Negocio y Nombre del Encargado */}
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="businessname"
@@ -224,10 +227,7 @@ export default function Customers() {
                       </FormItem>
                     )}
                   />
-                </div>
 
-                {/* Teléfono y Email */}
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="phone"
@@ -255,35 +255,35 @@ export default function Customers() {
                       </FormItem>
                     )}
                   />
-                </div>
 
-                {/* Zona */}
-                <FormField
-                  control={form.control}
-                  name="zoneid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Zona</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione una zona" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {/* TODO: Add zones from API */}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="zoneid"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Zona</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una zona" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {zones.map((zone) => (
+                              <SelectItem key={zone.id} value={zone.id.toString()}>
+                                {zone.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                {/* Calle y Número */}
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="street"
@@ -311,10 +311,7 @@ export default function Customers() {
                       </FormItem>
                     )}
                   />
-                </div>
 
-                {/* Provincia y Municipio */}
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="provinceid"
@@ -374,46 +371,51 @@ export default function Customers() {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="reference"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Referencia</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="creditlimit"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Límite de Crédito</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            inputMode="decimal"
+                            pattern="\d*\.?\d{0,2}"
+                            {...field}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^\d.]/g, '');
+                              const parts = value.split('.');
+                              if (parts.length > 2) return;
+                              if (parts[1]?.length > 2) return;
+                              field.onChange(value);
+                            }}
+                            onBlur={(e) => {
+                              const value = parseFloat(e.target.value || '0');
+                              field.onChange(value.toFixed(2));
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-
-                {/* Referencia */}
-                <FormField
-                  control={form.control}
-                  name="reference"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Referencia</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Límite de Crédito */}
-                <FormField
-                  control={form.control}
-                  name="creditlimit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Límite de Crédito</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          {...field}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value);
-                            field.onChange(value.toFixed(2));
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <Button
                   type="submit"
