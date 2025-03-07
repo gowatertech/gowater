@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, sectors, insertZoneSchema, insertRouteSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 
@@ -85,7 +85,11 @@ export async function registerRoutes(app: Express) {
       const citiesInProvince = await db
         .select()
         .from(cities)
-        .where(eq(cities.provinceId, provinceId));
+        .innerJoin(
+          municipalities,
+          eq(cities.municipalityId, municipalities.id)
+        )
+        .where(eq(municipalities.provinceId, provinceId));
       res.json(citiesInProvince);
     } catch (error) {
       console.error("Error al obtener ciudades:", error);
