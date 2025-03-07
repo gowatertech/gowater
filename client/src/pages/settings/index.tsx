@@ -59,6 +59,13 @@ function Settings() {
   const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery({
     queryKey: ["/api/municipalities", form.watch("provinceId")],
     enabled: !!form.watch("provinceId"),
+    queryFn: async () => {
+      const response = await fetch(`/api/municipalities/${form.watch("provinceId")}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar los municipios');
+      }
+      return response.json();
+    },
   });
 
   // Fetch current settings
