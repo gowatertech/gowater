@@ -152,37 +152,21 @@ export default function Customers() {
       console.log("Actualizando cliente con datos:", data);
       const formData = new FormData();
 
-      // Añadir campos actualizados
-      const updatedFields = {
-        rnc: data.rnc,
-        businessname: data.businessname,
-        managername: data.managername,
-        phone: data.phone,
-        email: data.email || null,
-        street: data.street,
-        streetnumber: data.streetnumber,
-        provinceid: data.provinceid,
-        municipalityid: data.municipalityid,
-        reference: data.reference,
-        creditlimit: data.creditlimit.toString(),
-      };
-
-      // Añadir cada campo al FormData
-      Object.entries(updatedFields).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+      // Añadir todos los campos de texto
+      Object.entries(data).forEach(([key, value]) => {
+        // Saltar el campo logo ya que se maneja especialmente
+        if (key !== 'logo' && value !== undefined && value !== null) {
           formData.append(key, String(value));
         }
       });
 
-      // Añadir el logo si ha sido actualizado
+      // Manejar el logo
       if (data.logo instanceof File) {
-        console.log("Añadiendo nuevo logo al FormData");
         formData.append('logo', data.logo);
       }
 
       console.log("FormData preparado:", Object.fromEntries(formData.entries()));
 
-      // Usar fetch directamente para enviar FormData
       const response = await fetch(`/api/customers/${data.id}`, {
         method: 'PATCH',
         body: formData,
@@ -578,93 +562,58 @@ export default function Customers() {
                     <FormItem>
                       <FormLabel>Logo</FormLabel>
                       <FormControl>
-                        {value ? (
-                          <div className="space-y-2">
+                        <div className="space-y-2">
+                          {/* Mostrar logo actual o placeholder */}
+                          {typeof value === 'string' ? (
                             <img
                               src={`data:image/jpeg;base64,${value}`}
                               alt="Logo"
                               className="w-32 h-32 object-contain"
                             />
-                            {isEditing && (
-                              <Input
-                                type="file"
-                                accept="image/jpeg,image/png"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    // Validar el tamaño (5MB)
-                                    if (file.size > 5 * 1024 * 1024) {
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Error",
-                                        description: "El archivo debe ser menor a 5MB",
-                                      });
-                                      e.target.value = '';
-                                      return;
-                                    }
-
-                                    // Validar el tipo
-                                    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Error",
-                                        description: "El archivo debe ser JPG o PNG",
-                                      });
-                                      e.target.value = '';
-                                      return;
-                                    }
-
-                                    // Actualizar el valor en el formulario con el archivo
-                                    field.onChange(file);
-                                  }
-                                }}
-                                {...field}
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
+                          ) : (
                             <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
                               No logo
                             </div>
-                            {isEditing && (
-                              <Input
-                                type="file"
-                                accept="image/jpeg,image/png"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    // Validar el tamaño (5MB)
-                                    if (file.size > 5 * 1024 * 1024) {
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Error",
-                                        description: "El archivo debe ser menor a 5MB",
-                                      });
-                                      e.target.value = '';
-                                      return;
-                                    }
+                          )}
 
-                                    // Validar el tipo
-                                    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                                      toast({
-                                        variant: "destructive",
-                                        title: "Error",
-                                        description: "El archivo debe ser JPG o PNG",
-                                      });
-                                      e.target.value = '';
-                                      return;
-                                    }
-
-                                    // Actualizar el valor en el formulario con el archivo
-                                    field.onChange(file);
+                          {/* Input para actualizar logo */}
+                          {isEditing && (
+                            <Input
+                              type="file"
+                              accept="image/jpeg,image/png"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  // Validar el tamaño (5MB)
+                                  if (file.size > 5 * 1024 * 1024) {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error",
+                                      description: "El archivo debe ser menor a 5MB",
+                                    });
+                                    e.target.value = '';
+                                    return;
                                   }
-                                }}
-                                {...field}
-                              />
-                            )}
-                          </div>
-                        )}
+
+                                  // Validar el tipo
+                                  if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error",
+                                      description: "El archivo debe ser JPG o PNG",
+                                    });
+                                    e.target.value = '';
+                                    return;
+                                  }
+
+                                  // Actualizar el valor en el formulario con el archivo
+                                  field.onChange(file);
+                                }
+                              }}
+                              {...field}
+                            />
+                          )}
+                        </div>
                       </FormControl>
                     </FormItem>
                   )}
