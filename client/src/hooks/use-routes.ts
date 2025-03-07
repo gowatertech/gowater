@@ -17,3 +17,6 @@ export function useRutas() {
 
   return { rutas, cargando, error };
 }
+
+// Mantenemos la función useRoutes como alias para compatibilidad
+export const useRoutes = useRutas;
