@@ -75,19 +75,19 @@ export default function Customers() {
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
+      logo: "",
+      rnc: "",
       businessname: "",
       managername: "",
       phone: "",
+      email: "",
+      zoneid: undefined,
       street: "",
       streetnumber: "",
-      country: "República Dominicana",
-      reference: "",
-      creditlimit: "0.00",
       provinceid: undefined,
       municipalityid: undefined,
-      logo: undefined,
-      rnc: "",
-      tax: undefined,
+      reference: "",
+      creditlimit: "0.00",
     },
   });
 
@@ -155,6 +155,46 @@ export default function Customers() {
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Logo */}
+                <FormField
+                  control={form.control}
+                  name="logo"
+                  render={({ field: { value, onChange, ...field } }) => (
+                    <FormItem>
+                      <FormLabel>Logo</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              onChange(file);
+                            }
+                          }}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* RNC */}
+                <FormField
+                  control={form.control}
+                  name="rnc"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>RNC</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {/* Nombre del Negocio y Nombre del Encargado */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -186,7 +226,7 @@ export default function Customers() {
                   />
                 </div>
 
-                {/* Teléfono y Logo */}
+                {/* Teléfono y Email */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -204,28 +244,43 @@ export default function Customers() {
 
                   <FormField
                     control={form.control}
-                    name="logo"
-                    render={({ field: { value, onChange, ...field } }) => (
+                    name="email"
+                    render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Logo</FormLabel>
+                        <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                onChange(file);
-                              }
-                            }}
-                            {...field}
-                          />
+                          <Input type="email" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
+
+                {/* Zona */}
+                <FormField
+                  control={form.control}
+                  name="zoneid"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zona</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione una zona" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {/* TODO: Add zones from API */}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Calle y Número */}
                 <div className="grid grid-cols-2 gap-4">
@@ -313,48 +368,6 @@ export default function Customers() {
                                 {municipality.name}
                               </SelectItem>
                             ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* RNC y Aplica Impuestos */}
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="rnc"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>RNC</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="tax"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Aplica Impuestos</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione S/N" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="S">Sí</SelectItem>
-                            <SelectItem value="N">No</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

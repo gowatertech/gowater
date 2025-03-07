@@ -81,39 +81,36 @@ export const sectors = pgTable("sectors", {
 // Customers table
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
+  logo: text("logo"),
+  rnc: text("rnc"),
   businessname: text("businessname").notNull(),
   managername: text("managername").notNull(),
-  rnc: text("rnc"),
-  tax: text("tax", { enum: ["S", "N"] }).notNull(),
   phone: text("phone").notNull(),
+  email: text("email"),
+  zoneid: integer("zoneid").references(() => zones.id),
   street: text("street").notNull(),
   streetnumber: text("streetnumber").notNull(),
   provinceid: integer("provinceid").notNull().references(() => provinces.id),
   municipalityid: integer("municipalityid").notNull().references(() => municipalities.id),
-  country: text("country").notNull().default("República Dominicana"),
   reference: text("reference"),
   creditlimit: decimal("creditlimit", { precision: 10, scale: 2 }).notNull().default("0"),
-  balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
-  logo: text("logo"),
 });
 
 // Customer insert schema
 export const insertCustomerSchema = z.object({
+  logo: z.string().optional(),
+  rnc: z.string().optional(),
   businessname: z.string().min(1, "El nombre del negocio es requerido"),
   managername: z.string().min(1, "El nombre del encargado es requerido"),
-  rnc: z.string().optional(),
-  tax: z.enum(["S", "N"], {
-    required_error: "Debe especificar si aplica impuestos (S/N)",
-  }),
   phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  email: z.string().email("Correo electrónico inválido").optional(),
+  zoneid: z.number().optional(),
   street: z.string().min(1, "La calle es requerida"),
   streetnumber: z.string().min(1, "El número es requerido"),
   provinceid: z.number({ required_error: "La provincia es requerida" }),
   municipalityid: z.number({ required_error: "El municipio es requerido" }),
-  country: z.string().default("República Dominicana"),
   reference: z.string().optional(),
   creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-  logo: z.string().optional(),
 });
 
 // Products
