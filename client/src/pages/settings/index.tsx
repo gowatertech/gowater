@@ -59,13 +59,6 @@ function Settings() {
   const { data: municipalities = [] } = useQuery<Municipality[]>({
     queryKey: ["/api/municipalities", form.watch("provinceId")],
     enabled: !!form.watch("provinceId"),
-    queryFn: async () => {
-      const response = await fetch(`/api/municipalities/${form.watch("provinceId")}`);
-      if (!response.ok) {
-        throw new Error('Error al cargar los municipios');
-      }
-      return response.json();
-    },
   });
 
   // Fetch current settings
@@ -79,6 +72,11 @@ function Settings() {
       form.reset(settings);
     }
   }, [settings, form]);
+
+  // Reset municipalityId when province changes
+  useEffect(() => {
+    form.setValue("municipalityId", undefined);
+  }, [form.watch("provinceId")]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {

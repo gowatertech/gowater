@@ -107,6 +107,7 @@ export async function registerRoutes(app: Express) {
         .where(eq(municipalities.provinceId, provinceId))
         .orderBy(municipalities.name);
 
+      console.log(`Municipios encontrados para provincia ${provinceId}:`, municipalitiesInProvince);
       res.json(municipalitiesInProvince);
     } catch (error) {
       console.error("Error al obtener municipios:", error);
