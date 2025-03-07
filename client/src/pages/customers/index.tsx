@@ -102,17 +102,28 @@ export default function Customers() {
     mutationFn: async (data: CustomerFormData) => {
       console.log("Submitting form data:", data);
       const formData = new FormData();
+
+      // Manejar cada campo, incluyendo el archivo del logo
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== "") {
           if (key === 'logo' && value instanceof File) {
-            formData.append(key, value);
+            formData.append('logo', value);
           } else {
             formData.append(key, String(value));
           }
         }
       });
-      console.log("FormData entries:", Array.from(formData.entries()));
-      const res = await apiRequest("POST", "/api/customers", formData); 
+
+      // Usar el formData para enviar al servidor
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al crear el cliente');
+      }
+
       return res.json();
     },
     onSuccess: () => {
@@ -137,18 +148,6 @@ export default function Customers() {
 
   const onSubmit = (data: CustomerFormData) => {
     console.log("Form submitted with data:", data);
-    const formData = new FormData();
-    Object.entries(data).forEach(([key, value]) => {
-      console.log(`Processing field ${key}:`, value);
-      if (value !== undefined && value !== "") {
-        if (key === 'logo' && value instanceof File) {
-          formData.append(key, value);
-        } else {
-          formData.append(key, String(value));
-        }
-      }
-    });
-    console.log("Final FormData entries:", Array.from(formData.entries()));
     createMutation.mutate(data);
   };
 
@@ -178,7 +177,7 @@ export default function Customers() {
                     control={form.control}
                     name="logo"
                     render={({ field: { value, onChange, ...field } }) => (
-                      <FormItem className="col-span-2">
+                      <FormItem>
                         <FormLabel>Logo (JPG/PNG, máx. 5MB)</FormLabel>
                         <FormControl>
                           <Input
@@ -187,7 +186,7 @@ export default function Customers() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                // Validar el tamaño (5MB = 5 * 1024 * 1024 bytes)
+                                // Validar el tamaño (5MB)
                                 if (file.size > 5 * 1024 * 1024) {
                                   toast({
                                     variant: "destructive",
@@ -197,6 +196,7 @@ export default function Customers() {
                                   e.target.value = '';
                                   return;
                                 }
+
                                 // Validar el tipo
                                 if (!['image/jpeg', 'image/png'].includes(file.type)) {
                                   toast({
@@ -207,6 +207,7 @@ export default function Customers() {
                                   e.target.value = '';
                                   return;
                                 }
+
                                 onChange(file);
                               }
                             }}
