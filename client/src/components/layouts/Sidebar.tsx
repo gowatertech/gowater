@@ -16,6 +16,17 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+import {
+  Sidebar as UISidebar,
+  SidebarContent as UISidebarContent,
+  SidebarHeader as UISidebarHeader,
+  SidebarMenu as UISidebarMenu,
+  SidebarMenuItem as UISidebarMenuItem,
+  SidebarMenuButton as UISidebarMenuButton,
+} from "@/components/ui/sidebar";
+
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+
 const menuColors = {
   panel: "#0088FE",      // Azul brillante
   facturacion: "#00C49F", // Verde turquesa para facturación
@@ -51,17 +62,6 @@ const sidebarItems = [
   { icon: FileText, label: "Reportes", href: "/reports" },
   { icon: Settings, label: "Ajustes", href: "/settings" },
 ];
-
-import {
-  Sidebar as UISidebar,
-  SidebarContent as UISidebarContent,
-  SidebarHeader as UISidebarHeader,
-  SidebarMenu as UISidebarMenu,
-  SidebarMenuItem as UISidebarMenuItem,
-  SidebarMenuButton as UISidebarMenuButton,
-} from "@/components/ui/sidebar";
-
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface SidebarProps {
   openMobile: boolean;
