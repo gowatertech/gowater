@@ -78,10 +78,11 @@ export default function Customers() {
     queryKey: ["/api/customers"],
   });
 
+  // Actualizar el manejo del formulario
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
-      logo: "",
+      logo: undefined,
       rnc: "",
       businessname: "",
       managername: "",
@@ -99,23 +100,20 @@ export default function Customers() {
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
-      if (data.logo instanceof File) {
-        const formData = new FormData();
-        Object.entries(data).forEach(([key, value]) => {
-          if (value !== undefined) {
-            if (key === 'logo' && value instanceof File) {
-              formData.append(key, value);
-            } else {
-              formData.append(key, String(value));
-            }
+      console.log("Submitting form data:", data);
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== "") {
+          if (key === 'logo' && value instanceof File) {
+            formData.append(key, value);
+          } else {
+            formData.append(key, String(value));
           }
-        });
-        const res = await apiRequest("POST", "/api/customers", formData);
-        return res.json();
-      } else {
-        const res = await apiRequest("POST", "/api/customers", data);
-        return res.json();
-      }
+        }
+      });
+      console.log("FormData entries:", Array.from(formData.entries()));
+      const res = await apiRequest("POST", "/api/customers", formData); //Corrected to use formData
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
@@ -128,6 +126,7 @@ export default function Customers() {
       setSelectedProvinceId(null);
     },
     onError: (error) => {
+      console.error("Error creating customer:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -137,6 +136,7 @@ export default function Customers() {
   });
 
   const onSubmit = (data: CustomerFormData) => {
+    console.log("Form submitted with data:", data);
     createMutation.mutate(data);
   };
 
