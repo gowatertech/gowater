@@ -149,9 +149,11 @@ export default function Customers() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
+      console.log("Actualizando cliente con datos:", data);
       const response = await apiRequest("PATCH", `/api/customers/${data.id}`, {
         ...data,
-        email: data.email || null, // Asegurar que email vacío se envíe como null
+        email: data.email || null,
+        creditlimit: data.creditlimit.toString(),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -169,6 +171,7 @@ export default function Customers() {
       setIsViewDialogOpen(false);
     },
     onError: (error) => {
+      console.error("Error al actualizar:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -179,13 +182,14 @@ export default function Customers() {
 
   const onSubmit = async (data: CustomerFormData) => {
     try {
+      console.log("Formulario enviado con datos:", data);
       if (isEditing && selectedCustomer) {
         await updateMutation.mutateAsync({ ...data, id: selectedCustomer.id });
       } else {
         await createMutation.mutateAsync(data);
       }
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error("Error en el envío del formulario:", error);
     }
   };
 
