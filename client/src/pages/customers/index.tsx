@@ -112,7 +112,7 @@ export default function Customers() {
         }
       });
       console.log("FormData entries:", Array.from(formData.entries()));
-      const res = await apiRequest("POST", "/api/customers", formData); //Corrected to use formData
+      const res = await apiRequest("POST", "/api/customers", formData); 
       return res.json();
     },
     onSuccess: () => {
