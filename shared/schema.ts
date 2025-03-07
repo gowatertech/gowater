@@ -8,8 +8,8 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role", { 
-    enum: ["admin", "supervisor", "cashier", "driver", "assistant"] 
+  role: text("role", {
+    enum: ["admin", "supervisor", "cashier", "driver", "assistant"]
   }).notNull(),
   active: boolean("active").notNull().default(true),
   phone: text("phone"),
@@ -51,15 +51,38 @@ export const insertUserSchema = createInsertSchema(users)
     }
   });
 
-// Customers
+// Provincias, Ciudades y Sectores
+export const provinces = pgTable("provinces", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  code: text("code").notNull().unique(), // Código único de la provincia
+});
+
+export const cities = pgTable("cities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  code: text("code").notNull().unique(), // Código único de la ciudad
+});
+
+export const sectors = pgTable("sectors", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  cityId: integer("city_id").notNull().references(() => cities.id),
+  code: text("code").notNull().unique(), // Código único del sector
+});
+
+// Modificar la tabla de clientes para incluir la nueva estructura de dirección
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   businessName: text("business_name"),
   email: text("email"),
-  address: text("address").notNull(),
   phone: text("phone").notNull(),
-  coordinates: text("coordinates"), // "lat,lng"
+  street: text("street").notNull(), // Nombre de la calle
+  houseNumber: text("house_number").notNull(), // Número de casa/edificio
+  sectorId: integer("sector_id").notNull().references(() => sectors.id),
+  coordinates: text("coordinates"), // "lat,lng" - Se llenará automáticamente vía geocodificación
   zoneId: integer("zone_id").references(() => zones.id),
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
 });
@@ -234,7 +257,13 @@ export const invoiceItems = pgTable("invoice_items", {
 });
 
 // Create insert schemas
-export const insertCustomerSchema = createInsertSchema(customers);
+export const insertCustomerSchema = createInsertSchema(customers, {
+  phone: z.string().min(10, "Teléfono debe tener al menos 10 dígitos"),
+  email: z.string().email("Email inválido").optional(),
+  street: z.string().min(1, "La calle es requerida"),
+  houseNumber: z.string().min(1, "El número es requerido"),
+  sectorId: z.number({ required_error: "El sector es requerido" }),
+}).strict();
 export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);
 export const insertRouteSchema = createInsertSchema(routes)
@@ -314,6 +343,12 @@ export const insertInvoiceItemSchema = createInsertSchema(invoiceItems);
 
 export const insertProductionBatchSchema = createInsertSchema(productionBatches);
 
+// Schemas de inserción para los nuevos catálogos
+export const insertProvinceSchema = createInsertSchema(provinces);
+export const insertCitySchema = createInsertSchema(cities);
+export const insertSectorSchema = createInsertSchema(sectors);
+
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
@@ -358,3 +393,9 @@ export type InsertBill = z.infer<typeof insertBillSchema>;
 export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
 export type ProductionBatch = typeof productionBatches.$inferSelect;
 export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
+export type Province = typeof provinces.$inferSelect;
+export type City = typeof cities.$inferSelect;
+export type Sector = typeof sectors.$inferSelect;
+export type InsertProvince = z.infer<typeof insertProvinceSchema>;
+export type InsertCity = z.infer<typeof insertCitySchema>;
+export type InsertSector = z.infer<typeof insertSectorSchema>;
