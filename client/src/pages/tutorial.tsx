@@ -1,9 +1,8 @@
-
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Home, Users, Route, Package, FileText, UserCog, Settings } from "lucide-react";
-import { useTranslation } from "@/lib/i18n";
 
 const TutorialPage = () => {
   const { t } = useTranslation();
@@ -60,13 +59,13 @@ const TutorialPage = () => {
             <li>Visualizar historial de pedidos y pagos</li>
             <li>Actualizar información de contacto y ubicación</li>
           </ul>
-          
+
           <div className="flex justify-center my-6">
             <div className="p-4 bg-indigo-50 rounded-full">
               <Users className="h-12 w-12 text-indigo-500" />
             </div>
           </div>
-          
+
           <div className="my-4 p-4 bg-gray-100 rounded-md">
             <p className="text-sm text-gray-600">Recuerda: Los datos de ubicación precisa son esenciales para la optimización de rutas.</p>
           </div>
@@ -87,13 +86,13 @@ const TutorialPage = () => {
             <li>Seguimiento en tiempo real de los vehículos</li>
             <li>Notificaciones automáticas de entregas completadas</li>
           </ul>
-          
+
           <div className="flex justify-center my-6">
             <div className="p-4 bg-green-50 rounded-full">
               <Route className="h-12 w-12 text-green-500" />
             </div>
           </div>
-          
+
           <div className="my-4 p-4 bg-yellow-50 rounded-md border border-yellow-200">
             <p className="text-sm text-yellow-700">Importante: Los choferes pueden actualizar el estado de entrega desde la aplicación móvil.</p>
           </div>
@@ -114,13 +113,13 @@ const TutorialPage = () => {
             <li>Registrar lotes de producción con trazabilidad</li>
             <li>Generar reportes de rotación de inventario</li>
           </ul>
-          
+
           <div className="flex justify-center my-6">
             <div className="p-4 bg-purple-50 rounded-full">
               <Package className="h-12 w-12 text-purple-500" />
             </div>
           </div>
-          
+
           <div className="my-4 p-4 bg-gray-100 rounded-md">
             <p className="text-sm text-gray-600">Consejo: Revisa el inventario al final del día para planificar la producción del día siguiente.</p>
           </div>
@@ -141,13 +140,13 @@ const TutorialPage = () => {
             <li>Emitir notas de crédito o débito</li>
             <li>Generar reportes de ventas por periodo</li>
           </ul>
-          
+
           <div className="flex justify-center my-6">
             <div className="p-4 bg-red-50 rounded-full">
               <FileText className="h-12 w-12 text-red-500" />
             </div>
           </div>
-          
+
           <div className="my-4 p-4 bg-blue-50 rounded-md border border-blue-200">
             <p className="text-sm text-blue-700">Importante: Todas las facturas pueden exportarse en formato PDF o enviarse por correo electrónico.</p>
           </div>
@@ -168,13 +167,13 @@ const TutorialPage = () => {
             <li>Configurar políticas de seguridad</li>
             <li>Restablecer contraseñas</li>
           </ul>
-          
+
           <div className="flex justify-center my-6">
             <div className="p-4 bg-orange-50 rounded-full">
               <UserCog className="h-12 w-12 text-orange-500" />
             </div>
           </div>
-          
+
           <div className="my-4 p-4 bg-red-50 rounded-md border border-red-200">
             <p className="text-sm text-red-700">Advertencia: Solo los administradores pueden crear nuevos usuarios y asignar permisos.</p>
           </div>
@@ -188,20 +187,20 @@ const TutorialPage = () => {
       content: (
         <div className="space-y-4">
           <p>Para utilizar GoWater localmente:</p>
-          
+
           <div className="bg-gray-50 p-4 rounded-md font-mono text-sm">
             <p className="font-semibold mb-2">Descarga del código:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Desde Replit: Menu → Download as zip</li>
               <li>Con Git: git clone [repositorio]</li>
             </ul>
-            
+
             <p className="font-semibold mt-4 mb-2">Requisitos:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Node.js (versión 20.x)</li>
               <li>PostgreSQL (versión 16)</li>
             </ul>
-            
+
             <p className="font-semibold mt-4 mb-2">Comandos:</p>
             <div className="bg-gray-800 text-white p-3 rounded-md">
               <p># Instalar dependencias</p>
@@ -214,7 +213,7 @@ const TutorialPage = () => {
               <p>npm run start</p>
             </div>
           </div>
-          
+
           <div className="my-4 p-4 bg-green-50 rounded-md border border-green-200">
             <p className="text-sm text-green-700">La aplicación estará disponible en http://localhost:5000</p>
           </div>
@@ -243,7 +242,7 @@ const TutorialPage = () => {
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8 text-center">{t("Tutorial Interactivo - GoWater")}</h1>
-      
+
       <div className="flex mb-6 overflow-x-auto pb-2 no-scrollbar">
         {tutorialSteps.map((step, index) => (
           <div
@@ -263,7 +262,7 @@ const TutorialPage = () => {
           </div>
         ))}
       </div>
-      
+
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>{tutorialSteps[currentStep].title}</CardTitle>
@@ -273,7 +272,7 @@ const TutorialPage = () => {
           {tutorialSteps[currentStep].content}
         </CardContent>
       </Card>
-      
+
       <div className="flex justify-between">
         <Button
           variant="outline"
@@ -282,11 +281,11 @@ const TutorialPage = () => {
         >
           <ChevronLeft className="mr-2 h-4 w-4" /> {t("Anterior")}
         </Button>
-        
+
         <div className="text-sm text-gray-500 self-center">
           {currentStep + 1} / {tutorialSteps.length}
         </div>
-        
+
         <Button
           onClick={handleNext}
           disabled={currentStep === tutorialSteps.length - 1}
