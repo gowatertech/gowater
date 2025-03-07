@@ -366,5 +366,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Agregar después del endpoint GET /api/customers/:id
+  app.patch("/api/customers/:id", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const [updatedCustomer] = await db
+        .update(customers)
+        .set(req.body)
+        .where(eq(customers.id, customerId))
+        .returning();
+
+      if (!updatedCustomer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+
+      res.json(updatedCustomer);
+    } catch (error) {
+      console.error("Error al actualizar cliente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   return httpServer;
 }
