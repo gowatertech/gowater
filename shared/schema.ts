@@ -98,7 +98,7 @@ export const customers = pgTable("customers", {
 
 // Customer insert schema
 export const insertCustomerSchema = z.object({
-  logo: z.string().optional(),
+  logo: z.any().optional(), // Permitir File o string
   rnc: z.string().optional(),
   businessname: z.string().min(1, "El nombre del negocio es requerido"),
   managername: z.string().min(1, "El nombre del encargado es requerido"),

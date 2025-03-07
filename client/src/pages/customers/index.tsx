@@ -103,7 +103,7 @@ export default function Customers() {
         const formData = new FormData();
         Object.entries(data).forEach(([key, value]) => {
           if (value !== undefined) {
-            if (key === 'logo') {
+            if (key === 'logo' && value instanceof File) {
               formData.append(key, value);
             } else {
               formData.append(key, String(value));
