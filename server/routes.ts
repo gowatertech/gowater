@@ -319,19 +319,25 @@ export async function registerRoutes(app: Express) {
       const allCustomers = await db
         .select({
           id: customers.id,
-          businessName: customers.businessName,
-          managerName: customers.managerName,
+          logo: customers.logo,
+          rnc: customers.rnc,
+          businessname: customers.businessname,
+          managername: customers.managername,
           phone: customers.phone,
+          email: customers.email,
+          zoneid: customers.zoneid,
           street: customers.street,
-          streetNumber: customers.streetNumber,
-          creditLimit: customers.creditLimit,
-          balance: customers.balance,
+          streetnumber: customers.streetnumber,
+          creditlimit: customers.creditlimit,
+          provinceid: customers.provinceid,
+          municipalityid: customers.municipalityid,
+          reference: customers.reference,
           municipalityName: municipalities.name,
           provinceName: provinces.name,
         })
         .from(customers)
-        .leftJoin(provinces, eq(customers.provinceId, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipalityId, municipalities.id));
+        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id));
 
       res.json(allCustomers);
     } catch (error) {

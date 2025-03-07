@@ -456,7 +456,6 @@ export default function Customers() {
             <TableRow>
               <TableHead>Nombre del Negocio</TableHead>
               <TableHead>RNC</TableHead>
-              <TableHead>Impuestos</TableHead>
               <TableHead>Nombre del Encargado</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Dirección</TableHead>
@@ -470,7 +469,6 @@ export default function Customers() {
               <TableRow key={customer.id}>
                 <TableCell>{customer.businessname}</TableCell>
                 <TableCell>{customer.rnc}</TableCell>
-                <TableCell>{customer.tax}</TableCell>
                 <TableCell>{customer.managername}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
                 <TableCell>
