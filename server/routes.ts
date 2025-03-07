@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { zones, routes, users, insertZoneSchema, insertRouteSchema } from "@shared/schema";
+import { zones, rutas, users, insertZoneSchema, insertRutaSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 
@@ -162,49 +162,49 @@ export async function registerRoutes(app: Express) {
   });
 
   // Rutas
-  app.get("/api/routes", async (req, res) => {
+  app.get("/api/rutas", async (req, res) => {
     try {
-      const allRoutes = await db
+      const todasLasRutas = await db
         .select()
-        .from(routes);
+        .from(rutas);
 
-      console.log("Retrieved routes:", allRoutes);
-      res.json(allRoutes);
+      console.log("Rutas recuperadas:", todasLasRutas);
+      res.json(todasLasRutas);
     } catch (error) {
       console.error("Error al obtener rutas:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
-  app.post("/api/routes", async (req, res) => {
+  app.post("/api/rutas", async (req, res) => {
     console.log("Creando ruta con datos:", req.body);
 
     try {
-      const routeData = {
+      const datosRuta = {
         ...req.body,
-        date: new Date(req.body.date),
-        driverId: Number(req.body.driverId),
-        truckId: 1,
-        status: "pending",
-        isCompleted: false
+        fecha: new Date(req.body.fecha),
+        conductorId: Number(req.body.conductorId),
+        camionId: 1,
+        estado: "pendiente",
+        completada: false
       };
 
-      console.log("Datos procesados de la ruta:", routeData);
+      console.log("Datos procesados de la ruta:", datosRuta);
 
-      const result = insertRouteSchema.safeParse(routeData);
+      const result = insertRutaSchema.safeParse(datosRuta);
 
       if (!result.success) {
         console.error("Error de validación:", result.error.format());
         return res.status(400).json({ error: result.error.format() });
       }
 
-      const [route] = await db
-        .insert(routes)
+      const [ruta] = await db
+        .insert(rutas)
         .values(result.data)
         .returning();
 
-      console.log("Ruta creada:", route);
-      res.json(route);
+      console.log("Ruta creada:", ruta);
+      res.json(ruta);
     } catch (error) {
       console.error("Error al crear ruta:", error);
       res.status(500).json({ error: String(error) });

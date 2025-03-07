@@ -93,27 +93,27 @@ export const trucks = pgTable("trucks", {
   status: text("status", { enum: ["available", "on_route", "maintenance"] }).notNull(),
 });
 
-// Routes
-export const routes = pgTable("routes", {
+// Rutas
+export const rutas = pgTable("rutas", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  driverId: integer("driver_id").notNull().references(() => users.id),
-  assistantId: integer("assistant_id").references(() => users.id),
-  truckId: integer("truck_id").notNull(),
-  status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull(),
-  date: timestamp("date").notNull(),
-  startTime: timestamp("start_time"),
-  endTime: timestamp("end_time"),
-  estimatedDuration: integer("estimated_duration"), // en minutos
-  actualDuration: integer("actual_duration"), // en minutos
-  totalDistance: decimal("total_distance", { precision: 10, scale: 2 }), // en kilómetros
-  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }), // total de ingresos
-  deliverySequence: text("delivery_sequence").array(), // Array de IDs de pedidos en orden óptimo
-  currentLocation: text("current_location"), // Coordenadas actuales "lat,lng"
-  lastUpdate: timestamp("last_update"),
-  driverStartedAt: timestamp("driver_started_at"), // Cuando el conductor inició la ruta
-  isCompleted: boolean("is_completed").notNull().default(false),
-  stops: text("stops").array(), // Array de paradas con detalles
+  nombre: text("nombre").notNull(),
+  conductorId: integer("conductor_id").notNull().references(() => users.id),
+  asistenteId: integer("asistente_id").references(() => users.id),
+  camionId: integer("camion_id").notNull(),
+  estado: text("estado", { enum: ["pendiente", "en_progreso", "completada"] }).notNull(),
+  fecha: timestamp("fecha").notNull(),
+  horaInicio: timestamp("hora_inicio"),
+  horaFin: timestamp("hora_fin"),
+  duracionEstimada: integer("duracion_estimada"), // en minutos
+  duracionReal: integer("duracion_real"), // en minutos
+  distanciaTotal: decimal("distancia_total", { precision: 10, scale: 2 }), // en kilómetros
+  ingresoTotal: decimal("ingreso_total", { precision: 10, scale: 2 }), // total de ingresos
+  secuenciaEntrega: text("secuencia_entrega").array(), // Array de IDs de pedidos en orden óptimo
+  ubicacionActual: text("ubicacion_actual"), // Coordenadas actuales "lat,lng"
+  ultimaActualizacion: timestamp("ultima_actualizacion"),
+  inicioConductor: timestamp("inicio_conductor"), // Cuando el conductor inició la ruta
+  completada: boolean("completada").notNull().default(false),
+  paradas: text("paradas").array(), // Array de paradas con detalles
 });
 
 // Orders - Agregar solo el campo de método de pago
@@ -236,35 +236,35 @@ export const invoiceItems = pgTable("invoice_items", {
 export const insertCustomerSchema = createInsertSchema(customers);
 export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);
-export const insertRouteSchema = createInsertSchema(routes)
+export const insertRutaSchema = createInsertSchema(rutas)
   .extend({
-    name: z.string().min(1, "El nombre de la ruta es requerido"),
-    driverId: z.number({ required_error: "Debe seleccionar un conductor" }),
-    date: z.coerce.date({ required_error: "La fecha es requerida" }),
-    truckId: z.number().default(1),
-    status: z.enum(["pending", "in_progress", "completed"], {
+    nombre: z.string().min(1, "El nombre de la ruta es requerido"),
+    conductorId: z.number({ required_error: "Debe seleccionar un conductor" }),
+    fecha: z.coerce.date({ required_error: "La fecha es requerida" }),
+    camionId: z.number().default(1),
+    estado: z.enum(["pendiente", "en_progreso", "completada"], {
       required_error: "El estado es requerido",
       invalid_type_error: "Estado inválido",
       description: "Estado de la ruta"
-    }).default("pending"),
-    isCompleted: z.boolean().default(false),
-    startTime: z.string().datetime().optional(),
-    endTime: z.string().datetime().optional(),
-    estimatedDuration: z.number().optional(),
-    actualDuration: z.number().optional(),
-    totalDistance: z.string().regex(/^\d+\.\d{2}$/, "La distancia debe tener 2 decimales").optional(),
-    totalRevenue: z.string().regex(/^\d+\.\d{2}$/, "El ingreso debe tener 2 decimales").optional(),
-    deliverySequence: z.array(z.string()).optional(),
-    currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/, "Formato de ubicación inválido").optional(),
-    lastUpdate: z.string().datetime().optional(),
-    driverStartedAt: z.string().datetime().optional(),
-    stops: z.array(z.string()).optional(),
+    }).default("pendiente"),
+    completada: z.boolean().default(false),
+    horaInicio: z.string().datetime().optional(),
+    horaFin: z.string().datetime().optional(),
+    duracionEstimada: z.number().optional(),
+    duracionReal: z.number().optional(),
+    distanciaTotal: z.string().regex(/^\d+\.\d{2}$/, "La distancia debe tener 2 decimales").optional(),
+    ingresoTotal: z.string().regex(/^\d+\.\d{2}$/, "El ingreso debe tener 2 decimales").optional(),
+    secuenciaEntrega: z.array(z.string()).optional(),
+    ubicacionActual: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/, "Formato de ubicación inválido").optional(),
+    ultimaActualizacion: z.string().datetime().optional(),
+    inicioConductor: z.string().datetime().optional(),
+    paradas: z.array(z.string()).optional(),
   })
   .transform((data) => ({
     ...data,
-    truckId: data.truckId || 1,
-    status: data.status || "pending",
-    isCompleted: data.isCompleted ?? false
+    camionId: data.camionId || 1,
+    estado: data.estado || "pendiente",
+    completada: data.completada ?? false
   }));
 export const insertOrderSchema = createInsertSchema(orders, {
   customerId: z.number(),
@@ -321,7 +321,7 @@ export type User = typeof users.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Truck = typeof trucks.$inferSelect;
-export type Route = typeof routes.$inferSelect;
+export type Ruta = typeof rutas.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
@@ -349,7 +349,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type InsertTruck = z.infer<typeof insertTruckSchema>;
-export type InsertRoute = z.infer<typeof insertRouteSchema>;
+export type InsertRuta = z.infer<typeof insertRutaSchema>;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
