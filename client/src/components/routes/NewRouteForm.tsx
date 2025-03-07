@@ -30,11 +30,12 @@ interface NewRouteFormProps {
 
 export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
   const { t } = useTranslation();
-  const { toast } = useToast();
 
   const { data: drivers = [] } = useQuery({
     queryKey: ["/api/users?role=driver"],
   });
+
+  const { toast } = useToast();
 
   const form = useForm({
     resolver: zodResolver(insertRouteSchema),
@@ -50,7 +51,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
 
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Submitting data:", data);
+      console.log("Enviando datos:", data);
       const response = await apiRequest("POST", "/api/routes", {
         ...data,
         date: new Date(data.date),
@@ -70,16 +71,16 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
       toast({
-        description: t("routeCreated"),
+        description: "Ruta creada exitosamente",
       });
       form.reset();
       onRouteCreated();
     },
     onError: (error: Error) => {
-      console.error("Error creating route:", error);
+      console.error("Error al crear ruta:", error);
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
@@ -87,10 +88,10 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
 
   const onSubmit = async (data: any) => {
     try {
-      console.log("Form data:", data);
+      console.log("Datos del formulario:", data);
       await createRouteMutation.mutateAsync(data);
     } catch (error) {
-      console.error("Submit error:", error);
+      console.error("Error al enviar:", error);
     }
   };
 
@@ -102,9 +103,9 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t("routeName")}</FormLabel>
+              <FormLabel>Nombre de la Ruta</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="Ingrese el nombre de la ruta" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -116,14 +117,14 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
           name="driverId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t("driver")}</FormLabel>
+              <FormLabel>Conductor</FormLabel>
               <Select
                 onValueChange={(value) => field.onChange(Number(value))}
                 value={field.value?.toString()}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder={t("selectDriver")} />
+                    <SelectValue placeholder="Seleccione un conductor" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -144,7 +145,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
           name="date"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t("date")}</FormLabel>
+              <FormLabel>Fecha</FormLabel>
               <FormControl>
                 <Input 
                   type="date" 
@@ -152,7 +153,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
                   value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
                   onChange={(e) => {
                     const date = new Date(e.target.value);
-                    date.setHours(12); // Set to noon to avoid timezone issues
+                    date.setHours(12); // Establecer al mediodía para evitar problemas de zona horaria
                     field.onChange(date);
                   }}
                 />
@@ -167,7 +168,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
           className="w-full"
           disabled={createRouteMutation.isPending}
         >
-          {createRouteMutation.isPending ? t("saving") : t("save")}
+          {createRouteMutation.isPending ? "Guardando..." : "Guardar"}
         </Button>
       </form>
     </Form>

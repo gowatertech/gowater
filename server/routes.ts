@@ -177,24 +177,24 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post("/api/routes", async (req, res) => {
-    console.log("Creating route with data:", req.body);
+    console.log("Creando ruta con datos:", req.body);
 
     try {
       const routeData = {
         ...req.body,
         date: new Date(req.body.date),
         driverId: Number(req.body.driverId),
-        truckId: 1, // Valor temporal para pruebas
+        truckId: 1,
         status: "pending",
         isCompleted: false
       };
 
-      console.log("Processed route data:", routeData);
+      console.log("Datos procesados de la ruta:", routeData);
 
       const result = insertRouteSchema.safeParse(routeData);
 
       if (!result.success) {
-        console.error("Validation error:", result.error.format());
+        console.error("Error de validación:", result.error.format());
         return res.status(400).json({ error: result.error.format() });
       }
 
@@ -203,7 +203,7 @@ export async function registerRoutes(app: Express) {
         .values(result.data)
         .returning();
 
-      console.log("Created route:", route);
+      console.log("Ruta creada:", route);
       res.json(route);
     } catch (error) {
       console.error("Error al crear ruta:", error);

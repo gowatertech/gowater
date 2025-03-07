@@ -238,20 +238,24 @@ export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);
 export const insertRouteSchema = createInsertSchema(routes)
   .extend({
-    name: z.string().min(1, "El nombre es requerido"),
-    driverId: z.number({ required_error: "Se requiere un conductor" }),
-    date: z.coerce.date(),
+    name: z.string().min(1, "El nombre de la ruta es requerido"),
+    driverId: z.number({ required_error: "Debe seleccionar un conductor" }),
+    date: z.coerce.date({ required_error: "La fecha es requerida" }),
     truckId: z.number().default(1),
-    status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+    status: z.enum(["pending", "in_progress", "completed"], {
+      required_error: "El estado es requerido",
+      invalid_type_error: "Estado inválido",
+      description: "Estado de la ruta"
+    }).default("pending"),
     isCompleted: z.boolean().default(false),
     startTime: z.string().datetime().optional(),
     endTime: z.string().datetime().optional(),
     estimatedDuration: z.number().optional(),
     actualDuration: z.number().optional(),
-    totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
-    totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
+    totalDistance: z.string().regex(/^\d+\.\d{2}$/, "La distancia debe tener 2 decimales").optional(),
+    totalRevenue: z.string().regex(/^\d+\.\d{2}$/, "El ingreso debe tener 2 decimales").optional(),
     deliverySequence: z.array(z.string()).optional(),
-    currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+    currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/, "Formato de ubicación inválido").optional(),
     lastUpdate: z.string().datetime().optional(),
     driverStartedAt: z.string().datetime().optional(),
     stops: z.array(z.string()).optional(),
