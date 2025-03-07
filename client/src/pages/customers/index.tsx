@@ -154,6 +154,7 @@ export default function Customers() {
 
       // Añadir campos actualizados
       const updatedFields = {
+        rnc: data.rnc,
         businessname: data.businessname,
         managername: data.managername,
         phone: data.phone,
