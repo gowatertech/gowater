@@ -84,17 +84,27 @@ function Settings() {
     mutationFn: async (data: InsertSettings) => {
       const formData = new FormData();
 
-      // Add all fields except logo
+      // Handle logo file
+      if (data.logo instanceof File) {
+        const reader = new FileReader();
+        const base64Logo = await new Promise<string>((resolve) => {
+          reader.onload = () => {
+            const base64 = reader.result as string;
+            resolve(base64.split(',')[1]); // Remove data:image/...;base64,
+          };
+          reader.readAsDataURL(data.logo);
+        });
+        formData.append('logo', base64Logo);
+      } else if (typeof data.logo === 'string') {
+        formData.append('logo', data.logo);
+      }
+
+      // Add all other fields
       Object.entries(data).forEach(([key, value]) => {
         if (key !== 'logo' && value !== undefined && value !== null) {
           formData.append(key, String(value));
         }
       });
-
-      // Handle logo separately
-      if (data.logo instanceof File) {
-        formData.append('logo', data.logo);
-      }
 
       const response = await fetch("/api/settings", {
         method: "POST",
