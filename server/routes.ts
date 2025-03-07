@@ -178,7 +178,12 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/routes", async (req, res) => {
     console.log("Creating route with data:", req.body);
-    const result = insertRouteSchema.safeParse(req.body);
+    const result = insertRouteSchema.safeParse({
+      ...req.body,
+      date: new Date(req.body.date),
+      driverId: Number(req.body.driverId)
+    });
+
     if (!result.success) {
       console.error("Error de validación:", result.error.format());
       return res.status(400).json({ error: result.error.format() });

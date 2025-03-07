@@ -82,7 +82,10 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
   const onSubmit = async (data: any) => {
     try {
       console.log("Form data:", data);
-      await createRouteMutation.mutateAsync(data);
+      await createRouteMutation.mutateAsync({
+        ...data,
+        driverId: Number(data.driverId)
+      });
     } catch (error) {
       console.error("Submit error:", error);
     }
@@ -112,7 +115,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
             <FormItem>
               <FormLabel>{t("driver")}</FormLabel>
               <Select
-                onValueChange={(value) => field.onChange(Number(value))}
+                onValueChange={field.onChange}
                 value={field.value?.toString()}
               >
                 <FormControl>
@@ -142,12 +145,12 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
               <FormControl>
                 <Input 
                   type="date" 
-                  {...field} 
+                  {...field}
                   value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
                   onChange={(e) => {
-                    const selectedDate = new Date(e.target.value);
-                    console.log("Selected date:", selectedDate);
-                    field.onChange(selectedDate);
+                    const date = new Date(e.target.value);
+                    date.setHours(12); // Set to noon to avoid timezone issues
+                    field.onChange(date);
                   }}
                 />
               </FormControl>
