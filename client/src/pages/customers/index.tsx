@@ -888,55 +888,53 @@ export default function Customers() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Logo</TableHead>
-              <TableHead>Nombre del Negocio</TableHead>
-              <TableHead>RNC</TableHead>
-              <TableHead>Nombre del Encargado</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Dirección</TableHead>
-              <TableHead>Límite de Crédito</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers?.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell>
-                  {customer.logo ? (
-                    <img
-                      src={`data:image/jpeg;base64,${customer.logo}`}
-                      alt="Logo"
-                      className="w-12 h-12 object-contain"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
-                      No logo
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>{customer.businessname}</TableCell>
-                <TableCell>{customer.rnc || '-'}</TableCell>
-                <TableCell>{customer.managername}</TableCell>
-                <TableCell>{customer.phone}</TableCell>
-                <TableCell>
-                  {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
-                </TableCell>
-                <TableCell>
-                  RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewCustomer(customer)}
-                    className="text-blue-500 hover:text-blue-700"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+                <TableHead>Logo</TableHead>
+                <TableHead>RNC</TableHead>
+                <TableHead>Negocio</TableHead>
+                <TableHead>Encargado</TableHead>
+                <TableHead>Teléfono</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Dirección</TableHead>
+                <TableHead>Acciones</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
+            </TableHeader>
+            <TableBody>
+              {customers.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell>
+                    {customer.logo ? (
+                      <img
+                        src={`data:image/png;base64,${customer.logo}?t=${Date.now()}`}
+                        alt="Logo"
+                        className="w-12 h-12 object-contain"
+                        key={`${customer.id}-${Date.now()}`}
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
+                        No logo
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>{customer.rnc || "-"}</TableCell>
+                  <TableCell>{customer.businessname}</TableCell>
+                  <TableCell>{customer.managername}</TableCell>
+                  <TableCell>{customer.phone}</TableCell>
+                  <TableCell>{customer.email || "-"}</TableCell>
+                  <TableCell>
+                    {customer.street} {customer.streetnumber}, {customer.municipalityName}, {customer.provinceName}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleViewCustomer(customer)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
         </Table>
       </div>
     </div>
