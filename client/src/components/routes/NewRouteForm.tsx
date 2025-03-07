@@ -32,12 +32,8 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
 
-  const { data: drivers } = useQuery({
-    queryKey: ["/api/users"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/users?role=driver");
-      return response.json();
-    },
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["/api/users?role=driver"],
   });
 
   const form = useForm({
@@ -55,6 +51,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
       const response = await apiRequest("POST", "/api/routes", {
         ...data,
         date: new Date(data.date),
+        driverId: Number(data.driverId),
       });
 
       if (!response.ok) {
@@ -146,11 +143,11 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
                 <Input 
                   type="date" 
                   {...field} 
-                  value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                  value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
                   onChange={(e) => {
-                    const date = new Date(e.target.value);
-                    console.log("Selected date:", date);
-                    field.onChange(date);
+                    const selectedDate = new Date(e.target.value);
+                    console.log("Selected date:", selectedDate);
+                    field.onChange(selectedDate);
                   }}
                 />
               </FormControl>

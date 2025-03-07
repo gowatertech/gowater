@@ -162,7 +162,11 @@ export async function registerRoutes(app: Express) {
     try {
       const [route] = await db
         .insert(routes)
-        .values(result.data)
+        .values({
+          ...result.data,
+          status: "pending",
+          isCompleted: false,
+        })
         .returning();
 
       console.log("Created route:", route);
