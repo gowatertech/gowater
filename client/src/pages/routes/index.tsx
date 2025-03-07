@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { MapPin, Calendar, PlusCircle, Truck, RefreshCw } from "lucide-react";
+import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X } from "lucide-react";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRoutes } from "@/hooks/use-routes";
 import { Badge } from "@/components/ui/badge";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import RouteMap from "@/components/routes/RouteMap";
 import RouteStats from "@/components/routes/RouteStats";
 import RouteTimeline from "@/components/routes/RouteTimeline";
@@ -17,6 +18,9 @@ import RouteSummary from "@/components/routes/RouteSummary";
 import ZoneMap from "./ZoneMap";
 import { formatCurrency } from "@/lib/format";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { Zone } from "@shared/schema";
+import { apiRequest } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 // Vista del chofer
 import DriverView from "./DriverView";
@@ -33,6 +37,13 @@ export default function Routes() {
   const [zoneName, setZoneName] = useState("");
   const [zoneColor, setZoneColor] = useState("#0088FE");
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Obtener zonas
+  const { data: zones = [] } = useQuery<Zone[]>({
+    queryKey: ["/api/zones"],
+  });
 
   const isDriver = user?.role === "driver";
   const isAssistant = user?.role === "assistant";
@@ -66,6 +77,38 @@ export default function Routes() {
   // Cuando se crea una ruta volvemos al listado
   const handleRouteCreated = () => {
     setIsCreatingRoute(false);
+  };
+
+  // Mutación para eliminar zona
+  const deleteZoneMutation = useMutation({
+    mutationFn: async (zoneId: number) => {
+      const response = await apiRequest("DELETE", `/api/zones/${zoneId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar la zona');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
+      toast({
+        description: "Zona eliminada exitosamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+  });
+
+  // Handler para eliminar zona
+  const handleDeleteZone = (zoneId: number) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta zona?')) {
+      deleteZoneMutation.mutate(zoneId);
+    }
   };
 
   if (isCreatingRoute) {
@@ -124,6 +167,67 @@ export default function Routes() {
           </Button>
         </div>
       </div>
+
+      {/* Lista de Zonas */}
+      <Card className="mb-6">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>{t("zones")}</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1"
+            onClick={() => setIsCreatingZone(true)}
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+            <span>{t("createZone")}</span>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {zones.map((zone) => (
+              <div
+                key={zone.id}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-4 h-4 rounded"
+                    style={{ backgroundColor: zone.color }}
+                  />
+                  <span className="font-medium">{zone.name}</span>
+                  <Badge variant="outline">
+                    {zone.coordinates.length} puntos
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-primary"
+                  >
+                    <MapPin className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteZone(zone.id)}
+                    disabled={deleteZoneMutation.isPending}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+
+            {zones.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                {t("noZones")}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {isCreatingZone && (
         <Card className="mb-6">
@@ -224,33 +328,6 @@ export default function Routes() {
                                 : t("calculatingRoute")}
                             </p>
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            {t("orders")}
-                          </p>
-                          <p className="font-medium">{route.stops?.length}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            {t("revenue")}
-                          </p>
-                          <p className="font-medium">
-                            {formatCurrency(Number(route.totalRevenue || 0))}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            {t("time")}
-                          </p>
-                          <p className="font-medium">
-                            {route.estimatedDuration
-                              ? `${Math.round(route.estimatedDuration / 60)} min`
-                              : "-"}
-                          </p>
                         </div>
                       </div>
 

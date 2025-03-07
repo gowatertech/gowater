@@ -133,14 +133,8 @@ interface ZoneMapProps {
 export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: ZoneMapProps) {
   const { toast } = useToast();
 
-  const { data: zones = [], onSuccess, onError } = useQuery<Zone[]>({
+  const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
-    onSuccess: (data) => {
-      console.log("Zonas recuperadas:", data);
-    },
-    onError: (error) => {
-      console.error("Error al obtener zonas:", error);
-    }
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({

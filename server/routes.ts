@@ -2,31 +2,9 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { 
-  users, customers, products, trucks, routes, orders, orderItems, settings,
-  invoices, invoiceItems, 
-  insertUserSchema,
-  insertCustomerSchema,
-  insertProductSchema,
-  insertTruckSchema,
-  insertRouteSchema,
-  insertOrderSchema,
-  insertOrderItemSchema,
-  insertSettingsSchema,
-  insertCustomerOrdersSchema,
-  insertZoneSchema,
-  zones,
-  payments,
-  insertPaymentSchema,
-  insertInvoiceSchema, 
-  insertInvoiceItemSchema, 
-  productionBatches,
-  insertProductionBatchSchema
-} from "@shared/schema";
-import { calculateOptimalRoute, updateEstimatedDeliveryTimes } from "./services/routeOptimizer";
-import { eq, desc } from 'drizzle-orm';
+import { zones, insertZoneSchema } from "@shared/schema";
 import { db } from './db';
-import { sql } from 'drizzle-orm/sql';
+import { eq } from 'drizzle-orm';
 
 // Almacenar las conexiones activas de los conductores
 const driverConnections = new Map<number, WebSocket>();
@@ -88,7 +66,7 @@ export async function registerRoutes(app: Express) {
     });
   });
 
-  // Zones
+  // Zonas
   app.get("/api/zones", async (req, res) => {
     try {
       const allZones = await db
@@ -106,7 +84,6 @@ export async function registerRoutes(app: Express) {
   app.post("/api/zones", async (req, res) => {
     console.log("Creating zone with data:", req.body);
 
-    // Validar el esquema
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
       console.error("Error de validación:", result.error.format());
@@ -136,6 +113,25 @@ export async function registerRoutes(app: Express) {
       res.json(zone);
     } catch (error) {
       console.error("Error al crear zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.delete("/api/zones/:id", async (req, res) => {
+    try {
+      const [deletedZone] = await db
+        .delete(zones)
+        .where(eq(zones.id, parseInt(req.params.id)))
+        .returning();
+
+      if (!deletedZone) {
+        return res.status(404).json({ error: "Zona no encontrada" });
+      }
+
+      console.log("Deleted zone:", deletedZone);
+      res.json(deletedZone);
+    } catch (error) {
+      console.error("Error al eliminar zona:", error);
       res.status(500).json({ error: String(error) });
     }
   });
