@@ -137,6 +137,18 @@ export default function Customers() {
 
   const onSubmit = (data: CustomerFormData) => {
     console.log("Form submitted with data:", data);
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      console.log(`Processing field ${key}:`, value);
+      if (value !== undefined && value !== "") {
+        if (key === 'logo' && value instanceof File) {
+          formData.append(key, value);
+        } else {
+          formData.append(key, String(value));
+        }
+      }
+    });
+    console.log("Final FormData entries:", Array.from(formData.entries()));
     createMutation.mutate(data);
   };
 
