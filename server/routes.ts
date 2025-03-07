@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
+import express from 'express';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -19,6 +20,10 @@ const upload = multer({
 const driverConnections = new Map<number, WebSocket>();
 
 export async function registerRoutes(app: Express) {
+  // Aumentar el límite del body-parser
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
   const httpServer = createServer(app);
 
   // Configurar WebSocket Server

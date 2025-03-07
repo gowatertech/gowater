@@ -150,11 +150,18 @@ export default function Customers() {
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
       console.log("Actualizando cliente con datos:", data);
+
+      // Remover campos undefined o vacíos para reducir el tamaño de la solicitud
+      const cleanData = Object.fromEntries(
+        Object.entries(data).filter(([_, value]) => value !== undefined && value !== '')
+      );
+
       const response = await apiRequest("PATCH", `/api/customers/${data.id}`, {
-        ...data,
+        ...cleanData,
         email: data.email || null,
         creditlimit: data.creditlimit.toString(),
       });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Error al actualizar el cliente');
