@@ -573,16 +573,17 @@ export default function Customers() {
                 <FormField
                   control={form.control}
                   name="logo"
-                  render={({ field: { value, ...field } }) => (
+                  render={({ field: { value, onChange, ...field } }) => (
                     <FormItem>
                       <FormLabel>Logo</FormLabel>
                       <FormControl>
                         {value ? (
                           <div className="space-y-2">
                             <img
-                              src={`data:image/jpeg;base64,${value}`}
+                              src={`${value}?t=${Date.now()}`}
                               alt="Logo"
                               className="w-32 h-32 object-contain"
+                              key={`preview-${Date.now()}`}
                             />
                             {isEditing && (
                               <Input
@@ -888,55 +889,55 @@ export default function Customers() {
         <Table>
           <TableHeader>
             <TableRow>
-                <TableHead>Logo</TableHead>
-                <TableHead>RNC</TableHead>
-                <TableHead>Negocio</TableHead>
-                <TableHead>Encargado</TableHead>
-                <TableHead>Teléfono</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Dirección</TableHead>
-                <TableHead>Acciones</TableHead>
+              <TableHead>Logo</TableHead>
+              <TableHead>RNC</TableHead>
+              <TableHead>Negocio</TableHead>
+              <TableHead>Encargado</TableHead>
+              <TableHead>Teléfono</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Dirección</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {customers.map((customer) => (
+              <TableRow key={customer.id}>
+                <TableCell>
+                  {customer.logo ? (
+                    <div className="w-12 h-12">
+                      <img
+                        src={`${customer.logo}?t=${Date.now()}`}
+                        alt={`Logo de ${customer.businessname}`}
+                        className="w-full h-full object-contain"
+                        key={`logo-${customer.id}-${Date.now()}`}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
+                      No logo
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>{customer.rnc || "-"}</TableCell>
+                <TableCell>{customer.businessname}</TableCell>
+                <TableCell>{customer.managername}</TableCell>
+                <TableCell>{customer.phone}</TableCell>
+                <TableCell>{customer.email || "-"}</TableCell>
+                <TableCell>
+                  {customer.street} {customer.streetnumber}, {customer.municipalityName}, {customer.provinceName}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleViewCustomer(customer)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>
-                    {customer.logo ? (
-                      <div className="w-12 h-12">
-                        <img
-                          src={`data:image/png;base64,${customer.logo}?t=${Date.now()}`}
-                          alt={`Logo de ${customer.businessname}`}
-                          className="w-full h-full object-contain"
-                          key={`logo-${customer.id}-${Date.now()}`}
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
-                        No logo
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>{customer.rnc || "-"}</TableCell>
-                  <TableCell>{customer.businessname}</TableCell>
-                  <TableCell>{customer.managername}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
-                  <TableCell>{customer.email || "-"}</TableCell>
-                  <TableCell>
-                    {customer.street} {customer.streetnumber}, {customer.municipalityName}, {customer.provinceName}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleViewCustomer(customer)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
+            ))}
+          </TableBody>
         </Table>
       </div>
     </div>

@@ -21,8 +21,18 @@ interface MulterRequest extends Request {
   file?: Express.Multer.File;
 }
 
-// Almacenar las conexiones activas de los conductores
-const driverConnections = new Map<number, WebSocket>();
+// Función de utilidad para procesar el logo
+function processLogoFile(file: Express.Multer.File | undefined): string | null {
+  if (!file || !file.buffer) {
+    return null;
+  }
+
+  if (!file.mimetype.startsWith('image/')) {
+    throw new Error('El archivo debe ser una imagen');
+  }
+
+  return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+}
 
 export async function registerRoutes(app: Express) {
   // Aumentar el límite del body-parser
@@ -293,13 +303,9 @@ export async function registerRoutes(app: Express) {
   // Customer endpoints
   app.post("/api/customers", upload.single('logo'), async (req, res) => {
     try {
-      console.log("Received customer data:", req.body);
-      console.log("Received file:", req.file);
-
-      // Validar los datos del cliente
       const customerData = {
         ...req.body,
-        logo: req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null,
+        logo: processLogoFile(req.file),
         creditlimit: req.body.creditlimit || '0.00',
         businessname: req.body.businessname,
         managername: req.body.managername,
@@ -321,9 +327,9 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      console.log("Processed customer data:", {
+      console.log("Procesando cliente:", {
         ...customerData,
-        logo: customerData.logo ? 'BASE64_DATA' : null
+        logo: customerData.logo ? 'DATA_URL_PRESENT' : null
       });
 
       const [customer] = await db
@@ -331,9 +337,9 @@ export async function registerRoutes(app: Express) {
         .values(customerData)
         .returning();
 
-      console.log("Created customer:", {
-        ...customer,
-        logo: customer.logo ? 'BASE64_DATA' : null
+      console.log("Cliente creado:", {
+        id: customer.id,
+        hasLogo: !!customer.logo
       });
 
       res.json(customer);
@@ -405,39 +411,16 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/customers/:id", upload.single('logo'), async (req: MulterRequest, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      console.log("Iniciando actualización de cliente:", customerId, {
-        hasFile: !!req.file,
-        fields: Object.keys(req.body)
-      });
-
       let updateData: any = { ...req.body };
 
+      // Procesar el logo si se recibió un archivo
       if (req.file) {
-        console.log("Procesando nuevo archivo de logo:", {
-          originalname: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
-          bufferLength: req.file.buffer.length
+        updateData.logo = processLogoFile(req.file);
+        console.log("Logo procesado para cliente:", {
+          id: customerId,
+          hasLogo: true,
+          mimeType: req.file.mimetype
         });
-
-        if (!req.file.buffer) {
-          throw new Error('Buffer de archivo no válido');
-        }
-
-        if (!req.file.mimetype.startsWith('image/')) {
-          throw new Error('El archivo debe ser una imagen');
-        }
-
-        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-        console.log("Logo procesado:", {
-          length: base64Image.length,
-          preview: base64Image.substring(0, 50) + '...'
-        });
-
-        updateData.logo = base64Image;
-      } else {
-        delete updateData.logo;
-        console.log("No se recibió nuevo logo");
       }
 
       // Convertir campos numéricos
@@ -449,11 +432,6 @@ export async function registerRoutes(app: Express) {
         Object.entries(updateData).filter(([_, value]) => value !== undefined && value !== '')
       );
 
-      console.log("Datos limpios para actualizar:", {
-        ...cleanedData,
-        logo: cleanedData.logo ? 'BASE64_DATA' : 'NO_CHANGE'
-      });
-
       // Verificar cliente actual
       const [currentCustomer] = await db
         .select()
@@ -464,12 +442,6 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
 
-      console.log("Cliente actual:", {
-        id: currentCustomer.id,
-        hasLogo: !!currentCustomer.logo,
-        logoLength: currentCustomer.logo?.length
-      });
-
       const [updatedCustomer] = await db
         .update(customers)
         .set(cleanedData)
@@ -479,8 +451,7 @@ export async function registerRoutes(app: Express) {
       console.log("Cliente actualizado:", {
         id: updatedCustomer.id,
         hasLogo: !!updatedCustomer.logo,
-        logoLength: updatedCustomer.logo?.length,
-        changed: currentCustomer.logo !== updatedCustomer.logo
+        logoUpdated: currentCustomer.logo !== updatedCustomer.logo
       });
 
       res.json(updatedCustomer);
@@ -489,6 +460,9 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+
+  // Almacenar las conexiones activas de los conductores
+  const driverConnections = new Map<number, WebSocket>();
 
   return httpServer;
 }
