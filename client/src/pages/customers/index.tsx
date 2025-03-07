@@ -63,10 +63,23 @@ export default function Customers() {
     queryKey: ["/api/cities", selectedProvinceId],
     queryFn: async () => {
       if (!selectedProvinceId) return [];
-      const response = await apiRequest("GET", `/api/cities/${selectedProvinceId}`);
-      const data = await response.json();
-      console.log("Ciudades cargadas:", data); // Debug
-      return data;
+      try {
+        const response = await apiRequest("GET", `/api/cities/${selectedProvinceId}`);
+        if (!response.ok) {
+          throw new Error(`Error fetching cities: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log("Ciudades cargadas para provincia", selectedProvinceId, ":", data);
+        return data;
+      } catch (error) {
+        console.error("Error loading cities:", error);
+        toast({
+          variant: "destructive",
+          title: t("error"),
+          description: "Error al cargar las ciudades"
+        });
+        return [];
+      }
     },
     enabled: !!selectedProvinceId,
   });
@@ -75,10 +88,23 @@ export default function Customers() {
     queryKey: ["/api/sectors", selectedCityId],
     queryFn: async () => {
       if (!selectedCityId) return [];
-      const response = await apiRequest("GET", `/api/sectors/${selectedCityId}`);
-      const data = await response.json();
-      console.log("Sectores cargados:", data); // Debug
-      return data;
+      try {
+        const response = await apiRequest("GET", `/api/sectors/${selectedCityId}`);
+        if (!response.ok) {
+          throw new Error(`Error fetching sectors: ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log("Sectores cargados para ciudad", selectedCityId, ":", data);
+        return data;
+      } catch (error) {
+        console.error("Error loading sectors:", error);
+        toast({
+          variant: "destructive",
+          title: t("error"),
+          description: "Error al cargar los sectores"
+        });
+        return [];
+      }
     },
     enabled: !!selectedCityId,
   });
