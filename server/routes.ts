@@ -1,10 +1,19 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
+import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
+
+// Configurar multer para manejar la carga de archivos
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 // Almacenar las conexiones activas de los conductores
 const driverConnections = new Map<number, WebSocket>();
@@ -272,31 +281,16 @@ export async function registerRoutes(app: Express) {
 
 
   // Customer endpoints
-  app.post("/api/customers", async (req, res) => {
+  app.post("/api/customers", upload.single('logo'), async (req, res) => {
     try {
       console.log("Received customer data:", req.body);
+      console.log("Received file:", req.file);
 
       // Validar los datos del cliente
-      const result = insertCustomerSchema.safeParse(req.body);
-      if (!result.success) {
-        console.error("Validation error:", result.error.format());
-        return res.status(400).json({ error: result.error.format() });
-      }
-
       const customerData = {
-        businessname: result.data.businessname,
-        managername: result.data.managername,
-        phone: result.data.phone,
-        email: result.data.email,
-        zoneid: result.data.zoneid,
-        street: result.data.street,
-        streetnumber: result.data.streetnumber,
-        provinceid: result.data.provinceid,
-        municipalityid: result.data.municipalityid,
-        reference: result.data.reference || '',
-        creditlimit: result.data.creditlimit || '0.00',
-        rnc: result.data.rnc,
-        logo: result.data.logo,
+        ...req.body,
+        logo: req.file ? req.file.buffer.toString('base64') : null,
+        creditlimit: req.body.creditlimit || '0.00',
       };
 
       console.log("Processed customer data:", customerData);
