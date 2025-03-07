@@ -40,8 +40,11 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
     resolver: zodResolver(insertRouteSchema),
     defaultValues: {
       name: "",
-      driverId: 0,
+      driverId: undefined,
       date: new Date(),
+      truckId: 1,
+      status: "pending" as const,
+      isCompleted: false
     },
   });
 
@@ -52,6 +55,9 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
         ...data,
         date: new Date(data.date),
         driverId: Number(data.driverId),
+        truckId: 1,
+        status: "pending",
+        isCompleted: false
       });
 
       if (!response.ok) {
@@ -82,10 +88,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
   const onSubmit = async (data: any) => {
     try {
       console.log("Form data:", data);
-      await createRouteMutation.mutateAsync({
-        ...data,
-        driverId: Number(data.driverId)
-      });
+      await createRouteMutation.mutateAsync(data);
     } catch (error) {
       console.error("Submit error:", error);
     }
@@ -115,7 +118,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
             <FormItem>
               <FormLabel>{t("driver")}</FormLabel>
               <Select
-                onValueChange={field.onChange}
+                onValueChange={(value) => field.onChange(Number(value))}
                 value={field.value?.toString()}
               >
                 <FormControl>

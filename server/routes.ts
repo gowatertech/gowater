@@ -178,25 +178,29 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/routes", async (req, res) => {
     console.log("Creating route with data:", req.body);
-    const result = insertRouteSchema.safeParse({
-      ...req.body,
-      date: new Date(req.body.date),
-      driverId: Number(req.body.driverId)
-    });
-
-    if (!result.success) {
-      console.error("Error de validación:", result.error.format());
-      return res.status(400).json({ error: result.error.format() });
-    }
 
     try {
+      const routeData = {
+        ...req.body,
+        date: new Date(req.body.date),
+        driverId: Number(req.body.driverId),
+        truckId: 1, // Valor temporal para pruebas
+        status: "pending",
+        isCompleted: false
+      };
+
+      console.log("Processed route data:", routeData);
+
+      const result = insertRouteSchema.safeParse(routeData);
+
+      if (!result.success) {
+        console.error("Validation error:", result.error.format());
+        return res.status(400).json({ error: result.error.format() });
+      }
+
       const [route] = await db
         .insert(routes)
-        .values({
-          ...result.data,
-          status: "pending",
-          isCompleted: false,
-        })
+        .values(result.data)
         .returning();
 
       console.log("Created route:", route);

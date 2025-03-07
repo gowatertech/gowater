@@ -236,20 +236,32 @@ export const invoiceItems = pgTable("invoice_items", {
 export const insertCustomerSchema = createInsertSchema(customers);
 export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);
-export const insertRouteSchema = createInsertSchema(routes, {
-  startTime: z.string().datetime().optional(),
-  endTime: z.string().datetime().optional(),
-  estimatedDuration: z.number().optional(),
-  actualDuration: z.number().optional(),
-  totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
-  totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
-  deliverySequence: z.array(z.string()).optional(),
-  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-  lastUpdate: z.string().datetime().optional(),
-  driverStartedAt: z.string().datetime().optional(),
-  isCompleted: z.boolean().default(false),
-  stops: z.array(z.string()).optional(),
-});
+export const insertRouteSchema = createInsertSchema(routes)
+  .extend({
+    name: z.string().min(1, "El nombre es requerido"),
+    driverId: z.number({ required_error: "Se requiere un conductor" }),
+    date: z.coerce.date(),
+    truckId: z.number().default(1),
+    status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+    isCompleted: z.boolean().default(false),
+    startTime: z.string().datetime().optional(),
+    endTime: z.string().datetime().optional(),
+    estimatedDuration: z.number().optional(),
+    actualDuration: z.number().optional(),
+    totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
+    totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
+    deliverySequence: z.array(z.string()).optional(),
+    currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+    lastUpdate: z.string().datetime().optional(),
+    driverStartedAt: z.string().datetime().optional(),
+    stops: z.array(z.string()).optional(),
+  })
+  .transform((data) => ({
+    ...data,
+    truckId: data.truckId || 1,
+    status: data.status || "pending",
+    isCompleted: data.isCompleted ?? false
+  }));
 export const insertOrderSchema = createInsertSchema(orders, {
   customerId: z.number(),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
