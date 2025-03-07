@@ -276,6 +276,7 @@ export async function registerRoutes(app: Express) {
     try {
       console.log("Received customer data:", req.body);
 
+      // Validar los datos del cliente
       const result = insertCustomerSchema.safeParse(req.body);
       if (!result.success) {
         console.error("Validation error:", result.error.format());
@@ -285,17 +286,16 @@ export async function registerRoutes(app: Express) {
       const customerData = {
         businessname: result.data.businessname,
         managername: result.data.managername,
-        rnc: result.data.rnc,
-        tax: result.data.tax,
         phone: result.data.phone,
+        email: result.data.email,
+        zoneid: result.data.zoneid,
         street: result.data.street,
         streetnumber: result.data.streetnumber,
         provinceid: result.data.provinceid,
         municipalityid: result.data.municipalityid,
         reference: result.data.reference || '',
         creditlimit: result.data.creditlimit || '0.00',
-        balance: '0.00',
-        country: result.data.country || 'República Dominicana',
+        rnc: result.data.rnc,
         logo: result.data.logo,
       };
 
