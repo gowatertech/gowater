@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
   // Configurar WebSocket Server
-  const wss = new WebSocketServer({ 
+  const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws'
   });
@@ -400,17 +400,46 @@ export async function registerRoutes(app: Express) {
     try {
       const customerId = parseInt(req.params.id);
       console.log("Datos recibidos en la actualización:", req.body);
-      console.log("Archivo recibido:", req.file);
+      console.log("Archivo recibido:", {
+        fieldname: req.file?.fieldname,
+        originalname: req.file?.originalname,
+        mimetype: req.file?.mimetype,
+        size: req.file?.size,
+        buffer: req.file?.buffer ? 'Buffer presente' : 'Sin buffer'
+      });
 
       // Preparar los datos para actualizar
       let updateData: any = { ...req.body };
 
       // Solo actualizar el logo si se recibió un archivo nuevo
       if (req.file) {
-        updateData.logo = req.file.buffer.toString('base64');
+        if (!req.file.buffer) {
+          throw new Error('Buffer de archivo no válido');
+        }
+
+        // Verificar el tipo MIME
+        if (!req.file.mimetype.startsWith('image/')) {
+          throw new Error('El archivo debe ser una imagen');
+        }
+
+        // Verificar el buffer
+        console.log("Buffer del archivo:", {
+          length: req.file.buffer.length,
+          firstBytes: req.file.buffer.slice(0, 10).toString('hex'),
+          isBuffer: Buffer.isBuffer(req.file.buffer)
+        });
+
+        // Convertir a base64
+        const base64Image = req.file.buffer.toString('base64');
+        console.log("Logo convertido a base64:", {
+          length: base64Image.length,
+          preview: base64Image.substring(0, 50) + '...'
+        });
+
+        updateData.logo = base64Image;
         console.log("Nuevo logo recibido y procesado");
       } else {
-        // Si no hay nuevo archivo, eliminar el campo logo del updateData para mantener el existente
+        // Si no hay nuevo archivo, eliminar el campo logo del updateData
         delete updateData.logo;
         console.log("No se recibió nuevo logo, manteniendo el existente");
       }
@@ -430,6 +459,19 @@ export async function registerRoutes(app: Express) {
         logo: cleanedData.logo ? 'BASE64_DATA' : 'NO_CHANGE'
       });
 
+      // Verificar datos actuales antes de actualizar
+      const [currentCustomer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, customerId));
+
+      console.log("Cliente actual:", {
+        id: currentCustomer?.id,
+        hasLogo: !!currentCustomer?.logo,
+        logoLength: currentCustomer?.logo?.length,
+        logoPreview: currentCustomer?.logo ? currentCustomer.logo.substring(0, 50) + '...' : null
+      });
+
       const [updatedCustomer] = await db
         .update(customers)
         .set(cleanedData)
@@ -439,6 +481,16 @@ export async function registerRoutes(app: Express) {
       if (!updatedCustomer) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
+
+      // Verificar la actualización
+      console.log("Verificación post-actualización:", {
+        id: updatedCustomer.id,
+        hasLogoBeforeUpdate: !!currentCustomer?.logo,
+        hasLogoAfterUpdate: !!updatedCustomer.logo,
+        logoLength: updatedCustomer.logo?.length,
+        logoChanged: currentCustomer?.logo !== updatedCustomer.logo,
+        logoPreview: updatedCustomer.logo ? updatedCustomer.logo.substring(0, 50) + '...' : null
+      });
 
       // Devolver cliente actualizado con logo truncado en los logs
       const responseCustomer = {
