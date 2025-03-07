@@ -36,17 +36,17 @@ function Settings() {
     resolver: zodResolver(insertSettingsSchema),
     defaultValues: {
       logo: null,
-      name: "GoWater",
+      name: "",
       rnc: null,
-      street: "Calle Principal",
-      streetNumber: "123",
-      provinceId: 8,
-      municipalityId: 18,
-      contactPhone: "8091234567",
+      street: "",
+      streetNumber: "",
+      provinceId: undefined,
+      municipalityId: undefined,
+      contactPhone: "",
       email: null,
-      country: "República Dominicana",
-      currency: "DOP",
-      tax: "0.18",
+      country: "",
+      currency: "",
+      tax: "0.00",
     },
   });
 
@@ -59,13 +59,6 @@ function Settings() {
   const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery({
     queryKey: ["/api/municipalities", form.watch("provinceId")],
     enabled: !!form.watch("provinceId"),
-    queryFn: async () => {
-      const response = await fetch(`/api/municipalities/${form.watch("provinceId")}`);
-      if (!response.ok) {
-        throw new Error('Error al cargar los municipios');
-      }
-      return response.json();
-    },
   });
 
   // Fetch current settings
@@ -76,12 +69,7 @@ function Settings() {
   // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
-      console.log("Cargando configuración:", settings);
-      form.reset({
-        ...settings,
-        provinceId: settings.provinceId || 8,
-        municipalityId: settings.municipalityId || 18,
-      });
+      form.reset(settings);
     }
   }, [settings, form]);
 
@@ -199,7 +187,6 @@ function Settings() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="rnc"
