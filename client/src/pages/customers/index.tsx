@@ -149,7 +149,7 @@ export default function Customers() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
-      console.log("Iniciando actualización de cliente:", data.id);
+      console.log("Actualizando cliente con datos:", data);
       const formData = new FormData();
 
       // Añadir campos actualizados
@@ -175,11 +175,7 @@ export default function Customers() {
 
       // Añadir el logo si ha sido actualizado
       if (data.logo instanceof File) {
-        console.log("Añadiendo nuevo logo al FormData:", {
-          name: data.logo.name,
-          type: data.logo.type,
-          size: data.logo.size
-        });
+        console.log("Añadiendo nuevo logo al FormData");
         formData.append('logo', data.logo);
       }
 
@@ -195,23 +191,9 @@ export default function Customers() {
         const error = await response.json();
         throw new Error(error.message || 'Error al actualizar el cliente');
       }
-
-      const result = await response.json();
-      console.log("Respuesta de actualización recibida:", {
-        id: result.id,
-        hasLogo: !!result.logo,
-        logoLength: result.logo?.length
-      });
-
-      return result;
+      return response.json();
     },
-    onSuccess: (data) => {
-      console.log("Actualizando cache con nuevo cliente:", {
-        id: data.id,
-        hasLogo: !!data.logo,
-        logoLength: data.logo?.length
-      });
-
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({
         title: "Éxito",
@@ -598,10 +580,9 @@ export default function Customers() {
                         {value ? (
                           <div className="space-y-2">
                             <img
-                              src={`data:image/png;base64,${value}?t=${Date.now()}`}
+                              src={`data:image/jpeg;base64,${value}`}
                               alt="Logo"
                               className="w-32 h-32 object-contain"
-                              key={`preview-${Date.now()}`}
                             />
                             {isEditing && (
                               <Input
@@ -610,6 +591,7 @@ export default function Customers() {
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
+                                    // Validar el tamaño (5MB)
                                     if (file.size > 5 * 1024 * 1024) {
                                       toast({
                                         variant: "destructive",
@@ -620,6 +602,7 @@ export default function Customers() {
                                       return;
                                     }
 
+                                    // Validar el tipo
                                     if (!['image/jpeg', 'image/png'].includes(file.type)) {
                                       toast({
                                         variant: "destructive",
@@ -649,6 +632,7 @@ export default function Customers() {
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
+                                    // Validar el tamaño (5MB)
                                     if (file.size > 5 * 1024 * 1024) {
                                       toast({
                                         variant: "destructive",
@@ -659,6 +643,7 @@ export default function Customers() {
                                       return;
                                     }
 
+                                    // Validar el tipo
                                     if (!['image/jpeg', 'image/png'].includes(file.type)) {
                                       toast({
                                         variant: "destructive",
@@ -903,55 +888,55 @@ export default function Customers() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Logo</TableHead>
-              <TableHead>RNC</TableHead>
-              <TableHead>Negocio</TableHead>
-              <TableHead>Encargado</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Dirección</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell>
-                  {customer.logo ? (
-                    <div className="w-12 h-12">
-                      <img
-                        src={`data:image/png;base64,${customer.logo}?t=${Date.now()}`}
-                        alt={`Logo de ${customer.businessname}`}
-                        className="w-full h-full object-contain"
-                        key={`logo-${customer.id}-${Date.now()}`}
-                      />
-                    </div>
-                  ) : (
-                    <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
-                      No logo
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>{customer.rnc || "-"}</TableCell>
-                <TableCell>{customer.businessname}</TableCell>
-                <TableCell>{customer.managername}</TableCell>
-                <TableCell>{customer.phone}</TableCell>
-                <TableCell>{customer.email || "-"}</TableCell>
-                <TableCell>
-                  {customer.street} {customer.streetnumber}, {customer.municipalityName}, {customer.provinceName}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewCustomer(customer)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+                <TableHead>Logo</TableHead>
+                <TableHead>RNC</TableHead>
+                <TableHead>Negocio</TableHead>
+                <TableHead>Encargado</TableHead>
+                <TableHead>Teléfono</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Dirección</TableHead>
+                <TableHead>Acciones</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
+            </TableHeader>
+            <TableBody>
+              {customers.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell>
+                    {customer.logo ? (
+                      <div className="w-12 h-12">
+                        <img
+                          src={`data:image/png;base64,${customer.logo}?t=${Date.now()}`}
+                          alt={`Logo de ${customer.businessname}`}
+                          className="w-full h-full object-contain"
+                          key={`logo-${customer.id}-${Date.now()}`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
+                        No logo
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>{customer.rnc || "-"}</TableCell>
+                  <TableCell>{customer.businessname}</TableCell>
+                  <TableCell>{customer.managername}</TableCell>
+                  <TableCell>{customer.phone}</TableCell>
+                  <TableCell>{customer.email || "-"}</TableCell>
+                  <TableCell>
+                    {customer.street} {customer.streetnumber}, {customer.municipalityName}, {customer.provinceName}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleViewCustomer(customer)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
         </Table>
       </div>
     </div>
