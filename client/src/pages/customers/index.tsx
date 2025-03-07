@@ -169,20 +169,18 @@ export default function Customers() {
   }
 
   // Filtrar municipios por la provincia seleccionada
-  const municipalities = selectedProvinceId
-    ? cities.filter(city =>
-        city.code.endsWith('-M') &&
-        city.provinceId === selectedProvinceId
-      )
-    : [];
+  const municipalities = cities.filter(city =>
+    city.code.endsWith('-M') &&
+    city.provinceId === selectedProvinceId
+  );
 
-  // Filtrar distritos por el municipio seleccionado
+  // Filtrar distritos municipales basados en el municipio seleccionado
   const districts = selectedMunicipalityId
-    ? cities.filter(city =>
-        city.code.endsWith('-C') &&
-        // El código del distrito debe coincidir con el código del municipio seleccionado
-        city.code.slice(0, -2) === municipalities.find(m => m.id === selectedMunicipalityId)?.code.slice(0, -2)
-      )
+    ? cities.filter(city => {
+        const selectedMunicipality = municipalities.find(m => m.id === selectedMunicipalityId);
+        return city.code.endsWith('-C') && 
+               city.code.slice(0, -2) === selectedMunicipality?.code.slice(0, -2);
+      })
     : [];
 
   // Log para verificar el filtrado
