@@ -68,25 +68,26 @@ export default function Customers() {
   });
 
   // Obtener clientes
-  const { data: customers = [], isLoading } = useQuery<(Customer & { provinceName: string; municipalityName: string })[]>({
+  const { data: customers = [], isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
-      businessName: "",
-      managerName: "",
+      businessname: "",
+      managername: "",
       rnc: "",
       tax: undefined,
       phone: "",
       street: "",
-      streetNumber: "",
+      streetnumber: "",
       country: "República Dominicana",
       reference: "",
-      creditLimit: "0.00",
-      provinceId: undefined,
-      municipalityId: undefined,
+      creditlimit: "0.00",
+      provinceid: undefined,
+      municipalityid: undefined,
+      logo: "",
     },
   });
 
@@ -133,78 +134,112 @@ export default function Customers() {
               Nuevo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Nuevo Cliente</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="businessName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del Negocio</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="managerName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre del Encargado</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="rnc"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>RNC</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="tax"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Aplica Impuestos</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="businessname"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Negocio</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione S/N" />
-                          </SelectTrigger>
+                          <Input {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="S">Sí</SelectItem>
-                          <SelectItem value="N">No</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="managername"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Encargado</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="rnc"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>RNC</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tax"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Aplica Impuestos</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione S/N" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="S">Sí</SelectItem>
+                            <SelectItem value="N">No</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="logo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Logo</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="file" accept="image/*" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
@@ -223,7 +258,7 @@ export default function Customers() {
 
                   <FormField
                     control={form.control}
-                    name="streetNumber"
+                    name="streetnumber"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Número</FormLabel>
@@ -236,65 +271,67 @@ export default function Customers() {
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="provinceId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Provincia</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(parseInt(value));
-                          setSelectedProvinceId(parseInt(value));
-                        }}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione una provincia" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {provinces.map((province) => (
-                            <SelectItem key={province.id} value={province.id.toString()}>
-                              {province.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="provinceid"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Provincia</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(parseInt(value));
+                            setSelectedProvinceId(parseInt(value));
+                          }}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una provincia" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {provinces.map((province) => (
+                              <SelectItem key={province.id} value={province.id.toString()}>
+                                {province.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="municipalityId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Municipio</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString()}
-                        disabled={!selectedProvinceId || isLoadingMunicipalities}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un municipio" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {municipalities.map((municipality) => (
-                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
-                              {municipality.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="municipalityid"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Municipio</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                          disabled={!selectedProvinceId || isLoadingMunicipalities}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un municipio" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {municipalities.map((municipality) => (
+                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                                {municipality.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -312,7 +349,7 @@ export default function Customers() {
 
                 <FormField
                   control={form.control}
-                  name="creditLimit"
+                  name="creditlimit"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Límite de Crédito</FormLabel>
@@ -346,52 +383,54 @@ export default function Customers() {
         </Dialog>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nombre del Negocio</TableHead>
-            <TableHead>RNC</TableHead>
-            <TableHead>Impuestos</TableHead>
-            <TableHead>Nombre del Encargado</TableHead>
-            <TableHead>Teléfono</TableHead>
-            <TableHead>Dirección</TableHead>
-            <TableHead>Límite de Crédito</TableHead>
-            <TableHead>Balance</TableHead>
-            <TableHead>Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {customers?.map((customer) => (
-            <TableRow key={customer.id}>
-              <TableCell>{customer.businessName}</TableCell>
-              <TableCell>{customer.rnc}</TableCell>
-              <TableCell>{customer.tax}</TableCell>
-              <TableCell>{customer.managerName}</TableCell>
-              <TableCell>{customer.phone}</TableCell>
-              <TableCell>
-                {`${customer.street} #${customer.streetNumber}, ${customer.municipalityName}, ${customer.provinceName}`}
-              </TableCell>
-              <TableCell>
-                RD$ {parseFloat(customer.creditLimit.toString()).toFixed(2)}
-              </TableCell>
-              <TableCell>
-                RD$ {parseFloat(customer.balance.toString()).toFixed(2)}
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    // TODO: Implementar ver detalles del cliente
-                  }}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </TableCell>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre del Negocio</TableHead>
+              <TableHead>RNC</TableHead>
+              <TableHead>Impuestos</TableHead>
+              <TableHead>Nombre del Encargado</TableHead>
+              <TableHead>Teléfono</TableHead>
+              <TableHead>Dirección</TableHead>
+              <TableHead>Límite de Crédito</TableHead>
+              <TableHead>Balance</TableHead>
+              <TableHead>Acciones</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {customers?.map((customer) => (
+              <TableRow key={customer.id}>
+                <TableCell>{customer.businessname}</TableCell>
+                <TableCell>{customer.rnc}</TableCell>
+                <TableCell>{customer.tax}</TableCell>
+                <TableCell>{customer.managername}</TableCell>
+                <TableCell>{customer.phone}</TableCell>
+                <TableCell>
+                  {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName}, ${customer.provinceName}`}
+                </TableCell>
+                <TableCell>
+                  RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                </TableCell>
+                <TableCell>
+                  RD$ {parseFloat(customer.balance.toString()).toFixed(2)}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      // TODO: Implementar ver detalles del cliente
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
