@@ -177,28 +177,40 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
 
     try {
-      // Convert coordinates to strings in the format expected by the schema
+      // Asegurar que tenemos suficientes puntos
+      if (coordinates.length < 3) {
+        throw new Error("Se necesitan al menos 3 puntos para crear una zona");
+      }
+
+      // Convertir coordenadas al formato requerido por el schema
       const coordStrings = coordinates.map(coord => {
+        let lat: number, lng: number;
+
         if (Array.isArray(coord)) {
-          // Format to exactly match schema regex: number with optional decimal places
-          return `${coord[0].toFixed(6)},${coord[1].toFixed(6)}`;
+          [lat, lng] = coord;
         } else if (coord instanceof LatLng) {
-          return `${coord.lat.toFixed(6)},${coord.lng.toFixed(6)}`;
+          lat = coord.lat;
+          lng = coord.lng;
+        } else {
+          throw new Error('Formato de coordenadas inválido');
         }
-        throw new Error('Formato de coordenadas inválido');
+
+        // Asegurar formato exacto con 6 decimales
+        return `${lat.toFixed(6)},${lng.toFixed(6)}`;
       });
 
-      // Create the zone
+      // Crear la zona
       createZoneMutation.mutate({
         name: newZoneName,
         color: selectedColor,
         coordinates: coordStrings,
       });
     } catch (error) {
+      console.error("Error processing coordinates:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Error al procesar las coordenadas"
+        description: error instanceof Error ? error.message : "Error al procesar las coordenadas"
       });
     }
   };

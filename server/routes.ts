@@ -105,13 +105,28 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/zones", async (req, res) => {
     console.log("Creating zone with data:", req.body);
+
+    // Validar el esquema
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
       console.error("Error de validación:", result.error.format());
-      return res.status(400).json({ error: result.error });
+      return res.status(400).json({ error: result.error.format() });
     }
 
     try {
+      // Validar el formato de las coordenadas antes de insertar
+      const coordinates = result.data.coordinates;
+      if (!Array.isArray(coordinates) || coordinates.length < 3) {
+        throw new Error("Se requieren al menos 3 puntos para crear una zona");
+      }
+
+      // Validar el formato de cada coordenada
+      for (const coord of coordinates) {
+        if (!/^-?\d+\.\d+,-?\d+\.\d+$/.test(coord)) {
+          throw new Error(`Formato de coordenada inválido: ${coord}`);
+        }
+      }
+
       const [zone] = await db
         .insert(zones)
         .values(result.data)
