@@ -55,8 +55,8 @@ export const insertUserSchema = createInsertSchema(users)
 // Provincias, Ciudades y Sectores
 export const provinces = pgTable("provinces", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  code: text("code").notNull().unique(), // Código único de la provincia
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
 });
 
 // New municipalities table
@@ -95,18 +95,20 @@ export const sectors = pgTable("sectors", {
   code: text("code").notNull().unique(), // Código único del sector
 });
 
-// Modificar la tabla de clientes para incluir la nueva estructura de dirección
+// Updated customers table with new fields
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  businessName: text("business_name"),
-  email: text("email"),
+  businessName: text("business_name").notNull(),
+  managerName: text("manager_name").notNull(),
+  logo: text("logo"),
   phone: text("phone").notNull(),
-  street: text("street").notNull(), // Nombre de la calle
-  houseNumber: text("house_number").notNull(), // Número de casa/edificio
-  sectorId: integer("sector_id").notNull().references(() => sectors.id),
-  coordinates: text("coordinates"), // "lat,lng" - Se llenará automáticamente vía geocodificación
-  zoneId: integer("zone_id").references(() => zones.id),
+  street: text("street").notNull(),
+  streetNumber: text("street_number").notNull(),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
+  country: text("country").notNull().default("República Dominicana"),
+  reference: text("reference"),
+  creditLimit: decimal("credit_limit", { precision: 10, scale: 2 }).notNull().default("0"),
   balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
 });
 
@@ -281,11 +283,17 @@ export const invoiceItems = pgTable("invoice_items", {
 
 // Create insert schemas
 export const insertCustomerSchema = createInsertSchema(customers, {
-  phone: z.string().min(10, "Teléfono debe tener al menos 10 dígitos"),
-  email: z.string().email("Email inválido").optional(),
+  businessName: z.string().min(1, "El nombre del negocio es requerido"),
+  managerName: z.string().min(1, "El nombre del encargado es requerido"),
+  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
   street: z.string().min(1, "La calle es requerida"),
-  houseNumber: z.string().min(1, "El número es requerido"),
-  sectorId: z.number({ required_error: "El sector es requerido" }),
+  streetNumber: z.string().min(1, "El número es requerido"),
+  provinceId: z.number({ required_error: "La provincia es requerida" }),
+  municipalityId: z.number({ required_error: "El municipio es requerido" }),
+  country: z.string().default("República Dominicana"),
+  reference: z.string().optional(),
+  creditLimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  logo: z.string().optional(),
 }).strict();
 export const insertProductSchema = createInsertSchema(products);
 export const insertTruckSchema = createInsertSchema(trucks);
@@ -368,8 +376,6 @@ export const insertProductionBatchSchema = createInsertSchema(productionBatches)
 
 // Schemas de inserción para los nuevos catálogos
 export const insertProvinceSchema = createInsertSchema(provinces);
-export const insertCitySchema = createInsertSchema(cities);
-export const insertSectorSchema = createInsertSchema(sectors);
 export const insertMunicipalitySchema = createInsertSchema(municipalities, {
   type: z.enum(["municipality", "district"]),
 });

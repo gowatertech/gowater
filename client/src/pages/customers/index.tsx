@@ -8,7 +8,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { z } from "zod";
 
-// Componentes UI
+// UI Components
 import {
   Table,
   TableBody,
@@ -41,45 +41,32 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Pencil, Trash } from "lucide-react";
-
-interface City {
-  id: number;
-  name: string;
-  province_id: number;
-  code: string;
-  type: string;
-  municipality_id: number | null;
-}
+import { PlusCircle, Eye } from "lucide-react";
 
 export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
-  const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<number | null>(null);
-  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
 
-  // Obtener provincias
+  // Fetch provinces
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/provinces"],
   });
 
-  // Obtener ciudades cuando se selecciona una provincia
-  const { data: cities = [], isLoading: isLoadingCities } = useQuery<City[]>({
-    queryKey: ["/api/cities", selectedProvinceId],
+  // Fetch municipalities when province is selected
+  const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery({
+    queryKey: ["/api/municipalities", selectedProvinceId],
     queryFn: async () => {
       if (!selectedProvinceId) return [];
-      const response = await apiRequest("GET", `/api/cities/${selectedProvinceId}`);
-      if (!response.ok) {
-        throw new Error(`Error fetching cities: ${response.statusText}`);
-      }
+      const response = await apiRequest("GET", `/api/municipalities/${selectedProvinceId}`);
       return response.json();
     },
     enabled: !!selectedProvinceId,
   });
 
-  const { data: customers, isLoading } = useQuery<Customer[]>({
+  // Fetch customers
+  const { data: customers = [], isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
@@ -88,26 +75,18 @@ export default function Customers() {
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
-      name: "",
       businessName: "",
-      email: "",
+      managerName: "",
       phone: "",
       street: "",
-      houseNumber: "",
-      sectorId: undefined,
+      streetNumber: "",
+      country: "República Dominicana",
+      reference: "",
+      creditLimit: "0.00",
+      provinceId: undefined,
+      municipalityId: undefined,
     },
   });
-
-  // Separar municipios y distritos
-  const municipalities = cities.filter(city => 
-    city.type === 'municipality' && 
-    city.province_id === selectedProvinceId
-  );
-
-  const districts = cities.filter(city => 
-    city.type === 'city' && 
-    city.municipality_id === selectedMunicipalityId
-  );
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
@@ -123,8 +102,6 @@ export default function Customers() {
       form.reset();
       setIsDialogOpen(false);
       setSelectedProvinceId(null);
-      setSelectedMunicipalityId(null);
-      setSelectedDistrictId(null);
     },
     onError: (error) => {
       toast({
@@ -143,7 +120,6 @@ export default function Customers() {
     return <div className="p-8">Loading...</div>;
   }
 
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -160,14 +136,70 @@ export default function Customers() {
               <DialogTitle>{t("newCustomer")}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-                <div className="grid gap-3">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="logo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("logo")}</FormLabel>
+                      <FormControl>
+                        <Input type="file" accept="image/*" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("businessName")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="managerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("managerName")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("phone")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="street"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("name")}</FormLabel>
+                        <FormLabel>{t("street")}</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -176,44 +208,14 @@ export default function Customers() {
                     )}
                   />
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="businessName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("businessName")}</FormLabel>
-                          <FormControl>
-                            <Input {...field} value={field.value || ''} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("phone")}</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
                   <FormField
                     control={form.control}
-                    name="email"
+                    name="streetNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("email")}</FormLabel>
+                        <FormLabel>{t("number")}</FormLabel>
                         <FormControl>
-                          <Input type="email" {...field} value={field.value || ''} />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -221,19 +223,18 @@ export default function Customers() {
                   />
                 </div>
 
-                <div className="space-y-3 border rounded-md p-3">
-                  <h3 className="text-sm font-medium">{t("address")}</h3>
-                  <div className="grid gap-3">
+                <FormField
+                  control={form.control}
+                  name="provinceId"
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("province")}</FormLabel>
                       <Select
                         onValueChange={(value) => {
-                          const numValue = parseInt(value);
-                          setSelectedProvinceId(numValue);
-                          setSelectedMunicipalityId(null);
-                          setSelectedDistrictId(null);
+                          field.onChange(parseInt(value));
+                          setSelectedProvinceId(parseInt(value));
                         }}
-                        value={selectedProvinceId?.toString()}
+                        value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -248,18 +249,21 @@ export default function Customers() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
                     </FormItem>
+                  )}
+                />
 
+                <FormField
+                  control={form.control}
+                  name="municipalityId"
+                  render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("municipality")}</FormLabel>
                       <Select
-                        onValueChange={(value) => {
-                          const numValue = parseInt(value);
-                          setSelectedMunicipalityId(numValue);
-                          setSelectedDistrictId(null);
-                        }}
-                        value={selectedMunicipalityId?.toString()}
-                        disabled={!selectedProvinceId || isLoadingCities}
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString()}
+                        disabled={!selectedProvinceId || isLoadingMunicipalities}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -267,71 +271,57 @@ export default function Customers() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {municipalities.map((city) => (
-                            <SelectItem key={city.id} value={city.id.toString()}>
-                              {city.name}
+                          {municipalities.map((municipality: any) => (
+                            <SelectItem
+                              key={municipality.id}
+                              value={municipality.id.toString()}
+                            >
+                              {municipality.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
                     </FormItem>
+                  )}
+                />
 
+                <FormField
+                  control={form.control}
+                  name="reference"
+                  render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("districtMunicipality")}</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          const numValue = parseInt(value);
-                          setSelectedDistrictId(numValue);
-                        }}
-                        value={selectedDistrictId?.toString()}
-                        disabled={!selectedMunicipalityId || isLoadingCities}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t("selectDistrict")} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {districts.map((city) => (
-                            <SelectItem key={city.id} value={city.id.toString()}>
-                              {city.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>{t("reference")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
+                  )}
+                />
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <FormField
-                        control={form.control}
-                        name="street"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("street")}</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="houseNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("houseNumber")}</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <FormField
+                  control={form.control}
+                  name="creditLimit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("creditLimit")}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          {...field}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            field.onChange(value.toFixed(2));
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <Button
                   type="submit"
@@ -349,11 +339,11 @@ export default function Customers() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t("name")}</TableHead>
             <TableHead>{t("businessName")}</TableHead>
-            <TableHead>{t("email")}</TableHead>
-            <TableHead>{t("address")}</TableHead>
+            <TableHead>{t("managerName")}</TableHead>
             <TableHead>{t("phone")}</TableHead>
+            <TableHead>{t("address")}</TableHead>
+            <TableHead>{t("creditLimit")}</TableHead>
             <TableHead>{t("balance")}</TableHead>
             <TableHead>{t("actions")}</TableHead>
           </TableRow>
@@ -361,20 +351,27 @@ export default function Customers() {
         <TableBody>
           {customers?.map((customer) => (
             <TableRow key={customer.id}>
-              <TableCell>{customer.name}</TableCell>
               <TableCell>{customer.businessName}</TableCell>
-              <TableCell>{customer.email}</TableCell>
-              <TableCell>
-                {`${customer.street} #${customer.houseNumber}`}
-              </TableCell>
+              <TableCell>{customer.managerName}</TableCell>
               <TableCell>{customer.phone}</TableCell>
-              <TableCell>RD$ {parseFloat(customer.balance.toString()).toFixed(2)}</TableCell>
-              <TableCell className="space-x-2">
-                <Button variant="ghost" size="icon">
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Trash className="h-4 w-4" />
+              <TableCell>
+                {`${customer.street} #${customer.streetNumber}, ${customer.municipalityName}, ${customer.provinceName}`}
+              </TableCell>
+              <TableCell>
+                RD$ {parseFloat(customer.creditLimit.toString()).toFixed(2)}
+              </TableCell>
+              <TableCell>
+                RD$ {parseFloat(customer.balance.toString()).toFixed(2)}
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    // TODO: Implement view customer details
+                  }}
+                >
+                  <Eye className="h-4 w-4" />
                 </Button>
               </TableCell>
             </TableRow>

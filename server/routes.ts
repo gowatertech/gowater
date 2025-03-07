@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 
@@ -75,6 +75,20 @@ export async function registerRoutes(app: Express) {
       res.json(allProvinces);
     } catch (error) {
       console.error("Error al obtener provincias:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/municipalities/:provinceId", async (req, res) => {
+    try {
+      const provinceId = parseInt(req.params.provinceId);
+      const municipalitiesInProvince = await db
+        .select()
+        .from(municipalities)
+        .where(eq(municipalities.provinceId, provinceId));
+      res.json(municipalitiesInProvince);
+    } catch (error) {
+      console.error("Error al obtener municipios:", error);
       res.status(500).json({ error: String(error) });
     }
   });
@@ -252,6 +266,71 @@ export async function registerRoutes(app: Express) {
       res.json(route);
     } catch (error) {
       console.error("Error al crear ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+
+  // Customer endpoints
+  app.post("/api/customers", async (req, res) => {
+    try {
+      const result = insertCustomerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.format() });
+      }
+
+      const [customer] = await db
+        .insert(customers)
+        .values(result.data)
+        .returning();
+
+      res.json(customer);
+    } catch (error) {
+      console.error("Error al crear cliente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/customers", async (req, res) => {
+    try {
+      const allCustomers = await db
+        .select({
+          ...customers,
+          provinceName: provinces.name,
+          municipalityName: municipalities.name,
+        })
+        .from(customers)
+        .leftJoin(provinces, eq(customers.provinceId, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityId, municipalities.id));
+
+      res.json(allCustomers);
+    } catch (error) {
+      console.error("Error al obtener clientes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/customers/:id", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const [customer] = await db
+        .select({
+          ...customers,
+          provinceName: provinces.name,
+          municipalityName: municipalities.name,
+        })
+        .from(customers)
+        .leftJoin(provinces, eq(customers.provinceId, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityId, municipalities.id))
+        .where(eq(customers.id, customerId));
+
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+
+      res.json(customer);
+    } catch (error) {
+      console.error("Error al obtener cliente:", error);
       res.status(500).json({ error: String(error) });
     }
   });
