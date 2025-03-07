@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { InsertSettings } from "@shared/schema";
+import { insertSettingsSchema } from "@shared/schema"; // Added import statement
 
 import {
   Form,
