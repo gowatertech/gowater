@@ -652,7 +652,7 @@ export default function Billing() {
             <TableBody>
               {invoices?.map((invoice) => (
                 <TableRow key={invoice.id}>
-                  <TableCell>{customers?.find(c => c.id === invoice.customerId)?.businessname}</TableCell>
+                  <TableCell>{customers?.find(c => c.id === invoice.customerId)?.name}</TableCell>
                   <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
                   <TableCell>#{invoice.id}</TableCell>
                   <TableCell>
@@ -770,7 +770,7 @@ export default function Billing() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="font-medium">Cliente: </span>
-                    {customers?.find(c => c.id === selectedInvoice.customerId)?.businessname}
+                    {customers?.find(c => c.id === selectedInvoice.customerId)?.name}
                   </div>
                   <div>
                     <span className="font-medium">Fecha: </span>
@@ -916,66 +916,66 @@ export default function Billing() {
                                     <TableCell className="p-0.5">
                                       <Input
                                         type="number"
-                                        min="0"
+                                       min="0"
                                         value={item.quantity}
                                         onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
                                         className="text-right h-8"
                                       />
                                     </TableCell>
                                     <TableCell className="p-0.5">
-                                        <Input
-                                          value={item.price ? `RD$ ${item.price.toFixed(2)}` :""}
-                                          readOnly
-                                          className="text-right bg-muted h-8"
-                                        />
-                                      </TableCell>
-                                      <TableCell className="p-0.5">
-                                        <Input
-                                          value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
-                                          readOnly
-                                          className="text-right bg-muted h-8"
-                                        />
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </ScrollArea>
-                          </div>
-                          <Button
-                            className="w-full"
-                            onClick={() => handleSaveEdit(selectedInvoice!.id)}
-                            disabled={!orderItems.some(item => item.quantity > 0)}
-                          >
-                            Guardar Cambios
-                          </Button>
+                                      <Input
+                                        value={item.price ? `RD$ ${item.price.toFixed(2)}` :""}
+                                        readOnly
+                                        className="text-right bg-muted h-8"
+                                      />
+                                    </TableCell>
+                                    <TableCell className="p-0.5">
+                                      <Input
+                                        value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
+                                        readOnly
+                                        className="text-right bg-muted h-8"
+                                      />
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </ScrollArea>
                         </div>
-                      </DialogContent>
-                    </Dialog>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="flex-1">
-                          Cambiar Método de Pago
+                        <Button
+                          className="w-full"
+                          onClick={() => handleSaveEdit(selectedInvoice!.id)}
+                          disabled={!orderItems.some(item => item.quantity > 0)}
+                        >
+                          Guardar Cambios
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Cambiar Método de Pago</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <Select
-                            defaultValue={selectedInvoice.paymentMethod}
-                            onValueChange={(value) => handlePaymentMethodChange(selectedInvoice.id, value as 'cash' | 'credit' | 'card')}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cash">Efectivo</SelectItem>
-                              <SelectItem value="credit">Crédito</SelectItem>
-                              <SelectItem value="card">Tarjeta</SelectItem>
-                            </SelectContent>
-                          </Select>                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="flex-1">
+                        Cambiar Método de Pago
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Cambiar Método de Pago</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <Select
+                          defaultValue={selectedInvoice.paymentMethod}
+                          onValueChange={(value) => handlePaymentMethodChange(selectedInvoice.id, value as 'cash' | 'credit' | 'card')}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">Efectivo</SelectItem>
+                            <SelectItem value="credit">Crédito</SelectItem>
+                            <SelectItem value="card">Tarjeta</SelectItem>
+                          </SelectContent>
+                        </Select>                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
                             selectedInvoice.paymentMethod === "credit" ? "Crédito" :
                               "Tarjeta"
                           }

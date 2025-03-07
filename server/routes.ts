@@ -1,4 +1,4 @@
-import type { Express, Request } from "express";
+import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
@@ -16,23 +16,8 @@ const upload = multer({
   }
 });
 
-// Tipo personalizado para Request con file
-interface MulterRequest extends Request {
-  file?: Express.Multer.File;
-}
-
-// Función de utilidad para procesar el logo
-function processLogoFile(file: Express.Multer.File | undefined): string | null {
-  if (!file || !file.buffer) {
-    return null;
-  }
-
-  if (!file.mimetype.startsWith('image/')) {
-    throw new Error('El archivo debe ser una imagen');
-  }
-
-  return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-}
+// Almacenar las conexiones activas de los conductores
+const driverConnections = new Map<number, WebSocket>();
 
 export async function registerRoutes(app: Express) {
   // Aumentar el límite del body-parser
@@ -42,7 +27,7 @@ export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
   // Configurar WebSocket Server
-  const wss = new WebSocketServer({
+  const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws'
   });
@@ -303,10 +288,15 @@ export async function registerRoutes(app: Express) {
   // Customer endpoints
   app.post("/api/customers", upload.single('logo'), async (req, res) => {
     try {
+      console.log("Received customer data:", req.body);
+      console.log("Received file:", req.file);
+
+      // Validar los datos del cliente
       const customerData = {
         ...req.body,
-        logo: processLogoFile(req.file),
+        logo: req.file ? req.file.buffer.toString('base64') : null,
         creditlimit: req.body.creditlimit || '0.00',
+        // Asegurar que los campos requeridos estén presentes
         businessname: req.body.businessname,
         managername: req.body.managername,
         phone: req.body.phone,
@@ -327,21 +317,14 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      console.log("Procesando cliente:", {
-        ...customerData,
-        logo: customerData.logo ? 'DATA_URL_PRESENT' : null
-      });
+      console.log("Processed customer data:", customerData);
 
       const [customer] = await db
         .insert(customers)
         .values(customerData)
         .returning();
 
-      console.log("Cliente creado:", {
-        id: customer.id,
-        hasLogo: !!customer.logo
-      });
-
+      console.log("Created customer:", customer);
       res.json(customer);
     } catch (error) {
       console.error("Error al crear cliente:", error);
@@ -407,40 +390,25 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Endpoint para actualizar cliente
-  app.patch("/api/customers/:id", upload.single('logo'), async (req: MulterRequest, res) => {
+  // Agregar después del endpoint GET /api/customers/:id
+  app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
-      let updateData: any = { ...req.body };
+      console.log("Datos recibidos en la actualización:", req.body);
+      console.log("Archivo recibido:", req.file);
 
-      // Procesar el logo si se recibió un archivo
-      if (req.file) {
-        updateData.logo = processLogoFile(req.file);
-        console.log("Logo procesado para cliente:", {
-          id: customerId,
-          hasLogo: true,
-          mimeType: req.file.mimetype
-        });
-      }
+      // Preparar los datos para actualizar
+      const updateData = {
+        ...req.body,
+        logo: req.file ? req.file.buffer.toString('base64') : undefined
+      };
 
-      // Convertir campos numéricos
-      if (updateData.provinceid) updateData.provinceid = parseInt(updateData.provinceid);
-      if (updateData.municipalityid) updateData.municipalityid = parseInt(updateData.municipalityid);
-      if (updateData.zoneid) updateData.zoneid = parseInt(updateData.zoneid);
-
+      // Solo incluir campos que están presentes en la solicitud
       const cleanedData = Object.fromEntries(
-        Object.entries(updateData).filter(([_, value]) => value !== undefined && value !== '')
+        Object.entries(updateData).filter(([_, value]) => value !== undefined)
       );
 
-      // Verificar cliente actual
-      const [currentCustomer] = await db
-        .select()
-        .from(customers)
-        .where(eq(customers.id, customerId));
-
-      if (!currentCustomer) {
-        return res.status(404).json({ error: "Cliente no encontrado" });
-      }
+      console.log("Datos limpios para actualizar:", cleanedData);
 
       const [updatedCustomer] = await db
         .update(customers)
@@ -448,11 +416,9 @@ export async function registerRoutes(app: Express) {
         .where(eq(customers.id, customerId))
         .returning();
 
-      console.log("Cliente actualizado:", {
-        id: updatedCustomer.id,
-        hasLogo: !!updatedCustomer.logo,
-        logoUpdated: currentCustomer.logo !== updatedCustomer.logo
-      });
+      if (!updatedCustomer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
 
       res.json(updatedCustomer);
     } catch (error) {
@@ -460,9 +426,6 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
-
-  // Almacenar las conexiones activas de los conductores
-  const driverConnections = new Map<number, WebSocket>();
 
   return httpServer;
 }

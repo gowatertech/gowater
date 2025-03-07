@@ -249,28 +249,7 @@ export default function Customers() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Clientes</h1>
-        <Dialog open={isDialogOpen} onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (open) {
-            // Resetear el formulario con valores vacíos cuando se abre el diálogo de creación
-            form.reset({
-              logo: undefined,
-              rnc: "",
-              businessname: "",
-              managername: "",
-              phone: "",
-              email: "",
-              zoneid: undefined,
-              street: "",
-              streetnumber: "",
-              provinceid: undefined,
-              municipalityid: undefined,
-              reference: "",
-              creditlimit: "0.00",
-            });
-            setSelectedProvinceId(null);
-          }
-        }}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="h-4 w-4 mr-2" />
@@ -589,22 +568,21 @@ export default function Customers() {
             )}
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
               <div className="grid md:grid-cols-2 gap-2">
                 <FormField
                   control={form.control}
                   name="logo"
-                  render={({ field: { value, onChange, ...field } }) => (
+                  render={({ field: { value, ...field } }) => (
                     <FormItem>
                       <FormLabel>Logo</FormLabel>
                       <FormControl>
                         {value ? (
                           <div className="space-y-2">
                             <img
-                              src={`${value}?t=${Date.now()}`}
+                              src={`data:image/jpeg;base64,${value}`}
                               alt="Logo"
                               className="w-32 h-32 object-contain"
-                              key={`preview-${Date.now()}`}
                             />
                             {isEditing && (
                               <Input
@@ -896,7 +874,7 @@ export default function Customers() {
                 />
               </div>
               {isEditing && (
-                <Button type="submit" className="w-full mt-4" disabled={updateMutation.isPending}>
+                <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
                   <Save className="h-4 w-4 mr-2" />
                   {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                 </Button>
@@ -911,47 +889,47 @@ export default function Customers() {
           <TableHeader>
             <TableRow>
               <TableHead>Logo</TableHead>
+              <TableHead>Nombre del Negocio</TableHead>
               <TableHead>RNC</TableHead>
-              <TableHead>Negocio</TableHead>
-              <TableHead>Encargado</TableHead>
+              <TableHead>Nombre del Encargado</TableHead>
               <TableHead>Teléfono</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead>Dirección</TableHead>
+              <TableHead>Límite de Crédito</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {customers.map((customer) => (
+            {customers?.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell>
                   {customer.logo ? (
-                    <div className="w-12 h-12">
-                      <img
-                        src={`${customer.logo}?t=${Date.now()}`}
-                        alt={`Logo de ${customer.businessname}`}
-                        className="w-full h-full object-contain"
-                        key={`logo-${customer.id}-${Date.now()}`}
-                      />
-                    </div>
+                    <img
+                      src={`data:image/jpeg;base64,${customer.logo}`}
+                      alt="Logo"
+                      className="w-12 h-12 object-contain"
+                    />
                   ) : (
                     <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
                       No logo
                     </div>
                   )}
                 </TableCell>
-                <TableCell>{customer.rnc || "-"}</TableCell>
                 <TableCell>{customer.businessname}</TableCell>
+                <TableCell>{customer.rnc || '-'}</TableCell>
                 <TableCell>{customer.managername}</TableCell>
                 <TableCell>{customer.phone}</TableCell>
-                <TableCell>{customer.email || "-"}</TableCell>
                 <TableCell>
-                  {customer.street} {customer.streetnumber}, {customer.municipalityName}, {customer.provinceName}
+                  {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
+                </TableCell>
+                <TableCell>
+                  RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
                 </TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleViewCustomer(customer)}
+                    className="text-blue-500 hover:text-blue-700"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
