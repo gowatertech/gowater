@@ -193,7 +193,7 @@ export default function Productos() {
       name: product.name,
       price: product.price.toString(),
       stock: product.stock,
-      icon: product.icon,
+      icon: product.icon || undefined, // Handle null case
     });
     setIsEditDialogOpen(true);
   };

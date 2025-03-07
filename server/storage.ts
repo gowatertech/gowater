@@ -219,7 +219,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRoute(route: InsertRoute): Promise<Route> {
-    const [newRoute] = await db.insert(routes).values([route]).returning();
+    const routeData = {
+      ...route,
+      startTime: route.startTime ? new Date(route.startTime) : null,
+      endTime: route.endTime ? new Date(route.endTime) : null,
+      lastUpdate: route.lastUpdate ? new Date(route.lastUpdate) : null,
+    };
+    const [newRoute] = await db.insert(routes).values(routeData).returning();
     return newRoute;
   }
 
@@ -307,15 +313,15 @@ export class DatabaseStorage implements IStorage {
         throw new Error("El total debe ser un número válido");
       }
 
-      // Convertir los tipos según lo que espera PostgreSQL
       const orderData = {
         ...order,
-        date: new Date(order.date), // Convertir a Date para PostgreSQL
-        total: total.toString(),  // Mantener como string para PostgreSQL
+        date: new Date(order.date),
+        total: total.toString(),
+        estimatedDeliveryTime: order.estimatedDeliveryTime ? new Date(order.estimatedDeliveryTime) : null,
+        actualDeliveryTime: order.actualDeliveryTime ? new Date(order.actualDeliveryTime) : null,
       };
 
-      // Insertar en la base de datos
-      const [newOrder] = await db.insert(orders).values([orderData]).returning();
+      const [newOrder] = await db.insert(orders).values(orderData).returning();
       return newOrder;
     } catch (error) {
       console.error('Error en createOrder:', error);
@@ -359,8 +365,8 @@ export class DatabaseStorage implements IStorage {
 
   // Settings
   async getSettings(): Promise<Settings | undefined> {
-    const [settings] = await db.select().from(settings);
-    return settings;
+    const settingsResult = await db.select().from(settings);
+    return settingsResult[0];
   }
 
   async updateSettings(settingsData: InsertSettings): Promise<Settings> {

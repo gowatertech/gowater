@@ -220,7 +220,7 @@ export default function Routes() {
                             </p>
                             <p className="text-muted-foreground">
                               {route.totalDistance
-                                ? `${route.totalDistance.toFixed(1)} km`
+                                ? `${Number(route.totalDistance).toFixed(1)} km`
                                 : t("calculatingRoute")}
                             </p>
                           </div>
@@ -239,7 +239,7 @@ export default function Routes() {
                             {t("revenue")}
                           </p>
                           <p className="font-medium">
-                            {formatCurrency(route.totalRevenue || 0)}
+                            {formatCurrency(Number(route.totalRevenue || 0))}
                           </p>
                         </div>
                         <div>
@@ -310,7 +310,7 @@ export default function Routes() {
                         <span>
                           {t("route")} #{route.id}
                         </span>
-                        <Badge variant="success" className="ml-2">
+                        <Badge variant="default" className="ml-2 bg-green-500 text-white">
                           {t("completed")}
                         </Badge>
                       </CardTitle>
@@ -330,7 +330,7 @@ export default function Routes() {
                             </p>
                             <p className="text-muted-foreground">
                               {route.totalDistance
-                                ? `${route.totalDistance.toFixed(1)} km`
+                                ? `${Number(route.totalDistance).toFixed(1)} km`
                                 : t("calculatingRoute")}
                             </p>
                           </div>
