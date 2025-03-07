@@ -167,14 +167,34 @@ export default function Customers() {
                     name="logo"
                     render={({ field: { value, onChange, ...field } }) => (
                       <FormItem className="col-span-2">
-                        <FormLabel>Logo</FormLabel>
+                        <FormLabel>Logo (JPG/PNG, máx. 5MB)</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
-                            accept="image/*"
+                            accept="image/jpeg,image/png"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                // Validar el tamaño (5MB = 5 * 1024 * 1024 bytes)
+                                if (file.size > 5 * 1024 * 1024) {
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Error",
+                                    description: "El archivo debe ser menor a 5MB",
+                                  });
+                                  e.target.value = '';
+                                  return;
+                                }
+                                // Validar el tipo
+                                if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Error",
+                                    description: "El archivo debe ser JPG o PNG",
+                                  });
+                                  e.target.value = '';
+                                  return;
+                                }
                                 onChange(file);
                               }
                             }}
