@@ -49,6 +49,8 @@ export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithDetails | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
 
   // Obtener provincias
@@ -150,6 +152,17 @@ export default function Customers() {
     } catch (error) {
       console.error("Form submission error:", error);
     }
+  };
+
+  // Función para ver/editar cliente
+  const handleViewCustomer = (customer: CustomerWithDetails) => {
+    setSelectedCustomer(customer);
+    setSelectedProvinceId(customer.provinceid);
+    form.reset({
+      ...customer,
+      creditlimit: customer.creditlimit.toString()
+    });
+    setIsViewDialogOpen(true);
   };
 
   if (isLoading) {
@@ -467,6 +480,186 @@ export default function Customers() {
         </Dialog>
       </div>
 
+      {/* Dialog para ver/editar cliente */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Ver Cliente</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="logo"
+                  render={({ field: { value, ...field } }) => (
+                    <FormItem>
+                      <FormLabel>Logo</FormLabel>
+                      <FormControl>
+                        {value ? (
+                          <img
+                            src={`data:image/jpeg;base64,${value}`}
+                            alt="Logo"
+                            className="w-32 h-32 object-contain"
+                          />
+                        ) : (
+                          <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
+                            No logo
+                          </div>
+                        )}
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="rnc"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>RNC</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="businessname"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre del Negocio</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="managername"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre del Encargado</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="street"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Calle</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="streetnumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="provinceid"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provincia</FormLabel>
+                      <FormControl>
+                        <Input value={selectedCustomer?.provinceName || ''} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="municipalityid"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Municipio</FormLabel>
+                      <FormControl>
+                        <Input value={selectedCustomer?.municipalityName || ''} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="reference"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Referencia</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="creditlimit"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Límite de Crédito</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -497,9 +690,7 @@ export default function Customers() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => {
-                      // TODO: Implementar ver detalles del cliente
-                    }}
+                    onClick={() => handleViewCustomer(customer)}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
