@@ -274,16 +274,37 @@ export async function registerRoutes(app: Express) {
   // Customer endpoints
   app.post("/api/customers", async (req, res) => {
     try {
+      console.log("Received customer data:", req.body);
+
       const result = insertCustomerSchema.safeParse(req.body);
       if (!result.success) {
+        console.error("Validation error:", result.error.format());
         return res.status(400).json({ error: result.error.format() });
       }
 
+      // Asegurarse de que los campos requeridos estén presentes
+      const customerData = {
+        business_name: result.data.businessName,
+        manager_name: result.data.managerName,
+        phone: result.data.phone,
+        street: result.data.street,
+        street_number: result.data.streetNumber,
+        province_id: result.data.provinceId,
+        municipality_id: result.data.municipalityId,
+        reference: result.data.reference || '',
+        credit_limit: result.data.creditLimit || '0.00',
+        balance: '0.00',
+        country: result.data.country || 'República Dominicana',
+      };
+
+      console.log("Processed customer data:", customerData);
+
       const [customer] = await db
         .insert(customers)
-        .values(result.data)
+        .values(customerData)
         .returning();
 
+      console.log("Created customer:", customer);
       res.json(customer);
     } catch (error) {
       console.error("Error al crear cliente:", error);
