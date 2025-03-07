@@ -438,9 +438,9 @@ export const settingsRelations = relations(settings, ({ one }) => ({
   }),
 }));
 
-// Add the insert schema
+// Modificar el schema de settings para aceptar cualquier tipo de dato para el logo
 export const insertSettingsSchema = z.object({
-  logo: z.string().nullable(),
+  logo: z.any().optional(), // Permitir File o string
   name: z.string().min(1, "El nombre es requerido"),
   rnc: z.string().nullable(),
   street: z.string().min(1, "La calle es requerida"),
