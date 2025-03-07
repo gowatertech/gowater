@@ -402,5 +402,35 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Settings endpoints
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings || {});
+    } catch (error) {
+      console.error("Error al obtener configuración:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/settings", upload.single('logo'), async (req, res) => {
+    try {
+      const settingsData = {
+        ...req.body,
+        logo: req.file ? req.file.buffer.toString('base64') : undefined,
+      };
+
+      // Convertir valores numéricos
+      if (settingsData.provinceId) settingsData.provinceId = Number(settingsData.provinceId);
+      if (settingsData.municipalityId) settingsData.municipalityId = Number(settingsData.municipalityId);
+
+      const updatedSettings = await storage.updateSettings(settingsData);
+      res.json(updatedSettings);
+    } catch (error) {
+      console.error("Error al actualizar configuración:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   return httpServer;
 }

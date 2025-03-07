@@ -1,5 +1,5 @@
 import {
-  users, customers, products, trucks, routes, orders, orderItems,
+  users, customers, products, trucks, routes, orders, orderItems, settings,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -7,6 +7,7 @@ import {
   type Route, type InsertRoute,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
+  type Settings, type InsertSettings,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
 } from "@shared/schema";
 import { db } from "./db";
@@ -71,6 +72,10 @@ export interface IStorage {
   // Driver Location
   updateDriverLocation(driverId: number, location: DriverLocation): Promise<User>;
   getDriverLocation(driverId: number): Promise<DriverLocation | null>;
+
+  // Settings
+  getSettings(): Promise<Settings | undefined>;
+  updateSettings(settings: Partial<InsertSettings>): Promise<Settings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -438,6 +443,47 @@ export class DatabaseStorage implements IStorage {
       longitude,
       timestamp: user.lastLocationUpdate
     };
+  }
+
+  // Settings
+  async getSettings(): Promise<Settings | undefined> {
+    const [settings] = await db
+      .select({
+        id: settings.id,
+        logo: settings.logo,
+        name: settings.name,
+        rnc: settings.rnc,
+        street: settings.street,
+        streetNumber: settings.streetNumber,
+        provinceId: settings.provinceId,
+        municipalityId: settings.municipalityId,
+        contactPhone: settings.contactPhone,
+        email: settings.email,
+        country: settings.country,
+        currency: settings.currency,
+        tax: settings.tax,
+      })
+      .from(settings);
+    return settings;
+  }
+
+  async updateSettings(settingsData: Partial<InsertSettings>): Promise<Settings> {
+    const [existingSettings] = await db.select().from(settings);
+
+    if (existingSettings) {
+      const [updatedSettings] = await db
+        .update(settings)
+        .set(settingsData)
+        .where(eq(settings.id, existingSettings.id))
+        .returning();
+      return updatedSettings;
+    } else {
+      const [newSettings] = await db
+        .insert(settings)
+        .values({ id: 1, ...settingsData as InsertSettings })
+        .returning();
+      return newSettings;
+    }
   }
 }
 

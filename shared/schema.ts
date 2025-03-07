@@ -409,7 +409,52 @@ export const insertMunicipalitySchema = z.object({
   type: z.enum(["municipality", "district"]),
 });
 
-// Export types
+// Company Settings
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  logo: text("logo"),
+  name: text("name").notNull(),
+  rnc: text("rnc"),
+  street: text("street").notNull(),
+  streetNumber: text("street_number").notNull(),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
+  contactPhone: text("contact_phone").notNull(),
+  email: text("email"),
+  country: text("country").notNull(),
+  currency: text("currency").notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).notNull().default("0.00"),
+});
+
+// Add relations
+export const settingsRelations = relations(settings, ({ one }) => ({
+  province: one(provinces, {
+    fields: [settings.provinceId],
+    references: [provinces.id],
+  }),
+  municipality: one(municipalities, {
+    fields: [settings.municipalityId],
+    references: [municipalities.id],
+  }),
+}));
+
+// Add the insert schema
+export const insertSettingsSchema = z.object({
+  logo: z.string().nullable(),
+  name: z.string().min(1, "El nombre es requerido"),
+  rnc: z.string().nullable(),
+  street: z.string().min(1, "La calle es requerida"),
+  streetNumber: z.string().min(1, "El número es requerido"),
+  provinceId: z.number({ required_error: "La provincia es requerida" }),
+  municipalityId: z.number({ required_error: "El municipio es requerido" }),
+  contactPhone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  email: z.string().email("Correo electrónico inválido").nullable(),
+  country: z.string().min(1, "El país es requerido"),
+  currency: z.string().min(1, "La moneda es requerida"),
+  tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales").default("0.00"),
+});
+
+// Add the type
 export type User = typeof users.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -480,3 +525,6 @@ export type CustomerWithDetails = {
   municipalityName?: string;
   provinceName?: string;
 };
+
+export type Settings = typeof settings.$inferSelect;
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
