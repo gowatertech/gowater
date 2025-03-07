@@ -144,6 +144,10 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   const createZoneMutation = useMutation({
     mutationFn: async (data: { name: string; color: string; coordinates: string[] }) => {
       const response = await apiRequest("POST", "/api/zones", data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al crear la zona');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -153,11 +157,11 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
       });
       onZoneCreated();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Error al crear la zona: " + error.message,
+        description: error.message
       });
     }
   });
@@ -173,12 +177,13 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
 
     try {
-      // Convert coordinates to strings
+      // Convert coordinates to strings in the format expected by the schema
       const coordStrings = coordinates.map(coord => {
         if (Array.isArray(coord)) {
-          return `${coord[0]},${coord[1]}`;
+          // Format to exactly match schema regex: number with optional decimal places
+          return `${coord[0].toFixed(6)},${coord[1].toFixed(6)}`;
         } else if (coord instanceof LatLng) {
-          return `${coord.lat},${coord.lng}`;
+          return `${coord.lat.toFixed(6)},${coord.lng.toFixed(6)}`;
         }
         throw new Error('Formato de coordenadas inválido');
       });
@@ -193,7 +198,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Error al procesar las coordenadas",
+        description: "Error al procesar las coordenadas"
       });
     }
   };
