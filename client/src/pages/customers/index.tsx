@@ -58,6 +58,7 @@ export default function Customers() {
   const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<number | null>(null);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
+  // Consultas para cargar los catálogos
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/provinces"],
   });
@@ -72,7 +73,7 @@ export default function Customers() {
           throw new Error(`Error fetching cities: ${response.statusText}`);
         }
         const data = await response.json();
-        console.log("Ciudades y municipios cargados para provincia", selectedProvinceId, ":", data);
+        console.log("Datos cargados para provincia", selectedProvinceId, ":", data);
         return data;
       } catch (error) {
         console.error("Error loading cities:", error);
@@ -168,9 +169,11 @@ export default function Customers() {
 
   // Separar ciudades y municipios
   const municipalities = cities.filter(city => city.type === 'municipality');
-  const districtsForMunicipality = cities.filter(city =>
-    city.type === 'city' && selectedMunicipalityId !== null
-  );
+  const districtsForMunicipality = cities.filter(city => city.type === 'city');
+
+  console.log('Provincias:', provinces);
+  console.log('Municipios filtrados:', municipalities);
+  console.log('Distritos filtrados:', districtsForMunicipality);
 
   return (
     <div className="space-y-6">
@@ -318,7 +321,7 @@ export default function Customers() {
                           form.setValue("cityId", numValue);
                         }}
                         value={selectedCityId?.toString()}
-                        disabled={!selectedMunicipalityId || isLoadingCities}
+                        disabled={!selectedProvinceId || isLoadingCities}
                       >
                         <FormControl>
                           <SelectTrigger className="h-8">
@@ -340,6 +343,7 @@ export default function Customers() {
                       name="sectorId"
                       render={({ field }) => (
                         <FormItem>
+                          <FormLabel>{t("sector")}</FormLabel>
                           <Select
                             onValueChange={(value) => field.onChange(parseInt(value))}
                             value={field.value?.toString()}
@@ -362,6 +366,7 @@ export default function Customers() {
                         </FormItem>
                       )}
                     />
+
                     <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={form.control}
