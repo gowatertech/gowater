@@ -45,13 +45,16 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
     defaultValues: {
       name: "",
       driverId: 0,
-      date: new Date().toISOString().split("T")[0],
+      date: new Date(),
     },
   });
 
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/routes", data);
+      const res = await apiRequest("POST", "/api/routes", {
+        ...data,
+        date: new Date(data.date),
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -128,7 +131,14 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
             <FormItem>
               <FormLabel>{t("date")}</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input 
+                  type="date" 
+                  {...field} 
+                  value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                  onChange={(e) => {
+                    field.onChange(new Date(e.target.value));
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

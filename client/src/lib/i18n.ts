@@ -27,6 +27,11 @@ const resources = {
       status: "Status",
       actions: "Actions",
       saving: "Saving...",
+      points: "points", // Added
+      zones: "Zones", // Added
+      createZone: "Create Zone", // Added
+      noZones: "No zones created yet", // Added
+      zoneName: "Zone Name", // Added
 
       // Forms
       name: "Name",
@@ -45,13 +50,6 @@ const resources = {
       // Success messages
       success: "Success",
       batchCreated: "Production batch created successfully",
-
-      // New Production Batch
-      newBatch: "New Production Batch",
-      batchHistory: "Batch History",
-      type: "Type",
-      productType: "Product Type",
-      selectProductType: "Select product type",
 
       // Error messages
       error: "Error",
@@ -82,6 +80,11 @@ const resources = {
       status: "Estado",
       actions: "Acciones",
       saving: "Guardando...",
+      points: "puntos", // Added
+      zones: "Zonas", // Added
+      createZone: "Crear Zona", // Added
+      noZones: "No hay zonas creadas", // Added
+      zoneName: "Nombre de la Zona", // Added
 
       // Forms
       name: "Nombre",
@@ -100,13 +103,6 @@ const resources = {
       // Success messages
       success: "Éxito",
       batchCreated: "Lote de producción creado exitosamente",
-
-      // New Production Batch
-      newBatch: "Nuevo Lote de Producción",
-      batchHistory: "Historial de Lotes",
-      type: "Tipo",
-      productType: "Tipo de Producto",
-      selectProductType: "Seleccionar tipo de producto",
 
       // Error messages
       error: "Error",

@@ -195,8 +195,8 @@ export default function Routes() {
                     style={{ backgroundColor: zone.color }}
                   />
                   <span className="font-medium">{zone.name}</span>
-                  <Badge variant="outline">
-                    {zone.coordinates.length} puntos
+                  <Badge variant="outline" title="Cada punto representa una coordenada geográfica que forma el perímetro de la zona">
+                    {zone.coordinates.length} {t("points")}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
