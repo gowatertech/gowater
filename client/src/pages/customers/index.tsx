@@ -49,12 +49,12 @@ export default function Customers() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
 
-  // Fetch provinces
+  // Obtener provincias
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/provinces"],
   });
 
-  // Fetch municipalities when province is selected
+  // Obtener municipios cuando se selecciona una provincia
   const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery({
     queryKey: ["/api/municipalities", selectedProvinceId],
     queryFn: async () => {
@@ -65,7 +65,7 @@ export default function Customers() {
     enabled: !!selectedProvinceId,
   });
 
-  // Fetch customers
+  // Obtener clientes
   const { data: customers = [], isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
@@ -96,8 +96,8 @@ export default function Customers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
       toast({
-        title: t("success"),
-        description: t("customerCreated"),
+        title: "Éxito",
+        description: "Cliente creado correctamente",
       });
       form.reset();
       setIsDialogOpen(false);
@@ -106,7 +106,7 @@ export default function Customers() {
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
@@ -117,23 +117,23 @@ export default function Customers() {
   };
 
   if (isLoading) {
-    return <div className="p-8">Loading...</div>;
+    return <div className="p-8">Cargando...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{t("customers")}</h1>
+        <h1 className="text-3xl font-bold">Clientes</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="h-4 w-4 mr-2" />
-              {t("newCustomer")}
+              Nuevo Cliente
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>{t("newCustomer")}</DialogTitle>
+              <DialogTitle>Nuevo Cliente</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -142,7 +142,7 @@ export default function Customers() {
                   name="logo"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("logo")}</FormLabel>
+                      <FormLabel>Logo</FormLabel>
                       <FormControl>
                         <Input type="file" accept="image/*" {...field} />
                       </FormControl>
@@ -156,7 +156,7 @@ export default function Customers() {
                   name="businessName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("businessName")}</FormLabel>
+                      <FormLabel>Nombre del Negocio</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -170,7 +170,7 @@ export default function Customers() {
                   name="managerName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("managerName")}</FormLabel>
+                      <FormLabel>Nombre del Encargado</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -184,7 +184,7 @@ export default function Customers() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("phone")}</FormLabel>
+                      <FormLabel>Teléfono</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -199,7 +199,7 @@ export default function Customers() {
                     name="street"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("street")}</FormLabel>
+                        <FormLabel>Calle</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -213,7 +213,7 @@ export default function Customers() {
                     name="streetNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("number")}</FormLabel>
+                        <FormLabel>Número</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -228,7 +228,7 @@ export default function Customers() {
                   name="provinceId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("province")}</FormLabel>
+                      <FormLabel>Provincia</FormLabel>
                       <Select
                         onValueChange={(value) => {
                           field.onChange(parseInt(value));
@@ -238,7 +238,7 @@ export default function Customers() {
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t("selectProvince")} />
+                            <SelectValue placeholder="Seleccione una provincia" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -259,7 +259,7 @@ export default function Customers() {
                   name="municipalityId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("municipality")}</FormLabel>
+                      <FormLabel>Municipio</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(parseInt(value))}
                         value={field.value?.toString()}
@@ -267,7 +267,7 @@ export default function Customers() {
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t("selectMunicipality")} />
+                            <SelectValue placeholder="Seleccione un municipio" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -291,7 +291,7 @@ export default function Customers() {
                   name="reference"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("reference")}</FormLabel>
+                      <FormLabel>Referencia</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -305,7 +305,7 @@ export default function Customers() {
                   name="creditLimit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("creditLimit")}</FormLabel>
+                      <FormLabel>Límite de Crédito</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -328,7 +328,7 @@ export default function Customers() {
                   className="w-full"
                   disabled={createMutation.isPending}
                 >
-                  {createMutation.isPending ? t("saving") : t("save")}
+                  {createMutation.isPending ? "Guardando..." : "Guardar"}
                 </Button>
               </form>
             </Form>
@@ -368,7 +368,7 @@ export default function Customers() {
                   variant="ghost"
                   size="icon"
                   onClick={() => {
-                    // TODO: Implement view customer details
+                    // TODO: Implementar ver detalles del cliente
                   }}
                 >
                   <Eye className="h-4 w-4" />
