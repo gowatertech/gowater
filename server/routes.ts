@@ -299,9 +299,8 @@ export async function registerRoutes(app: Express) {
       // Validar los datos del cliente
       const customerData = {
         ...req.body,
-        logo: req.file ? req.file.buffer.toString('base64') : null,
+        logo: req.file ? `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}` : null,
         creditlimit: req.body.creditlimit || '0.00',
-        // Asegurar que los campos requeridos estén presentes
         businessname: req.body.businessname,
         managername: req.body.managername,
         phone: req.body.phone,
@@ -322,14 +321,21 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      console.log("Processed customer data:", customerData);
+      console.log("Processed customer data:", {
+        ...customerData,
+        logo: customerData.logo ? 'BASE64_DATA' : null
+      });
 
       const [customer] = await db
         .insert(customers)
         .values(customerData)
         .returning();
 
-      console.log("Created customer:", customer);
+      console.log("Created customer:", {
+        ...customer,
+        logo: customer.logo ? 'BASE64_DATA' : null
+      });
+
       res.json(customer);
     } catch (error) {
       console.error("Error al crear cliente:", error);
@@ -422,24 +428,17 @@ export async function registerRoutes(app: Express) {
           throw new Error('El archivo debe ser una imagen');
         }
 
-        // Verificar el buffer
-        console.log("Buffer del archivo:", {
-          length: req.file.buffer.length,
-          firstBytes: req.file.buffer.slice(0, 10).toString('hex'),
-          isBuffer: Buffer.isBuffer(req.file.buffer)
-        });
-
-        // Convertir a base64
-        const base64Image = req.file.buffer.toString('base64');
+        // Convertir a base64 incluyendo el tipo MIME
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
         console.log("Logo convertido a base64:", {
           length: base64Image.length,
-          preview: base64Image.substring(0, 50) + '...'
+          preview: base64Image.substring(0, 50) + '...',
+          mimeType: req.file.mimetype
         });
 
         updateData.logo = base64Image;
         console.log("Nuevo logo recibido y procesado");
       } else {
-        // Si no hay nuevo archivo, eliminar el campo logo del updateData
         delete updateData.logo;
         console.log("No se recibió nuevo logo, manteniendo el existente");
       }
@@ -449,7 +448,7 @@ export async function registerRoutes(app: Express) {
       if (updateData.municipalityid) updateData.municipalityid = parseInt(updateData.municipalityid);
       if (updateData.zoneid) updateData.zoneid = parseInt(updateData.zoneid);
 
-      // Remover campos undefined o vacíos, pero mantener null si fue explícitamente enviado
+      // Remover campos undefined o vacíos
       const cleanedData = Object.fromEntries(
         Object.entries(updateData).filter(([_, value]) => value !== undefined && value !== '')
       );
@@ -465,22 +464,15 @@ export async function registerRoutes(app: Express) {
         .from(customers)
         .where(eq(customers.id, customerId));
 
-      console.log("Cliente actual:", {
-        id: currentCustomer?.id,
-        hasLogo: !!currentCustomer?.logo,
-        logoLength: currentCustomer?.logo?.length,
-        logoPreview: currentCustomer?.logo ? currentCustomer.logo.substring(0, 50) + '...' : null
-      });
+      if (!currentCustomer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
 
       const [updatedCustomer] = await db
         .update(customers)
         .set(cleanedData)
         .where(eq(customers.id, customerId))
         .returning();
-
-      if (!updatedCustomer) {
-        return res.status(404).json({ error: "Cliente no encontrado" });
-      }
 
       // Verificar la actualización
       console.log("Verificación post-actualización:", {
@@ -491,13 +483,6 @@ export async function registerRoutes(app: Express) {
         logoChanged: currentCustomer?.logo !== updatedCustomer.logo,
         logoPreview: updatedCustomer.logo ? updatedCustomer.logo.substring(0, 50) + '...' : null
       });
-
-      // Devolver cliente actualizado con logo truncado en los logs
-      const responseCustomer = {
-        ...updatedCustomer,
-        logo: updatedCustomer.logo ? 'BASE64_DATA' : null
-      };
-      console.log("Cliente actualizado:", responseCustomer);
 
       res.json(updatedCustomer);
     } catch (error) {
