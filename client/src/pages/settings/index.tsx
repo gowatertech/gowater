@@ -57,7 +57,7 @@ function Settings() {
 
   // Fetch municipalities based on selected province
   const { data: municipalities = [] } = useQuery<Municipality[]>({
-    queryKey: ["/api/municipalities", form.watch("provinceId")],
+    queryKey: [`/api/municipalities/${form.watch("provinceId")}`],
     enabled: !!form.watch("provinceId"),
   });
 
