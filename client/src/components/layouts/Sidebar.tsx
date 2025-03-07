@@ -32,6 +32,22 @@ const menuColors = {
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Panel", href: "/" },
   { icon: FileText, label: "Facturación", href: "/billing" },
+
+        </div>
+      </UISidebarHeader>
+
+      {/* Botón de Tutorial */}
+      <div className="mx-5 mb-4">
+        <Link href="/tutorial">
+          <Button variant="outline" className="w-full flex items-center justify-center gap-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">
+            <BookOpen className="h-4 w-4" />
+            <span>{t("Tutorial Interactivo")}</span>
+          </Button>
+        </Link>
+      </div>
+
+      <UISidebarMenu className="px-5">
+
   { icon: FileText, label: "Pagos", href: "/payments" },
   { icon: Users, label: "Usuarios", href: "/users" },
   { icon: Users, label: "Clientes", href: "/customers" },
@@ -63,7 +79,7 @@ import {
   SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheimport { BookOpen } from "lucide-react";
 
 interface SidebarProps {
   openMobile: boolean;
