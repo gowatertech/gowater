@@ -76,7 +76,12 @@ function Settings() {
   // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
-      form.reset(settings);
+      console.log("Cargando configuración:", settings);
+      form.reset({
+        ...settings,
+        provinceId: settings.provinceId || 8,
+        municipalityId: settings.municipalityId || 18,
+      });
     }
   }, [settings, form]);
 
@@ -147,11 +152,13 @@ function Settings() {
                       <FormControl>
                         <div className="flex items-center gap-4">
                           {value && typeof value === 'string' && (
-                            <img
-                              src={`data:image/png;base64,${value}`}
-                              alt="Logo"
-                              className="h-16 w-16 object-contain"
-                            />
+                            <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-white">
+                              <img
+                                src={`data:image/png;base64,${value}`}
+                                alt="Logo"
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
                           )}
                           <Input
                             type="file"

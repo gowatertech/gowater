@@ -402,7 +402,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Settings endpoints
+  // Endpoints para los ajustes
   app.get("/api/settings", async (req, res) => {
     try {
       const settings = await storage.getSettings();

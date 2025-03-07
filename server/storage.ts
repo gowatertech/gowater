@@ -1,5 +1,6 @@
 import {
-  users, customers, products, trucks, routes, orders, orderItems, settings,
+  users, customers, products, trucks, routes, orders, orderItems,
+  settings as settingsTable,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -447,42 +448,36 @@ export class DatabaseStorage implements IStorage {
 
   // Settings
   async getSettings(): Promise<Settings | undefined> {
-    const [settings] = await db
-      .select({
-        id: settings.id,
-        logo: settings.logo,
-        name: settings.name,
-        rnc: settings.rnc,
-        street: settings.street,
-        streetNumber: settings.streetNumber,
-        provinceId: settings.provinceId,
-        municipalityId: settings.municipalityId,
-        contactPhone: settings.contactPhone,
-        email: settings.email,
-        country: settings.country,
-        currency: settings.currency,
-        tax: settings.tax,
-      })
-      .from(settings);
-    return settings;
+    try {
+      const result = await db.select().from(settingsTable);
+      return result[0];
+    } catch (error) {
+      console.error("Error al obtener configuración:", error);
+      throw error;
+    }
   }
 
   async updateSettings(settingsData: Partial<InsertSettings>): Promise<Settings> {
-    const [existingSettings] = await db.select().from(settings);
+    try {
+      const [existingSettings] = await db.select().from(settingsTable);
 
-    if (existingSettings) {
-      const [updatedSettings] = await db
-        .update(settings)
-        .set(settingsData)
-        .where(eq(settings.id, existingSettings.id))
-        .returning();
-      return updatedSettings;
-    } else {
-      const [newSettings] = await db
-        .insert(settings)
-        .values({ id: 1, ...settingsData as InsertSettings })
-        .returning();
-      return newSettings;
+      if (existingSettings) {
+        const [updatedSettings] = await db
+          .update(settingsTable)
+          .set(settingsData)
+          .where(eq(settingsTable.id, existingSettings.id))
+          .returning();
+        return updatedSettings;
+      } else {
+        const [newSettings] = await db
+          .insert(settingsTable)
+          .values({ id: 1, ...settingsData as InsertSettings })
+          .returning();
+        return newSettings;
+      }
+    } catch (error) {
+      console.error("Error al actualizar configuración:", error);
+      throw error;
     }
   }
 }
