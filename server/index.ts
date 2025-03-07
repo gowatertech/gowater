@@ -63,33 +63,27 @@ app.use((req, res, next) => {
       server.close();
     }
     
-    // Find a free port by incrementing until one works
-    const tryPort = (currentPort: number) => {
-      server.listen({
-        port: currentPort,
-        host: "0.0.0.0",
-      }, () => {
-        log(`serving on port ${currentPort}`);
-      }).on('error', (err: any) => {
+    server.listen({
+      port,
+      host: "0.0.0.0",
+    }, () => {
+      log(`serving on port ${port}`);
+    }).on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE' && port < 5010) {
+        log(`Port ${port} is in use, trying ${port + 1}`);
+        startServer(port + 1);
+      } else {
+        log(`Error starting server: ${err.message}`);
+        // Try a random port as last resort
         if (err.code === 'EADDRINUSE') {
-          log(`Port ${currentPort} is in use, trying next port`);
-          // Try next port
-          if (currentPort < 5010) {
-            tryPort(currentPort + 1);
-          } else {
-            // Try a random high port as last resort
-            const randomPort = Math.floor(Math.random() * 10000) + 10000;
-            log(`Trying random port ${randomPort}`);
-            tryPort(randomPort);
-          }
+          const randomPort = Math.floor(Math.random() * 10000) + 10000;
+          log(`Trying random port ${randomPort}`);
+          startServer(randomPort);
         } else {
-          log(`Error starting server: ${err.message}`);
           throw err;
         }
-      });
-    };
-    
-    tryPort(port);
+      }
+    });
   };
   
   startServer();
