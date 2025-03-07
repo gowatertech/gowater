@@ -51,21 +51,35 @@ export default function Customers() {
   const { toast } = useToast();
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedProvinceId, setSelectedProvinceId] = useState<string>("");
-  const [selectedCityId, setSelectedCityId] = useState<string>("");
+  const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
   // Consultas para cargar los catálogos
   const { data: provinces = [] } = useQuery({
     queryKey: ["/api/provinces"],
   });
 
-  const { data: cities = [] } = useQuery({
+  const { data: cities = [], isLoading: isLoadingCities } = useQuery({
     queryKey: ["/api/cities", selectedProvinceId],
+    queryFn: async () => {
+      if (!selectedProvinceId) return [];
+      const response = await apiRequest("GET", `/api/cities/${selectedProvinceId}`);
+      const data = await response.json();
+      console.log("Ciudades cargadas:", data); // Debug
+      return data;
+    },
     enabled: !!selectedProvinceId,
   });
 
-  const { data: sectors = [] } = useQuery({
+  const { data: sectors = [], isLoading: isLoadingSectors } = useQuery({
     queryKey: ["/api/sectors", selectedCityId],
+    queryFn: async () => {
+      if (!selectedCityId) return [];
+      const response = await apiRequest("GET", `/api/sectors/${selectedCityId}`);
+      const data = await response.json();
+      console.log("Sectores cargados:", data); // Debug
+      return data;
+    },
     enabled: !!selectedCityId,
   });
 
@@ -102,8 +116,8 @@ export default function Customers() {
       });
       form.reset();
       setIsDialogOpen(false);
-      setSelectedProvinceId("");
-      setSelectedCityId("");
+      setSelectedProvinceId(null);
+      setSelectedCityId(null);
     },
     onError: (error) => {
       toast({
@@ -190,11 +204,13 @@ export default function Customers() {
                     <FormLabel>{t("province")}</FormLabel>
                     <Select
                       onValueChange={(value) => {
-                        setSelectedProvinceId(value);
-                        setSelectedCityId("");
+                        const numValue = parseInt(value);
+                        console.log("Provincia seleccionada:", numValue); // Debug
+                        setSelectedProvinceId(numValue);
+                        setSelectedCityId(null);
                         form.setValue("sectorId", undefined);
                       }}
-                      value={selectedProvinceId}
+                      value={selectedProvinceId?.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -216,11 +232,13 @@ export default function Customers() {
                     <FormLabel>{t("city")}</FormLabel>
                     <Select
                       onValueChange={(value) => {
-                        setSelectedCityId(value);
+                        const numValue = parseInt(value);
+                        console.log("Ciudad seleccionada:", numValue); // Debug
+                        setSelectedCityId(numValue);
                         form.setValue("sectorId", undefined);
                       }}
-                      value={selectedCityId}
-                      disabled={!selectedProvinceId}
+                      value={selectedCityId?.toString()}
+                      disabled={!selectedProvinceId || isLoadingCities}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -245,9 +263,9 @@ export default function Customers() {
                       <FormItem>
                         <FormLabel>{t("sector")}</FormLabel>
                         <Select
-                          onValueChange={(value) => field.onChange(Number(value))}
+                          onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
-                          disabled={!selectedCityId}
+                          disabled={!selectedCityId || isLoadingSectors}
                         >
                           <FormControl>
                             <SelectTrigger>
