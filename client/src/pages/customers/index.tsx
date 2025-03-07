@@ -31,6 +31,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +51,23 @@ export default function Customers() {
   const { toast } = useToast();
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>("");
+  const [selectedCityId, setSelectedCityId] = useState<string>("");
+
+  // Consultas para cargar los catálogos
+  const { data: provinces = [] } = useQuery({
+    queryKey: ["/api/provinces"],
+  });
+
+  const { data: cities = [] } = useQuery({
+    queryKey: ["/api/cities", selectedProvinceId],
+    enabled: !!selectedProvinceId,
+  });
+
+  const { data: sectors = [] } = useQuery({
+    queryKey: ["/api/sectors", selectedCityId],
+    enabled: !!selectedCityId,
+  });
 
   const { data: customers, isLoading } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -57,9 +81,10 @@ export default function Customers() {
       name: "",
       businessName: "",
       email: "",
-      address: "",
+      street: "",
+      houseNumber: "",
       phone: "",
-      coordinates: "",
+      sectorId: undefined,
     },
   });
 
@@ -76,6 +101,8 @@ export default function Customers() {
       });
       form.reset();
       setIsDialogOpen(false);
+      setSelectedProvinceId("");
+      setSelectedCityId("");
     },
     onError: (error) => {
       toast({
@@ -124,6 +151,7 @@ export default function Customers() {
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="businessName"
@@ -137,6 +165,7 @@ export default function Customers() {
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="email"
@@ -150,19 +179,124 @@ export default function Customers() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("address")}</FormLabel>
+
+                {/* Nueva sección de dirección */}
+                <div className="space-y-4 border p-4 rounded-lg">
+                  <h3 className="font-medium">{t("address")}</h3>
+
+                  {/* Provincia */}
+                  <div>
+                    <FormLabel>{t("province")}</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        setSelectedProvinceId(value);
+                        setSelectedCityId("");
+                        form.setValue("sectorId", undefined);
+                      }}
+                      value={selectedProvinceId}
+                    >
                       <FormControl>
-                        <Input {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("selectProvince")} />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      <SelectContent>
+                        {provinces.map((province: any) => (
+                          <SelectItem key={province.id} value={province.id.toString()}>
+                            {province.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Ciudad */}
+                  <div>
+                    <FormLabel>{t("city")}</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        setSelectedCityId(value);
+                        form.setValue("sectorId", undefined);
+                      }}
+                      value={selectedCityId}
+                      disabled={!selectedProvinceId}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("selectCity")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {cities.map((city: any) => (
+                          <SelectItem key={city.id} value={city.id.toString()}>
+                            {city.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Sector */}
+                  <FormField
+                    control={form.control}
+                    name="sectorId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("sector")}</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(Number(value))}
+                          value={field.value?.toString()}
+                          disabled={!selectedCityId}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t("selectSector")} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {sectors.map((sector: any) => (
+                              <SelectItem key={sector.id} value={sector.id.toString()}>
+                                {sector.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Calle */}
+                  <FormField
+                    control={form.control}
+                    name="street"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("street")}</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Número */}
+                  <FormField
+                    control={form.control}
+                    name="houseNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t("houseNumber")}</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="phone"
@@ -176,19 +310,7 @@ export default function Customers() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="coordinates"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("coordinates")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
                 <Button
                   type="submit"
                   className="w-full"
@@ -220,7 +342,9 @@ export default function Customers() {
               <TableCell>{customer.name}</TableCell>
               <TableCell>{customer.businessName}</TableCell>
               <TableCell>{customer.email}</TableCell>
-              <TableCell>{customer.address}</TableCell>
+              <TableCell>
+                {`${customer.street} #${customer.houseNumber}`}
+              </TableCell>
               <TableCell>{customer.phone}</TableCell>
               <TableCell>RD$ {parseFloat(customer.balance.toString()).toFixed(2)}</TableCell>
               <TableCell className="space-x-2">

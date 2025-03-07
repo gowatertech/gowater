@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
-import { zones, routes, users, insertZoneSchema, insertRouteSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, sectors, insertZoneSchema, insertRouteSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 
@@ -64,6 +64,47 @@ export async function registerRoutes(app: Express) {
         }
       });
     });
+  });
+
+  // Endpoints para el manejo de direcciones
+  app.get("/api/provinces", async (req, res) => {
+    try {
+      const allProvinces = await db
+        .select()
+        .from(provinces);
+      res.json(allProvinces);
+    } catch (error) {
+      console.error("Error al obtener provincias:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/cities/:provinceId", async (req, res) => {
+    try {
+      const provinceId = parseInt(req.params.provinceId);
+      const citiesInProvince = await db
+        .select()
+        .from(cities)
+        .where(eq(cities.provinceId, provinceId));
+      res.json(citiesInProvince);
+    } catch (error) {
+      console.error("Error al obtener ciudades:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/sectors/:cityId", async (req, res) => {
+    try {
+      const cityId = parseInt(req.params.cityId);
+      const sectorsInCity = await db
+        .select()
+        .from(sectors)
+        .where(eq(sectors.cityId, cityId));
+      res.json(sectorsInCity);
+    } catch (error) {
+      console.error("Error al obtener sectores:", error);
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   // Zonas
