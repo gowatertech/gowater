@@ -80,29 +80,49 @@ export default function Customers() {
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
+      logo: undefined,
+      rnc: "",
       businessname: "",
       managername: "",
       phone: "",
       email: "",
+      zoneid: undefined,
       street: "",
       streetnumber: "",
-      creditlimit: "0.00",
       provinceid: undefined,
       municipalityid: undefined,
       reference: "",
-      rnc: "",
-      zoneid: undefined,
+      creditlimit: "0.00",
     }
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
-      const response = await apiRequest("POST", "/api/customers", data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al crear el cliente');
+      console.log("Submitting form data:", data);
+      const formData = new FormData();
+
+      // Manejar cada campo, incluyendo el archivo del logo
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== "") {
+          if (key === 'logo' && value instanceof File) {
+            formData.append('logo', value);
+          } else {
+            formData.append(key, String(value));
+          }
+        }
+      });
+
+      // Usar el formData para enviar al servidor
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al crear el cliente');
       }
-      return response.json();
+
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
@@ -156,12 +176,72 @@ export default function Customers() {
                 <div className="grid md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
+                    name="logo"
+                    render={({ field: { value, onChange, ...field } }) => (
+                      <FormItem>
+                        <FormLabel>Logo (JPG/PNG, máx. 5MB)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                // Validar el tamaño (5MB)
+                                if (file.size > 5 * 1024 * 1024) {
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Error",
+                                    description: "El archivo debe ser menor a 5MB",
+                                  });
+                                  e.target.value = '';
+                                  return;
+                                }
+
+                                // Validar el tipo
+                                if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Error",
+                                    description: "El archivo debe ser JPG o PNG",
+                                  });
+                                  e.target.value = '';
+                                  return;
+                                }
+
+                                onChange(file);
+                              }
+                            }}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="rnc"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>RNC</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="businessname"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nombre del Negocio *</FormLabel>
+                        <FormLabel>Nombre del Negocio</FormLabel>
                         <FormControl>
-                          <Input {...field} required />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -173,9 +253,9 @@ export default function Customers() {
                     name="managername"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nombre del Encargado *</FormLabel>
+                        <FormLabel>Nombre del Encargado</FormLabel>
                         <FormControl>
-                          <Input {...field} required />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -187,9 +267,9 @@ export default function Customers() {
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Teléfono *</FormLabel>
+                        <FormLabel>Teléfono</FormLabel>
                         <FormControl>
-                          <Input {...field} required pattern="[0-9]{10}" />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -212,12 +292,40 @@ export default function Customers() {
 
                   <FormField
                     control={form.control}
+                    name="zoneid"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Zona</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una zona" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {zones.map((zone) => (
+                              <SelectItem key={zone.id} value={zone.id.toString()}>
+                                {zone.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="street"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Calle *</FormLabel>
+                        <FormLabel>Calle</FormLabel>
                         <FormControl>
-                          <Input {...field} required />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -229,9 +337,9 @@ export default function Customers() {
                     name="streetnumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Número *</FormLabel>
+                        <FormLabel>Número</FormLabel>
                         <FormControl>
-                          <Input {...field} required />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -243,13 +351,11 @@ export default function Customers() {
                     name="provinceid"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Provincia *</FormLabel>
+                        <FormLabel>Provincia</FormLabel>
                         <Select
-                          required
                           onValueChange={(value) => {
-                            const numValue = parseInt(value);
-                            field.onChange(numValue);
-                            setSelectedProvinceId(numValue);
+                            field.onChange(parseInt(value));
+                            setSelectedProvinceId(parseInt(value));
                           }}
                           value={field.value?.toString()}
                         >
@@ -276,9 +382,8 @@ export default function Customers() {
                     name="municipalityid"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Municipio *</FormLabel>
+                        <FormLabel>Municipio</FormLabel>
                         <Select
-                          required
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
                           disabled={!selectedProvinceId || isLoadingMunicipalities}
@@ -325,51 +430,24 @@ export default function Customers() {
                           <Input
                             type="text"
                             inputMode="decimal"
-                            pattern="\d*\.?\d{0,2}"
                             {...field}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^\d.]/g, '');
+                              const parts = value.split('.');
+                              if (parts.length > 2) return;
+                              if (parts[1]?.length > 2) return;
+                              field.onChange(value);
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value || '0';
+                              const number = parseFloat(value);
+                              if (!isNaN(number)) {
+                                field.onChange(number.toFixed(2));
+                              }
+                            }}
                             defaultValue="0.00"
                           />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="rnc"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>RNC</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="zoneid"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Zona</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione una zona" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {zones.map((zone) => (
-                              <SelectItem key={zone.id} value={zone.id.toString()}>
-                                {zone.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
