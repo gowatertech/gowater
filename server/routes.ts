@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
@@ -15,6 +15,11 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
+
+// Tipo personalizado para Request con file
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
 
 // Almacenar las conexiones activas de los conductores
 const driverConnections = new Map<number, WebSocket>();
@@ -390,25 +395,40 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Agregar después del endpoint GET /api/customers/:id
-  app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
+  // Endpoint para actualizar cliente
+  app.patch("/api/customers/:id", upload.single('logo'), async (req: MulterRequest, res) => {
     try {
       const customerId = parseInt(req.params.id);
       console.log("Datos recibidos en la actualización:", req.body);
       console.log("Archivo recibido:", req.file);
 
       // Preparar los datos para actualizar
-      const updateData = {
-        ...req.body,
-        logo: req.file ? req.file.buffer.toString('base64') : undefined
-      };
+      let updateData: any = { ...req.body };
 
-      // Solo incluir campos que están presentes en la solicitud
+      // Solo actualizar el logo si se recibió un archivo nuevo
+      if (req.file) {
+        updateData.logo = req.file.buffer.toString('base64');
+        console.log("Nuevo logo recibido y procesado");
+      } else {
+        // Si no hay nuevo archivo, eliminar el campo logo del updateData para mantener el existente
+        delete updateData.logo;
+        console.log("No se recibió nuevo logo, manteniendo el existente");
+      }
+
+      // Convertir campos numéricos
+      if (updateData.provinceid) updateData.provinceid = parseInt(updateData.provinceid);
+      if (updateData.municipalityid) updateData.municipalityid = parseInt(updateData.municipalityid);
+      if (updateData.zoneid) updateData.zoneid = parseInt(updateData.zoneid);
+
+      // Remover campos undefined o vacíos, pero mantener null si fue explícitamente enviado
       const cleanedData = Object.fromEntries(
-        Object.entries(updateData).filter(([_, value]) => value !== undefined)
+        Object.entries(updateData).filter(([_, value]) => value !== undefined && value !== '')
       );
 
-      console.log("Datos limpios para actualizar:", cleanedData);
+      console.log("Datos limpios para actualizar:", {
+        ...cleanedData,
+        logo: cleanedData.logo ? 'BASE64_DATA' : 'NO_CHANGE'
+      });
 
       const [updatedCustomer] = await db
         .update(customers)
@@ -419,6 +439,13 @@ export async function registerRoutes(app: Express) {
       if (!updatedCustomer) {
         return res.status(404).json({ error: "Cliente no encontrado" });
       }
+
+      // Devolver cliente actualizado con logo truncado en los logs
+      const responseCustomer = {
+        ...updatedCustomer,
+        logo: updatedCustomer.logo ? 'BASE64_DATA' : null
+      };
+      console.log("Cliente actualizado:", responseCustomer);
 
       res.json(updatedCustomer);
     } catch (error) {
