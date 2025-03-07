@@ -149,7 +149,10 @@ export default function Customers() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
-      const response = await apiRequest("PATCH", `/api/customers/${data.id}`, data);
+      const response = await apiRequest("PATCH", `/api/customers/${data.id}`, {
+        ...data,
+        email: data.email || null, // Asegurar que email vacío se envíe como null
+      });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Error al actualizar el cliente');
@@ -163,6 +166,7 @@ export default function Customers() {
         description: "Cliente actualizado correctamente",
       });
       setIsEditing(false);
+      setIsViewDialogOpen(false);
     },
     onError: (error) => {
       toast({
@@ -344,8 +348,8 @@ export default function Customers() {
             )}
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+              <div className="grid md:grid-cols-2 gap-2">
                 <FormField
                   control={form.control}
                   name="logo"
