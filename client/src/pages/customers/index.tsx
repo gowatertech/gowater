@@ -621,6 +621,7 @@ export default function Customers() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleViewCustomer(customer)}
+                    className="text-blue-500 hover:text-blue-700"
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
