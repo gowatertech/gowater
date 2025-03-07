@@ -295,9 +295,16 @@ export async function registerRoutes(app: Express) {
     try {
       const allCustomers = await db
         .select({
-          ...customers,
-          provinceName: provinces.name,
+          id: customers.id,
+          businessName: customers.businessName,
+          managerName: customers.managerName,
+          phone: customers.phone,
+          street: customers.street,
+          streetNumber: customers.streetNumber,
+          creditLimit: customers.creditLimit,
+          balance: customers.balance,
           municipalityName: municipalities.name,
+          provinceName: provinces.name,
         })
         .from(customers)
         .leftJoin(provinces, eq(customers.provinceId, provinces.id))

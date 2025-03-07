@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { type Customer, insertCustomerSchema } from "@shared/schema";
+import { type Customer, type Province, type Municipality, insertCustomerSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -50,12 +50,12 @@ export default function Customers() {
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
 
   // Obtener provincias
-  const { data: provinces = [] } = useQuery({
+  const { data: provinces = [] } = useQuery<Province[]>({
     queryKey: ["/api/provinces"],
   });
 
   // Obtener municipios cuando se selecciona una provincia
-  const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery({
+  const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery<Municipality[]>({
     queryKey: ["/api/municipalities", selectedProvinceId],
     queryFn: async () => {
       if (!selectedProvinceId) return [];
@@ -66,7 +66,7 @@ export default function Customers() {
   });
 
   // Obtener clientes
-  const { data: customers = [], isLoading } = useQuery<Customer[]>({
+  const { data: customers = [], isLoading } = useQuery<(Customer & { provinceName: string; municipalityName: string })[]>({
     queryKey: ["/api/customers"],
   });
 
@@ -242,7 +242,7 @@ export default function Customers() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {provinces.map((province: any) => (
+                          {provinces.map((province) => (
                             <SelectItem key={province.id} value={province.id.toString()}>
                               {province.name}
                             </SelectItem>
@@ -271,11 +271,8 @@ export default function Customers() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {municipalities.map((municipality: any) => (
-                            <SelectItem
-                              key={municipality.id}
-                              value={municipality.id.toString()}
-                            >
+                          {municipalities.map((municipality) => (
+                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
                               {municipality.name}
                             </SelectItem>
                           ))}
