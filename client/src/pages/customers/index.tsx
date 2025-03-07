@@ -58,6 +58,7 @@ export default function Customers() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<number | null>(null);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
 
   // Obtener provincias
   const { data: provinces = [] } = useQuery({
@@ -97,6 +98,17 @@ export default function Customers() {
     },
   });
 
+  // Separar municipios y distritos
+  const municipalities = cities.filter(city => 
+    city.type === 'municipality' && 
+    city.province_id === selectedProvinceId
+  );
+
+  const districts = cities.filter(city => 
+    city.type === 'city' && 
+    city.municipality_id === selectedMunicipalityId
+  );
+
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
       const res = await apiRequest("POST", "/api/customers", data);
@@ -112,6 +124,7 @@ export default function Customers() {
       setIsDialogOpen(false);
       setSelectedProvinceId(null);
       setSelectedMunicipalityId(null);
+      setSelectedDistrictId(null);
     },
     onError: (error) => {
       toast({
@@ -130,17 +143,6 @@ export default function Customers() {
     return <div className="p-8">Loading...</div>;
   }
 
-  // Filtrar municipios (type='municipality')
-  const municipalities = cities.filter(city => 
-    city.type === 'municipality' && 
-    city.province_id === selectedProvinceId
-  );
-
-  // Filtrar distritos municipales (type='city')
-  const districts = cities.filter(city => 
-    city.type === 'city' && 
-    city.municipality_id === selectedMunicipalityId
-  );
 
   return (
     <div className="space-y-6">
@@ -229,6 +231,7 @@ export default function Customers() {
                           const numValue = parseInt(value);
                           setSelectedProvinceId(numValue);
                           setSelectedMunicipalityId(null);
+                          setSelectedDistrictId(null);
                         }}
                         value={selectedProvinceId?.toString()}
                       >
@@ -253,6 +256,7 @@ export default function Customers() {
                         onValueChange={(value) => {
                           const numValue = parseInt(value);
                           setSelectedMunicipalityId(numValue);
+                          setSelectedDistrictId(null);
                         }}
                         value={selectedMunicipalityId?.toString()}
                         disabled={!selectedProvinceId || isLoadingCities}
@@ -275,6 +279,11 @@ export default function Customers() {
                     <FormItem>
                       <FormLabel>{t("districtMunicipality")}</FormLabel>
                       <Select
+                        onValueChange={(value) => {
+                          const numValue = parseInt(value);
+                          setSelectedDistrictId(numValue);
+                        }}
+                        value={selectedDistrictId?.toString()}
                         disabled={!selectedMunicipalityId || isLoadingCities}
                       >
                         <FormControl>
