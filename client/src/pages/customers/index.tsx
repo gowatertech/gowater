@@ -46,6 +46,13 @@ import {
   Trash
 } from "lucide-react";
 
+interface City {
+  id: number;
+  name: string;
+  code: string;
+  type: 'city' | 'municipality';
+}
+
 export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -59,7 +66,7 @@ export default function Customers() {
     queryKey: ["/api/provinces"],
   });
 
-  const { data: cities = [], isLoading: isLoadingCities } = useQuery({
+  const { data: cities = [], isLoading: isLoadingCities } = useQuery<City[]>({
     queryKey: ["/api/cities", selectedProvinceId],
     queryFn: async () => {
       if (!selectedProvinceId) return [];
@@ -69,14 +76,14 @@ export default function Customers() {
           throw new Error(`Error fetching cities: ${response.statusText}`);
         }
         const data = await response.json();
-        console.log("Ciudades cargadas para provincia", selectedProvinceId, ":", data);
+        console.log("Ciudades y municipios cargados para provincia", selectedProvinceId, ":", data);
         return data;
       } catch (error) {
         console.error("Error loading cities:", error);
         toast({
           variant: "destructive",
           title: t("error"),
-          description: "Error al cargar las ciudades"
+          description: "Error al cargar las ciudades y municipios"
         });
         return [];
       }
@@ -162,6 +169,10 @@ export default function Customers() {
     return <div className="p-8">Loading...</div>;
   }
 
+  // Separar ciudades y municipios
+  const municipalities = cities.filter(city => city.type === 'municipality');
+  const citiesOnly = cities.filter(city => city.type === 'city');
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -244,9 +255,37 @@ export default function Customers() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {provinces.map((province: any) => (
+                        {provinces?.map((province: any) => (
                           <SelectItem key={province.id} value={province.id.toString()}>
                             {province.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Municipio */}
+                  <div>
+                    <FormLabel>{t("municipality")}</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        const numValue = parseInt(value);
+                        console.log("Municipio seleccionado:", numValue); // Debug
+                        setSelectedCityId(numValue);
+                        form.setValue("sectorId", undefined);
+                      }}
+                      value={selectedCityId?.toString()}
+                      disabled={!selectedProvinceId || isLoadingCities}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("selectMunicipality")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {municipalities.map((city) => (
+                          <SelectItem key={city.id} value={city.id.toString()}>
+                            {city.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -260,11 +299,9 @@ export default function Customers() {
                       onValueChange={(value) => {
                         const numValue = parseInt(value);
                         console.log("Ciudad seleccionada:", numValue); // Debug
-                        setSelectedCityId(numValue);
-                        form.setValue("sectorId", undefined);
+                        form.setValue("cityId", numValue);
                       }}
-                      value={selectedCityId?.toString()}
-                      disabled={!selectedProvinceId || isLoadingCities}
+                      disabled={!selectedCityId || isLoadingCities}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -272,7 +309,7 @@ export default function Customers() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {cities.map((city: any) => (
+                        {citiesOnly.map((city) => (
                           <SelectItem key={city.id} value={city.id.toString()}>
                             {city.name}
                           </SelectItem>
