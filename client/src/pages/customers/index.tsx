@@ -47,6 +47,7 @@ interface City {
   name: string;
   code: string;
   type: 'city' | 'municipality';
+  municipality_id?: number; // Added for filtering
 }
 
 export default function Customers() {
@@ -167,13 +168,16 @@ export default function Customers() {
     return <div className="p-8">Loading...</div>;
   }
 
-  // Separar ciudades y municipios
+  // Separar municipios y distritos municipales
   const municipalities = cities.filter(city => city.type === 'municipality');
-  const districtsForMunicipality = cities.filter(city => city.type === 'city');
+  const districtsForMunicipality = cities.filter(city => 
+    city.type === 'city' && 
+    city.municipality_id === selectedMunicipalityId
+  );
 
   console.log('Provincias:', provinces);
   console.log('Municipios filtrados:', municipalities);
-  console.log('Distritos filtrados:', districtsForMunicipality);
+  console.log('Distritos filtrados para municipio:', districtsForMunicipality);
 
   return (
     <div className="space-y-6">
@@ -321,7 +325,7 @@ export default function Customers() {
                           form.setValue("cityId", numValue);
                         }}
                         value={selectedCityId?.toString()}
-                        disabled={!selectedProvinceId || isLoadingCities}
+                        disabled={!selectedMunicipalityId || isLoadingCities}
                       >
                         <FormControl>
                           <SelectTrigger className="h-8">
