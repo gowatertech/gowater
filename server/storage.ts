@@ -8,7 +8,7 @@ import {
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
   type Settings, type InsertSettings,
-  customerOrders, type CustomerOrders, type InsertCustomerOrders,
+  type CustomerOrders, type InsertCustomerOrders,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -219,15 +219,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRuta(ruta: InsertRuta): Promise<Ruta> {
-    const rutaData = {
-      ...ruta,
-      fecha: ruta.fecha ? new Date(ruta.fecha) : null,
-      horaInicio: ruta.horaInicio ? new Date(ruta.horaInicio) : null,
-      horaFin: ruta.horaFin ? new Date(ruta.horaFin) : null,
-      ultimaActualizacion: ruta.ultimaActualizacion ? new Date(ruta.ultimaActualizacion) : null,
-    };
-    const [newRuta] = await db.insert(rutas).values(rutaData).returning();
-    return newRuta;
+    try {
+      const [newRuta] = await db
+        .insert(rutas)
+        .values({
+          nombre: ruta.nombre,
+          conductorId: ruta.conductorId,
+          camionId: ruta.camionId,
+          estado: ruta.estado,
+          fecha: new Date(ruta.fecha),
+          horaInicio: ruta.horaInicio ? new Date(ruta.horaInicio) : null,
+          horaFin: ruta.horaFin ? new Date(ruta.horaFin) : null,
+          duracionEstimada: ruta.duracionEstimada,
+          duracionReal: ruta.duracionReal,
+          distanciaTotal: ruta.distanciaTotal,
+          ingresoTotal: ruta.ingresoTotal,
+          secuenciaEntrega: ruta.secuenciaEntrega || [],
+          ubicacionActual: ruta.ubicacionActual,
+          ultimaActualizacion: ruta.ultimaActualizacion ? new Date(ruta.ultimaActualizacion) : null,
+          inicioConductor: ruta.inicioConductor ? new Date(ruta.inicioConductor) : null,
+          completada: ruta.completada || false,
+          paradas: ruta.paradas || []
+        })
+        .returning();
+      return newRuta;
+    } catch (error) {
+      console.error('Error en createRuta:', error);
+      throw error;
+    }
   }
 
   async listRutas(): Promise<Ruta[]> {

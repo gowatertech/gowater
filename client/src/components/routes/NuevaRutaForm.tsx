@@ -32,7 +32,7 @@ export default function NuevaRutaForm({ onRutaCreada }: NuevaRutaFormProps) {
   const { t } = useTranslation();
 
   const { data: conductores = [] } = useQuery({
-    queryKey: ["/api/users?role=driver"],
+    queryKey: ["/api/usuarios?role=driver"],
   });
 
   const { toast } = useToast();
@@ -57,7 +57,7 @@ export default function NuevaRutaForm({ onRutaCreada }: NuevaRutaFormProps) {
         fecha: new Date(data.fecha),
         conductorId: Number(data.conductorId),
         camionId: 1,
-        estado: "pendiente",
+        estado: "pendiente" as const,
         completada: false
       });
 
@@ -128,7 +128,7 @@ export default function NuevaRutaForm({ onRutaCreada }: NuevaRutaFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {conductores?.map((conductor: any) => (
+                  {conductores.map((conductor) => (
                     <SelectItem key={conductor.id} value={conductor.id.toString()}>
                       {conductor.name}
                     </SelectItem>

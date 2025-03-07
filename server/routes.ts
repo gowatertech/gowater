@@ -15,15 +15,16 @@ export async function registerRoutes(app: Express) {
   // Configurar WebSocket Server
   const wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/ws'
+    path: '/backend-ws'
   });
 
-  wss.on('connection', (ws) => {
-    console.log('Nueva conexión WebSocket');
+  wss.on('connection', (ws, req) => {
+    console.log('Nueva conexión WebSocket desde:', req.socket.remoteAddress);
 
     ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
+        console.log('Mensaje WebSocket recibido:', data);
 
         if (data.type === 'driver_location') {
           // Almacenar la conexión del conductor
@@ -53,93 +54,33 @@ export async function registerRoutes(app: Express) {
         }
       } catch (error) {
         console.error('Error procesando mensaje WebSocket:', error);
+        // Enviar error al cliente
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Error procesando el mensaje'
+        }));
       }
     });
 
+    ws.on('error', (error) => {
+      console.error('Error en la conexión WebSocket:', error);
+    });
+
     ws.on('close', () => {
+      console.log('Conexión WebSocket cerrada');
       // Eliminar la conexión cuando se cierra
       driverConnections.forEach((connection, driverId) => {
         if (connection === ws) {
+          console.log('Eliminando conexión del conductor:', driverId);
           driverConnections.delete(driverId);
         }
       });
     });
   });
 
-  // Zonas
-  app.get("/api/zonas", async (req, res) => {
-    try {
-      const todasLasZonas = await db
-        .select()
-        .from(zones);
-
-      console.log("Zonas recuperadas:", todasLasZonas);
-      res.json(todasLasZonas);
-    } catch (error) {
-      console.error("Error al obtener zonas:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  app.post("/api/zonas", async (req, res) => {
-    console.log("Creando zona con datos:", req.body);
-
-    const result = insertZoneSchema.safeParse(req.body);
-    if (!result.success) {
-      console.error("Error de validación:", result.error.format());
-      return res.status(400).json({ error: result.error.format() });
-    }
-
-    try {
-      // Validar el formato de las coordenadas antes de insertar
-      const coordinates = result.data.coordinates;
-      if (!Array.isArray(coordinates) || coordinates.length < 3) {
-        throw new Error("Se requieren al menos 3 puntos para crear una zona");
-      }
-
-      // Validar el formato de cada coordenada
-      for (const coord of coordinates) {
-        if (!/^-?\d+\.\d+,-?\d+\.\d+$/.test(coord)) {
-          throw new Error(`Formato de coordenada inválido: ${coord}`);
-        }
-      }
-
-      const [zona] = await db
-        .insert(zones)
-        .values(result.data)
-        .returning();
-
-      console.log("Zona creada:", zona);
-      res.json(zona);
-    } catch (error) {
-      console.error("Error al crear zona:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  app.delete("/api/zonas/:id", async (req, res) => {
-    try {
-      const [zonaEliminada] = await db
-        .delete(zones)
-        .where(eq(zones.id, parseInt(req.params.id)))
-        .returning();
-
-      if (!zonaEliminada) {
-        return res.status(404).json({ error: "Zona no encontrada" });
-      }
-
-      console.log("Zona eliminada:", zonaEliminada);
-      res.json(zonaEliminada);
-    } catch (error) {
-      console.error("Error al eliminar zona:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
   // Usuarios
   app.get("/api/usuarios", async (req, res) => {
     try {
-      // Si se especifica un rol, filtrar por ese rol
       const role = req.query.role as string;
       let listaUsuarios;
 

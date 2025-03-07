@@ -1,6 +1,6 @@
 import * as turf from '@turf/turf';
 import { addMinutes } from 'date-fns';
-import { type Order, type Route } from '@shared/schema';
+import { type Order, type Ruta } from '@shared/schema';
 
 interface Point {
   type: 'Feature';
@@ -130,11 +130,11 @@ export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
 }
 
 export function updateEstimatedDeliveryTimes(
-  route: Route,
+  ruta: Ruta,
   orders: Order[],
   startTime: Date = new Date()
 ): Order[] {
-  const sequence = route.deliverySequence || [];
+  const sequence = ruta.secuenciaEntrega || [];
   let currentTime = startTime;
 
   return orders.map(order => {

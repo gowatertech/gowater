@@ -26,7 +26,7 @@ export default function ResumenRuta({ ruta, className }: ResumenRutaProps) {
         <div>
           <p className="text-xs text-muted-foreground">{t("revenue")}</p>
           <p className="font-medium">
-            {formatCurrency(ruta.ingresoTotal || 0)}
+            {formatCurrency(Number(ruta.ingresoTotal) || 0)}
           </p>
         </div>
       </div>
