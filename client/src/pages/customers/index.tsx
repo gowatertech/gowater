@@ -168,7 +168,7 @@ export default function Customers() {
 
   // Separar ciudades y municipios
   const municipalities = cities.filter(city => city.type === 'municipality');
-  const districtsForMunicipality = cities.filter(city => 
+  const districtsForMunicipality = cities.filter(city =>
     city.type === 'city' && selectedMunicipalityId !== null
   );
 
@@ -252,79 +252,88 @@ export default function Customers() {
                 <div className="space-y-3 border rounded-md p-3">
                   <h3 className="text-sm font-medium">{t("address")}</h3>
                   <div className="grid gap-3">
-                    <Select
-                      onValueChange={(value) => {
-                        const numValue = parseInt(value);
-                        console.log("Provincia seleccionada:", numValue);
-                        setSelectedProvinceId(numValue);
-                        setSelectedMunicipalityId(null);
-                        setSelectedCityId(null);
-                        form.setValue("sectorId", undefined);
-                      }}
-                      value={selectedProvinceId?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder={t("selectProvince")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {provinces?.map((province: any) => (
-                          <SelectItem key={province.id} value={province.id.toString()}>
-                            {province.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormItem>
+                      <FormLabel>{t("province")}</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          const numValue = parseInt(value);
+                          console.log("Provincia seleccionada:", numValue);
+                          setSelectedProvinceId(numValue);
+                          setSelectedMunicipalityId(null);
+                          setSelectedCityId(null);
+                          form.setValue("sectorId", undefined);
+                        }}
+                        value={selectedProvinceId?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder={t("selectProvince")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {provinces?.map((province: any) => (
+                            <SelectItem key={province.id} value={province.id.toString()}>
+                              {province.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
 
-                    <Select
-                      onValueChange={(value) => {
-                        const numValue = parseInt(value);
-                        console.log("Municipio seleccionado:", numValue);
-                        setSelectedMunicipalityId(numValue);
-                        setSelectedCityId(null);
-                        form.setValue("sectorId", undefined);
-                      }}
-                      value={selectedMunicipalityId?.toString()}
-                      disabled={!selectedProvinceId || isLoadingCities}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder={t("selectMunicipality")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {municipalities.map((city) => (
-                          <SelectItem key={city.id} value={city.id.toString()}>
-                            {city.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormItem>
+                      <FormLabel>{t("municipality")}</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          const numValue = parseInt(value);
+                          console.log("Municipio seleccionado:", numValue);
+                          setSelectedMunicipalityId(numValue);
+                          setSelectedCityId(null);
+                          form.setValue("sectorId", undefined);
+                        }}
+                        value={selectedMunicipalityId?.toString()}
+                        disabled={!selectedProvinceId || isLoadingCities}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder={t("selectMunicipality")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {municipalities.map((city) => (
+                            <SelectItem key={city.id} value={city.id.toString()}>
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
 
-                    <Select
-                      onValueChange={(value) => {
-                        const numValue = parseInt(value);
-                        console.log("Distrito Municipal seleccionado:", numValue);
-                        setSelectedCityId(numValue);
-                        form.setValue("cityId", numValue);
-                      }}
-                      value={selectedCityId?.toString()}
-                      disabled={!selectedMunicipalityId || isLoadingCities}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder={t("selectDistrict")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {districtsForMunicipality.map((city) => (
-                          <SelectItem key={city.id} value={city.id.toString()}>
-                            {city.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormItem>
+                      <FormLabel>{t("districtMunicipality")}</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          const numValue = parseInt(value);
+                          console.log("Distrito Municipal seleccionado:", numValue);
+                          setSelectedCityId(numValue);
+                          form.setValue("cityId", numValue);
+                        }}
+                        value={selectedCityId?.toString()}
+                        disabled={!selectedMunicipalityId || isLoadingCities}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder={t("selectDistrict")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {districtsForMunicipality.map((city) => (
+                            <SelectItem key={city.id} value={city.id.toString()}>
+                              {city.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
 
                     <FormField
                       control={form.control}
@@ -353,7 +362,6 @@ export default function Customers() {
                         </FormItem>
                       )}
                     />
-
                     <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={form.control}
