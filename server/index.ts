@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
+import path from "path";
 
 const app = express();
 
@@ -16,7 +17,6 @@ app.use('/api/*', (req, res, next) => {
 // Basic middleware for parsing JSON and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -69,6 +69,15 @@ app.use((req, res, next) => {
       log("Setting up Vite for development");
       await setupVite(app, server);
       log("Vite setup completed");
+    } else {
+      // In production, serve the static files
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+
+      // Handle SPA routing
+      app.get('*', (_req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
     }
 
     // Try to serve on port 5000 and bind to 0.0.0.0
