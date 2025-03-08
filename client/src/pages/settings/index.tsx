@@ -28,6 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+
 
 function Settings() {
   const { toast } = useToast();
@@ -57,10 +59,10 @@ function Settings() {
 
   // Fetch municipalities based on selected province
   const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery<Municipality[]>({
-    queryKey: [`/api/municipalities/${form.watch("provinceId")}`],
+    queryKey: ["/api/municipalities", form.watch("provinceId")],
     queryFn: async () => {
       if (!form.watch("provinceId")) return [];
-      const response = await fetch(`/api/municipalities/${form.watch("provinceId")}`);
+      const response = await apiRequest("GET", `/api/municipalities/${form.watch("provinceId")}`);
       return response.json();
     },
     enabled: !!form.watch("provinceId"),
@@ -69,11 +71,6 @@ function Settings() {
   // Fetch current settings
   const { data: settings } = useQuery({
     queryKey: ["/api/settings"],
-    onSuccess: (data) => {
-      if (data) {
-        form.reset(data);
-      }
-    }
   });
 
   // Update form when settings are loaded
@@ -85,7 +82,6 @@ function Settings() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {
-      console.log("Datos del formulario:", data);
       const formData = new FormData();
 
       // Handle logo file
@@ -93,28 +89,12 @@ function Settings() {
         formData.append('logo', data.logo);
       }
 
-      // Add provinceId y municipalityId al FormData
-      if (data.provinceId) {
-        formData.append('provinceId', data.provinceId.toString());
-        console.log("Agregando provinceId:", data.provinceId);
-      }
-      if (data.municipalityId) {
-        formData.append('municipalityId', data.municipalityId.toString());
-        console.log("Agregando municipalityId:", data.municipalityId);
-      }
-
       // Add all other fields
       Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'logo' && key !== 'provinceId' && key !== 'municipalityId' && value !== undefined && value !== null) {
+        if (key !== 'logo' && value !== undefined && value !== null) {
           formData.append(key, String(value));
         }
       });
-
-      // Log FormData entries for debugging
-      console.log("FormData entries:");
-      for (const pair of formData.entries()) {
-        console.log(`${pair[0]}: ${pair[1]}`);
-      }
 
       const response = await fetch("/api/settings", {
         method: "POST",
@@ -271,7 +251,6 @@ function Settings() {
 
                           // Solo resetear municipalityId si el usuario está cambiando activamente la provincia
                           if (currentProvinceId && newProvinceId !== currentProvinceId) {
-                            console.log("Provincia cambiada por usuario, reseteando municipio");
                             form.setValue("municipalityId", undefined);
                           }
 
@@ -315,10 +294,7 @@ function Settings() {
                         </FormControl>
                         <SelectContent>
                           {municipalities.map((municipality) => (
-                            <SelectItem 
-                              key={municipality.id} 
-                              value={municipality.id.toString()}
-                            >
+                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
                               {municipality.name}
                             </SelectItem>
                           ))}
