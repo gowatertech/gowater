@@ -70,16 +70,20 @@ export default function Settings() {
   // Reset form when settings load
   useEffect(() => {
     if (settings) {
-      form.reset(settings);
+      form.reset({
+        ...settings,
+        province_id: Number(settings.province_id),
+        municipality_id: Number(settings.municipality_id)
+      });
     }
   }, [settings, form]);
 
   // Reset municipality when province changes
   useEffect(() => {
-    const currentProvinceId = form.watch("province_id");
-    if (currentProvinceId && currentProvinceId !== previousProvinceIdRef.current) {
+    const province = form.watch("province_id");
+    if (province && province !== previousProvinceIdRef.current) {
       form.setValue("municipality_id", 0);
-      previousProvinceIdRef.current = currentProvinceId;
+      previousProvinceIdRef.current = province;
     }
   }, [form.watch("province_id")]);
 
