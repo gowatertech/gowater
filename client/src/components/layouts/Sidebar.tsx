@@ -106,62 +106,68 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               onMouseLeave={() => setHoveredItem(null)}
               className="relative group"
             >
-              <UISidebarMenuButton
-                isActive={isActive}
-                tooltip={t(item.label)}
-                className={cn(
-                  "w-full justify-start gap-4 hover:bg-blue-50/50",
-                  isActive && "bg-blue-50 shadow-sm",
-                  item.subItems && "pr-8"
-                )}
-                onClick={() => {
-                  if (!item.subItems) {
-                    setOpenMobile(false);
-                    window.location.href = item.href;
-                  }
-                }}
-              >
-                <Icon className="h-4 w-4" style={{ color: itemColor }} />
-                <span style={{ color: isActive ? itemColor : "#64748b" }}>{t(item.label)}</span>
-                {item.subItems && (
-                  <ChevronRight
+              {!item.subItems ? (
+                <Link href={item.href}>
+                  <UISidebarMenuButton
+                    isActive={isActive}
+                    tooltip={t(item.label)}
                     className={cn(
-                      "h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 transition-transform",
-                      isHovered && "rotate-90"
+                      "w-full justify-start gap-4 hover:bg-blue-50/50",
+                      isActive && "bg-blue-50 shadow-sm"
                     )}
-                  />
-                )}
-              </UISidebarMenuButton>
+                    onClick={() => setOpenMobile(false)}
+                  >
+                    <Icon className="h-4 w-4" style={{ color: itemColor }} />
+                    <span style={{ color: isActive ? itemColor : "#64748b" }}>{t(item.label)}</span>
+                  </UISidebarMenuButton>
+                </Link>
+              ) : (
+                <>
+                  <UISidebarMenuButton
+                    isActive={isActive}
+                    tooltip={t(item.label)}
+                    className={cn(
+                      "w-full justify-start gap-4 hover:bg-blue-50/50 pr-8",
+                      isActive && "bg-blue-50 shadow-sm"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" style={{ color: itemColor }} />
+                    <span style={{ color: isActive ? itemColor : "#64748b" }}>{t(item.label)}</span>
+                    <ChevronRight
+                      className={cn(
+                        "h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 transition-transform",
+                        isHovered && "rotate-90"
+                      )}
+                    />
+                  </UISidebarMenuButton>
 
-              {item.subItems && (
-                <div
-                  className={cn(
-                    "overflow-hidden transition-[max-height] duration-200 ease-in-out",
-                    isHovered ? "max-h-32" : "max-h-0"
-                  )}
-                >
-                  <div className="py-1 px-2 space-y-1">
-                    {item.subItems.map((subItem) => {
-                      const isSubActive = location === subItem.href;
-                      return (
-                        <button
-                          key={subItem.href}
-                          onClick={() => {
-                            setOpenMobile(false);
-                            window.location.href = subItem.href;
-                          }}
-                          className={cn(
-                            "w-full px-4 py-2 text-left text-sm rounded-md",
-                            "hover:bg-blue-50 transition-colors duration-150",
-                            isSubActive && "bg-blue-50 font-medium"
-                          )}
-                        >
-                          {t(subItem.label)}
-                        </button>
-                      );
-                    })}
+                  <div
+                    className={cn(
+                      "overflow-hidden transition-[max-height] duration-200 ease-in-out",
+                      isHovered ? "max-h-32" : "max-h-0"
+                    )}
+                  >
+                    <div className="py-1 px-2 space-y-1">
+                      {item.subItems.map((subItem) => {
+                        const isSubActive = location === subItem.href;
+                        return (
+                          <Link key={subItem.href} href={subItem.href}>
+                            <button
+                              onClick={() => setOpenMobile(false)}
+                              className={cn(
+                                "w-full px-4 py-2 text-left text-sm rounded-md",
+                                "hover:bg-blue-50 transition-colors duration-150",
+                                isSubActive && "bg-blue-50 font-medium"
+                              )}
+                            >
+                              {t(subItem.label)}
+                            </button>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </UISidebarMenuItem>
           );
