@@ -1,11 +1,11 @@
 import type { Express } from "express";
-import { storage } from "./storage";
-import multer from 'multer';
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
+import multer from 'multer';
+import { storage } from "./storage";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
-import { zones, routes, users, provinces, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema } from "@shared/schema";
 import express from 'express';
 
 // Configurar multer para manejar la carga de archivos
@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express) {
     });
   });
 
-  // Provinces endpoint
+  // Endpoints para el manejo de direcciones
   app.get("/api/provinces", async (req, res) => {
     try {
       const allProvinces = await db
@@ -94,7 +94,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Municipalities endpoint
   app.get("/api/municipalities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
@@ -102,16 +101,13 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "ID de provincia inválido" });
       }
 
-      console.log("Buscando municipios para provincia:", provinceId);
-
       const municipalitiesInProvince = await db
         .select()
         .from(municipalities)
         .where(eq(municipalities.provinceId, provinceId))
         .orderBy(municipalities.name);
 
-      console.log("Municipios encontrados:", municipalitiesInProvince);
-
+      console.log(`Municipios encontrados para provincia ${provinceId}:`, municipalitiesInProvince);
       res.json(municipalitiesInProvince);
     } catch (error) {
       console.error("Error al obtener municipios:", error);
@@ -119,7 +115,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Endpoints para el manejo de direcciones
   app.get("/api/cities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
@@ -363,8 +358,8 @@ export async function registerRoutes(app: Express) {
           municipalityName: municipalities.name,
         })
         .from(customers)
-        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id))
+        .leftJoin(provinces, eq(customers.provinceId, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityId, municipalities.id))
         .where(eq(customers.id, customerId));
 
       if (!customer) {
@@ -431,9 +426,11 @@ export async function registerRoutes(app: Express) {
       const settingsData = {
         ...req.body,
         logo: req.file ? req.file.buffer.toString('base64') : undefined,
-        province_id: req.body.province_id ? Number(req.body.province_id) : 0,
-        municipality_id: req.body.municipality_id ? Number(req.body.municipality_id) : 0,
       };
+
+      // Convertir valores numéricos
+      if (settingsData.provinceId) settingsData.provinceId = Number(settingsData.provinceId);
+      if (settingsData.municipalityId) settingsData.municipalityId = Number(settingsData.municipalityId);
 
       const updatedSettings = await storage.updateSettings(settingsData);
       res.json(updatedSettings);

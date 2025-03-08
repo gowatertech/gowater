@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,9 +29,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save } from "lucide-react";
 
-export default function Settings() {
+function Settings() {
   const { toast } = useToast();
-  const previousProvinceIdRef = useRef<number | undefined>();
 
   const form = useForm<InsertSettings>({
     resolver: zodResolver(insertSettingsSchema),
@@ -41,19 +40,14 @@ export default function Settings() {
       rnc: null,
       street: "",
       streetNumber: "",
-      province_id: 0,
-      municipality_id: 0,
+      provinceId: undefined,
+      municipalityId: undefined,
       contactPhone: "",
       email: null,
       country: "",
       currency: "",
       tax: "0.00",
     },
-  });
-
-  // Fetch current settings
-  const { data: settings } = useQuery({
-    queryKey: ["/api/settings"],
   });
 
   // Fetch provinces
@@ -63,34 +57,32 @@ export default function Settings() {
 
   // Fetch municipalities based on selected province
   const { data: municipalities = [] } = useQuery<Municipality[]>({
-    queryKey: ["/api/municipalities", form.watch("province_id")],
-    enabled: !!form.watch("province_id"),
+    queryKey: [`/api/municipalities/${form.watch("provinceId")}`],
+    enabled: !!form.watch("provinceId"),
   });
 
-  // Reset form when settings load
+  // Fetch current settings
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+  });
+
+  // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
-      form.reset({
-        ...settings,
-        province_id: Number(settings.province_id),
-        municipality_id: Number(settings.municipality_id)
-      });
+      form.reset(settings);
     }
   }, [settings, form]);
 
-  // Reset municipality when province changes
+  // Reset municipalityId when province changes
   useEffect(() => {
-    const province = form.watch("province_id");
-    if (province && province !== previousProvinceIdRef.current) {
-      form.setValue("municipality_id", 0);
-      previousProvinceIdRef.current = province;
-    }
-  }, [form.watch("province_id")]);
+    form.setValue("municipalityId", undefined);
+  }, [form.watch("provinceId")]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {
       const formData = new FormData();
 
+      // Handle logo file
       if (data.logo instanceof File) {
         formData.append('logo', data.logo);
       }
@@ -131,14 +123,7 @@ export default function Settings() {
   });
 
   const onSubmit = (data: InsertSettings) => {
-    const formattedData = {
-      ...data,
-      province_id: Number(data.province_id) || 0,
-      municipality_id: Number(data.municipality_id) || 0,
-      tax: data.tax || "0.00"
-    };
-
-    updateMutation.mutate(formattedData);
+    updateMutation.mutate(data);
   };
 
   return (
@@ -207,7 +192,6 @@ export default function Settings() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="rnc"
@@ -252,13 +236,13 @@ export default function Settings() {
 
                 <FormField
                   control={form.control}
-                  name="province_id"
+                  name="provinceId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Provincia</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString() || "0"}
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -280,14 +264,14 @@ export default function Settings() {
 
                 <FormField
                   control={form.control}
-                  name="municipality_id"
+                  name="municipalityId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Municipio</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString() || "0"}
-                        disabled={!form.watch("province_id")}
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString()}
+                        disabled={!form.watch("provinceId")}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -407,3 +391,5 @@ export default function Settings() {
     </div>
   );
 }
+
+export default Settings;
