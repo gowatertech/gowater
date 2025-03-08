@@ -15,8 +15,8 @@ app.use('/api/*', (req, res, next) => {
 });
 
 // Basic middleware for parsing JSON and URL-encoded bodies
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -70,13 +70,22 @@ app.use((req, res, next) => {
       await setupVite(app, server);
       log("Vite setup completed");
     } else {
-      // In production, serve the static files
+      // En producción, servir archivos estáticos
       const distPath = path.join(process.cwd(), 'dist');
+
+      // Servir archivos estáticos
       app.use(express.static(distPath));
 
-      // Handle SPA routing
-      app.get('*', (_req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
+      // Asegurarse de que las rutas API sean manejadas antes que la ruta catch-all
+      app.get(['/api/*'], (req, res) => {
+        res.status(404).json({ error: 'API route not found' });
+      });
+
+      // Ruta catch-all para SPA
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.sendFile(path.join(distPath, 'index.html'));
+        }
       });
     }
 
