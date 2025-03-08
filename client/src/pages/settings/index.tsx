@@ -29,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Save } from "lucide-react";
 
-function Settings() {
+export default function Settings() {
   const { toast } = useToast();
   const previousProvinceIdRef = useRef<number | undefined>();
 
@@ -51,6 +51,11 @@ function Settings() {
     },
   });
 
+  // Fetch current settings
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+  });
+
   // Fetch provinces
   const { data: provinces = [] } = useQuery<Province[]>({
     queryKey: ["/api/provinces"],
@@ -60,11 +65,6 @@ function Settings() {
   const { data: municipalities = [] } = useQuery<Municipality[]>({
     queryKey: ["/api/municipalities", form.watch("province_id")],
     enabled: !!form.watch("province_id"),
-  });
-
-  // Fetch current settings
-  const { data: settings } = useQuery({
-    queryKey: ["/api/settings"],
   });
 
   // Reset form when settings load
@@ -147,62 +147,6 @@ function Settings() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="province_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Provincia</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString() || "0"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione una provincia" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {provinces.map((province) => (
-                            <SelectItem key={province.id} value={province.id.toString()}>
-                              {province.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="municipality_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Municipio</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString() || "0"}
-                        disabled={!form.watch("province_id")}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un municipio" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {municipalities.map((municipality) => (
-                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
-                              {municipality.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="logo"
@@ -302,6 +246,62 @@ function Settings() {
                   )}
                 />
 
+                <FormField
+                  control={form.control}
+                  name="province_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provincia</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString() || "0"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione una provincia" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {provinces.map((province) => (
+                            <SelectItem key={province.id} value={province.id.toString()}>
+                              {province.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="municipality_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Municipio</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString() || "0"}
+                        disabled={!form.watch("province_id")}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un municipio" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {municipalities.map((municipality) => (
+                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                              {municipality.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -403,5 +403,3 @@ function Settings() {
     </div>
   );
 }
-
-export default Settings;
