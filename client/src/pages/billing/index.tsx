@@ -125,7 +125,7 @@ export default function Billing() {
   });
 
   const handleProductChange = (index: number, code: string) => {
-    const product = products?.find(p => p.id.toString() === code);
+    const product = products.find(p => p.id.toString() === code);
     if (!product) return;
 
     const newItems = [...orderItems];
@@ -138,7 +138,6 @@ export default function Billing() {
       total: parseFloat(product.price.toString())
     };
 
-    // Si este es el último item y tiene datos, agregar una nueva fila vacía
     if (index === orderItems.length - 1 && code !== "") {
       newItems.push({
         code: "",
@@ -169,19 +168,16 @@ export default function Billing() {
   };
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      // 1. Validar items
+    mutationFn: async (data: { customerId: string; items: OrderItem[] }) => {
       const validItems = orderItems.filter(item => item.quantity > 0);
       if (validItems.length === 0) {
         throw new Error('Debe agregar al menos un producto');
       }
 
-      // 2. Calcular totales
       const subtotal = validItems.reduce((sum, item) => sum + item.total, 0);
       const tax = subtotal * 0.18;
       const total = subtotal + tax;
 
-      // 3. Crear la factura
       const invoiceData = {
         customerId: parseInt(data.customerId),
         total: total.toFixed(2),
@@ -190,7 +186,6 @@ export default function Billing() {
         notes,
       };
 
-      // 4. Enviar la factura
       const invoiceResponse = await apiRequest("POST", "/api/invoices", invoiceData);
       if (!invoiceResponse.ok) {
         throw new Error('Error al crear la factura');
@@ -198,7 +193,6 @@ export default function Billing() {
 
       const invoice = await invoiceResponse.json();
 
-      // 5. Crear los items de la factura
       for (const item of validItems) {
         const itemData = {
           invoiceId: invoice.id,
@@ -233,7 +227,7 @@ export default function Billing() {
         total: 0
       }]);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
@@ -242,7 +236,6 @@ export default function Billing() {
     }
   });
 
-  // Nueva mutación para actualizar el método de pago
   const updatePaymentMethodMutation = useMutation({
     mutationFn: async ({ invoiceId, paymentMethod }: { invoiceId: number, paymentMethod: string }) => {
       const response = await apiRequest("PATCH", `/api/invoices/${invoiceId}`, {
@@ -261,7 +254,7 @@ export default function Billing() {
         description: "Método de pago actualizado exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
@@ -270,10 +263,8 @@ export default function Billing() {
     }
   });
 
-  // Nueva mutación para actualizar items existentes
   const updateInvoiceItemsMutation = useMutation({
     mutationFn: async ({ invoiceId, items }: { invoiceId: number, items: OrderItem[] }) => {
-      // Primero actualizamos los items existentes
       for (const item of items) {
         if (item.id) {
           const response = await apiRequest("PATCH", `/api/invoices/${invoiceId}/items/${item.id}`, {
@@ -285,7 +276,6 @@ export default function Billing() {
             throw new Error('Error al actualizar items de la factura');
           }
         } else {
-          // Si no tiene ID, es un item nuevo
           const response = await apiRequest("POST", `/api/invoices/${invoiceId}/items`, {
             invoiceId,
             productId: parseInt(item.code),
@@ -307,7 +297,7 @@ export default function Billing() {
       });
       setIsDetailsDialogOpen(false);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
@@ -316,7 +306,6 @@ export default function Billing() {
     }
   });
 
-  // Actualizar la mutación de pagos
   const createPaymentMutation = useMutation({
     mutationFn: async ({ invoiceId, amount, customerId }: { invoiceId: number, amount: string, customerId: number }) => {
       const paymentData = {
@@ -341,7 +330,6 @@ export default function Billing() {
       return response.json();
     },
     onSuccess: () => {
-      // Invalidar todas las consultas relacionadas para forzar su actualización
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
       toast({
@@ -349,7 +337,7 @@ export default function Billing() {
         description: "Pago procesado exitosamente",
       });
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       console.error("Payment error:", error);
       toast({
         variant: "destructive",
@@ -360,7 +348,6 @@ export default function Billing() {
   });
 
   const handlePayment = (invoice: InvoiceWithDetails, amount: string) => {
-    // Validar que los valores existan y sean números válidos
     if (!invoice?.pendingAmount || !amount) {
       toast({
         variant: "destructive",
@@ -370,7 +357,6 @@ export default function Billing() {
       return;
     }
 
-    // Convertir valores a números con 2 decimales
     const pendingAmount = Number(parseFloat(invoice.pendingAmount).toFixed(2));
     const paymentAmount = Number(parseFloat(amount).toFixed(2));
 
@@ -427,7 +413,7 @@ export default function Billing() {
     }
 
     createMutation.mutate({
-      customerId: selectedCustomer.id,
+      customerId: selectedCustomer.id.toString(),
       items: validItems
     });
   };
@@ -436,21 +422,18 @@ export default function Billing() {
     updatePaymentMethodMutation.mutate({ invoiceId, paymentMethod: newPaymentMethod });
   };
 
-  // Handler para iniciar la edición
   const handleStartEdit = () => {
     if (!selectedInvoice || !invoiceDetails) return;
 
-    // Convertir los items existentes al formato del estado
     const existingItems = invoiceDetails.map((item: any) => ({
       id: item.id,
       code: item.productId.toString(),
-      description: products?.find(p => p.id === item.productId)?.name || '',
+      description: products.find(p => p.id === item.productId)?.name || '',
       quantity: item.quantity,
       price: parseFloat(item.price),
       total: parseFloat(item.total)
     }));
 
-    // Añadir filas vacías para nuevos productos
     const emptyRows = Array(3).fill({
       code: "",
       description: "",
@@ -462,7 +445,6 @@ export default function Billing() {
     setOrderItems([...existingItems, ...emptyRows]);
   };
 
-  // Handler para guardar la edición
   const handleSaveEdit = (invoiceId: number) => {
     const validItems = orderItems.filter(item => item.quantity > 0);
     if (validItems.length === 0) {
@@ -495,7 +477,7 @@ export default function Billing() {
               <div className="grid gap-3">
                 <Select
                   onValueChange={(value) => {
-                    const customer = customers?.find(c => c.id === parseInt(value));
+                    const customer = customers.find(c => c.id === parseInt(value));
                     setSelectedCustomer(customer || null);
                   }}
                 >
@@ -503,7 +485,7 @@ export default function Billing() {
                     <SelectValue placeholder="Seleccionar Cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {customers?.map((customer) => (
+                    {customers.map((customer) => (
                       <SelectItem
                         key={customer.id}
                         value={customer.id.toString()}
@@ -518,12 +500,12 @@ export default function Billing() {
                 {selectedCustomer && (
                   <div className="text-sm grid grid-cols-1 gap-2 bg-muted p-2 rounded">
                     <div>
-                      <span className="font-medium">Nombre de Empresa: </span>
-                      {selectedCustomer.businessName}
+                      <span className="font-medium">Nombre: </span>
+                      {selectedCustomer.name}
                     </div>
                     <div>
                       <span className="font-medium">Dirección: </span>
-                      {selectedCustomer.address}
+                      {selectedCustomer.street} {selectedCustomer.streetnumber}
                     </div>
                   </div>
                 )}
@@ -573,7 +555,7 @@ export default function Billing() {
                                 <SelectValue placeholder="---" />
                               </SelectTrigger>
                               <SelectContent>
-                                {products?.map((product) => (
+                                {products.map((product) => (
                                   <SelectItem
                                     key={product.id}
                                     value={product.id.toString()}
@@ -685,9 +667,9 @@ export default function Billing() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices?.map((invoice) => (
+              {invoices.map((invoice) => (
                 <TableRow key={invoice.id}>
-                  <TableCell>{customers?.find(c => c.id === invoice.customerId)?.name}</TableCell>
+                  <TableCell>{customers.find(c => c.id === invoice.customerId)?.name}</TableCell>
                   <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
                   <TableCell>#{invoice.id}</TableCell>
                   <TableCell>
@@ -805,7 +787,7 @@ export default function Billing() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="font-medium">Cliente: </span>
-                    {customers?.find(c => c.id === selectedInvoice.customerId)?.name}
+                    {customers.find(c => c.id === selectedInvoice.customerId)?.name}
                   </div>
                   <div>
                     <span className="font-medium">Fecha: </span>
@@ -854,7 +836,7 @@ export default function Billing() {
                     {invoiceDetails.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          {products?.find(p => p.id === item.productId)?.name}
+                          {products.find(p => p.id === item.productId)?.name}
                         </TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right">
@@ -922,17 +904,17 @@ export default function Billing() {
                                       ) : (
                                         // Nuevo item - permitir selección
                                         <Select
-                                          value={item.code}                                          onValueChange={(value) => handleProductChange(index, value)}
+                                          value={item.code}
+                                          onValueChange={(value) => handleProductChange(index, value)}
                                         >
                                           <SelectTrigger className="h-8">
                                             <SelectValue placeholder="---" />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            {products?.map((product) => (
+                                            {products.map((product) => (
                                               <SelectItem
                                                 key={product.id}
-                                                value={product.id.toString()}
-                                              >
+                                                value={product.id.toString()}                                              >
                                                 {product.id}
                                               </SelectItem>
                                             ))}
