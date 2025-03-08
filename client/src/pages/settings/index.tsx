@@ -80,6 +80,7 @@ function Settings() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {
+      console.log("Enviando datos:", data);
       const formData = new FormData();
 
       // Handle logo file
@@ -114,6 +115,7 @@ function Settings() {
       });
     },
     onError: (error: Error) => {
+      console.error("Error al actualizar:", error);
       toast({
         variant: "destructive",
         title: "Error",
