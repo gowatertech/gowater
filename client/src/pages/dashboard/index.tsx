@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 // Interfaces para los datos
 interface SalesStats {
@@ -35,19 +35,13 @@ interface Product {
   stock: number;
 }
 
-// Colores para los gráficos circulares - Paleta moderna
+// Colores modernos para los gráficos circulares
 const COLORS = {
-  panel: "#0088FE",      // Azul brillante
-  facturacion: "#00C49F", // Verde turquesa para facturación
-  pagos: "#00C49F",      // Verde turquesa para pagos
-  usuarios: "#0088FE",   // Azul brillante
-  clientes: "#00C49F",   // Verde turquesa
-  inventario: "#FFBB28", // Amarillo cálido
-  rutas: "#FF8042",      // Naranja
-  vehiculos: "#00C49F",  // Verde turquesa
-  pedidos: "#FFBB28",    // Amarillo
-  reportes: "#FF8042",   // Naranja
-  settings: "#8884d8",   // Púrpura para configuración
+  sales: "#0088FE",      // Azul brillante
+  orders: "#00C4B4",     // Turquesa
+  receivables: "#FF6B8B", // Rosa
+  pending: "#FF8042",    // Naranja
+  delivered: "#FFBB28",  // Amarillo/Naranja
 };
 
 export default function Dashboard() {
@@ -70,18 +64,25 @@ export default function Dashboard() {
     queryKey: ["/api/products"],
   });
 
-  // Datos para el nuevo gráfico circular de métricas mensuales
+  // Datos para el gráfico circular de métricas mensuales
   const monthlyMetricsData = salesStats?.monthlyStats ? [
-    { name: t("Ventas"), value: salesStats.monthlyStats.totalSales, color: COLORS.pagos },
-    { name: t("Pedidos"), value: salesStats.monthlyStats.totalOrders, color: COLORS.pedidos },
-    { name: t("Cuentas por Cobrar"), value: salesStats.monthlyStats.totalReceivables, color: COLORS.facturacion }
+    { name: t("Ventas"), value: salesStats.monthlyStats.totalSales, percentage: 33.33 },
+    { name: t("Pedidos"), value: salesStats.monthlyStats.totalOrders, percentage: 33.33 },
+    { name: t("Cuentas por Cobrar"), value: salesStats.monthlyStats.totalReceivables, percentage: 33.34 }
   ] : [];
 
   // Datos para el gráfico circular de estado de pedidos
   const orderStatusData = salesStats?.orderStatus ? [
-    { name: t("Pendientes"), value: salesStats.orderStatus.pending, color: COLORS.rutas },
-    { name: t("Entregados"), value: salesStats.orderStatus.delivered, color: COLORS.vehiculos }
+    { name: t("Pendientes"), value: salesStats.orderStatus.pending },
+    { name: t("Entregados"), value: salesStats.orderStatus.delivered }
   ] : [];
+
+  // Calcular porcentajes para el estado de pedidos
+  const totalOrders = orderStatusData.reduce((sum, item) => sum + item.value, 0);
+  const orderStatusWithPercentage = orderStatusData.map(item => ({
+    ...item,
+    percentage: ((item.value / totalOrders) * 100).toFixed(2)
+  }));
 
   // Calcular el total de inventario con tipado correcto
   const totalInventory = products?.reduce((sum, product) => sum + product.stock, 0) ?? 0;
@@ -168,10 +169,10 @@ export default function Dashboard() {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
-                  label
+                  label={({ name, percentage }) => `${name} ${percentage}%`}
                 >
                   {monthlyMetricsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={Object.values(COLORS)[index]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => `RD$ ${value.toFixed(2)}`} />
@@ -180,8 +181,8 @@ export default function Dashboard() {
             <div className="mt-4 flex flex-col gap-2">
               {monthlyMetricsData.map((entry, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm">{entry.name}: RD$ {entry.value.toFixed(2)}</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: Object.values(COLORS)[index] }} />
+                  <span className="text-sm">{entry.name}: {entry.percentage}%</span>
                 </div>
               ))}
             </div>
@@ -197,27 +198,27 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={orderStatusData}
+                  data={orderStatusWithPercentage}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
-                  label
+                  label={({ name, percentage }) => `${name} ${percentage}%`}
                 >
-                  {orderStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {orderStatusWithPercentage.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={[COLORS.pending, COLORS.delivered][index]} />
                   ))}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-4 flex flex-col gap-2">
-              {orderStatusData.map((entry, index) => (
+              {orderStatusWithPercentage.map((entry, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm">{entry.name}: {entry.value}</span>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: [COLORS.pending, COLORS.delivered][index] }} />
+                  <span className="text-sm">{entry.name}: {entry.percentage}%</span>
                 </div>
               ))}
             </div>
@@ -239,16 +240,15 @@ export default function Dashboard() {
                 <Line
                   type="monotone"
                   dataKey="sales"
-                  stroke={COLORS.panel}
+                  stroke={COLORS.sales}
                   strokeWidth={2}
-                  dot={{ stroke: COLORS.panel, strokeWidth: 2, r: 4 }}
+                  dot={{ stroke: COLORS.sales, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
         {/* Actividad Reciente */}
         <Card className="col-span-3">
           <CardHeader>
@@ -267,10 +267,6 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Top Clientes */}
-        {/* Removed Top Customers section as per the edited code */}
-
       </div>
     </div>
   );
