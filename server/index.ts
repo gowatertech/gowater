@@ -6,6 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -37,12 +38,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  log("Starting server initialization...");
+
   const server = await registerRoutes(app);
+  log("Routes registered successfully");
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
+    log(`Error handler caught: ${message}`);
     res.status(status).json({ message });
     throw err;
   });
@@ -51,23 +55,29 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
+    log("Setting up Vite for development");
     await setupVite(app, server);
+    log("Vite setup completed");
   } else {
+    log("Setting up static file serving for production");
     serveStatic(app);
   }
 
   // Try to serve on port 5000, fall back to another port if needed
   const startServer = (port = 5000) => {
+    log(`Attempting to start server on port ${port}`);
+
     // First, try to close any existing server if it exists
     if (server.listening) {
+      log(`Closing existing server instance`);
       server.close();
     }
-    
+
     server.listen({
       port,
       host: "0.0.0.0",
     }, () => {
-      log(`serving on port ${port}`);
+      log(`Server started successfully on port ${port}`);
     }).on('error', (err: any) => {
       if (err.code === 'EADDRINUSE' && port < 5010) {
         log(`Port ${port} is in use, trying ${port + 1}`);
@@ -85,6 +95,6 @@ app.use((req, res, next) => {
       }
     });
   };
-  
+
   startServer();
 })();
