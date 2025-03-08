@@ -3,8 +3,20 @@ import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
 
 const app = express();
+
+// API middleware protection - MUST be before any other middleware
+app.use('/api/*', (req, res, next) => {
+  if (req.originalUrl.startsWith('/api/')) {
+    next();
+  } else {
+    res.status(404).json({ error: 'API route not found' });
+  }
+});
+
+// Basic middleware for parsing JSON and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
 
 // Logging middleware
 app.use((req, res, next) => {
