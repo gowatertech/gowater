@@ -461,13 +461,17 @@ export class DatabaseStorage implements IStorage {
     try {
       const [existingSettings] = await db.select().from(settingsTable);
 
-      // Procesar datos antes de guardar
+      console.log("Datos recibidos en storage:", settingsData);
+      console.log("Configuración existente:", existingSettings);
+
       const dataToSave = {
         ...settingsData,
-        provinceId: settingsData.provinceId ? Number(settingsData.provinceId) : undefined,
-        municipalityId: settingsData.municipalityId ? Number(settingsData.municipalityId) : undefined,
+        province_id: settingsData.province_id ? Number(settingsData.province_id) : undefined,
+        municipality_id: settingsData.municipality_id ? Number(settingsData.municipality_id) : undefined,
         tax: settingsData.tax || "0.00"
       };
+
+      console.log("Datos preparados para guardar:", dataToSave);
 
       if (existingSettings) {
         const [updatedSettings] = await db
@@ -475,6 +479,8 @@ export class DatabaseStorage implements IStorage {
           .set(dataToSave)
           .where(eq(settingsTable.id, existingSettings.id))
           .returning();
+
+        console.log("Configuración actualizada en DB:", updatedSettings);
         return updatedSettings;
       } else {
         const [newSettings] = await db
@@ -484,10 +490,12 @@ export class DatabaseStorage implements IStorage {
             ...dataToSave
           } as InsertSettings)
           .returning();
+
+        console.log("Nueva configuración creada en DB:", newSettings);
         return newSettings;
       }
     } catch (error) {
-      console.error("Error al actualizar configuración:", error);
+      console.error("Error en updateSettings:", error);
       throw error;
     }
   }

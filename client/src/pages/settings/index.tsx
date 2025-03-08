@@ -41,8 +41,8 @@ function Settings() {
       rnc: null,
       street: "",
       streetNumber: "",
-      provinceId: undefined,
-      municipalityId: undefined,
+      province_id: 0,
+      municipality_id: 0,
       contactPhone: "",
       email: null,
       country: "",
@@ -58,8 +58,8 @@ function Settings() {
 
   // Fetch municipalities based on selected province
   const { data: municipalities = [] } = useQuery<Municipality[]>({
-    queryKey: [`/api/municipalities/${form.watch("provinceId")}`],
-    enabled: !!form.watch("provinceId"),
+    queryKey: ["/api/municipalities", form.watch("province_id")],
+    enabled: !!form.watch("province_id"),
   });
 
   // Fetch current settings
@@ -70,29 +70,30 @@ function Settings() {
   // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
-      form.reset({
-        ...settings,
-        provinceId: settings.provinceId,
-        municipalityId: settings.municipalityId,
-      });
-      previousProvinceIdRef.current = settings.provinceId;
+      console.log("Cargando configuración:", settings);
+      previousProvinceIdRef.current = settings.province_id;
+      form.reset(settings);
     }
   }, [settings, form]);
 
-  // Reset municipalityId only when provinceId actually changes
+  // Reset municipality_id only when province changes
   useEffect(() => {
-    const currentProvinceId = form.watch("provinceId");
+    const currentProvinceId = form.watch("province_id");
+    console.log("Cambio de provincia:", { 
+      current: currentProvinceId, 
+      previous: previousProvinceIdRef.current 
+    });
+
     if (currentProvinceId && currentProvinceId !== previousProvinceIdRef.current) {
-      form.setValue("municipalityId", undefined);
+      form.setValue("municipality_id", 0);
       previousProvinceIdRef.current = currentProvinceId;
     }
-  }, [form.watch("provinceId")]);
+  }, [form.watch("province_id")]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {
       const formData = new FormData();
 
-      // Handle logo file
       if (data.logo instanceof File) {
         formData.append('logo', data.logo);
       }
@@ -101,7 +102,13 @@ function Settings() {
       Object.entries(data).forEach(([key, value]) => {
         if (key !== 'logo' && value !== undefined && value !== null) {
           formData.append(key, String(value));
+          console.log(`Agregando al FormData: ${key} = ${value}`);
         }
+      });
+
+      console.log("Enviando datos al servidor:", {
+        province_id: data.province_id,
+        municipality_id: data.municipality_id
       });
 
       const response = await fetch("/api/settings", {
@@ -133,13 +140,16 @@ function Settings() {
   });
 
   const onSubmit = (data: InsertSettings) => {
+    console.log("Datos del formulario a enviar:", data);
+
     const formattedData = {
       ...data,
-      provinceId: data.provinceId ? Number(data.provinceId) : undefined,
-      municipalityId: data.municipalityId ? Number(data.municipalityId) : undefined,
+      province_id: data.province_id || 0,
+      municipality_id: data.municipality_id || 0,
       tax: data.tax || "0.00"
     };
 
+    console.log("Datos formateados para enviar:", formattedData);
     updateMutation.mutate(formattedData);
   };
 
@@ -254,13 +264,13 @@ function Settings() {
 
                 <FormField
                   control={form.control}
-                  name="provinceId"
+                  name="province_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Provincia</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString()}
+                        value={field.value ? field.value.toString() : "0"}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -282,14 +292,14 @@ function Settings() {
 
                 <FormField
                   control={form.control}
-                  name="municipalityId"
+                  name="municipality_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Municipio</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString()}
-                        disabled={!form.watch("provinceId")}
+                        value={field.value ? field.value.toString() : "0"}
+                        disabled={!form.watch("province_id")}
                       >
                         <FormControl>
                           <SelectTrigger>

@@ -291,11 +291,11 @@ export async function registerRoutes(app: Express) {
         phone: req.body.phone,
         street: req.body.street,
         streetnumber: req.body.streetnumber,
-        provinceid: req.body.provinceid,
-        municipalityid: req.body.municipalityid,
+        province_id: req.body.province_id,
+        municipality_id: req.body.municipality_id,
       };
 
-      const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'provinceid', 'municipalityid'];
+      const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'province_id', 'municipality_id'];
       const missingFields = requiredFields.filter(field => !customerData[field]);
 
       if (missingFields.length > 0) {
@@ -332,15 +332,15 @@ export async function registerRoutes(app: Express) {
           street: customers.street,
           streetnumber: customers.streetnumber,
           creditlimit: customers.creditlimit,
-          provinceid: customers.provinceid,
-          municipalityid: customers.municipalityid,
+          province_id: customers.province_id,
+          municipality_id: customers.municipality_id,
           reference: customers.reference,
           municipalityName: municipalities.name,
           provinceName: provinces.name,
         })
         .from(customers)
-        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id));
+        .leftJoin(provinces, eq(customers.province_id, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipality_id, municipalities.id));
 
       res.json(allCustomers);
     } catch (error) {
@@ -390,8 +390,8 @@ export async function registerRoutes(app: Express) {
       }
 
       // Convertir valores numéricos
-      if (updateData.provinceid) updateData.provinceid = Number(updateData.provinceid);
-      if (updateData.municipalityid) updateData.municipalityid = Number(updateData.municipalityid);
+      if (updateData.province_id) updateData.province_id = Number(updateData.province_id);
+      if (updateData.municipality_id) updateData.municipality_id = Number(updateData.municipality_id);
       if (updateData.zoneid && updateData.zoneid !== 'null') updateData.zoneid = Number(updateData.zoneid);
 
       const [updatedCustomer] = await db
@@ -424,20 +424,23 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/settings", upload.single('logo'), async (req, res) => {
     try {
+      console.log("Body recibido:", req.body);
+      console.log("Valores de provincia y municipio:", {
+        province_id: req.body.province_id,
+        municipality_id: req.body.municipality_id
+      });
+
       const settingsData = {
         ...req.body,
         logo: req.file ? req.file.buffer.toString('base64') : undefined,
+        province_id: req.body.province_id ? Number(req.body.province_id) : undefined,
+        municipality_id: req.body.municipality_id ? Number(req.body.municipality_id) : undefined,
       };
 
-      // Convertir valores numéricos
-      if (settingsData.provinceId) {
-        settingsData.provinceId = Number(settingsData.provinceId);
-      }
-      if (settingsData.municipalityId) {
-        settingsData.municipalityId = Number(settingsData.municipalityId);
-      }
+      console.log("Datos formateados para actualizar:", settingsData);
 
       const updatedSettings = await storage.updateSettings(settingsData);
+      console.log("Configuración actualizada:", updatedSettings);
       res.json(updatedSettings);
     } catch (error) {
       console.error("Error al actualizar configuración:", error);
