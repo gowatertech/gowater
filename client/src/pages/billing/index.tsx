@@ -66,50 +66,37 @@ export default function Billing() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
-  const { data: invoices = [], isLoading: isLoadingInvoices, error: invoicesError } = useQuery<InvoiceWithDetails[]>({
+  const { data: invoices = [], isLoading: isLoadingInvoices } = useQuery<InvoiceWithDetails[]>({
     queryKey: ["/api/invoices"],
     queryFn: async () => {
-      console.log("Fetching invoices...");
       const response = await apiRequest("GET", "/api/invoices");
+      if (!response.ok) {
+        throw new Error('Error al cargar facturas');
+      }
       const data = await response.json();
-      console.log("Invoices received:", data);
       return data;
-    },
-    onError: (error) => {
-      console.error("Error fetching invoices:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudieron cargar las facturas",
-      });
     }
   });
 
-  const { data: customers = [], error: customersError } = useQuery<Customer[]>({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
     queryFn: async () => {
-      console.log("Fetching customers...");
       const response = await apiRequest("GET", "/api/customers");
-      const data = await response.json();
-      console.log("Customers received:", data);
-      return data;
-    },
-    onError: (error) => {
-      console.error("Error fetching customers:", error);
+      if (!response.ok) {
+        throw new Error('Error al cargar clientes');
+      }
+      return response.json();
     }
   });
 
-  const { data: products = [], error: productsError } = useQuery<Product[]>({
+  const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      console.log("Fetching products for billing...");
       const response = await apiRequest("GET", "/api/products");
-      const data = await response.json();
-      console.log("Products received for billing:", data);
-      return data;
-    },
-    onError: (error) => {
-      console.error("Error fetching products:", error);
+      if (!response.ok) {
+        throw new Error('Error al cargar productos');
+      }
+      return response.json();
     }
   });
 
@@ -667,106 +654,122 @@ export default function Billing() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell>{customers.find(c => c.id === invoice.customerId)?.name}</TableCell>
-                  <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
-                  <TableCell>#{invoice.id}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      invoice.status === "paid" ? "bg-green-100 text-green-800" :
-                        invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
-                    }`}>
-                      {invoice.status === "paid" ? "Pagada" :
-                        invoice.status === "pending" ? "Pendiente" :
-                          "Cancelada"}
-                    </span>
+              {isLoadingInvoices ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-4">
+                    Cargando facturas...
                   </TableCell>
-                  <TableCell>RD$ {parseFloat(invoice.total).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 text-sm"
-                      onClick={() => {
-                        setSelectedInvoice(invoice);
-                        setIsDetailsDialogOpen(true);
-                      }}
-                    >
-                      Ver detalles
-                    </Button>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 text-sm ml-2">
-                          Pagar
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Procesar Pago de Factura #{invoice.id}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="text-sm space-y-2">
-                            <div className="flex justify-between">
-                              <span>Total Factura:</span>
-                              <span className="font-medium">RD$ {parseFloat(invoice.total).toFixed(2)}</span>
+                </TableRow>
+              ) : invoices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-4">
+                    No hay facturas registradas
+                  </TableCell>
+                </TableRow>
+              ) : (
+                invoices.map((invoice) => (
+                  <TableRow key={invoice.id}>
+                    <TableCell>
+                      {customers.find(c => c.id === invoice.customerId)?.businessname || 'Cliente no encontrado'}
+                    </TableCell>
+                    <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
+                    <TableCell>#{invoice.id}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        invoice.status === "paid" ? "bg-green-100 text-green-800" :
+                        invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                        "bg-red-100 text-red-800"
+                      }`}>
+                        {invoice.status === "paid" ? "Pagada" :
+                         invoice.status === "pending" ? "Pendiente" :
+                         "Cancelada"}
+                      </span>
+                    </TableCell>
+                    <TableCell>RD$ {parseFloat(invoice.total).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-sm"
+                        onClick={() => {
+                          setSelectedInvoice(invoice);
+                          setIsDetailsDialogOpen(true);
+                        }}
+                      >
+                        Ver detalles
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 text-sm ml-2">
+                            Pagar
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Procesar Pago de Factura #{invoice.id}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="text-sm space-y-2">
+                              <div className="flex justify-between">
+                                <span>Total Factura:</span>
+                                <span className="font-medium">RD$ {parseFloat(invoice.total).toFixed(2)}</span>
+                              </div>
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Total Pagado:</span>
+                                <span>RD$ {invoice.totalPaid || "0.00"}</span>
+                              </div>
+                              <div className="flex justify-between font-medium">
+                                <span>Saldo Pendiente:</span>
+                                <span className="text-primary">
+                                  RD$ {parseFloat(invoice.pendingAmount || "0").toFixed(2)}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex justify-between text-muted-foreground">
-                              <span>Total Pagado:</span>
-                              <span>RD$ {invoice.totalPaid || "0.00"}</span>
-                            </div>
-                            <div className="flex justify-between font-medium">
-                              <span>Saldo Pendiente:</span>
-                              <span className="text-primary">
-                                RD$ {parseFloat(invoice.pendingAmount || "0").toFixed(2)}
-                              </span>
-                            </div>
-                          </div>
 
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">Monto a Pagar</label>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                className="flex-1"
-                                onClick={() => handlePayment(invoice, invoice.pendingAmount)}
-                              >
-                                Pagar Total Pendiente
-                              </Button>
-                              <div className="flex gap-2 flex-1">
-                                <Input
-                                  type="text"
-                                  pattern="^\d*\.?\d{0,2}$"
-                                  placeholder="Monto parcial"
-                                  onChange={(e) => {
-                                    const value = e.target.value;
-                                    if (!value || /^\d*\.?\d{0,2}$/.test(value)) {
-                                      e.target.value = value;
-                                    }
-                                  }}
-                                  className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                />
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">Monto a Pagar</label>
+                              <div className="flex gap-2">
                                 <Button
-                                  variant="default"
-                                  onClick={() => {
-                                    const input = document.querySelector('input[placeholder="Monto parcial"]') as HTMLInputElement;
-                                    if (input && input.value) {
-                                      handlePayment(invoice, input.value);
-                                    }
-                                  }}
+                                  variant="outline"
+                                  className="flex-1"
+                                  onClick={() => handlePayment(invoice, invoice.pendingAmount)}
                                 >
-                                  Pagar
+                                  Pagar Total Pendiente
                                 </Button>
+                                <div className="flex gap-2 flex-1">
+                                  <Input
+                                    type="text"
+                                    pattern="^\d*\.?\d{0,2}$"
+                                    placeholder="Monto parcial"
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (!value || /^\d*\.?\d{0,2}$/.test(value)) {
+                                        e.target.value = value;
+                                      }
+                                    }}
+                                    className="text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  />
+                                  <Button
+                                    variant="default"
+                                    onClick={() => {
+                                      const input = document.querySelector('input[placeholder="Monto parcial"]') as HTMLInputElement;
+                                      if (input && input.value) {
+                                        handlePayment(invoice, input.value);
+                                      }
+                                    }}
+                                  >
+                                    Pagar
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        </DialogContent>
+                      </Dialog>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </ScrollArea>
@@ -797,12 +800,12 @@ export default function Billing() {
                     <span className="font-medium">Estado: </span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       selectedInvoice.status === "paid" ? "bg-green-100 text-green-800" :
-                        selectedInvoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
+                      selectedInvoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-red-100 text-red-800"
                     }`}>
                       {selectedInvoice.status === "paid" ? "Pagada" :
-                        selectedInvoice.status === "pending" ? "Pendiente" :
-                          "Cancelada"}
+                       selectedInvoice.status === "pending" ? "Pendiente" :
+                       "Cancelada"}
                     </span>
                   </div>
                   <div>
@@ -923,7 +926,7 @@ export default function Billing() {
                                       )}
                                     </TableCell>
                                     <TableCell className="p-0.5">
-                                      <Input
+                                                                     <Input
                                         value={item.description}
                                         readOnly
                                         className="bg-muted h-8"
@@ -992,8 +995,8 @@ export default function Billing() {
                             <SelectItem value="card">Tarjeta</SelectItem>
                           </SelectContent>
                         </Select>                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
-                            selectedInvoice.paymentMethod === "credit" ? "Crédito" :
-                              "Tarjeta"
+                          selectedInvoice.paymentMethod === "credit" ? "Crédito" :
+                            "Tarjeta"
                           }
                         </p>
                       </div>
