@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { InsertSettings, Province, Municipality } from "@shared/schema";
 import { insertSettingsSchema } from "@shared/schema";
+import { apiRequest } from "@/lib/api";
 
 import {
   Form,
@@ -27,12 +28,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save } from "lucide-react";
-import { apiRequest } from "@/lib/api";
-
+import { Edit, Save } from "lucide-react";
 
 function Settings() {
   const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
 
   const form = useForm<InsertSettings>({
     resolver: zodResolver(insertSettingsSchema),
@@ -114,6 +114,7 @@ function Settings() {
         title: "Configuración actualizada",
         description: "Los cambios han sido guardados exitosamente.",
       });
+      setIsEditing(false);
     },
     onError: (error: Error) => {
       console.error("Error al actualizar:", error);
@@ -129,11 +130,21 @@ function Settings() {
     updateMutation.mutate(data);
   };
 
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
   return (
     <div className="space-y-6 p-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row justify-between items-center">
           <CardTitle>Configuración de la Empresa</CardTitle>
+          {!isEditing && (
+            <Button onClick={handleEditClick} variant="outline" size="sm">
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -156,25 +167,27 @@ function Settings() {
                               />
                             </div>
                           )}
-                          <Input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                if (file.size > 5 * 1024 * 1024) {
-                                  toast({
-                                    variant: "destructive",
-                                    title: "Error",
-                                    description: "El archivo no debe superar los 5MB",
-                                  });
-                                  return;
+                          {isEditing && (
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  if (file.size > 5 * 1024 * 1024) {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error",
+                                      description: "El archivo no debe superar los 5MB",
+                                    });
+                                    return;
+                                  }
+                                  onChange(file);
                                 }
-                                onChange(file);
-                              }
-                            }}
-                            {...field}
-                          />
+                              }}
+                              {...field}
+                            />
+                          )}
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -189,7 +202,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Nombre de la Empresa</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -203,7 +216,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>RNC</FormLabel>
                       <FormControl>
-                        <Input {...field} value={field.value || ''} />
+                        <Input {...field} value={field.value || ''} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -217,7 +230,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Calle</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -231,7 +244,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Número</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -244,33 +257,41 @@ function Settings() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Provincia</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          const newProvinceId = parseInt(value);
-                          const currentProvinceId = field.value;
+                      {isEditing ? (
+                        <Select
+                          onValueChange={(value) => {
+                            const newProvinceId = parseInt(value);
+                            const currentProvinceId = field.value;
 
-                          // Solo resetear municipalityId si el usuario está cambiando activamente la provincia
-                          if (currentProvinceId && newProvinceId !== currentProvinceId) {
-                            form.setValue("municipalityId", undefined);
-                          }
+                            if (currentProvinceId && newProvinceId !== currentProvinceId) {
+                              form.setValue("municipalityId", undefined);
+                            }
 
-                          field.onChange(newProvinceId);
-                        }}
-                        value={field.value?.toString()}
-                      >
+                            field.onChange(newProvinceId);
+                          }}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una provincia" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {provinces.map((province) => (
+                              <SelectItem key={province.id} value={province.id.toString()}>
+                                {province.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione una provincia" />
-                          </SelectTrigger>
+                          <Input
+                            value={provinces.find(p => p.id === field.value)?.name || ''}
+                            readOnly
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {provinces.map((province) => (
-                            <SelectItem key={province.id} value={province.id.toString()}>
-                              {province.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -282,24 +303,33 @@ function Settings() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Municipio</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
-                        value={field.value?.toString()}
-                        disabled={!form.watch("provinceId") || isLoadingMunicipalities}
-                      >
+                      {isEditing ? (
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                          disabled={!form.watch("provinceId") || isLoadingMunicipalities}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un municipio" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {municipalities.map((municipality) => (
+                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                                {municipality.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un municipio" />
-                          </SelectTrigger>
+                          <Input
+                            value={municipalities.find(m => m.id === field.value)?.name || ''}
+                            readOnly
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {municipalities.map((municipality) => (
-                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
-                              {municipality.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -312,7 +342,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Teléfono de Contacto</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -326,7 +356,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} value={field.value || ''} />
+                        <Input type="email" {...field} value={field.value || ''} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -340,7 +370,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>País</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -354,7 +384,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Moneda</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -386,6 +416,7 @@ function Settings() {
                               field.onChange(number.toFixed(2));
                             }
                           }}
+                          readOnly={!isEditing}
                         />
                       </FormControl>
                       <FormMessage />
@@ -394,10 +425,12 @@ function Settings() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
-                <Save className="mr-2 h-4 w-4" />
-                {updateMutation.isPending ? "Guardando..." : "Guardar Configuración"}
-              </Button>
+              {isEditing && (
+                <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
+                  <Save className="mr-2 h-4 w-4" />
+                  {updateMutation.isPending ? "Guardando..." : "Guardar Configuración"}
+                </Button>
+              )}
             </form>
           </Form>
         </CardContent>
