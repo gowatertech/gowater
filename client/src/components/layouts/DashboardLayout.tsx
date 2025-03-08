@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,6 +7,7 @@ import {
   SidebarInset,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -14,6 +15,11 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [openMobile, setOpenMobile] = useState(false);
+  const [location] = useLocation();
+
+  useEffect(() => {
+    console.log("DashboardLayout - Current location:", location);
+  }, [location]);
 
   return (
     <SidebarProvider defaultOpen={true}>
