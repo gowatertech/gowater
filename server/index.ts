@@ -53,10 +53,13 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
+    // Variable para almacenar el servidor HTTP
+    let server;
+
     // Configurar Vite en modo desarrollo
     if (process.env.NODE_ENV !== "production") {
       log("Setting up Vite for development");
-      const server = await registerRoutes(app); //Routes registered before vite setup
+      server = await registerRoutes(app); //Routes registered before vite setup
       log("Routes registered successfully");
       await setupVite(app, server);
       log("Vite setup completed");
@@ -79,7 +82,7 @@ app.use((req, res, next) => {
       }
 
       log('Found production build files successfully');
-      const server = await registerRoutes(app); //Routes registered before static files
+      server = await registerRoutes(app); //Routes registered before static files
       log("Routes registered successfully");
 
       // API middleware protection
