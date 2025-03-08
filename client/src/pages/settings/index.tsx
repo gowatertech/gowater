@@ -74,18 +74,6 @@ function Settings() {
     }
   }, [settings, form]);
 
-  // Solo restablecer municipalityId cuando cambia la provincia Y hay un municipio seleccionado
-  useEffect(() => {
-    const currentProvinceId = form.watch("provinceId");
-    if (currentProvinceId) {
-      // Solo restablece si cambia la provincia, sin borrar el valor inicial
-      const currentMunicipalityId = form.getValues("municipalityId");
-      if (currentMunicipalityId && settings && currentProvinceId !== settings.provinceId) {
-        console.log("Provincia cambiada, restableciendo municipio");
-        form.setValue("municipalityId", undefined);
-      }
-    }
-  }, [form.watch("provinceId")]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {
@@ -269,7 +257,18 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Provincia</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        onValueChange={(value) => {
+                          const newProvinceId = parseInt(value);
+                          const currentProvinceId = field.value;
+
+                          // Solo resetear municipalityId si el usuario está cambiando activamente la provincia
+                          if (currentProvinceId && newProvinceId !== currentProvinceId) {
+                            console.log("Provincia cambiada por usuario, reseteando municipio");
+                            form.setValue("municipalityId", undefined);
+                          }
+
+                          field.onChange(newProvinceId);
+                        }}
                         value={field.value?.toString()}
                       >
                         <FormControl>
