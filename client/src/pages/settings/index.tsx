@@ -56,33 +56,30 @@ function Settings() {
   });
 
   // Fetch municipalities based on selected province
-  const { data: municipalities = [] } = useQuery<Municipality[]>({
+  const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery<Municipality[]>({
     queryKey: [`/api/municipalities/${form.watch("provinceId")}`],
+    queryFn: async () => {
+      if (!form.watch("provinceId")) return [];
+      const response = await fetch(`/api/municipalities/${form.watch("provinceId")}`);
+      return response.json();
+    },
     enabled: !!form.watch("provinceId"),
-    onSuccess: (data) => {
-      console.log("Municipios cargados:", data);
-      const currentMunicipalityId = form.getValues("municipalityId");
-      console.log("Municipio actual:", currentMunicipalityId);
-    }
   });
 
   // Fetch current settings
   const { data: settings } = useQuery({
     queryKey: ["/api/settings"],
+    onSuccess: (data) => {
+      if (data) {
+        form.reset(data);
+      }
+    }
   });
 
   // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
-      console.log("Cargando configuración:", settings);
-      // Establecer todos los valores a la vez
       form.reset(settings);
-
-      // Verificar que los valores se establecieron correctamente
-      console.log("Valores establecidos:", {
-        provinceId: form.getValues("provinceId"),
-        municipalityId: form.getValues("municipalityId")
-      });
     }
   }, [settings, form]);
 
@@ -307,15 +304,9 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Municipio</FormLabel>
                       <Select
-                        onValueChange={(value) => {
-                          console.log("Municipio seleccionado en UI:", value);
-                          const numValue = parseInt(value);
-                          field.onChange(numValue);
-                          // Actualizar directamente el valor en el formulario para garantizar que se guarde
-                          form.setValue("municipalityId", numValue);
-                        }}
+                        onValueChange={(value) => field.onChange(parseInt(value))}
                         value={field.value?.toString()}
-                        disabled={!form.watch("provinceId")}
+                        disabled={!form.watch("provinceId") || isLoadingMunicipalities}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -324,7 +315,10 @@ function Settings() {
                         </FormControl>
                         <SelectContent>
                           {municipalities.map((municipality) => (
-                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                            <SelectItem 
+                              key={municipality.id} 
+                              value={municipality.id.toString()}
+                            >
                               {municipality.name}
                             </SelectItem>
                           ))}
