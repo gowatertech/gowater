@@ -446,8 +446,13 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "ID de provincia inválido" });
       }
       
-      if (isNaN(settingsData.municipalityId)) {
+      // Verificación extra para el municipalityId
+      if (!settingsData.municipalityId) {
+        console.log("ADVERTENCIA: municipalityId no presente en la solicitud");
+      } else if (isNaN(settingsData.municipalityId)) {
         return res.status(400).json({ error: "ID de municipio inválido" });
+      } else {
+        console.log("municipalityId válido recibido:", settingsData.municipalityId);
       }
 
       console.log("POST /api/settings - Procesando:", settingsData);

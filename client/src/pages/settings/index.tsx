@@ -94,9 +94,14 @@ function Settings() {
       }
       
       // Asegurarse de que municipalityId se procese correctamente
-      if (data.municipalityId) {
+      // Usar el valor directamente del formulario para garantizar que sea el más actualizado
+      const municipalityValue = form.getValues("municipalityId");
+      if (municipalityValue) {
+        formData.append('municipalityId', municipalityValue.toString());
+        console.log("Municipio seleccionado (getValue):", municipalityValue);
+      } else if (data.municipalityId) {
         formData.append('municipalityId', data.municipalityId.toString());
-        console.log("Municipio seleccionado:", data.municipalityId);
+        console.log("Municipio seleccionado (data):", data.municipalityId);
       }
 
       // Add all other fields
@@ -289,7 +294,13 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Municipio</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        onValueChange={(value) => {
+                          console.log("Municipio seleccionado en UI:", value);
+                          const numValue = parseInt(value);
+                          field.onChange(numValue);
+                          // Actualizar directamente el valor en el formulario para garantizar que se guarde
+                          form.setValue("municipalityId", numValue);
+                        }}
                         value={field.value?.toString()}
                         disabled={!form.watch("provinceId")}
                       >

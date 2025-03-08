@@ -462,6 +462,14 @@ export class DatabaseStorage implements IStorage {
   async updateSettings(settingsData: Partial<InsertSettings>): Promise<Settings> {
     try {
       console.log("Storage - updateSettings: Datos recibidos:", settingsData);
+      
+      // Verificación adicional para municipalityId
+      if (settingsData.municipalityId) {
+        console.log("Storage - Verificando municipalityId:", settingsData.municipalityId);
+      } else {
+        console.log("Storage - ADVERTENCIA: municipalityId no presente");
+      }
+      
       const [existingSettings] = await db.select().from(settingsTable);
 
       if (existingSettings) {
