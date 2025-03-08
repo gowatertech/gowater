@@ -106,17 +106,23 @@ export default function Dashboard() {
             <CardTitle>Tendencia de Ventas</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="sales" stroke="#0088FE" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            {salesTrend ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={salesTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tickFormatter={(date) => new Date(date).toLocaleDateString('es-DO', { day: '2-digit', month: 'short' })} />
+                  <YAxis />
+                  <Tooltip labelFormatter={(date) => new Date(date).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })} />
+                  <Line type="monotone" dataKey="sales" name="Ventas (RD$)" stroke="#0088FE" strokeWidth={2} activeDot={{ r: 8 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-muted-foreground">Cargando datos de ventas...</p>
+              </div>
+            )}
           </CardContent>
-        </Card>
+        </Card>d>
 
         {/* Estado de Pedidos */}
         <Card className="col-span-3">
@@ -124,24 +130,32 @@ export default function Dashboard() {
             <CardTitle>Estado de Pedidos</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={orderStatus}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {orderStatus?.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {orderStatus ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={orderStatus}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    nameKey="name"
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {orderStatus.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} pedidos`, 'Cantidad']} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-muted-foreground">Cargando estados de pedidos...</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -151,17 +165,27 @@ export default function Dashboard() {
             <CardTitle>Top Clientes</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topCustomers}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="orders" fill="#0088FE" />
-              </BarChart>
-            </ResponsiveContainer>
+            {topCustomers ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topCustomers}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis />
+                  <Tooltip
+                    formatter={(value, name) => [value, name === "orders" ? "Pedidos" : name === "total" ? "Total (RD$)" : name]}
+                    labelFormatter={(name) => `Cliente: ${name}`}
+                  />
+                  <Bar name="Pedidos" dataKey="orders" fill="#0088FE" />
+                  {topCustomers[0]?.total && <Bar name="Total (RD$)" dataKey="total" fill="#00C49F" />}
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-muted-foreground">Cargando datos de clientes...</p>
+              </div>
+            )}
           </CardContent>
-        </Card>
+        </Card>d>
 
         {/* Actividad Reciente */}
         <Card className="col-span-3">

@@ -510,6 +510,125 @@ export async function registerRoutes(app: Express) {
       res.json(invoice);
     } catch (error) {
       console.error("Error al crear factura:", error);
+
+  // Endpoints para estadísticas del dashboard
+  app.get("/api/stats/sales", async (req, res) => {
+    try {
+      // Obtener el total de ventas de las facturas
+      const salesStats = await db
+        .select({
+          total: sql`SUM(total)`.mapWith(Number),
+          count: sql`COUNT(*)`.mapWith(Number)
+        })
+        .from(invoices);
+
+      const result = {
+        total: salesStats[0]?.total || 0,
+        count: salesStats[0]?.count || 0,
+        avgTicket: salesStats[0]?.count ? (salesStats[0].total / salesStats[0].count).toFixed(2) : 0
+      };
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error al obtener estadísticas de ventas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/stats/sales-trend", async (req, res) => {
+    try {
+      // Obtener las últimas 7 ventas para tendencia
+      const salesData = await db
+        .select({
+          date: invoices.date,
+          sales: invoices.total
+        })
+        .from(invoices)
+        .orderBy(invoices.date)
+        .limit(7);
+
+      // Formatear datos para el gráfico
+      const salesTrend = salesData.map(item => ({
+        date: item.date,
+        sales: Number(item.sales)
+      }));
+
+      res.json(salesTrend);
+    } catch (error) {
+      console.error("Error al obtener tendencia de ventas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/stats/order-status", async (req, res) => {
+    try {
+      // Obtener conteo de pedidos por estado
+      const orderStatusData = await db
+        .select({
+          status: orders.status,
+          count: sql`COUNT(*)`.mapWith(Number)
+        })
+        .from(orders)
+        .groupBy(orders.status);
+
+      // Formatear datos para el gráfico de pie
+      const statusColors = {
+        pending: "#FFBB28",
+        processing: "#0088FE",
+        completed: "#00C49F",
+        cancelled: "#FF8042"
+      };
+
+      const statusNames = {
+        pending: "Pendiente",
+        processing: "En Proceso",
+        completed: "Completado",
+        cancelled: "Cancelado"
+      };
+
+      const orderStatusChart = orderStatusData.map(item => ({
+        name: statusNames[item.status as keyof typeof statusNames] || item.status,
+        value: item.count,
+        color: statusColors[item.status as keyof typeof statusColors] || "#999999"
+      }));
+
+      res.json(orderStatusChart);
+    } catch (error) {
+      console.error("Error al obtener estado de pedidos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/stats/top-customers", async (req, res) => {
+    try {
+      // Obtener los clientes con más pedidos
+      const topCustomersData = await db
+        .select({
+          customerId: orders.customerId,
+          orderCount: sql`COUNT(*)`.mapWith(Number),
+          totalAmount: sql`SUM(total)`.mapWith(Number),
+          customerName: customers.businessname
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .groupBy(orders.customerId, customers.businessname)
+        .orderBy(sql`COUNT(*)`, "desc")
+        .limit(5);
+
+      // Formatear datos para el gráfico
+      const topCustomers = topCustomersData.map(item => ({
+        name: item.customerName || `Cliente ${item.customerId}`,
+        orders: item.orderCount,
+        total: Number(item.totalAmount)
+      }));
+
+      res.json(topCustomers);
+    } catch (error) {
+      console.error("Error al obtener top clientes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
       res.status(500).json({ error: String(error) });
     }
   });
