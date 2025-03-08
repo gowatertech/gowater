@@ -653,9 +653,9 @@ export async function registerRoutes(app: Express) {
           id: payments.id,
           invoiceId: payments.invoiceId,
           amount: payments.amount,
-          method: payments.method,
+          paymentType: payments.paymentType,
           date: payments.date,
-          status: payments.status,
+          notes: payments.notes,
           customerName: customers.businessname,
           invoiceNumber: invoices.invoiceNumber
         })
@@ -678,7 +678,7 @@ export async function registerRoutes(app: Express) {
         ...req.body,
         amount: Number(req.body.amount).toFixed(2),
         date: new Date(),
-        status: "completed"
+        paymentType: req.body.paymentType || 'cash'
       };
 
       const [payment] = await db
