@@ -92,7 +92,7 @@ function Settings() {
       if (data.provinceId) {
         formData.append('provinceId', data.provinceId.toString());
       }
-      
+
       // Asegurarse de que municipalityId se procese correctamente
       // Usar el valor directamente del formulario para garantizar que sea el más actualizado
       const municipalityValue = form.getValues("municipalityId");
@@ -110,7 +110,7 @@ function Settings() {
           formData.append(key, String(value));
         }
       });
-      
+
       // Log para depuración
       console.log("FormData creado:", {
         provinceId: formData.get('provinceId'),
@@ -135,6 +135,10 @@ function Settings() {
         title: "Configuración actualizada",
         description: "Los cambios han sido guardados exitosamente.",
       });
+      // Force a page reload after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500); // 1.5 second delay
     },
     onError: (error: Error) => {
       console.error("Error al actualizar:", error);
