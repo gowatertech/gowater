@@ -424,40 +424,33 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/settings", upload.single('logo'), async (req, res) => {
     try {
-      console.log("POST /api/settings - Recibiendo:", req.body);
+      console.log("POST /api/settings - Body recibido:", req.body);
       const settingsData = {
         ...req.body,
         logo: req.file ? req.file.buffer.toString('base64') : undefined,
       };
 
-      // Convertir valores numéricos con verificación adicional
+      // Verificar y convertir provinceId
       if (settingsData.provinceId) {
         settingsData.provinceId = Number(settingsData.provinceId);
+        console.log("provinceId convertido:", settingsData.provinceId);
+        if (isNaN(settingsData.provinceId)) {
+          return res.status(400).json({ error: "ID de provincia inválido" });
+        }
       }
-      
-      // Asegurarse de que municipalityId se procese correctamente
+
+      // Verificar y convertir municipalityId
       if (settingsData.municipalityId) {
         settingsData.municipalityId = Number(settingsData.municipalityId);
-        console.log("Municipio recibido:", settingsData.municipalityId);
+        console.log("municipalityId convertido:", settingsData.municipalityId);
+        if (isNaN(settingsData.municipalityId)) {
+          return res.status(400).json({ error: "ID de municipio inválido" });
+        }
       }
 
-      // Verificar que los IDs sean números válidos
-      if (isNaN(settingsData.provinceId)) {
-        return res.status(400).json({ error: "ID de provincia inválido" });
-      }
-      
-      // Verificación extra para el municipalityId
-      if (!settingsData.municipalityId) {
-        console.log("ADVERTENCIA: municipalityId no presente en la solicitud");
-      } else if (isNaN(settingsData.municipalityId)) {
-        return res.status(400).json({ error: "ID de municipio inválido" });
-      } else {
-        console.log("municipalityId válido recibido:", settingsData.municipalityId);
-      }
-
-      console.log("POST /api/settings - Procesando:", settingsData);
+      console.log("POST /api/settings - Datos procesados:", settingsData);
       const updatedSettings = await storage.updateSettings(settingsData);
-      console.log("POST /api/settings - Actualizado:", updatedSettings);
+      console.log("POST /api/settings - Configuración actualizada:", updatedSettings);
       res.json(updatedSettings);
     } catch (error) {
       console.error("Error al actualizar configuración:", error);

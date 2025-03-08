@@ -69,18 +69,27 @@ function Settings() {
   // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
+      console.log("Cargando configuración:", settings);
       form.reset(settings);
     }
   }, [settings, form]);
 
-  // Reset municipalityId when province changes
+  // Solo restablecer municipalityId cuando cambia la provincia Y hay un municipio seleccionado
   useEffect(() => {
-    form.setValue("municipalityId", undefined);
+    const currentProvinceId = form.watch("provinceId");
+    if (currentProvinceId) {
+      // Solo restablece si cambia la provincia, sin borrar el valor inicial
+      const currentMunicipalityId = form.getValues("municipalityId");
+      if (currentMunicipalityId && settings && currentProvinceId !== settings.provinceId) {
+        console.log("Provincia cambiada, restableciendo municipio");
+        form.setValue("municipalityId", undefined);
+      }
+    }
   }, [form.watch("provinceId")]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {
-      console.log("Enviando datos:", data);
+      console.log("Datos del formulario:", data);
       const formData = new FormData();
 
       // Handle logo file
@@ -91,17 +100,11 @@ function Settings() {
       // Add provinceId y municipalityId al FormData
       if (data.provinceId) {
         formData.append('provinceId', data.provinceId.toString());
+        console.log("Agregando provinceId:", data.provinceId);
       }
-
-      // Asegurarse de que municipalityId se procese correctamente
-      // Usar el valor directamente del formulario para garantizar que sea el más actualizado
-      const municipalityValue = form.getValues("municipalityId");
-      if (municipalityValue) {
-        formData.append('municipalityId', municipalityValue.toString());
-        console.log("Municipio seleccionado (getValue):", municipalityValue);
-      } else if (data.municipalityId) {
+      if (data.municipalityId) {
         formData.append('municipalityId', data.municipalityId.toString());
-        console.log("Municipio seleccionado (data):", data.municipalityId);
+        console.log("Agregando municipalityId:", data.municipalityId);
       }
 
       // Add all other fields
@@ -111,11 +114,11 @@ function Settings() {
         }
       });
 
-      // Log para depuración
-      console.log("FormData creado:", {
-        provinceId: formData.get('provinceId'),
-        municipalityId: formData.get('municipalityId')
-      });
+      // Log FormData entries for debugging
+      console.log("FormData entries:");
+      for (const pair of formData.entries()) {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
 
       const response = await fetch("/api/settings", {
         method: "POST",
@@ -135,10 +138,6 @@ function Settings() {
         title: "Configuración actualizada",
         description: "Los cambios han sido guardados exitosamente.",
       });
-      // Force a page reload after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500); // 1.5 second delay
     },
     onError: (error: Error) => {
       console.error("Error al actualizar:", error);
