@@ -59,6 +59,11 @@ function Settings() {
   const { data: municipalities = [] } = useQuery<Municipality[]>({
     queryKey: [`/api/municipalities/${form.watch("provinceId")}`],
     enabled: !!form.watch("provinceId"),
+    onSuccess: (data) => {
+      console.log("Municipios cargados:", data);
+      const currentMunicipalityId = form.getValues("municipalityId");
+      console.log("Municipio actual:", currentMunicipalityId);
+    }
   });
 
   // Fetch current settings
@@ -70,10 +75,16 @@ function Settings() {
   useEffect(() => {
     if (settings) {
       console.log("Cargando configuración:", settings);
+      // Establecer todos los valores a la vez
       form.reset(settings);
+
+      // Verificar que los valores se establecieron correctamente
+      console.log("Valores establecidos:", {
+        provinceId: form.getValues("provinceId"),
+        municipalityId: form.getValues("municipalityId")
+      });
     }
   }, [settings, form]);
-
 
   const updateMutation = useMutation({
     mutationFn: async (data: InsertSettings) => {
