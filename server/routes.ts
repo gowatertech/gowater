@@ -102,11 +102,15 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "ID de provincia inválido" });
       }
 
+      console.log("Buscando municipios para provincia:", provinceId);
+
       const municipalitiesInProvince = await db
         .select()
         .from(municipalities)
         .where(eq(municipalities.provinceId, provinceId))
         .orderBy(municipalities.name);
+
+      console.log("Municipios encontrados:", municipalitiesInProvince);
 
       res.json(municipalitiesInProvince);
     } catch (error) {
@@ -424,23 +428,14 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/settings", upload.single('logo'), async (req, res) => {
     try {
-      console.log("Body recibido:", req.body);
-      console.log("Valores de provincia y municipio:", {
-        province_id: req.body.province_id,
-        municipality_id: req.body.municipality_id
-      });
-
       const settingsData = {
         ...req.body,
         logo: req.file ? req.file.buffer.toString('base64') : undefined,
-        province_id: req.body.province_id ? Number(req.body.province_id) : undefined,
-        municipality_id: req.body.municipality_id ? Number(req.body.municipality_id) : undefined,
+        province_id: req.body.province_id ? Number(req.body.province_id) : 0,
+        municipality_id: req.body.municipality_id ? Number(req.body.municipality_id) : 0,
       };
 
-      console.log("Datos formateados para actualizar:", settingsData);
-
       const updatedSettings = await storage.updateSettings(settingsData);
-      console.log("Configuración actualizada:", updatedSettings);
       res.json(updatedSettings);
     } catch (error) {
       console.error("Error al actualizar configuración:", error);

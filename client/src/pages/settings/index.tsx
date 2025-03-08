@@ -67,23 +67,16 @@ function Settings() {
     queryKey: ["/api/settings"],
   });
 
-  // Update form when settings are loaded
+  // Reset form when settings load
   useEffect(() => {
     if (settings) {
-      console.log("Cargando configuración:", settings);
-      previousProvinceIdRef.current = settings.province_id;
       form.reset(settings);
     }
   }, [settings, form]);
 
-  // Reset municipality_id only when province changes
+  // Reset municipality when province changes
   useEffect(() => {
     const currentProvinceId = form.watch("province_id");
-    console.log("Cambio de provincia:", { 
-      current: currentProvinceId, 
-      previous: previousProvinceIdRef.current 
-    });
-
     if (currentProvinceId && currentProvinceId !== previousProvinceIdRef.current) {
       form.setValue("municipality_id", 0);
       previousProvinceIdRef.current = currentProvinceId;
@@ -102,13 +95,7 @@ function Settings() {
       Object.entries(data).forEach(([key, value]) => {
         if (key !== 'logo' && value !== undefined && value !== null) {
           formData.append(key, String(value));
-          console.log(`Agregando al FormData: ${key} = ${value}`);
         }
-      });
-
-      console.log("Enviando datos al servidor:", {
-        province_id: data.province_id,
-        municipality_id: data.municipality_id
       });
 
       const response = await fetch("/api/settings", {
@@ -140,16 +127,13 @@ function Settings() {
   });
 
   const onSubmit = (data: InsertSettings) => {
-    console.log("Datos del formulario a enviar:", data);
-
     const formattedData = {
       ...data,
-      province_id: data.province_id || 0,
-      municipality_id: data.municipality_id || 0,
+      province_id: Number(data.province_id) || 0,
+      municipality_id: Number(data.municipality_id) || 0,
       tax: data.tax || "0.00"
     };
 
-    console.log("Datos formateados para enviar:", formattedData);
     updateMutation.mutate(formattedData);
   };
 
@@ -163,6 +147,62 @@ function Settings() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="province_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provincia</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString() || "0"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione una provincia" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {provinces.map((province) => (
+                            <SelectItem key={province.id} value={province.id.toString()}>
+                              {province.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="municipality_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Municipio</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString() || "0"}
+                        disabled={!form.watch("province_id")}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un municipio" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {municipalities.map((municipality) => (
+                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                              {municipality.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="logo"
@@ -262,62 +302,6 @@ function Settings() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="province_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Provincia</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value ? field.value.toString() : "0"}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione una provincia" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {provinces.map((province) => (
-                            <SelectItem key={province.id} value={province.id.toString()}>
-                              {province.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="municipality_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Municipio</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value ? field.value.toString() : "0"}
-                        disabled={!form.watch("province_id")}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un municipio" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {municipalities.map((municipality) => (
-                            <SelectItem key={municipality.id} value={municipality.id.toString()}>
-                              {municipality.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
