@@ -3,37 +3,71 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
 
+// Interfaces para los datos
+interface SalesStats {
+  totalSales: number;
+  percentageChange: number;
+}
+
+interface SalesTrend {
+  date: string;
+  sales: number;
+}
+
+interface OrderStatus {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface TopCustomer {
+  name: string;
+  orders: number;
+}
+
+interface Order {
+  id: number;
+  status: string;
+  date: string;
+}
+
+interface Product {
+  id: number;
+  name: string;
+  stock: number;
+}
+
 export default function Dashboard() {
   const { t } = useTranslation();
 
-  // Consultas para obtener datos del dashboard
-  const { data: salesStats } = useQuery({
+  // Consultas tipadas para obtener datos del dashboard
+  const { data: salesStats } = useQuery<SalesStats>({
     queryKey: ["/api/stats/sales"],
   });
 
-  const { data: salesTrend } = useQuery({
+  const { data: salesTrend } = useQuery<SalesTrend[]>({
     queryKey: ["/api/stats/sales-trend"],
   });
 
-  const { data: orderStatus } = useQuery({
+  const { data: orderStatus } = useQuery<OrderStatus[]>({
     queryKey: ["/api/stats/order-status"],
   });
 
-  const { data: topCustomers } = useQuery({
+  const { data: topCustomers } = useQuery<TopCustomer[]>({
     queryKey: ["/api/stats/top-customers"],
   });
 
-  const { data: orders } = useQuery({
+  const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
-  const { data: products } = useQuery({
+  const { data: products } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
-  // Calcular el total de inventario
-  const totalInventory = products?.reduce((sum, product) => sum + product.stock, 0) || 0;
-  const totalProducts = products?.length || 0;
+  // Calcular el total de inventario con tipado correcto
+  const totalInventory = products?.reduce((sum, product) => sum + product.stock, 0) ?? 0;
+  const totalProducts = products?.length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -49,10 +83,10 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              RD$ {salesStats?.totalSales || "0.00"}
+              RD$ {salesStats?.totalSales.toFixed(2) ?? "0.00"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {salesStats?.percentageChange > 0 ? "+" : ""}{salesStats?.percentageChange || "0"}% del mes anterior
+              {salesStats?.percentageChange > 0 ? "+" : ""}{salesStats?.percentageChange.toFixed(1) ?? "0"}% del mes anterior
             </p>
           </CardContent>
         </Card>
@@ -65,7 +99,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {orders?.filter(o => o.status === "pending").length || 0}
+              {orders?.filter(o => o.status === "pending").length ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">Pedidos por entregar</p>
           </CardContent>
@@ -91,7 +125,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {orders?.filter(o => o.status === "delivered").length || 0}
+              {orders?.filter(o => o.status === "delivered").length ?? 0}
             </div>
             <p className="text-xs text-muted-foreground">Pedidos entregados</p>
           </CardContent>
@@ -107,12 +141,19 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesTrend}>
+              <LineChart data={salesTrend ?? []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="sales" stroke="#0088FE" strokeWidth={2} />
+                <Line 
+                  type="monotone" 
+                  dataKey="sales" 
+                  stroke="#0088FE" 
+                  strokeWidth={2}
+                  dot={{ stroke: '#0088FE', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -127,7 +168,7 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={orderStatus}
+                  data={orderStatus ?? []}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -135,7 +176,7 @@ export default function Dashboard() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {orderStatus?.map((entry: any, index: number) => (
+                  {orderStatus?.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -152,12 +193,16 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topCustomers}>
+              <BarChart data={topCustomers ?? []}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="orders" fill="#0088FE" />
+                <Bar 
+                  dataKey="orders" 
+                  fill="#0088FE"
+                  radius={[4, 4, 0, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -170,7 +215,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {orders?.slice(-3).map((order: any) => (
+              {(orders ?? []).slice(-3).map((order) => (
                 <div key={order.id} className="text-sm">
                   <p className="text-muted-foreground mb-1">
                     {new Date(order.date).toLocaleString()}
