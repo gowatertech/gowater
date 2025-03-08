@@ -45,9 +45,9 @@ interface OrderItem {
 
 interface InvoiceWithDetails extends Invoice {
   customerName?: string;
+  businessName?: string;
   totalPaid?: string;
   pendingAmount?: string;
-  invoiceNumber?: number; // Added to handle potential missing invoiceNumber
 }
 
 export default function Billing() {
@@ -67,22 +67,18 @@ export default function Billing() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
-  const { 
-    data: invoices = [], 
+  const {
+    data: invoices = [],
     isLoading: isLoadingInvoices,
-    error: invoicesError 
-  } = useQuery({
+    error: invoicesError
+  } = useQuery<InvoiceWithDetails[]>({
     queryKey: ["/api/invoices"],
     queryFn: async () => {
-      console.log("Fetching invoices...");
       const response = await apiRequest("GET", "/api/invoices");
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al cargar facturas');
+        throw new Error('Error al cargar facturas');
       }
-      const data = await response.json();
-      console.log("Invoices received:", data);
-      return data;
+      return response.json();
     }
   });
 
@@ -684,55 +680,52 @@ export default function Billing() {
                   </TableCell>
                 </TableRow>
               ) : (
-                invoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell>
-                      {customers.find(c => c.id === invoice.customerId)?.businessname || 'Cliente no encontrado'}
-                    </TableCell>
-                    <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
-                    <TableCell>#{invoice.invoiceNumber || invoice.id}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        invoice.status === "paid" ? "bg-green-100 text-green-800" :
-                        invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-red-100 text-red-800"
-                      }`}>
-                        {invoice.status === "paid" ? "Pagada" :
-                         invoice.status === "pending" ? "Pendiente" :
-                         "Cancelada"}
-                      </span>
-                    </TableCell>
-                    <TableCell>RD$ {parseFloat(invoice.total).toFixed(2)}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-sm"
-                          onClick={() => {
-                            console.log("Opening invoice details:", invoice);
-                            setSelectedInvoice(invoice);
-                            setIsDetailsDialogOpen(true);
-                          }}
-                        >
-                          Ver detalles
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 text-sm"
-                          onClick={() => {
-                            console.log("Opening payment dialog for invoice:", invoice);
-                            setSelectedInvoice(invoice);
-                            setIsDetailsDialogOpen(true); //added to open the dialog
-                          }}
-                        >
-                          Pagar
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                invoices.map((invoice) => {
+                  const customer = customers.find(c => c.id === invoice.customerId);
+                  return (
+                    <TableRow key={invoice.id}>
+                      <TableCell>{customer?.businessname || 'Cliente no encontrado'}</TableCell>
+                      <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
+                      <TableCell>#{invoice.id}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          invoice.status === "paid" ? "bg-green-100 text-green-800" :
+                          invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                          "bg-red-100 text-red-800"
+                        }`}>
+                          {invoice.status === "paid" ? "Pagada" :
+                           invoice.status === "pending" ? "Pendiente" :
+                           "Cancelada"}
+                        </span>
+                      </TableCell>
+                      <TableCell>RD$ {parseFloat(invoice.total).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setIsDetailsDialogOpen(true);
+                            }}
+                          >
+                            Ver detalles
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setIsDetailsDialogOpen(true);
+                            }}
+                          >
+                            Pagar
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -881,7 +874,8 @@ export default function Billing() {
                                             {products.map((product) => (
                                               <SelectItem
                                                 key={product.id}
-                                                value={product.id.toString()}                                              >
+                                                value={product.id.toString()}
+                                              >
                                                 {product.id}
                                               </SelectItem>
                                             ))}
@@ -890,7 +884,7 @@ export default function Billing() {
                                       )}
                                     </TableCell>
                                     <TableCell className="p-0.5">
-                                                                     <Input
+                                      <Input
                                         value={item.description}
                                         readOnly
                                         className="bg-muted h-8"
@@ -907,7 +901,7 @@ export default function Billing() {
                                     </TableCell>
                                     <TableCell className="p-0.5">
                                       <Input
-                                        value={item.price ? `RD$ ${item.price.toFixed(2)}` :""}
+                                        value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
                                         readOnly
                                         className="text-right bg-muted h-8"
                                       />
@@ -944,8 +938,7 @@ export default function Billing() {
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Cambiar Método de Pago</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
+                      </DialogHeader                      <div className="space-y-4">
                         <Select
                           defaultValue={selectedInvoice.paymentMethod}
                           onValueChange={(value) => handlePaymentMethodChange(selectedInvoice.id, value as 'cash' | 'credit' | 'card')}
