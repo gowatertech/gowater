@@ -414,6 +414,7 @@ export async function registerRoutes(app: Express) {
   app.get("/api/settings", async (req, res) => {
     try {
       const settings = await storage.getSettings();
+      console.log("GET /api/settings - Retornando:", settings);
       res.json(settings || {});
     } catch (error) {
       console.error("Error al obtener configuración:", error);
@@ -423,6 +424,7 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/settings", upload.single('logo'), async (req, res) => {
     try {
+      console.log("POST /api/settings - Recibiendo:", req.body);
       const settingsData = {
         ...req.body,
         logo: req.file ? req.file.buffer.toString('base64') : undefined,
@@ -432,7 +434,9 @@ export async function registerRoutes(app: Express) {
       if (settingsData.provinceId) settingsData.provinceId = Number(settingsData.provinceId);
       if (settingsData.municipalityId) settingsData.municipalityId = Number(settingsData.municipalityId);
 
+      console.log("POST /api/settings - Procesando:", settingsData);
       const updatedSettings = await storage.updateSettings(settingsData);
+      console.log("POST /api/settings - Actualizado:", updatedSettings);
       res.json(updatedSettings);
     } catch (error) {
       console.error("Error al actualizar configuración:", error);

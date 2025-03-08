@@ -449,7 +449,9 @@ export class DatabaseStorage implements IStorage {
   // Settings
   async getSettings(): Promise<Settings | undefined> {
     try {
+      console.log("Storage - getSettings: Consultando base de datos");
       const result = await db.select().from(settingsTable);
+      console.log("Storage - getSettings: Resultado:", result);
       return result[0];
     } catch (error) {
       console.error("Error al obtener configuración:", error);
@@ -459,9 +461,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateSettings(settingsData: Partial<InsertSettings>): Promise<Settings> {
     try {
+      console.log("Storage - updateSettings: Datos recibidos:", settingsData);
       const [existingSettings] = await db.select().from(settingsTable);
 
       if (existingSettings) {
+        console.log("Storage - updateSettings: Actualizando configuración existente");
         const [updatedSettings] = await db
           .update(settingsTable)
           .set(settingsData)
@@ -469,6 +473,7 @@ export class DatabaseStorage implements IStorage {
           .returning();
         return updatedSettings;
       } else {
+        console.log("Storage - updateSettings: Creando nueva configuración");
         const [newSettings] = await db
           .insert(settingsTable)
           .values({ id: 1, ...settingsData as InsertSettings })

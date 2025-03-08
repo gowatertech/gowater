@@ -88,9 +88,17 @@ function Settings() {
         formData.append('logo', data.logo);
       }
 
+      // Add provinceId y municipalityId al FormData
+      if (data.provinceId) {
+        formData.append('provinceId', data.provinceId.toString());
+      }
+      if (data.municipalityId) {
+        formData.append('municipalityId', data.municipalityId.toString());
+      }
+
       // Add all other fields
       Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'logo' && value !== undefined && value !== null) {
+        if (key !== 'logo' && key !== 'provinceId' && key !== 'municipalityId' && value !== undefined && value !== null) {
           formData.append(key, String(value));
         }
       });
@@ -194,6 +202,7 @@ function Settings() {
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="rnc"
