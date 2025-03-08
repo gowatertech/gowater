@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
 import { type Payment } from "@shared/schema";
 import {
   Table,
@@ -25,12 +24,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText } from "lucide-react";
+import { useMemo } from "react";
+
+// Extender el tipo Payment para incluir los campos adicionales
+type PaymentWithCustomer = Payment & {
+  customerName: string;
+  invoiceNumber: string;
+};
 
 export default function Payments() {
   const { t } = useTranslation();
 
   // Fetch payments data
-  const { data: payments } = useQuery<Payment[]>({
+  const { data: payments } = useQuery<PaymentWithCustomer[]>({
     queryKey: ["/api/payments"],
   });
 
@@ -58,8 +64,7 @@ export default function Payments() {
                 <TableHead>Fecha</TableHead>
                 <TableHead>Factura No.</TableHead>
                 <TableHead>Detalle</TableHead>
-                <TableHead>Método de Pago</TableHead>
-                <TableHead>Referencia</TableHead>
+                <TableHead>Notas</TableHead>
                 <TableHead className="text-right">Monto</TableHead>
               </TableRow>
             </TableHeader>
@@ -86,16 +91,7 @@ export default function Payments() {
                           <p>Factura No.: #{payment.invoiceNumber}</p>
                           <p>Cliente: {payment.customerName}</p>
                           <p>Monto: RD$ {parseFloat(payment.amount.toString()).toFixed(2)}</p>
-                          <p>Método de Pago: {
-                            payment.paymentMethod === 'cash' ? 'Efectivo' :
-                            payment.paymentMethod === 'credit' ? 'Crédito' :
-                            payment.paymentMethod === 'card' ? 'Tarjeta' :
-                            payment.paymentMethod
-                          }</p>
                           <p>Fecha: {new Date(payment.date).toLocaleDateString()}</p>
-                          {payment.reference && (
-                            <p>Referencia: {payment.reference}</p>
-                          )}
                           {payment.notes && (
                             <p>Notas: {payment.notes}</p>
                           )}
@@ -103,13 +99,7 @@ export default function Payments() {
                       </DialogContent>
                     </Dialog>
                   </TableCell>
-                  <TableCell>
-                    {payment.paymentMethod === 'cash' ? 'Efectivo' :
-                     payment.paymentMethod === 'credit' ? 'Crédito' :
-                     payment.paymentMethod === 'card' ? 'Tarjeta' :
-                     payment.paymentMethod}
-                  </TableCell>
-                  <TableCell>{payment.reference || "-"}</TableCell>
+                  <TableCell>{payment.notes || "-"}</TableCell>
                   <TableCell className="text-right">
                     RD$ {parseFloat(payment.amount.toString()).toFixed(2)}
                   </TableCell>
