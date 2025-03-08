@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 import express from 'express';
@@ -454,6 +454,148 @@ export async function registerRoutes(app: Express) {
       res.json(updatedSettings);
     } catch (error) {
       console.error("Error al actualizar configuración:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Facturas
+  app.get("/api/invoices", async (req, res) => {
+    try {
+      const allInvoices = await db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          customerId: invoices.customerId,
+          total: invoices.total,
+          status: invoices.status,
+          paymentMethod: invoices.paymentMethod,
+          date: invoices.date,
+          notes: invoices.notes,
+        })
+        .from(invoices)
+        .orderBy(invoices.date);
+
+      res.json(allInvoices);
+    } catch (error) {
+      console.error("Error al obtener facturas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/invoices", async (req, res) => {
+    try {
+      const result = insertInvoiceSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.format() });
+      }
+
+      // Crear la factura
+      const [invoice] = await db
+        .insert(invoices)
+        .values({
+          ...result.data,
+          date: new Date(),
+          status: "pending",
+        })
+        .returning();
+
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error al crear factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/invoices/:id/items", async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(eq(invoiceItems.invoiceId, invoiceId));
+
+      res.json(items);
+    } catch (error) {
+      console.error("Error al obtener items de factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/invoices/:id/items", async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const result = insertInvoiceItemSchema.safeParse({
+        ...req.body,
+        invoiceId,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.format() });
+      }
+
+      const [item] = await db
+        .insert(invoiceItems)
+        .values(result.data)
+        .returning();
+
+      res.json(item);
+    } catch (error) {
+      console.error("Error al crear item de factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Actualizar método de pago de una factura
+  app.patch("/api/invoices/:id", async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.id);
+      const { paymentMethod } = req.body;
+
+      if (!["cash", "credit", "card"].includes(paymentMethod)) {
+        return res.status(400).json({ error: "Método de pago inválido" });
+      }
+
+      const [updatedInvoice] = await db
+        .update(invoices)
+        .set({ paymentMethod })
+        .where(eq(invoices.id, invoiceId))
+        .returning();
+
+      if (!updatedInvoice) {
+        return res.status(404).json({ error: "Factura no encontrada" });
+      }
+
+      res.json(updatedInvoice);
+    } catch (error) {
+      console.error("Error al actualizar factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Actualizar un item de factura específico
+  app.patch("/api/invoices/:invoiceId/items/:itemId", async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.invoiceId);
+      const itemId = parseInt(req.params.itemId);
+      const { quantity, price } = req.body;
+
+      const [updatedItem] = await db
+        .update(invoiceItems)
+        .set({
+          quantity: parseInt(quantity),
+          price: price,
+          total: (parseFloat(price) * parseInt(quantity)).toFixed(2),
+        })
+        .where(eq(invoiceItems.id, itemId))
+        .returning();
+
+      if (!updatedItem) {
+        return res.status(404).json({ error: "Item no encontrado" });
+      }
+
+      res.json(updatedItem);
+    } catch (error) {
+      console.error("Error al actualizar item:", error);
       res.status(500).json({ error: String(error) });
     }
   });
