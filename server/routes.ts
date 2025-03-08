@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 import express from 'express';
@@ -604,6 +604,139 @@ export async function registerRoutes(app: Express) {
       res.json(updatedItem);
     } catch (error) {
       console.error("Error al actualizar item:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Productos
+  app.get("/api/products", async (req, res) => {
+    try {
+      const allProducts = await db
+        .select()
+        .from(products)
+        .orderBy(products.name);
+
+      console.log("GET /api/products - Retornando:", allProducts.length, "productos");
+      res.json(allProducts);
+    } catch (error) {
+      console.error("Error al obtener productos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/products", async (req, res) => {
+    try {
+      const productData = {
+        ...req.body,
+        stock: Number(req.body.stock) || 0,
+        price: Number(req.body.price).toFixed(2),
+      };
+
+      const [product] = await db
+        .insert(products)
+        .values(productData)
+        .returning();
+
+      console.log("POST /api/products - Producto creado:", product);
+      res.json(product);
+    } catch (error) {
+      console.error("Error al crear producto:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Pagos
+  app.get("/api/payments", async (req, res) => {
+    try {
+      const allPayments = await db
+        .select({
+          id: payments.id,
+          invoiceId: payments.invoiceId,
+          amount: payments.amount,
+          method: payments.method,
+          date: payments.date,
+          status: payments.status,
+          customerName: customers.businessname,
+          invoiceNumber: invoices.invoiceNumber
+        })
+        .from(payments)
+        .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
+        .leftJoin(customers, eq(invoices.customerId, customers.id))
+        .orderBy(payments.date);
+
+      console.log("GET /api/payments - Retornando:", allPayments.length, "pagos");
+      res.json(allPayments);
+    } catch (error) {
+      console.error("Error al obtener pagos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/payments", async (req, res) => {
+    try {
+      const paymentData = {
+        ...req.body,
+        amount: Number(req.body.amount).toFixed(2),
+        date: new Date(),
+        status: "completed"
+      };
+
+      const [payment] = await db
+        .insert(payments)
+        .values(paymentData)
+        .returning();
+
+      console.log("POST /api/payments - Pago creado:", payment);
+      res.json(payment);
+    } catch (error) {
+      console.error("Error al crear pago:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Pedidos
+  app.get("/api/orders", async (req, res) => {
+    try {
+      const allOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
+          status: orders.status,
+          date: orders.date,
+          customerName: customers.businessname,
+          address: customers.street
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .orderBy(orders.date);
+
+      console.log("GET /api/orders - Retornando:", allOrders.length, "pedidos");
+      res.json(allOrders);
+    } catch (error) {
+      console.error("Error al obtener pedidos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/orders", async (req, res) => {
+    try {
+      const orderData = {
+        ...req.body,
+        date: new Date(),
+        status: "pending",
+        total: Number(req.body.total).toFixed(2)
+      };
+
+      const [order] = await db
+        .insert(orders)
+        .values(orderData)
+        .returning();
+
+      console.log("POST /api/orders - Pedido creado:", order);
+      res.json(order);
+    } catch (error) {
+      console.error("Error al crear pedido:", error);
       res.status(500).json({ error: String(error) });
     }
   });
