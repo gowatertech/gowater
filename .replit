@@ -9,6 +9,7 @@ channel = "stable-24_05"
 deploymentTarget = "cloudrun"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
+ignorePackageJson = true
 
 [[ports]]
 localPort = 5000

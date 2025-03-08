@@ -65,12 +65,12 @@ app.use((req, res, next) => {
       log("Vite setup completed");
     } else {
       // En producción, servir archivos estáticos
-      const distPath = path.join(process.cwd(), 'dist');
+      const distPath = path.join(process.cwd(), 'dist', 'public');
       log(`Production mode: Serving static files from ${distPath}`);
 
       // Verificar que la carpeta dist existe
       if (!fs.existsSync(distPath)) {
-        log(`Error: dist folder not found at ${distPath}`);
+        log(`Error: dist/public folder not found at ${distPath}`);
         throw new Error('Production build not found. Please run build first.');
       }
 
