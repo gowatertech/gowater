@@ -69,42 +69,21 @@ export default function Billing() {
   const { data: invoices = [], isLoading: isLoadingInvoices, error: invoicesError } = useQuery<InvoiceWithDetails[]>({
     queryKey: ["/api/invoices"],
     queryFn: async () => {
-      console.log("Attempting to fetch invoices...");
-      try {
-        const response = await apiRequest("GET", "/api/invoices");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Invoices data received:", data);
-        return data;
-      } catch (error) {
-        console.error("Error in invoice fetch:", error);
-        throw error;
-      }
+      console.log("Fetching invoices...");
+      const response = await apiRequest("GET", "/api/invoices");
+      const data = await response.json();
+      console.log("Invoices received:", data);
+      return data;
     },
     onError: (error) => {
-      console.error("Query error for invoices:", error);
+      console.error("Error fetching invoices:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudieron cargar las facturas. Por favor, intente de nuevo.",
+        description: "No se pudieron cargar las facturas",
       });
     }
   });
-
-  // Agregar validación y mensaje de carga
-  if (isLoadingInvoices) {
-    return <div className="p-8">Cargando facturas...</div>;
-  }
-
-  if (invoicesError) {
-    return (
-      <div className="p-8 text-red-500">
-        Error al cargar las facturas. Por favor, actualice la página.
-      </div>
-    );
-  }
 
   const { data: customers = [], error: customersError } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -943,8 +922,7 @@ export default function Billing() {
                                       ) : (
                                         // Nuevo item - permitir selección
                                         <Select
-                                          value={item.code}
-                                          onValueChange={(value) => handleProductChange(index, value)}
+                                          value={item.code}                                          onValueChange={(value) => handleProductChange(index, value)}
                                         >
                                           <SelectTrigger className="h-8">
                                             <SelectValue placeholder="---" />

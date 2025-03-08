@@ -3,11 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { 
-  zones, routes, users, provinces, cities, municipalities, sectors, 
-  insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema,
-  invoices, invoiceItems, bills, billItems 
-} from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema } from "@shared/schema";
 import { db } from './db';
 import { eq } from 'drizzle-orm';
 import express from 'express';
@@ -24,15 +20,9 @@ const upload = multer({
 const driverConnections = new Map<number, WebSocket>();
 
 export async function registerRoutes(app: Express) {
-  // Crear router para API
-  const apiRouter = express.Router();
-
-  // Configurar el router para todas las rutas API
-  app.use('/api', apiRouter);
-
   // Aumentar el límite del body-parser
-  apiRouter.use(express.json({ limit: '10mb' }));
-  apiRouter.use(express.urlencoded({ limit: '10mb', extended: true }));
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   const httpServer = createServer(app);
 
@@ -90,9 +80,8 @@ export async function registerRoutes(app: Express) {
     });
   });
 
-  // API Routes
   // Endpoints para el manejo de direcciones
-  apiRouter.get("/provinces", async (req, res) => {
+  app.get("/api/provinces", async (req, res) => {
     try {
       const allProvinces = await db
         .select()
@@ -105,7 +94,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.get("/municipalities/:provinceId", async (req, res) => {
+  app.get("/api/municipalities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
       if (isNaN(provinceId)) {
@@ -126,7 +115,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.get("/cities/:provinceId", async (req, res) => {
+  app.get("/api/cities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
       const citiesInProvince = await db
@@ -144,7 +133,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.get("/sectors/:cityId", async (req, res) => {
+  app.get("/api/sectors/:cityId", async (req, res) => {
     try {
       const cityId = parseInt(req.params.cityId);
       const sectorsInCity = await db
@@ -159,7 +148,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Zonas
-  apiRouter.get("/zones", async (req, res) => {
+  app.get("/api/zones", async (req, res) => {
     try {
       const allZones = await db
         .select()
@@ -172,7 +161,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.post("/zones", async (req, res) => {
+  app.post("/api/zones", async (req, res) => {
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error.format() });
@@ -202,7 +191,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.delete("/zones/:id", async (req, res) => {
+  app.delete("/api/zones/:id", async (req, res) => {
     try {
       const [deletedZone] = await db
         .delete(zones)
@@ -221,7 +210,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Users
-  apiRouter.get("/users", async (req, res) => {
+  app.get("/api/users", async (req, res) => {
     try {
       const role = req.query.role as string;
       let usersList;
@@ -245,7 +234,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Rutas
-  apiRouter.get("/routes", async (req, res) => {
+  app.get("/api/routes", async (req, res) => {
     try {
       const allRoutes = await db
         .select()
@@ -258,7 +247,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.post("/routes", async (req, res) => {
+  app.post("/api/routes", async (req, res) => {
     try {
       const routeData = {
         ...req.body,
@@ -289,7 +278,7 @@ export async function registerRoutes(app: Express) {
 
 
   // Customer endpoints
-  apiRouter.post("/customers", upload.single('logo'), async (req, res) => {
+  app.post("/api/customers", upload.single('logo'), async (req, res) => {
     try {
       // Validar los datos del cliente
       const customerData = {
@@ -327,7 +316,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.get("/customers", async (req, res) => {
+  app.get("/api/customers", async (req, res) => {
     try {
       const allCustomers = await db
         .select({
@@ -359,7 +348,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.get("/customers/:id", async (req, res) => {
+  app.get("/api/customers/:id", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
       const [customer] = await db
@@ -385,7 +374,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Agregar después del endpoint GET /api/customers/:id
-  apiRouter.patch("/customers/:id", upload.single('logo'), async (req, res) => {
+  app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
 
@@ -421,91 +410,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Invoice endpoints
-  apiRouter.get("/invoices", async (req, res) => {
-    try {
-      console.log("GET /api/invoices - Fetching invoices...");
-      const allInvoices = await db
-        .select({
-          id: invoices.id,
-          invoiceNumber: invoices.invoiceNumber,
-          customerId: invoices.customerId,
-          total: invoices.total,
-          status: invoices.status,
-          paymentMethod: invoices.paymentMethod,
-          date: invoices.date,
-          notes: invoices.notes,
-          customerName: customers.businessname,
-        })
-        .from(invoices)
-        .leftJoin(customers, eq(invoices.customerId, customers.id))
-        .orderBy(invoices.date);
-
-      console.log("Invoices retrieved:", allInvoices);
-      res.json(allInvoices);
-    } catch (error) {
-      console.error("Error al obtener facturas:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  apiRouter.get("/invoices/:id", async (req, res) => {
-    try {
-      const invoiceId = parseInt(req.params.id);
-      const [invoice] = await db
-        .select()
-        .from(invoices)
-        .where(eq(invoices.id, invoiceId));
-
-      if (!invoice) {
-        return res.status(404).json({ error: "Factura no encontrada" });
-      }
-
-      // Get invoice items
-      const items = await db
-        .select()
-        .from(invoiceItems)
-        .where(eq(invoiceItems.invoiceId, invoiceId));
-
-      res.json({ ...invoice, items });
-    } catch (error) {
-      console.error("Error al obtener factura:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  apiRouter.post("/invoices", async (req, res) => {
-    try {
-      const invoiceData = {
-        ...req.body,
-        date: new Date(),
-      };
-
-      const [invoice] = await db
-        .insert(invoices)
-        .values(invoiceData)
-        .returning();
-
-      if (req.body.items && Array.isArray(req.body.items)) {
-        const items = req.body.items.map(item => ({
-          ...item,
-          invoiceId: invoice.id
-        }));
-
-        await db
-          .insert(invoiceItems)
-          .values(items);
-      }
-
-      res.json(invoice);
-    } catch (error) {
-      console.error("Error al crear factura:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
   // Endpoints para los ajustes
-  apiRouter.get("/settings", async (req, res) => {
+  app.get("/api/settings", async (req, res) => {
     try {
       const settings = await storage.getSettings();
       console.log("GET /api/settings - Retornando:", settings);
@@ -516,7 +422,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  apiRouter.post("/settings", upload.single('logo'), async (req, res) => {
+  app.post("/api/settings", upload.single('logo'), async (req, res) => {
     try {
       console.log("POST /api/settings - Body recibido:", req.body);
       const settingsData = {
