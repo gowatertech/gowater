@@ -71,14 +71,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">{t("dashboard")}</h1>
+      <h1 className="text-3xl font-bold">{t("Panel de Control")}</h1>
 
       {/* KPIs principales */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("totalSales")}
+              {t("Ventas Totales")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -86,7 +86,7 @@ export default function Dashboard() {
               RD$ {salesStats?.totalSales.toFixed(2) ?? "0.00"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {salesStats?.percentageChange > 0 ? "+" : ""}{salesStats?.percentageChange.toFixed(1) ?? "0"}% del mes anterior
+              {salesStats?.percentageChange > 0 ? "+" : ""}{salesStats?.percentageChange?.toFixed(1) ?? "0"}% {t("desde el mes anterior")}
             </p>
           </CardContent>
         </Card>
@@ -94,40 +94,40 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("pendingOrders")}
+              {t("Pedidos Pendientes")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {orders?.filter(o => o.status === "pending").length ?? 0}
             </div>
-            <p className="text-xs text-muted-foreground">Pedidos por entregar</p>
+            <p className="text-xs text-muted-foreground">{t("Pedidos por entregar")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("inventory")}
+              {t("Inventario")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalInventory}</div>
-            <p className="text-xs text-muted-foreground">{totalProducts} productos registrados</p>
+            <p className="text-xs text-muted-foreground">{totalProducts} {t("productos registrados")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("deliveredOrders")}
+              {t("Pedidos Entregados")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {orders?.filter(o => o.status === "delivered").length ?? 0}
             </div>
-            <p className="text-xs text-muted-foreground">Pedidos entregados</p>
+            <p className="text-xs text-muted-foreground">{t("Pedidos entregados")}</p>
           </CardContent>
         </Card>
       </div>
@@ -137,7 +137,7 @@ export default function Dashboard() {
         {/* Tendencia de Ventas */}
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Tendencia de Ventas</CardTitle>
+            <CardTitle>{t("Tendencia de Ventas")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -162,7 +162,7 @@ export default function Dashboard() {
         {/* Estado de Pedidos */}
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Estado de Pedidos</CardTitle>
+            <CardTitle>{t("Estado de Pedidos")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -189,7 +189,7 @@ export default function Dashboard() {
         {/* Top Clientes */}
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Top Clientes</CardTitle>
+            <CardTitle>{t("Clientes Principales")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -211,7 +211,7 @@ export default function Dashboard() {
         {/* Actividad Reciente */}
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Actividad Reciente</CardTitle>
+            <CardTitle>{t("Actividad Reciente")}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -220,7 +220,7 @@ export default function Dashboard() {
                   <p className="text-muted-foreground mb-1">
                     {new Date(order.date).toLocaleString()}
                   </p>
-                  <p>Pedido #{order.id} - {t(order.status)}</p>
+                  <p>{t("Pedido")} #{order.id} - {t(order.status)}</p>
                 </div>
               ))}
             </div>
