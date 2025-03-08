@@ -38,5 +38,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pkill -f node && npm run dev"
+args = "pkill -f node || true && sleep 2 && npm run dev"
 waitForPort = 5000
