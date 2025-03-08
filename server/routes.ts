@@ -291,11 +291,11 @@ export async function registerRoutes(app: Express) {
         phone: req.body.phone,
         street: req.body.street,
         streetnumber: req.body.streetnumber,
-        province_id: req.body.province_id,
-        municipality_id: req.body.municipality_id,
+        provinceid: req.body.provinceid,
+        municipalityid: req.body.municipalityid,
       };
 
-      const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'province_id', 'municipality_id'];
+      const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'provinceid', 'municipalityid'];
       const missingFields = requiredFields.filter(field => !customerData[field]);
 
       if (missingFields.length > 0) {
@@ -332,15 +332,15 @@ export async function registerRoutes(app: Express) {
           street: customers.street,
           streetnumber: customers.streetnumber,
           creditlimit: customers.creditlimit,
-          province_id: customers.province_id,
-          municipality_id: customers.municipality_id,
+          provinceid: customers.provinceid,
+          municipalityid: customers.municipalityid,
           reference: customers.reference,
           municipalityName: municipalities.name,
           provinceName: provinces.name,
         })
         .from(customers)
-        .leftJoin(provinces, eq(customers.province_id, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipality_id, municipalities.id));
+        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id));
 
       res.json(allCustomers);
     } catch (error) {
@@ -359,8 +359,8 @@ export async function registerRoutes(app: Express) {
           municipalityName: municipalities.name,
         })
         .from(customers)
-        .leftJoin(provinces, eq(customers.provinceId, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipalityId, municipalities.id))
+        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id))
         .where(eq(customers.id, customerId));
 
       if (!customer) {
@@ -390,8 +390,8 @@ export async function registerRoutes(app: Express) {
       }
 
       // Convertir valores numéricos
-      if (updateData.province_id) updateData.province_id = Number(updateData.province_id);
-      if (updateData.municipality_id) updateData.municipality_id = Number(updateData.municipality_id);
+      if (updateData.provinceid) updateData.provinceid = Number(updateData.provinceid);
+      if (updateData.municipalityid) updateData.municipalityid = Number(updateData.municipalityid);
       if (updateData.zoneid && updateData.zoneid !== 'null') updateData.zoneid = Number(updateData.zoneid);
 
       const [updatedCustomer] = await db
