@@ -461,17 +461,28 @@ export class DatabaseStorage implements IStorage {
     try {
       const [existingSettings] = await db.select().from(settingsTable);
 
+      // Procesar datos antes de guardar
+      const dataToSave = {
+        ...settingsData,
+        provinceId: settingsData.provinceId ? Number(settingsData.provinceId) : undefined,
+        municipalityId: settingsData.municipalityId ? Number(settingsData.municipalityId) : undefined,
+        tax: settingsData.tax || "0.00"
+      };
+
       if (existingSettings) {
         const [updatedSettings] = await db
           .update(settingsTable)
-          .set(settingsData)
+          .set(dataToSave)
           .where(eq(settingsTable.id, existingSettings.id))
           .returning();
         return updatedSettings;
       } else {
         const [newSettings] = await db
           .insert(settingsTable)
-          .values({ id: 1, ...settingsData as InsertSettings })
+          .values({
+            id: 1,
+            ...dataToSave
+          } as InsertSettings)
           .returning();
         return newSettings;
       }

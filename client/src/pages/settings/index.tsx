@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +31,7 @@ import { Save } from "lucide-react";
 
 function Settings() {
   const { toast } = useToast();
+  const previousProvinceIdRef = useRef<number | undefined>();
 
   const form = useForm<InsertSettings>({
     resolver: zodResolver(insertSettingsSchema),
@@ -69,13 +70,22 @@ function Settings() {
   // Update form when settings are loaded
   useEffect(() => {
     if (settings) {
-      form.reset(settings);
+      form.reset({
+        ...settings,
+        provinceId: settings.provinceId,
+        municipalityId: settings.municipalityId,
+      });
+      previousProvinceIdRef.current = settings.provinceId;
     }
   }, [settings, form]);
 
-  // Reset municipalityId when province changes
+  // Reset municipalityId only when provinceId actually changes
   useEffect(() => {
-    form.setValue("municipalityId", undefined);
+    const currentProvinceId = form.watch("provinceId");
+    if (currentProvinceId && currentProvinceId !== previousProvinceIdRef.current) {
+      form.setValue("municipalityId", undefined);
+      previousProvinceIdRef.current = currentProvinceId;
+    }
   }, [form.watch("provinceId")]);
 
   const updateMutation = useMutation({
@@ -123,7 +133,14 @@ function Settings() {
   });
 
   const onSubmit = (data: InsertSettings) => {
-    updateMutation.mutate(data);
+    const formattedData = {
+      ...data,
+      provinceId: data.provinceId ? Number(data.provinceId) : undefined,
+      municipalityId: data.municipalityId ? Number(data.municipalityId) : undefined,
+      tax: data.tax || "0.00"
+    };
+
+    updateMutation.mutate(formattedData);
   };
 
   return (
@@ -192,6 +209,7 @@ function Settings() {
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
                   name="rnc"
@@ -241,7 +259,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Provincia</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
@@ -269,7 +287,7 @@ function Settings() {
                     <FormItem>
                       <FormLabel>Municipio</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                         disabled={!form.watch("provinceId")}
                       >
