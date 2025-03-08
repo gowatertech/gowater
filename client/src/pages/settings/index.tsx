@@ -92,8 +92,11 @@ function Settings() {
       if (data.provinceId) {
         formData.append('provinceId', data.provinceId.toString());
       }
+      
+      // Asegurarse de que municipalityId se procese correctamente
       if (data.municipalityId) {
         formData.append('municipalityId', data.municipalityId.toString());
+        console.log("Municipio seleccionado:", data.municipalityId);
       }
 
       // Add all other fields
@@ -101,6 +104,12 @@ function Settings() {
         if (key !== 'logo' && key !== 'provinceId' && key !== 'municipalityId' && value !== undefined && value !== null) {
           formData.append(key, String(value));
         }
+      });
+      
+      // Log para depuración
+      console.log("FormData creado:", {
+        provinceId: formData.get('provinceId'),
+        municipalityId: formData.get('municipalityId')
       });
 
       const response = await fetch("/api/settings", {

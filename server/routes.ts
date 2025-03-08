@@ -430,9 +430,25 @@ export async function registerRoutes(app: Express) {
         logo: req.file ? req.file.buffer.toString('base64') : undefined,
       };
 
-      // Convertir valores numéricos
-      if (settingsData.provinceId) settingsData.provinceId = Number(settingsData.provinceId);
-      if (settingsData.municipalityId) settingsData.municipalityId = Number(settingsData.municipalityId);
+      // Convertir valores numéricos con verificación adicional
+      if (settingsData.provinceId) {
+        settingsData.provinceId = Number(settingsData.provinceId);
+      }
+      
+      // Asegurarse de que municipalityId se procese correctamente
+      if (settingsData.municipalityId) {
+        settingsData.municipalityId = Number(settingsData.municipalityId);
+        console.log("Municipio recibido:", settingsData.municipalityId);
+      }
+
+      // Verificar que los IDs sean números válidos
+      if (isNaN(settingsData.provinceId)) {
+        return res.status(400).json({ error: "ID de provincia inválido" });
+      }
+      
+      if (isNaN(settingsData.municipalityId)) {
+        return res.status(400).json({ error: "ID de municipio inválido" });
+      }
 
       console.log("POST /api/settings - Procesando:", settingsData);
       const updatedSettings = await storage.updateSettings(settingsData);
