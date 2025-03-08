@@ -57,7 +57,7 @@ const TutorialPage = () => {
             <li>Asignar clientes a zonas específicas</li>
             <li>Configurar condiciones de crédito personalizadas</li>
             <li>Visualizar historial de pedidos y pagos</li>
-            <li>Actualizar información de contacto y ubicación/li>
+            <li>Actualizar información de contacto y ubicación</li>
           </ul>
 
           <div className="flex justify-center my-6">
