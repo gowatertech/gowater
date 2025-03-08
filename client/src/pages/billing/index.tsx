@@ -66,16 +66,51 @@ export default function Billing() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
-  const { data: invoices = [] } = useQuery<InvoiceWithDetails[]>({
+  const { data: invoices = [], isLoading: isLoadingInvoices, error: invoicesError } = useQuery<InvoiceWithDetails[]>({
     queryKey: ["/api/invoices"],
+    queryFn: async () => {
+      console.log("Fetching invoices...");
+      const response = await apiRequest("GET", "/api/invoices");
+      const data = await response.json();
+      console.log("Invoices received:", data);
+      return data;
+    },
+    onError: (error) => {
+      console.error("Error fetching invoices:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron cargar las facturas",
+      });
+    }
   });
 
-  const { data: customers = [] } = useQuery<Customer[]>({
+  const { data: customers = [], error: customersError } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+    queryFn: async () => {
+      console.log("Fetching customers...");
+      const response = await apiRequest("GET", "/api/customers");
+      const data = await response.json();
+      console.log("Customers received:", data);
+      return data;
+    },
+    onError: (error) => {
+      console.error("Error fetching customers:", error);
+    }
   });
 
-  const { data: products = [] } = useQuery<Product[]>({
+  const { data: products = [], error: productsError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    queryFn: async () => {
+      console.log("Fetching products for billing...");
+      const response = await apiRequest("GET", "/api/products");
+      const data = await response.json();
+      console.log("Products received for billing:", data);
+      return data;
+    },
+    onError: (error) => {
+      console.error("Error fetching products:", error);
+    }
   });
 
   // Nueva consulta para obtener los items de una factura específica
@@ -887,8 +922,7 @@ export default function Billing() {
                                       ) : (
                                         // Nuevo item - permitir selección
                                         <Select
-                                          value={item.code}
-                                          onValueChange={(value) => handleProductChange(index, value)}
+                                          value={item.code}                                          onValueChange={(value) => handleProductChange(index, value)}
                                         >
                                           <SelectTrigger className="h-8">
                                             <SelectValue placeholder="---" />
@@ -916,7 +950,7 @@ export default function Billing() {
                                     <TableCell className="p-0.5">
                                       <Input
                                         type="number"
-                                       min="0"
+                                        min="0"
                                         value={item.quantity}
                                         onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
                                         className="text-right h-8"

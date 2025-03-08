@@ -76,8 +76,24 @@ export default function ProductosPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const { data: products, isLoading } = useQuery<Product[]>({
+  // Modificar la consulta para incluir manejo de errores y logging
+  const { data: products = [], isLoading, error } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    queryFn: async () => {
+      console.log("Fetching products...");
+      const response = await apiRequest("GET", "/api/products");
+      const data = await response.json();
+      console.log("Products received:", data);
+      return data;
+    },
+    onError: (error) => {
+      console.error("Error fetching products:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron cargar los productos",
+      });
+    }
   });
 
   const form = useForm({
@@ -207,6 +223,11 @@ export default function ProductosPage() {
   if (isLoading) {
     return <div className="p-8">Loading...</div>;
   }
+
+  if (error) {
+    return <div className="p-8">Error loading products</div>;
+  }
+
 
   return (
     <div className="space-y-8">
