@@ -2,21 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
 import path from "path";
+import fs from "fs";
 
 const app = express();
 
-// API middleware protection - MUST be before any other middleware
-app.use('/api/*', (req, res, next) => {
-  if (req.originalUrl.startsWith('/api/')) {
-    next();
-  } else {
-    res.status(404).json({ error: 'API route not found' });
-  }
-});
-
 // Basic middleware for parsing JSON and URL-encoded bodies
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -53,10 +45,7 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...");
 
-    const server = await registerRoutes(app);
-    log("Routes registered successfully");
-
-    // Error handling middleware
+    // Error handling middleware  (Moved up)
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -67,24 +56,54 @@ app.use((req, res, next) => {
     // Configurar Vite en modo desarrollo
     if (process.env.NODE_ENV !== "production") {
       log("Setting up Vite for development");
+      const server = await registerRoutes(app); //Routes registered before vite setup
+      log("Routes registered successfully");
       await setupVite(app, server);
       log("Vite setup completed");
     } else {
       // En producción, servir archivos estáticos
       const distPath = path.join(process.cwd(), 'dist');
+      log(`Production mode: Serving static files from ${distPath}`);
 
-      // Servir archivos estáticos
-      app.use(express.static(distPath));
+      // Verificar que la carpeta dist existe
+      if (!fs.existsSync(distPath)) {
+        log(`Error: dist folder not found at ${distPath}`);
+        throw new Error('Production build not found. Please run build first.');
+      }
 
-      // Asegurarse de que las rutas API sean manejadas antes que la ruta catch-all
-      app.get(['/api/*'], (req, res) => {
-        res.status(404).json({ error: 'API route not found' });
+      // Verificar que index.html existe
+      const indexPath = path.join(distPath, 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        log(`Error: index.html not found at ${indexPath}`);
+        throw new Error('Production build incomplete. Missing index.html');
+      }
+
+      log('Found production build files successfully');
+      const server = await registerRoutes(app); //Routes registered before static files
+      log("Routes registered successfully");
+
+      // API middleware protection
+      app.use('/api/*', (req, res, next) => {
+        if (req.originalUrl.startsWith('/api/')) {
+          next();
+        } else {
+          res.status(404).json({ error: 'API route not found' });
+        }
       });
+
+      // Servir archivos estáticos sin index
+      app.use(express.static(distPath, {
+        index: false // Deshabilitar el servido automático de index.html
+      }));
 
       // Ruta catch-all para SPA
       app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-          res.sendFile(path.join(distPath, 'index.html'));
+        if (req.path.startsWith('/api')) {
+          log(`API 404 for path: ${req.path}`);
+          res.status(404).json({ error: 'API route not found' });
+        } else {
+          log(`Serving SPA for path: ${req.path}`);
+          res.sendFile(indexPath);
         }
       });
     }
