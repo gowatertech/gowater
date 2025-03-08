@@ -448,9 +448,17 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      console.log("POST /api/settings - Datos procesados:", settingsData);
+      console.log("POST /api/settings - Datos procesados:", {
+        ...settingsData,
+        logo: settingsData.logo ? 'Base64 image data present' : 'No logo data'
+      });
+
       const updatedSettings = await storage.updateSettings(settingsData);
-      console.log("POST /api/settings - Configuración actualizada:", updatedSettings);
+      console.log("POST /api/settings - Configuración actualizada:", {
+        ...updatedSettings,
+        logo: updatedSettings.logo ? 'Base64 image data present' : 'No logo data'
+      });
+
       res.json(updatedSettings);
     } catch (error) {
       console.error("Error al actualizar configuración:", error);

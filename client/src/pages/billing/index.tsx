@@ -690,12 +690,12 @@ export default function Billing() {
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           invoice.status === "paid" ? "bg-green-100 text-green-800" :
-                          invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
+                            invoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-red-100 text-red-800"
                         }`}>
                           {invoice.status === "paid" ? "Pagada" :
-                           invoice.status === "pending" ? "Pendiente" :
-                           "Cancelada"}
+                            invoice.status === "pending" ? "Pendiente" :
+                              "Cancelada"}
                         </span>
                       </TableCell>
                       <TableCell>RD$ {parseFloat(invoice.total).toFixed(2)}</TableCell>
@@ -757,19 +757,19 @@ export default function Billing() {
                     <span className="font-medium">Estado: </span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       selectedInvoice.status === "paid" ? "bg-green-100 text-green-800" :
-                      selectedInvoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                      "bg-red-100 text-red-800"
+                        selectedInvoice.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                          "bg-red-100 text-red-800"
                     }`}>
                       {selectedInvoice.status === "paid" ? "Pagada" :
-                       selectedInvoice.status === "pending" ? "Pendiente" :
-                       "Cancelada"}
+                        selectedInvoice.status === "pending" ? "Pendiente" :
+                          "Cancelada"}
                     </span>
                   </div>
                   <div>
                     <span className="font-medium">Método de Pago: </span>
                     {selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
-                     selectedInvoice.paymentMethod === "credit" ? "Crédito" :
-                     "Tarjeta"}
+                      selectedInvoice.paymentMethod === "credit" ? "Crédito" :
+                        "Tarjeta"}
                   </div>
                   {selectedInvoice.notes && (
                     <div className="col-span-2 mt-2">
@@ -938,9 +938,10 @@ export default function Billing() {
                     <DialogContent>
                       <DialogHeader>
                         <DialogTitle>Cambiar Método de Pago</DialogTitle>
-                      </DialogHeader                      <div className="space-y-4">
+                      </DialogHeader>
+                      <div className="space-y-4">
                         <Select
-                          defaultValue={selectedInvoice.paymentMethod}
+                                                    defaultValue={selectedInvoice.paymentMethod}
                           onValueChange={(value) => handlePaymentMethodChange(selectedInvoice.id, value as 'cash' | 'credit' | 'card')}
                         >
                           <SelectTrigger>
@@ -951,9 +952,12 @@ export default function Billing() {
                             <SelectItem value="credit">Crédito</SelectItem>
                             <SelectItem value="card">Tarjeta</SelectItem>
                           </SelectContent>
-                        </Select>                        <p className="text-sm text-muted-foreground">                        Método de pago actual: {                          selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
-                          selectedInvoice.paymentMethod === "credit" ? "Crédito" :
-                            "Tarjeta"
+                        </Select>
+                        <p className="text-sm text-muted-foreground">
+                          Método de pago actual: {
+                            selectedInvoice.paymentMethod === "cash" ? "Efectivo" :
+                              selectedInvoice.paymentMethod === "credit" ? "Crédito" :
+                                "Tarjeta"
                           }
                         </p>
                       </div>

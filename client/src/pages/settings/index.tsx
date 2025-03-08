@@ -162,8 +162,12 @@ function Settings() {
                             <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-white">
                               <img
                                 src={`data:image/png;base64,${value}`}
-                                alt="Logo"
-                                className="w-full h-full object-contain"
+                                alt="Logo de la empresa"
+                                className="w-full h-full object-contain p-2"
+                                onError={(e) => {
+                                  console.error('Error loading logo');
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
                               />
                             </div>
                           )}
@@ -186,6 +190,7 @@ function Settings() {
                                 }
                               }}
                               {...field}
+                              className="flex-1"
                             />
                           )}
                         </div>

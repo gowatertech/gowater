@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, log } from "./vite";
 
 const app = express();
 app.use(express.json());
@@ -44,57 +44,36 @@ app.use((req, res, next) => {
     const server = await registerRoutes(app);
     log("Routes registered successfully");
 
+    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
       log(`Error handler caught: ${message}`);
       res.status(status).json({ message });
-      throw err;
     });
 
-    // Importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
+    // Configurar Vite en modo desarrollo
+    if (process.env.NODE_ENV !== "production") {
       log("Setting up Vite for development");
       await setupVite(app, server);
       log("Vite setup completed");
-    } else {
-      log("Setting up static file serving for production");
-      serveStatic(app);
     }
 
-    // Try to serve on port 5000, fall back to another port if needed
+    // Try to serve on port 5000
     const startServer = (port = 5000) => {
       log(`Attempting to start server on port ${port}`);
 
-      // First, try to close any existing server if it exists
-      if (server.listening) {
-        log(`Closing existing server instance`);
-        server.close();
+      try {
+        server.listen({
+          port,
+          host: "0.0.0.0",
+        }, () => {
+          log(`Server started successfully on port ${port}`);
+        });
+      } catch (error) {
+        log(`Failed to start server: ${error}`);
+        process.exit(1);
       }
-
-      server.listen({
-        port,
-        host: "0.0.0.0",
-      }, () => {
-        log(`Server started successfully on port ${port}`);
-      }).on('error', (err: any) => {
-        if (err.code === 'EADDRINUSE' && port < 5010) {
-          log(`Port ${port} is in use, trying ${port + 1}`);
-          startServer(port + 1);
-        } else {
-          log(`Error starting server: ${err.message}`);
-          // Try a random port as last resort
-          if (err.code === 'EADDRINUSE') {
-            const randomPort = Math.floor(Math.random() * 10000) + 10000;
-            log(`Trying random port ${randomPort}`);
-            startServer(randomPort);
-          } else {
-            throw err;
-          }
-        }
-      });
     };
 
     startServer();
