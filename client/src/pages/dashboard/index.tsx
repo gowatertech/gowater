@@ -23,17 +23,6 @@ interface SalesTrend {
   sales: number;
 }
 
-interface OrderStatus {
-  name: string;
-  value: number;
-  color: string;
-}
-
-interface TopCustomer {
-  name: string;
-  orders: number;
-}
-
 interface Order {
   id: number;
   status: string;
@@ -48,11 +37,17 @@ interface Product {
 
 // Colores para los gráficos circulares - Paleta moderna
 const COLORS = {
-  sales: "#6366f1",      // Índigo vibrante
-  orders: "#22c55e",     // Verde esmeralda
-  receivables: "#eab308", // Ámbar moderno
-  pending: "#f43f5e",    // Rosa vibrante
-  delivered: "#0ea5e9",  // Celeste brillante
+  panel: "#0088FE",      // Azul brillante
+  facturacion: "#00C49F", // Verde turquesa para facturación
+  pagos: "#00C49F",      // Verde turquesa para pagos
+  usuarios: "#0088FE",   // Azul brillante
+  clientes: "#00C49F",   // Verde turquesa
+  inventario: "#FFBB28", // Amarillo cálido
+  rutas: "#FF8042",      // Naranja
+  vehiculos: "#00C49F",  // Verde turquesa
+  pedidos: "#FFBB28",    // Amarillo
+  reportes: "#FF8042",   // Naranja
+  settings: "#8884d8",   // Púrpura para configuración
 };
 
 export default function Dashboard() {
@@ -67,14 +62,6 @@ export default function Dashboard() {
     queryKey: ["/api/stats/sales-trend"],
   });
 
-  const { data: orderStatus } = useQuery<OrderStatus[]>({
-    queryKey: ["/api/stats/order-status"],
-  });
-
-  const { data: topCustomers } = useQuery<TopCustomer[]>({
-    queryKey: ["/api/stats/top-customers"],
-  });
-
   const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
@@ -85,15 +72,15 @@ export default function Dashboard() {
 
   // Datos para el nuevo gráfico circular de métricas mensuales
   const monthlyMetricsData = salesStats?.monthlyStats ? [
-    { name: t("Ventas"), value: salesStats.monthlyStats.totalSales, color: COLORS.sales },
-    { name: t("Pedidos"), value: salesStats.monthlyStats.totalOrders, color: COLORS.orders },
-    { name: t("Cuentas por Cobrar"), value: salesStats.monthlyStats.totalReceivables, color: COLORS.receivables },
+    { name: t("Ventas"), value: salesStats.monthlyStats.totalSales, color: COLORS.pagos },
+    { name: t("Pedidos"), value: salesStats.monthlyStats.totalOrders, color: COLORS.pedidos },
+    { name: t("Cuentas por Cobrar"), value: salesStats.monthlyStats.totalReceivables, color: COLORS.facturacion }
   ] : [];
 
   // Datos para el gráfico circular de estado de pedidos
   const orderStatusData = salesStats?.orderStatus ? [
-    { name: t("Pendientes"), value: salesStats.orderStatus.pending, color: COLORS.pending },
-    { name: t("Entregados"), value: salesStats.orderStatus.delivered, color: COLORS.delivered },
+    { name: t("Pendientes"), value: salesStats.orderStatus.pending, color: COLORS.rutas },
+    { name: t("Entregados"), value: salesStats.orderStatus.delivered, color: COLORS.vehiculos }
   ] : [];
 
   // Calcular el total de inventario con tipado correcto
@@ -181,6 +168,7 @@ export default function Dashboard() {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
+                  label
                 >
                   {monthlyMetricsData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -193,7 +181,7 @@ export default function Dashboard() {
               {monthlyMetricsData.map((entry, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm">{entry.name}</span>
+                  <span className="text-sm">{entry.name}: RD$ {entry.value.toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -216,6 +204,7 @@ export default function Dashboard() {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
+                  label
                 >
                   {orderStatusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -250,9 +239,9 @@ export default function Dashboard() {
                 <Line
                   type="monotone"
                   dataKey="sales"
-                  stroke="#0088FE"
+                  stroke={COLORS.panel}
                   strokeWidth={2}
-                  dot={{ stroke: '#0088FE', strokeWidth: 2, r: 4 }}
+                  dot={{ stroke: COLORS.panel, strokeWidth: 2, r: 4 }}
                   activeDot={{ r: 6 }}
                 />
               </LineChart>
@@ -280,26 +269,8 @@ export default function Dashboard() {
         </Card>
 
         {/* Top Clientes */}
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>{t("Clientes Principales")}</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topCustomers ?? []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar
-                  dataKey="orders"
-                  fill="#0088FE"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        {/* Removed Top Customers section as per the edited code */}
+
       </div>
     </div>
   );
