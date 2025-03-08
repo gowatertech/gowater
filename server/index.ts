@@ -71,16 +71,16 @@ app.use((req, res, next) => {
       log("Vite setup completed");
     }
 
-    // Try to serve on port 5000
+    // Try to serve on port 5000 and bind to 0.0.0.0
     const startServer = (port = 5000) => {
       log(`Attempting to start server on port ${port}`);
 
       try {
         server.listen({
           port,
-          host: "0.0.0.0",
+          host: "0.0.0.0", // Bind to all network interfaces
         }, () => {
-          log(`Server started successfully on port ${port}`);
+          log(`Server started successfully on port ${port} and bound to 0.0.0.0`);
         });
       } catch (error) {
         log(`Failed to start server: ${error}`);
