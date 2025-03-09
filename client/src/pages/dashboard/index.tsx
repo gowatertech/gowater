@@ -114,11 +114,14 @@ export default function Dashboard() {
   };
 
   const renderCustomizedLabel = (props: any) => {
-    const { cx, cy, midAngle, outerRadius, percent, value, name } = props;
+    const { cx, cy, midAngle, outerRadius, value, name } = props;
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius * 1.4;
+    const radius = outerRadius * 1.6; // Aumentado el radio para las etiquetas
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    // Asegurar que el valor sea visible incluso si es 0
+    const displayValue = value === 0 ? "0" : formatCurrency(value);
 
     return (
       <text
@@ -129,7 +132,7 @@ export default function Dashboard() {
         dominantBaseline="central"
         className="text-[10px] font-medium"
       >
-        {`${name}: ${formatCurrency(value)}`}
+        {`${name}: ${displayValue}`}
       </text>
     );
   };
@@ -212,7 +215,7 @@ export default function Dashboard() {
           <CardHeader className="p-4">
             <CardTitle className="text-sm">{t("Distribución de Ventas")}</CardTitle>
           </CardHeader>
-          <CardContent className="h-[200px] p-2">
+          <CardContent className="h-[250px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -240,7 +243,7 @@ export default function Dashboard() {
           <CardHeader className="p-4">
             <CardTitle className="text-sm">{t("Estado de Pedidos")}</CardTitle>
           </CardHeader>
-          <CardContent className="h-[200px] p-2">
+          <CardContent className="h-[250px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -268,7 +271,7 @@ export default function Dashboard() {
           <CardHeader className="p-4">
             <CardTitle className="text-sm">{t("Pagos Realizados")}</CardTitle>
           </CardHeader>
-          <CardContent className="h-[200px] p-2">
+          <CardContent className="h-[250px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
