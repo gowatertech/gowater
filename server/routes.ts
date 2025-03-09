@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns } from "@shared/schema"; // Added bottleReturns import
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches } from "@shared/schema"; // Added bottleReturns and productionBatches imports
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -927,8 +927,68 @@ export async function registerRoutes(app: Express) {
       res.json(product);
     } catch (error) {
             console.error("Error al crear producto:", error);      res.status(500).json({ error: String(error) });
-        }
-      });
+    }
+  });
+
+  // Agregar el endpoint para lotes de producción después de la ruta de productos
+  app.post("/api/production-batches", async (req, res) => {
+    try {
+      console.log("POST /api/production-batches - Datos recibidos:", req.body);
+
+      const { productId, quantity, cost, warehouse, notes } = req.body;
+
+      // Validar los datos requeridos
+      if (!productId || !quantity || !cost) {
+        return res.status(400).json({ 
+          error: "Datos incompletos. Se requiere productId, quantity y cost" 
+        });
+      }
+
+      // Obtener el producto
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, productId));
+
+      if (!product) {
+        return res.status(404).json({ error: "Producto no encontrado" });
+      }
+
+      // Crear el lote de producción
+      const [batch] = await db
+        .insert(productionBatches)
+        .values({
+          productId,
+          quantity: Number(quantity),
+          cost: cost.toString(),
+          warehouse,
+          notes,
+          date: new Date(),
+          status: "completed"
+        })
+        .returning();
+
+      // Actualizar el stock del producto
+      const newStock = product.stock + Number(quantity);
+      await db
+        .update(products)
+        .set({ stock: newStock })
+        .where(eq(products.id, productId));
+
+      // Obtener el nombre del producto para la respuesta
+      const batchWithProduct = {
+        ...batch,
+        productName: product.name
+      };
+
+      console.log("POST /api/production-batches - Lote creado:", batchWithProduct);
+      res.json(batchWithProduct);
+
+    } catch (error) {
+      console.error("Error al crear lote de producción:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Pagos
   app.get("/api/payments", async (req, res) => {
