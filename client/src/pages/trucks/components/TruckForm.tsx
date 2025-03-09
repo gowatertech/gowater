@@ -57,15 +57,13 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const onSubmit = async (data: InsertTruck) => {
     try {
       const formData = {
-        brand: String(data.brand).trim(),
-        model: String(data.model).trim(),
+        brand: data.brand.trim(),
+        model: data.model.trim(),
         year: Number(data.year),
-        plate: String(data.plate).trim().toUpperCase(),
+        plate: data.plate.trim().toUpperCase(),
         capacity: Number(data.capacity),
         status: data.status
       };
-
-      console.log('Form data to be sent:', formData);
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
@@ -87,7 +85,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       onOpenChange(false);
       form.reset();
     } catch (error) {
-      console.error("Error al crear vehículo:", error);
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : "Error al crear el vehículo"
@@ -145,6 +142,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       max={new Date().getFullYear()}
                       placeholder="Ingrese el año"
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -160,7 +158,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <FormLabel>Placa</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Ingrese la placa" 
+                      placeholder="Ingrese la placa"
                       {...field}
                       onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                     />
@@ -182,6 +180,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       min={1}
                       placeholder="Ingrese la capacidad"
                       {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
