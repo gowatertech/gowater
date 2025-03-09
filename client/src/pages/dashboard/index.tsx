@@ -30,7 +30,6 @@ interface ChartData {
 export default function Dashboard() {
   const { t } = useTranslation();
 
-  // Obtener estadísticas del dashboard
   const { data: stats } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     queryFn: async () => {
@@ -85,70 +84,71 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">{t("Panel de Control")}</h1>
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">{t("Panel de Control")}</h1>
 
       {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        <Card className="col-span-2 sm:col-span-1">
+          <CardHeader className="space-y-0 p-3">
             <CardTitle className="text-sm font-medium">
               {t("Total Ventas")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+          <CardContent className="p-3">
+            <div className="text-lg font-bold text-blue-600">
               {formatCurrency(stats?.totalSales || 0)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="col-span-2 sm:col-span-1">
+          <CardHeader className="space-y-0 p-3">
             <CardTitle className="text-sm font-medium">
               {t("Cuentas por Cobrar")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">
+          <CardContent className="p-3">
+            <div className="text-lg font-bold text-emerald-600">
               {formatCurrency(stats?.pendingPayments || 0)}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="space-y-0 p-3">
             <CardTitle className="text-sm font-medium">
               {t("Pedidos Pendientes")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+          <CardContent className="p-3">
+            <div className="text-lg font-bold text-yellow-600">
               {stats?.pendingOrders || 0}
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="space-y-0 p-3">
             <CardTitle className="text-sm font-medium">
-              {t("Pedidos Entregados (Mes)")}
+              {t("Entregados (Mes)")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+          <CardContent className="p-3">
+            <div className="text-lg font-bold text-orange-600">
               {stats?.deliveredOrders || 0}
             </div>
           </CardContent>
         </Card>
+
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="space-y-0 p-3">
             <CardTitle className="text-sm font-medium">
-              {t("Pedidos Cancelados (Mes)")}
+              {t("Cancelados (Mes)")}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
+          <CardContent className="p-3">
+            <div className="text-lg font-bold text-red-600">
               {stats?.cancelledOrders || 0}
             </div>
           </CardContent>
@@ -156,20 +156,20 @@ export default function Dashboard() {
       </div>
 
       {/* Gráficos circulares */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>{t("Distribución de Ventas")}</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-sm">{t("Distribución de Ventas")}</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[200px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={salesData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={35}
+                  outerRadius={50}
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
@@ -187,22 +187,21 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>{t("Estado de Pedidos")}</CardTitle>
+          <CardHeader className="p-4">
+            <CardTitle className="text-sm">{t("Estado de Pedidos")}</CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[200px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={ordersData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
+                  innerRadius={35}
+                  outerRadius={50}
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
                 >
                   {ordersData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
