@@ -21,7 +21,6 @@ export const users = pgTable("users", {
   lastLocationUpdate: timestamp("last_location_update"),
 });
 
-// Schema para usuarios
 export const insertUserSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   username: z.string().min(1, "El nombre de usuario es requerido"),
@@ -238,6 +237,7 @@ export const orders = pgTable("orders", {
   cashCollected: decimal("cash_collected", { precision: 10, scale: 2 }).default("0.00"),
   driverCommission: decimal("driver_commission", { precision: 10, scale: 2 }).default("0.00"),
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).default("0.00"),
+  recurringOrderId: integer("recurring_order_id").references(() => recurringOrders.id),
 });
 
 export const orderItems = pgTable("order_items", {
@@ -284,7 +284,6 @@ export const bottleReturns = pgTable("bottle_returns", {
   status: text("status", { enum: ["pending", "complete", "incomplete"] }).notNull(),
   amountCharged: decimal("amount_charged", { precision: 10, scale: 2 }).default("0.00"),
   depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).default("0.00"),
-  // Nuevos campos para el sistema mixto de responsabilidad
   responsibleType: text("responsible_type", { enum: ["customer", "driver", "both"] }),
   customerPercentage: integer("customer_percentage"),
   driverPercentage: integer("driver_percentage"),
@@ -371,64 +370,9 @@ export const insertZoneSchema = z.object({
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
-// Type exports
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Product = typeof products.$inferSelect;
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Customer = typeof customers.$inferSelect;
-export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
-export type Truck = typeof trucks.$inferSelect;
-export type InsertTruck = z.infer<typeof insertTruckSchema>;
-export type Route = typeof routes.$inferSelect;
-export type InsertRoute = z.infer<typeof insertRouteSchema>;
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = z.infer<typeof insertOrderSchema>;
-export type OrderItem = typeof orderItems.$inferSelect;
-export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
-export type Zone = typeof zones.$inferSelect;
-export type InsertZone = z.infer<typeof insertZoneSchema>;
-export type BottleReturn = typeof bottleReturns.$inferSelect;
-export type InsertBottleReturn = z.infer<typeof insertBottleReturnSchema>;
-export type DriverCashBalance = typeof driverCashBalances.$inferSelect;
-export type InsertDriverCashBalance = z.infer<typeof insertDriverCashBalanceSchema>;
-export type Province = typeof provinces.$inferSelect;
-export type InsertProvince = z.infer<typeof insertProvinceSchema>;
-export type Municipality = typeof municipalities.$inferSelect;
-export type InsertMunicipality = z.infer<typeof insertMunicipalitySchema>;
-export type City = typeof cities.$inferSelect;
-export type InsertCity = z.infer<typeof insertCitySchema>;
-export type Sector = typeof sectors.$inferSelect;
-export type InsertSector = z.infer<typeof insertSectorSchema>;
-export type ReturnedBottle = typeof returnedBottles.$inferSelect;
-export type InsertReturnedBottle = z.infer<typeof insertReturnedBottleSchema>;
+// Recurring Orders - This section is already included above
+//export const recurringOrders = pgTable("recurring_orders", { ... });
 
-// Customer extended type with location details
-export type CustomerWithDetails = {
-  id: number;
-  logo: string | null;
-  rnc: string | null;
-  businessname: string;
-  managername: string;
-  phone: string;
-  email: string | null;
-  zoneid: number | null;
-  street: string;
-  streetnumber: string;
-  provinceid: number;
-  municipalityid: number;
-  reference: string | null;
-  creditlimit: string;
-  municipalityName?: string;
-  provinceName?: string;
-};
-
-// Driver location type
-export type DriverLocation = {
-  latitude: number;
-  longitude: number;
-  timestamp: Date;
-};
 
 // Production Batches
 export const productionBatches = pgTable("production_batches", {
@@ -449,10 +393,6 @@ export const insertProductionBatchSchema = z.object({
   warehouse: z.string(),
   notes: z.string().optional(),
 });
-
-export type ProductionBatch = typeof productionBatches.$inferSelect;
-export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
-
 
 // Company Settings
 export const settings = pgTable("settings", {
@@ -483,7 +423,6 @@ export const settingsRelations = relations(settings, ({ one }) => ({
   }),
 }));
 
-// Modificar el schema de settings para aceptar cualquier tipo de dato para el logo
 export const insertSettingsSchema = z.object({
   logo: z.any().optional(), // Permitir File o string
   name: z.string().min(1, "El nombre es requerido"),
@@ -498,10 +437,6 @@ export const insertSettingsSchema = z.object({
   currency: z.string().min(1, "La moneda es requerida"),
   tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales").default("0.00"),
 });
-
-export type Settings = typeof settings.$inferSelect;
-export type InsertSettings = z.infer<typeof insertSettingsSchema>;
-
 
 // Invoices (Facturas)
 export const invoices = pgTable("invoices", {
@@ -541,12 +476,6 @@ export const insertInvoiceItemSchema = z.object({
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
 });
 
-export type Invoice = typeof invoices.$inferSelect;
-export type InvoiceItem = typeof invoiceItems.$inferSelect;
-export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
-export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
-
-
 // Bills (Facturas)
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
@@ -585,11 +514,6 @@ export const insertBillItemSchema = z.object({
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
 });
 
-export type Bill = typeof bills.$inferSelect;
-export type BillItem = typeof billItems.$inferSelect;
-export type InsertBill = z.infer<typeof insertBillSchema>;
-export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
-
 // Payments
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
@@ -610,10 +534,6 @@ export const insertPaymentSchema = z.object({
   reference: z.string().optional(),
   notes: z.string().optional(),
 });
-
-export type Payment = typeof payments.$inferSelect;
-export type InsertPayment = z.infer<typeof insertPaymentSchema>;
-
 
 // Customer Orders
 export const customerOrders = pgTable("customer_orders", {
@@ -641,5 +561,79 @@ export const insertCustomerOrdersSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Type exports
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type Truck = typeof trucks.$inferSelect;
+export type InsertTruck = z.infer<typeof insertTruckSchema>;
+export type Route = typeof routes.$inferSelect;
+export type InsertRoute = z.infer<typeof insertRouteSchema>;
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type OrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type Zone = typeof zones.$inferSelect;
+export type InsertZone = z.infer<typeof insertZoneSchema>;
+export type BottleReturn = typeof bottleReturns.$inferSelect;
+export type InsertBottleReturn = z.infer<typeof insertBottleReturnSchema>;
+export type DriverCashBalance = typeof driverCashBalances.$inferSelect;
+export type InsertDriverCashBalance = z.infer<typeof insertDriverCashBalanceSchema>;
+export type Province = typeof provinces.$inferSelect;
+export type InsertProvince = z.infer<typeof insertProvinceSchema>;
+export type Municipality = typeof municipalities.$inferSelect;
+export type InsertMunicipality = z.infer<typeof insertMunicipalitySchema>;
+export type City = typeof cities.$inferSelect;
+export type InsertCity = z.infer<typeof insertCitySchema>;
+export type Sector = typeof sectors.$inferSelect;
+export type InsertSector = z.infer<typeof insertSectorSchema>;
+export type ReturnedBottle = typeof returnedBottles.$inferSelect;
+export type InsertReturnedBottle = z.infer<typeof insertReturnedBottleSchema>;
+export type RecurringOrder = typeof recurringOrders.$inferSelect;
+export type InsertRecurringOrder = z.infer<typeof insertRecurringOrderSchema>;
+export type Settings = typeof settings.$inferSelect;
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+export type Bill = typeof bills.$inferSelect;
+export type BillItem = typeof billItems.$inferSelect;
+export type InsertBill = z.infer<typeof insertBillSchema>;
+export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
+export type ProductionBatch = typeof productionBatches.$inferSelect;
+export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
+
+// Customer extended type with location details
+export type CustomerWithDetails = {
+  id: number;
+  logo: string | null;
+  rnc: string | null;
+  businessname: string;
+  managername: string;
+  phone: string;
+  email: string | null;
+  zoneid: number | null;
+  street: string;
+  streetnumber: string;
+  provinceid: number;
+  municipalityid: number;
+  reference: string | null;
+  creditlimit: string;
+  municipalityName?: string;
+  provinceName?: string;
+};
+
+// Driver location type
+export type DriverLocation = {
+  latitude: number;
+  longitude: number;
+  timestamp: Date;
+};
