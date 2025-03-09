@@ -606,14 +606,18 @@ export async function registerRoutes(app: Express) {
       const result = insertTruckSchema.safeParse(req.body);
       if (!result.success) {
         console.error("POST /api/trucks - Error de validación:", result.error.format());
-        return res.status(400).json({ error: result.error.format() });
+        return res.status(400).json({ error: "Datos de vehículo inválidos", details: result.error.format() });
       }
 
       console.log("POST /api/trucks - Datos validados:", result.data);
 
       const [truck] = await db
         .insert(trucks)
-        .values(result.data)
+        .values({
+          ...result.data,
+          year: Number(result.data.year),
+          capacity: Number(result.data.capacity),
+        })
         .returning();
 
       console.log("POST /api/trucks - Vehículo creado:", truck);

@@ -54,22 +54,22 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     }
   });
 
-  const onSubmit = async (data: InsertTruck) => {
+  const onSubmit = async (values: InsertTruck) => {
     try {
-      const formData = {
-        brand: data.brand.trim(),
-        model: data.model.trim(),
-        year: Number(data.year),
-        plate: data.plate.trim().toUpperCase(),
-        capacity: Number(data.capacity),
-        status: data.status
-      };
+      console.log("Enviando datos:", values);
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          brand: values.brand.trim(),
+          model: values.model.trim(),
+          year: Number(values.year),
+          plate: values.plate.trim().toUpperCase(),
+          capacity: Number(values.capacity),
+          status: values.status
+        })
       });
 
       if (!response.ok) {
@@ -85,6 +85,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       onOpenChange(false);
       form.reset();
     } catch (error) {
+      console.error("Error:", error);
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : "Error al crear el vehículo"
@@ -108,7 +109,10 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormItem>
                   <FormLabel>Marca</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ingrese la marca" {...field} />
+                    <Input 
+                      placeholder="Ingrese la marca" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -122,7 +126,10 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormItem>
                   <FormLabel>Modelo</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ingrese el modelo" {...field} />
+                    <Input 
+                      placeholder="Ingrese el modelo" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
