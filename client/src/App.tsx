@@ -18,10 +18,11 @@ import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
 import Trucks from "@/pages/trucks";
 
-// Nuevas páginas de envases
+// Páginas de envases
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
-import EnvasesFaltantes from "@/pages/envases/faltantes";
+import Faltantes from "@/pages/envases/faltantes";
+import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 
 // Import translations and I18nextProvider
 import { I18nextProvider } from "react-i18next";
@@ -29,7 +30,6 @@ import i18n from "./lib/i18n";
 
 function Router() {
   const [location] = useLocation();
-  console.log("Router - Current location:", location);
 
   return (
     <DashboardLayout>
@@ -49,10 +49,11 @@ function Router() {
         <Route path="/reports" component={Reports} />
         <Route path="/reports/:type" component={Reports} />
 
-        {/* Nuevas rutas para envases */}
+        {/* Rutas para envases */}
         <Route path="/envases/devolucion" component={DevolucionEnvases} />
         <Route path="/envases/balance" component={BalanceEnvases} />
-        <Route path="/envases/faltantes" component={EnvasesFaltantes} />
+        <Route path="/envases/faltantes" component={Faltantes} />
+        <Route path="/envases/asignar-responsabilidad" component={AsignarResponsabilidad} />
 
         <Route component={NotFound} />
       </Switch>

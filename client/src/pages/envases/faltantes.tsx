@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { type BottleReturn } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle, Plus } from "lucide-react";
 
 import {
   Table,
@@ -18,17 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription, 
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import FaltanteForm from "@/components/envases/FaltanteForm";
 
 interface BottleReturnWithDetails extends BottleReturn {
   customerName: string | null;
@@ -41,10 +33,11 @@ interface BottleReturnWithDetails extends BottleReturn {
 export default function Faltantes() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
+  const [showFaltanteForm, setShowFaltanteForm] = useState(false);
 
-  // Consulta para obtener los envases faltantes por cliente
+  // Queries existentes...
   const { data: faltantesPorCliente = [], isLoading: isLoadingClientes } = useQuery({
     queryKey: ["/api/envases/faltantes/clientes"],
     queryFn: async () => {
@@ -56,7 +49,6 @@ export default function Faltantes() {
     },
   });
 
-  // Consulta para obtener los envases faltantes por chofer
   const { data: faltantesPorChofer = [], isLoading: isLoadingChoferes } = useQuery({
     queryKey: ["/api/envases/faltantes/choferes"],
     queryFn: async () => {
@@ -68,23 +60,7 @@ export default function Faltantes() {
     },
   });
 
-  // Componente para el badge de tipo de detección
-  const DetectionTypeBadge = ({ type }: { type: 'automatic' | 'manual' }) => (
-    <Badge 
-      variant={type === 'automatic' ? 'warning' : 'default'}
-      className="flex items-center gap-1"
-    >
-      {type === 'automatic' ? (
-        <AlertTriangle className="w-3 h-3" />
-      ) : (
-        <AlertCircle className="w-3 h-3" />
-      )}
-      {t(type === 'automatic' ? 'Automático' : 'Manual')}
-    </Badge>
-  );
-
-
-  // Mutación para asignar responsabilidad
+  // Mutation existente...
   const asignarResponsabilidadMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/envases/faltantes/asignar", data);
@@ -96,33 +72,18 @@ export default function Faltantes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/envases/faltantes"] });
       toast({
-        title: t("Éxito"),
         description: t("La responsabilidad ha sido asignada correctamente"),
       });
       setDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
+        variant: "destructive",
         title: t("Error"),
         description: error.message,
-        variant: "destructive",
       });
     },
   });
-
-  const handleAssignResponsibility = (formData: any) => {
-    const data = {
-      bottleReturnId: selectedBottle?.id,
-      ...formData,
-      driverPercentage: formData.responsible === "both" ? 
-        (100 - parseInt(formData.customerPercentage)) : 
-        (formData.responsible === "driver" ? 100 : 0),
-      manuallyAssigned: true,
-      assignedAt: new Date().toISOString(),
-    };
-    console.log("Enviando datos:", data);
-    asignarResponsabilidadMutation.mutate(data);
-  };
 
   if (isLoadingClientes || isLoadingChoferes) {
     return <div className="p-4">{t("Cargando...")}</div>;
@@ -131,9 +92,24 @@ export default function Faltantes() {
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{t("Cobro de Envases Faltantes")}</h1>
+        <h1 className="text-2xl font-bold">{t("Envases Faltantes")}</h1>
+        <Button onClick={() => setShowFaltanteForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          {t("Registrar Faltante")}
+        </Button>
       </div>
 
+      {/* Diálogo para el formulario de faltantes */}
+      <Dialog open={showFaltanteForm} onOpenChange={setShowFaltanteForm}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{t("Registrar Faltante")}</DialogTitle>
+          </DialogHeader>
+          <FaltanteForm onCreated={() => setShowFaltanteForm(false)} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Resto del código existente... */}
       <Tabs defaultValue="clientes" className="space-y-4">
         <TabsList>
           <TabsTrigger value="clientes">{t("Por Cliente")}</TabsTrigger>
@@ -157,7 +133,7 @@ export default function Faltantes() {
                 </TableHeader>
                 <TableBody>
                   {faltantesPorCliente.map((bottle: BottleReturnWithDetails) => (
-                    <TableRow 
+                    <TableRow
                       key={bottle.id}
                       className={bottle.detectionType === 'automatic' ? 'bg-yellow-50' : ''}
                     >
@@ -170,8 +146,8 @@ export default function Faltantes() {
                         <DetectionTypeBadge type={bottle.detectionType} />
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => {
                             setSelectedBottle(bottle);
@@ -216,8 +192,8 @@ export default function Faltantes() {
                         <DetectionTypeBadge type={bottle.detectionType} />
                       </TableCell>
                       <TableCell>
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => {
                             setSelectedBottle(bottle);
@@ -235,7 +211,6 @@ export default function Faltantes() {
           </Card>
         </TabsContent>
       </Tabs>
-
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -276,8 +251,8 @@ export default function Faltantes() {
 
               <div className="space-y-2">
                 <Label>{t("Porcentaje Cliente (%)")}</Label>
-                <Input 
-                  type="number" 
+                <Input
+                  type="number"
                   name="customerPercentage"
                   defaultValue="100"
                   min="0"
@@ -306,7 +281,7 @@ export default function Faltantes() {
 
               <div className="space-y-2">
                 <Label>{t("Justificación")}</Label>
-                <Input 
+                <Input
                   name="justification"
                   placeholder={t("Razón del cargo")}
                   className="mt-2"
@@ -315,8 +290,8 @@ export default function Faltantes() {
 
               <div className="space-y-2">
                 <Label>{t("Monto a Cobrar")}</Label>
-                <Input 
-                  type="number" 
+                <Input
+                  type="number"
                   name="amountCharged"
                   defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
                   step="0.01"
@@ -325,7 +300,7 @@ export default function Faltantes() {
                 />
               </div>
 
-              <Button 
+              <Button
                 type="submit"
                 className="w-full"
                 disabled={asignarResponsabilidadMutation.isPending}
