@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems } from "@shared/schema";
 import { db } from './db';
 import { eq, and } from 'drizzle-orm';
 import express from 'express';
@@ -952,10 +952,25 @@ export async function registerRoutes(app: Express) {
         total: Number(req.body.total).toFixed(2)
       };
 
+      // Crear el pedido
       const [order] = await db
         .insert(orders)
         .values(orderData)
         .returning();
+
+      // Si hay items, crearlos
+      if (req.body.items && Array.isArray(req.body.items)) {
+        for (const item of req.body.items) {
+          await db
+            .insert(orderItems)
+            .values({
+              orderId: order.id,
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price
+            });
+        }
+      }
 
       console.log("POST /api/orders - Pedido creado:", order);
       res.json(order);
@@ -968,19 +983,22 @@ export async function registerRoutes(app: Express) {
   app.get("/api/orders/:id/items", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
+      console.log("Buscando items para el pedido:", orderId);
+
       const items = await db
         .select({
-          id: orders.id,
-          productId: products.id,
+          id: orderItems.id,
+          productId: orderItems.productId,
           productName: products.name,
-          quantity: orders.quantity,
-          price: products.price,
-          total: sql`${orders.quantity} * ${products.price}::numeric`
+          quantity: orderItems.quantity,
+          price: orderItems.price,
+          total: sql`${orderItems.quantity} * ${orderItems.price}::numeric`
         })
-        .from(orders)
-        .innerJoin(products, eq(orders.productId, products.id))
-        .where(eq(orders.id, orderId));
+        .from(orderItems)
+        .innerJoin(products, eq(orderItems.productId, products.id))
+        .where(eq(orderItems.orderId, orderId));
 
+      console.log("Items encontrados:", items);
       res.json(items);
     } catch (error) {
       console.error("Error al obtener items del pedido:", error);

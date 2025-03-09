@@ -82,11 +82,14 @@ export default function Orders() {
   });
 
   // Nueva consulta para obtener los items de un pedido específico
-  const { data: orderDetails = [] } = useQuery({
+  const { data: orderDetails = [], isLoading: isLoadingDetails } = useQuery({
     queryKey: ["/api/orders", selectedOrder?.id, "items"],
     queryFn: async () => {
       if (!selectedOrder) return [];
       const response = await apiRequest("GET", `/api/orders/${selectedOrder.id}/items`);
+      if (!response.ok) {
+        throw new Error('Error al cargar los items del pedido');
+      }
       return response.json();
     },
     enabled: !!selectedOrder,
@@ -497,32 +500,36 @@ export default function Orders() {
               {/* Items del pedido */}
               <Card className="p-4">
                 <h3 className="font-medium mb-2">Productos</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Producto</TableHead>
-                      <TableHead className="text-right">Cantidad</TableHead>
-                      <TableHead className="text-right">Precio</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orderDetails.map((item: any) => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          {products?.find(p => p.id === item.productId)?.name}
-                        </TableCell>
-                        <TableCell className="text-right">{item.quantity}</TableCell>
-                        <TableCell className="text-right">
-                          RD$ {parseFloat(item.price.toString()).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          RD$ {(item.quantity * parseFloat(item.price.toString())).toFixed(2)}
-                        </TableCell>
+                {isLoadingDetails ? (
+                  <div className="text-center p-4">Cargando productos...</div>
+                ) : orderDetails.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Producto</TableHead>
+                        <TableHead className="text-right">Cantidad</TableHead>
+                        <TableHead className="text-right">Precio</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {orderDetails.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.productName}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">
+                            RD$ {parseFloat(item.price.toString()).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            RD$ {parseFloat(item.total.toString()).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center p-4">No hay productos en este pedido</div>
+                )}
               </Card>
 
               {/* Totales */}
