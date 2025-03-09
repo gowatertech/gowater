@@ -601,16 +601,14 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/trucks", async (req, res) => {
     try {
-      const formData = {
-        brand: String(req.body.brand || '').trim(),
-        model: String(req.body.model || '').trim(),
+      const result = insertTruckSchema.safeParse({
+        brand: req.body.brand,
+        model: req.body.model,
         year: Number(req.body.year),
-        plate: String(req.body.plate || '').trim().toUpperCase(),
+        plate: req.body.plate,
         capacity: Number(req.body.capacity),
-        status: req.body.status || 'available'
-      };
-
-      const result = insertTruckSchema.safeParse(formData);
+        status: req.body.status || "available"
+      });
 
       if (!result.success) {
         return res.status(400).json({ error: "Error al validar los datos del vehículo" });

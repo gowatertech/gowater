@@ -47,7 +47,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     defaultValues: {
       brand: "",
       model: "",
-      year: 2024,
+      year: new Date().getFullYear(),
       plate: "",
       capacity: 1000,
       status: "available"
@@ -57,11 +57,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const onSubmit = async (data: InsertTruck) => {
     try {
       const formData = {
-        brand: data.brand.trim(),
-        model: data.model.trim(),
-        year: Number(data.year),
-        plate: data.plate.trim().toUpperCase(),
-        capacity: Number(data.capacity),
+        brand: data.brand,
+        model: data.model,
+        year: data.year,
+        plate: data.plate,
+        capacity: data.capacity,
         status: data.status
       };
 
@@ -72,8 +72,10 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         body: JSON.stringify(formData)
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        throw new Error("Error al crear el vehículo");
+        throw new Error(responseData.error || "Error al crear el vehículo");
       }
 
       toast({
@@ -86,7 +88,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     } catch (error) {
       toast({
         variant: "destructive",
-        description: "Error al crear el vehículo"
+        description: error instanceof Error ? error.message : "Error al crear el vehículo"
       });
     }
   };
@@ -141,7 +143,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       max={new Date().getFullYear()}
                       placeholder="Ingrese el año"
                       {...field}
-                      onChange={e => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -156,11 +157,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormItem>
                   <FormLabel>Placa</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Ingrese la placa"
-                      {...field}
-                      onChange={e => field.onChange(e.target.value.toUpperCase())}
-                    />
+                    <Input placeholder="Ingrese la placa" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -179,7 +176,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       min={1}
                       placeholder="Ingrese la capacidad"
                       {...field}
-                      onChange={e => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
