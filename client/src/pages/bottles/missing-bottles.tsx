@@ -35,7 +35,7 @@ interface BottleReturnWithDetails extends BottleReturn {
   orderStatus: string | null;
 }
 
-export default function MissingBottlesPage() {
+export default function MissingBottles() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);

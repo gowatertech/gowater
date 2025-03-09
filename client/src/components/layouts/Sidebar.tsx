@@ -70,11 +70,11 @@ const sidebarItems = [
   {
     icon: RefreshCcw,
     label: "Control de Envases",
-    href: "/envases",
+    href: "/bottles",
     subItems: [
-      { label: "Registrar Devolución", href: "/envases/devolucion" },
-      { label: "Balance de Envases", href: "/envases/balance" },
-      { label: "Cobrar Faltantes", href: "/envases/faltantes" },
+      { label: "Registrar Devolución", href: "/bottles/returns" },
+      { label: "Balance de Envases", href: "/bottles/balance" },
+      { label: "Cobrar Faltantes", href: "/bottles/missing" },
     ],
   },
   {
