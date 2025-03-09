@@ -122,12 +122,12 @@ export default function MissingBottles() {
                 </TableHeader>
                 <TableBody>
                   {customerMissingBottles.map((bottle) => (
-                    <TableRow key={bottle.id} className={bottle.automaticAlert ? "bg-yellow-50" : ""}>
+                    <TableRow key={bottle.id}>
                       <TableCell>{bottle.customerName}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
-                      <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
+                      <TableCell>${bottle.amountCharged?.toFixed(2)}</TableCell>
                       <TableCell>{bottle.daysElapsed}</TableCell>
-                      <TableCell>{t(bottle.status)}</TableCell>
+                      <TableCell>{t(bottle.status || "pending")}</TableCell>
                       <TableCell>
                         {bottle.automaticAlert ? t("automatic") : t("manual")}
                       </TableCell>
@@ -135,7 +135,10 @@ export default function MissingBottles() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => openDialog(bottle)}
+                          onClick={() => {
+                            setSelectedBottle(bottle);
+                            setIsDialogOpen(true);
+                          }}
                         >
                           {t("assignResponsibility")}
                         </Button>
@@ -166,13 +169,13 @@ export default function MissingBottles() {
                 </TableHeader>
                 <TableBody>
                   {driverMissingBottles.map((bottle) => (
-                    <TableRow key={bottle.id} className={bottle.automaticAlert ? "bg-yellow-50" : ""}>
+                    <TableRow key={bottle.id}>
                       <TableCell>{bottle.driverName}</TableCell>
                       <TableCell>#{bottle.orderId}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
-                      <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
+                      <TableCell>${bottle.amountCharged?.toFixed(2)}</TableCell>
                       <TableCell>{new Date(bottle.returnDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{t(bottle.status)}</TableCell>
+                      <TableCell>{t(bottle.status || "pending")}</TableCell>
                       <TableCell>
                         {bottle.automaticAlert ? t("automatic") : t("manual")}
                       </TableCell>
@@ -180,7 +183,10 @@ export default function MissingBottles() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => openDialog(bottle)}
+                          onClick={() => {
+                            setSelectedBottle(bottle);
+                            setIsDialogOpen(true);
+                          }}
                         >
                           {t("assignResponsibility")}
                         </Button>
@@ -194,101 +200,103 @@ export default function MissingBottles() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t("assignResponsibility")}</DialogTitle>
-            <DialogDescription>
-              {selectedBottle?.customerName && (
-                <p>{t("customer")}: {selectedBottle.customerName}</p>
-              )}
-              {selectedBottle?.driverName && (
-                <p>{t("driver")}: {selectedBottle.driverName}</p>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            handleAssignResponsibility(Object.fromEntries(formData));
-          }}>
-            <div className="space-y-4">
-              <div>
-                <Label>{t("responsibleParty")}</Label>
-                <RadioGroup defaultValue="customer" name="responsible" className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="customer" id="customer" />
-                    <Label htmlFor="customer">{t("customer")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="driver" id="driver" />
-                    <Label htmlFor="driver">{t("driver")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="both" id="both" />
-                    <Label htmlFor="both">{t("both")}</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+      {selectedBottle && (
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>{t("assignResponsibility")}</DialogTitle>
+              <DialogDescription>
+                {selectedBottle.customerName && (
+                  <p>{t("customer")}: {selectedBottle.customerName}</p>
+                )}
+                {selectedBottle.driverName && (
+                  <p>{t("driver")}: {selectedBottle.driverName}</p>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              handleAssignResponsibility(Object.fromEntries(formData));
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <Label>{t("responsibleParty")}</Label>
+                  <RadioGroup defaultValue="customer" name="responsible" className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="customer" id="customer" />
+                      <Label htmlFor="customer">{t("customer")}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="driver" id="driver" />
+                      <Label htmlFor="driver">{t("driver")}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="both" id="both" />
+                      <Label htmlFor="both">{t("both")}</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-              <div>
-                <Label>{t("customerPercentage")}</Label>
-                <Input 
-                  type="number" 
-                  name="customerPercentage"
-                  defaultValue="100"
-                  min="0"
-                  max="100"
-                />
-              </div>
+                <div>
+                  <Label>{t("customerPercentage")}</Label>
+                  <Input 
+                    type="number" 
+                    name="customerPercentage"
+                    defaultValue="100"
+                    min="0"
+                    max="100"
+                  />
+                </div>
 
-              <div>
-                <Label>{t("chargeMethod")}</Label>
-                <RadioGroup defaultValue="invoice" name="chargeMethod" className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="invoice" id="invoice" />
-                    <Label htmlFor="invoice">{t("invoice")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="commission" id="commission" />
-                    <Label htmlFor="commission">{t("deductFromCommission")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="cash" id="cash" />
-                    <Label htmlFor="cash">{t("cashPayment")}</Label>
-                  </div>
-                </RadioGroup>
-              </div>
+                <div>
+                  <Label>{t("chargeMethod")}</Label>
+                  <RadioGroup defaultValue="invoice" name="chargeMethod" className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="invoice" id="invoice" />
+                      <Label htmlFor="invoice">{t("invoice")}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="commission" id="commission" />
+                      <Label htmlFor="commission">{t("deductFromCommission")}</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="cash" id="cash" />
+                      <Label htmlFor="cash">{t("cashPayment")}</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
 
-              <div>
-                <Label>{t("justification")}</Label>
-                <Input 
-                  name="justification"
-                  placeholder={t("chargeReason")}
-                />
-              </div>
+                <div>
+                  <Label>{t("justification")}</Label>
+                  <Input 
+                    name="justification"
+                    placeholder={t("chargeReason")}
+                  />
+                </div>
 
-              <div>
-                <Label>{t("amountToCharge")}</Label>
-                <Input 
-                  type="number" 
-                  name="amountCharged"
-                  defaultValue={selectedBottle?.amountCharged}
-                  step="0.01"
-                />
-              </div>
+                <div>
+                  <Label>{t("amountToCharge")}</Label>
+                  <Input 
+                    type="number" 
+                    name="amountCharged"
+                    defaultValue={selectedBottle?.amountCharged}
+                    step="0.01"
+                  />
+                </div>
 
-              <Button 
-                type="submit"
-                disabled={assignResponsibilityMutation.isPending}
-                className="w-full"
-              >
-                {t("save")}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+                <Button 
+                  type="submit"
+                  disabled={assignResponsibilityMutation.isPending}
+                  className="w-full"
+                >
+                  {t("save")}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
