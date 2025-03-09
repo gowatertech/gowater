@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,11 +34,25 @@ export default function FaltanteForm({ onCreated }: FaltanteFormProps) {
   // Consulta para obtener clientes
   const { data: customers = [] } = useQuery({
     queryKey: ["/api/customers"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/customers");
+      if (!response.ok) {
+        throw new Error("Error al obtener clientes");
+      }
+      return response.json();
+    }
   });
 
   // Consulta para obtener productos
   const { data: products = [] } = useQuery({
     queryKey: ["/api/products"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/products");
+      if (!response.ok) {
+        throw new Error("Error al obtener productos");
+      }
+      return response.json();
+    }
   });
 
   const form = useForm({
@@ -53,8 +67,8 @@ export default function FaltanteForm({ onCreated }: FaltanteFormProps) {
     },
   });
 
-  const createFaltanteMutation = useMutation({
-    mutationFn: async (data: any) => {
+  const onSubmit = async (data: any) => {
+    try {
       const response = await apiRequest("POST", "/api/envases/faltantes", {
         ...data,
         customerId: Number(data.customerId),
@@ -70,30 +84,18 @@ export default function FaltanteForm({ onCreated }: FaltanteFormProps) {
         throw new Error(error.error || 'Error al registrar faltante');
       }
 
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/envases/faltantes"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/envases/faltantes"] });
       toast({
         description: t("Faltante registrado correctamente"),
       });
       form.reset();
       onCreated?.();
-    },
-    onError: (error: Error) => {
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: t("Error"),
         description: error.message,
       });
-    },
-  });
-
-  const onSubmit = async (data: any) => {
-    try {
-      await createFaltanteMutation.mutateAsync(data);
-    } catch (error) {
-      console.error("Error al enviar formulario:", error);
     }
   };
 
@@ -215,9 +217,8 @@ export default function FaltanteForm({ onCreated }: FaltanteFormProps) {
         <Button
           type="submit"
           className="w-full"
-          disabled={createFaltanteMutation.isPending}
         >
-          {createFaltanteMutation.isPending ? t("Guardando...") : t("Registrar Faltante")}
+          {t("Registrar Faltante")}
         </Button>
       </form>
     </Form>

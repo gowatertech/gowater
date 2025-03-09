@@ -1227,6 +1227,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/envases/faltantes", async (req, res) => {
+    try {
+      const faltanteData = {
+        ...req.body,
+        status: "incomplete",
+        createdAt: new Date(),
+      };
+
+      const [faltante] = await db
+        .insert(bottleReturns)
+        .values(faltanteData)
+        .returning();
+
+      res.json(faltante);
+    } catch (error) {
+      console.error("Error al crear faltante:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.post("/api/envases/faltantes/asignar", async (req, res) => {
     try {
       const {
