@@ -603,17 +603,19 @@ export async function registerRoutes(app: Express) {
     try {
       console.log("POST /api/trucks - Received data:", req.body);
 
-      // Convert the year and capacity to numbers before validation
+      // Convert the year and capacity to numbers explicitly
       const truckData = {
         brand: String(req.body.brand || '').trim(),
         model: String(req.body.model || '').trim(),
-        year: parseInt(req.body.year),
+        year: Number(req.body.year), // Using Number() instead of parseInt
         plate: String(req.body.plate || '').trim().toUpperCase(),
-        capacity: parseInt(req.body.capacity),
+        capacity: Number(req.body.capacity),
         status: req.body.status || 'available'
       };
 
       console.log("POST /api/trucks - Processed data:", truckData);
+      console.log("POST /api/trucks - Year type:", typeof truckData.year);
+      console.log("POST /api/trucks - Capacity type:", typeof truckData.capacity);
 
       const result = insertTruckSchema.safeParse(truckData);
 

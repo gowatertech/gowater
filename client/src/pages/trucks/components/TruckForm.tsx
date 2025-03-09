@@ -62,12 +62,14 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       setIsSubmitting(true);
       console.log("Submitting truck data:", values);
 
-      // Convert year to number explicitly before submission
+      // Convert year and capacity to numbers
       const submittedValues = {
-        ...values,
-        year: Number(values.year), // Convert year to number
+        brand: values.brand.trim(),
+        model: values.model.trim(),
+        year: Number(values.year),
+        plate: values.plate.trim().toUpperCase(),
         capacity: Number(values.capacity),
-        status: values.status || 'available'
+        status: values.status || "available"
       };
 
       console.log("Processed truck data for submission:", submittedValues);
@@ -159,23 +161,18 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Año</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(Number(value))} 
-                    defaultValue={String(field.value)}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione el año" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Array.from({ length: currentYear - 1989 }, (_, i) => currentYear - i).map((year) => (
-                        <SelectItem key={year} value={String(year)}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    type="number"
+                    min={1990}
+                    max={currentYear}
+                    {...field}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (!isNaN(value)) {
+                        field.onChange(value);
+                      }
+                    }}
+                  />
                   <FormMessage />
                 </FormItem>
               )}
@@ -212,7 +209,12 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       min={1}
                       placeholder="Ingrese la capacidad" 
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (!isNaN(value)) {
+                          field.onChange(value);
+                        }
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
