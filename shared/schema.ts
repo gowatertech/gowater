@@ -70,6 +70,30 @@ export const municipalities = pgTable("municipalities", {
   type: text("type", { enum: ["municipality", "district"] }).notNull(),
 });
 
+export const insertProvinceSchema = z.object({
+  name: z.string().min(1, "El nombre de la provincia es requerido"),
+  code: z.string().min(1, "El código de la provincia es requerido"),
+});
+
+export const insertMunicipalitySchema = z.object({
+  name: z.string().min(1, "El nombre del municipio es requerido"),
+  code: z.string().min(1, "El código del municipio es requerido"),
+  provinceId: z.number({ required_error: "El ID de la provincia es requerido" }),
+  type: z.enum(["municipality", "district"]),
+});
+
+// Relations
+export const provincesRelations = relations(provinces, ({ many }) => ({
+  municipalities: many(municipalities),
+}));
+
+export const municipalitiesRelations = relations(municipalities, ({ one }) => ({
+  province: one(provinces, {
+    fields: [municipalities.provinceId],
+    references: [provinces.id],
+  }),
+}));
+
 // Cities and Sectors
 export const cities = pgTable("cities", {
   id: serial("id").primaryKey(),
@@ -84,6 +108,19 @@ export const sectors = pgTable("sectors", {
   cityId: integer("city_id").notNull().references(() => cities.id),
   code: text("code").notNull().unique(),
 });
+
+export const insertCitySchema = z.object({
+  name: z.string().min(1, "El nombre de la ciudad es requerido"),
+  municipalityId: z.number({ required_error: "El ID del municipio es requerido" }),
+  code: z.string().min(1, "El código de la ciudad es requerido"),
+});
+
+export const insertSectorSchema = z.object({
+  name: z.string().min(1, "El nombre del sector es requerido"),
+  cityId: z.number({ required_error: "El ID de la ciudad es requerido" }),
+  code: z.string().min(1, "El código del sector es requerido"),
+});
+
 
 // Customers
 export const customers = pgTable("customers", {
@@ -101,6 +138,42 @@ export const customers = pgTable("customers", {
   municipalityid: integer("municipalityid").notNull().references(() => municipalities.id),
   reference: text("reference"),
   creditlimit: decimal("creditlimit", { precision: 10, scale: 2 }).notNull().default("0"),
+});
+
+export const insertCustomerSchema = z.object({
+  logo: z.any().optional(),
+  rnc: z.string().optional(),
+  businessname: z.string().min(1, "El nombre del negocio es requerido"),
+  managername: z.string().min(1, "El nombre del encargado es requerido"),
+  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  email: z.union([z.string().email("Correo electrónico inválido"), z.null()]).optional(),
+  zoneid: z.number().optional(),
+  street: z.string().min(1, "La calle es requerida"),
+  streetnumber: z.string().min(1, "El número es requerido"),
+  provinceid: z.number({ required_error: "La provincia es requerida" }),
+  municipalityid: z.number({ required_error: "El municipio es requerido" }),
+  reference: z.string().optional(),
+  creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+});
+
+// Trucks
+export const trucks = pgTable("trucks", {
+  id: serial("id").primaryKey(),
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  year: integer("year").notNull(),
+  plate: text("plate").notNull().unique(),
+  capacity: integer("capacity").notNull(),
+  status: text("status", { enum: ["available", "on_route", "maintenance"] }).notNull().default("available"),
+});
+
+export const insertTruckSchema = z.object({
+  brand: z.string().min(1, "Brand is required"),
+  model: z.string().min(1, "Model is required"),
+  year: z.number().min(1990, "Year must be greater than 1990"),
+  plate: z.string().min(1, "Plate is required"),
+  capacity: z.number().min(1, "Capacity must be greater than 0"),
+  status: z.enum(["available", "on_route", "maintenance"]).default("available"),
 });
 
 // Routes
@@ -127,6 +200,27 @@ export const routes = pgTable("routes", {
   stops: text("stops").array(),
 });
 
+export const insertRouteSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  driverId: z.number({ required_error: "Se requiere un conductor" }),
+  date: z.date(),
+  truckId: z.number().default(1),
+  zoneId: z.number({ required_error: "Se requiere una zona" }),
+  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+  isCompleted: z.boolean().default(false),
+  startTime: z.string().datetime().optional(),
+  endTime: z.string().datetime().optional(),
+  estimatedDuration: z.number().optional(),
+  actualDuration: z.number().optional(),
+  totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  deliverySequence: z.array(z.string()).optional(),
+  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+  lastUpdate: z.string().datetime().optional(),
+  driverStartedAt: z.string().datetime().optional(),
+  stops: z.array(z.string()).optional(),
+});
+
 // Orders
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
@@ -146,32 +240,6 @@ export const orders = pgTable("orders", {
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).default("0.00"),
 });
 
-// Sales Commissions
-export const salesCommissions = pgTable("sales_commissions", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull().references(() => orders.id),
-  employeeId: integer("employee_id").notNull().references(() => users.id),
-  employeeType: text("employee_type", { enum: ["driver", "assistant"] }).notNull(),
-  bottleQuantity: integer("bottle_quantity").notNull(),
-  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status", { enum: ["pending", "paid"] }).notNull().default("pending"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  paidAt: timestamp("paid_at"),
-});
-
-// Relations
-export const salesCommissionsRelations = relations(salesCommissions, ({ one }) => ({
-  order: one(orders, {
-    fields: [salesCommissions.orderId],
-    references: [orders.id],
-  }),
-  employee: one(users, {
-    fields: [salesCommissions.employeeId],
-    references: [users.id],
-  }),
-}));
-
-// Order Items
 export const orderItems = pgTable("order_items", {
   id: serial("id").primaryKey(),
   orderId: integer("order_id").notNull(),
@@ -180,143 +248,6 @@ export const orderItems = pgTable("order_items", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
 });
 
-// Bottle Returns
-export const bottleReturns = pgTable("bottle_returns", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").notNull().references(() => orders.id),
-  productId: integer("product_id").notNull().references(() => products.id),
-  expectedQuantity: integer("expected_quantity").notNull(),
-  returnedQuantity: integer("returned_quantity").notNull().default(0),
-  pendingQuantity: integer("pending_quantity").notNull().default(0),
-  returnDate: timestamp("return_date").notNull(),
-  status: text("status", { enum: ["pending", "complete", "incomplete"] }).notNull(),
-  amountCharged: decimal("amount_charged", { precision: 10, scale: 2 }).default("0.00"),
-  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).default("0.00"),
-  responsibleType: text("responsible_type", { enum: ["customer", "driver", "both"] }),
-  customerPercentage: integer("customer_percentage"),
-  driverPercentage: integer("driver_percentage"),
-  chargeMethod: text("charge_method", { enum: ["commission", "cash"] }),
-  justification: text("justification"),
-  lastCheckedAt: timestamp("last_checked_at"),
-  automaticAlert: boolean("automatic_alert").default(false),
-  manuallyAssigned: boolean("manually_assigned").default(false),
-  assignedBy: integer("assigned_by").references(() => users.id),
-  assignedAt: timestamp("assigned_at"),
-});
-
-// Driver Cash Balances
-export const driverCashBalances = pgTable("driver_cash_balances", {
-  id: serial("id").primaryKey(),
-  driverId: integer("driver_id").notNull().references(() => users.id),
-  date: timestamp("date").notNull().defaultNow(),
-  initialBalance: decimal("initial_balance", { precision: 10, scale: 2 }).default("0.00"),
-  cashIn: decimal("cash_in", { precision: 10, scale: 2 }).default("0.00"),
-  cashOut: decimal("cash_out", { precision: 10, scale: 2 }).default("0.00"),
-  finalBalance: decimal("final_balance", { precision: 10, scale: 2 }).default("0.00"),
-  notes: text("notes"),
-});
-
-// Returned Bottles
-export const returnedBottles = pgTable("returned_bottles", {
-  id: serial("id").primaryKey(),
-  orderId: integer("order_id").references(() => orders.id),
-  productId: integer("product_id").references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  returnDate: timestamp("return_date").notNull(),
-  notes: text("notes"),
-});
-
-// Zones
-export const zones = pgTable("zones", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  color: text("color").notNull(),
-  coordinates: text("coordinates").array().notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// Customer Orders
-export const customerOrders = pgTable("customer_orders", {
-  id: serial("id").primaryKey(),
-  customerId: integer("customer_id").notNull(),
-  orderType: text("order_type", { enum: ["regular", "wholesale", "special"] }).notNull(),
-  frequency: text("frequency", { enum: ["daily", "weekly", "monthly", "occasional"] }).notNull(),
-  lastOrderDate: timestamp("last_order_date"),
-  totalOrders: integer("total_orders").notNull().default(0),
-  averageOrderValue: decimal("average_order_value", { precision: 10, scale: 2 }).notNull().default("0"),
-  preferredPaymentMethod: text("preferred_payment_method", { enum: ["cash", "check", "credit_card"] }),
-  status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
-  notes: text("notes"),
-});
-
-// Trucks
-export const trucks = pgTable("trucks", {
-  id: serial("id").primaryKey(),
-  brand: text("brand").notNull(),
-  model: text("model").notNull(),
-  year: integer("year").notNull(),
-  plate: text("plate").notNull().unique(),
-  capacity: integer("capacity").notNull(),
-  status: text("status", { enum: ["available", "on_route", "maintenance"] }).notNull().default("available"),
-});
-
-// Invoices (Facturas)
-export const invoices = pgTable("invoices", {
-  id: serial("id").primaryKey(),
-  invoiceNumber: serial("invoice_number").unique(),
-  customerId: integer("customer_id").notNull().references(() => customers.id),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
-  date: timestamp("date").notNull().defaultNow(),
-  notes: text("notes"),
-});
-
-// Invoice Items (Items de Factura)
-export const invoiceItems = pgTable("invoice_items", {
-  id: serial("id").primaryKey(),
-  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
-  productId: integer("product_id").notNull().references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-});
-
-// Payments
-export const payments = pgTable("payments", {
-  id: serial("id").primaryKey(),
-  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
-  customerId: integer("customer_id").notNull().references(() => customers.id),
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
-  date: timestamp("date").notNull().defaultNow(),
-  reference: text("reference"), // Para pagos con tarjeta/crédito
-  notes: text("notes"),
-});
-
-// Bills (Facturas)
-export const bills = pgTable("bills", {
-  id: serial("id").primaryKey(),
-  billNumber: serial("bill_number").unique(),
-  customerId: integer("customer_id").notNull().references(() => customers.id),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-  status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
-  date: timestamp("date").notNull().defaultNow(),
-  notes: text("notes"),
-});
-
-// Bill Items (Items de Factura)
-export const billItems = pgTable("bill_items", {
-  id: serial("id").primaryKey(),
-  billId: integer("bill_id").notNull().references(() => bills.id),
-  productId: integer("product_id").notNull().references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-});
-
-// Validation Schemas
 export const insertOrderSchema = z.object({
   customerId: z.number(),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
@@ -341,74 +272,29 @@ export const insertOrderItemSchema = z.object({
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
 });
 
-export const insertProvinceSchema = z.object({
-  name: z.string().min(1, "El nombre de la provincia es requerido"),
-  code: z.string().min(1, "El código de la provincia es requerido"),
-});
-
-export const insertMunicipalitySchema = z.object({
-  name: z.string().min(1, "El nombre del municipio es requerido"),
-  code: z.string().min(1, "El código del municipio es requerido"),
-  provinceId: z.number({ required_error: "El ID de la provincia es requerido" }),
-  type: z.enum(["municipality", "district"]),
-});
-
-export const insertCitySchema = z.object({
-  name: z.string().min(1, "El nombre de la ciudad es requerido"),
-  municipalityId: z.number({ required_error: "El ID del municipio es requerido" }),
-  code: z.string().min(1, "El código de la ciudad es requerido"),
-});
-
-export const insertSectorSchema = z.object({
-  name: z.string().min(1, "El nombre del sector es requerido"),
-  cityId: z.number({ required_error: "El ID de la ciudad es requerido" }),
-  code: z.string().min(1, "El código del sector es requerido"),
-});
-
-export const insertCustomerSchema = z.object({
-  logo: z.any().optional(),
-  rnc: z.string().optional(),
-  businessname: z.string().min(1, "El nombre del negocio es requerido"),
-  managername: z.string().min(1, "El nombre del encargado es requerido"),
-  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  email: z.union([z.string().email("Correo electrónico inválido"), z.null()]).optional(),
-  zoneid: z.number().optional(),
-  street: z.string().min(1, "La calle es requerida"),
-  streetnumber: z.string().min(1, "El número es requerido"),
-  provinceid: z.number({ required_error: "La provincia es requerida" }),
-  municipalityid: z.number({ required_error: "El municipio es requerido" }),
-  reference: z.string().optional(),
-  creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-});
-
-export const insertTruckSchema = z.object({
-  brand: z.string().min(1, "Brand is required"),
-  model: z.string().min(1, "Model is required"),
-  year: z.number().min(1990, "Year must be greater than 1990"),
-  plate: z.string().min(1, "Plate is required"),
-  capacity: z.number().min(1, "Capacity must be greater than 0"),
-  status: z.enum(["available", "on_route", "maintenance"]).default("available"),
-});
-
-export const insertRouteSchema = z.object({
-  name: z.string().min(1, "El nombre es requerido"),
-  driverId: z.number({ required_error: "Se requiere un conductor" }),
-  date: z.date(),
-  truckId: z.number().default(1),
-  zoneId: z.number({ required_error: "Se requiere una zona" }),
-  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
-  isCompleted: z.boolean().default(false),
-  startTime: z.string().datetime().optional(),
-  endTime: z.string().datetime().optional(),
-  estimatedDuration: z.number().optional(),
-  actualDuration: z.number().optional(),
-  totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
-  totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
-  deliverySequence: z.array(z.string()).optional(),
-  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-  lastUpdate: z.string().datetime().optional(),
-  driverStartedAt: z.string().datetime().optional(),
-  stops: z.array(z.string()).optional(),
+// Bottle Returns
+export const bottleReturns = pgTable("bottle_returns", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  expectedQuantity: integer("expected_quantity").notNull(),
+  returnedQuantity: integer("returned_quantity").notNull().default(0),
+  pendingQuantity: integer("pending_quantity").notNull().default(0),
+  returnDate: timestamp("return_date").notNull(),
+  status: text("status", { enum: ["pending", "complete", "incomplete"] }).notNull(),
+  amountCharged: decimal("amount_charged", { precision: 10, scale: 2 }).default("0.00"),
+  depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).default("0.00"),
+  // Nuevos campos para el sistema mixto de responsabilidad
+  responsibleType: text("responsible_type", { enum: ["customer", "driver", "both"] }),
+  customerPercentage: integer("customer_percentage"),
+  driverPercentage: integer("driver_percentage"),
+  chargeMethod: text("charge_method", { enum: ["commission", "cash"] }),
+  justification: text("justification"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  automaticAlert: boolean("automatic_alert").default(false),
+  manuallyAssigned: boolean("manually_assigned").default(false),
+  assignedBy: integer("assigned_by").references(() => users.id),
+  assignedAt: timestamp("assigned_at"),
 });
 
 export const insertBottleReturnSchema = z.object({
@@ -430,6 +316,18 @@ export const insertBottleReturnSchema = z.object({
   manuallyAssigned: z.boolean().default(false),
 });
 
+// Driver Cash Balances
+export const driverCashBalances = pgTable("driver_cash_balances", {
+  id: serial("id").primaryKey(),
+  driverId: integer("driver_id").notNull().references(() => users.id),
+  date: timestamp("date").notNull().defaultNow(),
+  initialBalance: decimal("initial_balance", { precision: 10, scale: 2 }).default("0.00"),
+  cashIn: decimal("cash_in", { precision: 10, scale: 2 }).default("0.00"),
+  cashOut: decimal("cash_out", { precision: 10, scale: 2 }).default("0.00"),
+  finalBalance: decimal("final_balance", { precision: 10, scale: 2 }).default("0.00"),
+  notes: text("notes"),
+});
+
 export const insertDriverCashBalanceSchema = z.object({
   driverId: z.number(),
   date: z.string().datetime(),
@@ -440,81 +338,37 @@ export const insertDriverCashBalanceSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Returned Bottles
+export const returnedBottles = pgTable("returned_bottles", {
+    id: serial("id").primaryKey(),
+    orderId: integer("order_id").references(() => orders.id),
+    productId: integer("product_id").references(() => products.id),
+    quantity: integer("quantity").notNull(),
+    returnDate: timestamp("return_date").notNull(),
+    notes: text("notes"),
+});
+
 export const insertReturnedBottleSchema = z.object({
-  orderId: z.number().optional(),
-  productId: z.number().optional(),
-  quantity: z.number(),
-  returnDate: z.string().datetime(),
-  notes: z.string().optional(),
+    orderId: z.number().optional(),
+    productId: z.number().optional(),
+    quantity: z.number(),
+    returnDate: z.string().datetime(),
+    notes: z.string().optional(),
+});
+
+// Zones
+export const zones = pgTable("zones", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  color: text("color").notNull(),
+  coordinates: text("coordinates").array().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertZoneSchema = z.object({
   name: z.string().min(1, "El nombre de la zona es requerido"),
   color: z.string().min(1, "El color es requerido"),
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
-});
-
-export const insertCustomerOrdersSchema = z.object({
-  customerId: z.number(),
-  orderType: z.enum(["regular", "wholesale", "special"]),
-  frequency: z.enum(["daily", "weekly", "monthly", "occasional"]),
-  lastOrderDate: z.string().datetime().optional(),
-  totalOrders: z.number().default(0),
-  averageOrderValue: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-  preferredPaymentMethod: z.enum(["cash", "check", "credit_card"]).optional(),
-  status: z.enum(["active", "inactive"]).default("active"),
-  notes: z.string().optional(),
-});
-
-export const insertInvoiceSchema = z.object({
-  customerId: z.number(),
-  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
-  status: z.enum(["pending", "paid", "cancelled"]),
-  paymentMethod: z.enum(["cash", "credit", "card"]),
-  notes: z.string().max(200).optional(),
-  date: z.date(),
-});
-
-export const insertInvoiceItemSchema = z.object({
-  invoiceId: z.number(),
-  productId: z.number(),
-  quantity: z.number(),
-  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
-});
-
-export const insertBillSchema = z.object({
-  customerId: z.number(),
-  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
-  status: z.enum(["pending", "paid", "cancelled"]),
-  paymentMethod: z.enum(["cash", "credit", "card"]),
-  notes: z.string().max(200),
-  date: z.date(),
-});
-
-export const insertBillItemSchema = z.object({
-  billId: z.number(),
-  productId: z.number(),
-  quantity: z.number(),
-  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
-});
-
-export const insertPaymentSchema = z.object({
-  invoiceId: z.number(),
-  customerId: z.number(),
-  amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
-  paymentMethod: z.enum(["cash", "credit", "card"]),
-  reference: z.string().optional(),
-  notes: z.string().optional(),
-});
-
-export const insertSalesCommissionSchema = z.object({
-  orderId: z.number(),
-  employeeId: z.number(),
-  employeeType: z.enum(["driver", "assistant"]),
-  bottleQuantity: z.number(),
-  commissionAmount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
-  status: z.enum(["pending", "paid"]).default("pending"),
-  paidAt: z.string().datetime().optional(),
 });
 
 // Type exports
@@ -548,21 +402,8 @@ export type Sector = typeof sectors.$inferSelect;
 export type InsertSector = z.infer<typeof insertSectorSchema>;
 export type ReturnedBottle = typeof returnedBottles.$inferSelect;
 export type InsertReturnedBottle = z.infer<typeof insertReturnedBottleSchema>;
-export type CustomerOrder = typeof customerOrders.$inferSelect;
-export type InsertCustomerOrder = z.infer<typeof insertCustomerOrdersSchema>;
-export type SalesCommission = typeof salesCommissions.$inferSelect;
-export type InsertSalesCommission = z.infer<typeof insertSalesCommissionSchema>;
-export type Invoice = typeof invoices.$inferSelect;
-export type InvoiceItem = typeof invoiceItems.$inferSelect;
-export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
-export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
-export type Bill = typeof bills.$inferSelect;
-export type BillItem = typeof billItems.$inferSelect;
-export type InsertBill = z.infer<typeof insertBillSchema>;
-export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
-export type Payment = typeof payments.$inferSelect;
-export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
+// Customer extended type with location details
 export type CustomerWithDetails = {
   id: number;
   logo: string | null;
@@ -582,8 +423,223 @@ export type CustomerWithDetails = {
   provinceName?: string;
 };
 
+// Driver location type
 export type DriverLocation = {
   latitude: number;
   longitude: number;
   timestamp: Date;
 };
+
+// Production Batches
+export const productionBatches = pgTable("production_batches", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
+  warehouse: text("warehouse").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  notes: text("notes"),
+});
+
+export const insertProductionBatchSchema = z.object({
+  productId: z.number(),
+  quantity: z.number(),
+  cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
+  warehouse: z.string(),
+  notes: z.string().optional(),
+});
+
+export type ProductionBatch = typeof productionBatches.$inferSelect;
+export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
+
+
+// Company Settings
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  logo: text("logo"),
+  name: text("name").notNull(),
+  rnc: text("rnc"),
+  street: text("street").notNull(),
+  streetNumber: text("street_number").notNull(),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
+  contactPhone: text("contact_phone").notNull(),
+  email: text("email"),
+  country: text("country").notNull(),
+  currency: text("currency").notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).notNull().default("0.00"),
+});
+
+// Add relations
+export const settingsRelations = relations(settings, ({ one }) => ({
+  province: one(provinces, {
+    fields: [settings.provinceId],
+    references: [provinces.id],
+  }),
+  municipality: one(municipalities, {
+    fields: [settings.municipalityId],
+    references: [municipalities.id],
+  }),
+}));
+
+// Modificar el schema de settings para aceptar cualquier tipo de dato para el logo
+export const insertSettingsSchema = z.object({
+  logo: z.any().optional(), // Permitir File o string
+  name: z.string().min(1, "El nombre es requerido"),
+  rnc: z.string().nullable(),
+  street: z.string().min(1, "La calle es requerida"),
+  streetNumber: z.string().min(1, "El número es requerido"),
+  provinceId: z.number({ required_error: "La provincia es requerida" }),
+  municipalityId: z.number({ required_error: "El municipio es requerido" }),
+  contactPhone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  email: z.string().email("Correo electrónico inválido").nullable(),
+  country: z.string().min(1, "El país es requerido"),
+  currency: z.string().min(1, "La moneda es requerida"),
+  tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales").default("0.00"),
+});
+
+export type Settings = typeof settings.$inferSelect;
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+
+
+// Invoices (Facturas)
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: serial("invoice_number").unique(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  notes: text("notes"),
+});
+
+// Invoice Items (Items de Factura)
+export const invoiceItems = pgTable("invoice_items", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+});
+
+export const insertInvoiceSchema = z.object({
+  customerId: z.number(),
+  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  status: z.enum(["pending", "paid", "cancelled"]),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  notes: z.string().max(200).optional(),
+  date: z.date(),
+});
+
+export const insertInvoiceItemSchema = z.object({
+  invoiceId: z.number(),
+  productId: z.number(),
+  quantity: z.number(),
+  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+});
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+
+
+// Bills (Facturas)
+export const bills = pgTable("bills", {
+  id: serial("id").primaryKey(),
+  billNumber: serial("bill_number").unique(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+  status: text("status", { enum: ["pending", "paid", "cancelled"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  notes: text("notes").notNull(),
+});
+
+// Bill Items (Items de Factura)
+export const billItems = pgTable("bill_items", {
+  id: serial("id").primaryKey(),
+  billId: integer("bill_id").notNull().references(() => bills.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+});
+
+export const insertBillSchema = z.object({
+  customerId: z.number(),
+  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  status: z.enum(["pending", "paid", "cancelled"]),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  notes: z.string().max(200),
+  date: z.date(),
+});
+
+export const insertBillItemSchema = z.object({
+  billId: z.number(),
+  productId: z.number(),
+  quantity: z.number(),
+  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+});
+
+export type Bill = typeof bills.$inferSelect;
+export type BillItem = typeof billItems.$inferSelect;
+export type InsertBill = z.infer<typeof insertBillSchema>;
+export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
+
+// Payments
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  reference: text("reference"), // Para pagos con tarjeta/crédito
+  notes: text("notes"),
+});
+
+export const insertPaymentSchema = z.object({
+  invoiceId: z.number(),
+  customerId: z.number(),
+  amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  reference: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+
+// Customer Orders
+export const customerOrders = pgTable("customer_orders", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  orderType: text("order_type", { enum: ["regular", "wholesale", "special"] }).notNull(),
+  frequency: text("frequency", { enum: ["daily", "weekly", "monthly", "occasional"] }).notNull(),
+  lastOrderDate: timestamp("last_order_date"),
+  totalOrders: integer("total_orders").notNull().default(0),
+  averageOrderValue: decimal("average_order_value", { precision: 10, scale: 2 }).notNull().default("0"),
+  preferredPaymentMethod: text("preferred_payment_method", { enum: ["cash", "check", "credit_card"] }),
+  status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
+  notes: text("notes"),
+});
+
+export const insertCustomerOrdersSchema = z.object({
+  customerId: z.number(),
+  orderType: z.enum(["regular", "wholesale", "special"]),
+  frequency: z.enum(["daily", "weekly", "monthly", "occasional"]),
+  lastOrderDate: z.string().datetime().optional(),
+  totalOrders: z.number().default(0),
+  averageOrderValue: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  preferredPaymentMethod: z.enum(["cash", "check", "credit_card"]).optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
+  notes: z.string().optional(),
+});
+
+export type CustomerOrders = typeof customerOrders.$inferSelect;
+export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
