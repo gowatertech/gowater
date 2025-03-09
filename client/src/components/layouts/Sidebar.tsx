@@ -13,6 +13,7 @@ import {
   ChevronRight,
   BookOpen,
   LayoutDashboard,
+  BarChart2, // Added for reports icon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -59,7 +60,16 @@ const sidebarItems = [
   { icon: Route, label: "Rutas", href: "/routes" },
   { icon: Truck, label: "Vehículos", href: "/trucks" },
   { icon: FileText, label: "Pedidos", href: "/orders" },
-  { icon: FileText, label: "Reportes", href: "/reports" },
+  {
+    icon: BarChart2,
+    label: "Reportes",
+    href: "/reports",
+    subItems: [
+      { label: "Ventas", href: "/reports/sales" },
+      { label: "Operaciones", href: "/reports/operations" },
+      { label: "Clientes", href: "/reports/customers" },
+    ],
+  },
   { icon: Settings, label: "Configuración", href: "/settings" },
 ];
 
