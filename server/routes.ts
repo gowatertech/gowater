@@ -923,17 +923,18 @@ export async function registerRoutes(app: Express) {
         .values(productData)
         .returning();
 
-      console.log("POST /api/products - Producto creado:", product);      res.json(product);
+      console.log("POST /api/products - Producto creado:", product);      
+      res.json(product);
     } catch (error) {
-            console.error("Error al crear producto:", error);
-      res.status(500).json({ error: String(error) });
+            console.error("Error al crear producto:", error);      res.status(500).json({ error: String(error) });
     }
   });
 
   // Pagos
   app.get("/api/payments", async (req, res) => {
     try {
-      const allPayments = await db        .select({
+      const allPayments = await db        
+        .select({
           id: payments.id,
           invoiceId: payments.invoiceId,
           amount: payments.amount,
@@ -985,7 +986,8 @@ export async function registerRoutes(app: Express) {
           customerId: orders.customerId,
           total: orders.total,
           status: orders.status,
-          date: orders.date,          customerName: customers.businessname,
+          date: orders.date,          
+          customerName: customers.businessname,
           address: customers.street
         })
         .from(orders)
@@ -995,7 +997,8 @@ export async function registerRoutes(app: Express) {
       console.log("GET /api/orders - Retornando:", allOrders.length, "pedidos");
       res.json(allOrders);
     } catch (error) {
-      console.error("Error al obtener pedidos:", error);      res.status(500).json({ error: String(error) });
+      console.error("Error al obtener pedidos:", error);      
+      res.status(500).json({ error: String(error) });
     }
   });
 
@@ -1163,7 +1166,11 @@ export async function registerRoutes(app: Express) {
             c.businessname as customer_name,
             u.name as driver_name,
             o.status as order_status,
-            EXTRACT(DAY FROM NOW() - br.return_date)::integer as days_elapsed
+            EXTRACT(DAY FROM NOW() - br.return_date)::integer as days_elapsed,
+            CASE 
+              WHEN br.days_elapsed > 30 AND br.automatic_alert = true THEN 'automatic'
+              ELSE 'manual'
+            END as detection_type
           FROM bottle_returns br
           LEFT JOIN orders o ON br.order_id = o.id
           LEFT JOIN customers c ON o.customer_id = c.id
@@ -1189,7 +1196,11 @@ export async function registerRoutes(app: Express) {
             c.businessname as customer_name,
             u.name as driver_name,
             o.status as order_status,
-            EXTRACT(DAY FROM NOW() - br.return_date)::integer as days_elapsed
+            EXTRACT(DAY FROM NOW() - br.return_date)::integer as days_elapsed,
+            CASE 
+              WHEN br.days_elapsed > 30 AND br.automatic_alert = true THEN 'automatic'
+              ELSE 'manual'
+            END as detection_type
           FROM bottle_returns br
           LEFT JOIN orders o ON br.order_id = o.id
           LEFT JOIN customers c ON o.customer_id = c.id

@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { type BottleReturn } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 
 import {
   Table,
@@ -27,12 +28,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 
 interface BottleReturnWithDetails extends BottleReturn {
   customerName: string | null;
   driverName: string | null;
   daysElapsed: number;
   orderStatus: string | null;
+  detectionType: 'automatic' | 'manual';
 }
 
 export default function Faltantes() {
@@ -64,6 +67,22 @@ export default function Faltantes() {
       return response.json();
     },
   });
+
+  // Componente para el badge de tipo de detección
+  const DetectionTypeBadge = ({ type }: { type: 'automatic' | 'manual' }) => (
+    <Badge 
+      variant={type === 'automatic' ? 'warning' : 'default'}
+      className="flex items-center gap-1"
+    >
+      {type === 'automatic' ? (
+        <AlertTriangle className="w-3 h-3" />
+      ) : (
+        <AlertCircle className="w-3 h-3" />
+      )}
+      {t(type === 'automatic' ? 'Automático' : 'Manual')}
+    </Badge>
+  );
+
 
   // Mutación para asignar responsabilidad
   const asignarResponsabilidadMutation = useMutation({
@@ -132,17 +151,24 @@ export default function Faltantes() {
                     <TableHead>{t("Monto a Cobrar")}</TableHead>
                     <TableHead>{t("Días Transcurridos")}</TableHead>
                     <TableHead>{t("Estado")}</TableHead>
+                    <TableHead>{t("Tipo")}</TableHead>
                     <TableHead>{t("Acciones")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {faltantesPorCliente.map((bottle: BottleReturnWithDetails) => (
-                    <TableRow key={bottle.id}>
+                    <TableRow 
+                      key={bottle.id}
+                      className={bottle.detectionType === 'automatic' ? 'bg-yellow-50' : ''}
+                    >
                       <TableCell>{bottle.customerName}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
                       <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
                       <TableCell>{bottle.daysElapsed}</TableCell>
                       <TableCell>{bottle.status}</TableCell>
+                      <TableCell>
+                        <DetectionTypeBadge type={bottle.detectionType} />
+                      </TableCell>
                       <TableCell>
                         <Button 
                           variant="outline" 
@@ -174,17 +200,21 @@ export default function Faltantes() {
                     <TableHead>{t("Envases Faltantes")}</TableHead>
                     <TableHead>{t("Monto a Cobrar")}</TableHead>
                     <TableHead>{t("Fecha")}</TableHead>
+                    <TableHead>{t("Tipo")}</TableHead>
                     <TableHead>{t("Acciones")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {faltantesPorChofer.map((bottle: BottleReturnWithDetails) => (
-                    <TableRow key={bottle.id}>
+                    <TableRow key={bottle.id} className={bottle.detectionType === 'automatic' ? 'bg-yellow-50' : ''}>
                       <TableCell>{bottle.driverName}</TableCell>
                       <TableCell>#{bottle.orderId}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
                       <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
                       <TableCell>{new Date(bottle.returnDate).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <DetectionTypeBadge type={bottle.detectionType} />
+                      </TableCell>
                       <TableCell>
                         <Button 
                           variant="outline" 
