@@ -88,6 +88,11 @@ export default function MissingBottles() {
     },
   });
 
+  const openDialog = (bottle: BottleReturnWithDetails) => {
+    setSelectedBottle(bottle);
+    setIsDialogOpen(true);
+  };
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
@@ -130,10 +135,7 @@ export default function MissingBottles() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {
-                            setSelectedBottle(bottle);
-                            setIsDialogOpen(true);
-                          }}
+                          onClick={() => openDialog(bottle)}
                         >
                           {t("assignResponsibility")}
                         </Button>
@@ -178,10 +180,7 @@ export default function MissingBottles() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {
-                            setSelectedBottle(bottle);
-                            setIsDialogOpen(true);
-                          }}
+                          onClick={() => openDialog(bottle)}
                         >
                           {t("assignResponsibility")}
                         </Button>
@@ -196,7 +195,7 @@ export default function MissingBottles() {
       </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{t("assignResponsibility")}</DialogTitle>
             <DialogDescription>
@@ -216,7 +215,7 @@ export default function MissingBottles() {
             <div className="space-y-4">
               <div>
                 <Label>{t("responsibleParty")}</Label>
-                <RadioGroup defaultValue="customer" name="responsible">
+                <RadioGroup defaultValue="customer" name="responsible" className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="customer" id="customer" />
                     <Label htmlFor="customer">{t("customer")}</Label>
@@ -245,7 +244,7 @@ export default function MissingBottles() {
 
               <div>
                 <Label>{t("chargeMethod")}</Label>
-                <RadioGroup defaultValue="invoice" name="chargeMethod">
+                <RadioGroup defaultValue="invoice" name="chargeMethod" className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="invoice" id="invoice" />
                     <Label htmlFor="invoice">{t("invoice")}</Label>
@@ -274,13 +273,15 @@ export default function MissingBottles() {
                 <Input 
                   type="number" 
                   name="amountCharged"
-                  defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
+                  defaultValue={selectedBottle?.amountCharged}
+                  step="0.01"
                 />
               </div>
 
               <Button 
                 type="submit"
                 disabled={assignResponsibilityMutation.isPending}
+                className="w-full"
               >
                 {t("save")}
               </Button>
