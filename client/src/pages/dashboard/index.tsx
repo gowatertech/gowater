@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Label } from "recharts";
 import { apiRequest } from "@/lib/queryClient";
 
 // Colores consistentes para los gráficos
@@ -55,17 +55,17 @@ export default function Dashboard() {
   // Datos para el gráfico de ventas y cobros
   const salesData: ChartData[] = [
     {
-      name: "Ventas Totales",
+      name: "Ventas",
       value: stats?.totalSales || 0,
       color: COLORS.BLUE
     },
     {
-      name: "Cuentas por Cobrar",
+      name: "Por Cobrar",
       value: stats?.pendingPayments || 0,
       color: COLORS.TURQUOISE
     },
     {
-      name: "Total Pedidos",
+      name: "Pedidos",
       value: (stats?.pendingOrders || 0) + (stats?.deliveredOrders || 0) + (stats?.cancelledOrders || 0),
       color: COLORS.YELLOW
     }
@@ -74,17 +74,17 @@ export default function Dashboard() {
   // Datos para el gráfico de pedidos
   const ordersData: ChartData[] = [
     {
-      name: "Pedidos Entregados",
+      name: "Entregados",
       value: stats?.deliveredOrders || 0,
       color: COLORS.TURQUOISE
     },
     {
-      name: "Pedidos Pendientes",
+      name: "Pendientes",
       value: stats?.pendingOrders || 0,
       color: COLORS.ORANGE
     },
     {
-      name: "Pedidos Cancelados",
+      name: "Cancelados",
       value: stats?.cancelledOrders || 0,
       color: COLORS.RED
     }
@@ -93,12 +93,12 @@ export default function Dashboard() {
   // Datos para el gráfico de pagos
   const paymentsData: ChartData[] = [
     {
-      name: "Pagos del Año",
+      name: "Año",
       value: paymentStats?.yearlyPayments || 0,
       color: COLORS.BLUE
     },
     {
-      name: "Pagos del Mes",
+      name: "Mes",
       value: paymentStats?.monthlyPayments || 0,
       color: COLORS.PURPLE
     }
@@ -107,8 +107,31 @@ export default function Dashboard() {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
-      currency: 'DOP'
+      currency: 'DOP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(value);
+  };
+
+  const renderCustomizedLabel = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent, value, name } = props;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const radian = Math.PI / 180;
+    const x = cx + radius * Math.cos(-midAngle * radian);
+    const y = cy + radius * Math.sin(-midAngle * radian);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="text-[10px]"
+      >
+        {`${name}: ${formatCurrency(value)}`}
+      </text>
+    );
   };
 
   return (
@@ -201,14 +224,13 @@ export default function Dashboard() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
+                  label={renderCustomizedLabel}
+                  labelLine={false}
                 >
                   {salesData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  formatter={(value: number) => [formatCurrency(value), 'Valor']}
-                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -230,12 +252,13 @@ export default function Dashboard() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
+                  label={renderCustomizedLabel}
+                  labelLine={false}
                 >
                   {ordersData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -257,14 +280,13 @@ export default function Dashboard() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
+                  label={renderCustomizedLabel}
+                  labelLine={false}
                 >
                   {paymentsData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  formatter={(value: number) => [formatCurrency(value), 'Valor']}
-                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
