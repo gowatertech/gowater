@@ -63,9 +63,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         body: JSON.stringify({
           brand: data.brand.trim(),
           model: data.model.trim(),
-          year: Number(data.year),
+          year: data.year,
           plate: data.plate.trim().toUpperCase(),
-          capacity: Number(data.capacity),
+          capacity: data.capacity,
           status: data.status,
         }),
       });
@@ -139,7 +139,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       max={new Date().getFullYear()}
                       placeholder="Ingrese el año"
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -157,7 +156,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     <Input 
                       placeholder="Ingrese la placa"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -177,7 +175,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       min={1}
                       placeholder="Ingrese la capacidad"
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
