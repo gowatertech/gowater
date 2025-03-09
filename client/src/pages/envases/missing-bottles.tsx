@@ -35,13 +35,12 @@ interface BottleReturnWithDetails extends BottleReturn {
   orderStatus: string | null;
 }
 
-export default function EnvasesFaltantes() {
+export default function MissingBottlesPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Mutación para asignar responsabilidad
   const assignResponsibilityMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest("POST", "/api/missing-bottles/assign", data);
@@ -50,8 +49,8 @@ export default function EnvasesFaltantes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/missing-bottles"] });
       toast({
-        title: t("Éxito"),
-        description: t("La responsabilidad ha sido asignada correctamente"),
+        title: t("success"),
+        description: t("responsibilityAssigned"),
       });
       setDialogOpen(false);
     },
@@ -61,7 +60,6 @@ export default function EnvasesFaltantes() {
     const data = {
       bottleReturnId: selectedBottle?.id,
       ...formData,
-      // Si la responsabilidad es compartida, calcular el porcentaje del chofer
       driverPercentage: formData.responsible === "both" ? 
         (100 - parseInt(formData.customerPercentage)) : 
         (formData.responsible === "driver" ? 100 : 0),
@@ -72,8 +70,7 @@ export default function EnvasesFaltantes() {
     assignResponsibilityMutation.mutate(data);
   };
 
-  // Consulta para obtener los envases faltantes por cliente
-  const { data: missingBottlesByCustomer = [] } = useQuery<BottleReturnWithDetails[]>({
+  const { data: customerMissingBottles = [] } = useQuery<BottleReturnWithDetails[]>({
     queryKey: ["/api/missing-bottles/customers"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/missing-bottles/customers");
@@ -81,8 +78,7 @@ export default function EnvasesFaltantes() {
     },
   });
 
-  // Consulta para obtener los envases faltantes por chofer
-  const { data: missingBottlesByDriver = [] } = useQuery<BottleReturnWithDetails[]>({
+  const { data: driverMissingBottles = [] } = useQuery<BottleReturnWithDetails[]>({
     queryKey: ["/api/missing-bottles/drivers"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/missing-bottles/drivers");
@@ -93,13 +89,13 @@ export default function EnvasesFaltantes() {
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{t("Cobro de Envases Faltantes")}</h1>
+        <h1 className="text-2xl font-bold">{t("missingBottlesTitle")}</h1>
       </div>
 
       <Tabs defaultValue="customers" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="customers">{t("Por Cliente")}</TabsTrigger>
-          <TabsTrigger value="drivers">{t("Por Chofer")}</TabsTrigger>
+          <TabsTrigger value="customers">{t("byCustomer")}</TabsTrigger>
+          <TabsTrigger value="drivers">{t("byDriver")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="customers">
@@ -108,25 +104,25 @@ export default function EnvasesFaltantes() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("Cliente")}</TableHead>
-                    <TableHead>{t("Envases Faltantes")}</TableHead>
-                    <TableHead>{t("Monto a Cobrar")}</TableHead>
-                    <TableHead>{t("Días Transcurridos")}</TableHead>
-                    <TableHead>{t("Estado")}</TableHead>
-                    <TableHead>{t("Tipo Detección")}</TableHead>
-                    <TableHead>{t("Acciones")}</TableHead>
+                    <TableHead>{t("customer")}</TableHead>
+                    <TableHead>{t("missingBottles")}</TableHead>
+                    <TableHead>{t("amountToCharge")}</TableHead>
+                    <TableHead>{t("daysElapsed")}</TableHead>
+                    <TableHead>{t("status")}</TableHead>
+                    <TableHead>{t("detectionType")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {missingBottlesByCustomer.map((bottle) => (
+                  {customerMissingBottles.map((bottle) => (
                     <TableRow key={bottle.id} className={bottle.automaticAlert ? "bg-yellow-50" : ""}>
                       <TableCell>{bottle.customerName}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
                       <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
                       <TableCell>{bottle.daysElapsed}</TableCell>
-                      <TableCell>{bottle.status}</TableCell>
+                      <TableCell>{t(bottle.status)}</TableCell>
                       <TableCell>
-                        {bottle.automaticAlert ? t("Automático") : t("Manual")}
+                        {bottle.automaticAlert ? t("automatic") : t("manual")}
                       </TableCell>
                       <TableCell>
                         <Button 
@@ -137,7 +133,7 @@ export default function EnvasesFaltantes() {
                             setDialogOpen(true);
                           }}
                         >
-                          {t("Asignar Responsabilidad")}
+                          {t("assignResponsibility")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -154,27 +150,27 @@ export default function EnvasesFaltantes() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t("Chofer")}</TableHead>
-                    <TableHead>{t("Ruta")}</TableHead>
-                    <TableHead>{t("Envases Faltantes")}</TableHead>
-                    <TableHead>{t("Monto a Cobrar")}</TableHead>
-                    <TableHead>{t("Fecha")}</TableHead>
-                    <TableHead>{t("Estado")}</TableHead>
-                    <TableHead>{t("Tipo Detección")}</TableHead>
-                    <TableHead>{t("Acciones")}</TableHead>
+                    <TableHead>{t("driver")}</TableHead>
+                    <TableHead>{t("order")}</TableHead>
+                    <TableHead>{t("missingBottles")}</TableHead>
+                    <TableHead>{t("amountToCharge")}</TableHead>
+                    <TableHead>{t("date")}</TableHead>
+                    <TableHead>{t("status")}</TableHead>
+                    <TableHead>{t("detectionType")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {missingBottlesByDriver.map((bottle) => (
+                  {driverMissingBottles.map((bottle) => (
                     <TableRow key={bottle.id} className={bottle.automaticAlert ? "bg-yellow-50" : ""}>
                       <TableCell>{bottle.driverName}</TableCell>
                       <TableCell>#{bottle.orderId}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
                       <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
                       <TableCell>{new Date(bottle.returnDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{bottle.status}</TableCell>
+                      <TableCell>{t(bottle.status)}</TableCell>
                       <TableCell>
-                        {bottle.automaticAlert ? t("Automático") : t("Manual")}
+                        {bottle.automaticAlert ? t("automatic") : t("manual")}
                       </TableCell>
                       <TableCell>
                         <Button 
@@ -185,7 +181,7 @@ export default function EnvasesFaltantes() {
                             setDialogOpen(true);
                           }}
                         >
-                          {t("Asignar Responsabilidad")}
+                          {t("assignResponsibility")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -200,13 +196,13 @@ export default function EnvasesFaltantes() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("Asignar Responsabilidad")}</DialogTitle>
+            <DialogTitle>{t("assignResponsibility")}</DialogTitle>
             <DialogDescription>
               {selectedBottle?.customerName && (
-                <p>{t("Cliente")}: {selectedBottle.customerName}</p>
+                <p>{t("customer")}: {selectedBottle.customerName}</p>
               )}
               {selectedBottle?.driverName && (
-                <p>{t("Chofer")}: {selectedBottle.driverName}</p>
+                <p>{t("driver")}: {selectedBottle.driverName}</p>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -217,25 +213,25 @@ export default function EnvasesFaltantes() {
           }}>
             <div className="space-y-4">
               <div>
-                <Label>{t("Responsable")}</Label>
+                <Label>{t("responsibleParty")}</Label>
                 <RadioGroup defaultValue="customer" name="responsible">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="customer" id="customer" />
-                    <Label htmlFor="customer">{t("Cliente")}</Label>
+                    <Label htmlFor="customer">{t("customer")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="driver" id="driver" />
-                    <Label htmlFor="driver">{t("Chofer")}</Label>
+                    <Label htmlFor="driver">{t("driver")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="both" id="both" />
-                    <Label htmlFor="both">{t("Ambos")}</Label>
+                    <Label htmlFor="both">{t("both")}</Label>
                   </div>
                 </RadioGroup>
               </div>
 
               <div>
-                <Label>{t("Porcentaje Cliente (%)")}</Label>
+                <Label>{t("customerPercentage")}</Label>
                 <Input 
                   type="number" 
                   name="customerPercentage"
@@ -246,33 +242,33 @@ export default function EnvasesFaltantes() {
               </div>
 
               <div>
-                <Label>{t("Método de Cobro")}</Label>
+                <Label>{t("chargeMethod")}</Label>
                 <RadioGroup defaultValue="invoice" name="chargeMethod">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="invoice" id="invoice" />
-                    <Label htmlFor="invoice">{t("Factura")}</Label>
+                    <Label htmlFor="invoice">{t("invoice")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="commission" id="commission" />
-                    <Label htmlFor="commission">{t("Descontar de Comisión")}</Label>
+                    <Label htmlFor="commission">{t("deductFromCommission")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="cash" id="cash" />
-                    <Label htmlFor="cash">{t("Pago en Efectivo")}</Label>
+                    <Label htmlFor="cash">{t("cashPayment")}</Label>
                   </div>
                 </RadioGroup>
               </div>
 
               <div>
-                <Label>{t("Justificación")}</Label>
+                <Label>{t("justification")}</Label>
                 <Input 
                   name="justification"
-                  placeholder={t("Razón del cargo")}
+                  placeholder={t("chargeReason")}
                 />
               </div>
 
               <div>
-                <Label>{t("Monto a Cobrar")}</Label>
+                <Label>{t("amountToCharge")}</Label>
                 <Input 
                   type="number" 
                   name="amountCharged"
@@ -284,7 +280,7 @@ export default function EnvasesFaltantes() {
                 type="submit"
                 disabled={assignResponsibilityMutation.isPending}
               >
-                {t("Guardar")}
+                {t("save")}
               </Button>
             </div>
           </form>
