@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileBarChart, TrendingUp, Users } from "lucide-react";
 import SalesReports from "./components/SalesReports";
 import OperationsReports from "./components/OperationsReports";
 import CustomerReports from "./components/CustomerReports";
-import { FileBarChart, TrendingUp, Users } from "lucide-react";
 
 export default function Reports() {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("sales");
+  const [location] = useLocation();
+  const currentPath = location.split("/").pop() || "sales";
 
   const reportCategories = [
     {
@@ -32,6 +33,19 @@ export default function Reports() {
     },
   ];
 
+  const renderReport = () => {
+    switch (currentPath) {
+      case "sales":
+        return <SalesReports />;
+      case "operations":
+        return <OperationsReports />;
+      case "customers":
+        return <CustomerReports />;
+      default:
+        return <SalesReports />;
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
@@ -41,20 +55,21 @@ export default function Reports() {
       <div className="grid md:grid-cols-3 gap-4">
         {reportCategories.map((category) => {
           const Icon = category.icon;
+          const isActive = currentPath === category.id;
           return (
             <Card
               key={category.id}
               className={`p-4 cursor-pointer transition-all ${
-                activeTab === category.id
+                isActive
                   ? "border-primary/50 shadow-md"
                   : "hover:border-primary/30"
               }`}
-              onClick={() => setActiveTab(category.id)}
+              onClick={() => window.location.href = `/reports/${category.id}`}
             >
               <div className="flex items-start gap-4">
                 <div
                   className={`p-2 rounded-lg ${
-                    activeTab === category.id
+                    isActive
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
                   }`}
@@ -73,17 +88,9 @@ export default function Reports() {
         })}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsContent value="sales" className="space-y-4">
-          <SalesReports />
-        </TabsContent>
-        <TabsContent value="operations" className="space-y-4">
-          <OperationsReports />
-        </TabsContent>
-        <TabsContent value="customers" className="space-y-4">
-          <CustomerReports />
-        </TabsContent>
-      </Tabs>
+      <div className="mt-6">
+        {renderReport()}
+      </div>
     </div>
   );
 }
