@@ -10,7 +10,8 @@ const COLORS = {
   TURQUOISE: "#00C49F",
   YELLOW: "#FFBB28",
   ORANGE: "#FF8042",
-  RED: "#FF0000"
+  RED: "#FF0000",
+  PURPLE: "#8884d8"
 };
 
 interface DashboardStats {
@@ -19,6 +20,11 @@ interface DashboardStats {
   pendingOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+}
+
+interface PaymentStats {
+  yearlyPayments: number;
+  monthlyPayments: number;
 }
 
 interface ChartData {
@@ -34,6 +40,14 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/stats"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/dashboard/stats");
+      return response.json();
+    }
+  });
+
+  const { data: paymentStats } = useQuery<PaymentStats>({
+    queryKey: ["/api/dashboard/payments-stats"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/dashboard/payments-stats");
       return response.json();
     }
   });
@@ -73,6 +87,20 @@ export default function Dashboard() {
       name: "Pedidos Cancelados",
       value: stats?.cancelledOrders || 0,
       color: COLORS.RED
+    }
+  ];
+
+  // Datos para el gráfico de pagos
+  const paymentsData: ChartData[] = [
+    {
+      name: "Pagos del Año",
+      value: paymentStats?.yearlyPayments || 0,
+      color: COLORS.BLUE
+    },
+    {
+      name: "Pagos del Mes",
+      value: paymentStats?.monthlyPayments || 0,
+      color: COLORS.PURPLE
     }
   ];
 
@@ -156,7 +184,7 @@ export default function Dashboard() {
       </div>
 
       {/* Gráficos circulares */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="p-4">
             <CardTitle className="text-sm">{t("Distribución de Ventas")}</CardTitle>
@@ -208,6 +236,35 @@ export default function Dashboard() {
                   ))}
                 </Pie>
                 <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="p-4">
+            <CardTitle className="text-sm">{t("Pagos Realizados")}</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[200px] p-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={paymentsData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={35}
+                  outerRadius={50}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {paymentsData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => [formatCurrency(value), 'Valor']}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>

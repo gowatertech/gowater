@@ -583,6 +583,46 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Agregar el nuevo endpoint después de /api/dashboard/stats
+  app.get("/api/dashboard/payments-stats", async (req, res) => {
+    try {
+      // Obtener el año actual y mes
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+
+      // Consulta para obtener el total de pagos del año
+      const yearlyPayments = await db
+        .select({
+          total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
+        })
+        .from(payments)
+        .where(sql`EXTRACT(YEAR FROM date) = ${currentYear}`);
+
+      // Consulta para obtener el total de pagos del mes actual
+      const monthlyPayments = await db
+        .select({
+          total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
+        })
+        .from(payments)
+        .where(
+          and(
+            sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
+            sql`EXTRACT(MONTH FROM date) = ${currentMonth}`
+          )
+        );
+
+      const stats = {
+        yearlyPayments: yearlyPayments[0]?.total || 0,
+        monthlyPayments: monthlyPayments[0]?.total || 0,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error al obtener estadísticas de pagos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.get("/api/stats/sales", async (req, res) => {
     try {
       // Obtener el total de ventas de las facturas
