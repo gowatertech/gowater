@@ -69,10 +69,10 @@ export default function SalesReports() {
   ];
 
   return (
-    <div className="space-y-1">
-      <div className="flex justify-end mb-1">
+    <div className="space-y-2">
+      <div className="flex justify-end mb-2">
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-[100px] h-6 text-xs">
+          <SelectTrigger className="w-[100px] h-7 text-xs">
             <SelectValue placeholder="Período" />
           </SelectTrigger>
           <SelectContent>
@@ -87,11 +87,11 @@ export default function SalesReports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
         {/* Gráfico de Ventas vs Tiempo */}
-        <Card className="p-0.5">
-          <h3 className="text-[10px] font-medium mb-0.5 px-0.5">
+        <Card className="p-2">
+          <h3 className="text-[11px] font-medium mb-1 px-0.5">
             {t("Tendencia de Ventas")}
           </h3>
-          <div className="h-[100px]">
+          <div className="h-[180px]">
             {isLoadingSales ? (
               <div className="h-full flex items-center justify-center text-[10px]">
                 Cargando datos...
@@ -128,11 +128,11 @@ export default function SalesReports() {
         </Card>
 
         {/* Gráfico de Pagos vs Tiempo */}
-        <Card className="p-0.5">
-          <h3 className="text-[10px] font-medium mb-0.5 px-0.5">
+        <Card className="p-2">
+          <h3 className="text-[11px] font-medium mb-1 px-0.5">
             {t("Estado de Pagos")}
           </h3>
-          <div className="h-[100px]">
+          <div className="h-[180px]">
             {isLoadingPayments ? (
               <div className="h-full flex items-center justify-center text-[10px]">
                 Cargando datos...

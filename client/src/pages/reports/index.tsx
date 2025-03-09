@@ -50,8 +50,8 @@ export default function Reports() {
   };
 
   return (
-    <div className="space-y-1 p-1">
-      <div className="flex justify-between items-center mb-1">
+    <div className="space-y-2 p-1">
+      <div className="flex justify-between items-center mb-2">
         <h1 className="text-lg font-bold">{t("Reportes")}</h1>
       </div>
 
@@ -62,7 +62,7 @@ export default function Reports() {
           return (
             <Card
               key={category.id}
-              className={`py-0.5 px-1 cursor-pointer transition-all ${
+              className={`py-1.5 px-2 cursor-pointer transition-all ${
                 isActive
                   ? "border-primary/50 shadow-md"
                   : "hover:border-primary/30"
@@ -71,7 +71,7 @@ export default function Reports() {
             >
               <div className="flex items-start gap-1">
                 <div
-                  className={`p-0.5 rounded-lg ${
+                  className={`p-1 rounded-lg ${
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
@@ -92,7 +92,7 @@ export default function Reports() {
         })}
       </div>
 
-      <div className="mt-1">
+      <div className="mt-2">
         {renderReport()}
       </div>
     </div>
