@@ -58,13 +58,25 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
   const onSubmit = async (data: InsertTruck) => {
     try {
-      console.log("Enviando datos:", data); 
+      console.log("Enviando datos al servidor:", data);
       const response = await apiRequest("POST", "/api/trucks", {
-        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          brand: data.brand,
+          model: data.model,
+          year: Number(data.year),
+          plate: data.plate,
+          capacity: Number(data.capacity),
+          status: data.status
+        })
       });
 
       if (!response.ok) {
-        throw new Error("Error al registrar el vehículo");
+        const errorData = await response.json();
+        console.error("Error del servidor:", errorData);
+        throw new Error(errorData.error || "Error al registrar el vehículo");
       }
 
       toast({
@@ -75,7 +87,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       onOpenChange(false);
       form.reset();
     } catch (error) {
-      console.error("Error al registrar:", error); 
+      console.error("Error al registrar vehículo:", error);
       toast({
         variant: "destructive",
         description: String(error),
