@@ -57,11 +57,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const onSubmit = async (data: InsertTruck) => {
     try {
       const formData = {
-        brand: data.brand,
-        model: data.model,
-        year: data.year,
-        plate: data.plate,
-        capacity: data.capacity,
+        brand: data.brand.trim(),
+        model: data.model.trim(),
+        year: Number(data.year),
+        plate: data.plate.trim().toUpperCase(),
+        capacity: Number(data.capacity),
         status: data.status
       };
 
@@ -72,10 +72,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         body: JSON.stringify(formData)
       });
 
-      const responseData = await response.json();
-
+      const result = await response.json();
       if (!response.ok) {
-        throw new Error(responseData.error || "Error al crear el vehículo");
+        throw new Error(result.error || "Error al crear el vehículo");
       }
 
       toast({
@@ -133,7 +132,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
             <FormField
               control={form.control}
               name="year"
-              render={({ field }) => (
+              render={({ field: { onChange, ...field } }) => (
                 <FormItem>
                   <FormLabel>Año</FormLabel>
                   <FormControl>
@@ -143,6 +142,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       max={new Date().getFullYear()}
                       placeholder="Ingrese el año"
                       {...field}
+                      onChange={(e) => onChange(parseInt(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -167,7 +167,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
             <FormField
               control={form.control}
               name="capacity"
-              render={({ field }) => (
+              render={({ field: { onChange, ...field } }) => (
                 <FormItem>
                   <FormLabel>Capacidad (L)</FormLabel>
                   <FormControl>
@@ -176,6 +176,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       min={1}
                       placeholder="Ingrese la capacidad"
                       {...field}
+                      onChange={(e) => onChange(parseInt(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
