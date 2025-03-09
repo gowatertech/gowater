@@ -62,21 +62,32 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       setIsSubmitting(true);
       console.log("Submitting truck data:", values);
 
+      //Explicit type conversion before submission
+      const submittedValues = {
+        ...values,
+        year: parseInt(String(values.year), 10), //Added String() for safety
+        capacity: parseInt(String(values.capacity), 10), //Added String() for safety
+        status: values.status || 'available'
+      };
+
+      console.log("Processed truck data for submission:", submittedValues);
+
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          ...values,
-          year: Number(values.year),
-          capacity: Number(values.capacity)
-        })
+        body: JSON.stringify(submittedValues)
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Error al crear el vehículo");
+        //More specific error handling
+        if (data.error && data.error.details) {
+          throw new Error(data.error.details.join('\n'));
+        } else {
+          throw new Error(data.error || "Error al crear el vehículo");
+        }
       }
 
       toast({
@@ -89,9 +100,10 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       form.reset();
     } catch (error) {
       console.error("Error creating truck:", error);
+      //Improved error message for the user
       toast({
         variant: "destructive",
-        description: error instanceof Error ? error.message : "Error al crear el vehículo",
+        description: error instanceof Error ? error.message : "Error al crear el vehículo. Por favor, revisa los datos ingresados.",
         duration: 5000,
       });
     } finally {
@@ -149,22 +161,20 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Año</FormLabel>
-                  <FormControl>
-                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccione el año" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Array.from({ length: currentYear - 1989 }, (_, i) => currentYear - i).map((year) => (
-                          <SelectItem key={year} value={String(year)}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione el año" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {Array.from({ length: currentYear - 1989 }, (_, i) => currentYear - i).map((year) => (
+                        <SelectItem key={year} value={String(year)}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

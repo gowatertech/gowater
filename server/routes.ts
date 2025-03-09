@@ -625,6 +625,8 @@ export async function registerRoutes(app: Express) {
         });
       }
 
+      console.log("POST /api/trucks - Validation successful, inserting into database:", result.data);
+
       const [truck] = await db
         .insert(trucks)
         .values(result.data)
