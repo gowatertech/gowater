@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import { LatLngExpression } from 'leaflet';
-import { Check, Navigation2, RefreshCcw } from "lucide-react";
+import { Check, Navigation2, RefreshCcw, Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +11,8 @@ import { useQuery } from "@tanstack/react-query";
 import RecurringOrderManager from "@/components/orders/RecurringOrderManager";
 import 'leaflet/dist/leaflet.css';
 import "@/styles/map-responsive.css";
+import { PrinterManager } from "@/components/printer/PrinterManager";
+import { PrintableReceipt } from "@/components/printer/PrintableReceipt";
 
 // Ejemplo de datos - esto vendrá de la API
 interface Delivery {
@@ -30,6 +32,7 @@ export default function DriverView() {
   const { toast } = useToast();
   const [selectedDelivery, setSelectedDelivery] = useState<number | null>(null);
   const [currentLocation, setCurrentLocation] = useState<[number, number]>([18.4955, -69.8734]);
+  const [printer, setPrinter] = useState<any>(null);
 
   // Obtener las entregas del día
   const { data: deliveries = [], refetch } = useQuery<Delivery[]>({
@@ -105,14 +108,31 @@ export default function DriverView() {
     }
   };
 
+  const handlePrint = async (delivery: Delivery) => {
+    if (!printer) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Por favor conecte una impresora primero",
+      });
+      return;
+    }
+
+    const { printReceipt } = PrintableReceipt({ delivery, printer });
+    await printReceipt();
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">{t("todaysDeliveries")}</h2>
-        <Button variant="outline" onClick={() => refetch()}>
-          <RefreshCcw className="w-4 h-4 mr-2" />
-          {t("refresh")}
-        </Button>
+        <div className="flex gap-2">
+          <PrinterManager onPrinterReady={setPrinter} />
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCcw className="w-4 h-4 mr-2" />
+            {t("refresh")}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -151,6 +171,13 @@ export default function DriverView() {
                       </Button>
                       <Button
                         size="sm"
+                        variant="outline"
+                        onClick={() => handlePrint(delivery)}
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="default"
                         onClick={() => handleComplete(delivery.id)}
                         disabled={delivery.status === 'completed'}
@@ -182,8 +209,8 @@ export default function DriverView() {
             {/* Marcadores de entregas */}
             {deliveries.map((delivery) => (
               delivery.id === selectedDelivery && (
-                <Marker 
-                  key={delivery.id} 
+                <Marker
+                  key={delivery.id}
                   position={delivery.coordinates as LatLngExpression}
                 >
                   <Popup>
