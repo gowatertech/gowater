@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
   Users,
   Truck,
   Route,
@@ -28,7 +27,6 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const menuColors = {
-  panel: "#0088FE",      // Azul brillante
   facturacion: "#00C49F", // Verde turquesa para facturación
   pagos: "#00C49F",      // Verde turquesa para pagos
   usuarios: "#0088FE",   // Azul brillante
@@ -42,8 +40,7 @@ const menuColors = {
 };
 
 const sidebarItems = [
-  { icon: LayoutDashboard, label: "Panel", href: "/" },
-  { icon: FileText, label: "Facturación", href: "/billing" },
+  { icon: FileText, label: "Facturación", href: "/" },
   { icon: FileText, label: "Pagos", href: "/payments" },
   { icon: Users, label: "Usuarios", href: "/users" },
   { icon: Users, label: "Clientes", href: "/customers" },

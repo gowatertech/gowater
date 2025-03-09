@@ -4,7 +4,6 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/dashboard";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
 import ProductosPage from "@/pages/inventario/productos";
@@ -27,7 +26,7 @@ function Router() {
   return (
     <DashboardLayout>
       <Switch>
-        <Route path="/" component={Dashboard} />
+        <Route path="/" component={Billing} />
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />
