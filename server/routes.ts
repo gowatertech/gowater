@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns } from "@shared/schema"; // Added bottleReturns import
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, salesCommissions } from "@shared/schema"; // Added bottleReturns and salesCommissions imports
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -1002,39 +1002,43 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Modificar el endpoint POST /api/orders para incluir comisiones
   app.post("/api/orders", async (req, res) => {
     try {
       const orderData = {
         ...req.body,
         date: new Date(),
-        status: "pending",
-        total: Number(req.body.total).toFixed(2)
       };
 
-      // Crear el pedido
+      // Crear la orden
       const [order] = await db
         .insert(orders)
         .values(orderData)
         .returning();
 
-      // Si hay items, crearlos
-      if (req.body.items && Array.isArray(req.body.items)) {
-        for (const item of req.body.items) {
-          await db
-            .insert(orderItems)
-            .values({
-              orderId: order.id,
-              productId: item.productId,
-              quantity: item.quantity,
-              price: item.price
-            });
+      // Contar botellines de 5 galones en la orden
+      const orderItems = req.body.items || [];
+      const bottleQuantity = orderItems.reduce((total, item) => {
+        // Asumiendo que el ID 4 corresponde al botellón de 5 galones
+        if (item.productId === 4) {
+          return total + item.quantity;
         }
+        return total;
+      }, 0);
+
+      // Si hay botellines, crear comisiones
+      if (bottleQuantity > 0) {
+        await apiRequest("POST", "/api/sales-commissions", {
+          orderId: order.id,
+          driverId: orderData.driverId,
+          assistantId: orderData.assistantId,
+          bottleQuantity,
+        });
       }
 
-      console.log("POST /api/orders - Pedido creado:", order);
       res.json(order);
     } catch (error) {
-      console.error("Error al crear pedido:", error);
+      console.error("Error al crear orden:", error);
       res.status(500).json({ error: String(error) });
     }
   });
@@ -1285,5 +1289,161 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Comisiones de ventas
+  app.post("/api/sales-commissions", async (req, res) => {
+    try {
+      const { orderId, driverId, assistantId, bottleQuantity } = req.body;
+
+      // Crear comisión para el chofer
+      if (driverId) {
+        const [driverCommission] = await db
+          .insert(salesCommissions)
+          .values({
+            orderId,
+            employeeId: driverId,
+            employeeType: "driver",
+            bottleQuantity,
+            commissionAmount: (bottleQuantity * 3).toFixed(2), // 3 pesos por botellón
+            status: "pending",
+            createdAt: new Date(),
+          })
+          .returning();
+      }
+
+      // Crear comisión para el ayudante
+      if (assistantId) {
+        const [assistantCommission] = await db
+          .insert(salesCommissions)
+          .values({
+            orderId,
+            employeeId: assistantId,
+            employeeType: "assistant",
+            bottleQuantity,
+            commissionAmount: (bottleQuantity * 2).toFixed(2), // 2 pesos por botellón
+            status: "pending",
+            createdAt: new Date(),
+          })
+          .returning();
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error al crear comisiones:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Listar comisiones
+  app.get("/api/sales-commissions", async (req, res) => {
+    try {
+      const { status, employeeType } = req.query;
+
+      let query = db
+        .select({
+          id: salesCommissions.id,
+          orderId: salesCommissions.orderId,
+          employeeId: salesCommissions.employeeId,
+          employeeType: salesCommissions.employeeType,
+          bottleQuantity: salesCommissions.bottleQuantity,
+          commissionAmount: salesCommissions.commissionAmount,
+          status: salesCommissions.status,
+          createdAt: salesCommissions.createdAt,
+          paidAt: salesCommissions.paidAt,
+          employeeName: users.name,
+        })
+        .from(salesCommissions)
+        .leftJoin(users, eq(salesCommissions.employeeId, users.id));
+
+      if (status) {
+        query = query.where(eq(salesCommissions.status, status as string));
+      }
+
+      if (employeeType) {
+        query = query.where(eq(salesCommissions.employeeType, employeeType as string));
+      }
+
+      const commissions = await query.orderBy(salesCommissions.createdAt);
+      res.json(commissions);
+    } catch (error) {
+      console.error("Error al obtener comisiones:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Marcar comisión como pagada
+  app.patch("/api/sales-commissions/:id/pay", async (req, res) => {
+    try {
+      const commissionId = parseInt(req.params.id);
+
+      const [updatedCommission] = await db
+        .update(salesCommissions)
+        .set({
+          status: "paid",
+          paidAt: new Date(),
+        })
+        .where(eq(salesCommissions.id, commissionId))
+        .returning();
+
+      if (!updatedCommission) {
+        return res.status(404).json({ error: "Comisión no encontrada" });
+      }
+
+      res.json(updatedCommission);
+    } catch (error) {
+      console.error("Error al actualizar comisión:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Obtener comisiones por empleado
+  app.get("/api/sales-commissions/employee/:id", async (req, res) => {
+    try {
+      const employeeId = parseInt(req.params.id);
+
+      const commissions = await db
+        .select({
+          id: salesCommissions.id,
+          orderId: salesCommissions.orderId,
+          bottleQuantity: salesCommissions.bottleQuantity,
+          commissionAmount: salesCommissions.commissionAmount,
+          status: salesCommissions.status,
+          createdAt: salesCommissions.createdAt,
+          paidAt: salesCommissions.paidAt,
+        })
+        .from(salesCommissions)
+        .where(eq(salesCommissions.employeeId, employeeId))
+        .orderBy(salesCommissions.createdAt);
+
+      // Calcular totales
+      const totalPending = commissions
+        .filter(c => c.status === "pending")
+        .reduce((sum, c) => sum + Number(c.commissionAmount), 0);
+
+      const totalPaid = commissions
+        .filter(c => c.status === "paid")
+        .reduce((sum, c) => sum + Number(c.commissionAmount), 0);
+
+      res.json({
+        commissions,
+        summary: {
+          totalPending,
+          totalPaid,
+          total: totalPending + totalPaid
+        }
+      });
+    } catch (error) {
+      console.error("Error al obtener comisiones del empleado:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   return httpServer;
+}
+
+// Placeholder for apiRequest function - needs to be implemented
+async function apiRequest(method: string, path: string, body: any) {
+  // Implement actual API request logic here using fetch or axios
+  console.log(`Making ${method} request to ${path} with body:`, body);
+  // Replace with actual API call
+  return Promise.resolve();
 }
