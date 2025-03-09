@@ -18,18 +18,21 @@ export default function Reports() {
       label: t("Reportes de Ventas y Financieros"),
       icon: TrendingUp,
       description: t("Análisis de ventas, pagos y rendimiento financiero"),
+      color: "#0088FE"  // Azul brillante como dashboard
     },
     {
       id: "operations",
       label: t("Reportes de Operaciones"),
       icon: FileBarChart,
       description: t("Estado de pedidos, entregas e inventario"),
+      color: "#00C49F"  // Verde turquesa como facturación
     },
     {
       id: "customers",
       label: t("Reportes de Clientes"),
       icon: Users,
       description: t("Análisis de clientes y comportamiento"),
+      color: "#FFBB28"  // Amarillo cálido como inventario
     },
   ];
 
@@ -73,8 +76,9 @@ export default function Reports() {
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
                   }`}
+                  style={{ backgroundColor: isActive ? category.color : undefined }}
                 >
-                  <Icon className="h-6 w-6" />
+                  <Icon className="h-6 w-6" style={{ color: isActive ? "white" : category.color }} />
                 </div>
                 <div>
                   <h3 className="font-medium">{category.label}</h3>

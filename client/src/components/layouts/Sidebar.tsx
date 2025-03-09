@@ -13,7 +13,7 @@ import {
   ChevronRight,
   BookOpen,
   LayoutDashboard,
-  BarChart2, // Added for reports icon
+  BarChart2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -38,7 +38,7 @@ const menuColors = {
   rutas: "#FF8042",      // Naranja
   vehiculos: "#00C49F",  // Verde turquesa
   pedidos: "#FFBB28",    // Amarillo
-  reportes: "#FF8042",   // Naranja
+  reportes: "#FF8042",   // Naranja para reportes
   settings: "#8884d8",   // Púrpura para configuración
 };
 
