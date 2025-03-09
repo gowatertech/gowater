@@ -22,18 +22,6 @@ import {
   Calculator,
   Building2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
-import {
-  Sidebar as UISidebar,
-  SidebarContent as UISidebarContent,
-  SidebarHeader as UISidebarHeader,
-  SidebarMenu as UISidebarMenu,
-  SidebarMenuItem as UISidebarMenuItem,
-  SidebarMenuButton as UISidebarMenuButton,
-} from "@/components/ui/sidebar";
-
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const menuColors = {
   dashboard: "#0088FE",
@@ -53,7 +41,7 @@ const sidebarItems = [
     href: "/almacen",
     subItems: [
       { label: "Inventario", href: "/inventario/productos" },
-      { label: "Registrar Producción", href: "/almacen/produccion" },
+      { label: "Registrar Producción", href: "/inventory/load" },
       { label: "Cargar Camión", href: "/inventario/carga" },
     ],
   },
@@ -101,6 +89,19 @@ const sidebarItems = [
   },
   { icon: Settings, label: "Configuración", href: "/settings" },
 ];
+
+import { Button } from "@/components/ui/button";
+
+import {
+  Sidebar as UISidebar,
+  SidebarContent as UISidebarContent,
+  SidebarHeader as UISidebarHeader,
+  SidebarMenu as UISidebarMenu,
+  SidebarMenuItem as UISidebarMenuItem,
+  SidebarMenuButton as UISidebarMenuButton,
+} from "@/components/ui/sidebar";
+
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface SidebarProps {
   openMobile: boolean;

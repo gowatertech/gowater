@@ -25,6 +25,7 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 import RecurringOrders from "@/pages/routes/RecurringOrders";
 import DriverView from "@/pages/routes/DriverView";
+import { InventoryLoad } from "@/pages/inventory/load";
 
 function Router() {
   const [location] = useLocation();
@@ -38,6 +39,7 @@ function Router() {
         <Route path="/customers" component={Customers} />
         <Route path="/inventario/productos" component={ProductosPage} />
         <Route path="/inventario/carga" component={CargaProductos} />
+        <Route path="/inventory/load" component={InventoryLoad} />
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/routes/recurring" component={RecurringOrders} />
