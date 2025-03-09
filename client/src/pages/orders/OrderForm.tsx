@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertOrderSchema, type InsertOrder } from "@shared/schema";
+import { insertOrderSchema, type InsertOrder, type Customer } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +38,7 @@ export default function OrderForm() {
   });
 
   // Fetch customers for dropdown
-  const { data: customers = [] } = useQuery({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/customers");
@@ -97,7 +97,7 @@ export default function OrderForm() {
                 <SelectContent>
                   {customers?.map((customer) => (
                     <SelectItem key={customer.id} value={customer.id.toString()}>
-                      {customer.name}
+                      {customer.businessname}
                     </SelectItem>
                   ))}
                 </SelectContent>
