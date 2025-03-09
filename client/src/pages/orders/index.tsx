@@ -65,8 +65,16 @@ export default function Orders() {
     queryKey: ["/api/orders"],
   });
 
-  const { data: customers = [] } = useQuery<Customer[]>({
+  // Obtener clientes y asegurarse de que se manejen los errores
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/customers");
+      if (!response.ok) {
+        throw new Error('Error al cargar los clientes');
+      }
+      return response.json();
+    }
   });
 
   const { data: products = [] } = useQuery<Product[]>({
@@ -228,11 +236,11 @@ export default function Orders() {
         <h1 className="text-2xl md:text-3xl font-bold">{t("orders")}</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full sm:w-auto text-base">{t("newOrder")}</Button>
+            <Button className="w-full sm:w-auto text-base">{t("Nuevo Pedido")}</Button>
           </DialogTrigger>
           <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-2 sm:p-4 gap-3">
             <DialogHeader>
-              <DialogTitle className="text-lg">{t("newOrder")}</DialogTitle>
+              <DialogTitle className="text-lg">{t("Nuevo Pedido")}</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-3">
@@ -243,9 +251,10 @@ export default function Orders() {
                     const customer = customers?.find(c => c.id === parseInt(value));
                     setSelectedCustomer(customer || null);
                   }}
+                  disabled={isLoadingCustomers}
                 >
                   <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder={t("selectCustomer")} />
+                    <SelectValue placeholder={t("Seleccionar Cliente")} />
                   </SelectTrigger>
                   <SelectContent>
                     {customers?.map((customer) => (
@@ -254,7 +263,7 @@ export default function Orders() {
                         value={customer.id.toString()}
                         className="text-sm py-2"
                       >
-                        {customer.name}
+                        {customer.businessname}
                       </SelectItem>
                     ))}
                   </SelectContent>
