@@ -458,88 +458,88 @@ export default function Orders() {
       </div>
       {/* New Dialog for order details */}
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-          <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-2 sm:p-4 gap-3">
-            <DialogHeader>
-              <DialogTitle>Detalles del Pedido #{selectedOrder?.id}</DialogTitle>
-            </DialogHeader>
+        <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-2 sm:p-4 gap-3">
+          <DialogHeader>
+            <DialogTitle>Detalles del Pedido #{selectedOrder?.id}</DialogTitle>
+          </DialogHeader>
 
-            {selectedOrder && (
-              <div className="space-y-4">
-                {/* Información del cliente */}
-                <Card className="p-4">
-                  <h3 className="font-medium mb-2">Información del Cliente</h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="font-medium">Cliente: </span>
-                      {customers?.find(c => c.id === selectedOrder.customerId)?.name}
-                    </div>
-                    <div>
-                      <span className="font-medium">Fecha: </span>
-                      {new Date(selectedOrder.date).toLocaleString()}
-                    </div>
-                    <div>
-                      <span className="font-medium">Estado: </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        selectedOrder.status === "delivered" ? "bg-green-100 text-green-800" :
-                        selectedOrder.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-red-100 text-red-800"
-                      }`}>
-                        {t(selectedOrder.status)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-medium">Método de Pago: </span>
-                      {t(selectedOrder.paymentMethod)}
-                    </div>
+          {selectedOrder && (
+            <div className="space-y-4">
+              {/* Información del cliente */}
+              <Card className="p-4">
+                <h3 className="font-medium mb-2">Información del Cliente</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="font-medium">Cliente: </span>
+                    {customers?.find(c => c.id === selectedOrder.customerId)?.businessname}
                   </div>
-                </Card>
+                  <div>
+                    <span className="font-medium">Fecha: </span>
+                    {new Date(selectedOrder.date).toLocaleString()}
+                  </div>
+                  <div>
+                    <span className="font-medium">Estado: </span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      selectedOrder.status === "delivered" ? "bg-green-100 text-green-800" :
+                      selectedOrder.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-red-100 text-red-800"
+                    }`}>
+                      {t(selectedOrder.status)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Método de Pago: </span>
+                    {t(selectedOrder.paymentMethod)}
+                  </div>
+                </div>
+              </Card>
 
-                {/* Items del pedido */}
-                <Card className="p-4">
-                  <h3 className="font-medium mb-2">Productos</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Producto</TableHead>
-                        <TableHead className="text-right">Cantidad</TableHead>
-                        <TableHead className="text-right">Precio</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
+              {/* Items del pedido */}
+              <Card className="p-4">
+                <h3 className="font-medium mb-2">Productos</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Producto</TableHead>
+                      <TableHead className="text-right">Cantidad</TableHead>
+                      <TableHead className="text-right">Precio</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orderDetails.map((item: any) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          {products?.find(p => p.id === item.productId)?.name}
+                        </TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">
+                          RD$ {parseFloat(item.price.toString()).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          RD$ {(item.quantity * parseFloat(item.price.toString())).toFixed(2)}
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orderDetails.map((item: any) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            {products?.find(p => p.id === item.productId)?.name}
-                          </TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">
-                            RD$ {parseFloat(item.price.toString()).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            RD$ {(item.quantity * parseFloat(item.price.toString())).toFixed(2)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </Card>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Card>
 
-                {/* Totales */}
-                <Card className="p-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Total:</span>
-                      <span className="font-medium">
-                        RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}
-                      </span>
-                    </div>
+              {/* Totales */}
+              <Card className="p-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Total:</span>
+                    <span className="font-medium">
+                      RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}
+                    </span>
                   </div>
-                </Card>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+                </div>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

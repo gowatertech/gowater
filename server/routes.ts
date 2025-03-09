@@ -965,5 +965,28 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/orders/:id/items", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const items = await db
+        .select({
+          id: orders.id,
+          productId: products.id,
+          productName: products.name,
+          quantity: orders.quantity,
+          price: products.price,
+          total: sql`${orders.quantity} * ${products.price}::numeric`
+        })
+        .from(orders)
+        .innerJoin(products, eq(orders.productId, products.id))
+        .where(eq(orders.id, orderId));
+
+      res.json(items);
+    } catch (error) {
+      console.error("Error al obtener items del pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   return httpServer;
 }
