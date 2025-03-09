@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema } from "@shared/schema";
 import { db } from './db';
 import { eq, and } from 'drizzle-orm';
 import express from 'express';
@@ -583,7 +583,47 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Agregar el nuevo endpoint después de /api/dashboard/stats
+  // Trucks endpoints
+  app.get("/api/trucks", async (req, res) => {
+    try {
+      console.log("GET /api/trucks - Obteniendo lista de vehículos");
+      const allTrucks = await db
+        .select()
+        .from(trucks);
+
+      console.log("GET /api/trucks - Vehículos encontrados:", allTrucks.length);
+      res.json(allTrucks);
+    } catch (error) {
+      console.error("Error al obtener vehículos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/trucks", async (req, res) => {
+    try {
+      console.log("POST /api/trucks - Datos recibidos:", req.body);
+
+      const result = insertTruckSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error("POST /api/trucks - Error de validación:", result.error.format());
+        return res.status(400).json({ error: result.error.format() });
+      }
+
+      console.log("POST /api/trucks - Datos validados:", result.data);
+
+      const [truck] = await db
+        .insert(trucks)
+        .values(result.data)
+        .returning();
+
+      console.log("POST /api/trucks - Vehículo creado:", truck);
+      res.json(truck);
+    } catch (error) {
+      console.error("Error al crear vehículo:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.get("/api/dashboard/payments-stats", async (req, res) => {
     try {
       // Obtener el año actual y mes
