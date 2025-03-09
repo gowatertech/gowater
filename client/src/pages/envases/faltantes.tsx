@@ -28,10 +28,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+interface BottleReturnWithDetails extends BottleReturn {
+  customerName: string | null;
+  driverName: string | null;
+  daysElapsed: number;
+  orderStatus: string | null;
+}
+
 export default function EnvasesFaltantes() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [selectedBottle, setSelectedBottle] = useState<any>(null);
+  const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
 
   // Mutación para asignar responsabilidad
   const assignResponsibilityMutation = useMutation({
@@ -50,7 +57,7 @@ export default function EnvasesFaltantes() {
 
   const handleAssignResponsibility = (formData: any) => {
     const data = {
-      bottleReturnId: selectedBottle.id,
+      bottleReturnId: selectedBottle?.id,
       ...formData,
       // Si la responsabilidad es compartida, calcular el porcentaje del chofer
       driverPercentage: formData.responsible === "both" ? 
@@ -64,7 +71,7 @@ export default function EnvasesFaltantes() {
   };
 
   // Consulta para obtener los envases faltantes por cliente
-  const { data: missingBottlesByCustomer = [] } = useQuery<BottleReturn[]>({
+  const { data: missingBottlesByCustomer = [] } = useQuery<BottleReturnWithDetails[]>({
     queryKey: ["/api/missing-bottles/customers"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/missing-bottles/customers");
@@ -73,7 +80,7 @@ export default function EnvasesFaltantes() {
   });
 
   // Consulta para obtener los envases faltantes por chofer
-  const { data: missingBottlesByDriver = [] } = useQuery<BottleReturn[]>({
+  const { data: missingBottlesByDriver = [] } = useQuery<BottleReturnWithDetails[]>({
     queryKey: ["/api/missing-bottles/drivers"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/missing-bottles/drivers");
@@ -113,8 +120,8 @@ export default function EnvasesFaltantes() {
                     <TableRow key={bottle.id} className={bottle.automaticAlert ? "bg-yellow-50" : ""}>
                       <TableCell>{bottle.customerName}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
-                      <TableCell>${bottle.amountCharged}</TableCell>
-                      <TableCell>30</TableCell>
+                      <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
+                      <TableCell>{bottle.daysElapsed}</TableCell>
                       <TableCell>{bottle.status}</TableCell>
                       <TableCell>
                         {bottle.automaticAlert ? t("Automático") : t("Manual")}
@@ -182,7 +189,7 @@ export default function EnvasesFaltantes() {
                                   <Input 
                                     type="number" 
                                     name="amountCharged"
-                                    defaultValue={bottle.amountCharged}
+                                    defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
                                   />
                                 </div>
 
@@ -225,9 +232,9 @@ export default function EnvasesFaltantes() {
                   {missingBottlesByDriver.map((bottle) => (
                     <TableRow key={bottle.id} className={bottle.automaticAlert ? "bg-yellow-50" : ""}>
                       <TableCell>{bottle.driverName}</TableCell>
-                      <TableCell>#{bottle.routeId}</TableCell>
+                      <TableCell>#{bottle.orderId}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
-                      <TableCell>${bottle.amountCharged}</TableCell>
+                      <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
                       <TableCell>{new Date(bottle.returnDate).toLocaleDateString()}</TableCell>
                       <TableCell>{bottle.status}</TableCell>
                       <TableCell>
@@ -281,7 +288,7 @@ export default function EnvasesFaltantes() {
                                   <Input 
                                     type="number" 
                                     name="amountCharged"
-                                    defaultValue={bottle.amountCharged}
+                                    defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
                                   />
                                 </div>
 

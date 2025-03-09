@@ -3,11 +3,10 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns } from "@shared/schema"; // Added bottleReturns import
 import { db } from './db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
-import { sql } from 'drizzle-orm';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -927,7 +926,7 @@ export async function registerRoutes(app: Express) {
       console.log("POST /api/products - Producto creado:", product);
       res.json(product);
     } catch (error) {
-      console.error("Error al crear producto:", error);
+            console.error("Error al crear producto:", error);
       res.status(500).json({ error: String(error) });
     }
   });
@@ -1151,6 +1150,77 @@ export async function registerRoutes(app: Express) {
       res.json(paymentsData);
     } catch (error) {
       console.error("Error al obtener reporte de pagos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoints para envases faltantes
+  app.get("/api/missing-bottles/customers", async (req, res) => {
+    try {
+      const missingBottlesByCustomer = await db
+        .execute(sql`
+          SELECT * FROM bottle_returns_with_details
+          WHERE status = 'incomplete'
+          AND pending_quantity > 0
+          ORDER BY days_elapsed DESC
+        `);
+
+      res.json(missingBottlesByCustomer);
+    } catch (error) {
+      console.error("Error al obtener envases faltantes por cliente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/missing-bottles/drivers", async (req, res) => {
+    try {
+      const missingBottlesByDriver = await db
+        .execute(sql`
+          SELECT * FROM bottle_returns_with_details
+          WHERE status = 'incomplete'
+          AND pending_quantity > 0
+          AND order_status = 'delivered'
+          ORDER BY return_date DESC
+        `);
+
+      res.json(missingBottlesByDriver);
+    } catch (error) {
+      console.error("Error al obtener envases faltantes por conductor:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/missing-bottles/assign", async (req, res) => {
+    try {
+      const {
+        bottleReturnId,
+        responsible,
+        customerPercentage,
+        driverPercentage,
+        chargeMethod,
+        justification,
+        amountCharged
+      } = req.body;
+
+      const [updatedBottleReturn] = await db
+        .update(bottleReturns)
+        .set({
+          responsible_type: responsible,
+          customer_percentage: customerPercentage ? Number(customerPercentage) : null,
+          driver_percentage: driverPercentage ? Number(driverPercentage) : null,
+          charge_method: chargeMethod,
+          justification,
+          amount_charged: amountCharged,
+          manually_assigned: true,
+          assigned_at: new Date(),
+          automatic_alert: false, // Desactivar alerta automática al asignar manualmente
+        })
+        .where(eq(bottleReturns.id, bottleReturnId))
+        .returning();
+
+      res.json(updatedBottleReturn);
+    } catch (error) {
+      console.error("Error al asignar responsabilidad:", error);
       res.status(500).json({ error: String(error) });
     }
   });
