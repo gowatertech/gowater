@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { type BottleReturn } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,9 +18,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import FaltanteForm from "@/components/envases/FaltanteForm";
+import Faltante from "./faltante";
 
 interface BottleReturnWithDetails extends BottleReturn {
   customerName: string | null;
@@ -29,6 +29,23 @@ interface BottleReturnWithDetails extends BottleReturn {
   orderStatus: string | null;
   detectionType: 'automatic' | 'manual';
 }
+
+const DetectionTypeBadge = ({ type }: { type: 'automatic' | 'manual' }) => {
+  const { t } = useTranslation();
+  return (
+    <Badge 
+      variant={type === 'automatic' ? 'warning' : 'default'}
+      className="flex items-center gap-1"
+    >
+      {type === 'automatic' ? (
+        <AlertTriangle className="w-3 h-3" />
+      ) : (
+        <AlertCircle className="w-3 h-3" />
+      )}
+      {t(type === 'automatic' ? 'Automático' : 'Manual')}
+    </Badge>
+  );
+};
 
 export default function Faltantes() {
   const { t } = useTranslation();
@@ -105,11 +122,10 @@ export default function Faltantes() {
           <DialogHeader>
             <DialogTitle>{t("Registrar Faltante")}</DialogTitle>
           </DialogHeader>
-          <FaltanteForm onCreated={() => setShowFaltanteForm(false)} />
+          <Faltante onCreated={() => setShowFaltanteForm(false)} />
         </DialogContent>
       </Dialog>
 
-      {/* Resto del código existente... */}
       <Tabs defaultValue="clientes" className="space-y-4">
         <TabsList>
           <TabsTrigger value="clientes">{t("Por Cliente")}</TabsTrigger>
