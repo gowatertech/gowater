@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 export function InventoryLoad() {
   const { t } = useTranslation();
@@ -44,7 +45,6 @@ export function InventoryLoad() {
       quantity: 0,
       cost: "0.00",
       warehouse: "",
-      userId: 1, // Temporal, esto debería venir del contexto de autenticación
       notes: "",
     },
   });
@@ -75,15 +75,15 @@ export function InventoryLoad() {
       queryClient.invalidateQueries({ queryKey: ["/api/production-batches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: t("success"),
-        description: t("batchCreated"),
+        title: "Éxito",
+        description: "Lote de producción registrado correctamente",
       });
       form.reset();
     },
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
@@ -97,7 +97,7 @@ export function InventoryLoad() {
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">{t("newBatch")}</h2>
+          <h2 className="text-xl font-semibold">Registrar Producción</h2>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -105,14 +105,14 @@ export function InventoryLoad() {
                 name="productId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("product")}</FormLabel>
+                    <FormLabel>Producto</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(Number(value))}
                       defaultValue={field.value.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={t("selectProduct")} />
+                          <SelectValue placeholder="Seleccionar producto" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -136,7 +136,7 @@ export function InventoryLoad() {
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("quantity")}</FormLabel>
+                    <FormLabel>Cantidad</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -155,7 +155,7 @@ export function InventoryLoad() {
                 name="cost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("cost")} (RD$)</FormLabel>
+                    <FormLabel>Costo (RD$)</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -172,7 +172,7 @@ export function InventoryLoad() {
                 name="warehouse"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("warehouse")}</FormLabel>
+                    <FormLabel>Almacén</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -183,41 +183,10 @@ export function InventoryLoad() {
 
               <FormField
                 control={form.control}
-                name="userId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("user")}</FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      defaultValue={field.value.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("selectUser")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {users?.map((user) => (
-                          <SelectItem
-                            key={user.id}
-                            value={user.id.toString()}
-                          >
-                            {user.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t("notes")}</FormLabel>
+                    <FormLabel>Notas</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -231,36 +200,40 @@ export function InventoryLoad() {
                 className="w-full"
                 disabled={createMutation.isPending}
               >
-                {createMutation.isPending ? t("saving") : t("save")}
+                {createMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </form>
           </Form>
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">{t("batchHistory")}</h2>
+          <h2 className="text-xl font-semibold">Historial de Producción</h2>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t("date")}</TableHead>
-                <TableHead>{t("product")}</TableHead>
-                <TableHead>{t("quantity")}</TableHead>
-                <TableHead>{t("cost")}</TableHead>
-                <TableHead>{t("warehouse")}</TableHead>
-                <TableHead>{t("user")}</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Producto</TableHead>
+                <TableHead>Cantidad</TableHead>
+                <TableHead>Costo</TableHead>
+                <TableHead>Almacén</TableHead>
+                <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {batches?.map((batch: any) => (
                 <TableRow key={batch.id}>
                   <TableCell>
-                    {format(new Date(batch.date), "dd/MM/yyyy HH:mm")}
+                    {format(new Date(batch.date), "dd/MM/yyyy HH:mm", { locale: es })}
                   </TableCell>
                   <TableCell>{batch.productName}</TableCell>
                   <TableCell>{batch.quantity}</TableCell>
                   <TableCell>RD$ {parseFloat(batch.cost.toString()).toFixed(2)}</TableCell>
                   <TableCell>{batch.warehouse}</TableCell>
-                  <TableCell>{batch.userName}</TableCell>
+                  <TableCell>
+                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                      Completado
+                    </span>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -270,3 +243,5 @@ export function InventoryLoad() {
     </div>
   );
 }
+
+export default InventoryLoad;
