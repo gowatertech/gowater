@@ -20,6 +20,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import Faltante from "./faltante";
 
 interface BottleReturnWithDetails extends BottleReturn {
   customerName: string | null;
@@ -94,9 +95,7 @@ export default function Faltantes() {
           <DialogHeader>
             <DialogTitle>{t("Registrar Faltante")}</DialogTitle>
           </DialogHeader>
-          <form className="space-y-4">
-            {/* Aquí irá el formulario */}
-          </form>
+          <Faltante onCreated={() => setShowFaltanteForm(false)} />
         </DialogContent>
       </Dialog>
 
