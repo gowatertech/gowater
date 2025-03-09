@@ -19,9 +19,9 @@ import Reports from "@/pages/reports";
 import Trucks from "@/pages/trucks";
 
 // Bottles management pages
-import DevolucionEnvases from "@/pages/envases/devolucion";
-import BalanceEnvases from "@/pages/envases/balance";
-import MissingBottles from "@/pages/envases/missing-bottles";
+import BottleReturns from "@/pages/bottles/bottle-returns";
+import BottleBalance from "@/pages/bottles/bottle-balance";
+import MissingBottles from "@/pages/bottles/missing-bottles";
 
 // Import translations and I18nextProvider
 import { I18nextProvider } from "react-i18next";
@@ -49,9 +49,9 @@ function Router() {
         <Route path="/reports/:type" component={Reports} />
 
         {/* Bottle management routes */}
-        <Route path="/envases/devolucion" component={DevolucionEnvases} />
-        <Route path="/envases/balance" component={BalanceEnvases} />
-        <Route path="/envases/faltantes" component={MissingBottles} />
+        <Route path="/bottles/returns" component={BottleReturns} />
+        <Route path="/bottles/balance" component={BottleBalance} />
+        <Route path="/bottles/missing" component={MissingBottles} />
 
         <Route component={NotFound} />
       </Switch>

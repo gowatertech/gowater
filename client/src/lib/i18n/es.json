@@ -1,5 +1,7 @@
 {
-  "missingBottlesTitle": "Cobro de Envases Faltantes",
+  "bottleReturns": "Devolución de Envases",
+  "bottleBalance": "Balance de Envases",
+  "missingBottlesTitle": "Envases Faltantes",
   "byCustomer": "Por Cliente",
   "byDriver": "Por Chofer",
   "customer": "Cliente",
