@@ -38,7 +38,7 @@ export default function OrderForm() {
   });
 
   // Fetch customers for dropdown
-  const { data: customers = [] } = useQuery<Customer[]>({
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/customers");
@@ -52,6 +52,10 @@ export default function OrderForm() {
   const createMutation = useMutation({
     mutationFn: async (data: InsertOrder) => {
       const res = await apiRequest("POST", "/api/orders", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Error al crear el pedido');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -63,7 +67,7 @@ export default function OrderForm() {
       });
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: t("error"),
@@ -88,6 +92,7 @@ export default function OrderForm() {
               <Select
                 onValueChange={(value) => field.onChange(parseInt(value))}
                 value={field.value?.toString()}
+                disabled={isLoadingCustomers}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -95,9 +100,13 @@ export default function OrderForm() {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {customers?.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id.toString()}>
-                      {customer.businessname}
+                  {customers.map((customer) => (
+                    <SelectItem 
+                      key={customer.id} 
+                      value={customer.id.toString()}
+                      className="cursor-pointer"
+                    >
+                      {customer.businessname || 'Cliente sin nombre'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -114,7 +123,12 @@ export default function OrderForm() {
             <FormItem>
               <FormLabel>{t("total")}</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" {...field} />
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  {...field} 
+                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -147,7 +161,6 @@ export default function OrderForm() {
           )}
         />
 
-        {/* Show reference field for credit/card payments */}
         {form.watch("paymentMethod") !== "cash" && (
           <FormField
             control={form.control}
@@ -167,7 +180,7 @@ export default function OrderForm() {
         <Button
           type="submit"
           className="w-full"
-          disabled={createMutation.isPending}
+          disabled={createMutation.isPending || isLoadingCustomers}
         >
           {createMutation.isPending ? t("creating") : t("createOrder")}
         </Button>
