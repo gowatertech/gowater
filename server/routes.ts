@@ -923,8 +923,7 @@ export async function registerRoutes(app: Express) {
         .values(productData)
         .returning();
 
-      console.log("POST /api/products - Producto creado:", product);
-      res.json(product);
+      console.log("POST /api/products - Producto creado:", product);      res.json(product);
     } catch (error) {
             console.error("Error al crear producto:", error);
       res.status(500).json({ error: String(error) });
@@ -1155,42 +1154,60 @@ export async function registerRoutes(app: Express) {
   });
 
   // Endpoints para envases faltantes
-  app.get("/api/missing-bottles/customers", async (req, res) => {
+  app.get("/api/envases/faltantes/clientes", async (req, res) => {
     try {
-      const missingBottlesByCustomer = await db
+      const faltantesPorCliente = await db
         .execute(sql`
-          SELECT * FROM bottle_returns_with_details
-          WHERE status = 'incomplete'
-          AND pending_quantity > 0
-          ORDER BY days_elapsed DESC
+          SELECT 
+            br.*,
+            c.businessname as customer_name,
+            u.name as driver_name,
+            o.status as order_status,
+            EXTRACT(DAY FROM NOW() - br.return_date)::integer as days_elapsed
+          FROM bottle_returns br
+          LEFT JOIN orders o ON br.order_id = o.id
+          LEFT JOIN customers c ON o.customer_id = c.id
+          LEFT JOIN users u ON o.driver_id = u.id
+          WHERE br.status = 'incomplete'
+          AND br.pending_quantity > 0
+          ORDER BY br.return_date DESC
         `);
 
-      res.json(missingBottlesByCustomer);
+      res.json(faltantesPorCliente);
     } catch (error) {
       console.error("Error al obtener envases faltantes por cliente:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
-  app.get("/api/missing-bottles/drivers", async (req, res) => {
+  app.get("/api/envases/faltantes/choferes", async (req, res) => {
     try {
-      const missingBottlesByDriver = await db
+      const faltantesPorChofer = await db
         .execute(sql`
-          SELECT * FROM bottle_returns_with_details
-          WHERE status = 'incomplete'
-          AND pending_quantity > 0
-          AND order_status = 'delivered'
-          ORDER BY return_date DESC
+          SELECT 
+            br.*,
+            c.businessname as customer_name,
+            u.name as driver_name,
+            o.status as order_status,
+            EXTRACT(DAY FROM NOW() - br.return_date)::integer as days_elapsed
+          FROM bottle_returns br
+          LEFT JOIN orders o ON br.order_id = o.id
+          LEFT JOIN customers c ON o.customer_id = c.id
+          LEFT JOIN users u ON o.driver_id = u.id
+          WHERE br.status = 'incomplete'
+          AND br.pending_quantity > 0
+          AND o.status = 'delivered'
+          ORDER BY br.return_date DESC
         `);
 
-      res.json(missingBottlesByDriver);
+      res.json(faltantesPorChofer);
     } catch (error) {
       console.error("Error al obtener envases faltantes por conductor:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
-  app.post("/api/missing-bottles/assign", async (req, res) => {
+  app.post("/api/envases/faltantes/asignar", async (req, res) => {
     try {
       const {
         bottleReturnId,

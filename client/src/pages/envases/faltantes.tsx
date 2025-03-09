@@ -35,31 +35,29 @@ interface BottleReturnWithDetails extends BottleReturn {
   orderStatus: string | null;
 }
 
-export default function EnvasesFaltantes() {
+export default function Faltantes() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Consulta para obtener los envases faltantes por cliente
-  const { data: missingBottlesByCustomer = [], isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ["/api/missing-bottles/customers"],
+  const { data: faltantesPorCliente = [], isLoading: isLoadingClientes } = useQuery({
+    queryKey: ["/api/envases/faltantes/clientes"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/missing-bottles/customers");
+      const response = await apiRequest("GET", "/api/envases/faltantes/clientes");
       if (!response.ok) {
         throw new Error("Error al obtener datos");
       }
-      const data = await response.json();
-      console.log("Datos obtenidos:", data);
-      return data;
+      return response.json();
     },
   });
 
   // Consulta para obtener los envases faltantes por chofer
-  const { data: missingBottlesByDriver = [], isLoading: isLoadingDrivers } = useQuery({
-    queryKey: ["/api/missing-bottles/drivers"],
+  const { data: faltantesPorChofer = [], isLoading: isLoadingChoferes } = useQuery({
+    queryKey: ["/api/envases/faltantes/choferes"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/missing-bottles/drivers");
+      const response = await apiRequest("GET", "/api/envases/faltantes/choferes");
       if (!response.ok) {
         throw new Error("Error al obtener datos");
       }
@@ -68,16 +66,16 @@ export default function EnvasesFaltantes() {
   });
 
   // Mutación para asignar responsabilidad
-  const assignResponsibilityMutation = useMutation({
+  const asignarResponsabilidadMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/missing-bottles/assign", data);
+      const response = await apiRequest("POST", "/api/envases/faltantes/asignar", data);
       if (!response.ok) {
         throw new Error("Error al asignar responsabilidad");
       }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/missing-bottles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/envases/faltantes"] });
       toast({
         title: t("Éxito"),
         description: t("La responsabilidad ha sido asignada correctamente"),
@@ -103,10 +101,11 @@ export default function EnvasesFaltantes() {
       manuallyAssigned: true,
       assignedAt: new Date().toISOString(),
     };
-    assignResponsibilityMutation.mutate(data);
+    console.log("Enviando datos:", data);
+    asignarResponsabilidadMutation.mutate(data);
   };
 
-  if (isLoadingCustomers || isLoadingDrivers) {
+  if (isLoadingClientes || isLoadingChoferes) {
     return <div className="p-4">{t("Cargando...")}</div>;
   }
 
@@ -116,13 +115,13 @@ export default function EnvasesFaltantes() {
         <h1 className="text-2xl font-bold">{t("Cobro de Envases Faltantes")}</h1>
       </div>
 
-      <Tabs defaultValue="customers" className="space-y-4">
+      <Tabs defaultValue="clientes" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="customers">{t("Por Cliente")}</TabsTrigger>
-          <TabsTrigger value="drivers">{t("Por Chofer")}</TabsTrigger>
+          <TabsTrigger value="clientes">{t("Por Cliente")}</TabsTrigger>
+          <TabsTrigger value="choferes">{t("Por Chofer")}</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="customers">
+        <TabsContent value="clientes">
           <Card className="p-4">
             <ScrollArea className="h-[calc(100vh-250px)]">
               <Table>
@@ -137,7 +136,7 @@ export default function EnvasesFaltantes() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {missingBottlesByCustomer.map((bottle: BottleReturnWithDetails) => (
+                  {faltantesPorCliente.map((bottle: BottleReturnWithDetails) => (
                     <TableRow key={bottle.id}>
                       <TableCell>{bottle.customerName}</TableCell>
                       <TableCell>{bottle.pendingQuantity}</TableCell>
@@ -164,7 +163,7 @@ export default function EnvasesFaltantes() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="drivers">
+        <TabsContent value="choferes">
           <Card className="p-4">
             <ScrollArea className="h-[calc(100vh-250px)]">
               <Table>
@@ -179,7 +178,7 @@ export default function EnvasesFaltantes() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {missingBottlesByDriver.map((bottle: BottleReturnWithDetails) => (
+                  {faltantesPorChofer.map((bottle: BottleReturnWithDetails) => (
                     <TableRow key={bottle.id}>
                       <TableCell>{bottle.driverName}</TableCell>
                       <TableCell>#{bottle.orderId}</TableCell>
@@ -208,7 +207,7 @@ export default function EnvasesFaltantes() {
       </Tabs>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{t("Asignar Responsabilidad")}</DialogTitle>
             <DialogDescription>
@@ -225,27 +224,27 @@ export default function EnvasesFaltantes() {
             e.preventDefault();
             const formData = new FormData(e.currentTarget);
             handleAssignResponsibility(Object.fromEntries(formData));
-          }}>
+          }} className="space-y-4">
             <div className="space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label>{t("Responsable")}</Label>
-                <RadioGroup defaultValue="customer" name="responsible" className="mt-2">
+                <RadioGroup defaultValue="customer" name="responsible">
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="customer" id="customer" />
-                    <Label htmlFor="customer">{t("Cliente")}</Label>
+                    <RadioGroupItem value="customer" id="r-customer" />
+                    <Label htmlFor="r-customer">{t("Cliente")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="driver" id="driver" />
-                    <Label htmlFor="driver">{t("Chofer")}</Label>
+                    <RadioGroupItem value="driver" id="r-driver" />
+                    <Label htmlFor="r-driver">{t("Chofer")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="both" id="both" />
-                    <Label htmlFor="both">{t("Ambos")}</Label>
+                    <RadioGroupItem value="both" id="r-both" />
+                    <Label htmlFor="r-both">{t("Ambos")}</Label>
                   </div>
                 </RadioGroup>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>{t("Porcentaje Cliente (%)")}</Label>
                 <Input 
                   type="number" 
@@ -257,25 +256,25 @@ export default function EnvasesFaltantes() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>{t("Método de Cobro")}</Label>
-                <RadioGroup defaultValue="invoice" name="chargeMethod" className="mt-2">
+                <RadioGroup defaultValue="invoice" name="chargeMethod">
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="invoice" id="invoice" />
-                    <Label htmlFor="invoice">{t("Factura")}</Label>
+                    <RadioGroupItem value="invoice" id="c-invoice" />
+                    <Label htmlFor="c-invoice">{t("Factura")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="commission" id="commission" />
-                    <Label htmlFor="commission">{t("Descontar de Comisión")}</Label>
+                    <RadioGroupItem value="commission" id="c-commission" />
+                    <Label htmlFor="c-commission">{t("Descontar de Comisión")}</Label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="cash" id="cash" />
-                    <Label htmlFor="cash">{t("Pago en Efectivo")}</Label>
+                    <RadioGroupItem value="cash" id="c-cash" />
+                    <Label htmlFor="c-cash">{t("Pago en Efectivo")}</Label>
                   </div>
                 </RadioGroup>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>{t("Justificación")}</Label>
                 <Input 
                   name="justification"
@@ -284,7 +283,7 @@ export default function EnvasesFaltantes() {
                 />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <Label>{t("Monto a Cobrar")}</Label>
                 <Input 
                   type="number" 
@@ -298,10 +297,10 @@ export default function EnvasesFaltantes() {
 
               <Button 
                 type="submit"
-                className="w-full mt-4"
-                disabled={assignResponsibilityMutation.isPending}
+                className="w-full"
+                disabled={asignarResponsabilidadMutation.isPending}
               >
-                {assignResponsibilityMutation.isPending ? t("Guardando...") : t("Guardar")}
+                {asignarResponsabilidadMutation.isPending ? t("Guardando...") : t("Guardar")}
               </Button>
             </div>
           </form>
