@@ -603,13 +603,13 @@ export async function registerRoutes(app: Express) {
     try {
       console.log("POST /api/trucks - Received data:", req.body);
 
-      // Asegurar que los campos numéricos sean números
+      // Convert the year and capacity to numbers before validation
       const truckData = {
         brand: String(req.body.brand || '').trim(),
         model: String(req.body.model || '').trim(),
-        year: Number(req.body.year),
+        year: parseInt(req.body.year),
         plate: String(req.body.plate || '').trim().toUpperCase(),
-        capacity: Number(req.body.capacity),
+        capacity: parseInt(req.body.capacity),
         status: req.body.status || 'available'
       };
 
@@ -931,8 +931,7 @@ export async function registerRoutes(app: Express) {
   // Pagos
   app.get("/api/payments", async (req, res) => {
     try {
-      const allPayments = await db
-        .select({
+      const allPayments = await db        .select({
           id: payments.id,
           invoiceId: payments.invoiceId,
           amount: payments.amount,

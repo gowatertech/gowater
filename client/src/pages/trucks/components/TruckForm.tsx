@@ -44,12 +44,13 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const currentYear = new Date().getFullYear();
   const form = useForm<InsertTruck>({
     resolver: zodResolver(insertTruckSchema),
     defaultValues: {
       brand: "",
       model: "",
-      year: new Date().getFullYear(),
+      year: currentYear,
       plate: "",
       capacity: 1000,
       status: "available"
@@ -65,7 +66,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(values)
+        body: JSON.stringify({
+          ...values,
+          year: Number(values.year),
+          capacity: Number(values.capacity)
+        })
       });
 
       const data = await response.json();
@@ -145,14 +150,20 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormItem>
                   <FormLabel>Año</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="number" 
-                      min={1990}
-                      max={new Date().getFullYear()}
-                      placeholder="Ingrese el año" 
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
+                    <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione el año" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Array.from({ length: currentYear - 1989 }, (_, i) => currentYear - i).map((year) => (
+                          <SelectItem key={year} value={String(year)}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
