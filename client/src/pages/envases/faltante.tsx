@@ -21,8 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 
 interface FaltanteProps {
   onCreated?: () => void;
@@ -63,28 +61,18 @@ export default function Faltante({ onCreated }: FaltanteProps) {
       pendingQuantity: 0,
       returnDate: new Date().toISOString().split('T')[0],
       notes: "",
-      chargeType: "direct", // direct, commission
-      commissionPercentage: 0,
-      commissionAmount: 0,
     },
   });
 
   const onSubmit = async (data: any) => {
     try {
-      const pendingQuantity = Number(data.expectedQuantity) - Number(data.returnedQuantity);
-      const commissionAmount = data.chargeType === "commission" 
-        ? (pendingQuantity * Number(data.commissionPercentage)) / 100 
-        : 0;
-
       const response = await apiRequest("POST", "/api/envases/faltantes", {
         ...data,
         customerId: Number(data.customerId),
         productId: Number(data.productId),
         expectedQuantity: Number(data.expectedQuantity),
         returnedQuantity: Number(data.returnedQuantity),
-        pendingQuantity,
-        commissionPercentage: Number(data.commissionPercentage),
-        commissionAmount,
+        pendingQuantity: Number(data.expectedQuantity) - Number(data.returnedQuantity),
         returnDate: new Date(data.returnDate),
       });
 
@@ -188,61 +176,6 @@ export default function Faltante({ onCreated }: FaltanteProps) {
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="chargeType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t("Tipo de Cargo")}</FormLabel>
-              <FormControl>
-                <RadioGroup 
-                  defaultValue={field.value} 
-                  onValueChange={field.onChange}
-                  className="flex flex-col space-y-1"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="direct" id="direct" />
-                    <Label htmlFor="direct">{t("Cargo Directo")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="commission" id="commission" />
-                    <Label htmlFor="commission">{t("Comisión")}</Label>
-                  </div>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {form.watch("chargeType") === "commission" && (
-          <FormField
-            control={form.control}
-            name="commissionPercentage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("Porcentaje de Comisión")}</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    min="0" 
-                    max="100" 
-                    step="0.01"
-                    onChange={(e) => {
-                      field.onChange(e);
-                      const pendingQuantity = Number(form.getValues("expectedQuantity")) - Number(form.getValues("returnedQuantity"));
-                      const commissionAmount = (pendingQuantity * Number(e.target.value)) / 100;
-                      form.setValue("commissionAmount", commissionAmount);
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
 
         <FormField
           control={form.control}
