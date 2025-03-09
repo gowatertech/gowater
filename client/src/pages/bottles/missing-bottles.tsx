@@ -39,37 +39,16 @@ export default function MissingBottles() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const assignResponsibilityMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/missing-bottles/assign", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/missing-bottles"] });
-      toast({
-        title: t("success"),
-        description: t("responsibilityAssigned"),
-      });
-      setIsDialogOpen(false);
-    },
-  });
+  const handleOpenDialog = (bottle: BottleReturnWithDetails) => {
+    setSelectedBottle(bottle);
+    setDialogOpen(true);
+  };
 
-  const handleAssignResponsibility = (formData: any) => {
-    if (!selectedBottle) return;
-
-    const data = {
-      bottleReturnId: selectedBottle.id,
-      ...formData,
-      driverPercentage: formData.responsible === "both" ? 
-        (100 - parseInt(formData.customerPercentage)) : 
-        (formData.responsible === "driver" ? 100 : 0),
-      manuallyAssigned: true,
-      assignedAt: new Date().toISOString(),
-    };
-
-    assignResponsibilityMutation.mutate(data);
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedBottle(null);
   };
 
   const { data: customerMissingBottles = [] } = useQuery<BottleReturnWithDetails[]>({
@@ -88,10 +67,32 @@ export default function MissingBottles() {
     },
   });
 
-  const openDialog = (bottle: BottleReturnWithDetails) => {
-    setSelectedBottle(bottle);
-    setIsDialogOpen(true);
-  };
+  const assignResponsibilityMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      if (!selectedBottle) return;
+
+      const data = {
+        bottleReturnId: selectedBottle.id,
+        ...formData,
+        driverPercentage: formData.responsible === "both" ? 
+          (100 - parseInt(formData.customerPercentage)) : 
+          (formData.responsible === "driver" ? 100 : 0),
+        manuallyAssigned: true,
+        assignedAt: new Date().toISOString(),
+      };
+
+      const response = await apiRequest("POST", "/api/missing-bottles/assign", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/missing-bottles"] });
+      toast({
+        title: t("success"),
+        description: t("responsibilityAssigned"),
+      });
+      handleCloseDialog();
+    },
+  });
 
   return (
     <div className="p-4 space-y-4">
@@ -123,10 +124,10 @@ export default function MissingBottles() {
                 <TableBody>
                   {customerMissingBottles.map((bottle) => (
                     <TableRow key={bottle.id}>
-                      <TableCell>{bottle.customerName}</TableCell>
-                      <TableCell>{bottle.pendingQuantity}</TableCell>
-                      <TableCell>${bottle.amountCharged?.toFixed(2)}</TableCell>
-                      <TableCell>{bottle.daysElapsed}</TableCell>
+                      <TableCell>{bottle.customerName || '-'}</TableCell>
+                      <TableCell>{bottle.pendingQuantity || 0}</TableCell>
+                      <TableCell>${(bottle.amountCharged || 0).toFixed(2)}</TableCell>
+                      <TableCell>{bottle.daysElapsed || 0}</TableCell>
                       <TableCell>{t(bottle.status || "pending")}</TableCell>
                       <TableCell>
                         {bottle.automaticAlert ? t("automatic") : t("manual")}
@@ -135,10 +136,7 @@ export default function MissingBottles() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {
-                            setSelectedBottle(bottle);
-                            setIsDialogOpen(true);
-                          }}
+                          onClick={() => handleOpenDialog(bottle)}
                         >
                           {t("assignResponsibility")}
                         </Button>
@@ -170,11 +168,16 @@ export default function MissingBottles() {
                 <TableBody>
                   {driverMissingBottles.map((bottle) => (
                     <TableRow key={bottle.id}>
-                      <TableCell>{bottle.driverName}</TableCell>
-                      <TableCell>#{bottle.orderId}</TableCell>
-                      <TableCell>{bottle.pendingQuantity}</TableCell>
-                      <TableCell>${bottle.amountCharged?.toFixed(2)}</TableCell>
-                      <TableCell>{new Date(bottle.returnDate).toLocaleDateString()}</TableCell>
+                      <TableCell>{bottle.driverName || '-'}</TableCell>
+                      <TableCell>#{bottle.orderId || '-'}</TableCell>
+                      <TableCell>{bottle.pendingQuantity || 0}</TableCell>
+                      <TableCell>${(bottle.amountCharged || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        {bottle.returnDate ? 
+                          new Date(bottle.returnDate).toLocaleDateString() : 
+                          '-'
+                        }
+                      </TableCell>
                       <TableCell>{t(bottle.status || "pending")}</TableCell>
                       <TableCell>
                         {bottle.automaticAlert ? t("automatic") : t("manual")}
@@ -183,10 +186,7 @@ export default function MissingBottles() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => {
-                            setSelectedBottle(bottle);
-                            setIsDialogOpen(true);
-                          }}
+                          onClick={() => handleOpenDialog(bottle)}
                         >
                           {t("assignResponsibility")}
                         </Button>
@@ -200,103 +200,101 @@ export default function MissingBottles() {
         </TabsContent>
       </Tabs>
 
-      {selectedBottle && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{t("assignResponsibility")}</DialogTitle>
-              <DialogDescription>
-                {selectedBottle.customerName && (
-                  <p>{t("customer")}: {selectedBottle.customerName}</p>
-                )}
-                {selectedBottle.driverName && (
-                  <p>{t("driver")}: {selectedBottle.driverName}</p>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              handleAssignResponsibility(Object.fromEntries(formData));
-            }}>
-              <div className="space-y-4">
-                <div>
-                  <Label>{t("responsibleParty")}</Label>
-                  <RadioGroup defaultValue="customer" name="responsible" className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="customer" id="customer" />
-                      <Label htmlFor="customer">{t("customer")}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="driver" id="driver" />
-                      <Label htmlFor="driver">{t("driver")}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="both" id="both" />
-                      <Label htmlFor="both">{t("both")}</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div>
-                  <Label>{t("customerPercentage")}</Label>
-                  <Input 
-                    type="number" 
-                    name="customerPercentage"
-                    defaultValue="100"
-                    min="0"
-                    max="100"
-                  />
-                </div>
-
-                <div>
-                  <Label>{t("chargeMethod")}</Label>
-                  <RadioGroup defaultValue="invoice" name="chargeMethod" className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="invoice" id="invoice" />
-                      <Label htmlFor="invoice">{t("invoice")}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="commission" id="commission" />
-                      <Label htmlFor="commission">{t("deductFromCommission")}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="cash" id="cash" />
-                      <Label htmlFor="cash">{t("cashPayment")}</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div>
-                  <Label>{t("justification")}</Label>
-                  <Input 
-                    name="justification"
-                    placeholder={t("chargeReason")}
-                  />
-                </div>
-
-                <div>
-                  <Label>{t("amountToCharge")}</Label>
-                  <Input 
-                    type="number" 
-                    name="amountCharged"
-                    defaultValue={selectedBottle?.amountCharged}
-                    step="0.01"
-                  />
-                </div>
-
-                <Button 
-                  type="submit"
-                  disabled={assignResponsibilityMutation.isPending}
-                  className="w-full"
-                >
-                  {t("save")}
-                </Button>
+      <Dialog open={dialogOpen} onOpenChange={handleCloseDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{t("assignResponsibility")}</DialogTitle>
+            <DialogDescription>
+              {selectedBottle?.customerName && (
+                <p>{t("customer")}: {selectedBottle.customerName}</p>
+              )}
+              {selectedBottle?.driverName && (
+                <p>{t("driver")}: {selectedBottle.driverName}</p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            assignResponsibilityMutation.mutate(Object.fromEntries(formData));
+          }}>
+            <div className="space-y-4">
+              <div>
+                <Label>{t("responsibleParty")}</Label>
+                <RadioGroup defaultValue="customer" name="responsible" className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="customer" id="customer" />
+                    <Label htmlFor="customer">{t("customer")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="driver" id="driver" />
+                    <Label htmlFor="driver">{t("driver")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="both" id="both" />
+                    <Label htmlFor="both">{t("both")}</Label>
+                  </div>
+                </RadioGroup>
               </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+
+              <div>
+                <Label>{t("customerPercentage")}</Label>
+                <Input 
+                  type="number" 
+                  name="customerPercentage"
+                  defaultValue="100"
+                  min="0"
+                  max="100"
+                />
+              </div>
+
+              <div>
+                <Label>{t("chargeMethod")}</Label>
+                <RadioGroup defaultValue="invoice" name="chargeMethod" className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="invoice" id="invoice" />
+                    <Label htmlFor="invoice">{t("invoice")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="commission" id="commission" />
+                    <Label htmlFor="commission">{t("deductFromCommission")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="cash" id="cash" />
+                    <Label htmlFor="cash">{t("cashPayment")}</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label>{t("justification")}</Label>
+                <Input 
+                  name="justification"
+                  placeholder={t("chargeReason")}
+                />
+              </div>
+
+              <div>
+                <Label>{t("amountToCharge")}</Label>
+                <Input 
+                  type="number" 
+                  name="amountCharged"
+                  defaultValue={(selectedBottle?.amountCharged || 0).toString()}
+                  step="0.01"
+                />
+              </div>
+
+              <Button 
+                type="submit"
+                disabled={assignResponsibilityMutation.isPending}
+                className="w-full"
+              >
+                {t("save")}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
