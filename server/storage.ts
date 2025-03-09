@@ -10,9 +10,11 @@ import {
   type OrderItem, type InsertOrderItem,
   type Settings, type InsertSettings,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
+  bottleReturns,
+  type BottleReturn, type InsertBottleReturn
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export interface DriverLocation {
   latitude: number;
@@ -45,13 +47,13 @@ export interface IStorage {
   getTruck(id: number): Promise<Truck | undefined>;
   createTruck(truck: InsertTruck): Promise<Truck>;
   listTrucks(): Promise<Truck[]>;
-  updateTruckStatus(id: number, status: string): Promise<Truck>;
+  updateTruckStatus(id: number, status: "available" | "on_route" | "maintenance"): Promise<Truck>;
 
   // Routes
   getRoute(id: number): Promise<Route | undefined>;
   createRoute(route: InsertRoute): Promise<Route>;
   listRoutes(): Promise<Route[]>;
-  updateRouteStatus(id: number, status: string, currentLocation?: string): Promise<Route>;
+  updateRouteStatus(id: number, status: "pending" | "in_progress" | "completed", currentLocation?: string): Promise<Route>;
   updateRouteProgress(id: number, currentLocation: string, lastUpdate: Date): Promise<Route>;
   updateOrderDeliveryTimes(routeId: number, updates: Partial<Order>[]): Promise<Order[]>;
 
@@ -59,7 +61,7 @@ export interface IStorage {
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
   listOrders(): Promise<Order[]>;
-  updateOrderStatus(id: number, status: string): Promise<Order>;
+  updateOrderStatus(id: number, status: "pending" | "delivered" | "cancelled"): Promise<Order>;
 
   // Order Items
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
@@ -77,6 +79,12 @@ export interface IStorage {
   // Settings
   getSettings(): Promise<Settings | undefined>;
   updateSettings(settings: Partial<InsertSettings>): Promise<Settings>;
+
+  // Métodos para manejo de envases retornables
+  createBottleReturn(bottleReturn: InsertBottleReturn): Promise<BottleReturn>;
+  updateBottleReturn(id: number, returnedQuantity: number): Promise<BottleReturn>;
+  getBottleReturnsByOrder(orderId: number): Promise<BottleReturn[]>;
+  getBottleReturnsByDriver(driverId: number): Promise<BottleReturn[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -137,12 +145,13 @@ export class DatabaseStorage implements IStorage {
       .from(customers)
       .where(eq(customers.id, id));
 
-    if (!customer) throw new Error("Customer not found");
+    if (!customer) throw new Error("Cliente no encontrado");
 
-    const newBalance = parseFloat(customer.balance) + amount;
+    // Actualizar el límite de crédito en lugar del balance
+    const newCreditLimit = (parseFloat(customer.creditlimit) - amount).toFixed(2);
     const [updatedCustomer] = await db
       .update(customers)
-      .set({ balance: newBalance.toString() })
+      .set({ creditlimit: newCreditLimit })
       .where(eq(customers.id, id))
       .returning();
 
@@ -202,7 +211,7 @@ export class DatabaseStorage implements IStorage {
       .from(trucks)
       .where(eq(trucks.id, id));
 
-    if (!truck) throw new Error("Truck not found");
+    if (!truck) throw new Error("Camión no encontrado");
 
     const [updatedTruck] = await db
       .update(trucks)
@@ -364,7 +373,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orderItems.orderId, orderId));
   }
 
-
   // Customer Orders
   async getCustomerOrders(customerId: number): Promise<CustomerOrders[]> {
     return db
@@ -376,7 +384,17 @@ export class DatabaseStorage implements IStorage {
   async createCustomerOrder(customerOrder: InsertCustomerOrders): Promise<CustomerOrders> {
     const [newCustomerOrder] = await db
       .insert(customerOrders)
-      .values(customerOrder)
+      .values({
+        customerId: customerOrder.customerId,
+        orderType: customerOrder.orderType,
+        frequency: customerOrder.frequency,
+        status: customerOrder.status,
+        totalOrders: customerOrder.totalOrders,
+        averageOrderValue: customerOrder.averageOrderValue,
+        notes: customerOrder.notes,
+        lastOrderDate: customerOrder.lastOrderDate ? new Date(customerOrder.lastOrderDate) : null,
+        preferredPaymentMethod: customerOrder.preferredPaymentMethod
+      })
       .returning();
     return newCustomerOrder;
   }
@@ -442,7 +460,7 @@ export class DatabaseStorage implements IStorage {
     return {
       latitude,
       longitude,
-      timestamp: user.lastLocationUpdate
+      timestamp: new Date(user.lastLocationUpdate)
     };
   }
 
@@ -462,14 +480,14 @@ export class DatabaseStorage implements IStorage {
   async updateSettings(settingsData: Partial<InsertSettings>): Promise<Settings> {
     try {
       console.log("Storage - updateSettings: Datos recibidos:", settingsData);
-      
+
       // Verificación adicional para municipalityId
       if (settingsData.municipalityId) {
         console.log("Storage - Verificando municipalityId:", settingsData.municipalityId);
       } else {
         console.log("Storage - ADVERTENCIA: municipalityId no presente");
       }
-      
+
       const [existingSettings] = await db.select().from(settingsTable);
 
       if (existingSettings) {
@@ -492,6 +510,89 @@ export class DatabaseStorage implements IStorage {
       console.error("Error al actualizar configuración:", error);
       throw error;
     }
+  }
+
+  // Implementación de métodos para envases retornables
+  async createBottleReturn(bottleReturn: InsertBottleReturn): Promise<BottleReturn> {
+    // Calcula el monto del depósito basado en el producto
+    const [product] = await db
+      .select()
+      .from(products)
+      .where(eq(products.id, bottleReturn.productId));
+
+    if (!product || !product.isReturnable) {
+      throw new Error("El producto no es retornable");
+    }
+
+    const initialBottleReturn = {
+      ...bottleReturn,
+      status: "pending" as const,
+      pendingQuantity: bottleReturn.expectedQuantity,
+      amountCharged: "0.00",
+      depositAmount: product.depositAmount
+    };
+
+    const [newReturn] = await db.insert(bottleReturns).values(initialBottleReturn).returning();
+    return newReturn;
+  }
+
+  async updateBottleReturn(id: number, returnedQuantity: number): Promise<BottleReturn> {
+    const [bottleReturn] = await db
+      .select()
+      .from(bottleReturns)
+      .where(eq(bottleReturns.id, id));
+
+    if (!bottleReturn) throw new Error("Devolución de envase no encontrada");
+
+    const pendingQuantity = bottleReturn.expectedQuantity - returnedQuantity;
+    const status = pendingQuantity === 0 ? "complete" as const : "incomplete" as const;
+    const amountCharged = pendingQuantity > 0
+      ? (pendingQuantity * parseFloat(bottleReturn.depositAmount)).toFixed(2)
+      : "0.00";
+
+    const [updatedReturn] = await db
+      .update(bottleReturns)
+      .set({
+        returnedQuantity,
+        pendingQuantity,
+        status,
+        amountCharged
+      })
+      .where(eq(bottleReturns.id, id))
+      .returning();
+
+    return updatedReturn;
+  }
+
+  async getBottleReturnsByOrder(orderId: number): Promise<BottleReturn[]> {
+    return db
+      .select()
+      .from(bottleReturns)
+      .where(eq(bottleReturns.orderId, orderId));
+  }
+
+  async getBottleReturnsByDriver(driverId: number): Promise<BottleReturn[]> {
+    // Primero obtenemos todas las órdenes del conductor
+    const routesWithDriver = await db
+      .select()
+      .from(routes)
+      .where(eq(routes.driverId, driverId));
+
+    const routeIds = routesWithDriver.map(route => route.id);
+
+    // Luego obtenemos las órdenes asociadas a esas rutas
+    const ordersInRoutes = await db
+      .select()
+      .from(orders)
+      .where(inArray(orders.routeId, routeIds));
+
+    const orderIds = ordersInRoutes.map(order => order.id);
+
+    // Finalmente obtenemos las devoluciones de envases para esas órdenes
+    return db
+      .select()
+      .from(bottleReturns)
+      .where(inArray(bottleReturns.orderId, orderIds));
   }
 }
 
