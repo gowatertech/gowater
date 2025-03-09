@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, PieChart, Pie, Cell, Label } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { apiRequest } from "@/lib/queryClient";
 
 // Colores consistentes para los gráficos
@@ -114,20 +114,20 @@ export default function Dashboard() {
   };
 
   const renderCustomizedLabel = (props: any) => {
-    const { cx, cy, midAngle, innerRadius, outerRadius, percent, value, name } = props;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const radian = Math.PI / 180;
-    const x = cx + radius * Math.cos(-midAngle * radian);
-    const y = cy + radius * Math.sin(-midAngle * radian);
+    const { cx, cy, midAngle, outerRadius, percent, value, name } = props;
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius * 1.4;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
     return (
       <text
         x={x}
         y={y}
-        fill="white"
-        textAnchor="middle"
+        fill="black"
+        textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
-        className="text-[10px]"
+        className="text-[10px] font-medium"
       >
         {`${name}: ${formatCurrency(value)}`}
       </text>
@@ -225,7 +225,7 @@ export default function Dashboard() {
                   paddingAngle={5}
                   dataKey="value"
                   label={renderCustomizedLabel}
-                  labelLine={false}
+                  labelLine
                 >
                   {salesData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -253,7 +253,7 @@ export default function Dashboard() {
                   paddingAngle={5}
                   dataKey="value"
                   label={renderCustomizedLabel}
-                  labelLine={false}
+                  labelLine
                 >
                   {ordersData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -281,7 +281,7 @@ export default function Dashboard() {
                   paddingAngle={5}
                   dataKey="value"
                   label={renderCustomizedLabel}
-                  labelLine={false}
+                  labelLine
                 >
                   {paymentsData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
