@@ -69,8 +69,8 @@ export default function SalesReports() {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="space-y-2">
+      <div className="flex justify-end mb-2">
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Seleccionar período" />
@@ -85,19 +85,19 @@ export default function SalesReports() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
         {/* Gráfico de Ventas vs Tiempo */}
-        <Card className="p-3">
-          <h3 className="text-sm font-medium mb-2">
+        <Card className="p-2">
+          <h3 className="text-xs font-medium mb-1">
             {t("Tendencia de Ventas")}
           </h3>
-          <div className="h-[200px]">
+          <div className="h-[150px]">
             {isLoadingSales ? (
-              <div className="h-full flex items-center justify-center text-sm">
+              <div className="h-full flex items-center justify-center text-xs">
                 Cargando datos...
               </div>
             ) : salesData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
                 No hay datos disponibles para este período
               </div>
             ) : (
@@ -107,14 +107,14 @@ export default function SalesReports() {
                   <XAxis 
                     dataKey="date" 
                     tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 10 }}
                   />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip 
                     labelFormatter={(value) => new Date(value).toLocaleDateString()}
                     formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Ventas"]}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '10px' }} />
                   <Line
                     type="monotone"
                     dataKey="amount"
@@ -128,17 +128,17 @@ export default function SalesReports() {
         </Card>
 
         {/* Gráfico de Pagos vs Tiempo */}
-        <Card className="p-3">
-          <h3 className="text-sm font-medium mb-2">
+        <Card className="p-2">
+          <h3 className="text-xs font-medium mb-1">
             {t("Estado de Pagos")}
           </h3>
-          <div className="h-[200px]">
+          <div className="h-[150px]">
             {isLoadingPayments ? (
-              <div className="h-full flex items-center justify-center text-sm">
+              <div className="h-full flex items-center justify-center text-xs">
                 Cargando datos...
               </div>
             ) : paymentsData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
                 No hay datos disponibles para este período
               </div>
             ) : (
@@ -148,14 +148,14 @@ export default function SalesReports() {
                   <XAxis 
                     dataKey="date" 
                     tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 10 }}
                   />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip 
                     labelFormatter={(value) => new Date(value).toLocaleDateString()}
                     formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Monto"]}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: '10px' }} />
                   <Bar
                     dataKey="paid"
                     fill="#00C49F"
