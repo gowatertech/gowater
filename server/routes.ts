@@ -928,7 +928,7 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
             console.error("Error al crear producto:", error);      res.status(500).json({ error: String(error) });
         }
-  });
+      });
 
   // Pagos
   app.get("/api/payments", async (req, res) => {
@@ -1233,6 +1233,9 @@ export async function registerRoutes(app: Express) {
         ...req.body,
         status: "incomplete",
         createdAt: new Date(),
+        chargeType: req.body.chargeType || "direct",
+        commissionPercentage: req.body.chargeType === "commission" ? Number(req.body.commissionPercentage) : 0,
+        commissionAmount: req.body.chargeType === "commission" ? Number(req.body.commissionAmount) : 0,
       };
 
       const [faltante] = await db
