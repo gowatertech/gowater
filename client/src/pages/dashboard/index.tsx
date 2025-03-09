@@ -1,46 +1,68 @@
-
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
+import { Product, Order } from "@shared/schema";
+
+// Define types for our API responses
+interface SalesStats {
+  total: string;
+  avgTicket: string;
+}
+
+interface SalesTrend {
+  date: string;
+  sales: number;
+}
+
+interface OrderStatus {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface TopCustomer {
+  name: string;
+  total: number;
+}
 
 export default function Dashboard() {
   const { t } = useTranslation();
 
-  // Consultas para obtener datos del dashboard
-  const { data: salesStats } = useQuery({
+  // Strongly typed queries
+  const { data: salesStats } = useQuery<SalesStats>({
     queryKey: ["/api/stats/sales"],
   });
 
-  const { data: salesTrend } = useQuery({
+  const { data: salesTrend } = useQuery<SalesTrend[]>({
     queryKey: ["/api/stats/sales-trend"],
   });
 
-  const { data: orderStatus } = useQuery({
+  const { data: orderStatus } = useQuery<OrderStatus[]>({
     queryKey: ["/api/stats/order-status"],
   });
 
-  const { data: topCustomers } = useQuery({
+  const { data: topCustomers } = useQuery<TopCustomer[]>({
     queryKey: ["/api/stats/top-customers"],
   });
 
-  const { data: orders } = useQuery({
+  const { data: orders } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
   });
 
-  const { data: products } = useQuery({
+  const { data: products } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
-  // Calcular el total de inventario
-  const totalInventory = products?.reduce((sum, product) => sum + product.stock, 0) || 0;
-  const totalProducts = products?.length || 0;
+  // Calculate inventory with proper type checking
+  const totalInventory = products?.reduce((sum, product) => sum + (product.stock || 0), 0) ?? 0;
+  const totalProducts = products?.length ?? 0;
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">{t("dashboard")}</h1>
-      
-      {/* Tarjetas de estadísticas */}
+
+      {/* Stats cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -63,7 +85,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${salesStats?.avgTicket || "0.00"}
+              ${salesStats?.avgTicket ?? "0.00"}
             </div>
           </CardContent>
         </Card>
@@ -89,14 +111,14 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders?.length || 0}</div>
+            <div className="text-2xl font-bold">{orders?.length ?? 0}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráficos */}
+      {/* Charts */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Tendencia de ventas */}
+        {/* Sales trend */}
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>{t("sales_trend")}</CardTitle>
@@ -125,7 +147,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Estado de órdenes */}
+        {/* Order status */}
         <Card className="col-span-1">
           <CardHeader>
             <CardTitle>{t("order_status")}</CardTitle>
@@ -145,7 +167,10 @@ export default function Dashboard() {
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
                     {orderStatus.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color || `#${index * 3}${index * 5}${index * 7}`} />
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.color || `#${(index * 3).toString(16)}${(index * 5).toString(16)}${(index * 7).toString(16)}`} 
+                      />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -160,7 +185,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Clientes principales */}
+      {/* Top customers */}
       <Card>
         <CardHeader>
           <CardTitle>{t("top_customers")}</CardTitle>
