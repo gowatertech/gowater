@@ -14,6 +14,13 @@ import {
   BookOpen,
   LayoutDashboard,
   BarChart2,
+  Box,
+  Warehouse,
+  ClipboardList,
+  RefreshCcw,
+  CreditCard,
+  Calculator,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -29,45 +36,65 @@ import {
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const menuColors = {
-  dashboard: "#0088FE",   // Azul brillante para dashboard
-  facturacion: "#00C49F", // Verde turquesa para facturación
-  pagos: "#00C49F",      // Verde turquesa para pagos
-  usuarios: "#0088FE",   // Azul brillante
-  clientes: "#00C49F",   // Verde turquesa
-  inventario: "#FFBB28", // Amarillo cálido
-  rutas: "#FF8042",      // Naranja
-  vehiculos: "#00C49F",  // Verde turquesa
-  pedidos: "#FFBB28",    // Amarillo
-  reportes: "#FF8042",   // Naranja para reportes
-  settings: "#8884d8",   // Púrpura para configuración
+  dashboard: "#0088FE",
+  almacen: "#00C49F",
+  rutas: "#FF8042",
+  envases: "#FFBB28",
+  pagos: "#8884d8",
+  admin: "#FF8042",
+  settings: "#8884d8",
 };
 
 const sidebarItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
-  { icon: FileText, label: "Facturación", href: "/billing" },
-  { icon: FileText, label: "Pagos", href: "/payments" },
-  { icon: Users, label: "Usuarios", href: "/users" },
-  { icon: Users, label: "Clientes", href: "/customers" },
   {
-    icon: Package,
-    label: "Inventario",
-    href: "/inventario/productos",
+    icon: Warehouse,
+    label: "Almacén/Producción",
+    href: "/almacen",
     subItems: [
-      { label: "Productos", href: "/inventario/productos" },
-      { label: "Carga de Productos", href: "/inventario/carga" },
+      { label: "Inventario", href: "/inventario/productos" },
+      { label: "Registrar Producción", href: "/almacen/produccion" },
+      { label: "Cargar Camión", href: "/inventario/carga" },
     ],
   },
-  { icon: Route, label: "Rutas", href: "/routes" },
-  { icon: Truck, label: "Vehículos", href: "/trucks" },
-  { icon: FileText, label: "Pedidos", href: "/orders" },
   {
-    icon: BarChart2,
-    label: "Reportes",
-    href: "/reports",
+    icon: Route,
+    label: "Rutas y Entregas",
+    href: "/rutas",
     subItems: [
-      { label: "Ventas", href: "/reports/sales" },
-      { label: "Operaciones", href: "/reports/operations" },
-      { label: "Clientes", href: "/reports/customers" },
+      { label: "Rutas", href: "/routes" },
+      { label: "Vehículos", href: "/trucks" },
+      { label: "Pedidos", href: "/orders" },
+    ],
+  },
+  {
+    icon: RefreshCcw,
+    label: "Control de Envases",
+    href: "/envases",
+    subItems: [
+      { label: "Registrar Devolución", href: "/envases/devolucion" },
+      { label: "Balance de Envases", href: "/envases/balance" },
+      { label: "Cobrar Faltantes", href: "/envases/faltantes" },
+    ],
+  },
+  {
+    icon: CreditCard,
+    label: "Gestión de Pagos",
+    href: "/pagos",
+    subItems: [
+      { label: "Pagos", href: "/payments" },
+      { label: "Facturación", href: "/billing" },
+      { label: "Comisiones", href: "/pagos/comisiones" },
+    ],
+  },
+  {
+    icon: Building2,
+    label: "Administración",
+    href: "/admin",
+    subItems: [
+      { label: "Usuarios", href: "/users" },
+      { label: "Clientes", href: "/customers" },
+      { label: "Reportes", href: "/reports" },
     ],
   },
   { icon: Settings, label: "Configuración", href: "/settings" },
@@ -106,7 +133,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         {sidebarItems.map((item) => {
           const Icon = item.icon;
           const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
-          const itemColor = menuColors[item.label.toLowerCase() as keyof typeof menuColors];
+          const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
           const isHovered = hoveredItem === item.label;
 
           return (
@@ -154,7 +181,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                   <div
                     className={cn(
                       "overflow-hidden transition-[max-height] duration-200 ease-in-out",
-                      isHovered ? "max-h-32" : "max-h-0"
+                      isHovered ? "max-h-48" : "max-h-0"
                     )}
                   >
                     <div className="py-1 px-2 space-y-1">
