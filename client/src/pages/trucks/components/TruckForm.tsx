@@ -5,6 +5,7 @@ import type { InsertTruck } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 import {
   Dialog,
@@ -41,6 +42,7 @@ interface TruckFormProps {
 export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InsertTruck>({
     resolver: zodResolver(insertTruckSchema),
@@ -56,6 +58,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
   const onSubmit = async (values: InsertTruck) => {
     try {
+      setIsSubmitting(true);
+      console.log("Submitting truck data:", values);
+
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
           "Content-Type": "application/json"
@@ -63,23 +68,29 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         body: JSON.stringify(values)
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Error al crear el vehículo");
+        throw new Error(data.error || "Error al crear el vehículo");
       }
 
       toast({
-        description: "Vehículo registrado exitosamente"
+        description: "Vehículo registrado exitosamente",
+        duration: 3000,
       });
 
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       form.reset();
     } catch (error) {
+      console.error("Error creating truck:", error);
       toast({
         variant: "destructive",
-        description: error instanceof Error ? error.message : "Error al crear el vehículo"
+        description: error instanceof Error ? error.message : "Error al crear el vehículo",
+        duration: 5000,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -98,7 +109,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormItem>
                   <FormLabel>Marca</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ingrese la marca" {...field} />
+                    <Input 
+                      placeholder="Ingrese la marca" 
+                      {...field} 
+                      onChange={(e) => field.onChange(e.target.value.trim())}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,7 +127,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormItem>
                   <FormLabel>Modelo</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ingrese el modelo" {...field} />
+                    <Input 
+                      placeholder="Ingrese el modelo" 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value.trim())}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,7 +169,8 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     <Input 
                       placeholder="Ingrese la placa" 
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                      onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
+                      maxLength={10}
                     />
                   </FormControl>
                   <FormMessage />
@@ -201,7 +221,13 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               )}
             />
 
-            <Button type="submit" className="w-full">Guardar Vehículo</Button>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Guardando..." : "Guardar Vehículo"}
+            </Button>
           </form>
         </Form>
       </DialogContent>
