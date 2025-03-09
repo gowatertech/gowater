@@ -56,17 +56,23 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
   const onSubmit = async (values: InsertTruck) => {
     try {
+      // Asegurarse de que los valores numéricos sean números
+      const formData = {
+        ...values,
+        year: Number(values.year),
+        capacity: Number(values.capacity),
+      };
+
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Error al crear el vehículo");
+        const error = await response.json();
+        throw new Error(error.error || "Error al crear el vehículo");
       }
 
       toast({
@@ -77,7 +83,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       onOpenChange(false);
       form.reset();
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error al crear vehículo:", error);
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : "Error al crear el vehículo",
@@ -135,7 +141,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       max={new Date().getFullYear()}
                       placeholder="Ingrese el año"
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
@@ -169,7 +175,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       min={1}
                       placeholder="Ingrese la capacidad"
                       {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
