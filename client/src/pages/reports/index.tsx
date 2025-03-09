@@ -50,39 +50,39 @@ export default function Reports() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{t("Reportes")}</h1>
+    <div className="space-y-2 p-2">
+      <div className="flex justify-between items-center mb-1">
+        <h1 className="text-lg font-bold">{t("Reportes")}</h1>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-3 gap-1">
         {reportCategories.map((category) => {
           const Icon = category.icon;
           const isActive = currentPath === category.id;
           return (
             <Card
               key={category.id}
-              className={`p-4 cursor-pointer transition-all ${
+              className={`py-1 px-2 cursor-pointer transition-all ${
                 isActive
                   ? "border-primary/50 shadow-md"
                   : "hover:border-primary/30"
               }`}
               onClick={() => window.location.href = `/reports/${category.id}`}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-2">
                 <div
-                  className={`p-2 rounded-lg ${
+                  className={`p-1 rounded-lg ${
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
                   }`}
                   style={{ backgroundColor: isActive ? category.color : undefined }}
                 >
-                  <Icon className="h-6 w-6" style={{ color: isActive ? "white" : category.color }} />
+                  <Icon className="h-4 w-4" style={{ color: isActive ? "white" : category.color }} />
                 </div>
-                <div>
-                  <h3 className="font-medium">{category.label}</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xs font-medium truncate">{category.label}</h3>
+                  <p className="text-xs text-muted-foreground truncate">
                     {category.description}
                   </p>
                 </div>
@@ -92,7 +92,7 @@ export default function Reports() {
         })}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-1">
         {renderReport()}
       </div>
     </div>

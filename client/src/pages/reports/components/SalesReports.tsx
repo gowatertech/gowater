@@ -69,10 +69,10 @@ export default function SalesReports() {
   ];
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-end mb-2">
+    <div className="space-y-1">
+      <div className="flex justify-end mb-1">
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[120px] h-7 text-xs">
             <SelectValue placeholder="Seleccionar período" />
           </SelectTrigger>
           <SelectContent>
@@ -85,13 +85,13 @@ export default function SalesReports() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
         {/* Gráfico de Ventas vs Tiempo */}
-        <Card className="p-2">
-          <h3 className="text-xs font-medium mb-1">
+        <Card className="p-1">
+          <h3 className="text-xs font-medium mb-0.5">
             {t("Tendencia de Ventas")}
           </h3>
-          <div className="h-[150px]">
+          <div className="h-[120px]">
             {isLoadingSales ? (
               <div className="h-full flex items-center justify-center text-xs">
                 Cargando datos...
@@ -107,14 +107,14 @@ export default function SalesReports() {
                   <XAxis 
                     dataKey="date" 
                     tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 9 }}
                   />
-                  <YAxis tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 9 }} />
                   <Tooltip 
                     labelFormatter={(value) => new Date(value).toLocaleDateString()}
                     formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Ventas"]}
                   />
-                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                  <Legend wrapperStyle={{ fontSize: '9px' }} />
                   <Line
                     type="monotone"
                     dataKey="amount"
@@ -128,11 +128,11 @@ export default function SalesReports() {
         </Card>
 
         {/* Gráfico de Pagos vs Tiempo */}
-        <Card className="p-2">
-          <h3 className="text-xs font-medium mb-1">
+        <Card className="p-1">
+          <h3 className="text-xs font-medium mb-0.5">
             {t("Estado de Pagos")}
           </h3>
-          <div className="h-[150px]">
+          <div className="h-[120px]">
             {isLoadingPayments ? (
               <div className="h-full flex items-center justify-center text-xs">
                 Cargando datos...
@@ -148,14 +148,14 @@ export default function SalesReports() {
                   <XAxis 
                     dataKey="date" 
                     tickFormatter={(value) => new Date(value).toLocaleDateString()}
-                    tick={{ fontSize: 10 }}
+                    tick={{ fontSize: 9 }}
                   />
-                  <YAxis tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 9 }} />
                   <Tooltip 
                     labelFormatter={(value) => new Date(value).toLocaleDateString()}
                     formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Monto"]}
                   />
-                  <Legend wrapperStyle={{ fontSize: '10px' }} />
+                  <Legend wrapperStyle={{ fontSize: '9px' }} />
                   <Bar
                     dataKey="paid"
                     fill="#00C49F"
