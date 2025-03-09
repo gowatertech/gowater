@@ -20,7 +20,7 @@ export default function Trucks() {
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/trucks");
       if (!response.ok) {
-        throw new Error("Error loading trucks");
+        throw new Error("Error al cargar vehículos");
       }
       return response.json();
     },
@@ -39,16 +39,29 @@ export default function Trucks() {
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "available":
+        return "Disponible";
+      case "on_route":
+        return "En Ruta";
+      case "maintenance":
+        return "Mantenimiento";
+      default:
+        return status;
+    }
+  };
+
   return (
     <div className="space-y-2 p-1">
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Truck className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold">{t("Vehicles")}</h1>
+          <h1 className="text-lg font-bold">Vehículos</h1>
         </div>
         <Button size="sm" variant="outline" className="h-8" onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" />
-          {t("Add Vehicle")}
+          Agregar Vehículo
         </Button>
       </div>
 
@@ -57,11 +70,11 @@ export default function Trucks() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
         {isLoading ? (
           <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
-            {t("Loading vehicles...")}
+            Cargando vehículos...
           </div>
         ) : trucks.length === 0 ? (
           <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
-            {t("No vehicles registered")}
+            No hay vehículos registrados
           </div>
         ) : (
           trucks.map((truck) => (
@@ -83,7 +96,7 @@ export default function Trucks() {
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(truck.status)}`}>
-                      {t(truck.status)}
+                      {getStatusText(truck.status)}
                     </span>
                   </div>
                 </div>
