@@ -50,7 +50,7 @@ export default function Reports() {
   };
 
   return (
-    <div className="space-y-2 p-2">
+    <div className="space-y-1 p-1">
       <div className="flex justify-between items-center mb-1">
         <h1 className="text-lg font-bold">{t("Reportes")}</h1>
       </div>
@@ -62,27 +62,27 @@ export default function Reports() {
           return (
             <Card
               key={category.id}
-              className={`py-1 px-2 cursor-pointer transition-all ${
+              className={`py-0.5 px-1 cursor-pointer transition-all ${
                 isActive
                   ? "border-primary/50 shadow-md"
                   : "hover:border-primary/30"
               }`}
               onClick={() => window.location.href = `/reports/${category.id}`}
             >
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-1">
                 <div
-                  className={`p-1 rounded-lg ${
+                  className={`p-0.5 rounded-lg ${
                     isActive
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
                   }`}
                   style={{ backgroundColor: isActive ? category.color : undefined }}
                 >
-                  <Icon className="h-4 w-4" style={{ color: isActive ? "white" : category.color }} />
+                  <Icon className="h-3 w-3" style={{ color: isActive ? "white" : category.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xs font-medium truncate">{category.label}</h3>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-[10px] text-muted-foreground truncate">
                     {category.description}
                   </p>
                 </div>
