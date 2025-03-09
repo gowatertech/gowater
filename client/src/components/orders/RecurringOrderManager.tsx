@@ -37,38 +37,41 @@ export default function RecurringOrderManager({
           {isRecurring ? (
             <Badge variant="secondary" className="gap-1">
               <Calendar className="w-3 h-3" />
-              {currentFrequency}
+              {currentFrequency === 'daily' && 'Diario'}
+              {currentFrequency === 'weekly' && 'Semanal'}
+              {currentFrequency === 'biweekly' && 'Quincenal'}
+              {currentFrequency === 'monthly' && 'Mensual'}
             </Badge>
           ) : (
             <Badge variant="outline" className="gap-1">
               <Calendar className="w-3 h-3" />
-              {t("makeRecurring")}
+              Hacer Recurrente
             </Badge>
           )}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("recurringDeliverySettings")}</DialogTitle>
+          <DialogTitle>Configuración de Entrega Recurrente</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium">{t("frequency")}</label>
+            <label className="text-sm font-medium">Frecuencia</label>
             <Select value={frequency} onValueChange={handleFrequencyChange}>
               <SelectTrigger>
-                <SelectValue placeholder={t("selectFrequency")} />
+                <SelectValue placeholder="Seleccionar frecuencia" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="daily">{t("daily")}</SelectItem>
-                <SelectItem value="weekly">{t("weekly")}</SelectItem>
-                <SelectItem value="biweekly">{t("biweekly")}</SelectItem>
-                <SelectItem value="monthly">{t("monthly")}</SelectItem>
+                <SelectItem value="daily">Diario</SelectItem>
+                <SelectItem value="weekly">Semanal</SelectItem>
+                <SelectItem value="biweekly">Quincenal</SelectItem>
+                <SelectItem value="monthly">Mensual</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {nextDelivery && (
             <div>
-              <label className="text-sm font-medium">{t("nextDelivery")}</label>
+              <label className="text-sm font-medium">Próxima Entrega</label>
               <p className="text-sm text-muted-foreground">
                 {new Date(nextDelivery).toLocaleDateString()}
               </p>

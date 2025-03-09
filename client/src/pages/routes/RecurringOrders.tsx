@@ -9,7 +9,7 @@ import type { Route } from "@shared/schema";
 
 export default function RecurringOrders() {
   const { t } = useTranslation();
-  
+
   const { data: recurringOrders = [] } = useQuery<Route[]>({
     queryKey: ['/api/recurring-orders'],
     queryFn: async () => {
@@ -39,8 +39,8 @@ export default function RecurringOrders() {
 
   return (
     <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">{t("recurringOrders")}</h1>
-      
+      <h1 className="text-2xl font-bold mb-4">Pedidos Recurrentes</h1>
+
       <Card className="p-4">
         <ScrollArea className="h-[70vh]">
           <div className="space-y-4">
@@ -61,7 +61,7 @@ export default function RecurringOrders() {
                 <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {t("nextDelivery")}: {new Date(order.nextDeliveryDate).toLocaleDateString()}
+                    Próxima entrega: {new Date(order.nextDeliveryDate).toLocaleDateString()}
                   </span>
                 </div>
               </Card>
