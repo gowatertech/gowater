@@ -6,9 +6,9 @@ import { Check, Navigation2, RefreshCcw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import RecurringOrderManager from "@/components/orders/RecurringOrderManager";
 import 'leaflet/dist/leaflet.css';
 import "@/styles/map-responsive.css";
 
@@ -84,6 +84,27 @@ export default function DriverView() {
     }
   };
 
+  // Actualizar frecuencia de pedido recurrente
+  const handleUpdateFrequency = async (deliveryId: number, frequency: string) => {
+    try {
+      // Aquí irá la llamada a la API
+      // await apiRequest('PATCH', `/api/recurring-orders/${deliveryId}`, { frequency });
+
+      toast({
+        title: t("frequencyUpdated"),
+        description: t("recurringOrderFrequencyUpdated"),
+      });
+
+      refetch();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: t("errorUpdatingFrequency"),
+      });
+    }
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-4">
@@ -110,11 +131,13 @@ export default function DriverView() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium">{delivery.businessName}</h3>
-                        {delivery.isRecurring && (
-                          <Badge variant="secondary">
-                            {delivery.frequency}
-                          </Badge>
-                        )}
+                        <RecurringOrderManager
+                          orderId={delivery.id}
+                          isRecurring={delivery.isRecurring}
+                          currentFrequency={delivery.frequency}
+                          nextDelivery={delivery.nextDelivery}
+                          onUpdateFrequency={(frequency) => handleUpdateFrequency(delivery.id, frequency)}
+                        />
                       </div>
                       <p className="text-sm text-muted-foreground">{delivery.address}</p>
                     </div>
@@ -137,11 +160,6 @@ export default function DriverView() {
                     </div>
                   </div>
                   <p className="text-sm font-medium">{delivery.order}</p>
-                  {delivery.isRecurring && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      {t("nextDelivery")}: {new Date(delivery.nextDelivery!).toLocaleDateString()}
-                    </p>
-                  )}
                 </Card>
               ))}
             </div>
