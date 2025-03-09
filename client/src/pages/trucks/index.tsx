@@ -14,13 +14,13 @@ export default function Trucks() {
   const [selectedTruck, setSelectedTruck] = useState<TruckType | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  // Obtener lista de vehículos
+  // Get trucks list
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/trucks");
       if (!response.ok) {
-        throw new Error("Error al cargar vehículos");
+        throw new Error("Error loading trucks");
       }
       return response.json();
     },
@@ -28,11 +28,11 @@ export default function Trucks() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "disponible":
+      case "available":
         return "bg-green-100 text-green-700";
-      case "en_ruta":
+      case "on_route":
         return "bg-blue-100 text-blue-700";
-      case "mantenimiento":
+      case "maintenance":
         return "bg-yellow-100 text-yellow-700";
       default:
         return "bg-gray-100 text-gray-700";
@@ -44,11 +44,11 @@ export default function Trucks() {
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Truck className="h-5 w-5 text-primary" />
-          <h1 className="text-lg font-bold">{t("Vehículos")}</h1>
+          <h1 className="text-lg font-bold">{t("Vehicles")}</h1>
         </div>
         <Button size="sm" variant="outline" className="h-8" onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" />
-          {t("Agregar Vehículo")}
+          {t("Add Vehicle")}
         </Button>
       </div>
 
@@ -57,11 +57,11 @@ export default function Trucks() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
         {isLoading ? (
           <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
-            {t("Cargando vehículos...")}
+            {t("Loading vehicles...")}
           </div>
         ) : trucks.length === 0 ? (
           <div className="col-span-full text-center py-4 text-sm text-muted-foreground">
-            {t("No hay vehículos registrados")}
+            {t("No vehicles registered")}
           </div>
         ) : (
           trucks.map((truck) => (
@@ -76,10 +76,10 @@ export default function Trucks() {
                 <Truck className="h-4 w-4 text-primary mt-0.5" />
                 <div>
                   <h3 className="text-sm font-medium">
-                    {truck.marca} {truck.modelo} ({truck.ano})
+                    {truck.brand} {truck.model} ({truck.year})
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    {truck.placa} - {truck.capacidad}L
+                    {truck.plate} - {truck.capacity}L
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(truck.status)}`}>

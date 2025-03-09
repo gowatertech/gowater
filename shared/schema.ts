@@ -137,12 +137,12 @@ export const productionBatches = pgTable("production_batches", {
 // Trucks
 export const trucks = pgTable("trucks", {
   id: serial("id").primaryKey(),
-  marca: text("marca").notNull(),
-  modelo: text("modelo").notNull(),
-  ano: integer("ano").notNull(),
-  placa: text("placa").notNull().unique(),
-  capacidad: integer("capacidad").notNull(), // en litros
-  status: text("status", { enum: ["disponible", "en_ruta", "mantenimiento"] }).notNull().default("disponible"),
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  year: integer("year").notNull(),
+  plate: text("plate").notNull().unique(),
+  capacity: integer("capacity").notNull(), // in liters
+  status: text("status", { enum: ["available", "on_route", "maintenance"] }).notNull().default("available"),
 });
 
 // Routes
@@ -281,12 +281,12 @@ export const insertProductSchema = z.object({
 });
 
 export const insertTruckSchema = z.object({
-  marca: z.string().min(1, "La marca es requerida"),
-  modelo: z.string().min(1, "El modelo es requerido"),
-  ano: z.number().min(1990, "El año debe ser mayor a 1990"),
-  placa: z.string().min(1, "La placa es requerida"),
-  capacidad: z.number().min(1, "La capacidad debe ser mayor a 0"),
-  status: z.enum(["disponible", "en_ruta", "mantenimiento"]).default("disponible"),
+  brand: z.string().min(1, "Brand is required"),
+  model: z.string().min(1, "Model is required"),
+  year: z.number().min(1990, "Year must be greater than 1990"),
+  plate: z.string().min(1, "Plate is required"),
+  capacity: z.number().min(1, "Capacity must be greater than 0"),
+  status: z.enum(["available", "on_route", "maintenance"]).default("available"),
 });
 
 export const insertRouteSchema = z.object({
