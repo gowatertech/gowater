@@ -39,7 +39,7 @@ export default function MissingBottles() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const assignResponsibilityMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -52,13 +52,15 @@ export default function MissingBottles() {
         title: t("success"),
         description: t("responsibilityAssigned"),
       });
-      setDialogOpen(false);
+      setIsDialogOpen(false);
     },
   });
 
   const handleAssignResponsibility = (formData: any) => {
+    if (!selectedBottle) return;
+
     const data = {
-      bottleReturnId: selectedBottle?.id,
+      bottleReturnId: selectedBottle.id,
       ...formData,
       driverPercentage: formData.responsible === "both" ? 
         (100 - parseInt(formData.customerPercentage)) : 
@@ -130,7 +132,7 @@ export default function MissingBottles() {
                           size="sm"
                           onClick={() => {
                             setSelectedBottle(bottle);
-                            setDialogOpen(true);
+                            setIsDialogOpen(true);
                           }}
                         >
                           {t("assignResponsibility")}
@@ -178,7 +180,7 @@ export default function MissingBottles() {
                           size="sm"
                           onClick={() => {
                             setSelectedBottle(bottle);
-                            setDialogOpen(true);
+                            setIsDialogOpen(true);
                           }}
                         >
                           {t("assignResponsibility")}
@@ -193,7 +195,7 @@ export default function MissingBottles() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("assignResponsibility")}</DialogTitle>

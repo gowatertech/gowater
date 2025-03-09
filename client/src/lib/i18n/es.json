@@ -34,5 +34,8 @@
   "pending": "Pendiente",
   "registerReturn": "Registrar Devolución",
   "registerReturnDescription": "Ingrese los detalles de la devolución de envases",
-  "bottleQuantity": "Cantidad de Envases"
+  "bottleQuantity": "Cantidad de Envases",
+  "viewDetails": "Ver Detalles",
+  "bottleBalanceDescription": "Detalles del balance de envases",
+  "bottleDetails": "Detalles del Envase"
 }
