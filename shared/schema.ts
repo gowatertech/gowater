@@ -370,8 +370,21 @@ export const insertZoneSchema = z.object({
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
-// Recurring Orders - This section is already included above
-//export const recurringOrders = pgTable("recurring_orders", { ... });
+// Recurring Orders
+export const recurringOrders = pgTable("recurring_orders", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  frequency: text("frequency", { enum: ["daily", "weekly", "monthly"] }).notNull(),
+  nextOrderDate: timestamp("next_order_date").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const insertRecurringOrderSchema = z.object({
+  customerId: z.number(),
+  frequency: z.enum(["daily", "weekly", "monthly"]),
+  nextOrderDate: z.string().datetime(),
+  isActive: z.boolean().default(true),
+});
 
 
 // Production Batches
@@ -382,8 +395,8 @@ export const productionBatches = pgTable("production_batches", {
   cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
   warehouse: text("warehouse").notNull(),
   date: timestamp("date").notNull().defaultNow(),
-  userId: integer("user_id").notNull().references(() => users.id),
   notes: text("notes"),
+  status: text("status", { enum: ["pending", "completed"] }).notNull().default("completed"),
 });
 
 export const insertProductionBatchSchema = z.object({
@@ -392,6 +405,7 @@ export const insertProductionBatchSchema = z.object({
   cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
   warehouse: z.string(),
   notes: z.string().optional(),
+  status: z.enum(["pending", "completed"]).default("completed"),
 });
 
 // Company Settings

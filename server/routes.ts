@@ -930,7 +930,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Agregar el endpoint para lotes de producción después de la ruta de productos
+  // Endpointpara registrar producción
   app.post("/api/production-batches", async (req, res) => {
     try {
       console.log("POST /api/production-batches - Datos recibidos:", req.body);
@@ -938,9 +938,9 @@ export async function registerRoutes(app: Express) {
       const { productId, quantity, cost, warehouse, notes } = req.body;
 
       // Validar los datos requeridos
-      if (!productId || !quantity || !cost) {
+      if (!productId || !quantity || !cost || !warehouse) {
         return res.status(400).json({ 
-          error: "Datos incompletos. Se requiere productId, quantity y cost" 
+          error: "Datos incompletos. Se requiere productId, quantity, cost y warehouse" 
         });
       }
 
@@ -962,7 +962,7 @@ export async function registerRoutes(app: Express) {
           quantity: Number(quantity),
           cost: cost.toString(),
           warehouse,
-          notes,
+          notes: notes || null,
           date: new Date(),
           status: "completed"
         })
@@ -1006,7 +1006,7 @@ export async function registerRoutes(app: Express) {
         .from(payments)
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .leftJoin(customers, eq(invoices.customerId, customers.id))
-                .orderBy(payments.date);
+                        .orderBy(payments.date);
 
       console.log("GET /api/payments - Retornando:", allPayments.length, "pagos");
       res.json(allPayments);
