@@ -31,5 +31,8 @@
   "responsibilityAssigned": "La responsabilidad ha sido asignada correctamente",
   "incomplete": "Incompleto",
   "complete": "Completo",
-  "pending": "Pendiente"
+  "pending": "Pendiente",
+  "registerReturn": "Registrar Devolución",
+  "registerReturnDescription": "Ingrese los detalles de la devolución de envases",
+  "bottleQuantity": "Cantidad de Envases"
 }
