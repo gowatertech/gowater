@@ -6,13 +6,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Truck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import type { Truck as TruckType } from "@shared/schema";
 
 export default function Trucks() {
   const { t } = useTranslation();
-  const [selectedTruck, setSelectedTruck] = useState(null);
+  const [selectedTruck, setSelectedTruck] = useState<TruckType | null>(null);
 
   // Obtener lista de vehículos
-  const { data: trucks = [], isLoading } = useQuery({
+  const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/trucks");
@@ -22,6 +23,19 @@ export default function Trucks() {
       return response.json();
     },
   });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "disponible":
+        return "bg-green-100 text-green-700";
+      case "en_ruta":
+        return "bg-blue-100 text-blue-700";
+      case "mantenimiento":
+        return "bg-yellow-100 text-yellow-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
 
   return (
     <div className="space-y-2 p-1">
@@ -59,18 +73,14 @@ export default function Trucks() {
               <div className="flex items-start gap-2">
                 <Truck className="h-4 w-4 text-primary mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-medium">{truck.plate}</h3>
+                  <h3 className="text-sm font-medium">
+                    {truck.marca} {truck.modelo} ({truck.ano})
+                  </h3>
                   <p className="text-xs text-muted-foreground">
-                    {truck.model} - {truck.capacity}L
+                    {truck.placa} - {truck.capacidad}L
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      truck.status === "available"
-                        ? "bg-green-100 text-green-700"
-                        : truck.status === "maintenance"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(truck.status)}`}>
                       {t(truck.status)}
                     </span>
                   </div>

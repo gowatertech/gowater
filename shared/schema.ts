@@ -137,9 +137,12 @@ export const productionBatches = pgTable("production_batches", {
 // Trucks
 export const trucks = pgTable("trucks", {
   id: serial("id").primaryKey(),
-  plate: text("plate").notNull().unique(),
-  capacity: integer("capacity").notNull(),
-  status: text("status", { enum: ["available", "on_route", "maintenance"] }).notNull(),
+  marca: text("marca").notNull(),
+  modelo: text("modelo").notNull(),
+  ano: integer("ano").notNull(),
+  placa: text("placa").notNull().unique(),
+  capacidad: integer("capacidad").notNull(), // en litros
+  status: text("status", { enum: ["disponible", "en_ruta", "mantenimiento"] }).notNull().default("disponible"),
 });
 
 // Routes
@@ -278,9 +281,12 @@ export const insertProductSchema = z.object({
 });
 
 export const insertTruckSchema = z.object({
-  plate: z.string().min(1, "La placa es requerida"),
-  capacity: z.number({ required_error: "La capacidad es requerida" }),
-  status: z.enum(["available", "on_route", "maintenance"]),
+  marca: z.string().min(1, "La marca es requerida"),
+  modelo: z.string().min(1, "El modelo es requerido"),
+  ano: z.number().min(1990, "El año debe ser mayor a 1990"),
+  placa: z.string().min(1, "La placa es requerida"),
+  capacidad: z.number().min(1, "La capacidad debe ser mayor a 0"),
+  status: z.enum(["disponible", "en_ruta", "mantenimiento"]).default("disponible"),
 });
 
 export const insertRouteSchema = z.object({
@@ -324,7 +330,6 @@ export const insertOrderItemSchema = z.object({
   quantity: z.number(),
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
 });
-
 
 export const insertCustomerOrdersSchema = z.object({
   customerId: z.number(),
