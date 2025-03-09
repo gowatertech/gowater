@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTruckSchema } from "@shared/schema";
@@ -61,34 +60,24 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          brand: values.brand.trim(),
-          model: values.model.trim(),
-          year: Number(values.year),
-          plate: values.plate.trim().toUpperCase(),
-          capacity: Number(values.capacity),
-          status: values.status
-        })
+        body: JSON.stringify(values)
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Error al crear el vehículo");
+        const error = await response.json();
+        throw new Error(error.error || "Error al crear el vehículo");
       }
 
       toast({
         description: "Vehículo registrado exitosamente"
       });
-      
-      // Cerrar el formulario y actualizar la lista
+
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       form.reset();
     } catch (error) {
-      console.error("Error:", error);
       toast({
         variant: "destructive",
-        title: "Error",
         description: error instanceof Error ? error.message : "Error al crear el vehículo"
       });
     }
@@ -139,10 +128,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <FormControl>
                     <Input 
                       type="number" 
+                      min={1990}
+                      max={new Date().getFullYear()}
                       placeholder="Ingrese el año" 
-                      {...field} 
+                      {...field}
                       onChange={(e) => field.onChange(Number(e.target.value))}
-                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
@@ -159,7 +149,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <FormControl>
                     <Input 
                       placeholder="Ingrese la placa" 
-                      {...field} 
+                      {...field}
                       onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
@@ -173,14 +163,14 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               name="capacity"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Capacidad (litros)</FormLabel>
+                  <FormLabel>Capacidad (L)</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
+                      min={1}
                       placeholder="Ingrese la capacidad" 
-                      {...field} 
+                      {...field}
                       onChange={(e) => field.onChange(Number(e.target.value))}
-                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
