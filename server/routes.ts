@@ -601,14 +601,17 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/trucks", async (req, res) => {
     try {
-      const result = insertTruckSchema.safeParse({
-        brand: req.body.brand,
-        model: req.body.model,
-        year: Number(req.body.year),
-        plate: req.body.plate,
-        capacity: Number(req.body.capacity),
-        status: req.body.status || "available"
-      });
+      // Asegurar que los campos numéricos sean números
+      const truckData = {
+        brand: String(req.body.brand || ''),
+        model: String(req.body.model || ''),
+        year: +req.body.year || new Date().getFullYear(),
+        plate: String(req.body.plate || ''),
+        capacity: +req.body.capacity || 1000,
+        status: req.body.status || 'available'
+      };
+
+      const result = insertTruckSchema.safeParse(truckData);
 
       if (!result.success) {
         return res.status(400).json({ error: "Error al validar los datos del vehículo" });
@@ -929,7 +932,7 @@ export async function registerRoutes(app: Express) {
         .from(payments)
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .leftJoin(customers, eq(invoices.customerId, customers.id))
-        .orderBy(payments.date);
+                .orderBy(payments.date);
 
       console.log("GET /api/payments - Retornando:", allPayments.length, "pagos");
       res.json(allPayments);
