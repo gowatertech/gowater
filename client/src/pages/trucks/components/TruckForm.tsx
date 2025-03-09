@@ -62,11 +62,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       setIsSubmitting(true);
       console.log("Submitting truck data:", values);
 
-      //Explicit type conversion before submission
+      // Convert year to number explicitly before submission
       const submittedValues = {
         ...values,
-        year: parseInt(String(values.year), 10), //Added String() for safety
-        capacity: parseInt(String(values.capacity), 10), //Added String() for safety
+        year: Number(values.year), // Convert year to number
+        capacity: Number(values.capacity),
         status: values.status || 'available'
       };
 
@@ -82,7 +82,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        //More specific error handling
         if (data.error && data.error.details) {
           throw new Error(data.error.details.join('\n'));
         } else {
@@ -100,7 +99,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       form.reset();
     } catch (error) {
       console.error("Error creating truck:", error);
-      //Improved error message for the user
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : "Error al crear el vehículo. Por favor, revisa los datos ingresados.",
@@ -161,7 +159,10 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Año</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={String(field.value)}>
+                  <Select 
+                    onValueChange={(value) => field.onChange(Number(value))} 
+                    defaultValue={String(field.value)}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione el año" />
