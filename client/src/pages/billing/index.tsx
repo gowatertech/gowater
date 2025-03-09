@@ -82,7 +82,7 @@ export default function Billing() {
     }
   });
 
-  const { data: customers = [] } = useQuery<Customer[]>({
+  const { data: customers = [] } = useQuery({
     queryKey: ["/api/customers"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/customers");
@@ -482,7 +482,7 @@ export default function Billing() {
                         value={customer.id.toString()}
                         className="text-sm py-2"
                       >
-                        {customer.name}
+                        {customer.businessname}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -941,7 +941,7 @@ export default function Billing() {
                       </DialogHeader>
                       <div className="space-y-4">
                         <Select
-                                                    defaultValue={selectedInvoice.paymentMethod}
+                          defaultValue={selectedInvoice.paymentMethod}
                           onValueChange={(value) => handlePaymentMethodChange(selectedInvoice.id, value as 'cash' | 'credit' | 'card')}
                         >
                           <SelectTrigger>

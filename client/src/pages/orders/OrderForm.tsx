@@ -38,8 +38,15 @@ export default function OrderForm() {
   });
 
   // Fetch customers for dropdown
-  const { data: customers } = useQuery({
+  const { data: customers = [] } = useQuery({
     queryKey: ["/api/customers"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/customers");
+      if (!response.ok) {
+        throw new Error('Error al cargar clientes');
+      }
+      return response.json();
+    }
   });
 
   const createMutation = useMutation({
