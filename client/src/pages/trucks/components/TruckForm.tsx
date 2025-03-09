@@ -1,5 +1,4 @@
 import { useForm } from "react-hook-form";
-import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTruckSchema } from "@shared/schema";
 import type { InsertTruck } from "@shared/schema";
@@ -40,7 +39,6 @@ interface TruckFormProps {
 }
 
 export function TruckForm({ open, onOpenChange }: TruckFormProps) {
-  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
