@@ -46,7 +46,7 @@ const menuColors = {
 };
 
 const sidebarItems = [
-  { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+  { icon: LayoutDashboard, label: "Panel Principal", href: "/" },
   {
     icon: Warehouse,
     label: "Almacén/Producción",
