@@ -54,13 +54,15 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     },
   });
 
-  const onSubmit = async (values: InsertTruck) => {
+  const onSubmit = async (data: InsertTruck) => {
     try {
-      // Asegurarse de que los valores numéricos sean números
       const formData = {
-        ...values,
-        year: Number(values.year),
-        capacity: Number(values.capacity),
+        brand: data.brand,
+        model: data.model,
+        year: Number(data.year),
+        plate: data.plate,
+        capacity: Number(data.capacity),
+        status: data.status
       };
 
       const response = await apiRequest("POST", "/api/trucks", {
@@ -141,7 +143,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       max={new Date().getFullYear()}
                       placeholder="Ingrese el año"
                       {...field}
-                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
@@ -175,7 +176,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       min={1}
                       placeholder="Ingrese la capacidad"
                       {...field}
-                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
