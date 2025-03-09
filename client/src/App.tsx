@@ -18,10 +18,10 @@ import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
 import Trucks from "@/pages/trucks";
 
-// Bottles management pages
-import BottleReturns from "@/pages/bottles/bottle-returns";
-import BottleBalance from "@/pages/bottles/bottle-balance";
-import MissingBottles from "@/pages/bottles/missing-bottles";
+// Nuevas páginas de envases
+import DevolucionEnvases from "@/pages/envases/devolucion";
+import BalanceEnvases from "@/pages/envases/balance";
+import EnvasesFaltantes from "@/pages/envases/faltantes";
 
 // Import translations and I18nextProvider
 import { I18nextProvider } from "react-i18next";
@@ -29,6 +29,7 @@ import i18n from "./lib/i18n";
 
 function Router() {
   const [location] = useLocation();
+  console.log("Router - Current location:", location);
 
   return (
     <DashboardLayout>
@@ -48,10 +49,10 @@ function Router() {
         <Route path="/reports" component={Reports} />
         <Route path="/reports/:type" component={Reports} />
 
-        {/* Bottle management routes */}
-        <Route path="/bottles/returns" component={BottleReturns} />
-        <Route path="/bottles/balance" component={BottleBalance} />
-        <Route path="/bottles/missing" component={MissingBottles} />
+        {/* Nuevas rutas para envases */}
+        <Route path="/envases/devolucion" component={DevolucionEnvases} />
+        <Route path="/envases/balance" component={BalanceEnvases} />
+        <Route path="/envases/faltantes" component={EnvasesFaltantes} />
 
         <Route component={NotFound} />
       </Switch>
