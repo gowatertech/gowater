@@ -1,6 +1,5 @@
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +30,6 @@ export default function Faltante({ onCreated }: FaltanteProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
 
-  // Consulta para obtener clientes
   const { data: customers = [] } = useQuery({
     queryKey: ["/api/customers"],
     queryFn: async () => {
@@ -43,7 +41,6 @@ export default function Faltante({ onCreated }: FaltanteProps) {
     }
   });
 
-  // Consulta para obtener productos
   const { data: products = [] } = useQuery({
     queryKey: ["/api/products"],
     queryFn: async () => {
@@ -108,10 +105,7 @@ export default function Faltante({ onCreated }: FaltanteProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t("Cliente")}</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-              >
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder={t("Seleccionar cliente")} />
@@ -136,10 +130,7 @@ export default function Faltante({ onCreated }: FaltanteProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t("Producto")}</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                value={field.value}
-              >
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder={t("Seleccionar producto")} />
@@ -214,10 +205,7 @@ export default function Faltante({ onCreated }: FaltanteProps) {
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-        >
+        <Button type="submit" className="w-full">
           {t("Registrar Faltante")}
         </Button>
       </form>

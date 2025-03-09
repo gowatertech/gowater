@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { type BottleReturn } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -18,9 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import Faltante from "./faltante";
 
 interface BottleReturnWithDetails extends BottleReturn {
   customerName: string | null;
@@ -50,11 +49,9 @@ const DetectionTypeBadge = ({ type }: { type: 'automatic' | 'manual' }) => {
 export default function Faltantes() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
   const [showFaltanteForm, setShowFaltanteForm] = useState(false);
 
-  // Queries existentes...
+  // Consulta para obtener los envases faltantes por cliente
   const { data: faltantesPorCliente = [], isLoading: isLoadingClientes } = useQuery({
     queryKey: ["/api/envases/faltantes/clientes"],
     queryFn: async () => {
@@ -66,6 +63,7 @@ export default function Faltantes() {
     },
   });
 
+  // Consulta para obtener los envases faltantes por chofer
   const { data: faltantesPorChofer = [], isLoading: isLoadingChoferes } = useQuery({
     queryKey: ["/api/envases/faltantes/choferes"],
     queryFn: async () => {
@@ -74,31 +72,6 @@ export default function Faltantes() {
         throw new Error("Error al obtener datos");
       }
       return response.json();
-    },
-  });
-
-  // Mutation existente...
-  const asignarResponsabilidadMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/envases/faltantes/asignar", data);
-      if (!response.ok) {
-        throw new Error("Error al asignar responsabilidad");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/envases/faltantes"] });
-      toast({
-        description: t("La responsabilidad ha sido asignada correctamente"),
-      });
-      setDialogOpen(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: "destructive",
-        title: t("Error"),
-        description: error.message,
-      });
     },
   });
 
@@ -116,13 +89,14 @@ export default function Faltantes() {
         </Button>
       </div>
 
-      {/* Diálogo para el formulario de faltantes */}
       <Dialog open={showFaltanteForm} onOpenChange={setShowFaltanteForm}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{t("Registrar Faltante")}</DialogTitle>
           </DialogHeader>
-          <Faltante onCreated={() => setShowFaltanteForm(false)} />
+          <form className="space-y-4">
+            {/* Aquí irá el formulario */}
+          </form>
         </DialogContent>
       </Dialog>
 
@@ -144,7 +118,6 @@ export default function Faltantes() {
                     <TableHead>{t("Días Transcurridos")}</TableHead>
                     <TableHead>{t("Estado")}</TableHead>
                     <TableHead>{t("Tipo")}</TableHead>
-                    <TableHead>{t("Acciones")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,21 +130,9 @@ export default function Faltantes() {
                       <TableCell>{bottle.pendingQuantity}</TableCell>
                       <TableCell>${Number(bottle.amountCharged).toFixed(2)}</TableCell>
                       <TableCell>{bottle.daysElapsed}</TableCell>
-                      <TableCell>{bottle.status}</TableCell>
+                      <TableCell>{bottle.orderStatus}</TableCell>
                       <TableCell>
                         <DetectionTypeBadge type={bottle.detectionType} />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedBottle(bottle);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          {t("Asignar Responsabilidad")}
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -193,7 +154,6 @@ export default function Faltantes() {
                     <TableHead>{t("Monto a Cobrar")}</TableHead>
                     <TableHead>{t("Fecha")}</TableHead>
                     <TableHead>{t("Tipo")}</TableHead>
-                    <TableHead>{t("Acciones")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -207,18 +167,6 @@ export default function Faltantes() {
                       <TableCell>
                         <DetectionTypeBadge type={bottle.detectionType} />
                       </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedBottle(bottle);
-                            setDialogOpen(true);
-                          }}
-                        >
-                          {t("Asignar Responsabilidad")}
-                        </Button>
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -227,106 +175,6 @@ export default function Faltantes() {
           </Card>
         </TabsContent>
       </Tabs>
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t("Asignar Responsabilidad")}</DialogTitle>
-            <DialogDescription>
-              {selectedBottle?.customerName && (
-                <p>{t("Cliente")}: {selectedBottle.customerName}</p>
-              )}
-              {selectedBottle?.driverName && (
-                <p>{t("Chofer")}: {selectedBottle.driverName}</p>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const formData = new FormData(e.currentTarget);
-            handleAssignResponsibility(Object.fromEntries(formData));
-          }} className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t("Responsable")}</Label>
-                <RadioGroup defaultValue="customer" name="responsible">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="customer" id="r-customer" />
-                    <Label htmlFor="r-customer">{t("Cliente")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="driver" id="r-driver" />
-                    <Label htmlFor="r-driver">{t("Chofer")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="both" id="r-both" />
-                    <Label htmlFor="r-both">{t("Ambos")}</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("Porcentaje Cliente (%)")}</Label>
-                <Input
-                  type="number"
-                  name="customerPercentage"
-                  defaultValue="100"
-                  min="0"
-                  max="100"
-                  className="mt-2"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("Método de Cobro")}</Label>
-                <RadioGroup defaultValue="invoice" name="chargeMethod">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="invoice" id="c-invoice" />
-                    <Label htmlFor="c-invoice">{t("Factura")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="commission" id="c-commission" />
-                    <Label htmlFor="c-commission">{t("Descontar de Comisión")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="cash" id="c-cash" />
-                    <Label htmlFor="c-cash">{t("Pago en Efectivo")}</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("Justificación")}</Label>
-                <Input
-                  name="justification"
-                  placeholder={t("Razón del cargo")}
-                  className="mt-2"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("Monto a Cobrar")}</Label>
-                <Input
-                  type="number"
-                  name="amountCharged"
-                  defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
-                  step="0.01"
-                  min="0"
-                  className="mt-2"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={asignarResponsabilidadMutation.isPending}
-              >
-                {asignarResponsabilidadMutation.isPending ? t("Guardando...") : t("Guardar")}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
