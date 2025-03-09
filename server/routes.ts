@@ -560,11 +560,20 @@ export async function registerRoutes(app: Express) {
           )
         );
 
+      // Consulta para obtener el total de pedidos cancelados
+      const cancelledOrders = await db
+        .select({
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(orders)
+        .where(eq(orders.status, "cancelled"));
+
       const stats = {
         totalSales: totalSales[0]?.total || 0,
         pendingPayments: pendingPayments[0]?.total || 0,
         pendingOrders: pendingOrders[0]?.count || 0,
         deliveredOrders: deliveredOrders[0]?.count || 0,
+        cancelledOrders: cancelledOrders[0]?.count || 0,
       };
 
       res.json(stats);

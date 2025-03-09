@@ -9,7 +9,8 @@ const COLORS = {
   BLUE: "#0088FE",
   TURQUOISE: "#00C49F",
   YELLOW: "#FFBB28",
-  ORANGE: "#FF8042"
+  ORANGE: "#FF8042",
+  RED: "#FF0000"
 };
 
 interface DashboardStats {
@@ -17,6 +18,7 @@ interface DashboardStats {
   pendingPayments: number;
   pendingOrders: number;
   deliveredOrders: number;
+  cancelledOrders: number;
 }
 
 interface ChartData {
@@ -51,7 +53,7 @@ export default function Dashboard() {
     },
     {
       name: "Total Pedidos",
-      value: (stats?.pendingOrders || 0) + (stats?.deliveredOrders || 0),
+      value: (stats?.pendingOrders || 0) + (stats?.deliveredOrders || 0) + (stats?.cancelledOrders || 0),
       color: COLORS.YELLOW
     }
   ];
@@ -67,6 +69,11 @@ export default function Dashboard() {
       name: "Pedidos Pendientes",
       value: stats?.pendingOrders || 0,
       color: COLORS.ORANGE
+    },
+    {
+      name: "Pedidos Cancelados",
+      value: stats?.cancelledOrders || 0,
+      color: COLORS.RED
     }
   ];
 
@@ -134,6 +141,18 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {t("Pedidos Cancelados (Mes)")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">
+              {stats?.cancelledOrders || 0}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Gráficos circulares */}
@@ -183,6 +202,7 @@ export default function Dashboard() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
                 >
                   {ordersData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
