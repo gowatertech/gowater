@@ -26,7 +26,6 @@ import {
 export default function SalesReports() {
   const { t } = useTranslation();
   const [timeRange, setTimeRange] = useState("month");
-  const [reportType, setReportType] = useState("sales");
 
   // Obtener datos de ventas
   const { data: salesData = [], isLoading: isLoadingSales } = useQuery({
@@ -65,12 +64,6 @@ export default function SalesReports() {
     { value: "year", label: "Este Año" },
   ];
 
-  const reportTypes = [
-    { value: "sales", label: "Ventas" },
-    { value: "payments", label: "Pagos" },
-    { value: "accounts", label: "Cuentas por Cobrar" },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex gap-4">
@@ -86,19 +79,6 @@ export default function SalesReports() {
             ))}
           </SelectContent>
         </Select>
-
-        <Select value={reportType} onValueChange={setReportType}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Tipo de reporte" />
-          </SelectTrigger>
-          <SelectContent>
-            {reportTypes.map((type) => (
-              <SelectItem key={type.value} value={type.value}>
-                {t(type.label)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -108,21 +88,33 @@ export default function SalesReports() {
             {t("Tendencia de Ventas")}
           </h3>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="amount"
-                  stroke="#0088FE"
-                  name="Ventas (RD$)"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {isLoadingSales ? (
+              <div className="h-full flex items-center justify-center">
+                Cargando datos...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={salesData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    formatter={(value) => [`RD$ ${value.toFixed(2)}`, "Ventas"]}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="#0088FE"
+                    name="Ventas (RD$)"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
 
@@ -132,25 +124,37 @@ export default function SalesReports() {
             {t("Estado de Pagos")}
           </h3>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={paymentsData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar
-                  dataKey="paid"
-                  fill="#00C49F"
-                  name="Pagado (RD$)"
-                />
-                <Bar
-                  dataKey="pending"
-                  fill="#FFBB28"
-                  name="Pendiente (RD$)"
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {isLoadingPayments ? (
+              <div className="h-full flex items-center justify-center">
+                Cargando datos...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={paymentsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                  />
+                  <YAxis />
+                  <Tooltip 
+                    labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    formatter={(value) => [`RD$ ${value.toFixed(2)}`, "Monto"]}
+                  />
+                  <Legend />
+                  <Bar
+                    dataKey="paid"
+                    fill="#00C49F"
+                    name="Pagado (RD$)"
+                  />
+                  <Bar
+                    dataKey="pending"
+                    fill="#FFBB28"
+                    name="Pendiente (RD$)"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </Card>
       </div>

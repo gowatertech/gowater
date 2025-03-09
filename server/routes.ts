@@ -927,8 +927,7 @@ export async function registerRoutes(app: Express) {
           customerId: orders.customerId,
           total: orders.total,
           status: orders.status,
-          date: orders.date,
-          customerName: customers.businessname,
+          date: orders.date,          customerName: customers.businessname,
           address: customers.street
         })
         .from(orders)
@@ -938,8 +937,7 @@ export async function registerRoutes(app: Express) {
       console.log("GET /api/orders - Retornando:", allOrders.length, "pedidos");
       res.json(allOrders);
     } catch (error) {
-      console.error("Error al obtener pedidos:", error);
-      res.status(500).json({ error: String(error) });
+      console.error("Error al obtener pedidos:", error);      res.status(500).json({ error: String(error) });
     }
   });
 
@@ -1002,6 +1000,91 @@ export async function registerRoutes(app: Express) {
       res.json(items);
     } catch (error) {
       console.error("Error al obtener items del pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/reports/sales", async (req, res) => {
+    try {
+      const range = req.query.range || 'month';
+      let dateFilter;
+
+      // Calcular el rango de fechas
+      const now = new Date();
+      switch(range) {
+        case 'week':
+          dateFilter = sql`date >= NOW() - INTERVAL '7 days'`;
+          break;
+        case 'month':
+          dateFilter = sql`date >= DATE_TRUNC('month', NOW())`;
+          break;
+        case 'quarter':
+          dateFilter = sql`date >= DATE_TRUNC('quarter', NOW())`;
+          break;
+        case 'year':
+          dateFilter = sql`date >= DATE_TRUNC('year', NOW())`;
+          break;
+        default:
+          dateFilter = sql`date >= DATE_TRUNC('month', NOW())`;
+      }
+
+      // Obtener datos de ventas agrupados por día
+      const salesData = await db
+        .select({
+          date: sql`DATE_TRUNC('day', ${invoices.date})::date`,
+          amount: sql`SUM(total::numeric)`.mapWith(Number)
+        })
+        .from(invoices)
+        .where(dateFilter)
+        .groupBy(sql`DATE_TRUNC('day', ${invoices.date})`)
+        .orderBy(sql`DATE_TRUNC('day', ${invoices.date})`);
+
+      res.json(salesData);
+    } catch (error) {
+      console.error("Error al obtener reporte de ventas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/reports/payments", async (req, res) => {
+    try {
+      const range = req.query.range || 'month';
+      let dateFilter;
+
+      // Calcular el rango de fechas
+      const now = new Date();
+      switch(range) {
+        case 'week':
+          dateFilter = sql`date >= NOW() - INTERVAL '7 days'`;
+          break;
+        case 'month':
+          dateFilter = sql`date >= DATE_TRUNC('month', NOW())`;
+          break;
+        case 'quarter':
+          dateFilter = sql`date >= DATE_TRUNC('quarter', NOW())`;
+          break;
+        case 'year':
+          dateFilter = sql`date >= DATE_TRUNC('year', NOW())`;
+          break;
+        default:
+          dateFilter = sql`date >= DATE_TRUNC('month', NOW())`;
+      }
+
+      // Obtener datos de pagos y cuentas por cobrar
+      const paymentsData = await db
+        .select({
+          date: sql`DATE_TRUNC('day', ${invoices.date})::date`,
+          paid: sql`COALESCE(SUM(CASE WHEN status = 'paid' THEN total::numeric ELSE 0 END), 0)`.mapWith(Number),
+          pending: sql`COALESCE(SUM(CASE WHEN status = 'pending' THEN total::numeric ELSE 0 END), 0)`.mapWith(Number)
+        })
+        .from(invoices)
+        .where(dateFilter)
+        .groupBy(sql`DATE_TRUNC('day', ${invoices.date})`)
+        .orderBy(sql`DATE_TRUNC('day', ${invoices.date})`);
+
+      res.json(paymentsData);
+    } catch (error) {
+      console.error("Error al obtener reporte de pagos:", error);
       res.status(500).json({ error: String(error) });
     }
   });
