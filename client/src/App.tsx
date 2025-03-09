@@ -14,6 +14,7 @@ import Users from "@/pages/users";
 import Payments from "@/pages/payments";
 import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
+import Dashboard from "@/pages/dashboard";
 
 // Import translations and I18nextProvider
 import { I18nextProvider } from "react-i18next";
@@ -26,7 +27,7 @@ function Router() {
   return (
     <DashboardLayout>
       <Switch>
-        <Route path="/" component={Billing} />
+        <Route path="/" component={Dashboard} />
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />

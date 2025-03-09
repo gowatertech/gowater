@@ -5,8 +5,9 @@ import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders } from "@shared/schema";
 import { db } from './db';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import express from 'express';
+import { sql } from 'drizzle-orm';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -510,8 +511,69 @@ export async function registerRoutes(app: Express) {
       res.json(invoice);
     } catch (error) {
       console.error("Error al crear factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Endpoints para estadísticas del dashboard
+  app.get("/api/dashboard/stats", async (req, res) => {
+    try {
+      // Obtener el año actual
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
+
+      // Consulta para obtener el total de ventas del año actual
+      const totalSales = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(sql`EXTRACT(YEAR FROM date) = ${currentYear}`);
+
+      // Consulta para obtener el total de facturas pendientes de pago
+      const pendingPayments = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(eq(invoices.status, "pending"));
+
+      // Consulta para obtener el total de pedidos pendientes
+      const pendingOrders = await db
+        .select({
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(orders)
+        .where(eq(orders.status, "pending"));
+
+      // Consulta para obtener el total de pedidos entregados del mes actual
+      const deliveredOrders = await db
+        .select({
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.status, "completed"),
+            sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
+            sql`EXTRACT(MONTH FROM date) = ${currentMonth}`
+          )
+        );
+
+      const stats = {
+        totalSales: totalSales[0]?.total || 0,
+        pendingPayments: pendingPayments[0]?.total || 0,
+        pendingOrders: pendingOrders[0]?.count || 0,
+        deliveredOrders: deliveredOrders[0]?.count || 0,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error al obtener estadísticas del dashboard:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.get("/api/stats/sales", async (req, res) => {
     try {
       // Obtener el total de ventas de las facturas
@@ -625,10 +687,6 @@ export async function registerRoutes(app: Express) {
       res.json(topCustomers);
     } catch (error) {
       console.error("Error al obtener top clientes:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
       res.status(500).json({ error: String(error) });
     }
   });

@@ -1,78 +1,97 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
-import { Product, Order } from "@shared/schema";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+import { apiRequest } from "@/lib/queryClient";
 
-// Define types for our API responses
-interface SalesStats {
-  total: string;
-  avgTicket: string;
+// Colores consistentes para los gráficos
+const COLORS = {
+  BLUE: "#0088FE",
+  TURQUOISE: "#00C49F",
+  YELLOW: "#FFBB28",
+  ORANGE: "#FF8042"
+};
+
+interface DashboardStats {
+  totalSales: number;
+  pendingPayments: number;
+  pendingOrders: number;
+  deliveredOrders: number;
 }
 
-interface SalesTrend {
-  date: string;
-  sales: number;
-}
-
-interface OrderStatus {
+interface ChartData {
   name: string;
   value: number;
   color: string;
 }
 
-interface TopCustomer {
-  name: string;
-  total: number;
-}
-
 export default function Dashboard() {
   const { t } = useTranslation();
 
-  // Strongly typed queries
-  const { data: salesStats } = useQuery<SalesStats>({
-    queryKey: ["/api/stats/sales"],
+  // Obtener estadísticas del dashboard
+  const { data: stats } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/dashboard/stats");
+      return response.json();
+    }
   });
 
-  const { data: salesTrend } = useQuery<SalesTrend[]>({
-    queryKey: ["/api/stats/sales-trend"],
-  });
+  // Datos para el gráfico de ventas y cobros
+  const salesData: ChartData[] = [
+    {
+      name: "Ventas Totales",
+      value: stats?.totalSales || 0,
+      color: COLORS.BLUE
+    },
+    {
+      name: "Cuentas por Cobrar",
+      value: stats?.pendingPayments || 0,
+      color: COLORS.TURQUOISE
+    },
+    {
+      name: "Total Pedidos",
+      value: (stats?.pendingOrders || 0) + (stats?.deliveredOrders || 0),
+      color: COLORS.YELLOW
+    }
+  ];
 
-  const { data: orderStatus } = useQuery<OrderStatus[]>({
-    queryKey: ["/api/stats/order-status"],
-  });
+  // Datos para el gráfico de pedidos
+  const ordersData: ChartData[] = [
+    {
+      name: "Pedidos Entregados",
+      value: stats?.deliveredOrders || 0,
+      color: COLORS.TURQUOISE
+    },
+    {
+      name: "Pedidos Pendientes",
+      value: stats?.pendingOrders || 0,
+      color: COLORS.ORANGE
+    }
+  ];
 
-  const { data: topCustomers } = useQuery<TopCustomer[]>({
-    queryKey: ["/api/stats/top-customers"],
-  });
-
-  const { data: orders } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-  });
-
-  const { data: products } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
-  });
-
-  // Calculate inventory with proper type checking
-  const totalInventory = products?.reduce((sum, product) => sum + (product.stock || 0), 0) ?? 0;
-  const totalProducts = products?.length ?? 0;
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-DO', {
+      style: 'currency',
+      currency: 'DOP'
+    }).format(value);
+  };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">{t("dashboard")}</h1>
+      <h1 className="text-3xl font-bold">{t("Panel de Control")}</h1>
 
-      {/* Stats cards */}
+      {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("total_sales")}
+              {t("Total Ventas")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${salesStats?.total ? Number(salesStats.total).toFixed(2) : "0.00"}
+            <div className="text-2xl font-bold text-blue-600">
+              {formatCurrency(stats?.totalSales || 0)}
             </div>
           </CardContent>
         </Card>
@@ -80,12 +99,12 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("avg_ticket")}
+              {t("Cuentas por Cobrar")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${salesStats?.avgTicket ?? "0.00"}
+            <div className="text-2xl font-bold text-emerald-600">
+              {formatCurrency(stats?.pendingPayments || 0)}
             </div>
           </CardContent>
         </Card>
@@ -93,123 +112,88 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("inventory")}
+              {t("Pedidos Pendientes")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalInventory}</div>
-            <p className="text-xs text-muted-foreground">
-              {totalProducts} {t("products")}
-            </p>
+            <div className="text-2xl font-bold text-yellow-600">
+              {stats?.pendingOrders || 0}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {t("orders")}
+              {t("Pedidos Entregados (Mes)")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders?.length ?? 0}</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {stats?.deliveredOrders || 0}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
+      {/* Gráficos circulares */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Sales trend */}
-        <Card className="col-span-1">
+        <Card>
           <CardHeader>
-            <CardTitle>{t("sales_trend")}</CardTitle>
+            <CardTitle>{t("Distribución de Ventas")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            {salesTrend && salesTrend.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesTrend}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="sales"
-                    stroke="#8884d8"
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <p>{t("no_data")}</p>
-              </div>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={salesData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {salesData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => [formatCurrency(value), 'Valor']}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Order status */}
-        <Card className="col-span-1">
+        <Card>
           <CardHeader>
-            <CardTitle>{t("order_status")}</CardTitle>
+            <CardTitle>{t("Estado de Pedidos")}</CardTitle>
           </CardHeader>
           <CardContent className="h-[300px]">
-            {orderStatus && orderStatus.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={orderStatus}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {orderStatus.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.color || `#${(index * 3).toString(16)}${(index * 5).toString(16)}${(index * 7).toString(16)}`} 
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <p>{t("no_data")}</p>
-              </div>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={ordersData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {ordersData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
-
-      {/* Top customers */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("top_customers")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {topCustomers && topCustomers.length > 0 ? (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topCustomers}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="total" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="flex h-[300px] items-center justify-center">
-              <p>{t("no_data")}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
