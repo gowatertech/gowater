@@ -144,7 +144,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       type="number"
                       min={1990}
                       max={new Date().getFullYear()}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                       placeholder="Seleccione el año"
                     />
                   </FormControl>
@@ -178,7 +178,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       {...field}
                       type="number"
                       min={1}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                       placeholder="Ingrese la capacidad"
                     />
                   </FormControl>
