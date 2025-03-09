@@ -601,30 +601,30 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/trucks", async (req, res) => {
     try {
-      console.log("POST /api/trucks - Datos recibidos:", req.body);
+      const formData = {
+        brand: String(req.body.brand || '').trim(),
+        model: String(req.body.model || '').trim(),
+        year: Number(req.body.year),
+        plate: String(req.body.plate || '').trim().toUpperCase(),
+        capacity: Number(req.body.capacity),
+        status: req.body.status || 'available'
+      };
 
-      const result = insertTruckSchema.safeParse(req.body);
+      const result = insertTruckSchema.safeParse(formData);
+
       if (!result.success) {
-        console.error("POST /api/trucks - Error de validación:", result.error.format());
-        return res.status(400).json({ error: "Datos de vehículo inválidos", details: result.error.format() });
+        return res.status(400).json({ error: "Error al validar los datos del vehículo" });
       }
-
-      console.log("POST /api/trucks - Datos validados:", result.data);
 
       const [truck] = await db
         .insert(trucks)
-        .values({
-          ...result.data,
-          year: Number(result.data.year),
-          capacity: Number(result.data.capacity),
-        })
+        .values(result.data)
         .returning();
 
-      console.log("POST /api/trucks - Vehículo creado:", truck);
       res.json(truck);
     } catch (error) {
       console.error("Error al crear vehículo:", error);
-      res.status(500).json({ error: String(error) });
+      res.status(500).json({ error: "Error al crear el vehículo" });
     }
   });
 
