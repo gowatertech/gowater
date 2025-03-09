@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Plus, Truck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import type { Truck as TruckType } from "@shared/schema";
+import { TruckForm } from "./components/TruckForm";
 
 export default function Trucks() {
   const { t } = useTranslation();
   const [selectedTruck, setSelectedTruck] = useState<TruckType | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   // Obtener lista de vehículos
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
@@ -44,7 +46,7 @@ export default function Trucks() {
           <Truck className="h-5 w-5 text-primary" />
           <h1 className="text-lg font-bold">{t("Vehículos")}</h1>
         </div>
-        <Button size="sm" variant="outline" className="h-8">
+        <Button size="sm" variant="outline" className="h-8" onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" />
           {t("Agregar Vehículo")}
         </Button>
@@ -90,6 +92,8 @@ export default function Trucks() {
           ))
         )}
       </div>
+
+      <TruckForm open={showForm} onOpenChange={setShowForm} />
     </div>
   );
 }
