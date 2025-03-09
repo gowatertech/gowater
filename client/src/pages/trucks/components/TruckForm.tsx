@@ -57,21 +57,18 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
   const onSubmit = async (values: InsertTruck) => {
     try {
-      // Validar que valores numéricos sean números
-      const formData = {
-        brand: values.brand.trim(),
-        model: values.model.trim(),
-        year: Number(values.year),
-        plate: values.plate.trim().toUpperCase(),
-        capacity: Number(values.capacity),
-        status: values.status
-      };
-
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          brand: values.brand.trim(),
+          model: values.model.trim(),
+          year: Number(values.year),
+          plate: values.plate.trim().toUpperCase(),
+          capacity: Number(values.capacity),
+          status: values.status
+        })
       });
 
       if (!response.ok) {
@@ -143,8 +140,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     <Input 
                       type="number" 
                       placeholder="Ingrese el año" 
-                      {...field}
-                      onChange={e => field.onChange(Number(e.target.value))}
+                      {...field} 
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
@@ -161,8 +159,8 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <FormControl>
                     <Input 
                       placeholder="Ingrese la placa" 
-                      {...field}
-                      onChange={e => field.onChange(e.target.value.toUpperCase())}
+                      {...field} 
+                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -180,8 +178,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     <Input 
                       type="number" 
                       placeholder="Ingrese la capacidad" 
-                      {...field}
-                      onChange={e => field.onChange(Number(e.target.value))}
+                      {...field} 
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      value={field.value}
                     />
                   </FormControl>
                   <FormMessage />
@@ -204,7 +203,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     <SelectContent>
                       <SelectItem value="available">Disponible</SelectItem>
                       <SelectItem value="on_route">En ruta</SelectItem>
-                      <SelectItem value="maintenance">Mantenimiento</SelectItem>
+                      <SelectItem value="maintenance">En mantenimiento</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -212,18 +211,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               )}
             />
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit">
-                Registrar
-              </Button>
-            </div>
+            <Button type="submit" className="w-full">Guardar Vehículo</Button>
           </form>
         </Form>
       </DialogContent>
