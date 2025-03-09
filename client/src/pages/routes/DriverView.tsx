@@ -73,16 +73,16 @@ export default function DriverView() {
       // await apiRequest('POST', `/api/deliveries/${deliveryId}/complete`);
 
       toast({
-        title: t("deliveryCompleted"),
-        description: t("deliveryMarkedAsCompleted"),
+        title: "Entrega Completada",
+        description: "La entrega ha sido marcada como completada",
       });
 
       refetch(); // Actualizar lista de entregas
     } catch (error) {
       toast({
         variant: "destructive",
-        title: t("error"),
-        description: t("errorCompletingDelivery"),
+        title: "Error",
+        description: "Error al completar la entrega",
       });
     }
   };
@@ -94,16 +94,16 @@ export default function DriverView() {
       // await apiRequest('PATCH', `/api/recurring-orders/${deliveryId}`, { frequency });
 
       toast({
-        title: t("frequencyUpdated"),
-        description: t("recurringOrderFrequencyUpdated"),
+        title: "Frecuencia Actualizada",
+        description: "La frecuencia del pedido recurrente ha sido actualizada",
       });
 
       refetch();
     } catch (error) {
       toast({
         variant: "destructive",
-        title: t("error"),
-        description: t("errorUpdatingFrequency"),
+        title: "Error",
+        description: "Error al actualizar la frecuencia",
       });
     }
   };
@@ -125,12 +125,12 @@ export default function DriverView() {
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">{t("todaysDeliveries")}</h2>
+        <h2 className="text-2xl font-bold">Entregas del Día</h2>
         <div className="flex gap-2">
           <PrinterManager onPrinterReady={setPrinter} />
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCcw className="w-4 h-4 mr-2" />
-            {t("refresh")}
+            Actualizar
           </Button>
         </div>
       </div>
@@ -166,6 +166,7 @@ export default function DriverView() {
                         size="sm"
                         variant="outline"
                         onClick={() => setSelectedDelivery(delivery.id)}
+                        title="Ver en Mapa"
                       >
                         <Navigation2 className="w-4 h-4" />
                       </Button>
@@ -173,6 +174,7 @@ export default function DriverView() {
                         size="sm"
                         variant="outline"
                         onClick={() => handlePrint(delivery)}
+                        title="Imprimir Factura"
                       >
                         <Printer className="w-4 h-4" />
                       </Button>
@@ -181,6 +183,7 @@ export default function DriverView() {
                         variant="default"
                         onClick={() => handleComplete(delivery.id)}
                         disabled={delivery.status === 'completed'}
+                        title="Marcar como Completada"
                       >
                         <Check className="w-4 h-4" />
                       </Button>
@@ -220,7 +223,7 @@ export default function DriverView() {
                       <p className="text-sm font-medium">{delivery.order}</p>
                       {delivery.isRecurring && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          {delivery.frequency} - {t("next")}: {new Date(delivery.nextDelivery!).toLocaleDateString()}
+                          {delivery.frequency} - Próxima: {new Date(delivery.nextDelivery!).toLocaleDateString()}
                         </p>
                       )}
                     </div>
