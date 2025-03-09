@@ -284,6 +284,17 @@ export const bottleReturns = pgTable("bottle_returns", {
   status: text("status", { enum: ["pending", "complete", "incomplete"] }).notNull(),
   amountCharged: decimal("amount_charged", { precision: 10, scale: 2 }).default("0.00"),
   depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).default("0.00"),
+  // Nuevos campos para el sistema mixto de responsabilidad
+  responsibleType: text("responsible_type", { enum: ["customer", "driver", "both"] }),
+  customerPercentage: integer("customer_percentage"),
+  driverPercentage: integer("driver_percentage"),
+  chargeMethod: text("charge_method", { enum: ["commission", "cash"] }),
+  justification: text("justification"),
+  lastCheckedAt: timestamp("last_checked_at"),
+  automaticAlert: boolean("automatic_alert").default(false),
+  manuallyAssigned: boolean("manually_assigned").default(false),
+  assignedBy: integer("assigned_by").references(() => users.id),
+  assignedAt: timestamp("assigned_at"),
 });
 
 export const insertBottleReturnSchema = z.object({
@@ -296,6 +307,13 @@ export const insertBottleReturnSchema = z.object({
   status: z.enum(["pending", "complete", "incomplete"]),
   amountCharged: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   depositAmount: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  responsibleType: z.enum(["customer", "driver", "both"]).optional(),
+  customerPercentage: z.number().min(0).max(100).optional(),
+  driverPercentage: z.number().min(0).max(100).optional(),
+  chargeMethod: z.enum(["commission", "cash"]).optional(),
+  justification: z.string().optional(),
+  automaticAlert: z.boolean().default(false),
+  manuallyAssigned: z.boolean().default(false),
 });
 
 // Driver Cash Balances
