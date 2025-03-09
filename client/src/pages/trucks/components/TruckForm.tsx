@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTruckSchema } from "@shared/schema";
@@ -56,12 +57,13 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
   const onSubmit = async (values: InsertTruck) => {
     try {
+      // Validar que valores numéricos sean números
       const formData = {
         brand: values.brand.trim(),
         model: values.model.trim(),
-        year: parseInt(String(values.year)),
+        year: Number(values.year),
         plate: values.plate.trim().toUpperCase(),
-        capacity: parseInt(String(values.capacity)),
+        capacity: Number(values.capacity),
         status: values.status
       };
 
@@ -80,13 +82,16 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       toast({
         description: "Vehículo registrado exitosamente"
       });
-
-      queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
+      
+      // Cerrar el formulario y actualizar la lista
       onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       form.reset();
     } catch (error) {
+      console.error("Error:", error);
       toast({
         variant: "destructive",
+        title: "Error",
         description: error instanceof Error ? error.message : "Error al crear el vehículo"
       });
     }
@@ -94,11 +99,10 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Registrar Vehículo</DialogTitle>
+          <DialogTitle>Registrar nuevo vehículo</DialogTitle>
         </DialogHeader>
-
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -132,17 +136,15 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
             <FormField
               control={form.control}
               name="year"
-              render={({ field: { onChange, ...field } }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Año</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      min={1990}
-                      max={new Date().getFullYear()}
-                      placeholder="Ingrese el año"
+                    <Input 
+                      type="number" 
+                      placeholder="Ingrese el año" 
                       {...field}
-                      onChange={(e) => onChange(parseInt(e.target.value) || field.value)}
+                      onChange={e => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -158,9 +160,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <FormLabel>Placa</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Ingrese la placa"
+                      placeholder="Ingrese la placa" 
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                      onChange={e => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
@@ -171,16 +173,15 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
             <FormField
               control={form.control}
               name="capacity"
-              render={({ field: { onChange, ...field } }) => (
+              render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Capacidad (L)</FormLabel>
+                  <FormLabel>Capacidad (litros)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      min={1}
-                      placeholder="Ingrese la capacidad"
+                    <Input 
+                      type="number" 
+                      placeholder="Ingrese la capacidad" 
                       {...field}
-                      onChange={(e) => onChange(parseInt(e.target.value) || field.value)}
+                      onChange={e => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -197,12 +198,12 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar estado" />
+                        <SelectValue placeholder="Seleccione un estado" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="available">Disponible</SelectItem>
-                      <SelectItem value="on_route">En Ruta</SelectItem>
+                      <SelectItem value="on_route">En ruta</SelectItem>
                       <SelectItem value="maintenance">Mantenimiento</SelectItem>
                     </SelectContent>
                   </Select>
