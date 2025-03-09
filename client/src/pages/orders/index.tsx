@@ -272,12 +272,16 @@ export default function Orders() {
                 {selectedCustomer && (
                   <div className="text-sm grid grid-cols-1 gap-2 bg-muted p-2 rounded">
                     <div>
-                      <span className="font-medium">{t("businessName")}: </span>
-                      {selectedCustomer.businessName}
+                      <span className="font-medium">{t("Nombre Empresa")}: </span>
+                      {selectedCustomer.businessname}
                     </div>
                     <div>
-                      <span className="font-medium">{t("address")}: </span>
-                      {selectedCustomer.address}
+                      <span className="font-medium">{t("Dirección")}: </span>
+                      {`${selectedCustomer.street} ${selectedCustomer.streetnumber}`}
+                    </div>
+                    <div>
+                      <span className="font-medium">{t("Teléfono")}: </span>
+                      {selectedCustomer.phone}
                     </div>
                   </div>
                 )}
