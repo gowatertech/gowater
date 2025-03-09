@@ -53,23 +53,30 @@ export function InventoryLoad() {
     queryKey: ["/api/products"],
   });
 
-  const { data: users } = useQuery<User[]>({
-    queryKey: ["/api/users"],
-  });
-
   const { data: batches } = useQuery({
     queryKey: ["/api/production-batches"],
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const formattedData = {
-        ...data,
-        cost: Number(data.cost).toFixed(2),
-        quantity: Number(data.quantity)
-      };
-      const res = await apiRequest("POST", "/api/production-batches", formattedData);
-      return res.json();
+      try {
+        const formattedData = {
+          ...data,
+          cost: Number(data.cost).toFixed(2),
+          quantity: Number(data.quantity)
+        };
+        const response = await apiRequest("POST", "/api/production-batches", formattedData);
+
+        if (!response.ok) {
+          const errorData = await response.text();
+          throw new Error(errorData || "Error al registrar la producción");
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error: any) {
+        throw new Error(error.message || "Error al registrar la producción");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-batches"] });
@@ -80,7 +87,7 @@ export function InventoryLoad() {
       });
       form.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
@@ -141,6 +148,7 @@ export function InventoryLoad() {
                       <Input
                         {...field}
                         type="number"
+                        min="0"
                         onChange={(e) => field.onChange(Number(e.target.value))}
                         value={field.value}
                       />
@@ -159,7 +167,13 @@ export function InventoryLoad() {
                     <FormControl>
                       <Input
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        onChange={(e) => {
+                          const value = Number(e.target.value);
+                          field.onChange(value.toFixed(2));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
