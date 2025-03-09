@@ -27,6 +27,7 @@ import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 // Import translations and I18nextProvider
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
+import RecurringOrders from "@/pages/routes/RecurringOrders";
 
 function Router() {
   const [location] = useLocation();
@@ -42,6 +43,7 @@ function Router() {
         <Route path="/inventario/carga" component={CargaProductos} />
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
+        <Route path="/routes/recurring" component={RecurringOrders} />
         <Route path="/users" component={Users} />
         <Route path="/trucks" component={Trucks} />
         <Route path="/tutorial" component={TutorialPage} />
