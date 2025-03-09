@@ -1028,17 +1028,20 @@ export async function registerRoutes(app: Express) {
           dateFilter = sql`date >= DATE_TRUNC('month', NOW())`;
       }
 
+      console.log("Consultando ventas con rango:", range);
+
       // Obtener datos de ventas agrupados por día
       const salesData = await db
         .select({
           date: sql`DATE_TRUNC('day', ${invoices.date})::date`,
-          amount: sql`SUM(total::numeric)`.mapWith(Number)
+          amount: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number)
         })
         .from(invoices)
         .where(dateFilter)
         .groupBy(sql`DATE_TRUNC('day', ${invoices.date})`)
         .orderBy(sql`DATE_TRUNC('day', ${invoices.date})`);
 
+      console.log("Datos de ventas encontrados:", salesData);
       res.json(salesData);
     } catch (error) {
       console.error("Error al obtener reporte de ventas:", error);
@@ -1070,6 +1073,8 @@ export async function registerRoutes(app: Express) {
           dateFilter = sql`date >= DATE_TRUNC('month', NOW())`;
       }
 
+      console.log("Consultando pagos con rango:", range);
+
       // Obtener datos de pagos y cuentas por cobrar
       const paymentsData = await db
         .select({
@@ -1082,6 +1087,7 @@ export async function registerRoutes(app: Express) {
         .groupBy(sql`DATE_TRUNC('day', ${invoices.date})`)
         .orderBy(sql`DATE_TRUNC('day', ${invoices.date})`);
 
+      console.log("Datos de pagos encontrados:", paymentsData);
       res.json(paymentsData);
     } catch (error) {
       console.error("Error al obtener reporte de pagos:", error);

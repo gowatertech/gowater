@@ -38,7 +38,9 @@ export default function SalesReports() {
       if (!response.ok) {
         throw new Error("Error al cargar datos de ventas");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Datos de ventas recibidos:", data);
+      return data;
     },
   });
 
@@ -53,7 +55,9 @@ export default function SalesReports() {
       if (!response.ok) {
         throw new Error("Error al cargar datos de pagos");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Datos de pagos recibidos:", data);
+      return data;
     },
   });
 
@@ -65,10 +69,10 @@ export default function SalesReports() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex gap-4">
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="Seleccionar período" />
           </SelectTrigger>
           <SelectContent>
@@ -81,16 +85,20 @@ export default function SalesReports() {
         </Select>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Gráfico de Ventas vs Tiempo */}
-        <Card className="p-4">
-          <h3 className="text-lg font-medium mb-4">
+        <Card className="p-3">
+          <h3 className="text-sm font-medium mb-2">
             {t("Tendencia de Ventas")}
           </h3>
-          <div className="h-[300px]">
+          <div className="h-[200px]">
             {isLoadingSales ? (
-              <div className="h-full flex items-center justify-center">
+              <div className="h-full flex items-center justify-center text-sm">
                 Cargando datos...
+              </div>
+            ) : salesData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                No hay datos disponibles para este período
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -99,11 +107,12 @@ export default function SalesReports() {
                   <XAxis 
                     dataKey="date" 
                     tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    tick={{ fontSize: 12 }}
                   />
-                  <YAxis />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip 
                     labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                    formatter={(value) => [`RD$ ${value.toFixed(2)}`, "Ventas"]}
+                    formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Ventas"]}
                   />
                   <Legend />
                   <Line
@@ -119,14 +128,18 @@ export default function SalesReports() {
         </Card>
 
         {/* Gráfico de Pagos vs Tiempo */}
-        <Card className="p-4">
-          <h3 className="text-lg font-medium mb-4">
+        <Card className="p-3">
+          <h3 className="text-sm font-medium mb-2">
             {t("Estado de Pagos")}
           </h3>
-          <div className="h-[300px]">
+          <div className="h-[200px]">
             {isLoadingPayments ? (
-              <div className="h-full flex items-center justify-center">
+              <div className="h-full flex items-center justify-center text-sm">
                 Cargando datos...
+              </div>
+            ) : paymentsData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                No hay datos disponibles para este período
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -135,11 +148,12 @@ export default function SalesReports() {
                   <XAxis 
                     dataKey="date" 
                     tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    tick={{ fontSize: 12 }}
                   />
-                  <YAxis />
+                  <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip 
                     labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                    formatter={(value) => [`RD$ ${value.toFixed(2)}`, "Monto"]}
+                    formatter={(value) => [`RD$ ${Number(value).toFixed(2)}`, "Monto"]}
                   />
                   <Legend />
                   <Bar
