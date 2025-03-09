@@ -50,41 +50,47 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       year: 2024,
       plate: "",
       capacity: 1000,
-      status: "available",
-    },
+      status: "available"
+    }
   });
 
   const onSubmit = async (data: InsertTruck) => {
     try {
+      const formData = {
+        brand: String(data.brand).trim(),
+        model: String(data.model).trim(),
+        year: Number(data.year),
+        plate: String(data.plate).trim().toUpperCase(),
+        capacity: Number(data.capacity),
+        status: data.status
+      };
+
+      console.log('Form data to be sent:', formData);
+
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          brand: data.brand.trim(),
-          model: data.model.trim(),
-          year: data.year,
-          plate: data.plate.trim().toUpperCase(),
-          capacity: data.capacity,
-          status: data.status,
-        }),
+        body: JSON.stringify(formData)
       });
 
       if (!response.ok) {
-        throw new Error("Error al crear el vehículo");
+        const error = await response.json();
+        throw new Error(error.error || "Error al crear el vehículo");
       }
 
       toast({
-        description: "Vehículo registrado exitosamente",
+        description: "Vehículo registrado exitosamente"
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       onOpenChange(false);
       form.reset();
     } catch (error) {
+      console.error("Error al crear vehículo:", error);
       toast({
         variant: "destructive",
-        description: error instanceof Error ? error.message : "Error al crear el vehículo",
+        description: error instanceof Error ? error.message : "Error al crear el vehículo"
       });
     }
   };
@@ -154,8 +160,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <FormLabel>Placa</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Ingrese la placa"
+                      placeholder="Ingrese la placa" 
                       {...field}
+                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                     />
                   </FormControl>
                   <FormMessage />
