@@ -20,9 +20,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +39,7 @@ export default function EnvasesFaltantes() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedBottle, setSelectedBottle] = useState<BottleReturnWithDetails | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Mutación para asignar responsabilidad
   const assignResponsibilityMutation = useMutation({
@@ -52,6 +53,7 @@ export default function EnvasesFaltantes() {
         title: t("Éxito"),
         description: t("La responsabilidad ha sido asignada correctamente"),
       });
+      setDialogOpen(false);
     },
   });
 
@@ -127,82 +129,16 @@ export default function EnvasesFaltantes() {
                         {bottle.automaticAlert ? t("Automático") : t("Manual")}
                       </TableCell>
                       <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setSelectedBottle(bottle)}
-                            >
-                              {t("Asignar Responsabilidad")}
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>{t("Asignar Responsabilidad")}</DialogTitle>
-                            </DialogHeader>
-                            <form onSubmit={(e) => {
-                              e.preventDefault();
-                              const formData = new FormData(e.currentTarget);
-                              handleAssignResponsibility(Object.fromEntries(formData));
-                            }}>
-                              <div className="space-y-4">
-                                <div>
-                                  <Label>{t("Responsable")}</Label>
-                                  <RadioGroup defaultValue="customer" name="responsible">
-                                    <div className="flex items-center space-x-2">
-                                      <RadioGroupItem value="customer" id="customer" />
-                                      <Label htmlFor="customer">{t("Cliente")}</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <RadioGroupItem value="driver" id="driver" />
-                                      <Label htmlFor="driver">{t("Chofer")}</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <RadioGroupItem value="both" id="both" />
-                                      <Label htmlFor="both">{t("Ambos")}</Label>
-                                    </div>
-                                  </RadioGroup>
-                                </div>
-
-                                <div>
-                                  <Label>{t("Porcentaje Cliente (%)")}</Label>
-                                  <Input 
-                                    type="number" 
-                                    name="customerPercentage"
-                                    defaultValue="100"
-                                    min="0"
-                                    max="100"
-                                  />
-                                </div>
-
-                                <div>
-                                  <Label>{t("Justificación")}</Label>
-                                  <Input 
-                                    name="justification"
-                                    placeholder={t("Razón del cargo")}
-                                  />
-                                </div>
-
-                                <div>
-                                  <Label>{t("Monto a Cobrar")}</Label>
-                                  <Input 
-                                    type="number" 
-                                    name="amountCharged"
-                                    defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
-                                  />
-                                </div>
-
-                                <Button 
-                                  type="submit"
-                                  disabled={assignResponsibilityMutation.isPending}
-                                >
-                                  {t("Guardar")}
-                                </Button>
-                              </div>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBottle(bottle);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          {t("Asignar Responsabilidad")}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -241,67 +177,16 @@ export default function EnvasesFaltantes() {
                         {bottle.automaticAlert ? t("Automático") : t("Manual")}
                       </TableCell>
                       <TableCell>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setSelectedBottle(bottle)}
-                            >
-                              {t("Asignar Responsabilidad")}
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>{t("Asignar Responsabilidad")}</DialogTitle>
-                            </DialogHeader>
-                            <form onSubmit={(e) => {
-                              e.preventDefault();
-                              const formData = new FormData(e.currentTarget);
-                              handleAssignResponsibility(Object.fromEntries(formData));
-                            }}>
-                              <div className="space-y-4">
-                                <div>
-                                  <Label>{t("Método de Cobro")}</Label>
-                                  <RadioGroup defaultValue="commission" name="chargeMethod">
-                                    <div className="flex items-center space-x-2">
-                                      <RadioGroupItem value="commission" id="commission" />
-                                      <Label htmlFor="commission">{t("Descontar de Comisión")}</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                      <RadioGroupItem value="cash" id="cash" />
-                                      <Label htmlFor="cash">{t("Pago en Efectivo")}</Label>
-                                    </div>
-                                  </RadioGroup>
-                                </div>
-
-                                <div>
-                                  <Label>{t("Justificación")}</Label>
-                                  <Input 
-                                    name="justification"
-                                    placeholder={t("Razón del cargo")}
-                                  />
-                                </div>
-
-                                <div>
-                                  <Label>{t("Monto a Cobrar")}</Label>
-                                  <Input 
-                                    type="number" 
-                                    name="amountCharged"
-                                    defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
-                                  />
-                                </div>
-
-                                <Button 
-                                  type="submit"
-                                  disabled={assignResponsibilityMutation.isPending}
-                                >
-                                  {t("Guardar")}
-                                </Button>
-                              </div>
-                            </form>
-                          </DialogContent>
-                        </Dialog>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedBottle(bottle);
+                            setDialogOpen(true);
+                          }}
+                        >
+                          {t("Asignar Responsabilidad")}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -311,6 +196,100 @@ export default function EnvasesFaltantes() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("Asignar Responsabilidad")}</DialogTitle>
+            <DialogDescription>
+              {selectedBottle?.customerName && (
+                <p>{t("Cliente")}: {selectedBottle.customerName}</p>
+              )}
+              {selectedBottle?.driverName && (
+                <p>{t("Chofer")}: {selectedBottle.driverName}</p>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            handleAssignResponsibility(Object.fromEntries(formData));
+          }}>
+            <div className="space-y-4">
+              <div>
+                <Label>{t("Responsable")}</Label>
+                <RadioGroup defaultValue="customer" name="responsible">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="customer" id="customer" />
+                    <Label htmlFor="customer">{t("Cliente")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="driver" id="driver" />
+                    <Label htmlFor="driver">{t("Chofer")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="both" id="both" />
+                    <Label htmlFor="both">{t("Ambos")}</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label>{t("Porcentaje Cliente (%)")}</Label>
+                <Input 
+                  type="number" 
+                  name="customerPercentage"
+                  defaultValue="100"
+                  min="0"
+                  max="100"
+                />
+              </div>
+
+              <div>
+                <Label>{t("Método de Cobro")}</Label>
+                <RadioGroup defaultValue="invoice" name="chargeMethod">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="invoice" id="invoice" />
+                    <Label htmlFor="invoice">{t("Factura")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="commission" id="commission" />
+                    <Label htmlFor="commission">{t("Descontar de Comisión")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="cash" id="cash" />
+                    <Label htmlFor="cash">{t("Pago en Efectivo")}</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div>
+                <Label>{t("Justificación")}</Label>
+                <Input 
+                  name="justification"
+                  placeholder={t("Razón del cargo")}
+                />
+              </div>
+
+              <div>
+                <Label>{t("Monto a Cobrar")}</Label>
+                <Input 
+                  type="number" 
+                  name="amountCharged"
+                  defaultValue={Number(selectedBottle?.amountCharged || 0).toFixed(2)}
+                />
+              </div>
+
+              <Button 
+                type="submit"
+                disabled={assignResponsibilityMutation.isPending}
+              >
+                {t("Guardar")}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
