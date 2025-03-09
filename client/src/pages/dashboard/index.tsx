@@ -113,30 +113,6 @@ export default function Dashboard() {
     }).format(value);
   };
 
-  const renderCustomizedLabel = (props: any) => {
-    const { cx, cy, midAngle, outerRadius, value, name } = props;
-    const RADIAN = Math.PI / 180;
-    const radius = outerRadius * 1.6; // Aumentado el radio para las etiquetas
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    // Asegurar que el valor sea visible incluso si es 0
-    const displayValue = value === 0 ? "0" : formatCurrency(value);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="black"
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        className="text-[10px] font-medium"
-      >
-        {`${name}: ${displayValue}`}
-      </text>
-    );
-  };
-
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t("Panel de Control")}</h1>
@@ -214,8 +190,16 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="p-4">
             <CardTitle className="text-sm">{t("Distribución de Ventas")}</CardTitle>
+            <div className="mt-2 space-y-1">
+              {salesData.map((entry, index) => (
+                <div key={`legend-${index}`} className="flex items-center">
+                  <div className="h-3 w-3 mr-2" style={{ backgroundColor: entry.color }} />
+                  <span className="text-sm">{entry.name}: {formatCurrency(entry.value)}</span>
+                </div>
+              ))}
+            </div>
           </CardHeader>
-          <CardContent className="h-[250px] p-2">
+          <CardContent className="h-[200px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -227,8 +211,6 @@ export default function Dashboard() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
-                  label={renderCustomizedLabel}
-                  labelLine
                 >
                   {salesData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -242,8 +224,16 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="p-4">
             <CardTitle className="text-sm">{t("Estado de Pedidos")}</CardTitle>
+            <div className="mt-2 space-y-1">
+              {ordersData.map((entry, index) => (
+                <div key={`legend-${index}`} className="flex items-center">
+                  <div className="h-3 w-3 mr-2" style={{ backgroundColor: entry.color }} />
+                  <span className="text-sm">{entry.name}: {entry.value}</span>
+                </div>
+              ))}
+            </div>
           </CardHeader>
-          <CardContent className="h-[250px] p-2">
+          <CardContent className="h-[200px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -255,8 +245,6 @@ export default function Dashboard() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
-                  label={renderCustomizedLabel}
-                  labelLine
                 >
                   {ordersData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
@@ -270,8 +258,16 @@ export default function Dashboard() {
         <Card>
           <CardHeader className="p-4">
             <CardTitle className="text-sm">{t("Pagos Realizados")}</CardTitle>
+            <div className="mt-2 space-y-1">
+              {paymentsData.map((entry, index) => (
+                <div key={`legend-${index}`} className="flex items-center">
+                  <div className="h-3 w-3 mr-2" style={{ backgroundColor: entry.color }} />
+                  <span className="text-sm">{entry.name}: {formatCurrency(entry.value)}</span>
+                </div>
+              ))}
+            </div>
           </CardHeader>
-          <CardContent className="h-[250px] p-2">
+          <CardContent className="h-[200px] p-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -283,8 +279,6 @@ export default function Dashboard() {
                   fill="#8884d8"
                   paddingAngle={5}
                   dataKey="value"
-                  label={renderCustomizedLabel}
-                  labelLine
                 >
                   {paymentsData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
