@@ -40,14 +40,16 @@ app.use((req, res, next) => {
     log("Starting server initialization...");
     let server;
 
-    // Register API routes first
+    // Register API routes first to ensure they take precedence
     server = await registerRoutes(app);
     log("Routes registered successfully");
 
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {
-      // Serve static files from the client build directory
+      log("Production mode: Setting up static file serving");
       const distPath = path.join(process.cwd(), 'dist', 'client');
+
+      // Serve static files from the client build directory
       app.use(express.static(distPath));
 
       // Handle client-side routing - send index.html for all non-API routes
@@ -57,9 +59,12 @@ app.use((req, res, next) => {
         }
         res.sendFile(path.join(distPath, 'index.html'));
       });
+
+      log("Static file serving configured");
     } else {
       // Development mode - use Vite
       await setupVite(app, server);
+      log("Development mode: Vite setup complete");
     }
 
     // Error handling middleware
@@ -72,7 +77,7 @@ app.use((req, res, next) => {
 
     // Start server
     const port = process.env.PORT || 5000;
-    server.listen(port, () => {
+    server.listen(port, "0.0.0.0", () => {
       log(`Server started successfully on port ${port}`);
     });
 
