@@ -7,8 +7,10 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Agregar una función para construir la URL base
 function getBaseUrl() {
+  if (import.meta.env.PROD) {
+    return '';  // En producción usamos rutas relativas
+  }
   return window.location.origin;
 }
 
@@ -21,20 +23,23 @@ export async function apiRequest(
   const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
   const fullUrl = `${getBaseUrl()}${apiUrl}`;
 
-  console.log(`Making ${method} request to:`, fullUrl);
+  try {
+    const res = await fetch(fullUrl, {
+      method,
+      headers: {
+        ...(data ? { "Content-Type": "application/json" } : {}),
+        "Accept": "application/json"
+      },
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  const res = await fetch(fullUrl, {
-    method,
-    headers: {
-      ...(data ? { "Content-Type": "application/json" } : {}),
-      "Accept": "application/json"
-    },
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res;
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error(`API Request Error (${method} ${url}):`, error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -47,21 +52,24 @@ export const getQueryFn: <T>(options: {
     const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
     const fullUrl = `${getBaseUrl()}${apiUrl}`;
 
-    console.log("Query function making request to:", fullUrl);
+    try {
+      const res = await fetch(fullUrl, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
 
-    const res = await fetch(fullUrl, {
-      credentials: "include",
-      headers: {
-        "Accept": "application/json"
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
       }
-    });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      await throwIfResNotOk(res);
+      return await res.json();
+    } catch (error) {
+      console.error(`Query Error (${url}):`, error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
@@ -70,11 +78,13 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 10000, // 10 segundos
+      retry: 1,
+      retryDelay: 1000
     },
     mutations: {
-      retry: false,
+      retry: 1,
+      retryDelay: 1000
     },
   },
 });

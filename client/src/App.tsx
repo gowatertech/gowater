@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -27,8 +27,6 @@ import RecurringOrders from "@/pages/routes/RecurringOrders";
 import DriverView from "@/pages/routes/DriverView";
 
 function Router() {
-  const [location] = useLocation();
-
   return (
     <DashboardLayout>
       <Switch>
@@ -36,9 +34,13 @@ function Router() {
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />
+
+        {/* Inventory Routes */}
+        <Route path="/inventory" component={InventoryPage} />
         <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory/production" component={ProductionRegistration} />
         <Route path="/inventory/load" component={InventoryPage} />
+
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/routes/recurring" component={RecurringOrders} />
@@ -62,7 +64,7 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
@@ -72,5 +74,3 @@ function App() {
     </I18nextProvider>
   );
 }
-
-export default App;
