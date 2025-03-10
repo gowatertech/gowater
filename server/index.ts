@@ -36,6 +36,30 @@ app.use((req, res, next) => {
   next();
 });
 
+// Función para intentar inicializar Vite con reintentos
+async function setupViteWithRetry(app: express.Express, server: any, maxRetries = 3): Promise<void> {
+  let retryCount = 0;
+  while (retryCount < maxRetries) {
+    try {
+      log(`Intento ${retryCount + 1} de inicializar Vite...`);
+      await setupVite(app, server);
+      log("Development mode: Vite setup complete");
+      return;
+    } catch (error) {
+      retryCount++;
+      log(`Error en intento ${retryCount} de inicializar Vite: ${error}`);
+      if (error instanceof Error) {
+        log(`Error stack: ${error.stack}`);
+      }
+      if (retryCount === maxRetries) {
+        throw error;
+      }
+      // Esperar 2 segundos antes de reintentar
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+}
+
 (async () => {
   try {
     log("Starting server initialization...");
@@ -96,16 +120,12 @@ app.use((req, res, next) => {
 
       log("Static file serving configured");
     } else {
-      // Development mode - use Vite
+      // Development mode - use Vite with reintentos
       log("Development mode: Setting up Vite...");
       try {
-        await setupVite(app, server);
-        log("Development mode: Vite setup complete");
+        await setupViteWithRetry(app, server);
       } catch (error) {
-        log(`Error setting up Vite: ${error}`);
-        if (error instanceof Error) {
-          log(`Error stack: ${error.stack}`);
-        }
+        log(`Error fatal al configurar Vite después de reintentos: ${error}`);
         throw error;
       }
     }
