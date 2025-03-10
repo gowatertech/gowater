@@ -386,26 +386,57 @@ export const insertRecurringOrderSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
+// Warehouses
+export const warehouses = pgTable("warehouses", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  address: text("address"),
+  status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertWarehouseSchema = z.object({
+  code: z.string().min(2, "El código debe tener al menos 2 caracteres"),
+  name: z.string().min(1, "El nombre es requerido"),
+  address: z.string().optional(),
+  status: z.enum(["active", "inactive"]).default("active"),
+});
 
 // Production Batches
 export const productionBatches = pgTable("production_batches", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull().references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
-  warehouse: text("warehouse").notNull(),
+  batchNumber: text("batch_number").notNull().unique(),
+  warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id),
   date: timestamp("date").notNull().defaultNow(),
   notes: text("notes"),
   status: text("status", { enum: ["pending", "completed"] }).notNull().default("completed"),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull().default("0.00"),
+});
+
+export const productionBatchItems = pgTable("production_batch_items", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").notNull().references(() => productionBatches.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
 });
 
 export const insertProductionBatchSchema = z.object({
+  warehouseId: z.number(),
+  notes: z.string().optional(),
+  status: z.enum(["pending", "completed"]).default("completed"),
+  items: z.array(z.object({
+    productId: z.number(),
+    quantity: z.number(),
+    cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
+  })),
+});
+
+export const insertProductionBatchItemSchema = z.object({
   productId: z.number(),
   quantity: z.number(),
   cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
-  warehouse: z.string(),
-  notes: z.string().optional(),
-  status: z.enum(["pending", "completed"]).default("completed"),
 });
 
 // Company Settings
@@ -624,6 +655,10 @@ export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type ProductionBatch = typeof productionBatches.$inferSelect;
 export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
+export type ProductionBatchItem = typeof productionBatchItems.$inferSelect;
+export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItemSchema>;
+export type Warehouse = typeof warehouses.$inferSelect;
+export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
 
 // Customer extended type with location details
 export type CustomerWithDetails = {

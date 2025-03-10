@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema, warehouses, productionBatchItems, insertWarehouseSchema } from "@shared/schema";
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -30,21 +30,43 @@ export async function registerRoutes(app: Express) {
       const batches = await db
         .select({
           id: productionBatches.id,
-          productId: productionBatches.productId,
-          quantity: productionBatches.quantity,
-          cost: productionBatches.cost,
-          warehouse: productionBatches.warehouse,
+          batchNumber: productionBatches.batchNumber,
+          warehouseId: productionBatches.warehouseId,
           date: productionBatches.date,
           notes: productionBatches.notes,
           status: productionBatches.status,
-          productName: products.name
+          totalCost: productionBatches.totalCost,
+          warehouseName: warehouses.name,
+          warehouseCode: warehouses.code
         })
         .from(productionBatches)
-        .leftJoin(products, eq(productionBatches.productId, products.id))
+        .leftJoin(warehouses, eq(productionBatches.warehouseId, warehouses.id))
         .orderBy(sql`${productionBatches.date} DESC`);
 
-      console.log("GET /api/production-batches - Retornando:", batches.length, "lotes");
-      res.json(batches);
+      // Obtener los items para cada lote
+      const batchesWithItems = await Promise.all(
+        batches.map(async (batch) => {
+          const items = await db
+            .select({
+              id: productionBatchItems.id,
+              productId: productionBatchItems.productId,
+              quantity: productionBatchItems.quantity,
+              cost: productionBatchItems.cost,
+              productName: products.name
+            })
+            .from(productionBatchItems)
+            .leftJoin(products, eq(productionBatchItems.productId, products.id))
+            .where(eq(productionBatchItems.batchId, batch.id));
+
+          return {
+            ...batch,
+            items
+          };
+        })
+      );
+
+      console.log("GET /api/production-batches - Retornando:", batchesWithItems.length, "lotes");
+      res.json(batchesWithItems);
     } catch (error) {
       console.error("Error al obtener lotes de producción:", error);
       res.status(500).json({ error: String(error) });
@@ -63,51 +85,140 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // Obtener el producto
-      const [product] = await db
+      // Obtener el almacén
+      const [warehouse] = await db
         .select()
-        .from(products)
-        .where(eq(products.id, result.data.productId));
+        .from(warehouses)
+        .where(eq(warehouses.id, result.data.warehouseId));
 
-      if (!product) {
-        return res.status(404).json({ error: "Producto no encontrado" });
+      if (!warehouse) {
+        return res.status(404).json({ error: "Almacén no encontrado" });
       }
 
-      // Crear el lote de producción
+      // Contar lotes existentes para este almacén para generar el número secuencial
+      const { count } = await db
+        .select({
+          count: sql`count(*)`.mapWith(Number)
+        })
+        .from(productionBatches)
+        .where(eq(productionBatches.warehouseId, warehouse.id))
+        .then(rows => rows[0]);
+
+      const nextNumber = count + 1;
+      const batchNumber = `${warehouse.code}-${nextNumber}`;
+
+      // Calcular el costo total del lote
+      const totalCost = result.data.items.reduce((sum, item) => 
+        sum + (parseFloat(item.cost) * item.quantity), 0
+      ).toFixed(2);
+
+      // Crear el lote
       const [batch] = await db
         .insert(productionBatches)
         .values({
-          productId: result.data.productId,
-          quantity: result.data.quantity,
-          cost: result.data.cost,
-          warehouse: result.data.warehouse,
+          batchNumber,
+          warehouseId: warehouse.id,
           notes: result.data.notes || null,
           status: result.data.status || "completed",
+          totalCost,
           date: new Date()
         })
         .returning();
 
-      // Actualizar el stock del producto
-      const newStock = product.stock + result.data.quantity;
-      await db
-        .update(products)
-        .set({ stock: newStock })
-        .where(eq(products.id, result.data.productId));
+      // Procesar cada item del lote
+      const items = await Promise.all(result.data.items.map(async (item) => {
+        // Verificar que el producto existe
+        const [product] = await db
+          .select()
+          .from(products)
+          .where(eq(products.id, item.productId));
 
-      // Obtener el nombre del producto para la respuesta
-      const batchWithProduct = {
+        if (!product) {
+          throw new Error(`Producto ${item.productId} no encontrado`);
+        }
+
+        // Crear el item del lote
+        const [batchItem] = await db
+          .insert(productionBatchItems)
+          .values({
+            batchId: batch.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            cost: item.cost
+          })
+          .returning();
+
+        // Actualizar el stock del producto
+        const newStock = product.stock + item.quantity;
+        await db
+          .update(products)
+          .set({ stock: newStock })
+          .where(eq(products.id, item.productId));
+
+        return {
+          ...batchItem,
+          productName: product.name
+        };
+      }));
+
+      // Retornar el lote completo con sus items
+      const response = {
         ...batch,
-        productName: product.name
+        warehouseName: warehouse.name,
+        warehouseCode: warehouse.code,
+        items
       };
 
-      console.log("POST /api/production-batches - Lote creado:", batchWithProduct);
-      res.json(batchWithProduct);
+      console.log("POST /api/production-batches - Lote creado:", response);
+      res.json(response);
 
     } catch (error) {
       console.error("Error al crear lote de producción:", error);
       res.status(500).json({ error: String(error) });
     }
   });
+
+  // Warehouses endpoints
+  app.get("/api/warehouses", async (req, res) => {
+    try {
+      const allWarehouses = await db
+        .select()
+        .from(warehouses)
+        .orderBy(warehouses.code);
+
+      console.log("GET /api/warehouses - Retornando:", allWarehouses.length, "almacenes");
+      res.json(allWarehouses);
+    } catch (error) {
+      console.error("Error al obtener almacenes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/warehouses", async (req, res) => {
+    try {
+      console.log("POST /api/warehouses - Datos recibidos:", req.body);
+
+      const result = insertWarehouseSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Error de validación",
+          details: result.error.format()
+        });
+      }
+
+      const [warehouse] = await db
+        .insert(warehouses)
+        .values(result.data)
+        .returning();
+
+      console.log("POST /api/warehouses - Almacén creado:", warehouse);
+      res.json(warehouse);
+    } catch (error) {
+      console.error("Error al crear almacén:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
 
   // Endpoints para el manejo de direcciones
   app.get("/api/provinces", async (req, res) => {
