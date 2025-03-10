@@ -48,7 +48,7 @@ app.use((req, res, next) => {
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {
       log("Production mode: Setting up static file serving");
-      const distPath = path.join(process.cwd(), 'dist', 'client');
+      const distPath = path.join(process.cwd(), 'dist', 'public');
 
       // Debug log the dist path
       log(`Static files path: ${distPath}`);
