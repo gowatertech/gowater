@@ -44,6 +44,7 @@ app.use((req, res, next) => {
     let server;
 
     // Register API routes first to ensure they take precedence
+    log("Registering API routes...");
     server = await registerRoutes(app);
     log("Routes registered successfully");
 
@@ -85,6 +86,7 @@ app.use((req, res, next) => {
       log("Static file serving configured");
     } else {
       // Development mode - use Vite
+      log("Development mode: Setting up Vite...");
       await setupVite(app, server);
       log("Development mode: Vite setup complete");
     }
