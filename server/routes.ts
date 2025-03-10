@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches } from "@shared/schema"; // Added bottleReturns and productionBatches imports
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema } from "@shared/schema"; // Added bottleReturns and productionBatches imports and insertProductionBatchSchema
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -930,17 +930,16 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Endpointpara registrar producción
+  // Endpoint para registrar producción
   app.post("/api/production-batches", async (req, res) => {
     try {
       console.log("POST /api/production-batches - Datos recibidos:", req.body);
 
-      const { productId, quantity, cost, warehouse, notes } = req.body;
-
-      // Validar los datos requeridos
-      if (!productId || !quantity || !cost || !warehouse) {
+      const result = insertProductionBatchSchema.safeParse(req.body);
+      if (!result.success) {
         return res.status(400).json({ 
-          error: "Datos incompletos. Se requiere productId, quantity, cost y warehouse" 
+          error: "Error de validación",
+          details: result.error.format()
         });
       }
 
@@ -948,7 +947,7 @@ export async function registerRoutes(app: Express) {
       const [product] = await db
         .select()
         .from(products)
-        .where(eq(products.id, productId));
+        .where(eq(products.id, result.data.productId));
 
       if (!product) {
         return res.status(404).json({ error: "Producto no encontrado" });
@@ -958,22 +957,22 @@ export async function registerRoutes(app: Express) {
       const [batch] = await db
         .insert(productionBatches)
         .values({
-          productId,
-          quantity: Number(quantity),
-          cost: cost.toString(),
-          warehouse,
-          notes: notes || null,
-          date: new Date(),
-          status: "completed"
+          productId: result.data.productId,
+          quantity: result.data.quantity,
+          cost: result.data.cost,
+          warehouse: result.data.warehouse,
+          notes: result.data.notes || null,
+          status: result.data.status || "completed",
+          date: new Date()
         })
         .returning();
 
       // Actualizar el stock del producto
-      const newStock = product.stock + Number(quantity);
+      const newStock = product.stock + result.data.quantity;
       await db
         .update(products)
         .set({ stock: newStock })
-        .where(eq(products.id, productId));
+        .where(eq(products.id, result.data.productId));
 
       // Obtener el nombre del producto para la respuesta
       const batchWithProduct = {
