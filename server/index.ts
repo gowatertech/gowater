@@ -49,7 +49,7 @@ app.use((req, res, next) => {
       log("Production mode: Setting up static file serving");
       const distPath = path.join(process.cwd(), 'dist', 'client');
 
-      // Debug log the dist path and check if files exist
+      // Debug log the dist path
       log(`Static files path: ${distPath}`);
 
       // Serve static files from the client build directory
