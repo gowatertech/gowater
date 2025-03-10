@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { InsertProductionBatch, Product, User } from "@shared/schema";
+import type { InsertProductionBatch, Product, User, Warehouse } from "@shared/schema";
 import { insertProductionBatchSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Trash } from "lucide-react";
@@ -53,8 +53,8 @@ export default function CargaProductos() {
     queryKey: ["/api/products"],
   });
 
-  const { data: users } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+  const { data: warehouses } = useQuery<Warehouse[]>({
+    queryKey: ["/api/warehouses"],
   });
 
   const form = useForm<ProductBatchItem>({
@@ -69,18 +69,16 @@ export default function CargaProductos() {
   const mainForm = useForm<InsertProductionBatch>({
     resolver: zodResolver(insertProductionBatchSchema),
     defaultValues: {
-      productId: 0,
-      quantity: 0,
-      cost: "0.00",
-      warehouse: "",
-      userId: 0,
+      warehouseId: 0,
       notes: "",
+      status: "completed",
+      items: [],
     },
   });
 
   const createBatchMutation = useMutation({
-    mutationFn: async (data: InsertProductionBatch[]) => {
-      const res = await apiRequest("POST", "/api/production-batches/bulk", data);
+    mutationFn: async (data: InsertProductionBatch) => {
+      const res = await apiRequest("POST", "/api/production-batches", data);
       return res.json();
     },
     onSuccess: () => {
@@ -132,14 +130,16 @@ export default function CargaProductos() {
       return;
     }
 
-    const batches = batchItems.map(item => ({
+    const batchData = {
       ...data,
-      productId: item.productId,
-      quantity: item.quantity,
-      cost: item.cost,
-    }));
+      items: batchItems.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        cost: item.cost,
+      })),
+    };
 
-    createBatchMutation.mutate(batches);
+    createBatchMutation.mutate(batchData);
   };
 
   const totalCost = batchItems.reduce((sum, item) => sum + Number(item.total), 0);
@@ -161,40 +161,26 @@ export default function CargaProductos() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={mainForm.control}
-                  name="warehouse"
+                  name="warehouseId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t("warehouse")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={mainForm.control}
-                  name="userId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("user")}</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value.toString()}
+                        value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t("selectUser")} />
+                            <SelectValue placeholder={t("selectWarehouse")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {users?.map((user) => (
+                          {warehouses?.map((warehouse) => (
                             <SelectItem
-                              key={user.id}
-                              value={user.id.toString()}
+                              key={warehouse.id}
+                              value={warehouse.id.toString()}
                             >
-                              {user.name}
+                              {warehouse.name} ({warehouse.code})
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -203,21 +189,21 @@ export default function CargaProductos() {
                     </FormItem>
                   )}
                 />
-              </div>
 
-              <FormField
-                control={mainForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("notes")}</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={mainForm.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("notes")}</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </form>
           </Form>
         </CardContent>
