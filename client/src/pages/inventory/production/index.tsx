@@ -96,7 +96,13 @@ export default function ProductionRegistrationPage() {
   // Mutation for creating a production batch
   const createBatchMutation = useMutation({
     mutationFn: async (data: InsertProductionBatch) => {
+      console.log("Submitting production batch data:", data);
       const res = await apiRequest("POST", "/api/production-batches", data);
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Error creating batch:", errorData);
+        throw new Error(errorData.message || "Failed to create production batch");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -108,10 +114,11 @@ export default function ProductionRegistrationPage() {
       setBatchItems([]);
       mainForm.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error("Mutation error:", error);
       toast({
         title: "Error",
-        description: "Failed to create production batch",
+        description: error.message || "Failed to create production batch",
         variant: "destructive",
       });
     },
@@ -120,7 +127,14 @@ export default function ProductionRegistrationPage() {
   // Handle adding items to the batch
   const handleAddItem = (data: BatchItem) => {
     const product = products?.find((p) => p.id === data.productId);
-    if (!product) return;
+    if (!product) {
+      toast({
+        title: "Error",
+        description: "Invalid product selected",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const total = (Number(data.cost) * data.quantity).toFixed(2);
     setBatchItems([...batchItems, { ...data, total }]);
@@ -143,7 +157,16 @@ export default function ProductionRegistrationPage() {
       return;
     }
 
-    const batchData = {
+    if (!data.warehouseId) {
+      toast({
+        title: "Error",
+        description: "Please select a warehouse",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const batchData: InsertProductionBatch = {
       ...data,
       items: batchItems.map(item => ({
         productId: item.productId,
@@ -152,6 +175,7 @@ export default function ProductionRegistrationPage() {
       })),
     };
 
+    console.log("Submitting batch data:", batchData);
     createBatchMutation.mutate(batchData);
   };
 
