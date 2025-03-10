@@ -124,12 +124,47 @@ export default function ProductionRegistrationPage() {
     },
   });
 
+  // Handle submitting the entire batch
+  const handleSubmit = (data: InsertProductionBatch) => {
+    if (batchItems.length === 0) {
+      toast({
+        title: "Error",
+        description: "Por favor agregue al menos un producto al lote",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data.warehouseId || data.warehouseId === 0) {
+      toast({
+        title: "Error",
+        description: "Por favor seleccione un almacén",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const batchData: InsertProductionBatch = {
+      warehouseId: data.warehouseId,
+      notes: data.notes || "",
+      status: "completed",
+      items: batchItems.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        cost: item.cost,
+      })),
+    };
+
+    console.log("Enviando datos del lote:", batchData);
+    createBatchMutation.mutate(batchData);
+  };
+
   // Handle adding items to the batch
   const handleAddItem = (data: BatchItem) => {
     if (!data.productId || data.productId === 0) {
       toast({
         title: "Error",
-        description: "Please select a product",
+        description: "Por favor seleccione un producto",
         variant: "destructive",
       });
       return;
@@ -138,7 +173,7 @@ export default function ProductionRegistrationPage() {
     if (!data.quantity || data.quantity <= 0) {
       toast({
         title: "Error",
-        description: "Quantity must be greater than 0",
+        description: "La cantidad debe ser mayor a 0",
         variant: "destructive",
       });
       return;
@@ -147,7 +182,18 @@ export default function ProductionRegistrationPage() {
     if (!data.cost || parseFloat(data.cost) <= 0) {
       toast({
         title: "Error",
-        description: "Cost must be greater than 0",
+        description: "El costo debe ser mayor a 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if product already exists in batch
+    const existingItem = batchItems.find(item => item.productId === data.productId);
+    if (existingItem) {
+      toast({
+        title: "Error",
+        description: "Este producto ya está en el lote",
         variant: "destructive",
       });
       return;
@@ -157,7 +203,7 @@ export default function ProductionRegistrationPage() {
     if (!product) {
       toast({
         title: "Error",
-        description: "Invalid product selected",
+        description: "Producto no válido",
         variant: "destructive",
       });
       return;
@@ -173,38 +219,6 @@ export default function ProductionRegistrationPage() {
     setBatchItems(batchItems.filter((_, i) => i !== index));
   };
 
-  // Handle submitting the entire batch
-  const handleSubmit = (data: InsertProductionBatch) => {
-    if (batchItems.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please add at least one product to the batch",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!data.warehouseId) {
-      toast({
-        title: "Error",
-        description: "Please select a warehouse",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const batchData: InsertProductionBatch = {
-      ...data,
-      items: batchItems.map(item => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        cost: item.cost,
-      })),
-    };
-
-    console.log("Submitting batch data:", batchData);
-    createBatchMutation.mutate(batchData);
-  };
 
   const totalCost = batchItems.reduce((sum, item) => sum + Number(item.total), 0);
 
@@ -339,11 +353,11 @@ export default function ProductionRegistrationPage() {
                     <FormItem>
                       <FormLabel>Cost per Unit</FormLabel>
                       <FormControl>
-                        <Input 
+                        <Input
                           type="number"
                           min="0.01"
                           step="0.01"
-                          {...field} 
+                          {...field}
                         />
                       </FormControl>
                       <FormMessage />
