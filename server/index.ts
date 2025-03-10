@@ -48,15 +48,24 @@ app.use((req, res, next) => {
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {
       log("Production mode: Setting up static file serving");
-      const distPath = path.resolve(__dirname, 'public');
+      const distPath = path.resolve(process.cwd(), 'dist', 'public');
 
-      // Debug log the dist path
-      log(`Static files path: ${distPath}`);
+      log(`Looking for static files in: ${distPath}`);
 
+      // Verify dist directory exists
       if (!fs.existsSync(distPath)) {
-        log(`Creating dist directory at ${distPath}`);
-        fs.mkdirSync(distPath, { recursive: true });
+        log(`ERROR: Build directory not found at ${distPath}`);
+        throw new Error(`Build directory not found at ${distPath}. Please run 'npm run build' first.`);
       }
+
+      // Verify index.html exists
+      const indexPath = path.join(distPath, 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        log(`ERROR: index.html not found at ${indexPath}`);
+        throw new Error(`index.html not found at ${indexPath}. Please ensure the build process completed successfully.`);
+      }
+
+      log(`Found index.html at ${indexPath}`);
 
       // Serve static files from the client build directory
       app.use(express.static(distPath));
@@ -65,12 +74,6 @@ app.use((req, res, next) => {
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
-        }
-
-        const indexPath = path.join(distPath, 'index.html');
-        if (!fs.existsSync(indexPath)) {
-          log(`WARNING: index.html not found at ${indexPath}`);
-          return res.status(404).send('Application not built properly. Please rebuild the application.');
         }
 
         log(`Serving index.html for path: ${req.path}`);
