@@ -97,6 +97,22 @@ export const insertOrderSchema = z.object({
   date: z.string(),
 });
 
+// Routes
+export const routes = pgTable("routes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  driverId: integer("driver_id").notNull(),
+  status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull().default("pending"),
+  date: text("date").notNull(),
+});
+
+export const insertRouteSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  driverId: z.number({ required_error: "Se requiere un conductor" }),
+  date: z.string(),
+  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+});
+
 // Type exports
 export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
@@ -110,3 +126,5 @@ export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type Route = typeof routes.$inferSelect;
+export type InsertRoute = z.infer<typeof insertRouteSchema>;
