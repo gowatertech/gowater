@@ -36,8 +36,9 @@ function Router() {
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />
-        <Route path="/inventory" component={InventoryPage} />
+        <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory/production" component={ProductionRegistration} />
+        <Route path="/inventory/load" component={InventoryPage} />
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/routes/recurring" component={RecurringOrders} />

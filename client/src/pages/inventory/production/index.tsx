@@ -52,18 +52,57 @@ interface ProductionBatchWithDetails {
   }[];
 }
 
-export default function ProductionRegistrationPage() {
+export default function ProductionRegistration() {
   const { toast } = useToast();
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
 
-  // Fetch products and warehouses
-  const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ["/api/products"]
+  // Add error handling and loading states for initial data loading
+  const { data: products = [], isLoading: isLoadingProducts, isError: isProductError } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+    onError: (error) => {
+      console.error("Error loading products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load products. Please refresh the page.",
+        variant: "destructive"
+      });
+    }
   });
 
-  const { data: warehouses = [] } = useQuery<Warehouse[]>({
-    queryKey: ["/api/warehouses"]
+  const { data: warehouses = [], isLoading: isLoadingWarehouses, isError: isWarehouseError } = useQuery<Warehouse[]>({
+    queryKey: ["/api/warehouses"],
+    onError: (error) => {
+      console.error("Error loading warehouses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load warehouses. Please refresh the page.",
+        variant: "destructive"
+      });
+    }
   });
+
+  // Show loading state while initial data is being fetched
+  if (isLoadingProducts || isLoadingWarehouses) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-lg">Loading production data...</p>
+      </div>
+    );
+  }
+
+  // Show error state if initial data failed to load
+  if (isProductError || isWarehouseError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <p className="text-lg text-red-600">Failed to load production data</p>
+          <Button onClick={() => window.location.reload()}>
+            Retry Loading
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch production batches
   const { data: productionBatches = [], isLoading: isLoadingBatches } = useQuery<ProductionBatchWithDetails[]>({
