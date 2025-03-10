@@ -8,7 +8,7 @@ async function throwIfResNotOk(res: Response) {
 }
 
 function getBaseUrl() {
-  // Always use relative URLs in production
+  // Always use relative URLs to maintain consistency between dev and prod
   return '';
 }
 
@@ -34,7 +34,7 @@ export async function apiRequest(
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
-    console.error(`API Request Error (${method} ${url}):`, error);
+    console.error(`API Request Error (${method} ${fullUrl}):`, error);
     throw error;
   }
 }
@@ -64,7 +64,7 @@ export const getQueryFn: <T>(options: {
       await throwIfResNotOk(res);
       return await res.json();
     } catch (error) {
-      console.error(`Query Error (${url}):`, error);
+      console.error(`Query Error (${fullUrl}):`, error);
       throw error;
     }
   };

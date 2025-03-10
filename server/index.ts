@@ -2,7 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
 import path from "path";
-import fs from "fs";
 
 const app = express();
 
@@ -29,11 +28,6 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
       log(logLine);
     }
   });
@@ -44,46 +38,28 @@ app.use((req, res, next) => {
 (async () => {
   try {
     log("Starting server initialization...");
-
-    // Variable para almacenar el servidor HTTP
     let server;
 
-    // Registrar rutas API primero
+    // Register API routes first
     server = await registerRoutes(app);
     log("Routes registered successfully");
 
-    // Middleware para asegurar que las rutas API se manejen primero
-    app.use((req, res, next) => {
-      log(`[Route Debug] Handling request for: ${req.path}`);
+    // Configure static file serving and client-side routing
+    if (process.env.NODE_ENV === "production") {
+      // Serve static files from the client build directory
+      const distPath = path.join(process.cwd(), 'dist', 'client');
+      app.use(express.static(distPath));
 
-      if (req.path.startsWith('/api/')) {
-        // Para requests de API, asegurarnos de que se manejen por las rutas registradas
-        log(`[Route Debug] API request detected: ${req.path}`);
-        next();
-      } else if (process.env.NODE_ENV === "production") {
-        // En producción, servir archivos estáticos
-        log(`[Route Debug] Production mode, serving static files for: ${req.path}`);
-        const distPath = path.join(process.cwd(), 'dist', 'public');
-        const indexPath = path.join(distPath, 'index.html');
-
-        if (fs.existsSync(indexPath)) {
-          res.sendFile(indexPath);
-        } else {
-          log(`[Route Debug] Error: index.html not found at ${indexPath}`);
-          res.status(404).send('Not found');
+      // Handle client-side routing - send index.html for all non-API routes
+      app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api/')) {
+          return next();
         }
-      } else {
-        // En desarrollo, pasar a Vite
-        log(`[Route Debug] Development mode, passing to Vite: ${req.path}`);
-        next();
-      }
-    });
-
-    // Configurar Vite solo en desarrollo
-    if (process.env.NODE_ENV !== "production") {
-      log("Setting up Vite for development");
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    } else {
+      // Development mode - use Vite
       await setupVite(app, server);
-      log("Vite setup completed");
     }
 
     // Error handling middleware
@@ -94,24 +70,12 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    // Try to serve on port 5000 and bind to 0.0.0.0
-    const startServer = (port = 5000) => {
-      log(`Attempting to start server on port ${port}`);
+    // Start server
+    const port = process.env.PORT || 5000;
+    server.listen(port, () => {
+      log(`Server started successfully on port ${port}`);
+    });
 
-      try {
-        server.listen({
-          port,
-          host: "0.0.0.0", // Bind to all network interfaces
-        }, () => {
-          log(`Server started successfully on port ${port} and bound to 0.0.0.0`);
-        });
-      } catch (error) {
-        log(`Failed to start server: ${error}`);
-        process.exit(1);
-      }
-    };
-
-    startServer();
   } catch (error) {
     log(`Fatal error during server initialization: ${error}`);
     process.exit(1);
