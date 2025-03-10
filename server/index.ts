@@ -39,6 +39,8 @@ app.use((req, res, next) => {
 (async () => {
   try {
     log("Starting server initialization...");
+    log(`Current working directory: ${process.cwd()}`);
+    log(`Environment: ${process.env.NODE_ENV}`);
     let server;
 
     // Register API routes first to ensure they take precedence
