@@ -27,7 +27,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Interface for batch item form
 interface BatchItem {
   productId: number;
   quantity: number;
@@ -35,7 +34,6 @@ interface BatchItem {
   total: string;
 }
 
-// Interface for production batch with details
 interface ProductionBatchWithDetails {
   id: number;
   batchNumber: string;
@@ -59,33 +57,17 @@ export default function ProductionRegistrationPage() {
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
 
   // Fetch products and warehouses
-  const { data: products, isLoading: isLoadingProducts, isError: isProductError } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
-    onError: (error) => {
-      console.error("Error fetching products:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load products",
-        variant: "destructive",
-      });
-    }
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
+    queryKey: ["/api/products"]
   });
 
-  const { data: warehouses, isLoading: isLoadingWarehouses, isError: isWarehouseError } = useQuery<Warehouse[]>({
-    queryKey: ["/api/warehouses"],
-    onError: (error) => {
-      console.error("Error fetching warehouses:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load warehouses",
-        variant: "destructive",
-      });
-    }
+  const { data: warehouses = [], isLoading: isLoadingWarehouses } = useQuery<Warehouse[]>({
+    queryKey: ["/api/warehouses"]
   });
 
   // Fetch production batches
   const { data: productionBatches = [], isLoading: isLoadingBatches } = useQuery<ProductionBatchWithDetails[]>({
-    queryKey: ["/api/production-batches"],
+    queryKey: ["/api/production-batches"]
   });
 
   // Form for adding individual items
@@ -95,7 +77,7 @@ export default function ProductionRegistrationPage() {
       quantity: 0,
       cost: "0.00",
       total: "0.00",
-    },
+    }
   });
 
   // Main form for batch details
@@ -105,8 +87,8 @@ export default function ProductionRegistrationPage() {
       warehouseId: 0,
       notes: "",
       status: "completed",
-      items: [],
-    },
+      items: []
+    }
   });
 
   // Mutation for creating a production batch
@@ -116,47 +98,35 @@ export default function ProductionRegistrationPage() {
       const res = await apiRequest("POST", "/api/production-batches", data);
       if (!res.ok) {
         const errorData = await res.json();
-        console.error("Error creating batch:", errorData);
         throw new Error(errorData.error || "Failed to create production batch");
       }
       return res.json();
     },
-    onSuccess: (data) => {
-      console.log("Production batch created successfully:", data);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-batches"] });
       toast({
         title: "Success",
-        description: "Production batch created successfully",
+        description: "Production batch created successfully"
       });
       setBatchItems([]);
       mainForm.reset();
     },
     onError: (error: Error) => {
-      console.error("Mutation error:", error);
+      console.error("Error creating batch:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create production batch",
-        variant: "destructive",
+        description: error.message,
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  // Handle submitting the entire batch
   const handleSubmit = (data: InsertProductionBatch) => {
     if (batchItems.length === 0) {
       toast({
         title: "Error",
-        description: "Por favor agregue al menos un producto al lote",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!data.warehouseId || data.warehouseId === 0) {
-      toast({
-        title: "Error",
-        description: "Por favor seleccione un almacén",
-        variant: "destructive",
+        description: "Please add at least one product to the batch",
+        variant: "destructive"
       });
       return;
     }
@@ -168,76 +138,59 @@ export default function ProductionRegistrationPage() {
       items: batchItems.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
-        cost: item.cost,
-      })),
+        cost: item.cost
+      }))
     };
 
-    console.log("Enviando datos del lote:", batchData);
     createBatchMutation.mutate(batchData);
   };
 
   // Handle adding items to the batch
   const handleAddItem = (data: BatchItem) => {
-    if (!data.productId || data.productId === 0) {
-      toast({
-        title: "Error",
-        description: "Por favor seleccione un producto",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!data.quantity || data.quantity <= 0) {
-      toast({
-        title: "Error",
-        description: "La cantidad debe ser mayor a 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!data.cost || parseFloat(data.cost) <= 0) {
-      toast({
-        title: "Error",
-        description: "El costo debe ser mayor a 0",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if product already exists in batch
-    const existingItem = batchItems.find(item => item.productId === data.productId);
-    if (existingItem) {
-      toast({
-        title: "Error",
-        description: "Este producto ya está en el lote",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const product = products?.find((p) => p.id === data.productId);
+    const product = products.find(p => p.id === data.productId);
     if (!product) {
       toast({
         title: "Error",
-        description: "Producto no válido",
-        variant: "destructive",
+        description: "Please select a valid product",
+        variant: "destructive"
       });
       return;
     }
 
-    const total = (Number(data.cost) * data.quantity).toFixed(2);
-    setBatchItems([...batchItems, { ...data, total }]);
+    if (data.quantity <= 0) {
+      toast({
+        title: "Error",
+        description: "Quantity must be greater than 0",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const cost = parseFloat(data.cost);
+    if (isNaN(cost) || cost <= 0) {
+      toast({
+        title: "Error",
+        description: "Cost must be greater than 0",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const total = (cost * data.quantity).toFixed(2);
+    setBatchItems(prev => [...prev, { ...data, total }]);
     itemForm.reset();
   };
 
   // Handle removing items from the batch
   const handleRemoveItem = (index: number) => {
-    setBatchItems(batchItems.filter((_, i) => i !== index));
+    setBatchItems(items => items.filter((_, i) => i !== index));
   };
 
+  if (isLoadingProducts || isLoadingWarehouses) {
+    return <div>Loading...</div>;
+  }
 
-  const totalCost = batchItems.reduce((sum, item) => sum + Number(item.total), 0);
+  const totalCost = batchItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -268,12 +221,12 @@ export default function ProductionRegistrationPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {warehouses?.map((warehouse) => (
+                          {warehouses.map((warehouse) => (
                             <SelectItem
                               key={warehouse.id}
                               value={warehouse.id.toString()}
                             >
-                              {warehouse.name} ({warehouse.code})
+                              {warehouse.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -327,7 +280,7 @@ export default function ProductionRegistrationPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {products?.map((product) => (
+                          {products.map((product) => (
                             <SelectItem
                               key={product.id}
                               value={product.id.toString()}
@@ -353,9 +306,7 @@ export default function ProductionRegistrationPage() {
                           type="number"
                           min="1"
                           {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
+                          onChange={(e) => field.onChange(Number(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
@@ -395,7 +346,7 @@ export default function ProductionRegistrationPage() {
               <h3 className="font-semibold mb-2">Products in Batch</h3>
               <div className="space-y-2">
                 {batchItems.map((item, index) => {
-                  const product = products?.find((p) => p.id === item.productId);
+                  const product = products.find((p) => p.id === item.productId);
                   return (
                     <div
                       key={index}
