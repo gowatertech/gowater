@@ -2,13 +2,13 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const text = await res.text();
+    throw new Error(`${res.status}: ${text || res.statusText}`);
   }
 }
 
 function getBaseUrl() {
-  // Always use relative URLs to maintain consistency between dev and prod
+  // Always use relative URLs for API requests
   return '';
 }
 

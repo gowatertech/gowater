@@ -49,6 +49,9 @@ app.use((req, res, next) => {
       log("Production mode: Setting up static file serving");
       const distPath = path.join(process.cwd(), 'dist', 'client');
 
+      // Debug log the dist path and check if files exist
+      log(`Static files path: ${distPath}`);
+
       // Serve static files from the client build directory
       app.use(express.static(distPath));
 
@@ -57,7 +60,9 @@ app.use((req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
         }
-        res.sendFile(path.join(distPath, 'index.html'));
+        const indexPath = path.join(distPath, 'index.html');
+        log(`Serving index.html from: ${indexPath}`);
+        res.sendFile(indexPath);
       });
 
       log("Static file serving configured");
