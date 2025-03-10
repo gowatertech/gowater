@@ -19,6 +19,8 @@ import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
 import Faltantes from "@/pages/envases/faltantes";
 import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
+import ProductionRegistration from "@/pages/inventory/production";
+import InventoryPage from "@/pages/inventory";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 import RecurringOrders from "@/pages/routes/RecurringOrders";
@@ -32,6 +34,13 @@ function Router() {
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />
+
+        {/* Inventory Routes */}
+        <Route path="/inventory" component={InventoryPage} />
+        <Route path="/inventory/products" component={InventoryPage} />
+        <Route path="/inventory/production" component={ProductionRegistration} />
+        <Route path="/inventory/load" component={InventoryPage} />
+
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/routes/recurring" component={RecurringOrders} />

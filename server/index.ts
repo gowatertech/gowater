@@ -36,30 +36,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Función para intentar inicializar Vite con reintentos
-async function setupViteWithRetry(app: express.Express, server: any, maxRetries = 3): Promise<void> {
-  let retryCount = 0;
-  while (retryCount < maxRetries) {
-    try {
-      log(`Intento ${retryCount + 1} de inicializar Vite...`);
-      await setupVite(app, server);
-      log("Development mode: Vite setup complete");
-      return;
-    } catch (error) {
-      retryCount++;
-      log(`Error en intento ${retryCount} de inicializar Vite: ${error}`);
-      if (error instanceof Error) {
-        log(`Error stack: ${error.stack}`);
-      }
-      if (retryCount === maxRetries) {
-        throw error;
-      }
-      // Esperar 2 segundos antes de reintentar
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-  }
-}
-
 (async () => {
   try {
     log("Starting server initialization...");
@@ -67,21 +43,9 @@ async function setupViteWithRetry(app: express.Express, server: any, maxRetries 
     log(`Environment: ${process.env.NODE_ENV}`);
     let server;
 
-    // Force development mode if NODE_ENV is not set
-    if (!process.env.NODE_ENV) {
-      process.env.NODE_ENV = 'development';
-      log("NODE_ENV was undefined, setting to 'development'");
-    }
-
     // Register API routes first to ensure they take precedence
-    log("Registering API routes...");
-    try {
-      server = await registerRoutes(app);
-      log("Routes registered successfully");
-    } catch (error) {
-      log(`Error registering routes: ${error}`);
-      throw error;
-    }
+    server = await registerRoutes(app);
+    log("Routes registered successfully");
 
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {
@@ -108,7 +72,7 @@ async function setupViteWithRetry(app: express.Express, server: any, maxRetries 
       // Serve static files from the client build directory
       app.use(express.static(distPath));
 
-      // Handle client-side routing
+      // Handle client-side routing - send index.html for all non-API routes
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
@@ -120,14 +84,9 @@ async function setupViteWithRetry(app: express.Express, server: any, maxRetries 
 
       log("Static file serving configured");
     } else {
-      // Development mode - use Vite with reintentos
-      log("Development mode: Setting up Vite...");
-      try {
-        await setupViteWithRetry(app, server);
-      } catch (error) {
-        log(`Error fatal al configurar Vite después de reintentos: ${error}`);
-        throw error;
-      }
+      // Development mode - use Vite
+      await setupVite(app, server);
+      log("Development mode: Vite setup complete");
     }
 
     // Error handling middleware
