@@ -8,11 +8,8 @@ async function throwIfResNotOk(res: Response) {
 }
 
 function getBaseUrl() {
-  // En producción, usar la URL base de Replit
-  if (import.meta.env.PROD) {
-    return window.location.origin;
-  }
-  return 'http://localhost:5000';
+  // Always use relative URLs in production
+  return '';
 }
 
 export async function apiRequest(
