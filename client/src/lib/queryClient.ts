@@ -8,10 +8,11 @@ async function throwIfResNotOk(res: Response) {
 }
 
 function getBaseUrl() {
+  // En producción, usar la URL base de Replit
   if (import.meta.env.PROD) {
-    return '';  // En producción usamos rutas relativas
+    return window.location.origin;
   }
-  return window.location.origin;
+  return 'http://localhost:5000';
 }
 
 export async function apiRequest(
@@ -19,7 +20,6 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  // Asegurar que la URL comience con /api
   const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
   const fullUrl = `${getBaseUrl()}${apiUrl}`;
 
@@ -78,12 +78,12 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 10000, // 10 segundos
-      retry: 1,
+      staleTime: 10000,
+      retry: 2,
       retryDelay: 1000
     },
     mutations: {
-      retry: 1,
+      retry: 2,
       retryDelay: 1000
     },
   },
