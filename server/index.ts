@@ -48,25 +48,15 @@ app.use((req, res, next) => {
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {
       log("Production mode: Setting up static file serving");
-      const distPath = path.join(process.cwd(), 'dist', 'public');
+      const distPath = path.resolve(__dirname, 'public');
 
       // Debug log the dist path
       log(`Static files path: ${distPath}`);
 
-      // Check if the build directory exists
       if (!fs.existsSync(distPath)) {
-        log(`ERROR: Build directory not found at ${distPath}`);
-        throw new Error(`Build directory not found at ${distPath}`);
+        log(`Creating dist directory at ${distPath}`);
+        fs.mkdirSync(distPath, { recursive: true });
       }
-
-      // Check if index.html exists
-      const indexPath = path.join(distPath, 'index.html');
-      if (!fs.existsSync(indexPath)) {
-        log(`ERROR: index.html not found at ${indexPath}`);
-        throw new Error(`index.html not found at ${indexPath}`);
-      }
-
-      log(`Found index.html at ${indexPath}`);
 
       // Serve static files from the client build directory
       app.use(express.static(distPath));
@@ -74,10 +64,16 @@ app.use((req, res, next) => {
       // Handle client-side routing - send index.html for all non-API routes
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
-          next();
-          return;
+          return next();
         }
-        log(`Serving index.html from: ${indexPath} for path: ${req.path}`);
+
+        const indexPath = path.join(distPath, 'index.html');
+        if (!fs.existsSync(indexPath)) {
+          log(`WARNING: index.html not found at ${indexPath}`);
+          return res.status(404).send('Application not built properly. Please rebuild the application.');
+        }
+
+        log(`Serving index.html for path: ${req.path}`);
         res.sendFile(indexPath);
       });
 
@@ -93,6 +89,7 @@ app.use((req, res, next) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
       log(`Error handler caught: ${message}`);
+      console.error("Error stack:", err.stack);
       res.status(status).json({ message });
     });
 
@@ -100,10 +97,13 @@ app.use((req, res, next) => {
     const port = process.env.PORT || 5000;
     server.listen(Number(port), "0.0.0.0", () => {
       log(`Server started successfully on port ${port} and bound to 0.0.0.0`);
+      log(`Environment: ${process.env.NODE_ENV}`);
+      log(`Application URL: ${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : `http://localhost:${port}`}`);
     });
 
   } catch (error) {
     log(`Fatal error during server initialization: ${error}`);
+    console.error("Full error:", error);
     process.exit(1);
   }
 })();
