@@ -43,10 +43,21 @@ app.use((req, res, next) => {
     log(`Environment: ${process.env.NODE_ENV}`);
     let server;
 
+    // Force development mode if NODE_ENV is not set
+    if (!process.env.NODE_ENV) {
+      process.env.NODE_ENV = 'development';
+      log("NODE_ENV was undefined, setting to 'development'");
+    }
+
     // Register API routes first to ensure they take precedence
     log("Registering API routes...");
-    server = await registerRoutes(app);
-    log("Routes registered successfully");
+    try {
+      server = await registerRoutes(app);
+      log("Routes registered successfully");
+    } catch (error) {
+      log(`Error registering routes: ${error}`);
+      throw error;
+    }
 
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {
@@ -73,7 +84,7 @@ app.use((req, res, next) => {
       // Serve static files from the client build directory
       app.use(express.static(distPath));
 
-      // Handle client-side routing - send index.html for all non-API routes
+      // Handle client-side routing
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
@@ -87,8 +98,16 @@ app.use((req, res, next) => {
     } else {
       // Development mode - use Vite
       log("Development mode: Setting up Vite...");
-      await setupVite(app, server);
-      log("Development mode: Vite setup complete");
+      try {
+        await setupVite(app, server);
+        log("Development mode: Vite setup complete");
+      } catch (error) {
+        log(`Error setting up Vite: ${error}`);
+        if (error instanceof Error) {
+          log(`Error stack: ${error.stack}`);
+        }
+        throw error;
+      }
     }
 
     // Error handling middleware
