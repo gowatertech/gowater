@@ -126,6 +126,33 @@ export default function ProductionRegistrationPage() {
 
   // Handle adding items to the batch
   const handleAddItem = (data: BatchItem) => {
+    if (!data.productId || data.productId === 0) {
+      toast({
+        title: "Error",
+        description: "Please select a product",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data.quantity || data.quantity <= 0) {
+      toast({
+        title: "Error",
+        description: "Quantity must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!data.cost || parseFloat(data.cost) <= 0) {
+      toast({
+        title: "Error",
+        description: "Cost must be greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const product = products?.find((p) => p.id === data.productId);
     if (!product) {
       toast({
@@ -293,6 +320,7 @@ export default function ProductionRegistrationPage() {
                       <FormControl>
                         <Input
                           type="number"
+                          min="1"
                           {...field}
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
@@ -311,7 +339,12 @@ export default function ProductionRegistrationPage() {
                     <FormItem>
                       <FormLabel>Cost per Unit</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input 
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
