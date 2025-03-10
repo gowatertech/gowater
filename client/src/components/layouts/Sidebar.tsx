@@ -41,7 +41,7 @@ const sidebarItems = [
     href: "/almacen",
     subItems: [
       { label: "Inventario", href: "/inventario/productos" },
-      { label: "Registrar Producción", href: "/inventory/load" },
+      { label: "Register Production", href: "/inventory/production" },
       { label: "Cargar Camión", href: "/inventario/carga" },
     ],
   },
