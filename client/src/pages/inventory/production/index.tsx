@@ -56,12 +56,11 @@ export default function ProductionRegistrationPage() {
   const { toast } = useToast();
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
 
-  // Fetch products
+  // Fetch products and warehouses
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"]
   });
 
-  // Fetch warehouses
   const { data: warehouses = [] } = useQuery<Warehouse[]>({
     queryKey: ["/api/warehouses"]
   });
@@ -76,7 +75,7 @@ export default function ProductionRegistrationPage() {
     defaultValues: {
       productId: 0,
       quantity: 0,
-      cost: "0.00"
+      cost: ""
     }
   });
 
@@ -92,9 +91,8 @@ export default function ProductionRegistrationPage() {
   });
 
   // Handle adding items to the batch
-  const handleAddItem = (formData: BatchItem) => {
-    const product = products.find(p => p.id === formData.productId);
-    if (!product) {
+  const handleAddItem = (data: BatchItem) => {
+    if (!data.productId) {
       toast({
         title: "Error",
         description: "Please select a product",
@@ -103,7 +101,7 @@ export default function ProductionRegistrationPage() {
       return;
     }
 
-    if (!formData.quantity || formData.quantity <= 0) {
+    if (!data.quantity || data.quantity <= 0) {
       toast({
         title: "Error",
         description: "Quantity must be greater than 0",
@@ -112,8 +110,7 @@ export default function ProductionRegistrationPage() {
       return;
     }
 
-    const cost = parseFloat(formData.cost);
-    if (!cost || cost <= 0) {
+    if (!data.cost || parseFloat(data.cost) <= 0) {
       toast({
         title: "Error",
         description: "Cost must be greater than 0",
@@ -122,14 +119,24 @@ export default function ProductionRegistrationPage() {
       return;
     }
 
-    const total = (cost * formData.quantity).toFixed(2);
-    setBatchItems(prev => [...prev, { ...formData, total }]);
+    const product = products.find(p => p.id === data.productId);
+    if (!product) {
+      toast({
+        title: "Error",
+        description: "Selected product not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const total = (parseFloat(data.cost) * data.quantity).toFixed(2);
+    setBatchItems(prev => [...prev, { ...data, total }]);
     itemForm.reset();
   };
 
   // Handle removing items from the batch
   const handleRemoveItem = (index: number) => {
-    setBatchItems(items => items.filter((_, i) => i !== index));
+    setBatchItems(prev => prev.filter((_, i) => i !== index));
   };
 
   // Create batch mutation
@@ -137,7 +144,8 @@ export default function ProductionRegistrationPage() {
     mutationFn: async (data: InsertProductionBatch) => {
       const response = await apiRequest("POST", "/api/production-batches", data);
       if (!response.ok) {
-        throw new Error("Failed to create production batch");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create production batch");
       }
       return response.json();
     },
@@ -160,8 +168,8 @@ export default function ProductionRegistrationPage() {
   });
 
   // Handle submitting the entire batch
-  const handleSubmit = (formData: InsertProductionBatch) => {
-    if (!formData.warehouseId) {
+  const onSubmit = (data: InsertProductionBatch) => {
+    if (!data.warehouseId) {
       toast({
         title: "Error",
         description: "Please select a warehouse",
@@ -180,8 +188,8 @@ export default function ProductionRegistrationPage() {
     }
 
     const batchData: InsertProductionBatch = {
-      warehouseId: formData.warehouseId,
-      notes: formData.notes || "",
+      warehouseId: data.warehouseId,
+      notes: data.notes || "",
       status: "completed",
       items: batchItems.map(item => ({
         productId: item.productId,
@@ -206,7 +214,7 @@ export default function ProductionRegistrationPage() {
         </CardHeader>
         <CardContent>
           <Form {...mainForm}>
-            <form onSubmit={mainForm.handleSubmit(handleSubmit)} className="space-y-4">
+            <form onSubmit={mainForm.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={mainForm.control}
@@ -381,7 +389,7 @@ export default function ProductionRegistrationPage() {
           {/* Submit Button */}
           <div className="mt-4">
             <Button
-              onClick={mainForm.handleSubmit(handleSubmit)}
+              onClick={mainForm.handleSubmit(onSubmit)}
               disabled={batchItems.length === 0 || createBatchMutation.isPending}
             >
               Create Production Batch
