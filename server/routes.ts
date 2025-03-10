@@ -1027,7 +1027,8 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Item no encontrado" });
       }
 
-      res.json(updatedItem);} catch (error) {
+      res.json(updatedItem);
+    } catch (error) {
       console.error("Error al actualizar item:", error);
       res.status(500).json({ error: String(error) });
     }

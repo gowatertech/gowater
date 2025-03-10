@@ -54,21 +54,27 @@ app.use((req, res, next) => {
 
     // Middleware para asegurar que las rutas API se manejen primero
     app.use((req, res, next) => {
+      log(`[Route Debug] Handling request for: ${req.path}`);
+
       if (req.path.startsWith('/api/')) {
         // Para requests de API, asegurarnos de que se manejen por las rutas registradas
+        log(`[Route Debug] API request detected: ${req.path}`);
         next();
       } else if (process.env.NODE_ENV === "production") {
         // En producción, servir archivos estáticos
+        log(`[Route Debug] Production mode, serving static files for: ${req.path}`);
         const distPath = path.join(process.cwd(), 'dist', 'public');
         const indexPath = path.join(distPath, 'index.html');
 
         if (fs.existsSync(indexPath)) {
           res.sendFile(indexPath);
         } else {
+          log(`[Route Debug] Error: index.html not found at ${indexPath}`);
           res.status(404).send('Not found');
         }
       } else {
         // En desarrollo, pasar a Vite
+        log(`[Route Debug] Development mode, passing to Vite: ${req.path}`);
         next();
       }
     });
