@@ -45,71 +45,48 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...");
 
-    // Error handling middleware  (Moved up)
+    // Variable para almacenar el servidor HTTP
+    let server;
+
+    // Registrar rutas API primero
+    server = await registerRoutes(app);
+    log("Routes registered successfully");
+
+    // Middleware para asegurar que las rutas API se manejen primero
+    app.use((req, res, next) => {
+      if (req.path.startsWith('/api/')) {
+        // Para requests de API, asegurarnos de que se manejen por las rutas registradas
+        next();
+      } else if (process.env.NODE_ENV === "production") {
+        // En producción, servir archivos estáticos
+        const distPath = path.join(process.cwd(), 'dist', 'public');
+        const indexPath = path.join(distPath, 'index.html');
+
+        if (fs.existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          res.status(404).send('Not found');
+        }
+      } else {
+        // En desarrollo, pasar a Vite
+        next();
+      }
+    });
+
+    // Configurar Vite solo en desarrollo
+    if (process.env.NODE_ENV !== "production") {
+      log("Setting up Vite for development");
+      await setupVite(app, server);
+      log("Vite setup completed");
+    }
+
+    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
       log(`Error handler caught: ${message}`);
       res.status(status).json({ message });
     });
-
-    // Variable para almacenar el servidor HTTP
-    let server;
-
-    // Configurar Vite en modo desarrollo
-    if (process.env.NODE_ENV !== "production") {
-      log("Setting up Vite for development");
-      server = await registerRoutes(app); //Routes registered before vite setup
-      log("Routes registered successfully");
-      await setupVite(app, server);
-      log("Vite setup completed");
-    } else {
-      // En producción, servir archivos estáticos
-      const distPath = path.join(process.cwd(), 'dist', 'public');
-      log(`Production mode: Serving static files from ${distPath}`);
-
-      // Verificar que la carpeta dist existe
-      if (!fs.existsSync(distPath)) {
-        log(`Error: dist/public folder not found at ${distPath}`);
-        throw new Error('Production build not found. Please run build first.');
-      }
-
-      // Verificar que index.html existe
-      const indexPath = path.join(distPath, 'index.html');
-      if (!fs.existsSync(indexPath)) {
-        log(`Error: index.html not found at ${indexPath}`);
-        throw new Error('Production build incomplete. Missing index.html');
-      }
-
-      log('Found production build files successfully');
-      server = await registerRoutes(app); //Routes registered before static files
-      log("Routes registered successfully");
-
-      // API middleware protection
-      app.use('/api/*', (req, res, next) => {
-        if (req.originalUrl.startsWith('/api/')) {
-          next();
-        } else {
-          res.status(404).json({ error: 'API route not found' });
-        }
-      });
-
-      // Servir archivos estáticos sin index
-      app.use(express.static(distPath, {
-        index: false // Deshabilitar el servido automático de index.html
-      }));
-
-      // Ruta catch-all para SPA
-      app.get('*', (req, res) => {
-        if (req.path.startsWith('/api')) {
-          log(`API 404 for path: ${req.path}`);
-          res.status(404).json({ error: 'API route not found' });
-        } else {
-          log(`Serving SPA for path: ${req.path}`);
-          res.sendFile(indexPath);
-        }
-      });
-    }
 
     // Try to serve on port 5000 and bind to 0.0.0.0
     const startServer = (port = 5000) => {

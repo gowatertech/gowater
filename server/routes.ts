@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema } from "@shared/schema"; // Added bottleReturns and productionBatches imports and insertProductionBatchSchema
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema } from "@shared/schema";
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -20,64 +20,93 @@ const upload = multer({
 const driverConnections = new Map<number, WebSocket>();
 
 export async function registerRoutes(app: Express) {
-  // Aumentar el límite del body-parser
+  // Configurar express primero
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-  const httpServer = createServer(app);
+  // API Routes
+  app.get("/api/production-batches", async (req, res) => {
+    try {
+      const batches = await db
+        .select({
+          id: productionBatches.id,
+          productId: productionBatches.productId,
+          quantity: productionBatches.quantity,
+          cost: productionBatches.cost,
+          warehouse: productionBatches.warehouse,
+          date: productionBatches.date,
+          notes: productionBatches.notes,
+          status: productionBatches.status,
+          productName: products.name
+        })
+        .from(productionBatches)
+        .leftJoin(products, eq(productionBatches.productId, products.id))
+        .orderBy(sql`${productionBatches.date} DESC`);
 
-  // Configurar WebSocket Server
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws'
+      console.log("GET /api/production-batches - Retornando:", batches.length, "lotes");
+      res.json(batches);
+    } catch (error) {
+      console.error("Error al obtener lotes de producción:", error);
+      res.status(500).json({ error: String(error) });
+    }
   });
 
-  wss.on('connection', (ws) => {
-    console.log('Nueva conexión WebSocket');
+  app.post("/api/production-batches", async (req, res) => {
+    try {
+      console.log("POST /api/production-batches - Datos recibidos:", req.body);
 
-    ws.on('message', async (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-
-        if (data.type === 'driver_location') {
-          // Almacenar la conexión del conductor
-          driverConnections.set(data.driverId, ws);
-
-          // Actualizar ubicación en la base de datos
-          await storage.updateDriverLocation(data.driverId, {
-            latitude: data.latitude,
-            longitude: data.longitude,
-            timestamp: new Date()
-          });
-
-          // Broadcast a todos los clientes conectados
-          wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'location_update',
-                driverId: data.driverId,
-                location: {
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  timestamp: new Date()
-                }
-              }));
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error procesando mensaje WebSocket:', error);
+      const result = insertProductionBatchSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Error de validación",
+          details: result.error.format()
+        });
       }
-    });
 
-    ws.on('close', () => {
-      // Eliminar la conexión cuando se cierra
-      driverConnections.forEach((connection, driverId) => {
-        if (connection === ws) {
-          driverConnections.delete(driverId);
-        }
-      });
-    });
+      // Obtener el producto
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, result.data.productId));
+
+      if (!product) {
+        return res.status(404).json({ error: "Producto no encontrado" });
+      }
+
+      // Crear el lote de producción
+      const [batch] = await db
+        .insert(productionBatches)
+        .values({
+          productId: result.data.productId,
+          quantity: result.data.quantity,
+          cost: result.data.cost,
+          warehouse: result.data.warehouse,
+          notes: result.data.notes || null,
+          status: result.data.status || "completed",
+          date: new Date()
+        })
+        .returning();
+
+      // Actualizar el stock del producto
+      const newStock = product.stock + result.data.quantity;
+      await db
+        .update(products)
+        .set({ stock: newStock })
+        .where(eq(products.id, result.data.productId));
+
+      // Obtener el nombre del producto para la respuesta
+      const batchWithProduct = {
+        ...batch,
+        productName: product.name
+      };
+
+      console.log("POST /api/production-batches - Lote creado:", batchWithProduct);
+      res.json(batchWithProduct);
+
+    } catch (error) {
+      console.error("Error al crear lote de producción:", error);
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   // Endpoints para el manejo de direcciones
@@ -887,15 +916,14 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Item no encontrado" });
       }
 
-      res.json(updatedItem);
-    } catch (error) {
+      res.json(updatedItem);} catch (error) {
       console.error("Error al actualizar item:", error);
       res.status(500).json({ error: String(error) });
     }
   });
 
   // Productos
-  app.get("/api/products", async (req, res) => {
+  app.get("/api/products", async (req, res) =>{
     try {
       const allProducts = await db
         .select()
@@ -930,65 +958,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  //  // Endpoint para obtener el historial de lotes de producción
   // Endpoint para registrar producción
-  app.post("/api/production-batches", async (req, res) => {
-    try {
-      console.log("POST /api/production-batches - Datos recibidos:", req.body);
-
-      const result = insertProductionBatchSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ 
-          error: "Error de validación",
-          details: result.error.format()
-        });
-      }
-
-      // Obtener el producto
-      const [product] = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, result.data.productId));
-
-      if (!product) {
-        return res.status(404).json({ error: "Producto no encontrado" });
-      }
-
-      // Crear el lote de producción
-      const [batch] = await db
-        .insert(productionBatches)
-        .values({
-          productId: result.data.productId,
-          quantity: result.data.quantity,
-          cost: result.data.cost,
-          warehouse: result.data.warehouse,
-          notes: result.data.notes || null,
-          status: result.data.status || "completed",
-          date: new Date()
-        })
-        .returning();
-
-      // Actualizar el stock del producto
-      const newStock = product.stock + result.data.quantity;
-      await db
-        .update(products)
-        .set({ stock: newStock })
-        .where(eq(products.id, result.data.productId));
-
-      // Obtener el nombre del producto para la respuesta
-      const batchWithProduct = {
-        ...batch,
-        productName: product.name
-      };
-
-      console.log("POST /api/production-batches - Lote creado:", batchWithProduct);
-      res.json(batchWithProduct);
-
-    } catch (error) {
-      console.error("Error al crear lote de producción:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
   // Pagos
   app.get("/api/payments", async (req, res) => {
     try {
@@ -1342,6 +1313,61 @@ export async function registerRoutes(app: Express) {
       console.error("Error al asignar responsabilidad:", error);
       res.status(500).json({ error: String(error) });
     }
+  });
+
+  // Configurar WebSocket después de las rutas API
+  const httpServer = createServer(app);
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'
+  });
+
+  wss.on('connection', (ws) => {
+    console.log('Nueva conexión WebSocket');
+
+    ws.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+
+        if (data.type === 'driver_location') {
+          // Almacenar la conexión del conductor
+          driverConnections.set(data.driverId, ws);
+
+          // Actualizar ubicación en la base de datos
+          await storage.updateDriverLocation(data.driverId, {
+            latitude: data.latitude,
+            longitude: data.longitude,
+            timestamp: new Date()
+          });
+
+          // Broadcast a todos los clientes conectados
+          wss.clients.forEach((client) => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'location_update',
+                driverId: data.driverId,
+                location: {
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  timestamp: new Date()
+                }
+              }));
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error procesando mensaje WebSocket:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      // Eliminar la conexión cuando se cierra
+      driverConnections.forEach((connection, driverId) => {
+        if (connection === ws) {
+          driverConnections.delete(driverId);
+        }
+      });
+    });
   });
 
   return httpServer;
