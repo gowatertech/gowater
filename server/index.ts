@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
 import path from "path";
+import fs from "fs";
 
 const app = express();
 
@@ -52,6 +53,21 @@ app.use((req, res, next) => {
       // Debug log the dist path
       log(`Static files path: ${distPath}`);
 
+      // Check if the build directory exists
+      if (!fs.existsSync(distPath)) {
+        log(`ERROR: Build directory not found at ${distPath}`);
+        throw new Error(`Build directory not found at ${distPath}`);
+      }
+
+      // Check if index.html exists
+      const indexPath = path.join(distPath, 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        log(`ERROR: index.html not found at ${indexPath}`);
+        throw new Error(`index.html not found at ${indexPath}`);
+      }
+
+      log(`Found index.html at ${indexPath}`);
+
       // Serve static files from the client build directory
       app.use(express.static(distPath));
 
@@ -61,8 +77,7 @@ app.use((req, res, next) => {
           next();
           return;
         }
-        const indexPath = path.join(distPath, 'index.html');
-        log(`Serving index.html from: ${indexPath}`);
+        log(`Serving index.html from: ${indexPath} for path: ${req.path}`);
         res.sendFile(indexPath);
       });
 
@@ -83,8 +98,8 @@ app.use((req, res, next) => {
 
     // Start server
     const port = process.env.PORT || 5000;
-    server.listen(port, () => {
-      log(`Server started successfully on port ${port}`);
+    server.listen(Number(port), "0.0.0.0", () => {
+      log(`Server started successfully on port ${port} and bound to 0.0.0.0`);
     });
 
   } catch (error) {
