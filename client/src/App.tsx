@@ -6,8 +6,6 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
-import ProductosPage from "@/pages/inventario/productos";
-import CargaProductos from "@/pages/inventario/carga";
 import Orders from "@/pages/orders";
 import Routes from "@/pages/routes";
 import Users from "@/pages/users";
@@ -21,11 +19,11 @@ import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
 import Faltantes from "@/pages/envases/faltantes";
 import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
+import ProductionRegistration from "@/pages/inventory/production";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 import RecurringOrders from "@/pages/routes/RecurringOrders";
 import DriverView from "@/pages/routes/DriverView";
-import { InventoryLoad } from "@/pages/inventory/load";
 
 function Router() {
   const [location] = useLocation();
@@ -37,9 +35,7 @@ function Router() {
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />
-        <Route path="/inventario/productos" component={ProductosPage} />
-        <Route path="/inventario/carga" component={CargaProductos} />
-        <Route path="/inventory/load" component={InventoryLoad} />
+        <Route path="/inventory/production" component={ProductionRegistration} />
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/routes/recurring" component={RecurringOrders} />
