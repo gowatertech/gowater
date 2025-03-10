@@ -15,6 +15,7 @@ import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
 import Trucks from "@/pages/trucks";
+import InventoryPage from "@/pages/inventory";
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
 import Faltantes from "@/pages/envases/faltantes";
@@ -32,6 +33,11 @@ function Router() {
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />
+
+        {/* Inventory Routes - Only Products */}
+        <Route path="/inventory" component={InventoryPage} />
+        <Route path="/inventory/products" component={InventoryPage} />
+
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/routes/recurring" component={RecurringOrders} />
