@@ -56,12 +56,13 @@ export default function ProductionRegistrationPage() {
   const { toast } = useToast();
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
 
-  // Fetch products and warehouses
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
+  // Fetch products
+  const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"]
   });
 
-  const { data: warehouses = [], isLoading: isLoadingWarehouses } = useQuery<Warehouse[]>({
+  // Fetch warehouses
+  const { data: warehouses = [] } = useQuery<Warehouse[]>({
     queryKey: ["/api/warehouses"]
   });
 
@@ -75,8 +76,7 @@ export default function ProductionRegistrationPage() {
     defaultValues: {
       productId: 0,
       quantity: 0,
-      cost: "0.00",
-      total: "0.00",
+      cost: "0.00"
     }
   });
 
@@ -91,16 +91,55 @@ export default function ProductionRegistrationPage() {
     }
   });
 
-  // Mutation for creating a production batch
+  // Handle adding items to the batch
+  const handleAddItem = (formData: BatchItem) => {
+    const product = products.find(p => p.id === formData.productId);
+    if (!product) {
+      toast({
+        title: "Error",
+        description: "Please select a product",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.quantity || formData.quantity <= 0) {
+      toast({
+        title: "Error",
+        description: "Quantity must be greater than 0",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const cost = parseFloat(formData.cost);
+    if (!cost || cost <= 0) {
+      toast({
+        title: "Error",
+        description: "Cost must be greater than 0",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const total = (cost * formData.quantity).toFixed(2);
+    setBatchItems(prev => [...prev, { ...formData, total }]);
+    itemForm.reset();
+  };
+
+  // Handle removing items from the batch
+  const handleRemoveItem = (index: number) => {
+    setBatchItems(items => items.filter((_, i) => i !== index));
+  };
+
+  // Create batch mutation
   const createBatchMutation = useMutation({
     mutationFn: async (data: InsertProductionBatch) => {
-      console.log("Submitting production batch data:", data);
-      const res = await apiRequest("POST", "/api/production-batches", data);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to create production batch");
+      const response = await apiRequest("POST", "/api/production-batches", data);
+      if (!response.ok) {
+        throw new Error("Failed to create production batch");
       }
-      return res.json();
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-batches"] });
@@ -112,7 +151,6 @@ export default function ProductionRegistrationPage() {
       mainForm.reset();
     },
     onError: (error: Error) => {
-      console.error("Error creating batch:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -121,7 +159,17 @@ export default function ProductionRegistrationPage() {
     }
   });
 
-  const handleSubmit = (data: InsertProductionBatch) => {
+  // Handle submitting the entire batch
+  const handleSubmit = (formData: InsertProductionBatch) => {
+    if (!formData.warehouseId) {
+      toast({
+        title: "Error",
+        description: "Please select a warehouse",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (batchItems.length === 0) {
       toast({
         title: "Error",
@@ -132,8 +180,8 @@ export default function ProductionRegistrationPage() {
     }
 
     const batchData: InsertProductionBatch = {
-      warehouseId: data.warehouseId,
-      notes: data.notes || "",
+      warehouseId: formData.warehouseId,
+      notes: formData.notes || "",
       status: "completed",
       items: batchItems.map(item => ({
         productId: item.productId,
@@ -145,58 +193,13 @@ export default function ProductionRegistrationPage() {
     createBatchMutation.mutate(batchData);
   };
 
-  // Handle adding items to the batch
-  const handleAddItem = (data: BatchItem) => {
-    const product = products.find(p => p.id === data.productId);
-    if (!product) {
-      toast({
-        title: "Error",
-        description: "Please select a valid product",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (data.quantity <= 0) {
-      toast({
-        title: "Error",
-        description: "Quantity must be greater than 0",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const cost = parseFloat(data.cost);
-    if (isNaN(cost) || cost <= 0) {
-      toast({
-        title: "Error",
-        description: "Cost must be greater than 0",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const total = (cost * data.quantity).toFixed(2);
-    setBatchItems(prev => [...prev, { ...data, total }]);
-    itemForm.reset();
-  };
-
-  // Handle removing items from the batch
-  const handleRemoveItem = (index: number) => {
-    setBatchItems(items => items.filter((_, i) => i !== index));
-  };
-
-  if (isLoadingProducts || isLoadingWarehouses) {
-    return <div>Loading...</div>;
-  }
-
   const totalCost = batchItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
 
   return (
     <div className="container mx-auto p-4 space-y-4">
       <h1 className="text-2xl font-bold mb-4">Register Production</h1>
 
-      {/* Registration Form */}
+      {/* Batch Details Form */}
       <Card>
         <CardHeader>
           <CardTitle>Batch Details</CardTitle>
