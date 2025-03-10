@@ -14,7 +14,6 @@ import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
-import Trucks from "@/pages/trucks";
 import InventoryPage from "@/pages/inventory";
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
@@ -43,7 +42,6 @@ function Router() {
         <Route path="/routes/recurring" component={RecurringOrders} />
         <Route path="/routes/driver" component={DriverView} />
         <Route path="/users" component={Users} />
-        <Route path="/trucks" component={Trucks} />
         <Route path="/tutorial" component={TutorialPage} />
         <Route path="/settings" component={Settings} />
         <Route path="/reports" component={Reports} />
