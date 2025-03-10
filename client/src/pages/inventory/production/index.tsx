@@ -59,12 +59,28 @@ export default function ProductionRegistrationPage() {
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
 
   // Fetch products and warehouses
-  const { data: products } = useQuery<Product[]>({
+  const { data: products, isLoading: isLoadingProducts, isError: isProductError } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+    onError: (error) => {
+      console.error("Error fetching products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load products",
+        variant: "destructive",
+      });
+    }
   });
 
-  const { data: warehouses } = useQuery<Warehouse[]>({
+  const { data: warehouses, isLoading: isLoadingWarehouses, isError: isWarehouseError } = useQuery<Warehouse[]>({
     queryKey: ["/api/warehouses"],
+    onError: (error) => {
+      console.error("Error fetching warehouses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load warehouses",
+        variant: "destructive",
+      });
+    }
   });
 
   // Fetch production batches
@@ -101,11 +117,12 @@ export default function ProductionRegistrationPage() {
       if (!res.ok) {
         const errorData = await res.json();
         console.error("Error creating batch:", errorData);
-        throw new Error(errorData.message || "Failed to create production batch");
+        throw new Error(errorData.error || "Failed to create production batch");
       }
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Production batch created successfully:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/production-batches"] });
       toast({
         title: "Success",
