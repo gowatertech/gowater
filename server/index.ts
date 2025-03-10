@@ -58,7 +58,8 @@ app.use((req, res, next) => {
       // Handle client-side routing - send index.html for all non-API routes
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
-          return next();
+          next();
+          return;
         }
         const indexPath = path.join(distPath, 'index.html');
         log(`Serving index.html from: ${indexPath}`);
@@ -82,7 +83,7 @@ app.use((req, res, next) => {
 
     // Start server
     const port = process.env.PORT || 5000;
-    server.listen(port, "0.0.0.0", () => {
+    server.listen(port, () => {
       log(`Server started successfully on port ${port}`);
     });
 
