@@ -35,11 +35,14 @@ function Router() {
         <Route path="/payments" component={Payments} />
         <Route path="/customers" component={Customers} />
 
-        {/* Inventory Routes */}
+        {/* Inventory Routes - Unified */}
         <Route path="/inventory" component={InventoryPage} />
         <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory/production" component={ProductionRegistration} />
         <Route path="/inventory/load" component={InventoryPage} />
+
+        {/* Remove duplicate inventory routes */}
+        {/* <Route path="/inventario/productos" component={ProductosPage} /> */}
 
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
