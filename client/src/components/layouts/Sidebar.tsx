@@ -37,12 +37,12 @@ const sidebarItems = [
   { icon: LayoutDashboard, label: "Panel Principal", href: "/" },
   {
     icon: Warehouse,
-    label: "Inventory",
+    label: "Almacén/Producción",
     href: "/inventory",
     subItems: [
-      { label: "Almacenes", href: "/inventory/warehouses" },
-      { label: "Load Truck", href: "/inventory/load" },
       { label: "Inventory", href: "/inventory/products" },
+      { label: "warehouses", href: "/inventory/warehouses" },
+      { label: "Load Truck", href: "/inventory/load" },
     ],
   },
   {

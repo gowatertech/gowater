@@ -391,7 +391,6 @@ export const warehouses = pgTable("warehouses", {
   id: serial("id").primaryKey(),
   code: serial("code").unique(),
   name: text("name").notNull(),
-  type: text("type", { enum: ["distribution", "production", "storage"] }).notNull().default("storage"),
   address: text("address"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -399,7 +398,6 @@ export const warehouses = pgTable("warehouses", {
 
 export const insertWarehouseSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  type: z.enum(["distribution", "production", "storage"]).default("storage"),
   address: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),
 });
