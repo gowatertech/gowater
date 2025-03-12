@@ -6,7 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Terminal } from "lucide-react";
 
 import {
   Form,
@@ -16,14 +15,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 import {
   Select,
@@ -45,8 +36,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showCurlCommands, setShowCurlCommands] = useState(false);
-
   const currentYear = new Date().getFullYear();
 
   const form = useForm<InsertTruck>({
@@ -62,35 +51,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     }
   });
 
-  const getCurlCommand = (formData: InsertTruck) => {
-    return `curl -X POST http://localhost:5000/api/trucks \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "brand": "${formData.brand}",
-    "model": "${formData.model}",
-    "year": ${formData.year},
-    "plate": "${formData.plate}",
-    "color": "${formData.color}",
-    "capacity": ${formData.capacity},
-    "status": "${formData.status}"
-  }'`;
-  };
-
   const onSubmit = async (values: InsertTruck) => {
     try {
       setIsSubmitting(true);
+      console.log("Enviando datos del camión:", values); // Log para debug
 
-      // Validar campos requeridos
-      if (!values.brand || !values.model || !values.plate || !values.color) {
-        toast({
-          variant: "destructive",
-          description: "Por favor, complete todos los campos requeridos",
-          duration: 3000,
-        });
-        return;
-      }
-
-      // Asegurar que los valores numéricos sean números
       const submittedValues = {
         brand: values.brand.trim(),
         model: values.model.trim(),
@@ -101,15 +66,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         status: values.status || "disponible"
       };
 
-      // Validar año y capacidad
-      if (isNaN(submittedValues.year) || isNaN(submittedValues.capacity)) {
-        toast({
-          variant: "destructive",
-          description: "El año y la capacidad deben ser números válidos",
-          duration: 3000,
-        });
-        return;
-      }
+      console.log("Datos procesados para envío:", submittedValues); // Log para debug
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
@@ -120,6 +77,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Error response:", errorData); // Log para debug
         throw new Error(errorData.error?.details?.join('\n') || "Error al crear el vehículo");
       }
 
@@ -132,10 +90,10 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       form.reset();
     } catch (error) {
-      console.error("Error creating truck:", error);
+      console.error("Error completo:", error); // Log para debug
       toast({
         variant: "destructive",
-        description: error instanceof Error ? error.message : "Error al crear el vehículo. Por favor, revisa los datos ingresados.",
+        description: error instanceof Error ? error.message : "Error al crear el vehículo",
         duration: 5000,
       });
     } finally {
@@ -145,184 +103,161 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
   if (!open) return null;
 
-  const formValues = form.getValues();
-
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end mb-4">
-        <Dialog open={showCurlCommands} onOpenChange={setShowCurlCommands}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Terminal className="h-4 w-4 mr-2" />
-              Ver comando CURL
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Comando CURL para crear este vehículo</DialogTitle>
-            </DialogHeader>
-            <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">
-              {getCurlCommand(formValues)}
-            </pre>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="brand"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Marca</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese la marca" 
-                      {...field} 
-                      onChange={(e) => field.onChange(e.target.value.trim())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Modelo</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese el modelo" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.trim())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="year"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Año</FormLabel>
-                  <Input 
-                    type="number"
-                    min={1990}
-                    max={currentYear}
-                    {...field}
-                    value={field.value || currentYear}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      field.onChange(isNaN(value) ? currentYear : value);
-                    }}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="plate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Placa</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese la placa" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
-                      maxLength={10}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="color"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese el color" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.trim())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="capacity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Capacidad (L)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min={1}
-                      placeholder="Ingrese la capacidad" 
-                      {...field}
-                      value={field.value || 1000}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        field.onChange(isNaN(value) ? 1000 : value);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="status"
+            name="brand"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Estado</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || "disponible"}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione un estado" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="disponible">Disponible</SelectItem>
-                    <SelectItem value="en_ruta">En ruta</SelectItem>
-                    <SelectItem value="en_reparacion">En reparación</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormLabel>Marca</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese la marca" 
+                    {...field} 
+                    onChange={(e) => field.onChange(e.target.value.trim())}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Guardando..." : "Guardar Vehículo"}
-          </Button>
-        </form>
-      </Form>
-    </div>
+          <FormField
+            control={form.control}
+            name="model"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Modelo</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese el modelo" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.trim())}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="year"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Año</FormLabel>
+                <Input 
+                  type="number"
+                  min={1990}
+                  max={currentYear}
+                  {...field}
+                  value={field.value || currentYear}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    field.onChange(isNaN(value) ? currentYear : value);
+                  }}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="plate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Placa</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese la placa" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
+                    maxLength={10}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="color"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Color</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese el color" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.trim())}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="capacity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Capacidad (L)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min={1}
+                    placeholder="Ingrese la capacidad" 
+                    {...field}
+                    value={field.value || 1000}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      field.onChange(isNaN(value) ? 1000 : value);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Estado</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value || "disponible"}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione un estado" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="disponible">Disponible</SelectItem>
+                  <SelectItem value="en_ruta">En ruta</SelectItem>
+                  <SelectItem value="en_reparacion">En reparación</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Guardando..." : "Guardar Vehículo"}
+        </Button>
+      </form>
+    </Form>
   );
 }
