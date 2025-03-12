@@ -21,6 +21,8 @@ import Faltantes from "@/pages/envases/faltantes";
 import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
+import ProductsPage from "@/pages/inventory/products";
+import LoadInventoryPage from "@/pages/inventory/load";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 import RecurringOrders from "@/pages/routes/RecurringOrders";
@@ -37,9 +39,9 @@ function Router() {
 
         {/* Inventory Routes */}
         <Route path="/inventory" component={InventoryPage} />
-        <Route path="/inventory/products" component={InventoryPage} />
+        <Route path="/inventory/products" component={ProductsPage} />
         <Route path="/inventory/warehouses" component={WarehousesPage} />
-        <Route path="/inventory/load" component={InventoryPage} />
+        <Route path="/inventory/load" component={LoadInventoryPage} />
 
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
