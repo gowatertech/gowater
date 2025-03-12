@@ -389,7 +389,7 @@ export const insertRecurringOrderSchema = z.object({
 // Warehouses
 export const warehouses = pgTable("warehouses", {
   id: serial("id").primaryKey(),
-  code: serial("code").unique(),  // Cambiado a serial para auto-incremento
+  code: serial("code").unique(),
   name: text("name").notNull(),
   address: text("address"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
@@ -400,86 +400,6 @@ export const insertWarehouseSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   address: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),
-});
-
-// Production Batches
-export const productionBatches = pgTable("production_batches", {
-  id: serial("id").primaryKey(),
-  batchNumber: text("batch_number").notNull().unique(),
-  warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id),
-  date: timestamp("date").notNull().defaultNow(),
-  notes: text("notes"),
-  status: text("status", { enum: ["pending", "completed"] }).notNull().default("completed"),
-  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull().default("0.00"),
-});
-
-export const productionBatchItems = pgTable("production_batch_items", {
-  id: serial("id").primaryKey(),
-  batchId: integer("batch_id").notNull().references(() => productionBatches.id),
-  productId: integer("product_id").notNull().references(() => products.id),
-  quantity: integer("quantity").notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
-});
-
-export const insertProductionBatchSchema = z.object({
-  warehouseId: z.number(),
-  notes: z.string().optional(),
-  status: z.enum(["pending", "completed"]).default("completed"),
-  items: z.array(z.object({
-    productId: z.number(),
-    quantity: z.number(),
-    cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
-  })),
-});
-
-export const insertProductionBatchItemSchema = z.object({
-  productId: z.number(),
-  quantity: z.number(),
-  cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
-});
-
-// Company Settings
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  logo: text("logo"),
-  name: text("name").notNull(),
-  rnc: text("rnc"),
-  street: text("street").notNull(),
-  streetNumber: text("street_number").notNull(),
-  provinceId: integer("province_id").notNull().references(() => provinces.id),
-  municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
-  contactPhone: text("contact_phone").notNull(),
-  email: text("email"),
-  country: text("country").notNull(),
-  currency: text("currency").notNull(),
-  tax: decimal("tax", { precision: 10, scale: 2 }).notNull().default("0.00"),
-});
-
-// Add relations
-export const settingsRelations = relations(settings, ({ one }) => ({
-  province: one(provinces, {
-    fields: [settings.provinceId],
-    references: [provinces.id],
-  }),
-  municipality: one(municipalities, {
-    fields: [settings.municipalityId],
-    references: [municipalities.id],
-  }),
-}));
-
-export const insertSettingsSchema = z.object({
-  logo: z.any().optional(), // Permitir File o string
-  name: z.string().min(1, "El nombre es requerido"),
-  rnc: z.string().nullable(),
-  street: z.string().min(1, "La calle es requerida"),
-  streetNumber: z.string().min(1, "El número es requerido"),
-  provinceId: z.number({ required_error: "La provincia es requerida" }),
-  municipalityId: z.number({ required_error: "El municipio es requerido" }),
-  contactPhone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  email: z.string().email("Correo electrónico inválido").nullable(),
-  country: z.string().min(1, "El país es requerido"),
-  currency: z.string().min(1, "La moneda es requerida"),
-  tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales").default("0.00"),
 });
 
 // Invoices (Facturas)
@@ -605,6 +525,50 @@ export const insertCustomerOrdersSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Company Settings
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  logo: text("logo"),
+  name: text("name").notNull(),
+  rnc: text("rnc"),
+  street: text("street").notNull(),
+  streetNumber: text("street_number").notNull(),
+  provinceId: integer("province_id").notNull().references(() => provinces.id),
+  municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
+  contactPhone: text("contact_phone").notNull(),
+  email: text("email"),
+  country: text("country").notNull(),
+  currency: text("currency").notNull(),
+  tax: decimal("tax", { precision: 10, scale: 2 }).notNull().default("0.00"),
+});
+
+// Add relations
+export const settingsRelations = relations(settings, ({ one }) => ({
+  province: one(provinces, {
+    fields: [settings.provinceId],
+    references: [provinces.id],
+  }),
+  municipality: one(municipalities, {
+    fields: [settings.municipalityId],
+    references: [municipalities.id],
+  }),
+}));
+
+export const insertSettingsSchema = z.object({
+  logo: z.any().optional(), // Permitir File o string
+  name: z.string().min(1, "El nombre es requerido"),
+  rnc: z.string().nullable(),
+  street: z.string().min(1, "La calle es requerida"),
+  streetNumber: z.string().min(1, "El número es requerido"),
+  provinceId: z.number({ required_error: "La provincia es requerida" }),
+  municipalityId: z.number({ required_error: "El municipio es requerido" }),
+  contactPhone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  email: z.string().email("Correo electrónico inválido").nullable(),
+  country: z.string().min(1, "El país es requerido"),
+  currency: z.string().min(1, "La moneda es requerida"),
+  tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales").default("0.00"),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -652,10 +616,6 @@ export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
-export type ProductionBatch = typeof productionBatches.$inferSelect;
-export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
-export type ProductionBatchItem = typeof productionBatchItems.$inferSelect;
-export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItemSchema>;
 export type Warehouse = typeof warehouses.$inferSelect;
 export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
 

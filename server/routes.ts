@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema, warehouses, productionBatchItems, insertWarehouseSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, warehouses, insertWarehouseSchema } from "@shared/schema";
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -25,158 +25,6 @@ export async function registerRoutes(app: Express) {
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   // API Routes
-  app.get("/api/production-batches", async (req, res) => {
-    try {
-      const batches = await db
-        .select({
-          id: productionBatches.id,
-          batchNumber: productionBatches.batchNumber,
-          warehouseId: productionBatches.warehouseId,
-          date: productionBatches.date,
-          notes: productionBatches.notes,
-          status: productionBatches.status,
-          totalCost: productionBatches.totalCost,
-          warehouseName: warehouses.name,
-          warehouseCode: warehouses.code
-        })
-        .from(productionBatches)
-        .leftJoin(warehouses, eq(productionBatches.warehouseId, warehouses.id))
-        .orderBy(sql`${productionBatches.date} DESC`);
-
-      // Obtener los items para cada lote
-      const batchesWithItems = await Promise.all(
-        batches.map(async (batch) => {
-          const items = await db
-            .select({
-              id: productionBatchItems.id,
-              productId: productionBatchItems.productId,
-              quantity: productionBatchItems.quantity,
-              cost: productionBatchItems.cost,
-              productName: products.name
-            })
-            .from(productionBatchItems)
-            .leftJoin(products, eq(productionBatchItems.productId, products.id))
-            .where(eq(productionBatchItems.batchId, batch.id));
-
-          return {
-            ...batch,
-            items
-          };
-        })
-      );
-
-      console.log("GET /api/production-batches - Retornando:", batchesWithItems.length, "lotes");
-      res.json(batchesWithItems);
-    } catch (error) {
-      console.error("Error al obtener lotes de producción:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  app.post("/api/production-batches", async (req, res) => {
-    try {
-      console.log("POST /api/production-batches - Datos recibidos:", req.body);
-
-      const result = insertProductionBatchSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ 
-          error: "Error de validación",
-          details: result.error.format()
-        });
-      }
-
-      // Obtener el almacén
-      const [warehouse] = await db
-        .select()
-        .from(warehouses)
-        .where(eq(warehouses.id, result.data.warehouseId));
-
-      if (!warehouse) {
-        return res.status(404).json({ error: "Almacén no encontrado" });
-      }
-
-      // Contar lotes existentes para este almacén para generar el número secuencial
-      const { count } = await db
-        .select({
-          count: sql`count(*)`.mapWith(Number)
-        })
-        .from(productionBatches)
-        .where(eq(productionBatches.warehouseId, warehouse.id))
-        .then(rows => rows[0]);
-
-      const nextNumber = count + 1;
-      const batchNumber = `${warehouse.code}-${nextNumber}`;
-
-      // Calcular el costo total del lote
-      const totalCost = result.data.items.reduce((sum, item) => 
-        sum + (parseFloat(item.cost) * item.quantity), 0
-      ).toFixed(2);
-
-      // Crear el lote
-      const [batch] = await db
-        .insert(productionBatches)
-        .values({
-          batchNumber,
-          warehouseId: warehouse.id,
-          notes: result.data.notes || null,
-          status: result.data.status || "completed",
-          totalCost,
-          date: new Date()
-        })
-        .returning();
-
-      // Procesar cada item del lote
-      const items = await Promise.all(result.data.items.map(async (item) => {
-        // Verificar que el producto existe
-        const [product] = await db
-          .select()
-          .from(products)
-          .where(eq(products.id, item.productId));
-
-        if (!product) {
-          throw new Error(`Producto ${item.productId} no encontrado`);
-        }
-
-        // Crear el item del lote
-        const [batchItem] = await db
-          .insert(productionBatchItems)
-          .values({
-            batchId: batch.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            cost: item.cost
-          })
-          .returning();
-
-        // Actualizar el stock del producto
-        const newStock = product.stock + item.quantity;
-        await db
-          .update(products)
-          .set({ stock: newStock })
-          .where(eq(products.id, item.productId));
-
-        return {
-          ...batchItem,
-          productName: product.name
-        };
-      }));
-
-      // Retornar el lote completo con sus items
-      const response = {
-        ...batch,
-        warehouseName: warehouse.name,
-        warehouseCode: warehouse.code,
-        items
-      };
-
-      console.log("POST /api/production-batches - Lote creado:", response);
-      res.json(response);
-
-    } catch (error) {
-      console.error("Error al crear lote de producción:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
 
   // Warehouses endpoints
   app.get("/api/warehouses", async (req, res) => {
@@ -1104,8 +952,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  //  // Endpoint para obtener el historial de lotes de producción
-  // Endpoint para registrar producción
   // Pagos
   app.get("/api/payments", async (req, res) => {
     try {
@@ -1122,7 +968,7 @@ export async function registerRoutes(app: Express) {
         .from(payments)
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .leftJoin(customers, eq(invoices.customerId, customers.id))
-                        .orderBy(payments.date);
+                              .orderBy(payments.date);
 
       console.log("GET /api/payments - Retornando:", allPayments.length, "pagos");
       res.json(allPayments);
