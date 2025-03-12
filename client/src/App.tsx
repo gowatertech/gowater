@@ -35,8 +35,8 @@ function Router() {
 
         {/* Inventory Routes */}
         <Route path="/inventory" component={InventoryPage} />
-        <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory/warehouses" component={WarehousesPage} />
+        <Route path="/inventory/products" component={InventoryPage} />
 
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />

@@ -40,8 +40,8 @@ const sidebarItems = [
     label: "Almacén/Producción",
     href: "/inventory",
     subItems: [
-      { label: "Inventory", href: "/inventory/products" },
-      { label: "warehouses", href: "/inventory/warehouses" },
+      { label: "Almacén", href: "/inventory/warehouses" },
+      { label: "Productos", href: "/inventory/products" },
     ],
   },
   {
