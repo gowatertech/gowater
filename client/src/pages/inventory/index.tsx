@@ -113,8 +113,8 @@ export default function Inventory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: t("success"),
-        description: t("productCreated"),
+        title: "Éxito",
+        description: "Producto creado exitosamente",
       });
       form.reset();
       setIsDialogOpen(false);
@@ -122,7 +122,7 @@ export default function Inventory() {
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
@@ -141,8 +141,8 @@ export default function Inventory() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: t("success"),
-        description: t("productUpdated"),
+        title: "Éxito",
+        description: "Producto actualizado exitosamente",
       });
       editForm.reset();
       setIsEditDialogOpen(false);
@@ -151,7 +151,7 @@ export default function Inventory() {
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
@@ -160,20 +160,20 @@ export default function Inventory() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const res = await apiRequest("DELETE", `/api/products/${id}`);
-      if (!res.ok) throw new Error(t("deleteError"));
+      if (!res.ok) throw new Error("Error al eliminar el producto");
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: t("success"),
-        description: t("productDeleted"),
+        title: "Éxito",
+        description: "Producto eliminado exitosamente",
       });
     },
     onError: (error) => {
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
@@ -199,19 +199,19 @@ export default function Inventory() {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm(t("confirmDelete"))) {
+    if (window.confirm("¿Está seguro que desea eliminar este producto?")) {
       deleteMutation.mutate(id);
     }
   };
 
   if (isLoading) {
-    return <div className="p-8">Loading...</div>;
+    return <div className="p-8">Cargando...</div>;
   }
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{t("inventory")}</h1>
+        <h1 className="text-3xl font-bold">Inventario</h1>
       </div>
 
       <div className="flex justify-end">
@@ -219,12 +219,12 @@ export default function Inventory() {
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="h-4 w-4 mr-2" />
-              {t("newProduct")}
+              Nuevo Producto
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md md:max-w-lg">
             <DialogHeader>
-              <DialogTitle className="text-center text-xl">{t("newProduct")}</DialogTitle>
+              <DialogTitle className="text-center text-xl">Nuevo Producto</DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -234,14 +234,14 @@ export default function Inventory() {
                     name="icon"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">{t("productType")}</FormLabel>
+                        <FormLabel className="text-base">Tipo de Producto</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger className="w-full h-12">
-                              <SelectValue placeholder={t("selectProductType")} />
+                              <SelectValue placeholder="Seleccione un tipo de producto" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -272,7 +272,7 @@ export default function Inventory() {
                     name="name"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">{t("name")}</FormLabel>
+                        <FormLabel className="text-base">Nombre</FormLabel>
                         <FormControl>
                           <Input {...field} className="h-12" />
                         </FormControl>
@@ -285,7 +285,7 @@ export default function Inventory() {
                     name="price"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">{t("price")} (RD$)</FormLabel>
+                        <FormLabel className="text-base">Precio (RD$)</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -302,7 +302,7 @@ export default function Inventory() {
                     name="stock"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">{t("stock")}</FormLabel>
+                        <FormLabel className="text-base">Existencia</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -321,7 +321,7 @@ export default function Inventory() {
                   className="w-full h-12 mt-6"
                   disabled={createMutation.isPending}
                 >
-                  {createMutation.isPending ? t("saving") : t("save")}
+                  {createMutation.isPending ? "Guardando..." : "Guardar"}
                 </Button>
               </form>
             </Form>
@@ -333,11 +333,11 @@ export default function Inventory() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px] md:w-[150px]">{t("type")}</TableHead>
-              <TableHead>{t("name")}</TableHead>
-              <TableHead className="w-[100px] text-center">{t("price")}</TableHead>
-              <TableHead className="w-[80px] text-center">{t("stock")}</TableHead>
-              <TableHead className="w-[100px] text-center">{t("actions")}</TableHead>
+              <TableHead className="w-[100px] md:w-[150px]">Tipo</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead className="w-[100px] text-center">Precio</TableHead>
+              <TableHead className="w-[80px] text-center">Existencia</TableHead>
+              <TableHead className="w-[100px] text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -391,7 +391,7 @@ export default function Inventory() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-center text-xl">{t("editProduct")}</DialogTitle>
+            <DialogTitle className="text-center text-xl">Editar Producto</DialogTitle>
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4">
@@ -401,14 +401,14 @@ export default function Inventory() {
                   name="icon"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">{t("productType")}</FormLabel>
+                      <FormLabel className="text-base">Tipo de Producto</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger className="w-full h-12">
-                            <SelectValue placeholder={t("selectProductType")} />
+                            <SelectValue placeholder="Seleccione un tipo de producto" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -439,7 +439,7 @@ export default function Inventory() {
                   name="name"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">{t("name")}</FormLabel>
+                      <FormLabel className="text-base">Nombre</FormLabel>
                       <FormControl>
                         <Input {...field} className="h-12" />
                       </FormControl>
@@ -452,7 +452,7 @@ export default function Inventory() {
                   name="price"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">{t("price")} (RD$)</FormLabel>
+                      <FormLabel className="text-base">Precio (RD$)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -469,7 +469,7 @@ export default function Inventory() {
                   name="stock"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">{t("stock")}</FormLabel>
+                      <FormLabel className="text-base">Existencia</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -488,7 +488,7 @@ export default function Inventory() {
                 className="w-full h-12 mt-6"
                 disabled={updateMutation.isPending}
               >
-                {updateMutation.isPending ? t("saving") : t("save")}
+                {updateMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </form>
           </Form>
