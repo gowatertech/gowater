@@ -38,6 +38,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentYear = new Date().getFullYear();
+
   const form = useForm<InsertTruck>({
     resolver: zodResolver(insertTruckSchema),
     defaultValues: {
@@ -55,7 +56,17 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     try {
       setIsSubmitting(true);
 
-      // Convert year and capacity to numbers
+      // Validar campos requeridos
+      if (!values.brand || !values.model || !values.plate || !values.color) {
+        toast({
+          variant: "destructive",
+          description: "Por favor, complete todos los campos requeridos",
+          duration: 3000,
+        });
+        return;
+      }
+
+      // Asegurar que los valores numéricos sean números
       const submittedValues = {
         brand: values.brand.trim(),
         model: values.model.trim(),
@@ -66,6 +77,16 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         status: values.status || "disponible"
       };
 
+      // Validar año y capacidad
+      if (isNaN(submittedValues.year) || isNaN(submittedValues.capacity)) {
+        toast({
+          variant: "destructive",
+          description: "El año y la capacidad deben ser números válidos",
+          duration: 3000,
+        });
+        return;
+      }
+
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
           "Content-Type": "application/json"
@@ -73,14 +94,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         body: JSON.stringify(submittedValues)
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        if (data.error && data.error.details) {
-          throw new Error(data.error.details.join('\n'));
-        } else {
-          throw new Error(data.error || "Error al crear el vehículo");
-        }
+        const errorData = await response.json();
+        throw new Error(errorData.error?.details?.join('\n') || "Error al crear el vehículo");
       }
 
       toast({
@@ -108,126 +124,126 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="brand"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Marca</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Ingrese la marca" 
-                  {...field} 
-                  onChange={(e) => field.onChange(e.target.value.trim())}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="brand"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Marca</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese la marca" 
+                    {...field} 
+                    onChange={(e) => field.onChange(e.target.value.trim())}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="model"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Modelo</FormLabel>
-              <FormControl>
+          <FormField
+            control={form.control}
+            name="model"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Modelo</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese el modelo" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.trim())}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="year"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Año</FormLabel>
                 <Input 
-                  placeholder="Ingrese el modelo" 
+                  type="number"
+                  min={1990}
+                  max={currentYear}
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value.trim())}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="year"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Año</FormLabel>
-              <Input 
-                type="number"
-                min={1990}
-                max={currentYear}
-                {...field}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value)) {
-                    field.onChange(value);
-                  }
-                }}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="plate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Placa</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Ingrese la placa" 
-                  {...field}
-                  onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
-                  maxLength={10}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="color"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Color</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Ingrese el color" 
-                  {...field}
-                  onChange={(e) => field.onChange(e.target.value.trim())}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="capacity"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Capacidad (L)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  min={1}
-                  placeholder="Ingrese la capacidad" 
-                  {...field}
+                  value={field.value || currentYear}
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
-                    if (!isNaN(value)) {
-                      field.onChange(value);
-                    }
+                    field.onChange(isNaN(value) ? currentYear : value);
                   }}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="plate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Placa</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese la placa" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
+                    maxLength={10}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="color"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Color</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Ingrese el color" 
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value.trim())}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="capacity"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Capacidad (L)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min={1}
+                    placeholder="Ingrese la capacidad" 
+                    {...field}
+                    value={field.value || 1000}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      field.onChange(isNaN(value) ? 1000 : value);
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
@@ -235,7 +251,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Estado</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} defaultValue={field.value || "disponible"}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un estado" />
