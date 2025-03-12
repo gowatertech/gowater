@@ -54,29 +54,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const onSubmit = async (values: InsertTruck) => {
     try {
       setIsSubmitting(true);
-      console.log("Iniciando validación del formulario...");
-      console.log("Datos ingresados:", values);
-
-      // Validaciones manuales
-      if (!values.brand || !values.model || !values.plate || !values.color) {
-        console.log("Error: Campos requeridos faltantes");
-        toast({
-          variant: "destructive",
-          description: "Por favor, complete todos los campos requeridos",
-          duration: 3000,
-        });
-        return;
-      }
-
-      if (values.plate.length < 3) {
-        console.log("Error: Placa demasiado corta");
-        toast({
-          variant: "destructive",
-          description: "La placa debe tener al menos 3 caracteres",
-          duration: 3000,
-        });
-        return;
-      }
+      console.log("Datos del formulario:", values);
 
       const submittedValues = {
         brand: values.brand.trim(),
@@ -88,7 +66,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         status: values.status || "disponible"
       };
 
-      console.log("Datos procesados para envío:", submittedValues);
+      console.log("Datos procesados:", submittedValues);
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
@@ -99,7 +77,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error del servidor:", errorData);
         throw new Error(errorData.error?.details?.join('\n') || "Error al crear el vehículo");
       }
 
@@ -136,11 +113,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               <FormItem>
                 <FormLabel>Marca</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Ej: Toyota" 
-                    {...field} 
-                    onChange={(e) => field.onChange(e.target.value.trim())}
-                  />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -154,11 +127,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               <FormItem>
                 <FormLabel>Modelo</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Ej: Hilux" 
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.value.trim())}
-                  />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -171,17 +140,14 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Año</FormLabel>
-                <Input 
-                  type="number"
-                  min={1990}
-                  max={currentYear}
-                  placeholder={currentYear.toString()}
-                  {...field}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    field.onChange(value);
-                  }}
-                />
+                <FormControl>
+                  <Input 
+                    type="number"
+                    min={1990}
+                    max={currentYear}
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -194,12 +160,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               <FormItem>
                 <FormLabel>Placa</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Ej: ABC123" 
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
-                    maxLength={10}
-                  />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -213,11 +174,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
               <FormItem>
                 <FormLabel>Color</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Ej: Blanco" 
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.value.trim())}
-                  />
+                  <Input {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -232,14 +189,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormLabel>Capacidad (L)</FormLabel>
                 <FormControl>
                   <Input 
-                    type="number" 
+                    type="number"
                     min={1}
-                    placeholder="Ej: 2000" 
                     {...field}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      field.onChange(value);
-                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -254,7 +206,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Estado</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue="disponible">
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un estado" />
