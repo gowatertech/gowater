@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Truck } from "lucide-react";
@@ -21,7 +21,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
-
 export default function TrucksPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,51 +39,7 @@ export default function TrucksPage() {
     }
   });
 
-  const onSubmit = async (values: InsertTruck) => {
-    try {
-      setIsSubmitting(true);
-
-      const submittedValues = {
-        brand: values.brand.trim(),
-        model: values.model.trim(),
-        year: Number(values.year),
-        plate: values.plate.trim().toUpperCase(),
-        color: values.color.trim(),
-        capacity: Number(values.capacity),
-        status: values.status || "disponible"
-      };
-
-      const response = await apiRequest("POST", "/api/trucks", {
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(submittedValues)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Error al crear el vehículo");
-      }
-
-      toast({
-        description: "Vehículo registrado exitosamente",
-        duration: 3000,
-      });
-
-      form.reset();
-    } catch (error) {
-      console.error("Error creating truck:", error);
-      toast({
-        variant: "destructive",
-        description: error instanceof Error ? error.message : "Error al crear el vehículo",
-        duration: 5000,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
+  // Query para obtener los camiones
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
     queryFn: async () => {
@@ -97,13 +52,65 @@ export default function TrucksPage() {
     },
   });
 
+  // Mutation para crear un nuevo camión
+  const createTruckMutation = useMutation({
+    mutationFn: async (newTruck: InsertTruck) => {
+      const response = await apiRequest("POST", "/api/trucks", {
+        body: JSON.stringify(newTruck),
+        headers: {
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Error al crear el vehículo");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
+      toast({
+        description: "Vehículo registrado exitosamente",
+        duration: 3000,
+      });
+      form.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        description: error.message || "Error al crear el vehículo",
+        duration: 5000,
+      });
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
+    }
+  });
+
+  const onSubmit = (values: InsertTruck) => {
+    setIsSubmitting(true);
+    const submittedValues = {
+      brand: values.brand.trim(),
+      model: values.model.trim(),
+      year: Number(values.year),
+      plate: values.plate.trim().toUpperCase(),
+      color: values.color.trim(),
+      capacity: Number(values.capacity),
+      status: values.status
+    };
+
+    createTruckMutation.mutate(submittedValues);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "available":
+      case "disponible":
         return "bg-green-100 text-green-700";
-      case "on_route":
+      case "en_ruta":
         return "bg-blue-100 text-blue-700";
-      case "maintenance":
+      case "mantenimiento":
         return "bg-yellow-100 text-yellow-700";
       default:
         return "bg-gray-100 text-gray-700";
@@ -112,11 +119,11 @@ export default function TrucksPage() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "available":
+      case "disponible":
         return "Disponible";
-      case "on_route":
+      case "en_ruta":
         return "En Ruta";
-      case "maintenance":
+      case "mantenimiento":
         return "Mantenimiento";
       default:
         return status;
@@ -130,46 +137,6 @@ export default function TrucksPage() {
         <h1 className="text-2xl font-bold">Vehículos</h1>
       </div>
       <Separator/>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {isLoading ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            Cargando vehículos...
-          </div>
-        ) : trucks.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            No hay vehículos registrados
-          </div>
-        ) : (
-          trucks.map((truck) => (
-            <Card
-              key={truck.id}
-              className={`p-4 cursor-pointer transition-all hover:border-primary/30`}
-            >
-              <div className="flex items-start gap-3">
-                <Truck className="h-5 w-5 text-primary mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-medium">
-                    {truck.brand} {truck.model}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {truck.plate} • {truck.year}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Capacidad: {truck.capacity}L
-                  </p>
-                  <div className="mt-2">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${getStatusColor(truck.status)}`}
-                    >
-                      {getStatusText(truck.status)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
 
       <Card className="p-6">
         <Form {...form}>
@@ -255,6 +222,24 @@ export default function TrucksPage() {
 
               <FormField
                 control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Color</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Ingrese el color" 
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value.trim())}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="capacity"
                 render={({ field }) => (
                   <FormItem>
@@ -312,6 +297,47 @@ export default function TrucksPage() {
           </form>
         </Form>
       </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {isLoading ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            Cargando vehículos...
+          </div>
+        ) : trucks.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            No hay vehículos registrados
+          </div>
+        ) : (
+          trucks.map((truck) => (
+            <Card
+              key={truck.id}
+              className={`p-4 cursor-pointer transition-all hover:border-primary/30`}
+            >
+              <div className="flex items-start gap-3">
+                <Truck className="h-5 w-5 text-primary mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-medium">
+                    {truck.brand} {truck.model}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {truck.plate} • {truck.year}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Capacidad: {truck.capacity}L
+                  </p>
+                  <div className="mt-2">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${getStatusColor(truck.status)}`}
+                    >
+                      {getStatusText(truck.status)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 }
