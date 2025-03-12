@@ -52,9 +52,8 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       model: "",
       year: currentYear,
       plate: "",
-      color: "Blanco",
       capacity: 1000,
-      status: "disponible"
+      status: "available"
     }
   });
 
@@ -69,9 +68,8 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         model: values.model.trim(),
         year: Number(values.year),
         plate: values.plate.trim().toUpperCase(),
-        color: values.color.trim(),
         capacity: Number(values.capacity),
-        status: values.status
+        status: values.status || "available"
       };
 
       console.log("Processed truck data for submission:", submittedValues);
@@ -201,24 +199,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
             <FormField
               control={form.control}
-              name="color"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese el color"
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.trim())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="capacity"
               render={({ field }) => (
                 <FormItem>
@@ -255,9 +235,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="disponible">Disponible</SelectItem>
-                      <SelectItem value="en_ruta">En ruta</SelectItem>
-                      <SelectItem value="mantenimiento">En mantenimiento</SelectItem>
+                      <SelectItem value="available">Disponible</SelectItem>
+                      <SelectItem value="on_route">En ruta</SelectItem>
+                      <SelectItem value="maintenance">En mantenimiento</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

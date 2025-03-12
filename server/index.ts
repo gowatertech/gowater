@@ -1,23 +1,38 @@
 import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
 import path from "path";
 import fs from "fs";
-import apiRouter from './api';
-import { createServer } from 'http';
 
 const app = express();
 
-// Configurar body parsers globalmente primero
+// Basic middleware for parsing JSON and URL-encoded bodies
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
   res.on("finish", () => {
     const duration = Date.now() - start;
-    log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+      log(logLine);
+    }
   });
+
   next();
 });
 
@@ -26,38 +41,52 @@ app.use((req, res, next) => {
     log("Starting server initialization...");
     log(`Current working directory: ${process.cwd()}`);
     log(`Environment: ${process.env.NODE_ENV}`);
+    let server;
 
-    // Montar el router API primero
-    app.use('/api', apiRouter);
-    log("API routes mounted successfully");
+    // Register API routes first to ensure they take precedence
+    server = await registerRoutes(app);
+    log("Routes registered successfully");
 
-    // Crear el servidor HTTP
-    const server = createServer(app);
-
-    // Configurar el manejo de rutas para el cliente
+    // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {
+      log("Production mode: Setting up static file serving");
       const distPath = path.resolve(process.cwd(), 'dist', 'public');
+
+      log(`Looking for static files in: ${distPath}`);
+
+      // Verify dist directory exists
       if (!fs.existsSync(distPath)) {
+        log(`ERROR: Build directory not found at ${distPath}`);
         throw new Error(`Build directory not found at ${distPath}. Please run 'npm run build' first.`);
       }
 
+      // Verify index.html exists
+      const indexPath = path.join(distPath, 'index.html');
+      if (!fs.existsSync(indexPath)) {
+        log(`ERROR: index.html not found at ${indexPath}`);
+        throw new Error(`index.html not found at ${indexPath}. Please ensure the build process completed successfully.`);
+      }
+
+      log(`Found index.html at ${indexPath}`);
+
+      // Serve static files from the client build directory
       app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-          res.sendFile(path.join(distPath, 'index.html'));
+
+      // Handle client-side routing - send index.html for all non-API routes
+      app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api/')) {
+          return next();
         }
+
+        log(`Serving index.html for path: ${req.path}`);
+        res.sendFile(indexPath);
       });
+
+      log("Static file serving configured");
     } else {
-      app.use(async (req, res, next) => {
-        if (!req.path.startsWith('/api')) {
-          try {
-            await setupVite(app, server);
-            next();
-          } catch (e) {
-            next(e);
-          }
-        }
-      });
+      // Development mode - use Vite
+      await setupVite(app, server);
+      log("Development mode: Vite setup complete");
     }
 
     // Error handling middleware

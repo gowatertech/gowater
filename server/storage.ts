@@ -47,7 +47,7 @@ export interface IStorage {
   getTruck(id: number): Promise<Truck | undefined>;
   createTruck(truck: InsertTruck): Promise<Truck>;
   listTrucks(): Promise<Truck[]>;
-  updateTruckStatus(id: number, status: "disponible" | "en_ruta" | "mantenimiento"): Promise<Truck>;
+  updateTruckStatus(id: number, status: "available" | "on_route" | "maintenance"): Promise<Truck>;
 
   // Routes
   getRoute(id: number): Promise<Route | undefined>;
@@ -205,7 +205,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(trucks);
   }
 
-  async updateTruckStatus(id: number, status: "disponible" | "en_ruta" | "mantenimiento"): Promise<Truck> {
+  async updateTruckStatus(id: number, status: "available" | "on_route" | "maintenance"): Promise<Truck> {
     const [truck] = await db
       .select()
       .from(trucks)
@@ -234,10 +234,8 @@ export class DatabaseStorage implements IStorage {
       startTime: route.startTime ? new Date(route.startTime) : null,
       endTime: route.endTime ? new Date(route.endTime) : null,
       lastUpdate: route.lastUpdate ? new Date(route.lastUpdate) : null,
-      date: new Date(route.date)
-    } as const;
-
-    const [newRoute] = await db.insert(routes).values([routeData]).returning();
+    };
+    const [newRoute] = await db.insert(routes).values(routeData).returning();
     return newRoute;
   }
 
@@ -516,6 +514,7 @@ export class DatabaseStorage implements IStorage {
 
   // Implementación de métodos para envases retornables
   async createBottleReturn(bottleReturn: InsertBottleReturn): Promise<BottleReturn> {
+    // Calcula el monto del depósito basado en el producto
     const [product] = await db
       .select()
       .from(products)
@@ -530,11 +529,10 @@ export class DatabaseStorage implements IStorage {
       status: "pending" as const,
       pendingQuantity: bottleReturn.expectedQuantity,
       amountCharged: "0.00",
-      depositAmount: product.depositAmount || "0.00",
-      returnDate: new Date(bottleReturn.returnDate)
+      depositAmount: product.depositAmount
     };
 
-    const [newReturn] = await db.insert(bottleReturns).values([initialBottleReturn]).returning();
+    const [newReturn] = await db.insert(bottleReturns).values(initialBottleReturn).returning();
     return newReturn;
   }
 
