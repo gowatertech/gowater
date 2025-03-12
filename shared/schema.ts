@@ -162,18 +162,24 @@ export const trucks = pgTable("trucks", {
   model: text("model").notNull(),
   year: integer("year").notNull(),
   plate: text("plate").notNull().unique(),
+  color: text("color").notNull(),
   capacity: integer("capacity").notNull(),
-  status: text("status", { enum: ["available", "on_route", "maintenance"] }).notNull().default("available"),
+  status: text("status", { enum: ["disponible", "en_ruta", "mantenimiento"] }).notNull().default("disponible"),
 });
 
 export const insertTruckSchema = z.object({
-  brand: z.string().min(1, "Brand is required"),
-  model: z.string().min(1, "Model is required"),
-  year: z.number().min(1990, "Year must be greater than 1990"),
-  plate: z.string().min(1, "Plate is required"),
-  capacity: z.number().min(1, "Capacity must be greater than 0"),
-  status: z.enum(["available", "on_route", "maintenance"]).default("available"),
+  brand: z.string().min(1, "La marca es requerida"),
+  model: z.string().min(1, "El modelo es requerido"),
+  year: z.number().min(1990, "El año debe ser mayor a 1990"),
+  plate: z.string().min(1, "La placa es requerida"),
+  color: z.string().min(1, "El color es requerido"),
+  capacity: z.number().min(1, "La capacidad debe ser mayor a 0"),
+  status: z.enum(["disponible", "en_ruta", "mantenimiento"]).default("disponible"),
 });
+
+// Add to type exports
+export type Truck = typeof trucks.$inferSelect;
+export type InsertTruck = z.infer<typeof insertTruckSchema>;
 
 // Routes
 export const routes = pgTable("routes", {
@@ -612,8 +618,6 @@ export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
-export type Truck = typeof trucks.$inferSelect;
-export type InsertTruck = z.infer<typeof insertTruckSchema>;
 export type Route = typeof routes.$inferSelect;
 export type InsertRoute = z.infer<typeof insertRouteSchema>;
 export type Order = typeof orders.$inferSelect;
@@ -646,8 +650,7 @@ export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 export type Bill = typeof bills.$inferSelect;
 export type BillItem = typeof billItems.$inferSelect;
-export type InsertBill = z.infer<typeof insertBillSchema>;
-export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
+export type InsertBill = z.infer<typeof insertBillSchema>;export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
