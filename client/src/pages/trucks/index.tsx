@@ -40,14 +40,7 @@ export default function TrucksPage() {
   });
 
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
-    queryKey: ["/api/trucks"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/trucks");
-      if (!response.ok) {
-        throw new Error("Error al cargar vehículos");
-      }
-      return response.json();
-    },
+    queryKey: ["/api/trucks"]
   });
 
   const createTruckMutation = useMutation({
@@ -56,10 +49,7 @@ export default function TrucksPage() {
       const response = await apiRequest(
         "POST",
         "/api/trucks",
-        {
-          ...values,
-          plate: values.plate.toUpperCase(),
-        }
+        { ...values, plate: values.plate.toUpperCase() }
       );
 
       if (!response.ok) {
