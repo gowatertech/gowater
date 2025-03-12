@@ -46,25 +46,12 @@ export default function TrucksPage() {
   const createTruckMutation = useMutation({
     mutationFn: async (values: InsertTruck) => {
       console.log("Enviando datos:", values);
-      const response = await apiRequest(
-        "POST",
-        "/api/trucks",
-        { ...values, plate: values.plate.toUpperCase() }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error("Error response:", error);
-        throw new Error(error.message || "Error al crear el vehículo");
-      }
-
-      return response.json();
+      return apiRequest("POST", "/api/trucks", values);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       toast({
         description: "Vehículo registrado exitosamente",
-        duration: 3000,
       });
       form.reset();
     },
@@ -73,7 +60,6 @@ export default function TrucksPage() {
       toast({
         variant: "destructive",
         description: error.message || "Error al crear el vehículo",
-        duration: 5000,
       });
     },
     onSettled: () => {
@@ -88,12 +74,12 @@ export default function TrucksPage() {
   };
 
   return (
-    <div className="space-y-6 p-6 max-w-3xl mx-auto">
+    <div className="space-y-6 p-6">
       <div className="flex items-center gap-2">
         <Truck className="h-5 w-5 text-primary" />
         <h1 className="text-2xl font-bold">Vehículos</h1>
       </div>
-      <Separator/>
+      <Separator />
 
       <Card className="p-6">
         <Form {...form}>
