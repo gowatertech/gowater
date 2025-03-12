@@ -76,7 +76,10 @@ export default function WarehousesPage() {
   // Update warehouse mutation
   const updateWarehouseMutation = useMutation({
     mutationFn: async (data: InsertWarehouse & { id: number }) => {
-      const response = await apiRequest("PATCH", `/api/warehouses/${data.id}`, data);
+      const response = await apiRequest("PATCH", `/api/warehouses/${data.id}`, {
+        name: data.name,
+        status: data.status
+      });
       if (!response.ok) {
         throw new Error("Failed to update warehouse");
       }
