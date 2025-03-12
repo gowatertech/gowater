@@ -39,7 +39,6 @@ export default function TrucksPage() {
     }
   });
 
-
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
     queryFn: async () => {
@@ -51,11 +50,11 @@ export default function TrucksPage() {
     },
   });
 
-  // Mutation para crear un nuevo camión
   const createTruckMutation = useMutation({
     mutationFn: async (values: InsertTruck) => {
       console.log("Enviando datos:", values);
       const response = await apiRequest("POST", "/api/trucks", {
+        method: "POST",
         body: JSON.stringify({
           ...values,
           plate: values.plate.toUpperCase(),
@@ -94,36 +93,10 @@ export default function TrucksPage() {
     }
   });
 
-  const onSubmit = async (values: InsertTruck) => {
+  const onSubmit = (values: InsertTruck) => {
     console.log("Formulario enviado:", values);
     setIsSubmitting(true);
-    await createTruckMutation.mutateAsync(values);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "disponible":
-        return "bg-green-100 text-green-700";
-      case "en_ruta":
-        return "bg-blue-100 text-blue-700";
-      case "mantenimiento":
-        return "bg-yellow-100 text-yellow-700";
-      default:
-        return "bg-gray-100 text-gray-700";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "disponible":
-        return "Disponible";
-      case "en_ruta":
-        return "En Ruta";
-      case "mantenimiento":
-        return "En mantenimiento";
-      default:
-        return status;
-    }
+    createTruckMutation.mutate(values);
   };
 
   return (
@@ -172,18 +145,14 @@ export default function TrucksPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Año</FormLabel>
-                    <Input 
-                      type="number"
-                      min={1990}
-                      max={currentYear}
-                      {...field}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (!isNaN(value)) {
-                          field.onChange(value);
-                        }
-                      }}
-                    />
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min={1990}
+                        max={currentYear}
+                        {...field}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -196,7 +165,11 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Placa</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ingrese la placa" {...field} maxLength={10} />
+                      <Input 
+                        placeholder="Ingrese la placa" 
+                        maxLength={10}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -229,12 +202,6 @@ export default function TrucksPage() {
                         min={1}
                         placeholder="Ingrese la capacidad"
                         {...field}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          if (!isNaN(value)) {
-                            field.onChange(value);
-                          }
-                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -290,7 +257,7 @@ export default function TrucksPage() {
           trucks.map((truck) => (
             <Card
               key={truck.id}
-              className={`p-4 cursor-pointer transition-all hover:border-primary/30`}
+              className="p-4 cursor-pointer transition-all hover:border-primary/30"
             >
               <div className="flex items-start gap-3">
                 <Truck className="h-5 w-5 text-primary mt-0.5" />
@@ -305,10 +272,14 @@ export default function TrucksPage() {
                     Capacidad: {truck.capacity}L
                   </p>
                   <div className="mt-2">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${getStatusColor(truck.status)}`}
-                    >
-                      {getStatusText(truck.status)}
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      truck.status === "disponible" ? "bg-green-100 text-green-700" :
+                      truck.status === "en_ruta" ? "bg-blue-100 text-blue-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }`}>
+                      {truck.status === "disponible" ? "Disponible" :
+                       truck.status === "en_ruta" ? "En ruta" :
+                       "En mantenimiento"}
                     </span>
                   </div>
                 </div>

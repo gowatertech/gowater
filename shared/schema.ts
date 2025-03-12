@@ -170,10 +170,10 @@ export const trucks = pgTable("trucks", {
 export const insertTruckSchema = z.object({
   brand: z.string().min(1, "La marca es requerida"),
   model: z.string().min(1, "El modelo es requerido"),
-  year: z.number().min(1990, "El año debe ser mayor a 1990"),
+  year: z.coerce.number().min(1990, "El año debe ser mayor a 1990"),
   plate: z.string().min(1, "La placa es requerida"),
   color: z.string().min(1, "El color es requerido"),
-  capacity: z.number().min(1, "La capacidad debe ser mayor a 0"),
+  capacity: z.coerce.number().min(1, "La capacidad debe ser mayor a 0"),
   status: z.enum(["disponible", "en_ruta", "mantenimiento"]).default("disponible"),
 });
 
@@ -652,8 +652,7 @@ export type Bill = typeof bills.$inferSelect;
 export type BillItem = typeof billItems.$inferSelect;
 export type InsertBill = z.infer<typeof insertBillSchema>;
 export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
-export type Payment = typeof payments.$inferSelect;
-export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type Warehouse = typeof warehouses.$inferSelect;
