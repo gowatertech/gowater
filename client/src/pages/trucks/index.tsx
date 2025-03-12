@@ -41,17 +41,20 @@ export default function TrucksPage() {
 
   const { data: trucks = [], isLoading } = useQuery({
     queryKey: ["/api/trucks"],
-    queryFn: async (): Promise<TruckType[]> => {
+    queryFn: async () => {
       const response = await fetch("/api/trucks");
       if (!response.ok) {
         throw new Error("Error al cargar vehículos");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Trucks loaded:", data); // Debug log
+      return data;
     }
   });
 
   const createTruckMutation = useMutation({
     mutationFn: async (data: InsertTruck) => {
+      console.log("Creating truck with data:", data); // Debug log
       const response = await fetch("/api/trucks", {
         method: "POST",
         headers: {
@@ -59,10 +62,16 @@ export default function TrucksPage() {
         },
         body: JSON.stringify(data),
       });
+
       if (!response.ok) {
-        throw new Error("Error al crear el vehículo");
+        const error = await response.text();
+        console.error("Error creating truck:", error); // Debug log
+        throw new Error(error || "Error al crear el vehículo");
       }
-      return response.json();
+
+      const result = await response.json();
+      console.log("Truck created:", result); // Debug log
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -72,16 +81,18 @@ export default function TrucksPage() {
       form.reset();
       setIsSubmitting(false);
     },
-    onError: () => {
+    onError: (error: Error) => {
+      console.error("Mutation error:", error); // Debug log
       toast({
         variant: "destructive",
-        description: "Error al crear el vehículo",
+        description: error.message || "Error al crear el vehículo",
       });
       setIsSubmitting(false);
     }
   });
 
   const onSubmit = (values: InsertTruck) => {
+    console.log("Form submitted with values:", values); // Debug log
     setIsSubmitting(true);
     createTruckMutation.mutate({
       ...values,
