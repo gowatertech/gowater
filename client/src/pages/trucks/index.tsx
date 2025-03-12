@@ -47,14 +47,14 @@ export default function TrucksPage() {
         throw new Error("Error al cargar vehículos");
       }
       const data = await response.json();
-      console.log("Trucks loaded:", data); // Debug log
+      console.log("Trucks loaded:", data);
       return data;
     }
   });
 
   const createTruckMutation = useMutation({
     mutationFn: async (data: InsertTruck) => {
-      console.log("Creating truck with data:", data); // Debug log
+      console.log("Creating truck with data:", data);
       const response = await fetch("/api/trucks", {
         method: "POST",
         headers: {
@@ -65,12 +65,12 @@ export default function TrucksPage() {
 
       if (!response.ok) {
         const error = await response.text();
-        console.error("Error creating truck:", error); // Debug log
+        console.error("Error creating truck:", error);
         throw new Error(error || "Error al crear el vehículo");
       }
 
       const result = await response.json();
-      console.log("Truck created:", result); // Debug log
+      console.log("Truck created:", result);
       return result;
     },
     onSuccess: () => {
@@ -82,7 +82,7 @@ export default function TrucksPage() {
       setIsSubmitting(false);
     },
     onError: (error: Error) => {
-      console.error("Mutation error:", error); // Debug log
+      console.error("Mutation error:", error);
       toast({
         variant: "destructive",
         description: error.message || "Error al crear el vehículo",
@@ -92,7 +92,7 @@ export default function TrucksPage() {
   });
 
   const onSubmit = (values: InsertTruck) => {
-    console.log("Form submitted with values:", values); // Debug log
+    console.log("Form submitted with values:", values);
     setIsSubmitting(true);
     createTruckMutation.mutate({
       ...values,
