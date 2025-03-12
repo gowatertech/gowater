@@ -4,7 +4,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { InsertProductionBatch, Product, Warehouse } from "@shared/schema";
+import type { InsertProductionBatch } from "@shared/schema";
 import { insertProductionBatchSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Trash } from "lucide-react";
@@ -140,11 +140,24 @@ export default function ProductionRegistration() {
       items: batchItems.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
-        cost: item.cost
+        cost: Number(item.cost).toFixed(2) // Asegurar 2 decimales
       }))
     };
 
     createBatchMutation.mutate(batchData);
+  };
+
+  const formatCost = (value: string): string => {
+    // Remove non-numeric characters except decimal point
+    const numericValue = value.replace(/[^\d.]/g, '');
+
+    // Ensure only one decimal point
+    const parts = numericValue.split('.');
+    const integerPart = parts[0] || '0';
+    const decimalPart = parts[1] || '00';
+
+    // Format to exactly 2 decimal places
+    return `${integerPart}.${decimalPart.slice(0, 2).padEnd(2, '0')}`;
   };
 
   const handleAddItem = (data: any) => {
@@ -166,7 +179,8 @@ export default function ProductionRegistration() {
       return;
     }
 
-    if (!data.cost || parseFloat(data.cost) <= 0) {
+    const formattedCost = formatCost(data.cost);
+    if (parseFloat(formattedCost) <= 0) {
       toast({
         title: "Error",
         description: "El costo debe ser mayor a 0",
@@ -175,8 +189,12 @@ export default function ProductionRegistration() {
       return;
     }
 
-    const total = (parseFloat(data.cost) * data.quantity).toFixed(2);
-    setBatchItems(prev => [...prev, { ...data, total }]);
+    const total = (parseFloat(formattedCost) * data.quantity).toFixed(2);
+    setBatchItems(prev => [...prev, { 
+      ...data, 
+      cost: formattedCost,
+      total 
+    }]);
     itemForm.reset();
   };
 
@@ -222,7 +240,7 @@ export default function ProductionRegistration() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {warehouses.map((warehouse) => (
+                          {warehouses.map((warehouse: any) => (
                             <SelectItem
                               key={warehouse.id}
                               value={warehouse.id.toString()}
@@ -280,7 +298,7 @@ export default function ProductionRegistration() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {products.map((product) => (
+                          {products.map((product: any) => (
                             <SelectItem
                               key={product.id}
                               value={product.id.toString()}
@@ -326,6 +344,10 @@ export default function ProductionRegistration() {
                           min="0.01"
                           step="0.01"
                           {...field}
+                          onChange={(e) => {
+                            const formattedValue = formatCost(e.target.value);
+                            field.onChange(formattedValue);
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -345,7 +367,7 @@ export default function ProductionRegistration() {
               <h3 className="font-semibold mb-2">Productos en el Lote</h3>
               <div className="space-y-2">
                 {batchItems.map((item, index) => {
-                  const product = products.find((p) => p.id === item.productId);
+                  const product = products.find((p: any) => p.id === item.productId);
                   return (
                     <div
                       key={index}
@@ -415,14 +437,14 @@ export default function ProductionRegistration() {
                   </TableCell>
                 </TableRow>
               ) : (
-                productionBatches.map((batch) => (
+                productionBatches.map((batch: any) => (
                   <TableRow key={batch.id}>
                     <TableCell>{batch.batchNumber}</TableCell>
                     <TableCell>{new Date(batch.date).toLocaleDateString()}</TableCell>
                     <TableCell>{batch.warehouseName}</TableCell>
                     <TableCell>
                       <ul className="list-disc list-inside">
-                        {batch.items.map((item) => (
+                        {batch.items.map((item: any) => (
                           <li key={item.id} className="text-sm">
                             {item.quantity} x {item.productName}
                           </li>
