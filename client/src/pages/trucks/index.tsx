@@ -3,9 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Truck, Terminal } from "lucide-react";
+import { Truck, Terminal, Plus } from "lucide-react";
 import type { Truck as TruckType } from "@shared/schema";
-import { TruckForm } from "./components/TruckForm";
+import { TruckForm } from "../entregas/components/TruckForm";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function TrucksPage() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [showCurlCommands, setShowCurlCommands] = useState(false);
 
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
@@ -99,11 +99,31 @@ curl -X PATCH http://localhost:5000/api/trucks/1/status \\
               </pre>
             </DialogContent>
           </Dialog>
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={() => setShowForm(!showForm)}>
+            <Plus className="h-4 w-4 mr-2" />
             Crear
           </Button>
         </div>
       </div>
+
+      {showForm && (
+        <Card className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-semibold">Nuevo Vehículo</h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowForm(false)}
+            >
+              ✕
+            </Button>
+          </div>
+          <TruckForm 
+            open={showForm} 
+            onOpenChange={setShowForm} 
+          />
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {trucks.length === 0 ? (
@@ -148,11 +168,6 @@ curl -X PATCH http://localhost:5000/api/trucks/1/status \\
           ))
         )}
       </div>
-
-      <TruckForm 
-        open={isDialogOpen} 
-        onOpenChange={setIsDialogOpen} 
-      />
     </div>
   );
 }

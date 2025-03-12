@@ -8,13 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-import {
   Form,
   FormControl,
   FormField,
@@ -61,7 +54,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const onSubmit = async (values: InsertTruck) => {
     try {
       setIsSubmitting(true);
-      console.log("Submitting truck data:", values);
 
       // Convert year and capacity to numbers
       const submittedValues = {
@@ -73,8 +65,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         capacity: Number(values.capacity),
         status: values.status || "disponible"
       };
-
-      console.log("Processed truck data for submission:", submittedValues);
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
@@ -113,168 +103,163 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     }
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Registrar nuevo vehículo</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="brand"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Marca</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese la marca" 
-                      {...field} 
-                      onChange={(e) => field.onChange(e.target.value.trim())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="brand"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Marca</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Ingrese la marca" 
+                  {...field} 
+                  onChange={(e) => field.onChange(e.target.value.trim())}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Modelo</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese el modelo" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.trim())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="model"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Modelo</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Ingrese el modelo" 
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.value.trim())}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="year"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Año</FormLabel>
-                  <Input 
-                    type="number"
-                    min={1990}
-                    max={currentYear}
-                    {...field}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      if (!isNaN(value)) {
-                        field.onChange(value);
-                      }
-                    }}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="year"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Año</FormLabel>
+              <Input 
+                type="number"
+                min={1990}
+                max={currentYear}
+                {...field}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (!isNaN(value)) {
+                    field.onChange(value);
+                  }
+                }}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="plate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Placa</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese la placa" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
-                      maxLength={10}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="plate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Placa</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Ingrese la placa" 
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
+                  maxLength={10}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="color"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Ingrese el color" 
-                      {...field}
-                      onChange={(e) => field.onChange(e.target.value.trim())}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="color"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Color</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="Ingrese el color" 
+                  {...field}
+                  onChange={(e) => field.onChange(e.target.value.trim())}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="capacity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Capacidad (L)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min={1}
-                      placeholder="Ingrese la capacidad" 
-                      {...field}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        if (!isNaN(value)) {
-                          field.onChange(value);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="capacity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Capacidad (L)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  min={1}
+                  placeholder="Ingrese la capacidad" 
+                  {...field}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value)) {
+                      field.onChange(value);
+                    }
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estado</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un estado" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="disponible">Disponible</SelectItem>
-                      <SelectItem value="en_ruta">En ruta</SelectItem>
-                      <SelectItem value="en_reparacion">En reparación</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Estado</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione un estado" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="disponible">Disponible</SelectItem>
+                  <SelectItem value="en_ruta">En ruta</SelectItem>
+                  <SelectItem value="en_reparacion">En reparación</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Guardando..." : "Guardar Vehículo"}
-            </Button>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Guardando..." : "Guardar Vehículo"}
+        </Button>
+      </form>
+    </Form>
   );
 }
