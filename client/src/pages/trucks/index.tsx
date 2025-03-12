@@ -3,12 +3,20 @@ import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Truck } from "lucide-react";
+import { Truck, Terminal } from "lucide-react";
 import type { Truck as TruckType } from "@shared/schema";
 import { TruckForm } from "./components/TruckForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function TrucksPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showCurlCommands, setShowCurlCommands] = useState(false);
 
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
@@ -19,6 +27,45 @@ export default function TrucksPage() {
       return data;
     }
   });
+
+  const curlCommands = `
+# Listar todos los camiones
+curl -X GET http://localhost:5000/api/trucks
+
+# Crear un nuevo camión
+curl -X POST http://localhost:5000/api/trucks \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "brand": "Mercedes",
+    "model": "Atego",
+    "year": 2023,
+    "plate": "DEF456",
+    "color": "Gris",
+    "capacity": 1500,
+    "status": "disponible"
+  }'
+
+# Obtener un camión específico (ID: 1)
+curl -X GET http://localhost:5000/api/trucks/1
+
+# Actualizar un camión (ID: 1)
+curl -X PUT http://localhost:5000/api/trucks/1 \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "brand": "Mercedes",
+    "model": "Atego",
+    "year": 2023,
+    "plate": "DEF456",
+    "color": "Gris Metalizado",
+    "capacity": 1500,
+    "status": "disponible"
+  }'
+
+# Actualizar estado de un camión (ID: 1)
+curl -X PATCH http://localhost:5000/api/trucks/1/status \\
+  -H "Content-Type: application/json" \\
+  -d '{"status": "en_ruta"}'
+`;
 
   if (isLoading) {
     return (
@@ -35,9 +82,27 @@ export default function TrucksPage() {
           <Truck className="h-5 w-5 text-primary" />
           <h1 className="text-2xl font-bold">Vehículos</h1>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)}>
-          Agregar Vehículo
-        </Button>
+        <div className="flex gap-2">
+          <Dialog open={showCurlCommands} onOpenChange={setShowCurlCommands}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Terminal className="h-4 w-4 mr-2" />
+                Pruebas CURL
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Comandos CURL para probar la API</DialogTitle>
+              </DialogHeader>
+              <pre className="bg-gray-100 p-4 rounded-lg overflow-x-auto whitespace-pre-wrap">
+                {curlCommands}
+              </pre>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={() => setIsDialogOpen(true)}>
+            Crear
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
