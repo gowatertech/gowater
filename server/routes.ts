@@ -219,6 +219,42 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/warehouses/:id", async (req, res) => {
+    try {
+      console.log("PATCH /api/warehouses/:id - Body recibido:", req.body);
+      const warehouseId = parseInt(req.params.id);
+
+      const result = insertWarehouseSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Error de validación",
+          details: result.error.format()
+        });
+      }
+
+      const [warehouse] = await db
+        .select()
+        .from(warehouses)
+        .where(eq(warehouses.id, warehouseId));
+
+      if (!warehouse) {
+        return res.status(404).json({ error: "Almacén no encontrado" });
+      }
+
+      const [updatedWarehouse] = await db
+        .update(warehouses)
+        .set(result.data)
+        .where(eq(warehouses.id, warehouseId))
+        .returning();
+
+      console.log("PATCH /api/warehouses/:id - Almacén actualizado:", updatedWarehouse);
+      res.json(updatedWarehouse);
+    } catch (error) {
+      console.error("Error al actualizar almacén:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
 
   // Endpoints para el manejo de direcciones
   app.get("/api/provinces", async (req, res) => {
@@ -415,7 +451,6 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
-
 
   // Customer endpoints
   app.post("/api/customers", upload.single('logo'), async (req, res) => {
@@ -890,8 +925,7 @@ export async function registerRoutes(app: Express) {
         cancelled: "#FF8042"
       };
 
-      const statusNames = {
-        pending: "Pendiente",
+      const statusNames = {        pending: "Pendiente",
         processing: "En Proceso",
         completed: "Completado",
         cancelled: "Cancelado"
