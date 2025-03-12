@@ -1,32 +1,16 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Truck } from "lucide-react";
 import type { Truck as TruckType } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertTruckSchema } from "@shared/schema";
-import type { InsertTruck } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
+import { TruckForm } from "./components/TruckForm";
 
 export default function TrucksPage() {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const currentYear = new Date().getFullYear();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: trucks = [], isLoading } = useQuery({
+  const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
     queryFn: async () => {
       const response = await fetch("/api/trucks");
@@ -36,225 +20,74 @@ export default function TrucksPage() {
     }
   });
 
-  const form = useForm<InsertTruck>({
-    resolver: zodResolver(insertTruckSchema),
-    defaultValues: {
-      brand: "Toyota",
-      model: "Dyna",
-      year: 2020,
-      plate: "ABC123",
-      color: "Blanco",
-      capacity: 2000,
-      status: "disponible"
-    }
-  });
-
-  const createTruckMutation = useMutation({
-    mutationFn: async (data: InsertTruck) => {
-      const response = await fetch("/api/trucks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al crear el vehículo");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
-      toast({
-        description: "Vehículo registrado exitosamente",
-      });
-      form.reset();
-      setIsSubmitting(false);
-    },
-    onError: () => {
-      toast({
-        variant: "destructive",
-        description: "Error al crear el vehículo",
-      });
-      setIsSubmitting(false);
-    }
-  });
-
-  const onSubmit = (values: InsertTruck) => {
-    setIsSubmitting(true);
-    createTruckMutation.mutate({
-      ...values,
-      plate: values.plate.toUpperCase()
-    });
-  };
-
   if (isLoading) {
-    return <div className="p-4">Cargando vehículos...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="text-lg text-gray-600">Cargando vehículos...</div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center gap-2">
-        <Truck className="h-5 w-5 text-primary" />
-        <h1 className="text-2xl font-bold">Vehículos</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Truck className="h-5 w-5 text-primary" />
+          <h1 className="text-2xl font-bold">Vehículos</h1>
+        </div>
+        <Button onClick={() => setIsDialogOpen(true)}>
+          Agregar Vehículo
+        </Button>
       </div>
-      <Separator />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {trucks.map((truck: TruckType) => (
-          <Card
-            key={truck.id}
-            className="p-6 bg-white rounded-xl shadow-sm"
-          >
-            <div className="flex flex-col">
-              <div className="flex items-center gap-3 mb-3">
-                <Truck className="h-6 w-6 text-blue-600" />
-                <h3 className="text-xl font-semibold">
-                  {truck.brand} {truck.model}
-                </h3>
+        {trucks.length === 0 ? (
+          <div className="col-span-full text-center py-10">
+            <p className="text-gray-500">No hay vehículos registrados</p>
+          </div>
+        ) : (
+          trucks.map((truck) => (
+            <Card key={truck.id} className="p-6 bg-white rounded-xl shadow-sm">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-3 mb-3">
+                  <Truck className="h-6 w-6 text-blue-600" />
+                  <h3 className="text-xl font-semibold">
+                    {truck.brand} {truck.model}
+                  </h3>
+                </div>
+                <div className="space-y-2 text-gray-600">
+                  <p className="text-lg">Placa: {truck.plate}</p>
+                  <p>Año: {truck.year}</p>
+                  <p>Color: {truck.color}</p>
+                  <p>Capacidad: {truck.capacity}L</p>
+                  <div className="mt-4">
+                    <span 
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        truck.status === "disponible"
+                          ? "bg-green-100 text-green-800"
+                          : truck.status === "en_ruta"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {truck.status === "disponible"
+                        ? "Disponible"
+                        : truck.status === "en_ruta"
+                        ? "En ruta"
+                        : "En mantenimiento"}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="text-gray-600 text-lg">
-                {truck.plate} • {truck.year}
-              </div>
-              <div className="text-gray-600 text-lg">
-                Capacidad: {truck.capacity}L
-              </div>
-              <div className="mt-4">
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                  {truck.status === "disponible" ? "Disponible" :
-                   truck.status === "en_ruta" ? "En ruta" :
-                   "En mantenimiento"}
-                </span>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))
+        )}
       </div>
 
-      <Card className="p-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="brand"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marca</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Modelo</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Año</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1990} max={currentYear} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="plate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Placa</FormLabel>
-                    <FormControl>
-                      <Input maxLength={10} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Color</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="capacity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Capacidad (L)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estado</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="disponible">Disponible</SelectItem>
-                        <SelectItem value="en_ruta">En ruta</SelectItem>
-                        <SelectItem value="mantenimiento">En mantenimiento</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Guardando..." : "Guardar Vehículo"}
-            </Button>
-          </form>
-        </Form>
-      </Card>
+      <TruckForm 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+      />
     </div>
   );
 }
