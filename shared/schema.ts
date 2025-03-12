@@ -155,6 +155,28 @@ export const insertCustomerSchema = z.object({
   creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
 });
 
+// Trucks
+export const trucks = pgTable("trucks", {
+  id: serial("id").primaryKey(),
+  brand: text("brand").notNull(),
+  model: text("model").notNull(),
+  year: integer("year").notNull(),
+  plate: text("plate").notNull().unique(),
+  color: text("color").notNull(),
+  capacity: integer("capacity").notNull(),
+  status: text("status", { enum: ["disponible", "en_reparacion", "en_ruta"] }).notNull().default("disponible"),
+});
+
+export const insertTruckSchema = z.object({
+  brand: z.string().min(1, "La marca es requerida"),
+  model: z.string().min(1, "El modelo es requerido"),
+  year: z.coerce.number().min(1990, "El año debe ser mayor a 1990"),
+  plate: z.string().min(1, "La placa es requerida"),
+  color: z.string().min(1, "El color es requerido"),
+  capacity: z.coerce.number().min(1, "La capacidad debe ser mayor a 0"),
+  status: z.enum(["disponible", "en_reparacion", "en_ruta"]).default("disponible"),
+});
+
 // Routes - updated to remove truck references
 export const routes = pgTable("routes", {
   id: serial("id").primaryKey(),
@@ -662,3 +684,5 @@ export type ProductionBatch = typeof productionBatches.$inferSelect;
 export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
 export type ProductionBatchItem = typeof productionBatchItems.$inferSelect;
 export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItemSchema>;
+export type Truck = typeof trucks.$inferSelect;
+export type InsertTruck = z.infer<typeof insertTruckSchema>;

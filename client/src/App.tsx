@@ -14,6 +14,7 @@ import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
+import Entregas from "@/pages/entregas";
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
 import Faltantes from "@/pages/envases/faltantes";
@@ -42,6 +43,7 @@ function Router() {
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/users" component={Users} />
+        <Route path="/entregas" component={Entregas} />
         <Route path="/tutorial" component={TutorialPage} />
         <Route path="/settings" component={Settings} />
         <Route path="/reports" component={Reports} />
