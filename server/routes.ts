@@ -1399,6 +1399,89 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Trucks endpoints
+  app.get("/api/trucks", async (req, res) => {
+    try {
+      const allTrucks = await storage.listTrucks();
+      res.json(allTrucks);
+    } catch (error) {
+      console.error("Error al obtener camiones:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/trucks/:id", async (req, res) => {
+    try {
+      const truckId = parseInt(req.params.id);
+      const truck = await storage.getTruck(truckId);
+
+      if (!truck) {
+        return res.status(404).json({ error: "Camión no encontrado" });
+      }
+
+      res.json(truck);
+    } catch (error) {
+      console.error("Error al obtener camión:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/trucks", async (req, res) => {
+    try {
+      const result = insertTruckSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.format() });
+      }
+
+      const truck = await storage.createTruck(result.data);
+      res.json(truck);
+    } catch (error) {
+      console.error("Error al crear camión:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.put("/api/trucks/:id", async (req, res) => {
+    try {
+      const truckId = parseInt(req.params.id);
+      const result = insertTruckSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.format() });
+      }
+
+      const truck = await storage.updateTruck(truckId, result.data);
+      if (!truck) {
+        return res.status(404).json({ error: "Camión no encontrado" });
+      }
+
+      res.json(truck);
+    } catch (error) {
+      console.error("Error al actualizar camión:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.patch("/api/trucks/:id/status", async (req, res) => {
+    try {
+      const truckId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!["disponible", "en_reparacion", "en_ruta"].includes(status)) {
+        return res.status(400).json({ error: "Estado inválido" });
+      }
+
+      const truck = await storage.updateTruckStatus(truckId, status);
+      if (!truck) {
+        return res.status(404).json({ error: "Camión no encontrado" });
+      }
+
+      res.json(truck);
+    } catch (error) {
+      console.error("Error al actualizar estado del camión:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Configurar WebSocket después de las rutas API
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ 

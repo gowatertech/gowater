@@ -1,6 +1,6 @@
 import {
   users, customers, products, routes, orders, orderItems,
-  settings as settingsTable,
+  settings as settingsTable, trucks,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -8,6 +8,7 @@ import {
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
   type Settings, type InsertSettings,
+  type Truck, type InsertTruck,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
   bottleReturns,
   type BottleReturn, type InsertBottleReturn
@@ -78,6 +79,13 @@ export interface IStorage {
   updateBottleReturn(id: number, returnedQuantity: number): Promise<BottleReturn>;
   getBottleReturnsByOrder(orderId: number): Promise<BottleReturn[]>;
   getBottleReturnsByDriver(driverId: number): Promise<BottleReturn[]>;
+
+  // Trucks
+  getTruck(id: number): Promise<Truck | undefined>;
+  createTruck(truck: InsertTruck): Promise<Truck>;
+  listTrucks(): Promise<Truck[]>;
+  updateTruck(id: number, truck: Partial<InsertTruck>): Promise<Truck>;
+  updateTruckStatus(id: number, status: "disponible" | "en_reparacion" | "en_ruta"): Promise<Truck>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -569,6 +577,39 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(bottleReturns)
       .where(inArray(bottleReturns.orderId, orderIds));
+  }
+
+  // Trucks
+  async getTruck(id: number): Promise<Truck | undefined> {
+    const [truck] = await db.select().from(trucks).where(eq(trucks.id, id));
+    return truck;
+  }
+
+  async createTruck(truck: InsertTruck): Promise<Truck> {
+    const [newTruck] = await db.insert(trucks).values(truck).returning();
+    return newTruck;
+  }
+
+  async listTrucks(): Promise<Truck[]> {
+    return db.select().from(trucks);
+  }
+
+  async updateTruck(id: number, truck: Partial<InsertTruck>): Promise<Truck> {
+    const [updatedTruck] = await db
+      .update(trucks)
+      .set(truck)
+      .where(eq(trucks.id, id))
+      .returning();
+    return updatedTruck;
+  }
+
+  async updateTruckStatus(id: number, status: "disponible" | "en_reparacion" | "en_ruta"): Promise<Truck> {
+    const [updatedTruck] = await db
+      .update(trucks)
+      .set({ status })
+      .where(eq(trucks.id, id))
+      .returning();
+    return updatedTruck;
   }
 }
 
