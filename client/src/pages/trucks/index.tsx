@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Truck } from "lucide-react";
@@ -44,9 +44,15 @@ export default function TrucksPage() {
   });
 
   const createTruckMutation = useMutation({
-    mutationFn: async (values: InsertTruck) => {
-      console.log("Enviando datos:", values);
-      return apiRequest("POST", "/api/trucks", values);
+    mutationFn: (data: InsertTruck) => {
+      console.log("Mutation - Enviando datos:", data);
+      return fetch("/api/trucks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -54,15 +60,14 @@ export default function TrucksPage() {
         description: "Vehículo registrado exitosamente",
       });
       form.reset();
+      setIsSubmitting(false);
     },
     onError: (error: Error) => {
       console.error("Error en mutation:", error);
       toast({
         variant: "destructive",
-        description: error.message || "Error al crear el vehículo",
+        description: "Error al crear el vehículo",
       });
-    },
-    onSettled: () => {
       setIsSubmitting(false);
     }
   });
@@ -70,7 +75,10 @@ export default function TrucksPage() {
   const onSubmit = (values: InsertTruck) => {
     console.log("Formulario enviado:", values);
     setIsSubmitting(true);
-    createTruckMutation.mutate(values);
+    createTruckMutation.mutate({
+      ...values,
+      plate: values.plate.toUpperCase()
+    });
   };
 
   return (
