@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, warehouses, insertWarehouseSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems,  bottleReturns, warehouses, insertWarehouseSchema } from "@shared/schema";
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -277,7 +277,6 @@ export async function registerRoutes(app: Express) {
         ...req.body,
         date: new Date(req.body.date),
         driverId: Number(req.body.driverId),
-        truckId: 1, // Valor temporal para pruebas
         status: "pending",
         isCompleted: false
       };
@@ -605,67 +604,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Trucks endpoints
-  app.get("/api/trucks", async (req, res) => {
-    try {
-      console.log("GET /api/trucks - Obteniendo lista de vehículos");
-      const allTrucks = await db
-        .select()
-        .from(trucks);
-
-      console.log("GET /api/trucks - Vehículos encontrados:", allTrucks.length);
-      res.json(allTrucks);
-    } catch (error) {
-      console.error("Error al obtener vehículos:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  app.post("/api/trucks", async (req, res) => {
-    try {
-      console.log("POST /api/trucks - Received data:", req.body);
-
-      // Convert the year and capacity to numbers explicitly
-      const truckData = {
-        brand: String(req.body.brand || '').trim(),
-        model: String(req.body.model || '').trim(),
-        year: Number(req.body.year), // Using Number() instead of parseInt
-        plate: String(req.body.plate || '').trim().toUpperCase(),
-        capacity: Number(req.body.capacity),
-        status: req.body.status || 'available'
-      };
-
-      console.log("POST /api/trucks - Processed data:", truckData);
-      console.log("POST /api/trucks - Year type:", typeof truckData.year);
-      console.log("POST /api/trucks - Capacity type:", typeof truckData.capacity);
-
-      const result = insertTruckSchema.safeParse(truckData);
-
-      if (!result.success) {
-        console.error("POST /api/trucks - Validation error:", result.error.format());
-        return res.status(400).json({ 
-          error: "Error de validación",
-          details: result.error.format()
-        });
-      }
-
-      console.log("POST /api/trucks - Validation successful, inserting into database:", result.data);
-
-      const [truck] = await db
-        .insert(trucks)
-        .values(result.data)
-        .returning();
-
-      console.log("POST /api/trucks - Created truck:", truck);
-      res.json(truck);
-    } catch (error) {
-      console.error("Error al crear vehículo:", error);
-      res.status(500).json({ 
-        error: "Error al crear el vehículo",
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
 
   app.get("/api/dashboard/payments-stats", async (req, res) => {
     try {
@@ -968,7 +906,7 @@ export async function registerRoutes(app: Express) {
         .from(payments)
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .leftJoin(customers, eq(invoices.customerId, customers.id))
-                              .orderBy(payments.date);
+        .orderBy(payments.date);
 
       console.log("GET /api/payments - Retornando:", allPayments.length, "pagos");
       res.json(allPayments);
