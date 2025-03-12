@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
@@ -29,17 +29,30 @@ export default function TrucksPage() {
   const form = useForm<InsertTruck>({
     resolver: zodResolver(insertTruckSchema),
     defaultValues: {
-      brand: "",
-      model: "",
-      year: currentYear,
-      plate: "",
-      color: "",
+      brand: "Toyota",
+      model: "Dyna",
+      year: 2022,
+      plate: "ABC123",
+      color: "Blanco",
       capacity: 1000,
       status: "disponible"
     }
   });
 
-  // Query para obtener los camiones
+  // Efecto para probar el formulario automáticamente
+  useEffect(() => {
+    const testForm = async () => {
+      try {
+        const testData = form.getValues();
+        console.log("Probando formulario con datos:", testData);
+        await onSubmit(testData);
+      } catch (error) {
+        console.error("Error en prueba automática:", error);
+      }
+    };
+    testForm();
+  }, []);
+
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
     queryFn: async () => {
@@ -94,10 +107,10 @@ export default function TrucksPage() {
     }
   });
 
-  const onSubmit = (values: InsertTruck) => {
+  const onSubmit = async (values: InsertTruck) => {
     console.log("Formulario enviado:", values);
     setIsSubmitting(true);
-    createTruckMutation.mutate(values);
+    await createTruckMutation.mutateAsync(values);
   };
 
   const getStatusColor = (status: string) => {
@@ -120,7 +133,7 @@ export default function TrucksPage() {
       case "en_ruta":
         return "En Ruta";
       case "mantenimiento":
-        return "Mantenimiento";
+        return "En mantenimiento";
       default:
         return status;
     }
