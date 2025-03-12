@@ -41,31 +41,28 @@ export default function TrucksPage() {
 
   const { data: trucks = [], isLoading } = useQuery({
     queryKey: ["/api/trucks"],
-    queryFn: async () => {
+    queryFn: async (): Promise<TruckType[]> => {
       const response = await fetch("/api/trucks");
       if (!response.ok) {
         throw new Error("Error al cargar vehículos");
       }
       return response.json();
-    },
-    staleTime: 0,
-    cacheTime: 0
+    }
   });
 
   const createTruckMutation = useMutation({
-    mutationFn: (data: InsertTruck) => {
-      return fetch("/api/trucks", {
+    mutationFn: async (data: InsertTruck) => {
+      const response = await fetch("/api/trucks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
-      }).then(async (response) => {
-        if (!response.ok) {
-          throw new Error("Error al crear el vehículo");
-        }
-        return response.json();
       });
+      if (!response.ok) {
+        throw new Error("Error al crear el vehículo");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -247,34 +244,30 @@ export default function TrucksPage() {
             No hay vehículos registrados
           </div>
         ) : (
-          trucks.map((truck) => (
+          trucks.map((truck: TruckType) => (
             <Card
               key={truck.id}
-              className="p-4 cursor-pointer transition-all hover:border-primary/30"
+              className="p-6 bg-white rounded-xl shadow-sm"
             >
-              <div className="flex items-start gap-3">
-                <Truck className="h-5 w-5 text-primary mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-medium">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-3 mb-3">
+                  <Truck className="h-6 w-6 text-blue-600" />
+                  <h3 className="text-xl font-semibold">
                     {truck.brand} {truck.model}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {truck.plate} • {truck.year}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Capacidad: {truck.capacity}L
-                  </p>
-                  <div className="mt-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      truck.status === "disponible" ? "bg-green-100 text-green-700" :
-                      truck.status === "en_ruta" ? "bg-blue-100 text-blue-700" :
-                      "bg-yellow-100 text-yellow-700"
-                    }`}>
-                      {truck.status === "disponible" ? "Disponible" :
-                       truck.status === "en_ruta" ? "En ruta" :
-                       "En mantenimiento"}
-                    </span>
-                  </div>
+                </div>
+                <div className="text-gray-600 text-lg mb-2">
+                  {truck.plate} • {truck.year}
+                </div>
+                <div className="text-gray-600 text-lg mb-4">
+                  Capacidad: {truck.capacity}L
+                </div>
+                <div className="mt-auto">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    {truck.status === "disponible" ? "Disponible" :
+                     truck.status === "en_ruta" ? "En ruta" :
+                     "En mantenimiento"}
+                  </span>
                 </div>
               </div>
             </Card>
