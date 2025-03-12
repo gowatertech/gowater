@@ -38,11 +38,10 @@ const sidebarItems = [
   {
     icon: Warehouse,
     label: "Almacén/Producción",
-    tooltip: "Inventario",
     href: "/inventory",
     subItems: [
-      { label: "Almacén", href: "/inventory?tab=almacen" },
-      { label: "Productos", href: "/inventory?tab=productos" },
+      { label: "Almacén", href: "/inventory/warehouses" },
+      { label: "Productos", href: "/inventory/products" },
     ],
   },
   {
@@ -165,7 +164,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 <>
                   <UISidebarMenuButton
                     isActive={isActive}
-                    tooltip={item.tooltip || t(item.label)}
+                    tooltip={t(item.label)}
                     className={cn(
                       "w-full justify-start gap-4 hover:bg-blue-50/50 pr-8",
                       isActive && "bg-blue-50 shadow-sm"

@@ -7,7 +7,6 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle, Pencil, Trash } from "lucide-react";
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
   Table,
@@ -43,34 +42,34 @@ import {
 } from "@/components/ui/select";
 
 const productTypes = [
-  {
-    id: "water5gl",
+  { 
+    id: "water5gl", 
     label: "Botellón de Agua 5GL",
-    imageSrc: "/images/water-5gl.svg",
+    imageSrc: "/images/water-5gl.svg"
   },
-  {
-    id: "water24pack",
+  { 
+    id: "water24pack", 
     label: "Sixpack de Agua 24 Botellas",
-    imageSrc: "/images/water-24pack.svg",
+    imageSrc: "/images/water-24pack.svg"
   },
-  {
-    id: "water16oz",
+  { 
+    id: "water16oz", 
     label: "Botella de Agua 16 oz",
-    imageSrc: "/images/water-16oz.svg",
+    imageSrc: "/images/water-16oz.svg"
   },
-  {
-    id: "water8oz",
+  { 
+    id: "water8oz", 
     label: "Botella de Agua 8 oz",
-    imageSrc: "/images/water-8oz.svg",
+    imageSrc: "/images/water-8oz.svg"
   },
-  {
-    id: "waterBag",
+  { 
+    id: "waterBag", 
     label: "Funditas de Agua",
-    imageSrc: "/images/water-bag.svg",
+    imageSrc: "/images/water-bag.svg"
   },
 ];
 
-const ProductsPage = () => {
+export default function Inventory() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -106,7 +105,7 @@ const ProductsPage = () => {
       const formattedData = {
         ...data,
         price: Number(data.price).toFixed(2),
-        stock: Number(data.stock),
+        stock: Number(data.stock)
       };
       const res = await apiRequest("POST", "/api/products", formattedData);
       return res.json();
@@ -134,7 +133,7 @@ const ProductsPage = () => {
       const formattedData = {
         ...data,
         price: Number(data.price).toFixed(2),
-        stock: Number(data.stock),
+        stock: Number(data.stock)
       };
       const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
       return res.json();
@@ -210,7 +209,11 @@ const ProductsPage = () => {
   }
 
   return (
-    <div>
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Inventario</h1>
+      </div>
+
       <div className="flex justify-end">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -249,8 +252,8 @@ const ProductsPage = () => {
                                   value={item.id}
                                   className="flex items-center gap-2 h-16"
                                 >
-                                  <img
-                                    src={item.imageSrc}
+                                  <img 
+                                    src={item.imageSrc} 
                                     alt={item.label}
                                     className="h-10 w-10 object-contain"
                                   />
@@ -339,14 +342,14 @@ const ProductsPage = () => {
           </TableHeader>
           <TableBody>
             {products?.map((product) => {
-              const productType = productTypes.find((i) => i.id === product.icon);
+              const productType = productTypes.find(i => i.id === product.icon);
               return (
                 <TableRow key={product.id} className="h-20">
                   <TableCell className="p-4">
                     {productType ? (
                       <div className="flex justify-center">
-                        <img
-                          src={productType.imageSrc}
+                        <img 
+                          src={productType.imageSrc} 
                           alt={productType.label}
                           className="h-16 w-16 object-contain"
                         />
@@ -356,9 +359,7 @@ const ProductsPage = () => {
                     )}
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-center">
-                    RD$ {parseFloat(product.price.toString()).toFixed(2)}
-                  </TableCell>
+                  <TableCell className="text-center">RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
                   <TableCell className="text-center">{product.stock}</TableCell>
                   <TableCell>
                     <div className="flex justify-center space-x-2">
@@ -386,6 +387,7 @@ const ProductsPage = () => {
           </TableBody>
         </Table>
       </div>
+
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md md:max-w-lg">
           <DialogHeader>
@@ -417,8 +419,8 @@ const ProductsPage = () => {
                                 value={item.id}
                                 className="flex items-center gap-2 h-16"
                               >
-                                <img
-                                  src={item.imageSrc}
+                                <img 
+                                  src={item.imageSrc} 
                                   alt={item.label}
                                   className="h-10 w-10 object-contain"
                                 />
@@ -492,42 +494,6 @@ const ProductsPage = () => {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-};
-
-
-const WarehousesPage = () => {
-  return (
-    <div>
-      <h1>Warehouses Page Content</h1>
-      {/* Add your warehouse-related content here */}
-    </div>
-  );
-};
-
-export default function Inventory() {
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("productos");
-
-  return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Inventario</h1>
-      </div>
-
-      <Tabs defaultValue="productos" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="w-full border-b">
-          <TabsTrigger value="almacen" className="flex-1">Almacén</TabsTrigger>
-          <TabsTrigger value="productos" className="flex-1">Productos</TabsTrigger>
-        </TabsList>
-        <TabsContent value="almacen">
-          <WarehousesPage />
-        </TabsContent>
-        <TabsContent value="productos">
-          <ProductsPage />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
