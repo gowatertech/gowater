@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Warehouse, InsertWarehouse } from "@shared/schema";
 import {
   Table,
   TableBody,
@@ -25,26 +26,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Pencil } from "lucide-react";
+import { insertWarehouseSchema } from "@shared/schema";
 
-interface Warehouse {
-  id: number;
-  code: string;
-  name: string;
-  status: 'active' | 'inactive';
-}
-
-interface WarehouseForm {
-  code: string;
-  name: string;
-  status: 'active' | 'inactive';
-}
-
-export default function WarehouseManagement() {
+export default function WarehousesPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
-  const form = useForm<WarehouseForm>({
+  const form = useForm<InsertWarehouse>({
+    resolver: zodResolver(insertWarehouseSchema),
     defaultValues: {
       code: "",
       name: "",
@@ -53,14 +43,14 @@ export default function WarehouseManagement() {
   });
 
   // Fetch warehouses
-  const { data: warehouses = [], isLoading } = useQuery({
+  const { data: warehouses = [], isLoading } = useQuery<Warehouse[]>({
     queryKey: ["/api/warehouses"],
     staleTime: 10000
   });
 
   // Create warehouse mutation
   const createWarehouseMutation = useMutation({
-    mutationFn: async (data: WarehouseForm) => {
+    mutationFn: async (data: InsertWarehouse) => {
       const response = await apiRequest("POST", "/api/warehouses", data);
       if (!response.ok) {
         throw new Error("Failed to create warehouse");
@@ -86,7 +76,7 @@ export default function WarehouseManagement() {
 
   // Update warehouse mutation
   const updateWarehouseMutation = useMutation({
-    mutationFn: async (data: WarehouseForm & { id: number }) => {
+    mutationFn: async (data: InsertWarehouse & { id: number }) => {
       const response = await apiRequest("PATCH", `/api/warehouses/${data.id}`, data);
       if (!response.ok) {
         throw new Error("Failed to update warehouse");
@@ -111,7 +101,7 @@ export default function WarehouseManagement() {
     }
   });
 
-  const onSubmit = (data: WarehouseForm) => {
+  const onSubmit = (data: InsertWarehouse) => {
     if (editingWarehouse) {
       updateWarehouseMutation.mutate({ ...data, id: editingWarehouse.id });
     } else {
@@ -232,13 +222,13 @@ export default function WarehouseManagement() {
               {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-4">
-                    Loading...
+                    {t("loading")}
                   </TableCell>
                 </TableRow>
               ) : warehouses.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-4">
-                    No warehouses found
+                    {t("noWarehouses")}
                   </TableCell>
                 </TableRow>
               ) : (
