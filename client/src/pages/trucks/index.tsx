@@ -53,16 +53,14 @@ export default function TrucksPage() {
   const createTruckMutation = useMutation({
     mutationFn: async (values: InsertTruck) => {
       console.log("Enviando datos:", values);
-      const response = await apiRequest("POST", "/api/trucks", {
-        method: "POST",
-        body: JSON.stringify({
+      const response = await apiRequest(
+        "POST",
+        "/api/trucks",
+        {
           ...values,
           plate: values.plate.toUpperCase(),
-        }),
-        headers: {
-          "Content-Type": "application/json"
         }
-      });
+      );
 
       if (!response.ok) {
         const error = await response.json();
