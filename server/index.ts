@@ -41,52 +41,46 @@ app.use((req, res, next) => {
     log("Starting server initialization...");
     log(`Current working directory: ${process.cwd()}`);
     log(`Environment: ${process.env.NODE_ENV}`);
-    let server;
 
-    // Register API routes first to ensure they take precedence
-    server = await registerRoutes(app);
-    log("Routes registered successfully");
+    // Register API routes first
+    const server = await registerRoutes(app);
+    log("API routes registered successfully");
 
-    // Configure static file serving and client-side routing
+    // Configure static file serving and client-side routing based on environment
     if (process.env.NODE_ENV === "production") {
       log("Production mode: Setting up static file serving");
       const distPath = path.resolve(process.cwd(), 'dist', 'public');
 
-      log(`Looking for static files in: ${distPath}`);
-
-      // Verify dist directory exists
       if (!fs.existsSync(distPath)) {
         log(`ERROR: Build directory not found at ${distPath}`);
         throw new Error(`Build directory not found at ${distPath}. Please run 'npm run build' first.`);
       }
 
-      // Verify index.html exists
-      const indexPath = path.join(distPath, 'index.html');
-      if (!fs.existsSync(indexPath)) {
-        log(`ERROR: index.html not found at ${indexPath}`);
-        throw new Error(`index.html not found at ${indexPath}. Please ensure the build process completed successfully.`);
-      }
-
-      log(`Found index.html at ${indexPath}`);
-
-      // Serve static files from the client build directory
+      // Serve static files
       app.use(express.static(distPath));
 
-      // Handle client-side routing - send index.html for all non-API routes
+      // Handle client-side routing
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
         }
-
-        log(`Serving index.html for path: ${req.path}`);
-        res.sendFile(indexPath);
+        res.sendFile(path.join(distPath, 'index.html'));
       });
 
       log("Static file serving configured");
     } else {
-      // Development mode - use Vite
-      await setupVite(app, server);
-      log("Development mode: Vite setup complete");
+      // Development mode - use Vite only for non-API routes
+      app.use((req, res, next) => {
+        if (req.path.startsWith('/api/')) {
+          log(`API request detected: ${req.method} ${req.path}`);
+          return next();
+        }
+        log(`Non-API request, using Vite: ${req.method} ${req.path}`);
+        setupVite(app, server)
+          .then(() => next())
+          .catch(next);
+      });
+      log("Development mode: Vite setup modified for API handling");
     }
 
     // Error handling middleware

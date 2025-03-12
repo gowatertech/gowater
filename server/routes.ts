@@ -104,6 +104,50 @@ export async function registerRoutes(app: Express) {
   });
 
 
+  // Truck endpoints
+  app.get("/api/trucks", async (req, res) => {
+    try {
+      const allTrucks = await db
+        .select()
+        .from(trucks)
+        .orderBy(trucks.plate);
+
+      console.log("GET /api/trucks - Retornando:", allTrucks.length, "camiones");
+      res.json(allTrucks);
+    } catch (error) {
+      console.error("Error al obtener camiones:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/trucks", async (req, res) => {
+    try {
+      console.log("POST /api/trucks - Datos recibidos:", req.body);
+
+      // Validar los datos del camión
+      const truckData = {
+        brand: req.body.brand,
+        model: req.body.model,
+        year: Number(req.body.year),
+        plate: req.body.plate.toUpperCase(),
+        color: req.body.color,
+        capacity: Number(req.body.capacity),
+        status: req.body.status || "disponible"
+      };
+
+      const [truck] = await db
+        .insert(trucks)
+        .values(truckData)
+        .returning();
+
+      console.log("POST /api/trucks - Camión creado:", truck);
+      res.json(truck);
+    } catch (error) {
+      console.error("Error al crear camión:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Endpoints para el manejo de direcciones
   app.get("/api/provinces", async (req, res) => {
     try {
