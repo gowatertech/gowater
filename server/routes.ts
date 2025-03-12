@@ -1,6 +1,6 @@
 import type { Express } from "express";
+import { Router } from 'express';
 import { createServer } from "http";
-import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema, warehouses, productionBatchItems, insertWarehouseSchema } from "@shared/schema";
@@ -16,18 +16,16 @@ const upload = multer({
   }
 });
 
-// Almacenar las conexiones activas de los conductores
-const driverConnections = new Map<number, WebSocket>();
-
 export async function registerRoutes(app: Express) {
-  // Configurar express primero
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+  // Crear un router dedicado para las rutas API
+  const apiRouter = Router();
 
-  // API Routes
+  // Configurar parseo JSON para las rutas API
+  apiRouter.use(express.json());
+  apiRouter.use(express.urlencoded({ extended: true }));
 
   // Warehouses endpoints
-  app.get("/api/warehouses", async (req, res) => {
+  apiRouter.get("/warehouses", async (req, res) => {
     try {
       const allWarehouses = await db
         .select()
@@ -42,7 +40,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/warehouses", async (req, res) => {
+  apiRouter.post("/warehouses", async (req, res) => {
     try {
       console.log("POST /api/warehouses - Datos recibidos:", req.body);
 
@@ -67,7 +65,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/warehouses/:id", async (req, res) => {
+  apiRouter.patch("/warehouses/:id", async (req, res) => {
     try {
       console.log("PATCH /api/warehouses/:id - Body recibido:", req.body);
       const warehouseId = parseInt(req.params.id);
@@ -105,7 +103,7 @@ export async function registerRoutes(app: Express) {
 
 
   // Truck endpoints
-  app.get("/api/trucks", async (req, res) => {
+  apiRouter.get("/trucks", async (req, res) => {
     try {
       const allTrucks = await db
         .select()
@@ -120,7 +118,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/trucks", async (req, res) => {
+  apiRouter.post("/trucks", async (req, res) => {
     try {
       console.log("POST /api/trucks - Datos recibidos:", req.body);
 
@@ -134,6 +132,8 @@ export async function registerRoutes(app: Express) {
         capacity: Number(req.body.capacity),
         status: req.body.status || "disponible"
       };
+
+      console.log("POST /api/trucks - Datos procesados:", truckData);
 
       const [truck] = await db
         .insert(trucks)
@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Endpoints para el manejo de direcciones
-  app.get("/api/provinces", async (req, res) => {
+  apiRouter.get("/provinces", async (req, res) => {
     try {
       const allProvinces = await db
         .select()
@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/municipalities/:provinceId", async (req, res) => {
+  apiRouter.get("/municipalities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
       if (isNaN(provinceId)) {
@@ -183,7 +183,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/cities/:provinceId", async (req, res) => {
+  apiRouter.get("/cities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
       const citiesInProvince = await db
@@ -201,7 +201,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/sectors/:cityId", async (req, res) => {
+  apiRouter.get("/sectors/:cityId", async (req, res) => {
     try {
       const cityId = parseInt(req.params.cityId);
       const sectorsInCity = await db
@@ -216,7 +216,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Zonas
-  app.get("/api/zones", async (req, res) => {
+  apiRouter.get("/zones", async (req, res) => {
     try {
       const allZones = await db
         .select()
@@ -229,7 +229,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/zones", async (req, res) => {
+  apiRouter.post("/zones", async (req, res) => {
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error.format() });
@@ -259,7 +259,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/zones/:id", async (req, res) => {
+  apiRouter.delete("/zones/:id", async (req, res) => {
     try {
       const [deletedZone] = await db
         .delete(zones)
@@ -278,7 +278,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Users
-  app.get("/api/users", async (req, res) => {
+  apiRouter.get("/users", async (req, res) => {
     try {
       const role = req.query.role as string;
       let usersList;
@@ -302,7 +302,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Rutas
-  app.get("/api/routes", async (req, res) => {
+  apiRouter.get("/routes", async (req, res) => {
     try {
       const allRoutes = await db
         .select()
@@ -315,7 +315,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/routes", async (req, res) => {
+  apiRouter.post("/routes", async (req, res) => {
     try {
       const routeData = {
         ...req.body,
@@ -344,7 +344,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Customer endpoints
-  app.post("/api/customers", upload.single('logo'), async (req, res) => {
+  apiRouter.post("/customers", upload.single('logo'), async (req, res) => {
     try {
       // Validar los datos del cliente
       const customerData = {
@@ -382,7 +382,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/customers", async (req, res) => {
+  apiRouter.get("/customers", async (req, res) => {
     try {
       const allCustomers = await db
         .select({
@@ -414,7 +414,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/customers/:id", async (req, res) => {
+  apiRouter.get("/customers/:id", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
       const [customer] = await db
@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Agregar después del endpoint GET /api/customers/:id
-  app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
+  apiRouter.patch("/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
 
@@ -477,7 +477,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Endpoints para los ajustes
-  app.get("/api/settings", async (req, res) => {
+  apiRouter.get("/settings", async (req, res) => {
     try {
       const settings = await storage.getSettings();
       console.log("GET /api/settings - Retornando:", settings);
@@ -488,7 +488,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/settings", upload.single('logo'), async (req, res) => {
+  apiRouter.post("/settings", upload.single('logo'), async (req, res) => {
     try {
       console.log("POST /api/settings - Body recibido:", req.body);
       const settingsData = {
@@ -533,7 +533,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Facturas
-  app.get("/api/invoices", async (req, res) => {
+  apiRouter.get("/invoices", async (req, res) => {
     try {
       const allInvoices = await db
         .select({
@@ -556,7 +556,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/invoices", async (req, res) => {
+  apiRouter.post("/invoices", async (req, res) => {
     try {
       const result = insertInvoiceSchema.safeParse(req.body);
       if (!result.success) {
@@ -581,7 +581,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Endpoints para estadísticas del dashboard
-  app.get("/api/dashboard/stats", async (req, res) => {
+  apiRouter.get("/dashboard/stats", async (req, res) => {
     try {
       // Obtener el año actual
       const currentYear = new Date().getFullYear();
@@ -649,7 +649,7 @@ export async function registerRoutes(app: Express) {
   });
 
 
-  app.get("/api/dashboard/payments-stats", async (req, res) => {
+  apiRouter.get("/dashboard/payments-stats", async (req, res) => {
     try {
       // Obtener el año actual y mes
       const currentYear = new Date().getFullYear();
@@ -688,7 +688,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/stats/sales", async (req, res) => {
+  apiRouter.get("/stats/sales", async (req, res) => {
     try {
       // Obtener el total de ventas de las facturas
       const salesStats = await db
@@ -711,7 +711,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/stats/sales-trend", async (req, res) => {
+  apiRouter.get("/stats/sales-trend", async (req, res) => {
     try {
       // Obtener las últimas 7 ventas para tendencia
       const salesData = await db
@@ -736,7 +736,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/stats/order-status", async (req, res) => {
+  apiRouter.get("/stats/order-status", async (req, res) => {
     try {
       // Obtener conteo de pedidos por estado
       const orderStatusData = await db
@@ -774,7 +774,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/stats/top-customers", async (req, res) => {
+  apiRouter.get("/stats/top-customers", async (req, res) => {
     try {
       // Obtener los clientes con más pedidos
       const topCustomersData = await db
@@ -804,7 +804,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/invoices/:id/items", async (req, res) => {
+  apiRouter.get("/invoices/:id/items", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
       const items = await db
@@ -819,7 +819,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/invoices/:id/items", async (req, res) => {
+  apiRouter.post("/invoices/:id/items", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
       const result = insertInvoiceItemSchema.safeParse({
@@ -844,7 +844,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Actualizar método de pago de una factura
-  app.patch("/api/invoices/:id", async (req, res) => {
+  apiRouter.patch("/invoices/:id", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
       const { paymentMethod } = req.body;
@@ -871,7 +871,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Actualizar un item de factura específico
-  app.patch("/api/invoices/:invoiceId/items/:itemId", async (req, res) => {
+  apiRouter.patch("/invoices/:invoiceId/items/:itemId", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.invoiceId);
       const itemId = parseInt(req.params.itemId);
@@ -899,7 +899,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Productos
-  app.get("/api/products", async (req, res) =>{
+  apiRouter.get("/products", async (req, res) =>{
     try {
       const allProducts = await db
         .select()
@@ -914,7 +914,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/products", async (req, res) => {
+  apiRouter.post("/products", async (req, res) => {
     try {
       const productData = {
         ...req.body,
@@ -929,13 +929,12 @@ export async function registerRoutes(app: Express) {
 
       console.log("POST /api/products - Producto creado:", product);      
       res.json(product);
-    } catch (error) {
-            console.error("Error al crear producto:", error);      res.status(500).json({ error: String(error) });
+    } catch (error) {      console.error("Error al crear producto:", error);      res.status(500).json({ error: String(error) });
     }
   });
 
   // Pagos
-  app.get("/api/payments", async (req, res) => {
+  apiRouter.get("/payments", async (req, res) => {
     try {
       const allPayments = await db        
         .select({
@@ -960,7 +959,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/payments", async (req, res) => {
+  apiRouter.post("/payments", async (req, res) => {
     try {
       const paymentData = {
         ...req.body,
@@ -982,7 +981,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Pedidos
-  app.get("/api/orders", async (req, res) => {
+  apiRouter.get("/orders", async (req, res) => {
     try {
       const allOrders = await db
         .select({
@@ -1006,7 +1005,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/orders", async (req, res) => {
+  apiRouter.post("/orders", async (req, res) => {
     try {
       const orderData = {
         ...req.body,
@@ -1043,7 +1042,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/orders/:id/items", async (req, res) => {
+  apiRouter.get("/orders/:id/items", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       console.log("Buscando items para el pedido:", orderId);
@@ -1069,7 +1068,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/reports/sales", async (req, res) => {
+  apiRouter.get("/reports/sales", async (req, res) => {
     try {
       const range = req.query.range || 'month';
       let dateFilter;
@@ -1114,7 +1113,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/reports/payments", async (req, res) => {
+  apiRouter.get("/reports/payments", async (req, res) => {
     try {
       const range = req.query.range || 'month';
       let dateFilter;
@@ -1161,7 +1160,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Endpoints para envases faltantes
-  app.get("/api/envases/faltantes/clientes", async (req, res) => {
+  apiRouter.get("/envases/faltantes/clientes", async (req, res) => {
     try {
       // Datos de ejemplo para pruebas
       const faltantesPorCliente = [
@@ -1196,7 +1195,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/envases/faltantes/choferes", async (req, res) => {
+  apiRouter.get("/envases/faltantes/choferes", async (req, res) => {
     try {
       // Datos de ejemplo para pruebas
       const faltantesPorChofer = [
@@ -1231,7 +1230,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/envases/faltantes", async (req, res) => {
+  apiRouter.post("/envases/faltantes", async (req, res) => {
     try {
       const faltanteData = {
         ...req.body,
@@ -1254,7 +1253,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/envases/faltantes/asignar", async (req, res) => {
+  apiRouter.post("/envases/faltantes/asignar", async (req, res) => {
     try {
       const {
         bottleReturnId,
@@ -1290,7 +1289,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Production batches endpoints
-  app.get("/api/production-batches", async (req, res) => {
+  apiRouter.get("/production-batches", async (req, res) => {
     try {
       const batches = await db
         .select({
@@ -1338,7 +1337,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/production-batches", async (req, res) => {
+  apiRouter.post("/production-batches", async (req, res) => {
     try {
       console.log("POST /api/production-batches - Datos recibidos:", req.body);
 
@@ -1443,60 +1442,10 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Configurar WebSocket después de las rutas API
-  const httpServer = createServer(app);
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws'
-  });
+  // Montar el router API en /api
+  app.use('/api', apiRouter);
 
-  wss.on('connection', (ws) => {
-    console.log('Nueva conexión WebSocket');
-
-    ws.on('message', async (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-
-        if (data.type === 'driver_location') {
-          // Almacenar la conexión del conductor
-          driverConnections.set(data.driverId, ws);
-
-          // Actualizar ubicación en la base de datos
-          await storage.updateDriverLocation(data.driverId, {
-            latitude: data.latitude,
-            longitude: data.longitude,
-            timestamp: new Date()
-          });
-
-          // Broadcast a todos los clientes conectados
-          wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'location_update',
-                driverId: data.driverId,
-                location: {
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  timestamp: new Date()
-                }
-              }));
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error procesando mensaje WebSocket:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      // Eliminar la conexión cuando se cierra
-      driverConnections.forEach((connection, driverId) => {
-        if (connection === ws) {
-          driverConnections.delete(driverId);
-        }
-      });
-    });
-  });
-
-  return httpServer;
+  // Crear y devolver el servidor HTTP
+  const server = createServer(app);
+  return server;
 }
