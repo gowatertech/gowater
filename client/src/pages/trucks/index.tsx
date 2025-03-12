@@ -39,8 +39,17 @@ export default function TrucksPage() {
     }
   });
 
-  const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
-    queryKey: ["/api/trucks"]
+  const { data: trucks = [], isLoading } = useQuery({
+    queryKey: ["/api/trucks"],
+    queryFn: async () => {
+      const response = await fetch("/api/trucks");
+      if (!response.ok) {
+        throw new Error("Error al cargar vehículos");
+      }
+      return response.json();
+    },
+    staleTime: 0,
+    cacheTime: 0
   });
 
   const createTruckMutation = useMutation({
