@@ -389,7 +389,7 @@ export const insertRecurringOrderSchema = z.object({
 // Warehouses
 export const warehouses = pgTable("warehouses", {
   id: serial("id").primaryKey(),
-  code: text("code").notNull().unique(),
+  code: serial("code").unique(),  // Cambiado a serial para auto-incremento
   name: text("name").notNull(),
   address: text("address"),
   status: text("status", { enum: ["active", "inactive"] }).notNull().default("active"),
@@ -397,7 +397,6 @@ export const warehouses = pgTable("warehouses", {
 });
 
 export const insertWarehouseSchema = z.object({
-  code: z.string().min(2, "El código debe tener al menos 2 caracteres"),
   name: z.string().min(1, "El nombre es requerido"),
   address: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),

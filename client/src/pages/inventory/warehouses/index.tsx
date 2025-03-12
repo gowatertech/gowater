@@ -36,7 +36,6 @@ export default function WarehousesPage() {
   const form = useForm<InsertWarehouse>({
     resolver: zodResolver(insertWarehouseSchema),
     defaultValues: {
-      code: "",
       name: "",
       status: "active"
     }
@@ -112,7 +111,6 @@ export default function WarehousesPage() {
   const handleEdit = (warehouse: Warehouse) => {
     setEditingWarehouse(warehouse);
     form.reset({
-      code: warehouse.code,
       name: warehouse.name,
       status: warehouse.status
     });
@@ -131,21 +129,7 @@ export default function WarehousesPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="code"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("code")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -232,7 +216,7 @@ export default function WarehousesPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                warehouses.map((warehouse: Warehouse) => (
+                warehouses.map((warehouse) => (
                   <TableRow key={warehouse.id}>
                     <TableCell>{warehouse.code}</TableCell>
                     <TableCell>{warehouse.name}</TableCell>
