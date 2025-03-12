@@ -35,36 +35,39 @@ interface BatchItem {
 }
 
 export default function ProductionRegistration() {
-  const { toast } = useToast();
+  // Estados
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
+  const { toast } = useToast();
 
-  // Fetch products with error handling
+  // Queries
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["/api/products"],
-    staleTime: 10000
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/products");
+      if (!response.ok) throw new Error("Error al obtener productos");
+      return response.json();
+    }
   });
 
-  // Fetch warehouses with error handling
   const { data: warehouses = [], isLoading: isLoadingWarehouses } = useQuery({
     queryKey: ["/api/warehouses"],
-    staleTime: 10000
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/warehouses");
+      if (!response.ok) throw new Error("Error al obtener almacenes");
+      return response.json();
+    }
   });
 
-  // Fetch production batches
   const { data: productionBatches = [], isLoading: isLoadingBatches } = useQuery({
-    queryKey: ["/api/production-batches"]
+    queryKey: ["/api/production-batches"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/production-batches");
+      if (!response.ok) throw new Error("Error al obtener lotes");
+      return response.json();
+    }
   });
 
-  // Loading state
-  if (isLoadingProducts || isLoadingWarehouses) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-lg">Cargando...</p>
-      </div>
-    );
-  }
-
-  // Item form
+  // Forms
   const itemForm = useForm({
     defaultValues: {
       productId: 0,
@@ -73,18 +76,17 @@ export default function ProductionRegistration() {
     }
   });
 
-  // Main form
   const mainForm = useForm({
     resolver: zodResolver(insertProductionBatchSchema),
     defaultValues: {
       warehouseId: 0,
       notes: "",
-      status: "completed",
+      status: "completed" as const,
       items: []
     }
   });
 
-  // Create batch mutation
+  // Mutation
   const createBatchMutation = useMutation({
     mutationFn: async (data: InsertProductionBatch) => {
       const response = await apiRequest("POST", "/api/production-batches", data);
@@ -104,14 +106,14 @@ export default function ProductionRegistration() {
     },
     onError: (error: Error) => {
       toast({
+        variant: "destructive",
         title: "Error",
-        description: error.message,
-        variant: "destructive"
+        description: error.message
       });
     }
   });
 
-  // Handle submitting the entire batch
+  // Handlers
   const onSubmit = (data: InsertProductionBatch) => {
     if (!data.warehouseId) {
       toast({
@@ -145,8 +147,7 @@ export default function ProductionRegistration() {
     createBatchMutation.mutate(batchData);
   };
 
-  // Handle adding items to the batch
-  const handleAddItem = (data: BatchItem) => {
+  const handleAddItem = (data: any) => {
     if (!data.productId) {
       toast({
         title: "Error",
@@ -179,10 +180,17 @@ export default function ProductionRegistration() {
     itemForm.reset();
   };
 
-  // Handle removing items from the batch
   const handleRemoveItem = (index: number) => {
     setBatchItems(prev => prev.filter((_, i) => i !== index));
   };
+
+  if (isLoadingProducts || isLoadingWarehouses) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-lg">Cargando...</p>
+      </div>
+    );
+  }
 
   const totalCost = batchItems.reduce((sum, item) => sum + parseFloat(item.total), 0);
 
