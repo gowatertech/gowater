@@ -97,6 +97,47 @@ export default function TrucksPage() {
       </div>
       <Separator />
 
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {isLoading ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            Cargando vehículos...
+          </div>
+        ) : trucks.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            No hay vehículos registrados
+          </div>
+        ) : (
+          trucks.map((truck: TruckType) => (
+            <Card
+              key={truck.id}
+              className="p-6 bg-white rounded-xl shadow-sm"
+            >
+              <div className="flex flex-col">
+                <div className="flex items-center gap-3 mb-3">
+                  <Truck className="h-6 w-6 text-blue-600" />
+                  <h3 className="text-xl font-semibold">
+                    {truck.brand} {truck.model}
+                  </h3>
+                </div>
+                <div className="text-gray-600 text-lg">
+                  {truck.plate} • {truck.year}
+                </div>
+                <div className="text-gray-600 text-lg">
+                  Capacidad: {truck.capacity}L
+                </div>
+                <div className="mt-4">
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    {truck.status === "disponible" ? "Disponible" :
+                     truck.status === "en_ruta" ? "En ruta" :
+                     "En mantenimiento"}
+                  </span>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
       <Card className="p-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -136,7 +177,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Año</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         type="number"
                         min={1990}
                         max={currentYear}
@@ -155,8 +196,8 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Placa</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Ingrese la placa" 
+                      <Input
+                        placeholder="Ingrese la placa"
                         maxLength={10}
                         {...field}
                       />
@@ -187,7 +228,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Capacidad (L)</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         type="number"
                         min={1}
                         placeholder="Ingrese la capacidad"
@@ -223,8 +264,8 @@ export default function TrucksPage() {
               />
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={isSubmitting}
             >
@@ -233,47 +274,6 @@ export default function TrucksPage() {
           </form>
         </Form>
       </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {isLoading ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            Cargando vehículos...
-          </div>
-        ) : trucks.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            No hay vehículos registrados
-          </div>
-        ) : (
-          trucks.map((truck: TruckType) => (
-            <Card
-              key={truck.id}
-              className="p-6 bg-white rounded-xl shadow-sm"
-            >
-              <div className="flex flex-col">
-                <div className="flex items-center gap-3 mb-3">
-                  <Truck className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-xl font-semibold">
-                    {truck.brand} {truck.model}
-                  </h3>
-                </div>
-                <div className="text-gray-600 text-lg mb-2">
-                  {truck.plate} • {truck.year}
-                </div>
-                <div className="text-gray-600 text-lg mb-4">
-                  Capacidad: {truck.capacity}L
-                </div>
-                <div className="mt-auto">
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    {truck.status === "disponible" ? "Disponible" :
-                     truck.status === "en_ruta" ? "En ruta" :
-                     "En mantenimiento"}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
     </div>
   );
 }
