@@ -44,19 +44,21 @@ export default function TrucksPage() {
     queryKey: ["/api/trucks"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/trucks");
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Error al cargar vehículos");
+        throw new Error("Error al cargar vehículos");
       }
-      return data;
+      return response.json();
     },
   });
 
   // Mutation para crear un nuevo camión
   const createTruckMutation = useMutation({
-    mutationFn: async (newTruck: InsertTruck) => {
+    mutationFn: async (values: InsertTruck) => {
       const response = await apiRequest("POST", "/api/trucks", {
-        body: JSON.stringify(newTruck),
+        body: JSON.stringify({
+          ...values,
+          plate: values.plate.toUpperCase(),
+        }),
         headers: {
           "Content-Type": "application/json"
         }
@@ -91,17 +93,7 @@ export default function TrucksPage() {
 
   const onSubmit = (values: InsertTruck) => {
     setIsSubmitting(true);
-    const submittedValues = {
-      brand: values.brand.trim(),
-      model: values.model.trim(),
-      year: Number(values.year),
-      plate: values.plate.trim().toUpperCase(),
-      color: values.color.trim(),
-      capacity: Number(values.capacity),
-      status: values.status
-    };
-
-    createTruckMutation.mutate(submittedValues);
+    createTruckMutation.mutate(values);
   };
 
   const getStatusColor = (status: string) => {
@@ -150,9 +142,8 @@ export default function TrucksPage() {
                     <FormLabel>Marca</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Ingrese la marca" 
-                        {...field} 
-                        onChange={(e) => field.onChange(e.target.value.trim())}
+                        placeholder="Ingrese la marca"
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
@@ -168,9 +159,8 @@ export default function TrucksPage() {
                     <FormLabel>Modelo</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Ingrese el modelo" 
+                        placeholder="Ingrese el modelo"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value.trim())}
                       />
                     </FormControl>
                     <FormMessage />
@@ -209,9 +199,8 @@ export default function TrucksPage() {
                     <FormLabel>Placa</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Ingrese la placa" 
+                        placeholder="Ingrese la placa"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
                         maxLength={10}
                       />
                     </FormControl>
@@ -228,9 +217,8 @@ export default function TrucksPage() {
                     <FormLabel>Color</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="Ingrese el color" 
+                        placeholder="Ingrese el color"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value.trim())}
                       />
                     </FormControl>
                     <FormMessage />
@@ -246,9 +234,9 @@ export default function TrucksPage() {
                     <FormLabel>Capacidad (L)</FormLabel>
                     <FormControl>
                       <Input 
-                        type="number" 
+                        type="number"
                         min={1}
-                        placeholder="Ingrese la capacidad" 
+                        placeholder="Ingrese la capacidad"
                         {...field}
                         onChange={(e) => {
                           const value = parseInt(e.target.value);
