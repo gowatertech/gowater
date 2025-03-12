@@ -14,7 +14,8 @@ import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
-import Entregas from "@/pages/entregas";
+// Cambio la importación para usar ruta relativa
+import Entregas from "./pages/entregas";
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
 import Faltantes from "@/pages/envases/faltantes";
