@@ -1,10 +1,9 @@
 import {
-  users, customers, products, trucks, routes, orders, orderItems,
+  users, customers, products, routes, orders, orderItems,
   settings as settingsTable,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
-  type Truck, type InsertTruck,
   type Route, type InsertRoute,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
@@ -42,12 +41,6 @@ export interface IStorage {
   createProduct(product: InsertProduct): Promise<Product>;
   listProducts(): Promise<Product[]>;
   updateProductStock(id: number, quantity: number): Promise<Product>;
-
-  // Trucks
-  getTruck(id: number): Promise<Truck | undefined>;
-  createTruck(truck: InsertTruck): Promise<Truck>;
-  listTrucks(): Promise<Truck[]>;
-  updateTruckStatus(id: number, status: "available" | "on_route" | "maintenance"): Promise<Truck>;
 
   // Routes
   getRoute(id: number): Promise<Route | undefined>;
@@ -190,38 +183,6 @@ export class DatabaseStorage implements IStorage {
     return updatedProduct;
   }
 
-  // Trucks
-  async getTruck(id: number): Promise<Truck | undefined> {
-    const [truck] = await db.select().from(trucks).where(eq(trucks.id, id));
-    return truck;
-  }
-
-  async createTruck(truck: InsertTruck): Promise<Truck> {
-    const [newTruck] = await db.insert(trucks).values(truck).returning();
-    return newTruck;
-  }
-
-  async listTrucks(): Promise<Truck[]> {
-    return db.select().from(trucks);
-  }
-
-  async updateTruckStatus(id: number, status: "available" | "on_route" | "maintenance"): Promise<Truck> {
-    const [truck] = await db
-      .select()
-      .from(trucks)
-      .where(eq(trucks.id, id));
-
-    if (!truck) throw new Error("Camión no encontrado");
-
-    const [updatedTruck] = await db
-      .update(trucks)
-      .set({ status })
-      .where(eq(trucks.id, id))
-      .returning();
-
-    return updatedTruck;
-  }
-
   // Routes
   async getRoute(id: number): Promise<Route | undefined> {
     const [route] = await db.select().from(routes).where(eq(routes.id, id));
@@ -231,11 +192,13 @@ export class DatabaseStorage implements IStorage {
   async createRoute(route: InsertRoute): Promise<Route> {
     const routeData = {
       ...route,
+      date: new Date(route.date),
       startTime: route.startTime ? new Date(route.startTime) : null,
       endTime: route.endTime ? new Date(route.endTime) : null,
       lastUpdate: route.lastUpdate ? new Date(route.lastUpdate) : null,
+      driverStartedAt: route.driverStartedAt ? new Date(route.driverStartedAt) : null,
     };
-    const [newRoute] = await db.insert(routes).values(routeData).returning();
+    const [newRoute] = await db.insert(routes).values([routeData]).returning();
     return newRoute;
   }
 
@@ -514,7 +477,6 @@ export class DatabaseStorage implements IStorage {
 
   // Implementación de métodos para envases retornables
   async createBottleReturn(bottleReturn: InsertBottleReturn): Promise<BottleReturn> {
-    // Calcula el monto del depósito basado en el producto
     const [product] = await db
       .select()
       .from(products)
@@ -524,15 +486,28 @@ export class DatabaseStorage implements IStorage {
       throw new Error("El producto no es retornable");
     }
 
+    const depositAmount = product.depositAmount || "0.00";
+
     const initialBottleReturn = {
-      ...bottleReturn,
+      orderId: bottleReturn.orderId,
+      productId: bottleReturn.productId,
+      expectedQuantity: bottleReturn.expectedQuantity,
+      returnedQuantity: bottleReturn.returnedQuantity,
+      returnDate: new Date(bottleReturn.returnDate),
       status: "pending" as const,
       pendingQuantity: bottleReturn.expectedQuantity,
       amountCharged: "0.00",
-      depositAmount: product.depositAmount
+      depositAmount: depositAmount,
+      automaticAlert: bottleReturn.automaticAlert,
+      manuallyAssigned: bottleReturn.manuallyAssigned,
+      responsibleType: bottleReturn.responsibleType,
+      customerPercentage: bottleReturn.customerPercentage,
+      driverPercentage: bottleReturn.driverPercentage,
+      chargeMethod: bottleReturn.chargeMethod,
+      justification: bottleReturn.justification
     };
 
-    const [newReturn] = await db.insert(bottleReturns).values(initialBottleReturn).returning();
+    const [newReturn] = await db.insert(bottleReturns).values([initialBottleReturn]).returning();
     return newReturn;
   }
 
@@ -544,10 +519,11 @@ export class DatabaseStorage implements IStorage {
 
     if (!bottleReturn) throw new Error("Devolución de envase no encontrada");
 
+    const depositAmount = bottleReturn.depositAmount || "0.00";
     const pendingQuantity = bottleReturn.expectedQuantity - returnedQuantity;
     const status = pendingQuantity === 0 ? "complete" as const : "incomplete" as const;
     const amountCharged = pendingQuantity > 0
-      ? (pendingQuantity * parseFloat(bottleReturn.depositAmount)).toFixed(2)
+      ? (pendingQuantity * parseFloat(depositAmount)).toFixed(2)
       : "0.00";
 
     const [updatedReturn] = await db

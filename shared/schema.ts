@@ -155,39 +155,12 @@ export const insertCustomerSchema = z.object({
   creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
 });
 
-// Trucks
-export const trucks = pgTable("trucks", {
-  id: serial("id").primaryKey(),
-  brand: text("brand").notNull(),
-  model: text("model").notNull(),
-  year: integer("year").notNull(),
-  plate: text("plate").notNull().unique(),
-  color: text("color").notNull(),
-  capacity: integer("capacity").notNull(),
-  status: text("status", { enum: ["disponible", "en_ruta", "mantenimiento"] }).notNull().default("disponible"),
-});
-
-export const insertTruckSchema = z.object({
-  brand: z.string().min(1, "La marca es requerida"),
-  model: z.string().min(1, "El modelo es requerido"),
-  year: z.coerce.number().min(1990, "El año debe ser mayor a 1990"),
-  plate: z.string().min(1, "La placa es requerida"),
-  color: z.string().min(1, "El color es requerido"),
-  capacity: z.coerce.number().min(1, "La capacidad debe ser mayor a 0"),
-  status: z.enum(["disponible", "en_ruta", "mantenimiento"]).default("disponible"),
-});
-
-// Add to type exports
-export type Truck = typeof trucks.$inferSelect;
-export type InsertTruck = z.infer<typeof insertTruckSchema>;
-
-// Routes
+// Routes - updated to remove truck references
 export const routes = pgTable("routes", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   driverId: integer("driver_id").notNull().references(() => users.id),
   assistantId: integer("assistant_id").references(() => users.id),
-  truckId: integer("truck_id").notNull(),
   zoneId: integer("zone_id").references(() => zones.id),
   status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull(),
   date: timestamp("date").notNull(),
@@ -209,7 +182,6 @@ export const insertRouteSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   driverId: z.number({ required_error: "Se requiere un conductor" }),
   date: z.date(),
-  truckId: z.number().default(1),
   zoneId: z.number({ required_error: "Se requiere una zona" }),
   status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
   isCompleted: z.boolean().default(false),
@@ -652,7 +624,8 @@ export type Bill = typeof bills.$inferSelect;
 export type BillItem = typeof billItems.$inferSelect;
 export type InsertBill = z.infer<typeof insertBillSchema>;
 export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
-export type Payment = typeof payments.$inferSelect;export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type Warehouse = typeof warehouses.$inferSelect;
