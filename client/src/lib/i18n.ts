@@ -16,6 +16,8 @@ const resources = {
       trucks: "Trucks",
       orders: "Orders",
       reports: "Reports",
+      warehouses: "Warehouses",
+      warehouseManagement: "Warehouse Management",
 
       // Common
       save: "Save",
@@ -31,6 +33,10 @@ const resources = {
       createZone: "Create Zone",
       noZones: "No zones created yet",
       zoneName: "Zone Name",
+      code: "Code",
+      description: "Description",
+      active: "Active",
+      inactive: "Inactive",
 
       // Forms
       name: "Name",
@@ -49,6 +55,8 @@ const resources = {
       // Success messages
       success: "Success",
       batchCreated: "Production batch created successfully",
+      warehouseCreated: "Warehouse created successfully",
+      warehouseUpdated: "Warehouse updated successfully",
 
       // Error messages
       error: "Error",
@@ -68,6 +76,8 @@ const resources = {
       trucks: "Camiones",
       orders: "Pedidos",
       reports: "Reportes",
+      warehouses: "Almacenes",
+      warehouseManagement: "Gestión de Almacenes",
 
       // Common
       save: "Guardar",
@@ -83,6 +93,10 @@ const resources = {
       createZone: "Crear Zona",
       noZones: "No hay zonas creadas",
       zoneName: "Nombre de la Zona",
+      code: "Código",
+      description: "Descripción",
+      active: "Activo",
+      inactive: "Inactivo",
 
       // Forms
       name: "Nombre",
@@ -101,6 +115,8 @@ const resources = {
       // Success messages
       success: "Éxito",
       batchCreated: "Lote de producción creado exitosamente",
+      warehouseCreated: "Almacén creado exitosamente",
+      warehouseUpdated: "Almacén actualizado exitosamente",
 
       // Error messages
       error: "Error",
