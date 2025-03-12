@@ -45,13 +45,17 @@ export default function TrucksPage() {
 
   const createTruckMutation = useMutation({
     mutationFn: (data: InsertTruck) => {
-      console.log("Mutation - Enviando datos:", data);
       return fetch("/api/trucks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Error al crear el vehículo");
+        }
+        return response.json();
       });
     },
     onSuccess: () => {
@@ -62,8 +66,7 @@ export default function TrucksPage() {
       form.reset();
       setIsSubmitting(false);
     },
-    onError: (error: Error) => {
-      console.error("Error en mutation:", error);
+    onError: () => {
       toast({
         variant: "destructive",
         description: "Error al crear el vehículo",
@@ -73,7 +76,6 @@ export default function TrucksPage() {
   });
 
   const onSubmit = (values: InsertTruck) => {
-    console.log("Formulario enviado:", values);
     setIsSubmitting(true);
     createTruckMutation.mutate({
       ...values,
@@ -128,7 +130,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Año</FormLabel>
                     <FormControl>
-                      <Input
+                      <Input 
                         type="number"
                         min={1990}
                         max={currentYear}
