@@ -569,7 +569,43 @@ export const insertSettingsSchema = z.object({
   tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales").default("0.00"),
 });
 
-// Type exports
+// Production Batches
+export const productionBatches = pgTable("production_batches", {
+  id: serial("id").primaryKey(),
+  batchNumber: text("batch_number").notNull().unique(),
+  warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id),
+  date: timestamp("date").notNull().defaultNow(),
+  notes: text("notes"),
+  status: text("status", { enum: ["pending", "completed"] }).notNull().default("completed"),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }).notNull().default("0.00"),
+});
+
+export const productionBatchItems = pgTable("production_batch_items", {
+  id: serial("id").primaryKey(),
+  batchId: integer("batch_id").notNull().references(() => productionBatches.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
+});
+
+export const insertProductionBatchSchema = z.object({
+  warehouseId: z.number(),
+  notes: z.string().optional(),
+  status: z.enum(["pending", "completed"]).default("completed"),
+  items: z.array(z.object({
+    productId: z.number(),
+    quantity: z.number(),
+    cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
+  })),
+});
+
+export const insertProductionBatchItemSchema = z.object({
+  productId: z.number(),
+  quantity: z.number(),
+  cost: z.string().regex(/^\d+\.\d{2}$/, "El costo debe tener 2 decimales"),
+});
+
+// Add to type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Product = typeof products.$inferSelect;
@@ -645,3 +681,8 @@ export type DriverLocation = {
   longitude: number;
   timestamp: Date;
 };
+
+export type ProductionBatch = typeof productionBatches.$inferSelect;
+export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
+export type ProductionBatchItem = typeof productionBatchItems.$inferSelect;
+export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItemSchema>;

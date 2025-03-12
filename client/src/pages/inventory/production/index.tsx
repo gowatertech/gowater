@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -36,7 +35,6 @@ interface BatchItem {
 }
 
 export default function ProductionRegistration() {
-  const { t } = useTranslation();
   const { toast } = useToast();
   const [batchItems, setBatchItems] = useState<BatchItem[]>([]);
 
@@ -61,7 +59,7 @@ export default function ProductionRegistration() {
   if (isLoadingProducts || isLoadingWarehouses) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-lg">Loading...</p>
+        <p className="text-lg">Cargando...</p>
       </div>
     );
   }
@@ -91,15 +89,15 @@ export default function ProductionRegistration() {
     mutationFn: async (data: InsertProductionBatch) => {
       const response = await apiRequest("POST", "/api/production-batches", data);
       if (!response.ok) {
-        throw new Error("Failed to create production batch");
+        throw new Error("Error al crear lote de producción");
       }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-batches"] });
       toast({
-        title: "Success",
-        description: "Production batch created successfully"
+        title: "Éxito",
+        description: "Lote de producción creado exitosamente"
       });
       setBatchItems([]);
       mainForm.reset();
@@ -118,7 +116,7 @@ export default function ProductionRegistration() {
     if (!data.warehouseId) {
       toast({
         title: "Error",
-        description: "Please select a warehouse",
+        description: "Por favor seleccione un almacén",
         variant: "destructive"
       });
       return;
@@ -127,7 +125,7 @@ export default function ProductionRegistration() {
     if (batchItems.length === 0) {
       toast({
         title: "Error",
-        description: "Please add at least one product to the batch",
+        description: "Por favor agregue al menos un producto al lote",
         variant: "destructive"
       });
       return;
@@ -152,7 +150,7 @@ export default function ProductionRegistration() {
     if (!data.productId) {
       toast({
         title: "Error",
-        description: "Please select a product",
+        description: "Por favor seleccione un producto",
         variant: "destructive"
       });
       return;
@@ -161,7 +159,7 @@ export default function ProductionRegistration() {
     if (!data.quantity || data.quantity <= 0) {
       toast({
         title: "Error",
-        description: "Quantity must be greater than 0",
+        description: "La cantidad debe ser mayor a 0",
         variant: "destructive"
       });
       return;
@@ -170,7 +168,7 @@ export default function ProductionRegistration() {
     if (!data.cost || parseFloat(data.cost) <= 0) {
       toast({
         title: "Error",
-        description: "Cost must be greater than 0",
+        description: "El costo debe ser mayor a 0",
         variant: "destructive"
       });
       return;
@@ -190,11 +188,11 @@ export default function ProductionRegistration() {
 
   return (
     <div className="container mx-auto p-4 space-y-4">
-      <h1 className="text-2xl font-bold mb-4">Register Production</h1>
+      <h1 className="text-2xl font-bold mb-4">Registrar Producción</h1>
 
       <Card>
         <CardHeader>
-          <CardTitle>Batch Details</CardTitle>
+          <CardTitle>Detalles del Lote</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...mainForm}>
@@ -205,14 +203,14 @@ export default function ProductionRegistration() {
                   name="warehouseId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Warehouse</FormLabel>
+                      <FormLabel>Almacén</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select Warehouse" />
+                            <SelectValue placeholder="Seleccionar Almacén" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -236,9 +234,9 @@ export default function ProductionRegistration() {
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Notes</FormLabel>
+                      <FormLabel>Notas</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="Observaciones del lote" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -252,7 +250,7 @@ export default function ProductionRegistration() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Add Products</CardTitle>
+          <CardTitle>Agregar Productos</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...itemForm}>
@@ -263,14 +261,14 @@ export default function ProductionRegistration() {
                   name="productId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Product</FormLabel>
+                      <FormLabel>Producto</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select Product" />
+                            <SelectValue placeholder="Seleccionar Producto" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -294,7 +292,7 @@ export default function ProductionRegistration() {
                   name="quantity"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Quantity</FormLabel>
+                      <FormLabel>Cantidad</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -313,7 +311,7 @@ export default function ProductionRegistration() {
                   name="cost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cost per Unit</FormLabel>
+                      <FormLabel>Costo por Unidad</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -328,7 +326,7 @@ export default function ProductionRegistration() {
                 />
 
                 <div className="flex items-end">
-                  <Button type="submit">Add Product</Button>
+                  <Button type="submit">Agregar Producto</Button>
                 </div>
               </div>
             </form>
@@ -336,7 +334,7 @@ export default function ProductionRegistration() {
 
           {batchItems.length > 0 && (
             <div className="mt-4">
-              <h3 className="font-semibold mb-2">Products in Batch</h3>
+              <h3 className="font-semibold mb-2">Productos en el Lote</h3>
               <div className="space-y-2">
                 {batchItems.map((item, index) => {
                   const product = products.find((p) => p.id === item.productId);
@@ -348,7 +346,7 @@ export default function ProductionRegistration() {
                       <div>
                         <span className="font-medium">{product?.name}</span>
                         <span className="text-sm text-muted-foreground ml-2">
-                          {item.quantity} units @ ${item.cost} = ${item.total}
+                          {item.quantity} unidades @ RD${item.cost} = RD${item.total}
                         </span>
                       </div>
                       <Button
@@ -362,7 +360,7 @@ export default function ProductionRegistration() {
                   );
                 })}
                 <div className="text-right font-semibold">
-                  Total Cost: ${totalCost.toFixed(2)}
+                  Costo Total: RD${totalCost.toFixed(2)}
                 </div>
               </div>
             </div>
@@ -373,7 +371,7 @@ export default function ProductionRegistration() {
               onClick={mainForm.handleSubmit(onSubmit)}
               disabled={batchItems.length === 0 || createBatchMutation.isPending}
             >
-              Create Production Batch
+              Crear Lote de Producción
             </Button>
           </div>
         </CardContent>
@@ -381,31 +379,31 @@ export default function ProductionRegistration() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Production History</CardTitle>
+          <CardTitle>Historial de Producción</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Batch Number</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Warehouse</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead>Total Cost</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Número de Lote</TableHead>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Almacén</TableHead>
+                <TableHead>Productos</TableHead>
+                <TableHead>Costo Total</TableHead>
+                <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingBatches ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4">
-                    Loading production batches...
+                    Cargando lotes de producción...
                   </TableCell>
                 </TableRow>
               ) : productionBatches.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
-                    No production batches found
+                    No se encontraron lotes de producción
                   </TableCell>
                 </TableRow>
               ) : (
@@ -423,12 +421,12 @@ export default function ProductionRegistration() {
                         ))}
                       </ul>
                     </TableCell>
-                    <TableCell>${batch.totalCost}</TableCell>
+                    <TableCell>RD${batch.totalCost}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         batch.status === "completed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
                       }`}>
-                        {batch.status.charAt(0).toUpperCase() + batch.status.slice(1)}
+                        {batch.status === "completed" ? "Completado" : "Pendiente"}
                       </span>
                     </TableCell>
                   </TableRow>
