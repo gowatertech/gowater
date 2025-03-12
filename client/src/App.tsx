@@ -43,8 +43,6 @@ function Router() {
 
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
-        <Route path="/routes/recurring" component={RecurringOrders} />
-        <Route path="/routes/driver" component={DriverView} />
         <Route path="/users" component={Users} />
         <Route path="/trucks" component={Trucks} />
         <Route path="/tutorial" component={TutorialPage} />

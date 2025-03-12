@@ -42,7 +42,6 @@ const sidebarItems = [
     subItems: [
       { label: "Inventory", href: "/inventory/products" },
       { label: "warehouses", href: "/inventory/warehouses" },
-      { label: "Load Truck", href: "/inventory/load" },
     ],
   },
   {
