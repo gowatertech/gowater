@@ -26,35 +26,31 @@ export default function TrucksPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const currentYear = new Date().getFullYear();
 
-  const form = useForm<InsertTruck>({
-    resolver: zodResolver(insertTruckSchema),
-    defaultValues: {
-      brand: "",
-      model: "",
-      year: currentYear,
-      plate: "",
-      color: "",
-      capacity: 1000,
-      status: "disponible"
-    }
-  });
-
   const { data: trucks = [], isLoading } = useQuery({
     queryKey: ["/api/trucks"],
     queryFn: async () => {
       const response = await fetch("/api/trucks");
-      if (!response.ok) {
-        throw new Error("Error al cargar vehículos");
-      }
       const data = await response.json();
-      console.log("Trucks loaded:", data);
+      console.log("Loaded trucks:", data);
       return data;
+    }
+  });
+
+  const form = useForm<InsertTruck>({
+    resolver: zodResolver(insertTruckSchema),
+    defaultValues: {
+      brand: "Toyota",
+      model: "Dyna",
+      year: 2020,
+      plate: "ABC123",
+      color: "Blanco",
+      capacity: 2000,
+      status: "disponible"
     }
   });
 
   const createTruckMutation = useMutation({
     mutationFn: async (data: InsertTruck) => {
-      console.log("Creating truck with data:", data);
       const response = await fetch("/api/trucks", {
         method: "POST",
         headers: {
@@ -64,14 +60,10 @@ export default function TrucksPage() {
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error("Error creating truck:", error);
-        throw new Error(error || "Error al crear el vehículo");
+        throw new Error("Error al crear el vehículo");
       }
 
-      const result = await response.json();
-      console.log("Truck created:", result);
-      return result;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -81,24 +73,26 @@ export default function TrucksPage() {
       form.reset();
       setIsSubmitting(false);
     },
-    onError: (error: Error) => {
-      console.error("Mutation error:", error);
+    onError: () => {
       toast({
         variant: "destructive",
-        description: error.message || "Error al crear el vehículo",
+        description: "Error al crear el vehículo",
       });
       setIsSubmitting(false);
     }
   });
 
   const onSubmit = (values: InsertTruck) => {
-    console.log("Form submitted with values:", values);
     setIsSubmitting(true);
     createTruckMutation.mutate({
       ...values,
       plate: values.plate.toUpperCase()
     });
   };
+
+  if (isLoading) {
+    return <div className="p-4">Cargando vehículos...</div>;
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -109,44 +103,34 @@ export default function TrucksPage() {
       <Separator />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {isLoading ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            Cargando vehículos...
-          </div>
-        ) : trucks.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            No hay vehículos registrados
-          </div>
-        ) : (
-          trucks.map((truck: TruckType) => (
-            <Card
-              key={truck.id}
-              className="p-6 bg-white rounded-xl shadow-sm"
-            >
-              <div className="flex flex-col">
-                <div className="flex items-center gap-3 mb-3">
-                  <Truck className="h-6 w-6 text-blue-600" />
-                  <h3 className="text-xl font-semibold">
-                    {truck.brand} {truck.model}
-                  </h3>
-                </div>
-                <div className="text-gray-600 text-lg">
-                  {truck.plate} • {truck.year}
-                </div>
-                <div className="text-gray-600 text-lg">
-                  Capacidad: {truck.capacity}L
-                </div>
-                <div className="mt-4">
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    {truck.status === "disponible" ? "Disponible" :
-                     truck.status === "en_ruta" ? "En ruta" :
-                     "En mantenimiento"}
-                  </span>
-                </div>
+        {trucks.map((truck: TruckType) => (
+          <Card
+            key={truck.id}
+            className="p-6 bg-white rounded-xl shadow-sm"
+          >
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3 mb-3">
+                <Truck className="h-6 w-6 text-blue-600" />
+                <h3 className="text-xl font-semibold">
+                  {truck.brand} {truck.model}
+                </h3>
               </div>
-            </Card>
-          ))
-        )}
+              <div className="text-gray-600 text-lg">
+                {truck.plate} • {truck.year}
+              </div>
+              <div className="text-gray-600 text-lg">
+                Capacidad: {truck.capacity}L
+              </div>
+              <div className="mt-4">
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  {truck.status === "disponible" ? "Disponible" :
+                   truck.status === "en_ruta" ? "En ruta" :
+                   "En mantenimiento"}
+                </span>
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
 
       <Card className="p-6">
@@ -160,7 +144,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Marca</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ingrese la marca" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -174,7 +158,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Modelo</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ingrese el modelo" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -188,12 +172,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Año</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1990}
-                        max={currentYear}
-                        {...field}
-                      />
+                      <Input type="number" min={1990} max={currentYear} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -207,11 +186,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Placa</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ingrese la placa"
-                        maxLength={10}
-                        {...field}
-                      />
+                      <Input maxLength={10} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -225,7 +200,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Color</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ingrese el color" {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -239,12 +214,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Capacidad (L)</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        placeholder="Ingrese la capacidad"
-                        {...field}
-                      />
+                      <Input type="number" min={1} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -260,7 +230,7 @@ export default function TrucksPage() {
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Seleccione un estado" />
+                          <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
