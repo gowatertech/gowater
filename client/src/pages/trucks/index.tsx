@@ -54,6 +54,7 @@ export default function TrucksPage() {
   // Mutation para crear un nuevo camión
   const createTruckMutation = useMutation({
     mutationFn: async (values: InsertTruck) => {
+      console.log("Enviando datos:", values);
       const response = await apiRequest("POST", "/api/trucks", {
         body: JSON.stringify({
           ...values,
@@ -66,6 +67,7 @@ export default function TrucksPage() {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error("Error response:", error);
         throw new Error(error.message || "Error al crear el vehículo");
       }
 
@@ -80,6 +82,7 @@ export default function TrucksPage() {
       form.reset();
     },
     onError: (error: Error) => {
+      console.error("Error en mutation:", error);
       toast({
         variant: "destructive",
         description: error.message || "Error al crear el vehículo",
@@ -92,6 +95,7 @@ export default function TrucksPage() {
   });
 
   const onSubmit = (values: InsertTruck) => {
+    console.log("Formulario enviado:", values);
     setIsSubmitting(true);
     createTruckMutation.mutate(values);
   };
@@ -141,10 +145,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Marca</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Ingrese la marca"
-                        {...field}
-                      />
+                      <Input placeholder="Ingrese la marca" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -158,10 +159,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Modelo</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Ingrese el modelo"
-                        {...field}
-                      />
+                      <Input placeholder="Ingrese el modelo" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -216,10 +214,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Color</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Ingrese el color"
-                        {...field}
-                      />
+                      <Input placeholder="Ingrese el color" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
