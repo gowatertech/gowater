@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card } from "@/components/ui/card";
@@ -29,29 +29,16 @@ export default function TrucksPage() {
   const form = useForm<InsertTruck>({
     resolver: zodResolver(insertTruckSchema),
     defaultValues: {
-      brand: "Toyota",
-      model: "Dyna",
-      year: 2022,
-      plate: "ABC123",
-      color: "Blanco",
+      brand: "",
+      model: "",
+      year: currentYear,
+      plate: "",
+      color: "",
       capacity: 1000,
       status: "disponible"
     }
   });
 
-  // Efecto para probar el formulario automáticamente
-  useEffect(() => {
-    const testForm = async () => {
-      try {
-        const testData = form.getValues();
-        console.log("Probando formulario con datos:", testData);
-        await onSubmit(testData);
-      } catch (error) {
-        console.error("Error en prueba automática:", error);
-      }
-    };
-    testForm();
-  }, []);
 
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
@@ -209,11 +196,7 @@ export default function TrucksPage() {
                   <FormItem>
                     <FormLabel>Placa</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Ingrese la placa"
-                        {...field}
-                        maxLength={10}
-                      />
+                      <Input placeholder="Ingrese la placa" {...field} maxLength={10} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
