@@ -54,7 +54,29 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const onSubmit = async (values: InsertTruck) => {
     try {
       setIsSubmitting(true);
-      console.log("Enviando datos del camión:", values); // Log para debug
+      console.log("Iniciando validación del formulario...");
+      console.log("Datos ingresados:", values);
+
+      // Validaciones manuales
+      if (!values.brand || !values.model || !values.plate || !values.color) {
+        console.log("Error: Campos requeridos faltantes");
+        toast({
+          variant: "destructive",
+          description: "Por favor, complete todos los campos requeridos",
+          duration: 3000,
+        });
+        return;
+      }
+
+      if (values.plate.length < 3) {
+        console.log("Error: Placa demasiado corta");
+        toast({
+          variant: "destructive",
+          description: "La placa debe tener al menos 3 caracteres",
+          duration: 3000,
+        });
+        return;
+      }
 
       const submittedValues = {
         brand: values.brand.trim(),
@@ -66,7 +88,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         status: values.status || "disponible"
       };
 
-      console.log("Datos procesados para envío:", submittedValues); // Log para debug
+      console.log("Datos procesados para envío:", submittedValues);
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
@@ -77,7 +99,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error response:", errorData); // Log para debug
+        console.error("Error del servidor:", errorData);
         throw new Error(errorData.error?.details?.join('\n') || "Error al crear el vehículo");
       }
 
@@ -90,7 +112,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       form.reset();
     } catch (error) {
-      console.error("Error completo:", error); // Log para debug
+      console.error("Error completo:", error);
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : "Error al crear el vehículo",
@@ -115,7 +137,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormLabel>Marca</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Ingrese la marca" 
+                    placeholder="Ej: Toyota" 
                     {...field} 
                     onChange={(e) => field.onChange(e.target.value.trim())}
                   />
@@ -133,7 +155,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormLabel>Modelo</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Ingrese el modelo" 
+                    placeholder="Ej: Hilux" 
                     {...field}
                     onChange={(e) => field.onChange(e.target.value.trim())}
                   />
@@ -153,11 +175,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   type="number"
                   min={1990}
                   max={currentYear}
+                  placeholder={currentYear.toString()}
                   {...field}
-                  value={field.value || currentYear}
                   onChange={(e) => {
                     const value = parseInt(e.target.value);
-                    field.onChange(isNaN(value) ? currentYear : value);
+                    field.onChange(value);
                   }}
                 />
                 <FormMessage />
@@ -173,7 +195,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormLabel>Placa</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Ingrese la placa" 
+                    placeholder="Ej: ABC123" 
                     {...field}
                     onChange={(e) => field.onChange(e.target.value.trim().toUpperCase())}
                     maxLength={10}
@@ -192,7 +214,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                 <FormLabel>Color</FormLabel>
                 <FormControl>
                   <Input 
-                    placeholder="Ingrese el color" 
+                    placeholder="Ej: Blanco" 
                     {...field}
                     onChange={(e) => field.onChange(e.target.value.trim())}
                   />
@@ -212,12 +234,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                   <Input 
                     type="number" 
                     min={1}
-                    placeholder="Ingrese la capacidad" 
+                    placeholder="Ej: 2000" 
                     {...field}
-                    value={field.value || 1000}
                     onChange={(e) => {
                       const value = parseInt(e.target.value);
-                      field.onChange(isNaN(value) ? 1000 : value);
+                      field.onChange(value);
                     }}
                   />
                 </FormControl>
@@ -233,7 +254,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Estado</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value || "disponible"}>
+              <Select onValueChange={field.onChange} defaultValue="disponible">
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un estado" />
