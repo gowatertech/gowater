@@ -651,9 +651,11 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type Warehouse = typeof warehouses.$inferSelect;
-export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
+export type InsertWarehouse =z.infer<typeof insertWarehouseSchema>;
 
-// Customer extended type with location details
+export type Truck = typeof trucks.$inferSelect;
+export type InsertTruck = z.infer<typeof insertTruckSchema>;
+// Customer extended types with location details
 export type CustomerWithDetails = {
   id: number;
   logo: string | null;
@@ -684,5 +686,3 @@ export type ProductionBatch = typeof productionBatches.$inferSelect;
 export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
 export type ProductionBatchItem = typeof productionBatchItems.$inferSelect;
 export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItemSchema>;
-export type Truck = typeof trucks.$inferSelect;
-export type InsertTruck = z.infer<typeof insertTruckSchema>;

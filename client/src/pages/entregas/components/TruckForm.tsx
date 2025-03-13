@@ -15,14 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -58,15 +50,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          brand: values.brand,
-          model: values.model,
-          year: values.year,
-          plate: values.plate,
-          color: values.color,
-          capacity: values.capacity,
-          status: "disponible"
-        })
+        body: JSON.stringify(values)
       });
 
       if (!response.ok) {
