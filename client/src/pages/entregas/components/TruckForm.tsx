@@ -51,32 +51,16 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     }
   });
 
-  const onSubmit = async (values: InsertTruck) => {
+  const onSubmit = async (data: InsertTruck) => {
     try {
       setIsSubmitting(true);
 
-      // Asegurarnos de que los valores numéricos sean números
-      const submittedValues = {
-        ...values,
-        year: Number(values.year),
-        capacity: Number(values.capacity),
-        brand: values.brand.trim(),
-        model: values.model.trim(),
-        plate: values.plate.trim().toUpperCase(),
-        color: values.color.trim(),
-      };
-
-      const response = await apiRequest("POST", "/api/trucks", {
+      await apiRequest("POST", "/api/trucks", {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(submittedValues)
+        body: JSON.stringify(data)
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.details?.join('\n') || "Error al crear el vehículo");
-      }
 
       toast({
         description: "Vehículo registrado exitosamente",
@@ -87,7 +71,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
       form.reset();
     } catch (error) {
-      console.error("Error completo:", error);
       toast({
         variant: "destructive",
         description: error instanceof Error ? error.message : "Error al crear el vehículo",
@@ -135,7 +118,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
           <FormField
             control={form.control}
             name="year"
-            render={({ field: { onChange, ...field } }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Año</FormLabel>
                 <FormControl>
@@ -143,8 +126,8 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     type="number"
                     min={1990}
                     max={currentYear}
-                    onChange={(e) => onChange(Number(e.target.value))}
                     {...field}
+                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />
@@ -183,15 +166,15 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
           <FormField
             control={form.control}
             name="capacity"
-            render={({ field: { onChange, ...field } }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Capacidad (L)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number"
                     min={1}
-                    onChange={(e) => onChange(Number(e.target.value))}
                     {...field}
+                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />
