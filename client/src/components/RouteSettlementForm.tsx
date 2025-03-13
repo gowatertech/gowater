@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { 
   InsertRouteSettlement, 
@@ -12,6 +12,7 @@ import {
   Product,
   insertRouteSettlementSchema 
 } from "@shared/schema";
+import React from 'react';
 
 interface RouteSettlementFormProps {
   vehicleLoadingId: number;
@@ -23,7 +24,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   const queryClient = useQueryClient();
 
   // Obtener datos de la carga
-  const { data: vehicleLoading } = useQuery<VehicleLoading>({
+  const { data: vehicleLoading, isLoading: loadingData } = useQuery<VehicleLoading>({
     queryKey: ["/api/vehicle-loading", vehicleLoadingId],
   });
 
@@ -39,16 +40,27 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       totalCashReceived: "0.00",
       totalCreditReceived: "0.00",
       totalInvoiced: "0.00",
-      items: vehicleLoading?.items?.map(item => ({
-        productId: item.productId,
-        loadedQuantity: item.quantity,
-        returnedQuantity: 0,
-        soldQuantity: 0,
-        returnedContainers: 0,
-        notes: ""
-      })) || []
+      notes: "",
+      items: []
     }
   });
+
+  // Actualizar los items del formulario cuando se carguen los datos
+  React.useEffect(() => {
+    if (vehicleLoading?.items) {
+      form.reset({
+        ...form.getValues(),
+        items: vehicleLoading.items.map(item => ({
+          productId: item.productId,
+          loadedQuantity: item.quantity,
+          returnedQuantity: 0,
+          soldQuantity: 0,
+          returnedContainers: 0,
+          notes: ""
+        }))
+      });
+    }
+  }, [vehicleLoading, form]);
 
   const { fields } = useFieldArray({
     control: form.control,
@@ -69,7 +81,6 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     };
   };
 
-  // Manejar envío del formulario
   const onSubmit = async (values: InsertRouteSettlement) => {
     try {
       const response = await fetch("/api/route-settlements", {
@@ -103,9 +114,43 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
 
   const totals = calculateTotals();
 
+  if (loadingData) {
+    return <div>Cargando datos...</div>;
+  }
+
+  if (!vehicleLoading) {
+    return <div>No se encontró la carga</div>;
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Información de la Carga</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm font-medium">Vehículo:</span>
+                <span className="ml-2">{vehicleLoading.truck?.plate || vehicleLoading.truckId}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium">Conductor:</span>
+                <span className="ml-2">{vehicleLoading.driver?.name || vehicleLoading.driverId}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium">Fecha:</span>
+                <span className="ml-2">{new Date(vehicleLoading.date).toLocaleDateString()}</span>
+              </div>
+              <div>
+                <span className="text-sm font-medium">Efectivo Inicial:</span>
+                <span className="ml-2">${vehicleLoading.initialCash}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-sm font-medium">Efectivo Recibido</label>
@@ -154,44 +199,54 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Productos</h3>
           {fields.map((field, index) => {
+            const loadingItem = vehicleLoading.items?.find(item => item.productId === field.productId);
             const product = products.find(p => p.id === field.productId);
+
+            if (!loadingItem || !product) return null;
+
             return (
               <Card key={field.id} className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm font-medium">Cantidad Cargada</label>
-                    <Input
-                      {...form.register(`items.${index}.loadedQuantity` as const)}
-                      type="number"
-                      className="mt-1"
-                      disabled
-                    />
+                <CardHeader>
+                  <CardTitle className="text-base">{product.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="text-sm font-medium">Cantidad Cargada</label>
+                      <Input
+                        {...form.register(`items.${index}.loadedQuantity` as const)}
+                        type="number"
+                        className="mt-1"
+                        disabled
+                        value={loadingItem.quantity}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Cantidad Devuelta</label>
+                      <Input
+                        {...form.register(`items.${index}.returnedQuantity` as const)}
+                        type="number"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Cantidad Vendida</label>
+                      <Input
+                        {...form.register(`items.${index}.soldQuantity` as const)}
+                        type="number"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Envases Devueltos</label>
+                      <Input
+                        {...form.register(`items.${index}.returnedContainers` as const)}
+                        type="number"
+                        className="mt-1"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium">Cantidad Devuelta</label>
-                    <Input
-                      {...form.register(`items.${index}.returnedQuantity` as const)}
-                      type="number"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Cantidad Vendida</label>
-                    <Input
-                      {...form.register(`items.${index}.soldQuantity` as const)}
-                      type="number"
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Envases Devueltos</label>
-                    <Input
-                      {...form.register(`items.${index}.returnedContainers` as const)}
-                      type="number"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
+                </CardContent>
               </Card>
             );
           })}
@@ -202,6 +257,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           <textarea
             {...form.register("notes")}
             className="w-full min-h-[100px] p-2 border rounded"
+            placeholder="Agregar notas o comentarios adicionales..."
           />
         </div>
 
