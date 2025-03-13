@@ -4,6 +4,7 @@ import { RouteSettlementForm } from "@/components/RouteSettlementForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleLoading } from "@shared/schema";
+import { Loader2 } from "lucide-react";
 
 export default function RouteSettlementPage() {
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
@@ -21,6 +22,14 @@ export default function RouteSettlementPage() {
     });
     setSelectedLoadingId(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6">
@@ -41,15 +50,18 @@ export default function RouteSettlementPage() {
             >
               <CardHeader>
                 <CardTitle className="text-lg">
-                  Vehículo: {loading.truckId}
+                  Vehículo: {loading.truck?.plate || loading.truckId}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
+                  Conductor: {loading.driver?.name || loading.driverId}
+                </p>
+                <p className="text-sm text-muted-foreground">
                   Fecha: {new Date(loading.date).toLocaleDateString()}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Estado: {loading.status}
+                  Productos: {loading.items?.length || 0}
                 </p>
               </CardContent>
             </Card>

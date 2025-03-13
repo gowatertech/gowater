@@ -10,12 +10,16 @@ export async function registerVehicleLoadingRoutes(app: Express) {
       const loadings = await db.query.vehicleLoading.findMany({
         where: eq(vehicleLoading.status, "pending"),
         with: {
-          items: true,
+          items: {
+            with: {
+              product: true
+            }
+          },
           truck: true,
           driver: true,
         },
       });
-      
+
       res.json(loadings);
     } catch (error) {
       console.error("Error fetching pending loadings:", error);
@@ -43,6 +47,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         return res.status(404).json({ error: "Carga no encontrada" });
       }
 
+      console.log("Carga encontrada:", loading);
       res.json(loading);
     } catch (error) {
       console.error("Error fetching vehicle loading:", error);
