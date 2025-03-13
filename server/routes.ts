@@ -260,15 +260,16 @@ export async function registerRoutes(app: Express) {
   // Endpoint para obtener conductores y ayudantes
   app.get("/api/users/drivers", async (req, res) => {
     try {
+      const role = req.query.role as string;
       const drivers = await db
         .select()
         .from(users)
         .where(
-          sql`${users.role} IN ('driver', 'assistant')`
+          role ? eq(users.role, role) : sql`${users.role} IN ('driver', 'assistant')`
         )
         .orderBy(users.name);
 
-      console.log("GET /api/users/drivers - Retornando:", drivers.length, "conductores/ayudantes");
+      console.log(`GET /api/users/drivers - Retornando: ${drivers.length} ${role || 'conductores/ayudantes'}`);
       res.json(drivers);
     } catch (error) {
       console.error("Error al obtener conductores:", error);

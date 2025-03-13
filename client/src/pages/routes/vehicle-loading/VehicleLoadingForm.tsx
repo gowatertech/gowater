@@ -60,7 +60,21 @@ export function VehicleLoadingForm({ loading, onSuccess }: VehicleLoadingFormPro
   });
 
   const { data: drivers = [] } = useQuery<User[]>({
-    queryKey: ["/api/users/drivers"],
+    queryKey: ["/api/users/drivers", { role: "driver" }],
+    queryFn: async () => {
+      const response = await fetch("/api/users/drivers?role=driver");
+      if (!response.ok) throw new Error("Error al cargar conductores");
+      return response.json();
+    }
+  });
+
+  const { data: assistants = [] } = useQuery<User[]>({
+    queryKey: ["/api/users/drivers", { role: "assistant" }],
+    queryFn: async () => {
+      const response = await fetch("/api/users/drivers?role=assistant");
+      if (!response.ok) throw new Error("Error al cargar ayudantes");
+      return response.json();
+    }
   });
 
   const { data: products = [] } = useQuery<Product[]>({
@@ -181,9 +195,9 @@ export function VehicleLoadingForm({ loading, onSuccess }: VehicleLoadingFormPro
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {drivers.map((driver) => (
-                      <SelectItem key={driver.id} value={driver.id.toString()}>
-                        {driver.name}
+                    {assistants.map((assistant) => (
+                      <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                        {assistant.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
