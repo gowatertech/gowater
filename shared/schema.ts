@@ -741,7 +741,7 @@ export const vehicleLoadingItemsRelations = relations(vehicleLoadingItems, ({ on
 
 // Vehicle Loading schema update
 export const insertVehicleLoadingSchema = z.object({
-  date: z.string().default(() => new Date().toISOString()),
+  date: z.string().datetime("La fecha debe estar en formato válido"),
   truckId: z.number(),
   driverId: z.number(),
   assistantId: z.number().optional(),

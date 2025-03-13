@@ -8,7 +8,6 @@ import { VehicleLoadingForm } from "./VehicleLoadingForm";
 
 export default function VehicleLoadingPage() {
   const [showForm, setShowForm] = useState(false);
-  const [selectedLoading, setSelectedLoading] = useState<VehicleLoading | null>(null);
 
   const { data: loadings = [], isLoading } = useQuery<VehicleLoading[]>({
     queryKey: ["/api/vehicle-loading"],
@@ -29,58 +28,27 @@ export default function VehicleLoadingPage() {
           <Truck className="h-5 w-5 text-primary" />
           <h1 className="text-2xl font-bold">Carga de Vehículos</h1>
         </div>
-        <Button onClick={() => {
-          setShowForm(!showForm);
-          setSelectedLoading(null);
-        }}>
+        <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Nueva Carga
         </Button>
       </div>
 
-      {(showForm || selectedLoading) && (
-        <Card className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">
-              {selectedLoading ? 'Editar Carga' : 'Nueva Carga'}
-            </h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => {
-                setShowForm(false);
-                setSelectedLoading(null);
-              }}
-            >
-              ✕
-            </Button>
-          </div>
-          <VehicleLoadingForm
-            loading={selectedLoading}
-            onSuccess={() => {
-              setShowForm(false);
-              setSelectedLoading(null);
-            }}
-          />
-        </Card>
-      )}
+      <VehicleLoadingForm
+        open={showForm}
+        onOpenChange={setShowForm}
+      />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {loadings.length === 0 ? (
-          <div className="col-span-2 text-center py-8">
+          <div className="col-span-full text-center py-8">
             <p className="text-gray-500">No hay cargas registradas</p>
           </div>
         ) : (
           loadings.map((loading) => (
             <Card 
               key={loading.id} 
-              className={`p-4 cursor-pointer hover:shadow-md transition-shadow ${
-                selectedLoading?.id === loading.id ? 'ring-2 ring-primary' : ''
-              }`}
-              onClick={() => {
-                setSelectedLoading(loading);
-                setShowForm(false);
-              }}
+              className="p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
@@ -94,14 +62,17 @@ export default function VehicleLoadingPage() {
                       ? "bg-red-100 text-red-800"
                       : "bg-gray-100 text-gray-800"
                   }`}>
-                    {loading.status}
+                    {loading.status === "completed" ? "Completado" :
+                     loading.status === "in_progress" ? "En Progreso" :
+                     loading.status === "cancelled" ? "Cancelado" :
+                     "Pendiente"}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600">
                   Fecha: {new Date(loading.date).toLocaleDateString()}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Efectivo inicial: ${loading.initialCash}
+                  Efectivo inicial: RD$ {loading.initialCash}
                 </p>
               </div>
             </Card>
