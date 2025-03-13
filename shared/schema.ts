@@ -649,7 +649,7 @@ export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
-export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
+export type InsertCustomerOrders = z.infer<typeofinsertCustomerOrdersSchema>;
 export type Warehouse = typeof warehouses.$inferSelect;
 export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
 export type Truck = typeof trucks.$inferSelect;
@@ -758,3 +758,76 @@ export const insertVehicleLoadingSchema = z.object({
 export type VehicleLoading = typeof vehicleLoading.$inferSelect;
 export type InsertVehicleLoading = z.infer<typeof insertVehicleLoadingSchema>;
 export type VehicleLoadingItem = typeof vehicleLoadingItems.$inferSelect;
+
+// Route Settlement (Cuadre de Ruta)
+export const routeSettlements = pgTable("route_settlements", {
+  id: serial("id").primaryKey(),
+  vehicleLoadingId: integer("vehicle_loading_id").notNull().references(() => vehicleLoading.id),
+  settlementDate: timestamp("settlement_date", { mode: 'string' }).notNull().defaultNow(),
+  totalCashReceived: decimal("total_cash_received", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  totalCreditReceived: decimal("total_credit_received", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  totalInvoiced: decimal("total_invoiced", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  cashDifference: decimal("cash_difference", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  status: text("status", {
+    enum: ["pending", "completed", "with_differences"]
+  }).notNull().default("pending"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: 'string' }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { mode: 'string' }),
+});
+
+// Route Settlement Items (Items del Cuadre de Ruta)
+export const routeSettlementItems = pgTable("route_settlement_items", {
+  id: serial("id").primaryKey(),
+  settlementId: integer("settlement_id").notNull().references(() => routeSettlements.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  loadedQuantity: integer("loaded_quantity").notNull(),
+  returnedQuantity: integer("returned_quantity").notNull().default(0),
+  soldQuantity: integer("sold_quantity").notNull().default(0),
+  difference: integer("difference").notNull().default(0),
+  returnedContainers: integer("returned_containers").default(0),
+  notes: text("notes"),
+});
+
+// Add relations
+export const routeSettlementsRelations = relations(routeSettlements, ({ one, many }) => ({
+  vehicleLoading: one(vehicleLoading, {
+    fields: [routeSettlements.vehicleLoadingId],
+    references: [vehicleLoading.id],
+  }),
+  items: many(routeSettlementItems),
+}));
+
+export const routeSettlementItemsRelations = relations(routeSettlementItems, ({ one }) => ({
+  settlement: one(routeSettlements, {
+    fields: [routeSettlementItems.settlementId],
+    references: [routeSettlements.id],
+  }),
+  product: one(products, {
+    fields: [routeSettlementItems.productId],
+    references: [products.id],
+  }),
+}));
+
+// Add schemas for validation
+export const insertRouteSettlementSchema = z.object({
+  vehicleLoadingId: z.number(),
+  totalCashReceived: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  totalCreditReceived: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  totalInvoiced: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  notes: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.number(),
+    loadedQuantity: z.number(),
+    returnedQuantity: z.number(),
+    soldQuantity: z.number(),
+    returnedContainers: z.number().default(0),
+    notes: z.string().optional(),
+  })),
+}).strict();
+
+// Add to type exports
+export type RouteSettlement = typeof routeSettlements.$inferSelect;
+export type InsertRouteSettlement = z.infer<typeof insertRouteSettlementSchema>;
+export type RouteSettlementItem = typeof routeSettlementItems.$inferSelect;
+export type InsertRouteSettlementItem = z.infer<typeof insertRouteSettlementSchema>;
