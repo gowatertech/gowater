@@ -14,7 +14,6 @@ import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
-// Importamos el componente TrucksPage
 import TrucksPage from "./pages/trucks";
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
@@ -23,6 +22,7 @@ import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
 import ProductionRegistration from "@/pages/inventory/production";
+import DriverView from "@/pages/drivers/DriverView";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 
@@ -45,6 +45,7 @@ function Router() {
         <Route path="/routes" component={Routes} />
         <Route path="/users" component={Users} />
         <Route path="/trucks" component={TrucksPage} />
+        <Route path="/drivers/view" component={DriverView} />
         <Route path="/tutorial" component={TutorialPage} />
         <Route path="/settings" component={Settings} />
         <Route path="/reports" component={Reports} />
