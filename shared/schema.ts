@@ -650,9 +650,7 @@ export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
-export type Warehouse = typeof warehouses.$inferSelect;
-export type InsertWarehouse =z.infer<typeof insertWarehouseSchema>;
-
+export type Warehouse = typeof warehouses.$inferSelect;export type InsertWarehouse =z.infer<typeof insertWarehouseSchema>;
 export type Truck = typeof trucks.$inferSelect;
 export type InsertTruck = z.infer<typeof insertTruckSchema>;
 // Customer extended types with location details
@@ -686,3 +684,76 @@ export type ProductionBatch = typeof productionBatches.$inferSelect;
 export type InsertProductionBatch = z.infer<typeof insertProductionBatchSchema>;
 export type ProductionBatchItem = typeof productionBatchItems.$inferSelect;
 export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItemSchema>;
+
+// Vehicle Loading (Carga de Vehículos)
+export const vehicleLoading = pgTable("vehicle_loading", {
+  id: serial("id").primaryKey(),
+  loadingNumber: serial("loading_number").unique(),
+  date: timestamp("date").notNull().defaultNow(),
+  truckId: integer("truck_id").notNull().references(() => trucks.id),
+  driverId: integer("driver_id").notNull().references(() => users.id),
+  assistantId: integer("assistant_id").references(() => users.id),
+  status: text("status", {
+    enum: ["pending", "in_progress", "completed", "cancelled"]
+  }).notNull().default("pending"),
+  initialCash: decimal("initial_cash", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const vehicleLoadingItems = pgTable("vehicle_loading_items", {
+  id: serial("id").primaryKey(),
+  loadingId: integer("loading_id").notNull().references(() => vehicleLoading.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  returnedQuantity: integer("returned_quantity").default(0),
+  notes: text("notes"),
+});
+
+// Add relations
+export const vehicleLoadingRelations = relations(vehicleLoading, ({ one, many }) => ({
+  truck: one(trucks, {
+    fields: [vehicleLoading.truckId],
+    references: [trucks.id],
+  }),
+  driver: one(users, {
+    fields: [vehicleLoading.driverId],
+    references: [users.id],
+  }),
+  assistant: one(users, {
+    fields: [vehicleLoading.assistantId],
+    references: [users.id],
+  }),
+  items: many(vehicleLoadingItems),
+}));
+
+export const vehicleLoadingItemsRelations = relations(vehicleLoadingItems, ({ one }) => ({
+  loading: one(vehicleLoading, {
+    fields: [vehicleLoadingItems.loadingId],
+    references: [vehicleLoading.id],
+  }),
+  product: one(products, {
+    fields: [vehicleLoadingItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export const insertVehicleLoadingSchema = z.object({
+  date: z.string().datetime(),
+  truckId: z.number(),
+  driverId: z.number(),
+  assistantId: z.number().optional(),
+  initialCash: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  notes: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.number(),
+    quantity: z.number().min(1),
+    notes: z.string().optional(),
+  })),
+});
+
+// Add to type exports
+export type VehicleLoading = typeof vehicleLoading.$inferSelect;
+export type InsertVehicleLoading = z.infer<typeof insertVehicleLoadingSchema>;
+export type VehicleLoadingItem = typeof vehicleLoadingItems.$inferSelect;

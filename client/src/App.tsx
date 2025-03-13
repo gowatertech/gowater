@@ -25,6 +25,7 @@ import ProductionRegistration from "@/pages/inventory/production";
 import DriverView from "@/pages/drivers/DriverView";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
+import VehicleLoadingPage from "@/pages/routes/vehicle-loading";
 
 function Router() {
   return (
@@ -56,6 +57,7 @@ function Router() {
         <Route path="/envases/balance" component={BalanceEnvases} />
         <Route path="/envases/faltantes" component={Faltantes} />
         <Route path="/envases/asignar-responsabilidad" component={AsignarResponsabilidad} />
+        <Route path="/routes/vehicle-loading" component={VehicleLoadingPage} />
 
         <Route component={NotFound} />
       </Switch>
