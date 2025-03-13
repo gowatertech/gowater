@@ -36,6 +36,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// API Routes Handler - Ensure all API routes return JSON
+app.use('/api', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+
 (async () => {
   try {
     log("Starting server initialization...");
@@ -43,24 +49,21 @@ app.use((req, res, next) => {
     log(`Environment: ${process.env.NODE_ENV}`);
     let server;
 
-    // Register API routes first to ensure they take precedence
+    // Register API routes first
     server = await registerRoutes(app);
     log("Routes registered successfully");
 
-    // Configure static file serving and client-side routing
+    // Configure static file serving and client-side routing after API routes
     if (process.env.NODE_ENV === "production") {
       log("Production mode: Setting up static file serving");
       const distPath = path.resolve(process.cwd(), 'dist', 'public');
-
       log(`Looking for static files in: ${distPath}`);
 
-      // Verify dist directory exists
       if (!fs.existsSync(distPath)) {
         log(`ERROR: Build directory not found at ${distPath}`);
         throw new Error(`Build directory not found at ${distPath}. Please run 'npm run build' first.`);
       }
 
-      // Verify index.html exists
       const indexPath = path.join(distPath, 'index.html');
       if (!fs.existsSync(indexPath)) {
         log(`ERROR: index.html not found at ${indexPath}`);
@@ -72,19 +75,18 @@ app.use((req, res, next) => {
       // Serve static files from the client build directory
       app.use(express.static(distPath));
 
-      // Handle client-side routing - send index.html for all non-API routes
+      // Handle client-side routing - send index.html for non-API routes
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
         }
-
         log(`Serving index.html for path: ${req.path}`);
         res.sendFile(indexPath);
       });
 
       log("Static file serving configured");
     } else {
-      // Development mode - use Vite
+      // Development mode - setup Vite after API routes
       await setupVite(app, server);
       log("Development mode: Vite setup complete");
     }
