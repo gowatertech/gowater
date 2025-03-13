@@ -41,12 +41,12 @@ export default function RouteSettlementPage() {
             >
               <CardHeader>
                 <CardTitle className="text-lg">
-                  Vehículo: {loading.vehicleId}
+                  Vehículo: {loading.truckId}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  Fecha: {new Date(loading.loadingDate).toLocaleDateString()}
+                  Fecha: {new Date(loading.date).toLocaleDateString()}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Estado: {loading.status}

@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { 
   InsertRouteSettlement, 
-  VehicleLoading, 
+  VehicleLoading,
   Product,
   insertRouteSettlementSchema 
 } from "@shared/schema";
@@ -39,14 +39,35 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       totalCashReceived: "0.00",
       totalCreditReceived: "0.00",
       totalInvoiced: "0.00",
-      items: [],
+      items: vehicleLoading?.items?.map(item => ({
+        productId: item.productId,
+        loadedQuantity: item.quantity,
+        returnedQuantity: 0,
+        soldQuantity: 0,
+        returnedContainers: 0,
+        notes: ""
+      })) || []
     }
   });
 
-  const { fields, append } = useFieldArray({
+  const { fields } = useFieldArray({
     control: form.control,
     name: "items"
   });
+
+  // Calcular totales y diferencias
+  const calculateTotals = () => {
+    const values = form.getValues();
+    const cashReceived = parseFloat(values.totalCashReceived) || 0;
+    const creditReceived = parseFloat(values.totalCreditReceived) || 0;
+    const totalInvoiced = parseFloat(values.totalInvoiced) || 0;
+    const difference = cashReceived + creditReceived - totalInvoiced;
+
+    return {
+      totalReceived: cashReceived + creditReceived,
+      difference: difference.toFixed(2)
+    };
+  };
 
   // Manejar envío del formulario
   const onSubmit = async (values: InsertRouteSettlement) => {
@@ -79,6 +100,8 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       });
     }
   };
+
+  const totals = calculateTotals();
 
   return (
     <Form {...form}>
@@ -113,46 +136,65 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           </div>
         </div>
 
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-sm font-medium">Total Recibido:</span>
+              <span className="ml-2">${totals.totalReceived}</span>
+            </div>
+            <div>
+              <span className="text-sm font-medium">Diferencia:</span>
+              <span className={`ml-2 ${parseFloat(totals.difference) < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                ${totals.difference}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Productos</h3>
-          {fields.map((field, index) => (
-            <Card key={field.id} className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Cantidad Cargada</label>
-                  <Input
-                    {...form.register(`items.${index}.loadedQuantity` as const)}
-                    type="number"
-                    className="mt-1"
-                  />
+          {fields.map((field, index) => {
+            const product = products.find(p => p.id === field.productId);
+            return (
+              <Card key={field.id} className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Cantidad Cargada</label>
+                    <Input
+                      {...form.register(`items.${index}.loadedQuantity` as const)}
+                      type="number"
+                      className="mt-1"
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Cantidad Devuelta</label>
+                    <Input
+                      {...form.register(`items.${index}.returnedQuantity` as const)}
+                      type="number"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Cantidad Vendida</label>
+                    <Input
+                      {...form.register(`items.${index}.soldQuantity` as const)}
+                      type="number"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Envases Devueltos</label>
+                    <Input
+                      {...form.register(`items.${index}.returnedContainers` as const)}
+                      type="number"
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Cantidad Devuelta</label>
-                  <Input
-                    {...form.register(`items.${index}.returnedQuantity` as const)}
-                    type="number"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Cantidad Vendida</label>
-                  <Input
-                    {...form.register(`items.${index}.soldQuantity` as const)}
-                    type="number"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Envases Devueltos</label>
-                  <Input
-                    {...form.register(`items.${index}.returnedContainers` as const)}
-                    type="number"
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
 
         <div className="space-y-4">
