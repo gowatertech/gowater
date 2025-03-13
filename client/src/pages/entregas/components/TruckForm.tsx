@@ -54,19 +54,17 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
   const onSubmit = async (values: InsertTruck) => {
     try {
       setIsSubmitting(true);
-      console.log("Datos del formulario:", values);
 
+      // Asegurarnos de que los valores numéricos sean números
       const submittedValues = {
+        ...values,
+        year: Number(values.year),
+        capacity: Number(values.capacity),
         brand: values.brand.trim(),
         model: values.model.trim(),
-        year: Number(values.year),
         plate: values.plate.trim().toUpperCase(),
         color: values.color.trim(),
-        capacity: Number(values.capacity),
-        status: values.status || "disponible"
       };
-
-      console.log("Datos procesados:", submittedValues);
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
@@ -137,7 +135,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
           <FormField
             control={form.control}
             name="year"
-            render={({ field }) => (
+            render={({ field: { onChange, ...field } }) => (
               <FormItem>
                 <FormLabel>Año</FormLabel>
                 <FormControl>
@@ -145,6 +143,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     type="number"
                     min={1990}
                     max={currentYear}
+                    onChange={(e) => onChange(Number(e.target.value))}
                     {...field}
                   />
                 </FormControl>
@@ -184,13 +183,14 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
           <FormField
             control={form.control}
             name="capacity"
-            render={({ field }) => (
+            render={({ field: { onChange, ...field } }) => (
               <FormItem>
                 <FormLabel>Capacidad (L)</FormLabel>
                 <FormControl>
                   <Input 
                     type="number"
                     min={1}
+                    onChange={(e) => onChange(Number(e.target.value))}
                     {...field}
                   />
                 </FormControl>
