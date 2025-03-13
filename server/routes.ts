@@ -3,12 +3,13 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema, warehouses, productionBatchItems, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema } from "@shared/schema";
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
 import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
 import { registerRouteSettlements } from "./routes/routeSettlements";
+import {Request, Response} from 'express';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -17,9 +18,6 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
-
-// Almacenar las conexiones activas de los conductores
-const driverConnections = new Map<number, WebSocket>();
 
 export async function registerRoutes(app: Express) {
   // Configurar express primero
@@ -911,7 +909,7 @@ export async function registerRoutes(app: Express) {
       res.json(product);
     } catch (error) {
             console.error("Error al crear producto:", error);      res.status(500).json({ error: String(error) });
-    }
+        }
   });
 
   // Pagos
@@ -921,7 +919,8 @@ export async function registerRoutes(app: Express) {
         .select({
           id: payments.id,
           invoiceId: payments.invoiceId,
-          amount: payments.amount,          date: payments.date,
+          amount: payments.amount,          
+          date: payments.date,
           notes: payments.notes,
           customerName: customers.businessname,
           invoiceNumber: invoices.invoiceNumber
