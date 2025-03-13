@@ -185,7 +185,7 @@ export const routes = pgTable("routes", {
   assistantId: integer("assistant_id").references(() => users.id),
   zoneId: integer("zone_id").references(() => zones.id),
   status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull(),
-  date: timestamp("date").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
   startTime: timestamp("start_time"),
   endTime: timestamp("end_time"),
   estimatedDuration: integer("estimated_duration"),
@@ -741,7 +741,6 @@ export const vehicleLoadingItemsRelations = relations(vehicleLoadingItems, ({ on
 
 // Vehicle Loading schema update
 export const insertVehicleLoadingSchema = z.object({
-  date: z.string().datetime("La fecha debe estar en formato válido"),
   truckId: z.number(),
   driverId: z.number(),
   assistantId: z.number().optional(),

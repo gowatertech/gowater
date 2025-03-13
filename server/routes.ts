@@ -917,8 +917,7 @@ export async function registerRoutes(app: Express) {
         .select({
           id: payments.id,
           invoiceId: payments.invoiceId,
-          amount: payments.amount,
-          date: payments.date,
+          amount: payments.amount,          date: payments.date,
           notes: payments.notes,
           customerName: customers.businessname,
           invoiceNumber: invoices.invoiceNumber
@@ -1533,13 +1532,20 @@ export async function registerRoutes(app: Express) {
       const { items, ...loadingData } = result.data;
 
       // Insertar la carga del vehículo
-      const [loading] = await db
+      await db
         .insert(vehicleLoading)
         .values({
           ...loadingData,
           status: "pending",
         })
-        .returning();
+        .execute();
+
+      // Obtener el registro recién creado
+      const [newLoading] = await db
+        .select()
+        .from(vehicleLoading)
+        .orderBy(vehicleLoading.id, "desc")
+        .limit(1);
 
       // Insertar los items si existen
       if (items && items.length > 0) {
@@ -1547,15 +1553,16 @@ export async function registerRoutes(app: Express) {
           .insert(vehicleLoadingItems)
           .values(
             items.map(item => ({
-              loadingId: loading.id,
-              productId: item.productId,
-              quantity: item.quantity
+              loadingId: newLoading.id,
+              productId: Number(item.productId),
+              quantity: Number(item.quantity)
             }))
-          );
+          )
+          .execute();
       }
 
-      console.log("POST /api/vehicle-loading - Carga creada:", loading);
-      res.json(loading);
+      console.log("POST /api/vehicle-loading - Carga creada:", newLoading);
+      res.json(newLoading);
     } catch (error) {
       console.error("Error al crear carga de vehículo:", error);
       res.status(500).json({ error: String(error) });

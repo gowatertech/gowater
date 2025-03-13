@@ -40,7 +40,6 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
   const form = useForm<InsertVehicleLoading>({
     resolver: zodResolver(insertVehicleLoadingSchema),
     defaultValues: {
-      date: new Date().toISOString(),
       initialCash: "0.00",
       items: []
     }
@@ -71,9 +70,9 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     try {
       setIsSubmitting(true);
 
-      // Format the data
       const formattedData = {
         ...values,
+        initialCash: values.initialCash.toString(),
         truckId: Number(values.truckId),
         driverId: Number(values.driverId),
         assistantId: values.assistantId ? Number(values.assistantId) : undefined,
@@ -82,6 +81,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
           quantity: Number(item.quantity)
         }))
       };
+
+      console.log("Submitting data:", formattedData);
 
       const response = await fetch("/api/vehicle-loading", {
         method: "POST",
@@ -215,6 +216,12 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                     {...field}
                     type="text"
                     placeholder="0.00"
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      if (!isNaN(value)) {
+                        field.onChange(value.toFixed(2));
+                      }
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
