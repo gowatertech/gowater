@@ -1482,6 +1482,71 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Driver endpoints
+  app.get("/api/driver/deliveries/today", async (req, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const deliveries = await db
+        .select({
+          id: orders.id,
+          customerName: customers.businessname,
+          estimatedTime: orders.deliveryTime,
+          status: orders.status
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(
+          and(
+            sql`DATE(${orders.date}) = DATE(NOW())`,
+            eq(orders.status, "pending")
+          )
+        )
+        .orderBy(orders.deliveryTime);
+
+      res.json(deliveries);
+    } catch (error) {
+      console.error("Error al obtener entregas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/driver/cash-balance", async (req, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const cashBalance = {
+        initialBalance: "1000.00", // Example fixed value
+        cashIn: "2500.00",        // Sum of today's payments
+        cashOut: "500.00",        // Sum of today's expenses
+        finalBalance: "3000.00"   // Calculated balance
+      };
+
+      res.json(cashBalance);
+    } catch (error) {
+      console.error("Error al obtener balance:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/driver/performance", async (req, res) => {
+    try {
+      // Example performance metrics
+      const performance = {
+        deliveredOrders: 8,
+        totalOrders: 10,
+        onTimeDeliveries: 7
+      };
+
+      res.json(performance);
+    } catch (error) {
+      console.error("Error al obtener rendimiento:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Configurar WebSocket después de las rutas API
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ 
