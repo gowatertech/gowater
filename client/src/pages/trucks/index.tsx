@@ -5,9 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Truck, Plus } from "lucide-react";
 import type { Truck as TruckType } from "@shared/schema";
 import { TruckForm } from "../entregas/components/TruckForm";
+import { EditTruckForm } from "./components/EditTruckForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function TrucksPage() {
   const [showForm, setShowForm] = useState(false);
+  const [selectedTruck, setSelectedTruck] = useState<TruckType | null>(null);
 
   const { data: trucks = [], isLoading } = useQuery<TruckType[]>({
     queryKey: ["/api/trucks"],
@@ -53,6 +61,21 @@ export default function TrucksPage() {
         </Card>
       )}
 
+      <Dialog open={!!selectedTruck} onOpenChange={(open) => !open && setSelectedTruck(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Vehículo</DialogTitle>
+          </DialogHeader>
+          {selectedTruck && (
+            <EditTruckForm
+              truck={selectedTruck}
+              open={!!selectedTruck}
+              onOpenChange={(open) => !open && setSelectedTruck(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
         {trucks.length === 0 ? (
           <div className="col-span-full text-center py-6">
@@ -60,7 +83,11 @@ export default function TrucksPage() {
           </div>
         ) : (
           trucks.map((truck) => (
-            <Card key={truck.id} className="p-2 bg-white hover:shadow-md transition-shadow">
+            <Card 
+              key={truck.id} 
+              className="p-2 bg-white hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setSelectedTruck(truck)}
+            >
               <div className="flex flex-col">
                 <div className="flex items-center gap-1 mb-1">
                   <Truck className="h-4 w-4 text-blue-600" />
