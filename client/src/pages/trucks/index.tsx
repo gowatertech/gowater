@@ -53,14 +53,14 @@ export default function TrucksPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
         {trucks.length === 0 ? (
           <div className="col-span-full text-center py-6">
             <p className="text-gray-500">No hay vehículos registrados</p>
           </div>
         ) : (
           trucks.map((truck) => (
-            <Card key={truck.id} className="p-2 bg-white">
+            <Card key={truck.id} className="p-2 bg-white hover:shadow-md transition-shadow">
               <div className="flex flex-col">
                 <div className="flex items-center gap-1 mb-1">
                   <Truck className="h-4 w-4 text-blue-600" />
@@ -73,7 +73,7 @@ export default function TrucksPage() {
                   <p>{truck.capacity}L</p>
                   <div>
                     <span 
-                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
+                      className={`inline-block px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
                         truck.status === "disponible"
                           ? "bg-green-100 text-green-800"
                           : truck.status === "en_ruta"
