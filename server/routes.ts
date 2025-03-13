@@ -257,6 +257,25 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Endpoint para obtener conductores y ayudantes
+  app.get("/api/users/drivers", async (req, res) => {
+    try {
+      const drivers = await db
+        .select()
+        .from(users)
+        .where(
+          sql`${users.role} IN ('driver', 'assistant')`
+        )
+        .orderBy(users.name);
+
+      console.log("GET /api/users/drivers - Retornando:", drivers.length, "conductores/ayudantes");
+      res.json(drivers);
+    } catch (error) {
+      console.error("Error al obtener conductores:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Rutas
   app.get("/api/routes", async (req, res) => {
     try {
