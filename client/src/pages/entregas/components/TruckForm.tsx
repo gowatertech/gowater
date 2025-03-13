@@ -3,7 +3,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTruckSchema } from "@shared/schema";
 import type { InsertTruck } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 
@@ -51,16 +50,28 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     }
   });
 
-  const onSubmit = async (data: InsertTruck) => {
+  const onSubmit = async (values: InsertTruck) => {
     try {
       setIsSubmitting(true);
-
-      await apiRequest("POST", "/api/trucks", {
+      const response = await fetch("/api/trucks", {
+        method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          brand: values.brand,
+          model: values.model,
+          year: Number(values.year),
+          plate: values.plate,
+          color: values.color,
+          capacity: Number(values.capacity),
+          status: values.status
+        })
       });
+
+      if (!response.ok) {
+        throw new Error("Error al crear el vehículo");
+      }
 
       toast({
         description: "Vehículo registrado exitosamente",
@@ -127,7 +138,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     min={1990}
                     max={currentYear}
                     {...field}
-                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />
@@ -174,7 +184,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                     type="number"
                     min={1}
                     {...field}
-                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />
