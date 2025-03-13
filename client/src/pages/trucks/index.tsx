@@ -53,28 +53,27 @@ export default function TrucksPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
         {trucks.length === 0 ? (
-          <div className="col-span-full text-center py-8">
+          <div className="col-span-full text-center py-6">
             <p className="text-gray-500">No hay vehículos registrados</p>
           </div>
         ) : (
           trucks.map((truck) => (
-            <Card key={truck.id} className="p-3 bg-white">
+            <Card key={truck.id} className="p-2 bg-white">
               <div className="flex flex-col">
-                <div className="flex items-center gap-2 mb-2">
-                  <Truck className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-medium">
+                <div className="flex items-center gap-1 mb-1">
+                  <Truck className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-medium truncate">
                     {truck.brand} {truck.model}
                   </h3>
                 </div>
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>Placa: {truck.plate}</p>
-                  <p>Año: {truck.year}</p>
-                  <p>Capacidad: {truck.capacity}L</p>
-                  <div className="mt-2">
+                <div className="space-y-0.5 text-xs text-gray-600">
+                  <p className="truncate">Placa: {truck.plate}</p>
+                  <p>{truck.capacity}L</p>
+                  <div>
                     <span 
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
                         truck.status === "disponible"
                           ? "bg-green-100 text-green-800"
                           : truck.status === "en_ruta"
