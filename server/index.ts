@@ -7,8 +7,8 @@ import fs from "fs";
 const app = express();
 
 // Basic middleware for parsing JSON and URL-encoded bodies
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -24,13 +24,11 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
+    let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+    if (capturedJsonResponse) {
+      logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
     }
+    log(logLine);
   });
 
   next();
@@ -52,39 +50,18 @@ app.use((req, res, next) => {
       log("Production mode: Setting up static file serving");
       const distPath = path.resolve(process.cwd(), 'dist', 'public');
 
-      log(`Looking for static files in: ${distPath}`);
-
-      // Verify dist directory exists
-      if (!fs.existsSync(distPath)) {
-        log(`ERROR: Build directory not found at ${distPath}`);
-        throw new Error(`Build directory not found at ${distPath}. Please run 'npm run build' first.`);
-      }
-
-      // Verify index.html exists
-      const indexPath = path.join(distPath, 'index.html');
-      if (!fs.existsSync(indexPath)) {
-        log(`ERROR: index.html not found at ${indexPath}`);
-        throw new Error(`index.html not found at ${indexPath}. Please ensure the build process completed successfully.`);
-      }
-
-      log(`Found index.html at ${indexPath}`);
-
-      // Serve static files from the client build directory
+      // Handle static files
       app.use(express.static(distPath));
 
-      // Handle client-side routing - send index.html for all non-API routes
+      // Client-side routing - send index.html for non-API routes
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
         }
-
-        log(`Serving index.html for path: ${req.path}`);
-        res.sendFile(indexPath);
+        res.sendFile(path.join(distPath, 'index.html'));
       });
-
-      log("Static file serving configured");
     } else {
-      // Development mode - use Vite
+      // Development mode - use Vite after API routes
       await setupVite(app, server);
       log("Development mode: Vite setup complete");
     }

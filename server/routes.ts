@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema, warehouses, productionBatchItems, insertWarehouseSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, insertProductionBatchSchema, warehouses, productionBatchItems, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema } from "@shared/schema";
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
@@ -21,8 +21,8 @@ const driverConnections = new Map<number, WebSocket>();
 
 export async function registerRoutes(app: Express) {
   // Configurar express primero
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
   // API Routes
 
@@ -1498,6 +1498,66 @@ export async function registerRoutes(app: Express) {
       res.json(truck);
     } catch (error) {
       console.error("Error al actualizar estado del camión:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Vehicle Loading endpoints
+  app.get("/api/vehicle-loading", async (req, res) => {
+    try {
+      const allLoadings = await db
+        .select()
+        .from(vehicleLoading)
+        .orderBy(vehicleLoading.date);
+
+      console.log("GET /api/vehicle-loading - Retornando:", allLoadings.length, "cargas");
+      res.json(allLoadings);
+    } catch (error) {
+      console.error("Error al obtener cargas de vehículos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/vehicle-loading", async (req, res) => {
+    try {
+      console.log("POST /api/vehicle-loading - Datos recibidos:", req.body);
+
+      const result = insertVehicleLoadingSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Error de validación",
+          details: result.error.format()
+        });
+      }
+
+      const { items, ...loadingData } = result.data;
+
+      // Insertar la carga del vehículo
+      const [loading] = await db
+        .insert(vehicleLoading)
+        .values({
+          ...loadingData,
+          status: "pending",
+        })
+        .returning();
+
+      // Insertar los items si existen
+      if (items && items.length > 0) {
+        await db
+          .insert(vehicleLoadingItems)
+          .values(
+            items.map(item => ({
+              loadingId: loading.id,
+              productId: item.productId,
+              quantity: item.quantity
+            }))
+          );
+      }
+
+      console.log("POST /api/vehicle-loading - Carga creada:", loading);
+      res.json(loading);
+    } catch (error) {
+      console.error("Error al crear carga de vehículo:", error);
       res.status(500).json({ error: String(error) });
     }
   });

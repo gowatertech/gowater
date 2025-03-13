@@ -3,7 +3,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVehicleLoadingSchema } from "@shared/schema";
 import type { InsertVehicleLoading, Product, User, Truck } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
@@ -47,7 +46,6 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     }
   });
 
-  // Configurar useFieldArray para manejar la lista de productos
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items"
@@ -72,13 +70,25 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
   const onSubmit = async (values: InsertVehicleLoading) => {
     try {
       setIsSubmitting(true);
-      console.log("Submitting vehicle loading:", values);
 
-      const response = await apiRequest("POST", "/api/vehicle-loading", {
+      // Format the data
+      const formattedData = {
+        ...values,
+        truckId: Number(values.truckId),
+        driverId: Number(values.driverId),
+        assistantId: values.assistantId ? Number(values.assistantId) : undefined,
+        items: values.items.map(item => ({
+          productId: Number(item.productId),
+          quantity: Number(item.quantity)
+        }))
+      };
+
+      const response = await fetch("/api/vehicle-loading", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(values)
+        body: JSON.stringify(formattedData)
       });
 
       if (!response.ok) {
@@ -117,8 +127,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
               <FormItem>
                 <FormLabel>Vehículo</FormLabel>
                 <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -145,8 +155,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
               <FormItem>
                 <FormLabel>Conductor</FormLabel>
                 <Select 
-                  onValueChange={field.onChange}
-                  defaultValue={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -173,8 +183,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
               <FormItem>
                 <FormLabel>Ayudante</FormLabel>
                 <Select 
-                  onValueChange={field.onChange}
-                  defaultValue={field.value?.toString()}
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -237,8 +247,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                     <FormItem className="flex-1">
                       <FormLabel>Producto</FormLabel>
                       <Select 
-                        onValueChange={field.onChange}
-                        defaultValue={field.value?.toString()}
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -273,6 +283,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                           type="number"
                           min="1"
                           className="w-24"
+                          onChange={(e) => field.onChange(Number(e.target.value))}
                         />
                       </FormControl>
                       <FormMessage />
