@@ -649,11 +649,11 @@ export type InsertBillItem = z.infer<typeof insertBillItemSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
-export type InsertCustomerOrders = z.infer<typeofinsertCustomerOrdersSchema>;
+export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type Warehouse = typeof warehouses.$inferSelect;
 export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
 export type Truck = typeof trucks.$inferSelect;
-export type InsertTruck= z.infer<typeof insertTruckSchema>;
+export type InsertTruck = z.infer<typeof insertTruckSchema>;
 // Customer extended types with location details
 export type CustomerWithDetails = {
   id: number;
