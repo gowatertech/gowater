@@ -650,7 +650,8 @@ export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
-export type Warehouse = typeof warehouses.$inferSelect;export type InsertWarehouse =z.infer<typeof insertWarehouseSchema>;
+export type Warehouse = typeof warehouses.$inferSelect;
+export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
 export type Truck = typeof trucks.$inferSelect;
 export type InsertTruck= z.infer<typeof insertTruckSchema>;
 // Customer extended types with location details
@@ -689,7 +690,7 @@ export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItem
 export const vehicleLoading = pgTable("vehicle_loading", {
   id: serial("id").primaryKey(),
   loadingNumber: serial("loading_number").unique(),
-  date: timestamp("date").notNull().defaultNow(),
+  date: timestamp("date", { mode: 'string' }).notNull().defaultNow(),
   truckId: integer("truck_id").notNull().references(() => trucks.id),
   driverId: integer("driver_id").notNull().references(() => users.id),
   assistantId: integer("assistant_id").references(() => users.id),
@@ -698,8 +699,8 @@ export const vehicleLoading = pgTable("vehicle_loading", {
   }).notNull().default("pending"),
   initialCash: decimal("initial_cash", { precision: 10, scale: 2 }).notNull().default("0.00"),
   notes: text("notes"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at", { mode: 'string' }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { mode: 'string' }),
 });
 
 export const vehicleLoadingItems = pgTable("vehicle_loading_items", {
@@ -751,7 +752,7 @@ export const insertVehicleLoadingSchema = z.object({
     quantity: z.number().min(1),
     notes: z.string().optional(),
   })),
-});
+}).strict();
 
 // Add to type exports
 export type VehicleLoading = typeof vehicleLoading.$inferSelect;
