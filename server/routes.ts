@@ -1515,6 +1515,20 @@ export async function registerRoutes(app: Express) {
         });
       }
 
+      // Verificar que los productos existan
+      for (const item of result.data.items) {
+        const [product] = await db
+          .select()
+          .from(products)
+          .where(eq(products.id, item.productId));
+
+        if (!product) {
+          return res.status(400).json({ 
+            error: `Producto con ID ${item.productId} no encontrado` 
+          });
+        }
+      }
+
       // Crear la carga
       const [loading] = await db
         .insert(vehicleLoading)
@@ -1579,6 +1593,20 @@ export async function registerRoutes(app: Express) {
         });
       }
 
+      // Verificar que los productos existan
+      for (const item of result.data.items) {
+        const [product] = await db
+          .select()
+          .from(products)
+          .where(eq(products.id, item.productId));
+
+        if (!product) {
+          return res.status(400).json({ 
+            error: `Producto con ID ${item.productId} no encontrado` 
+          });
+        }
+      }
+
       // Actualizar la carga
       const [loading] = await db
         .update(vehicleLoading)
@@ -1597,7 +1625,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Carga no encontrada" });
       }
 
-      // Eliminar items anteriores
+      // Eliminar items anteriores.  This line is crucial to prevent overwriting.
       await db
         .delete(vehicleLoadingItems)
         .where(eq(vehicleLoadingItems.loadingId, loadingId));
