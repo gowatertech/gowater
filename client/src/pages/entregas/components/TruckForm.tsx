@@ -61,16 +61,17 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         body: JSON.stringify({
           brand: values.brand,
           model: values.model,
-          year: Number(values.year),
+          year: values.year,
           plate: values.plate,
           color: values.color,
-          capacity: Number(values.capacity),
-          status: values.status
+          capacity: values.capacity,
+          status: "disponible"
         })
       });
 
       if (!response.ok) {
-        throw new Error("Error al crear el vehículo");
+        const error = await response.json();
+        throw new Error(error.message || "Error al crear el vehículo");
       }
 
       toast({
@@ -191,29 +192,6 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Estado</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione un estado" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="disponible">Disponible</SelectItem>
-                  <SelectItem value="en_ruta">En ruta</SelectItem>
-                  <SelectItem value="en_reparacion">En reparación</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <Button 
           type="submit" 
