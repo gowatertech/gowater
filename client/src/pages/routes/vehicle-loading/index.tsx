@@ -6,6 +6,21 @@ import { Plus, Truck } from "lucide-react";
 import type { VehicleLoading } from "@shared/schema";
 import { VehicleLoadingForm } from "./VehicleLoadingForm";
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "pending":
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500";
+    case "in_progress":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500";
+    case "completed":
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-500";
+    case "cancelled":
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-500";
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-500";
+  }
+};
+
 export default function VehicleLoadingPage() {
   const [showForm, setShowForm] = useState(false);
 
@@ -66,15 +81,7 @@ export default function VehicleLoadingPage() {
               <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <span className="font-medium">#{loading.loadingNumber}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    loading.status === "completed" 
-                      ? "bg-green-100 text-green-800"
-                      : loading.status === "in_progress"
-                      ? "bg-blue-100 text-blue-800"
-                      : loading.status === "cancelled"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-100 text-gray-800"
-                  }`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(loading.status)}`}>
                     {loading.status === "completed" ? "Completado" :
                      loading.status === "in_progress" ? "En Progreso" :
                      loading.status === "cancelled" ? "Cancelado" :
