@@ -9,13 +9,6 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-
-import {
   Form,
   FormControl,
   FormField,
@@ -37,11 +30,10 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 
 interface VehicleLoadingFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
-export function VehicleLoadingForm({ open, onOpenChange }: VehicleLoadingFormProps) {
+export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,7 +91,7 @@ export function VehicleLoadingForm({ open, onOpenChange }: VehicleLoadingFormPro
         duration: 3000,
       });
 
-      onOpenChange(false);
+      onSuccess?.();
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-loading"] });
       form.reset();
     } catch (error) {
@@ -115,207 +107,200 @@ export function VehicleLoadingForm({ open, onOpenChange }: VehicleLoadingFormPro
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Nueva Carga de Vehículo</DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="truckId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehículo</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value?.toString()}
-                    >
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="truckId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Vehículo</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar vehículo" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {trucks.map((truck) => (
+                      <SelectItem key={truck.id} value={truck.id.toString()}>
+                        {truck.plate} - {truck.brand} {truck.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="driverId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Conductor</FormLabel>
+                <Select 
+                  onValueChange={field.onChange}
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar conductor" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {drivers.map((driver) => (
+                      <SelectItem key={driver.id} value={driver.id.toString()}>
+                        {driver.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="assistantId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ayudante</FormLabel>
+                <Select 
+                  onValueChange={field.onChange}
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar ayudante" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {assistants.map((assistant) => (
+                      <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                        {assistant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="initialCash"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Efectivo Inicial (RD$)</FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field}
+                    type="text"
+                    placeholder="0.00"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold">Productos a Cargar</h3>
+            <Button
+              type="button"
+              onClick={() => append({ productId: 0, quantity: 1 })}
+              variant="outline"
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Agregar Producto
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            {fields.map((field, index) => (
+              <div key={field.id} className="flex gap-4 items-end">
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.productId`}
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormLabel>Producto</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange}
+                        defaultValue={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar producto" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {products?.map((product) => (
+                            <SelectItem 
+                              key={product.id} 
+                              value={product.id.toString()}
+                            >
+                              {product.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.quantity`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cantidad</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar vehículo" />
-                        </SelectTrigger>
+                        <Input 
+                          {...field}
+                          type="number"
+                          min="1"
+                          className="w-24"
+                        />
                       </FormControl>
-                      <SelectContent>
-                        {trucks.map((truck) => (
-                          <SelectItem key={truck.id} value={truck.id.toString()}>
-                            {truck.plate} - {truck.brand} {truck.model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="driverId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Conductor</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange}
-                      defaultValue={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar conductor" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {drivers.map((driver) => (
-                          <SelectItem key={driver.id} value={driver.id.toString()}>
-                            {driver.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="assistantId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ayudante</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange}
-                      defaultValue={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar ayudante" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {assistants.map((assistant) => (
-                          <SelectItem key={assistant.id} value={assistant.id.toString()}>
-                            {assistant.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="initialCash"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Efectivo Inicial (RD$)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field}
-                        type="text"
-                        placeholder="0.00"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Productos a Cargar</h3>
                 <Button
                   type="button"
-                  onClick={() => append({ productId: 0, quantity: 1 })}
-                  variant="outline"
-                  size="sm"
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => remove(index)}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Producto
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
+            ))}
+          </div>
+        </div>
 
-              <div className="space-y-4">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex gap-4 items-end">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.productId`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Producto</FormLabel>
-                          <Select 
-                            onValueChange={field.onChange}
-                            defaultValue={field.value?.toString()}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Seleccionar producto" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {products?.map((product) => (
-                                <SelectItem 
-                                  key={product.id} 
-                                  value={product.id.toString()}
-                                >
-                                  {product.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.quantity`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cantidad</FormLabel>
-                          <FormControl>
-                            <Input 
-                              {...field}
-                              type="number"
-                              min="1"
-                              className="w-24"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => remove(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Guardando..." : "Registrar Carga"}
-            </Button>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Guardando..." : "Registrar Carga"}
+        </Button>
+      </form>
+    </Form>
   );
 }

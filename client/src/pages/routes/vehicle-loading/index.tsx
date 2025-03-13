@@ -28,16 +28,29 @@ export default function VehicleLoadingPage() {
           <Truck className="h-5 w-5 text-primary" />
           <h1 className="text-2xl font-bold">Carga de Vehículos</h1>
         </div>
-        <Button onClick={() => setShowForm(true)}>
+        <Button onClick={() => setShowForm(!showForm)}>
           <Plus className="h-4 w-4 mr-2" />
           Nueva Carga
         </Button>
       </div>
 
-      <VehicleLoadingForm
-        open={showForm}
-        onOpenChange={setShowForm}
-      />
+      {showForm && (
+        <Card className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Nueva Carga de Vehículo</h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowForm(false)}
+            >
+              ✕
+            </Button>
+          </div>
+          <VehicleLoadingForm 
+            onSuccess={() => setShowForm(false)} 
+          />
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {loadings.length === 0 ? (
