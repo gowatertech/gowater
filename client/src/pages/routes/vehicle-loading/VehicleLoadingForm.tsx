@@ -83,12 +83,25 @@ export function VehicleLoadingForm({ loading, onSuccess }: VehicleLoadingFormPro
 
   const mutation = useMutation({
     mutationFn: async (data: InsertVehicleLoading) => {
+      // Ensure all numeric fields are properly converted
+      const formattedData = {
+        ...data,
+        truckId: Number(data.truckId),
+        driverId: Number(data.driverId),
+        assistantId: data.assistantId ? Number(data.assistantId) : undefined,
+        items: data.items.map(item => ({
+          ...item,
+          productId: Number(item.productId),
+          quantity: Number(item.quantity),
+        })),
+      };
+
       const response = await fetch(loading 
         ? `/api/vehicle-loading/${loading.id}`
         : "/api/vehicle-loading", {
         method: loading ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(formattedData),
       });
 
       if (!response.ok) {

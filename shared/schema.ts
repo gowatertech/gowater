@@ -652,7 +652,7 @@ export type CustomerOrders = typeof customerOrders.$inferSelect;
 export type InsertCustomerOrders = z.infer<typeof insertCustomerOrdersSchema>;
 export type Warehouse = typeof warehouses.$inferSelect;export type InsertWarehouse =z.infer<typeof insertWarehouseSchema>;
 export type Truck = typeof trucks.$inferSelect;
-export type InsertTruck = z.infer<typeof insertTruckSchema>;
+export type InsertTruck= z.infer<typeof insertTruckSchema>;
 // Customer extended types with location details
 export type CustomerWithDetails = {
   id: number;
@@ -739,8 +739,9 @@ export const vehicleLoadingItemsRelations = relations(vehicleLoadingItems, ({ on
   }),
 }));
 
+// Vehicle Loading schema update
 export const insertVehicleLoadingSchema = z.object({
-  date: z.string().datetime(),
+  date: z.string().default(() => new Date().toISOString()),
   truckId: z.number(),
   driverId: z.number(),
   assistantId: z.number().optional(),
