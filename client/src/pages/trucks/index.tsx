@@ -6,12 +6,6 @@ import { Truck, Plus } from "lucide-react";
 import type { Truck as TruckType } from "@shared/schema";
 import { TruckForm } from "../entregas/components/TruckForm";
 import { EditTruckForm } from "./components/EditTruckForm";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 export default function TrucksPage() {
   const [showForm, setShowForm] = useState(false);
@@ -36,7 +30,10 @@ export default function TrucksPage() {
           <Truck className="h-5 w-5 text-primary" />
           <h1 className="text-2xl font-bold">Vehículos</h1>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
+        <Button onClick={() => {
+          setShowForm(!showForm);
+          setSelectedTruck(null);
+        }}>
           <Plus className="h-4 w-4 mr-2" />
           Crear
         </Button>
@@ -61,20 +58,25 @@ export default function TrucksPage() {
         </Card>
       )}
 
-      <Dialog open={!!selectedTruck} onOpenChange={(open) => !open && setSelectedTruck(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Vehículo</DialogTitle>
-          </DialogHeader>
-          {selectedTruck && (
-            <EditTruckForm
-              truck={selectedTruck}
-              open={!!selectedTruck}
-              onOpenChange={(open) => !open && setSelectedTruck(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {selectedTruck && (
+        <Card className="p-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Editar Vehículo</h2>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setSelectedTruck(null)}
+            >
+              ✕
+            </Button>
+          </div>
+          <EditTruckForm
+            truck={selectedTruck}
+            open={!!selectedTruck}
+            onOpenChange={(open) => !open && setSelectedTruck(null)}
+          />
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
         {trucks.length === 0 ? (
@@ -85,8 +87,13 @@ export default function TrucksPage() {
           trucks.map((truck) => (
             <Card 
               key={truck.id} 
-              className="p-2 bg-white hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedTruck(truck)}
+              className={`p-2 bg-white hover:shadow-md transition-shadow cursor-pointer ${
+                selectedTruck?.id === truck.id ? 'ring-2 ring-primary' : ''
+              }`}
+              onClick={() => {
+                setSelectedTruck(truck);
+                setShowForm(false);
+              }}
             >
               <div className="flex flex-col">
                 <div className="flex items-center gap-1 mb-1">
