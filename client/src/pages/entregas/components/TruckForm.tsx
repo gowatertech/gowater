@@ -42,7 +42,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     }
   });
 
-  const onSubmit = async (values: InsertTruck) => {
+  const onSubmit = async (data: InsertTruck) => {
     try {
       setIsSubmitting(true);
       const response = await fetch("/api/trucks", {
@@ -50,7 +50,7 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values)
+        body: JSON.stringify(data)
       });
 
       if (!response.ok) {
