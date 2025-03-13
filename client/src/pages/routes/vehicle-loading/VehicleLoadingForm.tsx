@@ -28,6 +28,21 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "pending":
+      return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500";
+    case "in_progress":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500";
+    case "completed":
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-500";
+    case "cancelled":
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-500";
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-500";
+  }
+};
+
 interface VehicleLoadingFormProps {
   onSuccess?: () => void;
 }
@@ -127,7 +142,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehículo</FormLabel>
-                <Select 
+                <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value?.toString()}
                 >
@@ -155,7 +170,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Conductor</FormLabel>
-                <Select 
+                <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value?.toString()}
                 >
@@ -183,7 +198,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Ayudante</FormLabel>
-                <Select 
+                <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value?.toString()}
                 >
@@ -212,7 +227,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
               <FormItem>
                 <FormLabel>Efectivo Inicial (RD$)</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     {...field}
                     type="text"
                     placeholder="0.00"
@@ -253,7 +268,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                   render={({ field }) => (
                     <FormItem className="flex-1">
                       <FormLabel>Producto</FormLabel>
-                      <Select 
+                      <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
@@ -264,8 +279,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                         </FormControl>
                         <SelectContent>
                           {products?.map((product) => (
-                            <SelectItem 
-                              key={product.id} 
+                            <SelectItem
+                              key={product.id}
                               value={product.id.toString()}
                             >
                               {product.name}
@@ -285,7 +300,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                     <FormItem>
                       <FormLabel>Cantidad</FormLabel>
                       <FormControl>
-                        <Input 
+                        <Input
                           {...field}
                           type="number"
                           min="1"
@@ -311,8 +326,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
           </div>
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full"
           disabled={isSubmitting}
         >
