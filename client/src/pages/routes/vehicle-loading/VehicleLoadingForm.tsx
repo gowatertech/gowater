@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVehicleLoadingSchema } from "@shared/schema";
 import type { InsertVehicleLoading, Product, User, Truck } from "@shared/schema";
@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { Plus, X } from "lucide-react";
 
 import {
   Dialog,
@@ -54,6 +55,12 @@ export function VehicleLoadingForm({ open, onOpenChange }: VehicleLoadingFormPro
     }
   });
 
+  // Configurar useFieldArray para manejar la lista de productos
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "items"
+  });
+
   const { data: trucks = [] } = useQuery<Truck[]>({
     queryKey: ["/api/trucks"],
   });
@@ -64,6 +71,10 @@ export function VehicleLoadingForm({ open, onOpenChange }: VehicleLoadingFormPro
 
   const { data: assistants = [] } = useQuery<User[]>({
     queryKey: ["/api/users/drivers", { role: "assistant" }],
+  });
+
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
   });
 
   const onSubmit = async (values: InsertVehicleLoading) => {
@@ -110,7 +121,7 @@ export function VehicleLoadingForm({ open, onOpenChange }: VehicleLoadingFormPro
           <DialogTitle>Nueva Carga de Vehículo</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -213,6 +224,86 @@ export function VehicleLoadingForm({ open, onOpenChange }: VehicleLoadingFormPro
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Productos a Cargar</h3>
+                <Button
+                  type="button"
+                  onClick={() => append({ productId: 0, quantity: 1 })}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Producto
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                {fields.map((field, index) => (
+                  <div key={field.id} className="flex gap-4 items-end">
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.productId`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Producto</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange}
+                            defaultValue={field.value?.toString()}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Seleccionar producto" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {products?.map((product) => (
+                                <SelectItem 
+                                  key={product.id} 
+                                  value={product.id.toString()}
+                                >
+                                  {product.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name={`items.${index}.quantity`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cantidad</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field}
+                              type="number"
+                              min="1"
+                              className="w-24"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => remove(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <Button 
