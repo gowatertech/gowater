@@ -7,6 +7,8 @@ import { zones, routes, users, provinces, cities, municipalities, sectors, inser
 import { db } from './db';
 import { eq, and, sql } from 'drizzle-orm';
 import express from 'express';
+import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
+import { registerRouteSettlements } from "./routes/routeSettlements";
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -24,7 +26,9 @@ export async function registerRoutes(app: Express) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // API Routes
+  // Registrar las rutas de carga de vehículo y cuadre
+  await registerVehicleLoadingRoutes(app);
+  await registerRouteSettlements(app);
 
   // Warehouses endpoints
   app.get("/api/warehouses", async (req, res) => {
