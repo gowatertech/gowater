@@ -14,6 +14,7 @@ import {
   Truck,
   insertRouteSettlementSchema
 } from "@shared/schema";
+import { Loader2 } from "lucide-react";
 import React from 'react';
 
 interface RouteSettlementFormProps {
@@ -28,8 +29,9 @@ interface LoadingWithRelations extends VehicleLoading {
     id: number;
     productId: number;
     quantity: number;
-    returnedQuantity: number;
+    returnedQuantity: number | null;
     notes: string | null;
+    product: Product;
   }>;
 }
 
@@ -40,11 +42,8 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   // Obtener datos de la carga
   const { data: vehicleLoading, isLoading: loadingData } = useQuery<LoadingWithRelations>({
     queryKey: ["/api/vehicle-loading", vehicleLoadingId],
-  });
-
-  // Obtener productos
-  const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const form = useForm<InsertRouteSettlement>({
@@ -128,12 +127,12 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
 
   const totals = calculateTotals();
 
-  if (loadingData) {
-    return <div>Cargando datos...</div>;
-  }
-
-  if (!vehicleLoading) {
-    return <div>No se encontró la carga</div>;
+  if (loadingData || !vehicleLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -141,17 +140,17 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Información de la Carga</CardTitle>
+            <CardTitle>Información de la Carga #{vehicleLoading.loadingNumber}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <span className="text-sm font-medium">Vehículo:</span>
-                <span className="ml-2">{vehicleLoading.truck?.plate || vehicleLoading.truckId}</span>
+                <span className="ml-2">{vehicleLoading.truck?.plate}</span>
               </div>
               <div>
                 <span className="text-sm font-medium">Conductor:</span>
-                <span className="ml-2">{vehicleLoading.driver?.name || vehicleLoading.driverId}</span>
+                <span className="ml-2">{vehicleLoading.driver?.name}</span>
               </div>
               <div>
                 <span className="text-sm font-medium">Fecha:</span>
@@ -159,7 +158,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
               </div>
               <div>
                 <span className="text-sm font-medium">Efectivo Inicial:</span>
-                <span className="ml-2">${vehicleLoading.initialCash}</span>
+                <span className="ml-2">RD$ {vehicleLoading.initialCash}</span>
               </div>
             </div>
           </CardContent>
@@ -199,12 +198,12 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           <div className="grid grid-cols-2 gap-4">
             <div>
               <span className="text-sm font-medium">Total Recibido:</span>
-              <span className="ml-2">${totals.totalReceived}</span>
+              <span className="ml-2">RD$ {totals.totalReceived}</span>
             </div>
             <div>
               <span className="text-sm font-medium">Diferencia:</span>
               <span className={`ml-2 ${parseFloat(totals.difference) < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                ${totals.difference}
+                RD$ {totals.difference}
               </span>
             </div>
           </div>
@@ -227,18 +226,18 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
               </thead>
               <tbody>
                 {fields.map((field, index) => {
-                  const product = products.find(p => p.id === field.productId);
-                  if (!product) return null;
+                  const item = vehicleLoading.items.find(i => i.productId === field.productId);
+                  if (!item?.product) return null;
 
                   const loadedQty = form.watch(`items.${index}.loadedQuantity`);
                   const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
                   const soldQty = loadedQty - returnedQty;
-                  const total = soldQty * parseFloat(product.price);
+                  const total = parseFloat(item.product.price) * soldQty;
 
                   return (
                     <tr key={field.id} className="border-b">
-                      <td className="p-2">{product.name}</td>
-                      <td className="p-2 text-right">${product.price}</td>
+                      <td className="p-2">{item.product.name}</td>
+                      <td className="p-2 text-right">RD$ {item.product.price}</td>
                       <td className="p-2 text-right">{loadedQty}</td>
                       <td className="p-2">
                         <Input
@@ -258,7 +257,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                           min="0"
                         />
                       </td>
-                      <td className="p-2 text-right">${total.toFixed(2)}</td>
+                      <td className="p-2 text-right">RD$ {total.toFixed(2)}</td>
                     </tr>
                   );
                 })}

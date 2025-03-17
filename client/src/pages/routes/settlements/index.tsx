@@ -25,6 +25,8 @@ export default function RouteSettlementPage() {
   // Obtener cargas pendientes de cuadre
   const { data: pendingLoads = [], isLoading } = useQuery<LoadingWithRelations[]>({
     queryKey: ["/api/vehicle-loading/pending"],
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const handleSettlementSuccess = () => {

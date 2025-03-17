@@ -27,6 +27,30 @@ export async function registerVehicleLoadingRoutes(app: Express) {
     }
   });
 
+  // Get pending vehicle loadings
+  app.get("/api/vehicle-loading/pending", async (_req: Request, res: Response) => {
+    try {
+      const loadings = await db.query.vehicleLoading.findMany({
+        where: eq(vehicleLoading.status, "pending"),
+        with: {
+          items: {
+            with: {
+              product: true
+            }
+          },
+          truck: true,
+          driver: true,
+        },
+        orderBy: (vehicleLoading, { desc }) => [desc(vehicleLoading.date)]
+      });
+
+      res.json(loadings);
+    } catch (error) {
+      console.error("Error fetching pending loadings:", error);
+      res.status(500).json({ error: "Error al obtener cargas pendientes" });
+    }
+  });
+
   // Get specific vehicle loading with items
   app.get("/api/vehicle-loading/:id", async (req: Request, res: Response) => {
     try {
