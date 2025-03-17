@@ -20,7 +20,8 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         orderBy: (vehicleLoading, { desc }) => [desc(vehicleLoading.date)]
       });
 
-      console.log("Loadings with items:", loadings); // Debug log
+      // Debug log
+      console.log("Loadings with items:", JSON.stringify(loadings, null, 2));
       res.json(loadings);
     } catch (error) {
       console.error("Error fetching vehicle loadings:", error);
@@ -48,7 +49,8 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         return res.status(404).json({ error: "Carga no encontrada" });
       }
 
-      console.log("Loading details:", loading); // Debug log
+      // Debug log
+      console.log("Loading details:", JSON.stringify(loading, null, 2));
       res.json(loading);
     } catch (error) {
       console.error("Error fetching vehicle loading:", error);
