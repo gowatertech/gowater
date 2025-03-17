@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Truck, Eye } from "lucide-react";
+import { Plus, Truck, AlertCircle } from "lucide-react";
 import type { VehicleLoading, Product, User, Truck as TruckType } from "@shared/schema";
 import { VehicleLoadingForm } from "./VehicleLoadingForm";
+import { Loader2 } from "lucide-react";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
@@ -13,7 +14,7 @@ interface LoadingWithRelations extends VehicleLoading {
     id: number;
     productId: number;
     quantity: number;
-    returnedQuantity: number;
+    returnedQuantity: number | null;
     notes: string | null;
     product: Product;
   }>;
@@ -38,17 +39,26 @@ export default function VehicleLoadingPage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
 
-  const { data: loadings = [], isLoading } = useQuery<LoadingWithRelations[]>({
+  const { data: loadings = [], isLoading, error } = useQuery<LoadingWithRelations[]>({
     queryKey: ["/api/vehicle-loading"],
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
-
-  console.log("Loadings data:", loadings); // Debug log
-  console.log("Selected loading:", selectedLoading); // Debug log for selected loading
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <p>Cargando...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("Error loading data:", error);
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle className="h-8 w-8 text-red-500" />
+        <p className="text-red-500">Error al cargar los datos</p>
       </div>
     );
   }
@@ -114,7 +124,12 @@ export default function VehicleLoadingPage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Estado</p>
-                    <p className="font-medium capitalize">{selectedLoading.status}</p>
+                    <p className="font-medium capitalize">
+                      {selectedLoading.status === "completed" ? "Completado" :
+                       selectedLoading.status === "in_progress" ? "En Progreso" :
+                       selectedLoading.status === "cancelled" ? "Cancelado" :
+                       "Pendiente"}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Conductor</p>
@@ -146,28 +161,41 @@ export default function VehicleLoadingPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedLoading.items?.map((item) => (
-                        <tr key={item.id} className="border-b">
-                          <td className="px-4 py-2">{item.product.name}</td>
-                          <td className="px-4 py-2 text-right">{item.quantity}</td>
-                          <td className="px-4 py-2 text-right">{item.returnedQuantity || 0}</td>
-                          <td className="px-4 py-2 text-right">RD$ {item.product.price}</td>
-                          <td className="px-4 py-2 text-right">
-                            RD$ {(parseFloat(item.product.price) * item.quantity).toFixed(2)}
+                      {selectedLoading.items && selectedLoading.items.length > 0 ? (
+                        selectedLoading.items.map((item) => (
+                          <tr key={item.id} className="border-b">
+                            <td className="px-4 py-2">{item.product?.name}</td>
+                            <td className="px-4 py-2 text-right">{item.quantity}</td>
+                            <td className="px-4 py-2 text-right">{item.returnedQuantity || 0}</td>
+                            <td className="px-4 py-2 text-right">RD$ {item.product?.price}</td>
+                            <td className="px-4 py-2 text-right">
+                              RD$ {(item.product?.price && !isNaN(parseFloat(item.product.price)) ? 
+                                (parseFloat(item.product.price) * item.quantity).toFixed(2) : '0.00')}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-2 text-center text-gray-500">
+                            No hay productos cargados
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan={4} className="px-4 py-2 text-right font-medium">Total</td>
-                        <td className="px-4 py-2 text-right font-medium">
-                          RD$ {selectedLoading.items?.reduce((sum, item) => 
-                            sum + (parseFloat(item.product.price) * item.quantity), 0
-                          ).toFixed(2)}
-                        </td>
-                      </tr>
-                    </tfoot>
+                    {selectedLoading.items && selectedLoading.items.length > 0 && (
+                      <tfoot className="bg-gray-50">
+                        <tr>
+                          <td colSpan={4} className="px-4 py-2 text-right font-medium">Total</td>
+                          <td className="px-4 py-2 text-right font-medium">
+                            RD$ {selectedLoading.items.reduce((sum, item) => {
+                              const price = item.product?.price && !isNaN(parseFloat(item.product.price)) ? 
+                                parseFloat(item.product.price) : 0;
+                              return sum + (price * item.quantity);
+                            }, 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    )}
                   </table>
                 </div>
               </div>

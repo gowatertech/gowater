@@ -2,7 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log } from "./vite";
 import path from "path";
-import fs from "fs";
 
 const app = express();
 
@@ -61,7 +60,7 @@ app.use((req, res, next) => {
         res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
-      // Development mode - use Vite after API routes
+      // Development mode - use Vite
       await setupVite(app, server);
       log("Development mode: Vite setup complete");
     }
@@ -80,7 +79,6 @@ app.use((req, res, next) => {
     server.listen(Number(port), "0.0.0.0", () => {
       log(`Server started successfully on port ${port} and bound to 0.0.0.0`);
       log(`Environment: ${process.env.NODE_ENV}`);
-      log(`Application URL: ${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : `http://localhost:${port}`}`);
     });
 
   } catch (error) {
