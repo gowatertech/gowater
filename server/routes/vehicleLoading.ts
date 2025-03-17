@@ -4,6 +4,28 @@ import { db } from "../db";
 import { vehicleLoading, vehicleLoadingItems } from "@shared/schema";
 
 export async function registerVehicleLoadingRoutes(app: Express) {
+  // Get all vehicle loadings
+  app.get("/api/vehicle-loading", async (_req: Request, res: Response) => {
+    try {
+      const loadings = await db.query.vehicleLoading.findMany({
+        with: {
+          items: {
+            with: {
+              product: true
+            }
+          },
+          truck: true,
+          driver: true,
+        },
+      });
+
+      res.json(loadings);
+    } catch (error) {
+      console.error("Error fetching vehicle loadings:", error);
+      res.status(500).json({ error: "Error al obtener las cargas" });
+    }
+  });
+
   // Get pending vehicle loadings
   app.get("/api/vehicle-loading/pending", async (_req: Request, res: Response) => {
     try {
@@ -47,7 +69,6 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         return res.status(404).json({ error: "Carga no encontrada" });
       }
 
-      console.log("Carga encontrada:", loading);
       res.json(loading);
     } catch (error) {
       console.error("Error fetching vehicle loading:", error);
