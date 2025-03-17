@@ -39,7 +39,6 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Obtener datos de la carga
   const { data: vehicleLoading, isLoading: loadingData } = useQuery<LoadingWithRelations>({
     queryKey: ["/api/vehicle-loading", vehicleLoadingId],
     retry: 1,
@@ -58,7 +57,6 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     }
   });
 
-  // Actualizar los items del formulario cuando se carguen los datos
   React.useEffect(() => {
     if (vehicleLoading?.items) {
       form.reset({
@@ -80,7 +78,6 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     name: "items"
   });
 
-  // Calcular totales y diferencias
   const calculateTotals = () => {
     const values = form.getValues();
     const cashReceived = parseFloat(values.totalCashReceived) || 0;
@@ -129,44 +126,41 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
 
   if (loadingData || !vehicleLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center h-48">
+        <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Información de la Carga #{vehicleLoading.loadingNumber}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Card className="bg-muted/50">
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
               <div>
-                <span className="text-sm font-medium">Vehículo:</span>
-                <span className="ml-2">{vehicleLoading.truck?.plate}</span>
+                <span className="font-medium">Vehículo:</span>
+                <span className="ml-1">{vehicleLoading.truck?.plate}</span>
               </div>
               <div>
-                <span className="text-sm font-medium">Conductor:</span>
-                <span className="ml-2">{vehicleLoading.driver?.name}</span>
+                <span className="font-medium">Conductor:</span>
+                <span className="ml-1">{vehicleLoading.driver?.name}</span>
               </div>
               <div>
-                <span className="text-sm font-medium">Fecha:</span>
-                <span className="ml-2">{new Date(vehicleLoading.date).toLocaleDateString()}</span>
+                <span className="font-medium">Fecha:</span>
+                <span className="ml-1">{new Date(vehicleLoading.date).toLocaleDateString()}</span>
               </div>
               <div>
-                <span className="text-sm font-medium">Efectivo Inicial:</span>
-                <span className="ml-2">RD$ {vehicleLoading.initialCash}</span>
+                <span className="font-medium">Inicial:</span>
+                <span className="ml-1">RD$ {vehicleLoading.initialCash}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <div>
-            <label className="text-sm font-medium">Efectivo Recibido</label>
+            <label className="text-sm font-medium">Efectivo</label>
             <Input
               {...form.register("totalCashReceived")}
               type="number"
@@ -175,7 +169,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Crédito Recibido</label>
+            <label className="text-sm font-medium">Crédito</label>
             <Input
               {...form.register("totalCreditReceived")}
               type="number"
@@ -184,7 +178,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Total Facturado</label>
+            <label className="text-sm font-medium">Facturado</label>
             <Input
               {...form.register("totalInvoiced")}
               type="number"
@@ -194,33 +188,35 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           </div>
         </div>
 
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-sm font-medium">Total Recibido:</span>
-              <span className="ml-2">RD$ {totals.totalReceived}</span>
+        <Card className="bg-muted/50">
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <span className="font-medium">Total Recibido:</span>
+                <span className="ml-1">RD$ {totals.totalReceived}</span>
+              </div>
+              <div>
+                <span className="font-medium">Diferencia:</span>
+                <span className={`ml-1 ${parseFloat(totals.difference) < 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  RD$ {totals.difference}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-sm font-medium">Diferencia:</span>
-              <span className={`ml-2 ${parseFloat(totals.difference) < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                RD$ {totals.difference}
-              </span>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Detalle de Productos</h3>
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">Detalle de Productos</h3>
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-50">
+            <table className="w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
                   <th className="p-2 text-left">Producto</th>
                   <th className="p-2 text-right">Precio</th>
                   <th className="p-2 text-right">Cargado</th>
                   <th className="p-2 text-right">Devuelto</th>
                   <th className="p-2 text-right">Vendido</th>
-                  <th className="p-2 text-right">Envases Dev.</th>
+                  <th className="p-2 text-right">Envases</th>
                   <th className="p-2 text-right">Total</th>
                 </tr>
               </thead>
@@ -236,28 +232,28 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
 
                   return (
                     <tr key={field.id} className="border-b">
-                      <td className="p-2">{item.product.name}</td>
-                      <td className="p-2 text-right">RD$ {item.product.price}</td>
-                      <td className="p-2 text-right">{loadedQty}</td>
-                      <td className="p-2">
+                      <td className="p-1">{item.product.name}</td>
+                      <td className="p-1 text-right">RD$ {item.product.price}</td>
+                      <td className="p-1 text-right">{loadedQty}</td>
+                      <td className="p-1">
                         <Input
                           {...form.register(`items.${index}.returnedQuantity` as const)}
                           type="number"
-                          className="w-20 text-right"
+                          className="w-16 text-right"
                           min="0"
                           max={loadedQty}
                         />
                       </td>
-                      <td className="p-2 text-right">{soldQty}</td>
-                      <td className="p-2">
+                      <td className="p-1 text-right">{soldQty}</td>
+                      <td className="p-1">
                         <Input
                           {...form.register(`items.${index}.returnedContainers` as const)}
                           type="number"
-                          className="w-20 text-right"
+                          className="w-16 text-right"
                           min="0"
                         />
                       </td>
-                      <td className="p-2 text-right">RD$ {total.toFixed(2)}</td>
+                      <td className="p-1 text-right">RD$ {total.toFixed(2)}</td>
                     </tr>
                   );
                 })}
@@ -266,16 +262,16 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div>
           <label className="text-sm font-medium">Notas</label>
           <textarea
             {...form.register("notes")}
-            className="w-full min-h-[100px] p-2 border rounded"
+            className="w-full h-20 p-2 mt-1 border rounded"
             placeholder="Agregar notas o comentarios adicionales..."
           />
         </div>
 
-        <div className="flex justify-end space-x-4">
+        <div className="flex justify-end">
           <Button type="submit">
             Guardar Cuadre
           </Button>
