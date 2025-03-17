@@ -10,6 +10,8 @@ import {
   InsertRouteSettlement, 
   VehicleLoading,
   Product,
+  User,
+  Truck,
   insertRouteSettlementSchema 
 } from "@shared/schema";
 import React from 'react';
@@ -19,12 +21,24 @@ interface RouteSettlementFormProps {
   onSuccess?: () => void;
 }
 
+interface LoadingWithRelations extends VehicleLoading {
+  truck: Truck;
+  driver: User;
+  items: Array<{
+    id: number;
+    productId: number;
+    quantity: number;
+    returnedQuantity: number;
+    notes: string | null;
+  }>;
+}
+
 export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettlementFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Obtener datos de la carga
-  const { data: vehicleLoading, isLoading: loadingData } = useQuery<VehicleLoading>({
+  const { data: vehicleLoading, isLoading: loadingData } = useQuery<LoadingWithRelations>({
     queryKey: ["/api/vehicle-loading", vehicleLoadingId],
   });
 
@@ -199,7 +213,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Productos</h3>
           {fields.map((field, index) => {
-            const loadingItem = vehicleLoading.items?.find(item => item.productId === field.productId);
+            const loadingItem = vehicleLoading.items?.find(item => item.id === field.id);
             const product = products.find(p => p.id === field.productId);
 
             if (!loadingItem || !product) return null;

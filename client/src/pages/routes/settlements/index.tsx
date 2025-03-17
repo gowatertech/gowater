@@ -3,15 +3,27 @@ import { useState } from "react";
 import { RouteSettlementForm } from "@/components/RouteSettlementForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { VehicleLoading } from "@shared/schema";
+import { VehicleLoading, User, Truck } from "@shared/schema";
 import { Loader2 } from "lucide-react";
+
+interface LoadingWithRelations extends VehicleLoading {
+  truck: Truck;
+  driver: User;
+  items: Array<{
+    id: number;
+    productId: number;
+    quantity: number;
+    returnedQuantity: number;
+    notes: string | null;
+  }>;
+}
 
 export default function RouteSettlementPage() {
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
   const { toast } = useToast();
 
   // Obtener cargas pendientes de cuadre
-  const { data: pendingLoads = [], isLoading } = useQuery<VehicleLoading[]>({
+  const { data: pendingLoads = [], isLoading } = useQuery<LoadingWithRelations[]>({
     queryKey: ["/api/vehicle-loading/pending"],
   });
 
