@@ -1,7 +1,7 @@
 import { Express, Request, Response } from "express";
 import { eq } from "drizzle-orm";
 import { db } from "../db";
-import { vehicleLoading, vehicleLoadingItems } from "@shared/schema";
+import { vehicleLoading, vehicleLoadingItems, products } from "@shared/schema";
 
 export async function registerVehicleLoadingRoutes(app: Express) {
   // Get all vehicle loadings
@@ -17,35 +17,14 @@ export async function registerVehicleLoadingRoutes(app: Express) {
           truck: true,
           driver: true,
         },
+        orderBy: (vehicleLoading, { desc }) => [desc(vehicleLoading.date)]
       });
 
+      console.log("Loadings with items:", loadings); // Debug log
       res.json(loadings);
     } catch (error) {
       console.error("Error fetching vehicle loadings:", error);
       res.status(500).json({ error: "Error al obtener las cargas" });
-    }
-  });
-
-  // Get pending vehicle loadings
-  app.get("/api/vehicle-loading/pending", async (_req: Request, res: Response) => {
-    try {
-      const loadings = await db.query.vehicleLoading.findMany({
-        where: eq(vehicleLoading.status, "pending"),
-        with: {
-          items: {
-            with: {
-              product: true
-            }
-          },
-          truck: true,
-          driver: true,
-        },
-      });
-
-      res.json(loadings);
-    } catch (error) {
-      console.error("Error fetching pending loadings:", error);
-      res.status(500).json({ error: "Error al obtener cargas pendientes" });
     }
   });
 
@@ -69,6 +48,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         return res.status(404).json({ error: "Carga no encontrada" });
       }
 
+      console.log("Loading details:", loading); // Debug log
       res.json(loading);
     } catch (error) {
       console.error("Error fetching vehicle loading:", error);
