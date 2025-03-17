@@ -6,13 +6,13 @@ import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  InsertRouteSettlement, 
+import {
+  InsertRouteSettlement,
   VehicleLoading,
   Product,
   User,
   Truck,
-  insertRouteSettlementSchema 
+  insertRouteSettlementSchema
 } from "@shared/schema";
 import React from 'react';
 
@@ -67,10 +67,10 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
         items: vehicleLoading.items.map(item => ({
           productId: item.productId,
           loadedQuantity: item.quantity,
-          returnedQuantity: 0,
-          soldQuantity: 0,
+          returnedQuantity: item.returnedQuantity || 0,
+          soldQuantity: item.quantity - (item.returnedQuantity || 0),
           returnedContainers: 0,
-          notes: ""
+          notes: item.notes || ""
         }))
       });
     }
@@ -144,7 +144,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
             <CardTitle>Información de la Carga</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <span className="text-sm font-medium">Vehículo:</span>
                 <span className="ml-2">{vehicleLoading.truck?.plate || vehicleLoading.truckId}</span>
@@ -211,59 +211,60 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Productos</h3>
-          {fields.map((field, index) => {
-            const loadingItem = vehicleLoading.items?.find(item => item.id === field.id);
-            const product = products.find(p => p.id === field.productId);
+          <h3 className="text-lg font-medium">Detalle de Productos</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="p-2 text-left">Producto</th>
+                  <th className="p-2 text-right">Precio</th>
+                  <th className="p-2 text-right">Cargado</th>
+                  <th className="p-2 text-right">Devuelto</th>
+                  <th className="p-2 text-right">Vendido</th>
+                  <th className="p-2 text-right">Envases Dev.</th>
+                  <th className="p-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {fields.map((field, index) => {
+                  const product = products.find(p => p.id === field.productId);
+                  if (!product) return null;
 
-            if (!loadingItem || !product) return null;
+                  const loadedQty = form.watch(`items.${index}.loadedQuantity`);
+                  const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
+                  const soldQty = loadedQty - returnedQty;
+                  const total = soldQty * parseFloat(product.price);
 
-            return (
-              <Card key={field.id} className="p-4">
-                <CardHeader>
-                  <CardTitle className="text-base">{product.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="text-sm font-medium">Cantidad Cargada</label>
-                      <Input
-                        {...form.register(`items.${index}.loadedQuantity` as const)}
-                        type="number"
-                        className="mt-1"
-                        disabled
-                        value={loadingItem.quantity}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Cantidad Devuelta</label>
-                      <Input
-                        {...form.register(`items.${index}.returnedQuantity` as const)}
-                        type="number"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Cantidad Vendida</label>
-                      <Input
-                        {...form.register(`items.${index}.soldQuantity` as const)}
-                        type="number"
-                        className="mt-1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Envases Devueltos</label>
-                      <Input
-                        {...form.register(`items.${index}.returnedContainers` as const)}
-                        type="number"
-                        className="mt-1"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+                  return (
+                    <tr key={field.id} className="border-b">
+                      <td className="p-2">{product.name}</td>
+                      <td className="p-2 text-right">${product.price}</td>
+                      <td className="p-2 text-right">{loadedQty}</td>
+                      <td className="p-2">
+                        <Input
+                          {...form.register(`items.${index}.returnedQuantity` as const)}
+                          type="number"
+                          className="w-20 text-right"
+                          min="0"
+                          max={loadedQty}
+                        />
+                      </td>
+                      <td className="p-2 text-right">{soldQty}</td>
+                      <td className="p-2">
+                        <Input
+                          {...form.register(`items.${index}.returnedContainers` as const)}
+                          type="number"
+                          className="w-20 text-right"
+                          min="0"
+                        />
+                      </td>
+                      <td className="p-2 text-right">${total.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="space-y-4">
