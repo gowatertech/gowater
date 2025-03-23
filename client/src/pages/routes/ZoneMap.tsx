@@ -11,23 +11,13 @@ import 'leaflet/dist/leaflet.css';
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { AddressSearchBox } from "@/components/map/AddressSearchBox";
 import { ZonePolygons } from "@/components/map/ZonePolygons";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -38,7 +28,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 // Fix Leaflet icon issue
@@ -481,87 +470,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Tabla de Zonas */}
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Zonas Existentes</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead>Creado</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {zones.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
-                  No hay zonas definidas aún
-                </TableCell>
-              </TableRow>
-            ) : (
-              zones.map((zone) => (
-                <TableRow key={zone.id}>
-                  <TableCell>{zone.id}</TableCell>
-                  <TableCell>{zone.name}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <div
-                        className="w-4 h-4 rounded-full mr-2"
-                        style={{ backgroundColor: zone.color }}
-                      ></div>
-                      {zone.color}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(zone.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewZone(zone)}
-                        title="Ver detalles"
-                      >
-                        <Eye size={16} />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedZone(zone);
-                          handleEditZone();
-                          setShowZoneDetails(true);
-                        }}
-                        title="Editar zona"
-                      >
-                        <Edit size={16} />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() => {
-                          setSelectedZone(zone);
-                          handleDeleteZone();
-                        }}
-                        title="Eliminar zona"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Mapa */}
+      {/* Mapa para dibujar la nueva zona */}
       <ResponsiveMapContainer className="bg-white" fixedHeight>
         <MapContainer
           center={initialPosition}
