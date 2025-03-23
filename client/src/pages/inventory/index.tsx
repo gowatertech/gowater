@@ -184,7 +184,12 @@ export default function Inventory() {
   };
 
   const onEdit = (data: any) => {
-    updateMutation.mutate(data);
+    console.log("Editando producto:", data, "ID:", editingProduct?.id);
+    try {
+      updateMutation.mutate(data);
+    } catch (error) {
+      console.error("Error en onEdit:", error);
+    }
   };
 
   const handleEdit = (product: Product) => {
@@ -193,14 +198,19 @@ export default function Inventory() {
       name: product.name,
       price: product.price.toString(),
       stock: product.stock,
-      icon: product.icon,
+      icon: product.icon || undefined, // Convertir null a undefined para evitar error de tipos
     });
     setIsEditDialogOpen(true);
   };
 
   const handleDelete = async (id: number) => {
     if (window.confirm("¿Está seguro que desea eliminar este producto?")) {
-      deleteMutation.mutate(id);
+      console.log("Eliminando producto con ID:", id);
+      try {
+        deleteMutation.mutate(id);
+      } catch (error) {
+        console.error("Error en handleDelete:", error);
+      }
     }
   };
 
