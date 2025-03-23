@@ -16,6 +16,15 @@ interface LoadingWithRelations extends VehicleLoading {
     quantity: number;
     returnedQuantity: number | null;
     notes: string | null;
+    product: {
+      id: number;
+      name: string;
+      price: string;
+      stock: number;
+      icon: string | null;
+      isReturnable: boolean;
+      depositAmount: number;
+    };
   }>;
 }
 

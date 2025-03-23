@@ -158,7 +158,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   const totals = calculateTotals();
 
   // Mejorar la verificación para asegurarnos de que tenemos todos los datos necesarios
-  if (loadingData || !vehicleLoading || !vehicleLoading.items || vehicleLoading.items.length === 0) {
+  if (loadingData || !vehicleLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-48">
         <Loader2 className="h-6 w-6 animate-spin mb-2" />
@@ -166,14 +166,29 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       </div>
     );
   }
+
+  // Mostrar la información en los logs para depuración
+  console.log("Datos completos del vehículo:", vehicleLoading);
+  console.log("Items en la carga:", vehicleLoading.items);
+  console.log("Items con productos:", vehicleLoading.items.filter(item => item.product));
   
   // Verificar si hay productos con la información completa
-  const validItems = vehicleLoading.items.filter(item => item.product);
+  const validItems = vehicleLoading.items?.filter(item => item.product) || [];
+  
+  if (!vehicleLoading.items || vehicleLoading.items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48">
+        <p className="text-red-500">No hay productos en esta carga.</p>
+        <p className="text-sm text-muted-foreground mt-2">Por favor, selecciona otra carga con productos.</p>
+      </div>
+    );
+  }
+  
   if (validItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-48">
         <p className="text-red-500">No se encontraron productos válidos para esta carga.</p>
-        <p className="text-sm text-muted-foreground mt-2">Por favor, verifica la carga del vehículo.</p>
+        <p className="text-sm text-muted-foreground mt-2">Por favor, verifica que los productos tengan información completa.</p>
       </div>
     );
   }
