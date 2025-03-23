@@ -7,6 +7,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Loader2, MapPin, User, Truck, Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import L from "leaflet";
 
 import {
   Form,
@@ -31,6 +34,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 interface ZoneBasedRouteFormProps {
   onRouteCreated: () => void;
@@ -564,20 +573,41 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   control={form.control}
                   name="date"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fecha</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          {...field}
-                          value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
-                          onChange={(e) => {
-                            const date = new Date(e.target.value);
-                            date.setHours(12); // Set to noon to avoid timezone issues
-                            field.onChange(date);
-                          }}
-                        />
-                      </FormControl>
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Fecha de entrega</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={`w-full pl-3 text-left font-normal flex justify-between items-center ${
+                                !field.value ? "text-muted-foreground" : ""
+                              }`}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP", { locale: es })
+                              ) : (
+                                <span>Selecciona una fecha</span>
+                              )}
+                              <Calendar className="h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              if (date) {
+                                date.setHours(12); // Set to noon to avoid timezone issues
+                                field.onChange(date);
+                              }
+                            }}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
