@@ -726,6 +726,43 @@ export default function Customers() {
 
                 <FormField
                   control={form.control}
+                  name="zoneid"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zona</FormLabel>
+                      {isEditing ? (
+                        <Select
+                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una zona" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {zones.map((zone) => (
+                              <SelectItem key={zone.id} value={zone.id.toString()}>
+                                {zone.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <FormControl>
+                          <Input 
+                            value={zones.find(z => z.id === selectedCustomer?.zoneid)?.name || ''}
+                            readOnly 
+                          />
+                        </FormControl>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="street"
                   render={({ field }) => (
                     <FormItem>
