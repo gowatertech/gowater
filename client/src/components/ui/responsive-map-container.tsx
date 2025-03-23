@@ -1,7 +1,4 @@
-
-import React from 'react';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { cn } from '@/lib/utils';
+import React from "react";
 
 interface ResponsiveMapContainerProps {
   children: React.ReactNode;
@@ -11,21 +8,16 @@ interface ResponsiveMapContainerProps {
 
 export function ResponsiveMapContainer({ 
   children, 
-  className,
-  style,
-  ...props 
+  className = "",
+  style = {}
 }: ResponsiveMapContainerProps) {
-  const isMobile = useIsMobile();
-  
   return (
     <div 
-      className={cn(
-        "bg-white rounded-lg shadow-sm w-full map-container-responsive",
-        isMobile ? "h-[30vh] max-h-[250px]" : "h-[50vh] max-h-[500px]",
-        className
-      )}
-      style={style}
-      {...props}
+      className={`w-full relative ${className}`} 
+      style={{ 
+        height: "400px", 
+        ...style 
+      }}
     >
       {children}
     </div>
