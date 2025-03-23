@@ -8,7 +8,6 @@ import { type Zone, type Customer, type Settings } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
 import { Pencil, X } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
-import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -148,9 +147,10 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   const [mapReady, setMapReady] = useState(false);
 
   // Consultar la configuración del negocio para obtener la ubicación inicial
-  useQuery<Settings>({
+  useQuery({
     queryKey: ["/api/settings"],
-    onSuccess: (data: Settings) => {
+    staleTime: Infinity,
+    onSuccess: (data: any) => {
       if (data?.latitude && data?.longitude) {
         const lat = parseFloat(data.latitude);
         const lng = parseFloat(data.longitude);
@@ -317,9 +317,27 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
         })}
 
         {/* Render customer markers */}
-        {customers.map((customer) => {
+        {customers.map((customer: any) => {
           // Buscar si el cliente tiene coordenadas en sus datos
-          if (customer.latitude && customer.longitude) {
+          // Primero comprobar si hay un campo coordinates y luego intentar usar latitude/longitude
+          if (customer.coordinates) {
+            try {
+              const [lat, lng] = customer.coordinates.split(",").map(Number);
+              if (isNaN(lat) || isNaN(lng)) {
+                return null;
+              }
+              return (
+                <Marker
+                  key={customer.id}
+                  position={[lat, lng]}
+                  title={customer.businessname || customer.name || `Cliente ${customer.id}`}
+                />
+              );
+            } catch (error) {
+              console.error(`Error al renderizar cliente ${customer.id}:`, error);
+              return null;
+            }
+          } else if (customer.latitude && customer.longitude) {
             try {
               const lat = parseFloat(customer.latitude);
               const lng = parseFloat(customer.longitude);
@@ -330,7 +348,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
                 <Marker
                   key={customer.id}
                   position={[lat, lng]}
-                  title={customer.businessname || `Cliente ${customer.id}`}
+                  title={customer.businessname || customer.name || `Cliente ${customer.id}`}
                 />
               );
             } catch (error) {
