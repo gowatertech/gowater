@@ -44,17 +44,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Eye, Edit, Save } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type CustomerFormData = z.infer<typeof insertCustomerSchema>;
 
 export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithDetails | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("list");
 
   // Obtener provincias
   const { data: provinces = [] } = useQuery<Province[]>({
