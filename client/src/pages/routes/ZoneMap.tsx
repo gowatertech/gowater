@@ -408,65 +408,68 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
   };
 
   return (
-    <ResponsiveMapContainer className="bg-white" fixedHeight>
-      <GoogleMap
-        mapContainerStyle={mapContainerStyle}
-        center={center}
-        zoom={13}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        options={defaultOptions}
-      >
-        {/* Controles de dibujo */}
-        <DrawingControl 
-          map={mapRef} 
-          onPolygonComplete={handlePolygonComplete} 
-        />
-        
-        {/* Renderizar zonas existentes */}
-        {zones.map(zone => (
-          <GooglePolygon
-            key={`zone-${zone.id}`}
-            paths={getPolygonPathForZone(zone) as google.maps.LatLngLiteral[]}
-            options={{
-              fillColor: zone.color,
-              fillOpacity: 0.2,
-              strokeColor: zone.color,
-              strokeOpacity: 1,
-              strokeWeight: 2,
-            }}
+    <ResponsiveMapContainer className="bg-white relative" fixedHeight>
+      <div className="absolute inset-0 z-0 gmaps-container">
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={center}
+          zoom={13}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          options={defaultOptions}
+          mapContainerClassName="gmaps-container"
+        >
+          {/* Controles de dibujo */}
+          <DrawingControl 
+            map={mapRef} 
+            onPolygonComplete={handlePolygonComplete} 
           />
-        ))}
-        
-        {/* Renderizar marcadores de clientes */}
-        {customers.map(customer => {
-          // Intentar obtener las coordenadas del cliente
-          let position: google.maps.LatLngLiteral | null = null;
           
-          if (customer.coordinates) {
-            const [lat, lng] = customer.coordinates.split(',').map(Number);
-            if (!isNaN(lat) && !isNaN(lng)) {
-              position = { lat, lng };
-            }
-          } else if (customer.latitude && customer.longitude) {
-            const lat = parseFloat(customer.latitude);
-            const lng = parseFloat(customer.longitude);
-            if (!isNaN(lat) && !isNaN(lng)) {
-              position = { lat, lng };
-            }
-          }
-          
-          if (!position) return null;
-          
-          return (
-            <GoogleMarker
-              key={`customer-${customer.id}`}
-              position={position}
-              title={customer.businessname || `Cliente ${customer.id}`}
+          {/* Renderizar zonas existentes */}
+          {zones.map(zone => (
+            <GooglePolygon
+              key={`zone-${zone.id}`}
+              paths={getPolygonPathForZone(zone) as google.maps.LatLngLiteral[]}
+              options={{
+                fillColor: zone.color,
+                fillOpacity: 0.2,
+                strokeColor: zone.color,
+                strokeOpacity: 1,
+                strokeWeight: 2,
+              }}
             />
-          );
-        })}
-      </GoogleMap>
+          ))}
+          
+          {/* Renderizar marcadores de clientes */}
+          {customers.map(customer => {
+            // Intentar obtener las coordenadas del cliente
+            let position: google.maps.LatLngLiteral | null = null;
+            
+            if (customer.coordinates) {
+              const [lat, lng] = customer.coordinates.split(',').map(Number);
+              if (!isNaN(lat) && !isNaN(lng)) {
+                position = { lat, lng };
+              }
+            } else if (customer.latitude && customer.longitude) {
+              const lat = parseFloat(customer.latitude);
+              const lng = parseFloat(customer.longitude);
+              if (!isNaN(lat) && !isNaN(lng)) {
+                position = { lat, lng };
+              }
+            }
+            
+            if (!position) return null;
+            
+            return (
+              <GoogleMarker
+                key={`customer-${customer.id}`}
+                position={position}
+                title={customer.businessname || `Cliente ${customer.id}`}
+              />
+            );
+          })}
+        </GoogleMap>
+      </div>
     </ResponsiveMapContainer>
   );
 }

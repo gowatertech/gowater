@@ -30,10 +30,11 @@ export function GoogleMapsProvider({ children, apiKey: propApiKey }: GoogleMapsP
   
   // Obtener la API key del secreto de entorno
   // Usamos la API key proporcionada directamente si está disponible en las props
-  // O usamos la API key de las variables de entorno
+  // O usamos la API key de las variables de entorno (probando dos posibles nombres)
   // Para depuración, usamos una clave constante si no hay nada más disponible
   const apiKey = propApiKey || 
-                (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || 
+                (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) ||
+                (import.meta.env.GOOGLE_MAPS_API_KEY as string) || 
                 "AIzaSyCKR-m2mB162WETaSakhurLxpYDXj3oGmU";
                 
   console.log("Google Maps API Key disponible en GoogleMapsProvider:", apiKey ? "Sí" : "No");
