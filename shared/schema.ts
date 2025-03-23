@@ -136,6 +136,7 @@ export const customers = pgTable("customers", {
   provinceid: integer("provinceid").notNull().references(() => provinces.id),
   municipalityid: integer("municipalityid").notNull().references(() => municipalities.id),
   reference: text("reference"),
+  coordinates: text("coordinates"),
   creditlimit: decimal("creditlimit", { precision: 10, scale: 2 }).notNull().default("0"),
 });
 
@@ -152,6 +153,7 @@ export const insertCustomerSchema = z.object({
   provinceid: z.number({ required_error: "La provincia es requerida" }),
   municipalityid: z.number({ required_error: "El municipio es requerido" }),
   reference: z.string().optional(),
+  coordinates: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
 });
 
