@@ -152,40 +152,74 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   }
 
 
-  console.log("Renderizando formulario con datos:", {
-    vehicleLoading,
-    fields,
-    formValues: form.getValues()
-  });
+  // Logs de depuración más seguros
+  if (vehicleLoading) {
+    console.log("Renderizando formulario con datos:", {
+      vehicleLoadingId: vehicleLoading.id,
+      loadingNumber: vehicleLoading.loadingNumber,
+      itemsCount: vehicleLoading.items?.length || 0,
+      fieldsCount: fields?.length || 0
+    });
+  } else {
+    console.log("vehicleLoading aún no está disponible");
+  }
 
+  // Si vehicleLoading no está disponible o está cargando, mostrar mensaje de carga con estilo
+  if (!vehicleLoading || loadingData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48">
+        <Loader2 className="h-6 w-6 animate-spin mb-2" />
+        <p className="text-sm text-muted-foreground">Cargando datos del vehículo...</p>
+      </div>
+    );
+  }
+  
+  // Asegurarnos de que fields se ha inicializado correctamente
+  if (fields.length === 0 && vehicleLoading.items.length > 0) {
+    console.log("Productos cargados:", vehicleLoading.items.length, "campos de formulario:", fields.length);
+    
+    // Recargar los valores predeterminados del formulario
+    form.reset(defaultFormValues);
+    
+    return (
+      <div className="flex flex-col items-center justify-center h-48">
+        <Loader2 className="h-6 w-6 animate-spin mb-2" />
+        <p className="text-sm text-muted-foreground">Inicializando formulario...</p>
+      </div>
+    );
+  }
+
+  // Asegurarnos de que items exista
+  const items = vehicleLoading.items || [];
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Cuadre de Ruta - Carga #{vehicleLoading.loadingNumber}</CardTitle>
+            <CardTitle>Cuadre de Ruta - Carga #{vehicleLoading.loadingNumber || 'N/A'}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <span className="font-medium">Número de Carga:</span>
-                <span className="ml-2">#{vehicleLoading.loadingNumber}</span>
+                <span className="ml-2">#{vehicleLoading.loadingNumber || 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Vehículo:</span>
-                <span className="ml-2">{vehicleLoading.truck?.plate}</span>
+                <span className="ml-2">{vehicleLoading.truck?.plate || 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Conductor:</span>
-                <span className="ml-2">{vehicleLoading.driver?.name}</span>
+                <span className="ml-2">{vehicleLoading.driver?.name || 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Fecha:</span>
-                <span className="ml-2">{new Date(vehicleLoading.date).toLocaleDateString()}</span>
+                <span className="ml-2">{vehicleLoading.date ? new Date(vehicleLoading.date).toLocaleDateString() : 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Efectivo Inicial:</span>
-                <span className="ml-2">RD$ {vehicleLoading.initialCash}</span>
+                <span className="ml-2">RD$ {vehicleLoading.initialCash || '0.00'}</span>
               </div>
             </div>
 
@@ -201,7 +235,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                   </tr>
                 </thead>
                 <tbody>
-                  {vehicleLoading.items
+                  {items
                     .filter(item => item.product) // Asegurarse de que producto existe
                     .map((item, index) => (
                     <tr key={item.id} className="border-b">
@@ -224,7 +258,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                   <tr>
                     <td colSpan={3} className="text-right p-2 font-medium">Total:</td>
                     <td className="text-right p-2 font-medium">
-                      RD$ {vehicleLoading.items
+                      RD$ {items
                         .filter(item => item.product)
                         .reduce((total, item) => {
                           return total + (item.quantity * parseFloat(item.product.price));
@@ -251,7 +285,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                 <tbody>
                   {fields.map((field, index) => {
                     // Encontrar el producto correspondiente
-                    const loadingItem = vehicleLoading.items.find(
+                    const loadingItem = items.find(
                       item => item.productId === field.productId
                     );
                     
@@ -264,7 +298,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                     const soldQty = field.loadedQuantity - returnedQty;
                     
                     return (
-                      <tr key={field.id} className="border-b">
+                      <tr key={field.id || index} className="border-b">
                         <td className="p-2">
                           {product.name}
                         </td>
