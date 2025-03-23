@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -165,6 +165,30 @@ export default function Customers() {
     },
   });
 
+  // Escucha cambios en la pestaña activa
+  useEffect(() => {
+    if (activeTab === "new") {
+      // Resetear el formulario cuando se cambia a la pestaña de nuevo cliente
+      form.reset({
+        logo: undefined,
+        rnc: "",
+        businessname: "",
+        managername: "",
+        phone: "",
+        email: "",
+        zoneid: undefined,
+        street: "",
+        streetnumber: "",
+        provinceid: undefined,
+        municipalityid: undefined,
+        reference: "",
+        coordinates: "",
+        creditlimit: "0.00",
+      });
+      setSelectedProvinceId(null);
+    }
+  }, [activeTab, form]);
+  
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
       const formData = new FormData();
