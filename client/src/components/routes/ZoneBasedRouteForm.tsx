@@ -610,6 +610,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                       />
                       
+                      {/* Auto-center map component */}
+                      <MapCenterFixer />
+                      
                       {/* Draw the route line */}
                       {optimizedRoute.map((customer, index) => {
                         if (customer.coordinates && index < optimizedRoute.length - 1) {
