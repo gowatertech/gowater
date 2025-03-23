@@ -28,6 +28,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -531,8 +532,15 @@ export default function Customers() {
                       <FormItem className="md:col-span-2">
                         <FormLabel>Ubicación en Mapa</FormLabel>
                         <FormControl>
-                          <LocationSelector value={field.value} onChange={field.onChange} />
+                          <LocationSelector 
+                            value={field.value || ""} 
+                            onChange={field.onChange} 
+                            initialCenter={[19.075380, -70.128822]} 
+                          />
                         </FormControl>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          Mueva el marcador para seleccionar la ubicación exacta del cliente, o use la barra de búsqueda para encontrar una dirección
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -900,11 +908,20 @@ export default function Customers() {
                       <FormLabel>Ubicación en Mapa</FormLabel>
                       <FormControl>
                         {isEditing ? (
-                          <LocationSelector value={field.value} onChange={field.onChange} />
+                          <LocationSelector 
+                            value={field.value || ""} 
+                            onChange={field.onChange} 
+                            initialCenter={[19.075380, -70.128822]} 
+                          />
                         ) : (
-                          <Input value={field.value} readOnly />
+                          <Input value={field.value || ""} readOnly />
                         )}
                       </FormControl>
+                      {isEditing && (
+                        <div className="text-sm text-muted-foreground mt-1">
+                          Mueva el marcador para seleccionar la ubicación exacta del cliente, o use la barra de búsqueda para encontrar una dirección
+                        </div>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
