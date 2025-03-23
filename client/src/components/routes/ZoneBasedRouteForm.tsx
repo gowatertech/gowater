@@ -30,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 
 interface ZoneBasedRouteFormProps {
   onRouteCreated: () => void;
@@ -131,6 +131,44 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     setOptimizedRoute([]);
   };
 
+  // Calculate map center and bounds based on optimized route coordinates
+  const getMapCenter = () => {
+    if (optimizedRoute.length === 0) {
+      return [19.0, -70.0]; // Default center if no route
+    }
+    
+    const pointsWithCoords = optimizedRoute
+      .filter(customer => customer.coordinates)
+      .map(customer => {
+        const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
+        return [lat, lng];
+      });
+      
+    if (pointsWithCoords.length === 0) {
+      return [19.0, -70.0]; // Default center if no coordinates
+    }
+    
+    // Calculate center point
+    const sumLat = pointsWithCoords.reduce((sum, point) => sum + point[0], 0);
+    const sumLng = pointsWithCoords.reduce((sum, point) => sum + point[1], 0);
+    
+    return [sumLat / pointsWithCoords.length, sumLng / pointsWithCoords.length];
+  };
+  
+  // Auto-center map component for the route review
+  function MapCenterFixer() {
+    const map = useMap();
+    
+    useEffect(() => {
+      if (optimizedRoute.length > 0) {
+        const center = getMapCenter();
+        map.setView(center as [number, number], 11);
+      }
+    }, [map, optimizedRoute]);
+    
+    return null;
+  }
+  
   // Optimize route order based on proximity
   const optimizeRoute = async () => {
     if (selectedCustomers.length < 2) {
