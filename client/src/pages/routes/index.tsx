@@ -529,67 +529,80 @@ export default function Routes() {
       
       {/* Modal para ver detalles de zona */}
       <Dialog open={viewZoneDialogOpen} onOpenChange={setViewZoneDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Detalles de la Zona</DialogTitle>
           </DialogHeader>
           {selectedZone && (
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-2">
                 <div
                   className="w-6 h-6 rounded"
                   style={{ backgroundColor: selectedZone.color }}
                 />
-                <span className="text-xl font-bold">{selectedZone.name}</span>
+                <span className="text-lg font-bold">{selectedZone.name}</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div>
-                    <Label>Fecha de creación</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(selectedZone.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Número de puntos</Label>
-                    <p className="font-medium">{selectedZone.coordinates.length} puntos</p>
-                  </div>
-                  <div>
-                    <Label>Coordenadas</Label>
-                    <div className="text-xs mt-1 bg-slate-50 p-2 rounded max-h-40 overflow-y-auto">
-                      {selectedZone.coordinates.map((coord, index) => (
-                        <div key={index} className="mb-1">
-                          Punto {index + 1}: {coord}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              
+              {/* Mapa primero para darle mayor importancia visual */}
+              <div className="border rounded overflow-hidden mb-3 h-[200px]">
+                {typeof window !== 'undefined' && (
+                  <MapContainer
+                    style={{ height: '100%', width: '100%' }}
+                    center={(() => {
+                      // Calcular el centro del polígono
+                      if (selectedZone.coordinates.length > 0) {
+                        const points = selectedZone.coordinates.map(coord => {
+                          const [lat, lng] = coord.split(',').map(parseFloat);
+                          return [lat, lng];
+                        });
+                        
+                        // Calcular el centro como promedio de puntos
+                        const latSum = points.reduce((sum, point) => sum + point[0], 0);
+                        const lngSum = points.reduce((sum, point) => sum + point[1], 0);
+                        return [latSum / points.length, lngSum / points.length];
+                      }
+                      return [19.075380, -70.128822]; // Default
+                    })()}
+                    zoom={12}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    {/* Dibuja el polígono de la zona */}
+                    <Polygon
+                      positions={selectedZone.coordinates.map(coord => {
+                        const [lat, lng] = coord.split(',').map(parseFloat);
+                        return [lat, lng];
+                      })}
+                      pathOptions={{ color: selectedZone.color, fillOpacity: 0.2 }}
+                    />
+                  </MapContainer>
+                )}
+              </div>
+              
+              {/* Información adicional en formato compacto */}
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <Label className="text-xs">Fecha de creación</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(selectedZone.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
                 <div>
-                  <div className="border rounded overflow-hidden">
-                    {typeof window !== 'undefined' && (
-                      <ResponsiveMapContainer fixedHeight aspectRatio="square">
-                        <MapContainer
-                          center={[19.075380, -70.128822]}
-                          zoom={9}
-                          style={{ height: '100%', width: '100%' }}
-                        >
-                          <TileLayer
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                          />
-                          {/* Dibuja el polígono de la zona */}
-                          <Polygon
-                            positions={selectedZone.coordinates.map(coord => {
-                              const [lat, lng] = coord.split(',').map(parseFloat);
-                              return [lat, lng];
-                            })}
-                            pathOptions={{ color: selectedZone.color, fillOpacity: 0.2 }}
-                          />
-                        </MapContainer>
-                      </ResponsiveMapContainer>
-                    )}
-                  </div>
+                  <Label className="text-xs">Número de puntos</Label>
+                  <p className="text-xs font-medium">{selectedZone.coordinates.length} puntos</p>
+                </div>
+              </div>
+              
+              <div>
+                <Label className="text-xs">Coordenadas</Label>
+                <div className="text-xs mt-1 bg-slate-50 p-2 rounded max-h-32 overflow-y-auto">
+                  {selectedZone.coordinates.map((coord, index) => (
+                    <div key={index} className="mb-1 text-[10px]">
+                      Punto {index + 1}: {coord}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -599,44 +612,51 @@ export default function Routes() {
 
       {/* Modal para editar zona */}
       <Dialog open={editZoneDialogOpen} onOpenChange={setEditZoneDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-xs">
           <DialogHeader>
             <DialogTitle>Editar Zona</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="zone-name">Nombre de la zona</Label>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="zone-name" className="text-sm">Nombre de la zona</Label>
               <Input
                 id="zone-name"
                 value={editZoneName}
                 onChange={(e) => setEditZoneName(e.target.value)}
+                className="h-9"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="zone-color">Color</Label>
-              <Input
-                id="zone-color"
-                type="color"
-                value={editZoneColor}
-                onChange={(e) => setEditZoneColor(e.target.value)}
-                className="h-10"
-              />
+            <div className="space-y-1">
+              <Label htmlFor="zone-color" className="text-sm">Color</Label>
+              <div className="flex gap-2 items-center">
+                <Input
+                  id="zone-color"
+                  type="color"
+                  value={editZoneColor}
+                  onChange={(e) => setEditZoneColor(e.target.value)}
+                  className="h-8 w-20"
+                />
+                <div 
+                  className="w-full h-8 rounded border"
+                  style={{ backgroundColor: editZoneColor }}
+                />
+              </div>
             </div>
             {selectedZone && (
-              <div>
-                <Label>Número de puntos</Label>
-                <p className="font-medium">{selectedZone.coordinates.length} puntos</p>
+              <div className="pt-1">
+                <Label className="text-sm">Número de puntos</Label>
+                <p className="text-sm">{selectedZone.coordinates.length} puntos</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   Las coordenadas no pueden ser modificadas. Para cambiar el área de la zona, crea una nueva.
                 </p>
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditZoneDialogOpen(false)}>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setEditZoneDialogOpen(false)} className="h-8 text-xs">
               Cancelar
             </Button>
-            <Button onClick={handleSaveZone} disabled={updateZoneMutation.isPending}>
+            <Button onClick={handleSaveZone} disabled={updateZoneMutation.isPending} className="h-8 text-xs">
               {updateZoneMutation.isPending ? "Guardando..." : "Guardar cambios"}
             </Button>
           </DialogFooter>
@@ -645,19 +665,19 @@ export default function Routes() {
 
       {/* Diálogo de confirmación para eliminar zona */}
       <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-xs">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-sm">¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
               Esta acción no se puede deshacer. Eliminarás permanentemente la zona
               <strong> {selectedZone?.name}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="h-8 text-xs">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 h-8 text-xs"
               disabled={deleteZoneMutation.isPending}
             >
               {deleteZoneMutation.isPending ? "Eliminando..." : "Eliminar"}
