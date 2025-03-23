@@ -759,7 +759,8 @@ export type VehicleLoading = typeof vehicleLoading.$inferSelect;
 export type InsertVehicleLoading = z.infer<typeof insertVehicleLoadingSchema>;
 export type VehicleLoadingItem = typeof vehicleLoadingItems.$inferSelect;
 
-// Route Settlement (Cuadre de Ruta)
+// Route Settlement (Cuadre de Ruta) - Comentado hasta implementación futura
+/*
 export const routeSettlements = pgTable("route_settlements", {
   id: serial("id").primaryKey(),
   vehicleLoadingId: integer("vehicle_loading_id").notNull().references(() => vehicleLoading.id),
@@ -788,8 +789,10 @@ export const routeSettlementItems = pgTable("route_settlement_items", {
   returnedContainers: integer("returned_containers").default(0),
   notes: text("notes"),
 });
+*/
 
-// Add relations
+// Add relations - Comentados hasta implementación futura
+/*
 export const routeSettlementsRelations = relations(routeSettlements, ({ one, many }) => ({
   vehicleLoading: one(vehicleLoading, {
     fields: [routeSettlements.vehicleLoadingId],
@@ -832,3 +835,48 @@ export type RouteSettlement = typeof routeSettlements.$inferSelect;
 export type InsertRouteSettlement = z.infer<typeof insertRouteSettlementSchema>;
 export type RouteSettlementItem = typeof routeSettlementItems.$inferSelect;
 export type InsertRouteSettlementItem = z.infer<typeof insertRouteSettlementSchema["shape"]["items"]["element"]>;
+*/
+
+// Tipos temporales para mantener compatibilidad hasta implementación completa
+export type RouteSettlement = {
+  id: number;
+  vehicleLoadingId: number;
+  settlementDate: string;
+  totalCashReceived: string;
+  totalCreditReceived: string;
+  totalInvoiced: string;
+  cashDifference: string;
+  status: "pending" | "completed" | "with_differences";
+  notes: string | null;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+export type RouteSettlementItem = {
+  id: number;
+  settlementId: number;
+  productId: number;
+  loadedQuantity: number;
+  returnedQuantity: number;
+  soldQuantity: number;
+  difference: number;
+  returnedContainers: number;
+  notes: string | null;
+};
+
+export type InsertRouteSettlement = {
+  vehicleLoadingId: number;
+  totalCashReceived: string;
+  totalCreditReceived: string;
+  totalInvoiced: string;
+  notes?: string;
+  items: Array<{
+    productId: number;
+    loadedQuantity: number;
+    returnedQuantity: number;
+    soldQuantity: number;
+    returnedContainers: number;
+    notes?: string;
+  }>;
+  cashDifference?: string;
+};

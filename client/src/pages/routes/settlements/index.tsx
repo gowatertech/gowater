@@ -1,11 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
-import { RouteSettlementForm } from "@/components/RouteSettlementForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { VehicleLoading, User, Truck } from "@shared/schema";
-import { Loader2, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: Truck;
@@ -20,23 +17,12 @@ interface LoadingWithRelations extends VehicleLoading {
 }
 
 export default function RouteSettlementPage() {
-  const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
-  const { toast } = useToast();
-
   // Obtener cargas pendientes de cuadre
   const { data: pendingLoads = [], isLoading } = useQuery<LoadingWithRelations[]>({
     queryKey: ["/api/vehicle-loading/pending"],
     retry: 1,
     refetchOnWindowFocus: false,
   });
-
-  const handleSettlementSuccess = () => {
-    toast({
-      description: "Cuadre de ruta registrado exitosamente",
-      duration: 3000,
-    });
-    setSelectedLoadingId(null);
-  };
 
   if (isLoading) {
     return (
@@ -46,72 +32,58 @@ export default function RouteSettlementPage() {
     );
   }
 
-  // Agregamos debugging para ver qué está pasando con el ID seleccionado
-  console.log("SelectedLoadingId:", selectedLoadingId);
-  console.log("pendingLoads:", pendingLoads);
-
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Cuadre de Ruta</h1>
-        {selectedLoadingId && (
-          <Button variant="ghost" onClick={() => setSelectedLoadingId(null)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver
-          </Button>
-        )}
       </div>
 
-      {selectedLoadingId ? (
-        // Añadimos clave key para forzar un re-render completo cuando cambia el ID
-        <div key={`loading-${selectedLoadingId}`}>
-          <RouteSettlementForm
-            vehicleLoadingId={selectedLoadingId}
-            onSuccess={handleSettlementSuccess}
-          />
+      <div className="bg-yellow-50 border border-yellow-300 p-4 mb-6 rounded-md">
+        <div className="flex items-center">
+          <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
+          <h2 className="font-medium text-yellow-700">Módulo en desarrollo</h2>
         </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {pendingLoads.map((loading) => (
-            <Card
-              key={loading.id}
-              className="cursor-pointer hover:bg-accent/5"
-              onClick={() => {
-                console.log("Clicked on loading:", loading.id);
-                setSelectedLoadingId(loading.id);
-              }}
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">
-                  #{loading.loadingNumber}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-1 text-sm">
-                  <p className="text-muted-foreground">
-                    Conductor: {loading.driver?.name}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Vehículo: {loading.truck?.plate}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Fecha: {new Date(loading.date).toLocaleDateString()}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Efectivo inicial: RD$ {loading.initialCash}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <p className="mt-2 text-yellow-600">
+          El módulo de cuadre de ruta se encuentra en desarrollo. En breve estará disponible.
+        </p>
+      </div>
 
-          {!isLoading && pendingLoads.length === 0 && (
-            <div className="col-span-full text-center py-8 text-muted-foreground">
-              No hay cargas pendientes de cuadre
-            </div>
-          )}
-        </div>
-      )}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {pendingLoads.map((loading) => (
+          <Card
+            key={loading.id}
+            className="hover:bg-accent/5"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">
+                #{loading.loadingNumber}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1 text-sm">
+                <p className="text-muted-foreground">
+                  Conductor: {loading.driver?.name}
+                </p>
+                <p className="text-muted-foreground">
+                  Vehículo: {loading.truck?.plate}
+                </p>
+                <p className="text-muted-foreground">
+                  Fecha: {new Date(loading.date).toLocaleDateString()}
+                </p>
+                <p className="text-muted-foreground">
+                  Efectivo inicial: RD$ {loading.initialCash}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {!isLoading && pendingLoads.length === 0 && (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            No hay cargas pendientes de cuadre
+          </div>
+        )}
+      </div>
     </div>
   );
 }
