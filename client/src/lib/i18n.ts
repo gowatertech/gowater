@@ -37,6 +37,10 @@ const resources = {
       active: "Active",
       inactive: "Inactive",
       createRoute: "Create Route",
+      activeRoutes: "Active Routes",
+      completedRoutes: "Completed Routes",
+      noActiveRoutes: "No active routes",
+      noCompletedRoutes: "No completed routes",
 
       // Forms
       name: "Name",
@@ -97,6 +101,10 @@ const resources = {
       active: "Activo",
       inactive: "Inactivo",
       createRoute: "Crear Ruta",
+      activeRoutes: "Rutas Activas",
+      completedRoutes: "Rutas Completadas",
+      noActiveRoutes: "No hay rutas activas",
+      noCompletedRoutes: "No hay rutas completadas",
 
       // Forms
       name: "Nombre",
