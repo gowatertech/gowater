@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,6 +7,9 @@ import { queryClient } from "@/lib/queryClient";
 import type { InsertSettings, Province, Municipality } from "@shared/schema";
 import { insertSettingsSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { LatLngExpression } from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 import {
   Form,
@@ -25,10 +28,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Edit, Save } from "lucide-react";
+import { Edit, Save, MapPin } from "lucide-react";
 
 function Settings() {
   const { toast } = useToast();
@@ -431,55 +436,93 @@ function Settings() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="latitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Latitud</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="Ej: 18.4718"
-                          {...field}
-                          value={field.value || ''}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^\d.-]/g, '');
-                            field.onChange(value);
-                          }}
-                          readOnly={!isEditing}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Campos de ubicación con selector de mapa */}
+                <div className="col-span-2">
+                  <div className="flex flex-col space-y-2 mb-4">
+                    <h3 className="text-lg font-medium">Ubicación de la Empresa</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Estos datos serán utilizados como punto de inicio para las rutas de entrega.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <FormField
+                      control={form.control}
+                      name="latitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Latitud</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="Ej: 18.4718"
+                              {...field}
+                              value={field.value || ''}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^\d.-]/g, '');
+                                field.onChange(value);
+                              }}
+                              readOnly={!isEditing}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="longitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Longitud</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          placeholder="Ej: -69.8923"
-                          {...field}
-                          value={field.value || ''}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^\d.-]/g, '');
-                            field.onChange(value);
-                          }}
-                          readOnly={!isEditing}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <FormField
+                      control={form.control}
+                      name="longitude"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Longitud</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="Ej: -69.8923"
+                              {...field}
+                              value={field.value || ''}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^\d.-]/g, '');
+                                field.onChange(value);
+                              }}
+                              readOnly={!isEditing}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {isEditing && (
+                    <div className="flex justify-center mt-2 mb-4">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button type="button" variant="outline">
+                            <MapPin className="h-4 w-4 mr-2" />
+                            Seleccionar en mapa
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-3xl h-[80vh]">
+                          <LocationSelector 
+                            initialPosition={
+                              form.watch("latitude") && form.watch("longitude")
+                                ? [parseFloat(form.watch("latitude") || "0"), parseFloat(form.watch("longitude") || "0")]
+                                : [18.4718, -69.8923] // Santo Domingo por defecto
+                            }
+                            onPositionSelected={(lat, lng) => {
+                              form.setValue("latitude", lat.toString());
+                              form.setValue("longitude", lng.toString());
+                            }}
+                          />
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   )}
-                />
+                </div>
               </div>
 
               {isEditing && (
@@ -492,6 +535,87 @@ function Settings() {
           </Form>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// Componente para seleccionar ubicación en el mapa
+interface LocationSelectorProps {
+  initialPosition: [number, number];
+  onPositionSelected: (lat: number, lng: number) => void;
+}
+
+function LocationSelector({ initialPosition, onPositionSelected }: LocationSelectorProps) {
+  const [position, setPosition] = useState<LatLngExpression>(initialPosition);
+  const markerRef = useRef<any>(null);
+
+  // Función para manejar el movimiento del marcador
+  const eventHandlers = useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          const latLng = marker.getLatLng();
+          setPosition([latLng.lat, latLng.lng]);
+          onPositionSelected(latLng.lat, latLng.lng);
+        }
+      },
+    }),
+    [onPositionSelected],
+  );
+
+  // Componente para manejar clics en el mapa
+  function MapClickHandler() {
+    useMapEvents({
+      click(e) {
+        setPosition([e.latlng.lat, e.latlng.lng]);
+        onPositionSelected(e.latlng.lat, e.latlng.lng);
+      },
+    });
+    return null;
+  }
+
+  return (
+    <div className="w-full h-full">
+      <h3 className="text-lg font-medium mb-2">Selecciona la ubicación de tu empresa</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Haz clic en el mapa o arrastra el marcador para seleccionar la ubicación exacta.
+      </p>
+      <ResponsiveMapContainer>
+        <MapContainer
+          center={position}
+          zoom={13}
+          style={{ height: "100%", width: "100%", minHeight: "400px" }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <Marker 
+            position={position} 
+            draggable={true}
+            ref={markerRef}
+            eventHandlers={eventHandlers}
+          />
+          <MapClickHandler />
+        </MapContainer>
+      </ResponsiveMapContainer>
+      <div className="mt-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          Coordenadas seleccionadas: <br />
+          <span className="font-mono">{typeof position === 'object' ? `Lat: ${(position as [number, number])[0].toFixed(6)}, Lng: ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
+        </p>
+        <Button 
+          className="mt-2" 
+          onClick={() => {
+            if (typeof position === 'object') {
+              onPositionSelected((position as [number, number])[0], (position as [number, number])[1]);
+            }
+          }}
+        >
+          Confirmar ubicación
+        </Button>
+      </div>
     </div>
   );
 }
