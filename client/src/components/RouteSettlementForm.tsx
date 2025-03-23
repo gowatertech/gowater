@@ -90,7 +90,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     );
   }
 
-  if (!vehicleLoading) {
+  if (!vehicleLoading?.items) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <p className="text-gray-500">No se encontraron datos para esta carga</p>
