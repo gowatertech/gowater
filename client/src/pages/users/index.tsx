@@ -14,13 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Form,
@@ -43,12 +36,12 @@ import { insertUserSchema } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Users() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Consulta de usuarios
   const { data: users = [] } = useQuery<User[]>({
@@ -92,7 +85,7 @@ export default function Users() {
         title: t("success"),
         description: t("userCreated"),
       });
-      setIsDialogOpen(false);
+      setActiveTab("list");
       form.reset();
     },
     onError: (error: Error) => {
@@ -120,7 +113,7 @@ export default function Users() {
         title: t("success"),
         description: t("userUpdated"),
       });
-      setIsDialogOpen(false);
+      setActiveTab("list");
       setEditingUser(null);
     },
     onError: (error: Error) => {
@@ -211,7 +204,6 @@ export default function Users() {
       licenseExpiry: user.licenseExpiry ? format(new Date(user.licenseExpiry), "yyyy-MM-dd") : "",
       emergencyContact: user.emergencyContact || "",
     });
-    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -220,22 +212,115 @@ export default function Users() {
     }
   };
 
+  const [activeTab, setActiveTab] = useState<string>("list");
+  
+  // Cambiar a la pestaña de formulario cuando se edita un usuario
+  const handleEditWithTabChange = (user: User) => {
+    handleEdit(user);
+    setActiveTab("form");
+  };
+  
+  // Reset del formulario y regreso a la lista
+  const handleCancel = () => {
+    form.reset();
+    setEditingUser(null);
+    setActiveTab("list");
+  };
+
+  // Después de crear o actualizar un usuario, regresar a la lista
+  const handleFormSuccess = () => {
+    form.reset();
+    setEditingUser(null);
+    setActiveTab("list");
+  };
+
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{t("users")}</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>{t("addUser")}</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-center pb-2">
-                {editingUser ? t("editUser") : t("addUser")}
-              </DialogTitle>
-            </DialogHeader>
+        <Button onClick={() => {
+          form.reset();
+          setEditingUser(null);
+          setActiveTab("form");
+        }}>
+          {t("addUser")}
+        </Button>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="list">{t("users")}</TabsTrigger>
+          <TabsTrigger value="form">{editingUser ? t("editUser") : t("addUser")}</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="mt-0">
+          <Card>
+            <ScrollArea className="h-[calc(100vh-200px)]">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("name")}</TableHead>
+                      <TableHead>{t("username")}</TableHead>
+                      <TableHead>{t("role")}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t("phone")}</TableHead>
+                      <TableHead className="hidden lg:table-cell">{t("license")}</TableHead>
+                      <TableHead className="hidden lg:table-cell">{t("licenseExpiry")}</TableHead>
+                      <TableHead className="hidden lg:table-cell">{t("emergencyContact")}</TableHead>
+                      <TableHead className="text-right">{t("actions")}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.filter(user => user.active).map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{t(user.role)}</TableCell>
+                        <TableCell className="hidden md:table-cell">{user.phone || "-"}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{user.role === "driver" ? user.license || "-" : "-"}</TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {user.role === "driver" && user.licenseExpiry
+                            ? format(new Date(user.licenseExpiry), "PPP", { locale: es })
+                            : "-"}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">{user.emergencyContact || "-"}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mr-2"
+                            onClick={() => handleEditWithTabChange(user)}
+                          >
+                            {t("edit")}
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(user.id)}
+                          >
+                            {t("delete")}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </ScrollArea>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="form" className="mt-0">
+          <Card className="p-4 md:p-6">
+            <h2 className="text-xl font-bold text-center pb-4">
+              {editingUser ? t("editUser") : t("addUser")}
+            </h2>
+            
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(async (data) => {
+                await onSubmit(data);
+                handleFormSuccess();
+              })} className="space-y-6">
                 {/* Sección de información básica */}
                 <div className="bg-muted/30 p-4 rounded-md space-y-3">
                   <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("basicInfo")}</h3>
@@ -417,7 +502,7 @@ export default function Users() {
                   <Button 
                     variant="outline" 
                     type="button" 
-                    onClick={() => setIsDialogOpen(false)}
+                    onClick={handleCancel}
                   >
                     {t("cancel")}
                   </Button>
@@ -427,62 +512,9 @@ export default function Users() {
                 </div>
               </form>
             </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <Card>
-        <ScrollArea className="h-[calc(100vh-300px)]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("name")}</TableHead>
-                <TableHead>{t("username")}</TableHead>
-                <TableHead>{t("role")}</TableHead>
-                <TableHead>{t("phone")}</TableHead>
-                <TableHead>{t("license")}</TableHead>
-                <TableHead>{t("licenseExpiry")}</TableHead>
-                <TableHead>{t("emergencyContact")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.filter(user => user.active).map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{t(user.role)}</TableCell>
-                  <TableCell>{user.phone || "-"}</TableCell>
-                  <TableCell>{user.role === "driver" ? user.license || "-" : "-"}</TableCell>
-                  <TableCell>
-                    {user.role === "driver" && user.licenseExpiry
-                      ? format(new Date(user.licenseExpiry), "PPP", { locale: es })
-                      : "-"}
-                  </TableCell>
-                  <TableCell>{user.emergencyContact || "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mr-2"
-                      onClick={() => handleEdit(user)}
-                    >
-                      {t("edit")}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(user.id)}
-                    >
-                      {t("delete")}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-      </Card>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
