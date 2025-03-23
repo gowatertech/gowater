@@ -1,13 +1,20 @@
 import React from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { InsertRouteSettlement, insertRouteSettlementSchema } from "@shared/schema";
+import { 
+  InsertRouteSettlement, 
+  insertRouteSettlementSchema,
+  VehicleLoading,
+  Product,
+  User,
+  Truck
+} from "@shared/schema";
 import { Loader2 } from "lucide-react";
 
 // Props del componente
@@ -16,19 +23,37 @@ interface RouteSettlementFormProps {
   onSuccess?: () => void;
 }
 
+// Definición de interface para el item cargado
+interface LoadingItem {
+  id: number;
+  loadingId: number;
+  productId: number;
+  quantity: number;
+  returnedQuantity: number | null;
+  notes: string | null;
+  product: Product;
+}
+
+// Definición de interface para la carga del vehículo con relaciones
+interface LoadingWithRelations extends VehicleLoading {
+  truck: Truck;
+  driver: User;
+  items: LoadingItem[];
+}
+
 // Componente principal
 export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettlementFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Consultar datos de la carga del vehículo
-  const { data, isLoading } = useQuery({
+  const { data: vehicleLoading, isLoading } = useQuery<LoadingWithRelations>({
     queryKey: ["/api/vehicle-loading", vehicleLoadingId],
     retry: 1
   });
 
   // Mostrar estado de carga
-  if (isLoading || !data) {
+  if (isLoading || !vehicleLoading || !vehicleLoading.items) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin mb-4" />
@@ -39,22 +64,20 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
 
   // Inicializar los items del formulario
   const formItems = [];
-  if (data.items && Array.isArray(data.items)) {
-    for (const item of data.items) {
-      if (item && item.product) {
-        formItems.push({
-          productId: item.productId,
-          loadedQuantity: item.quantity,
-          returnedQuantity: 0,
-          soldQuantity: item.quantity,
-          returnedContainers: 0,
-          notes: ""
-        });
-      }
+  for (const item of vehicleLoading.items) {
+    if (item && item.product) {
+      formItems.push({
+        productId: item.productId,
+        loadedQuantity: item.quantity,
+        returnedQuantity: 0,
+        soldQuantity: item.quantity,
+        returnedContainers: 0,
+        notes: ""
+      });
     }
   }
 
-  // Inicializar formulario
+  // Configurar formulario con validación
   const form = useForm<InsertRouteSettlement>({
     resolver: zodResolver(insertRouteSettlementSchema),
     defaultValues: {
@@ -65,6 +88,12 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       notes: "",
       items: formItems
     }
+  });
+
+  // Configurar campos de array para los items
+  const { fields } = useFieldArray({
+    control: form.control,
+    name: "items"
   });
 
   // Manejar envío del formulario
@@ -107,35 +136,38 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   const totalInvoiced = parseFloat(values.totalInvoiced) || 0;
   const difference = totalReceived - totalInvoiced;
 
+  // Filtrar items válidos
+  const validItems = vehicleLoading.items.filter((item: LoadingItem) => item && item.product);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Cuadre de Ruta - Carga #{data.loadingNumber || 'N/A'}</CardTitle>
+            <CardTitle>Cuadre de Ruta - Carga #{vehicleLoading.loadingNumber || 'N/A'}</CardTitle>
           </CardHeader>
           <CardContent>
             {/* Información del vehículo */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div>
                 <span className="font-medium">Número de Carga:</span> 
-                <span className="ml-2">#{data.loadingNumber || 'N/A'}</span>
+                <span className="ml-2">#{vehicleLoading.loadingNumber || 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Vehículo:</span> 
-                <span className="ml-2">{data.truck?.plate || 'N/A'}</span>
+                <span className="ml-2">{vehicleLoading.truck?.plate || 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Conductor:</span> 
-                <span className="ml-2">{data.driver?.name || 'N/A'}</span>
+                <span className="ml-2">{vehicleLoading.driver?.name || 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Fecha:</span> 
-                <span className="ml-2">{data.date ? new Date(data.date).toLocaleDateString() : 'N/A'}</span>
+                <span className="ml-2">{vehicleLoading.date ? new Date(vehicleLoading.date).toLocaleDateString() : 'N/A'}</span>
               </div>
               <div>
                 <span className="font-medium">Efectivo Inicial:</span> 
-                <span className="ml-2">RD$ {data.initialCash || '0.00'}</span>
+                <span className="ml-2">RD$ {vehicleLoading.initialCash || '0.00'}</span>
               </div>
             </div>
 
@@ -152,8 +184,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                   </tr>
                 </thead>
                 <tbody>
-                  {Array.isArray(data.items) && data.items.map(item => {
-                    if (!item || !item.product) return null;
+                  {validItems.map((item: LoadingItem) => {
                     const price = parseFloat(item.product.price);
                     return (
                       <tr key={item.id} className="border-b">
@@ -170,14 +201,9 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                     <td colSpan={3} className="text-right p-2 font-medium">Total:</td>
                     <td className="text-right p-2 font-medium">
                       RD$ {formatCurrency(
-                        Array.isArray(data.items) 
-                          ? data.items.reduce((total, item) => {
-                              if (item && item.product) {
-                                return total + (item.quantity * parseFloat(item.product.price));
-                              }
-                              return total;
-                            }, 0)
-                          : 0
+                        validItems.reduce((total: number, item: LoadingItem) => {
+                          return total + (item.quantity * parseFloat(item.product.price));
+                        }, 0)
                       )}
                     </td>
                   </tr>
@@ -185,11 +211,79 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
               </table>
             </div>
 
-            {/* Formulario de cuadre */}
+            {/* Tabla de cuadre de ruta */}
             <div className="border rounded-lg p-4 mb-6">
-              <h3 className="font-medium mb-3">Datos del Cuadre</h3>
+              <h3 className="font-medium mb-3">Cuadre de Ruta</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {fields.length > 0 ? (
+                <table className="w-full mb-4">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Producto</th>
+                      <th className="text-right p-2">Cargado</th>
+                      <th className="text-center p-2">Devuelto</th>
+                      <th className="text-right p-2">Vendido</th>
+                      <th className="text-center p-2">Envases</th>
+                      <th className="text-center p-2">Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fields.map((field, index) => {
+                      // Buscar el producto correspondiente
+                      const loadingItem = validItems.find(item => item.productId === field.productId);
+                      if (!loadingItem) return null;
+                      
+                      const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
+                      const soldQty = field.loadedQuantity - returnedQty;
+                      
+                      return (
+                        <tr key={field.id} className="border-b">
+                          <td className="p-2">{loadingItem.product.name}</td>
+                          <td className="p-2 text-right">{field.loadedQuantity}</td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              className="text-right"
+                              min="0"
+                              max={field.loadedQuantity}
+                              {...form.register(`items.${index}.returnedQuantity`, {
+                                valueAsNumber: true,
+                                onChange: (e) => {
+                                  const returned = parseInt(e.target.value) || 0;
+                                  form.setValue(`items.${index}.soldQuantity`, field.loadedQuantity - returned);
+                                }
+                              })}
+                            />
+                          </td>
+                          <td className="p-2 text-right">{soldQty}</td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              className="text-right"
+                              min="0"
+                              {...form.register(`items.${index}.returnedContainers`, {
+                                valueAsNumber: true
+                              })}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="text"
+                              placeholder="Notas"
+                              {...form.register(`items.${index}.notes`)}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-muted-foreground p-4 text-center">No hay productos para mostrar</p>
+              )}
+              
+              {/* Campos de totales */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
                 <div>
                   <label className="text-sm font-medium mb-1 block">Efectivo Recibido</label>
                   <Input
@@ -216,6 +310,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                 </div>
               </div>
               
+              {/* Resumen */}
               <div className="mt-4 p-3 bg-muted rounded-lg">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
@@ -231,6 +326,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                 </div>
               </div>
               
+              {/* Notas adicionales */}
               <div className="mt-4">
                 <label className="text-sm font-medium mb-1 block">Notas Adicionales</label>
                 <textarea
