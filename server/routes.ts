@@ -218,6 +218,30 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/zones/:id", async (req, res) => {
+    try {
+      const zoneId = parseInt(req.params.id);
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
+
+      const zone = await db
+        .select()
+        .from(zones)
+        .where(eq(zones.id, zoneId))
+        .limit(1);
+
+      if (zone.length === 0) {
+        return res.status(404).json({ error: "Zona no encontrada" });
+      }
+
+      res.json(zone[0]);
+    } catch (error) {
+      console.error("Error al obtener zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.post("/api/zones", async (req, res) => {
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
@@ -248,18 +272,73 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/zones/:id", async (req, res) => {
+  app.patch("/api/zones/:id", async (req, res) => {
     try {
-      const [deletedZone] = await db
-        .delete(zones)
-        .where(eq(zones.id, parseInt(req.params.id)))
-        .returning();
+      const zoneId = parseInt(req.params.id);
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
 
-      if (!deletedZone) {
+      const { name, color } = req.body;
+      
+      if (!name || !color) {
+        return res.status(400).json({ error: "Nombre y color son requeridos" });
+      }
+
+      const existingZone = await db
+        .select()
+        .from(zones)
+        .where(eq(zones.id, zoneId))
+        .limit(1);
+
+      if (existingZone.length === 0) {
         return res.status(404).json({ error: "Zona no encontrada" });
       }
 
-      res.json(deletedZone);
+      const [updatedZone] = await db
+        .update(zones)
+        .set({
+          name,
+          color
+        })
+        .where(eq(zones.id, zoneId))
+        .returning();
+
+      res.json(updatedZone);
+    } catch (error) {
+      console.error("Error al actualizar zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.delete("/api/zones/:id", async (req, res) => {
+    try {
+      const zoneId = parseInt(req.params.id);
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
+
+      const existingZone = await db
+        .select()
+        .from(zones)
+        .where(eq(zones.id, zoneId))
+        .limit(1);
+
+      if (existingZone.length === 0) {
+        return res.status(404).json({ error: "Zona no encontrada" });
+      }
+
+      // Eliminar la zona
+      const [deletedZone] = await db
+        .delete(zones)
+        .where(eq(zones.id, zoneId))
+        .returning();
+
+      res.json({ 
+        message: "Zona eliminada exitosamente", 
+        id: zoneId,
+        zone: deletedZone 
+      });
     } catch (error) {
       console.error("Error al eliminar zona:", error);
       res.status(500).json({ error: String(error) });

@@ -6,11 +6,40 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { type Zone, type Customer } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
-import { Pencil, X, Search } from "lucide-react";
+import { Pencil, X, Search, Trash2, Edit, Eye, AlertTriangle } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { AddressSearchBox } from "@/components/map/AddressSearchBox";
 import { ZonePolygons } from "@/components/map/ZonePolygons";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -194,6 +223,10 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   const { toast } = useToast();
   const [initialPosition, setInitialPosition] = useState<LatLngExpression>([18.4955, -69.8534]); // Default Santo Domingo
   const [mapReady, setMapReady] = useState(false);
+  const [showZoneDetails, setShowZoneDetails] = useState(false);
+  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Consultar la configuración del negocio para obtener la ubicación inicial
   const settingsQuery = useQuery({
@@ -290,6 +323,60 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
   });
 
+  const updateZoneMutation = useMutation({
+    mutationFn: async (data: { id: number; name: string; color: string }) => {
+      const response = await apiRequest("PATCH", `/api/zones/${data.id}`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar la zona');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
+      toast({
+        description: "¡Zona actualizada exitosamente!",
+      });
+      setShowZoneDetails(false);
+      setSelectedZone(null);
+      setIsEditing(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+  });
+
+  const deleteZoneMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("DELETE", `/api/zones/${id}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar la zona');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
+      toast({
+        description: "Zona eliminada exitosamente",
+      });
+      setShowZoneDetails(false);
+      setSelectedZone(null);
+      setShowDeleteConfirm(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+  });
+
   const handlePolygonComplete = (coordinates: LatLngExpression[]) => {
     if (!newZoneName) {
       toast({
@@ -339,6 +426,50 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
   };
 
+  const handleViewZone = (zone: Zone) => {
+    setSelectedZone(zone);
+    setShowZoneDetails(true);
+    setIsEditing(false);
+  };
+
+  const handleEditZone = () => {
+    setIsEditing(true);
+  };
+
+  const handleDeleteZone = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleUpdateZone = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedZone) return;
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get('name') as string;
+    const color = formData.get('color') as string;
+
+    if (!name || !color) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Nombre y color son requeridos"
+      });
+      return;
+    }
+
+    updateZoneMutation.mutate({
+      id: selectedZone.id,
+      name,
+      color
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedZone) {
+      deleteZoneMutation.mutate(selectedZone.id);
+    }
+  };
+
   // Si no estamos listos para renderizar el mapa, mostrar un mensaje de carga
   if (!mapReady) {
     return (
@@ -349,69 +480,298 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   }
 
   return (
-    <ResponsiveMapContainer className="bg-white" fixedHeight>
-      <MapContainer
-        center={initialPosition}
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-        className="rounded-lg"
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+    <div className="flex flex-col gap-4">
+      {/* Tabla de Zonas */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4">Zonas Existentes</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Color</TableHead>
+              <TableHead>Creado</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {zones.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
+                  No hay zonas definidas aún
+                </TableCell>
+              </TableRow>
+            ) : (
+              zones.map((zone) => (
+                <TableRow key={zone.id}>
+                  <TableCell>{zone.id}</TableCell>
+                  <TableCell>{zone.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <div
+                        className="w-4 h-4 rounded-full mr-2"
+                        style={{ backgroundColor: zone.color }}
+                      ></div>
+                      {zone.color}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(zone.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewZone(zone)}
+                        title="Ver detalles"
+                      >
+                        <Eye size={16} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedZone(zone);
+                          handleEditZone();
+                          setShowZoneDetails(true);
+                        }}
+                        title="Editar zona"
+                      >
+                        <Edit size={16} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => {
+                          setSelectedZone(zone);
+                          handleDeleteZone();
+                        }}
+                        title="Eliminar zona"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-        {/* Este componente mantendrá el mapa centrado en la posición deseada */}
-        <MapCenterController position={initialPosition} />
-        
-        {/* Control de dibujo para crear nuevas zonas */}
-        <DrawingControl onPolygonComplete={handlePolygonComplete} />
+      {/* Mapa */}
+      <ResponsiveMapContainer className="bg-white" fixedHeight>
+        <MapContainer
+          center={initialPosition}
+          zoom={13}
+          style={{ height: "100%", width: "100%" }}
+          className="rounded-lg"
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
 
-        {/* Renderizar zonas existentes usando el componente dedicado */}
-        <ZonePolygons zones={zones} />
+          {/* Este componente mantendrá el mapa centrado en la posición deseada */}
+          <MapCenterController position={initialPosition} />
+          
+          {/* Control de dibujo para crear nuevas zonas */}
+          <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
-        {/* Renderizar marcadores de clientes */}
-        {customers.map((customer: any) => {
-          // Buscar si el cliente tiene coordenadas en sus datos
-          if (customer.coordinates) {
-            try {
-              const [lat, lng] = customer.coordinates.split(",").map(Number);
-              if (isNaN(lat) || isNaN(lng)) {
+          {/* Renderizar zonas existentes usando el componente dedicado */}
+          <ZonePolygons zones={zones} />
+
+          {/* Renderizar marcadores de clientes */}
+          {customers.map((customer: any) => {
+            // Buscar si el cliente tiene coordenadas en sus datos
+            if (customer.coordinates) {
+              try {
+                const [lat, lng] = customer.coordinates.split(",").map(Number);
+                if (isNaN(lat) || isNaN(lng)) {
+                  return null;
+                }
+                return (
+                  <Marker
+                    key={customer.id}
+                    position={[lat, lng]}
+                    title={customer.businessname || customer.name || `Cliente ${customer.id}`}
+                  />
+                );
+              } catch (error) {
+                console.error(`Error al renderizar cliente ${customer.id}:`, error);
                 return null;
               }
-              return (
-                <Marker
-                  key={customer.id}
-                  position={[lat, lng]}
-                  title={customer.businessname || customer.name || `Cliente ${customer.id}`}
-                />
-              );
-            } catch (error) {
-              console.error(`Error al renderizar cliente ${customer.id}:`, error);
-              return null;
-            }
-          } else if (customer.latitude && customer.longitude) {
-            try {
-              const lat = parseFloat(customer.latitude);
-              const lng = parseFloat(customer.longitude);
-              if (isNaN(lat) || isNaN(lng)) {
+            } else if (customer.latitude && customer.longitude) {
+              try {
+                const lat = parseFloat(customer.latitude);
+                const lng = parseFloat(customer.longitude);
+                if (isNaN(lat) || isNaN(lng)) {
+                  return null;
+                }
+                return (
+                  <Marker
+                    key={customer.id}
+                    position={[lat, lng]}
+                    title={customer.businessname || customer.name || `Cliente ${customer.id}`}
+                  />
+                );
+              } catch (error) {
+                console.error(`Error al renderizar cliente ${customer.id}:`, error);
                 return null;
               }
-              return (
-                <Marker
-                  key={customer.id}
-                  position={[lat, lng]}
-                  title={customer.businessname || customer.name || `Cliente ${customer.id}`}
-                />
-              );
-            } catch (error) {
-              console.error(`Error al renderizar cliente ${customer.id}:`, error);
-              return null;
             }
-          }
-          return null;
-        })}
-      </MapContainer>
-    </ResponsiveMapContainer>
+            return null;
+          })}
+        </MapContainer>
+      </ResponsiveMapContainer>
+
+      {/* Diálogo de ver/editar zona */}
+      <Dialog open={showZoneDetails} onOpenChange={setShowZoneDetails}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? "Editar Zona" : "Detalles de la Zona"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditing 
+                ? "Modifique los datos de la zona" 
+                : "Información detallada de la zona seleccionada"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedZone && (
+            <div className="py-4">
+              {isEditing ? (
+                <form onSubmit={handleUpdateZone}>
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <label htmlFor="name" className="text-sm font-medium">
+                        Nombre de la zona
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        defaultValue={selectedZone.name}
+                        className="w-full px-3 py-2 border rounded-md"
+                        required
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <label htmlFor="color" className="text-sm font-medium">
+                        Color
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          id="color"
+                          name="color"
+                          defaultValue={selectedZone.color}
+                          className="w-12 h-8"
+                          required
+                        />
+                        <input
+                          type="text"
+                          value={selectedZone.color}
+                          readOnly
+                          className="flex-grow px-3 py-2 border rounded-md"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">
+                        Puntos en el polígono: {selectedZone.coordinates.length}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Para modificar los puntos, debe crear una nueva zona.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsEditing(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit">Guardar Cambios</Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-bold">Nombre:</h4>
+                    <p>{selectedZone.name}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold">Color:</h4>
+                    <div className="flex items-center">
+                      <div
+                        className="w-4 h-4 rounded-full mr-2"
+                        style={{ backgroundColor: selectedZone.color }}
+                      ></div>
+                      {selectedZone.color}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold">Creado:</h4>
+                    <p>{new Date(selectedZone.createdAt).toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold">Número de Puntos:</h4>
+                    <p>{selectedZone.coordinates.length}</p>
+                  </div>
+                  <div className="pt-4 flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowZoneDetails(false)}
+                    >
+                      Cerrar
+                    </Button>
+                    <Button onClick={handleEditZone}>Editar</Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteZone}
+                    >
+                      Eliminar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de confirmación de eliminación */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                ¿Está seguro de eliminar esta zona?
+              </div>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Esto eliminará permanentemente la zona
+              <strong> {selectedZone?.name}</strong> y todos los datos relacionados con ella.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
