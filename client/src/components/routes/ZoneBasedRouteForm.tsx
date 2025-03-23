@@ -345,12 +345,12 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
             <div className="mt-6">
               <div className="text-sm font-medium mb-2">Mapa de la Zona</div>
               <div className="border rounded-md overflow-hidden">
-                <ResponsiveMapContainer fixedHeight aspectRatio="video">
+                <ResponsiveMapContainer fixedHeight aspectRatio="square">
                   {typeof window !== "undefined" && (
                     <MapContainer
                       center={[19.0, -70.0]}
                       zoom={10}
-                      style={{ height: "100%", width: "100%" }}
+                      style={{ height: "240px", width: "100%" }}
                     >
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -557,12 +557,12 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
               )}
 
               <div className="border rounded-md overflow-hidden">
-                <ResponsiveMapContainer fixedHeight aspectRatio="video">
+                <ResponsiveMapContainer fixedHeight aspectRatio="square">
                   {typeof window !== "undefined" && optimizedRoute.length > 0 && (
                     <MapContainer
                       center={[19.0, -70.0]}
                       zoom={10}
-                      style={{ height: "100%", width: "100%" }}
+                      style={{ height: "240px", width: "100%" }}
                     >
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
