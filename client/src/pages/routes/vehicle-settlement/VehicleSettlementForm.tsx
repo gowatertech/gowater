@@ -218,11 +218,21 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                       <FormControl>
                         <Input 
                           {...field} 
-                          type="number" 
-                          min="0" 
-                          step="0.01" 
+                          type="text" 
+                          inputMode="decimal"
+                          onBlur={(e) => {
+                            // Formatear el valor para mostrar dos decimales
+                            const value = e.target.value.trim();
+                            const parsedValue = parseFloat(value) || 0;
+                            const formattedValue = parsedValue.toFixed(2);
+                            e.target.value = formattedValue;
+                            field.onChange(formattedValue);
+                            handleChange();
+                          }}
                           onChange={(e) => {
-                            field.onChange(e);
+                            // Permitir solo números y un punto decimal
+                            const value = e.target.value.replace(/[^\d.]/g, '');
+                            field.onChange(value);
                             handleChange();
                           }}
                         />
