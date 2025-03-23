@@ -17,6 +17,8 @@ const resources = {
       reports: "Reports",
       warehouses: "Warehouses",
       warehouseManagement: "Warehouse Management",
+      users: "Users",
+      trucks: "Trucks",
 
       // Common
       save: "Save",
@@ -41,6 +43,8 @@ const resources = {
       completedRoutes: "Completed Routes",
       noActiveRoutes: "No active routes",
       noCompletedRoutes: "No completed routes",
+      update: "Update",
+      confirmDelete: "Are you sure you want to delete this item?",
 
       // Forms
       name: "Name",
@@ -55,12 +59,30 @@ const resources = {
       product: "Product",
       selectProduct: "Select a product",
       selectUser: "Select a user",
+      username: "Username",
+      password: "Password",
+      role: "Role",
+      phone: "Phone",
+      license: "License",
+      licenseExpiry: "License Expiry",
+      emergencyContact: "Emergency Contact",
+      selectRole: "Select Role",
+      admin: "Administrator",
+      supervisor: "Supervisor",
+      cashier: "Cashier",
+      driver: "Driver",
+      assistant: "Assistant",
+      addUser: "Add User",
+      editUser: "Edit User",
 
       // Success messages
       success: "Success",
       batchCreated: "Production batch created successfully",
       warehouseCreated: "Warehouse created successfully",
       warehouseUpdated: "Warehouse updated successfully",
+      userCreated: "User created successfully",
+      userUpdated: "User updated successfully",
+      userDeleted: "User deleted successfully",
 
       // Error messages
       error: "Error",
@@ -81,6 +103,8 @@ const resources = {
       reports: "Reportes",
       warehouses: "Almacenes",
       warehouseManagement: "Gestión de Almacenes",
+      users: "Usuarios",
+      trucks: "Camiones",
 
       // Common
       save: "Guardar",
@@ -105,6 +129,8 @@ const resources = {
       completedRoutes: "Rutas Completadas",
       noActiveRoutes: "No hay rutas activas",
       noCompletedRoutes: "No hay rutas completadas",
+      update: "Actualizar",
+      confirmDelete: "¿Estás seguro de que deseas eliminar este elemento?",
 
       // Forms
       name: "Nombre",
@@ -119,12 +145,30 @@ const resources = {
       product: "Producto",
       selectProduct: "Seleccionar producto",
       selectUser: "Seleccionar usuario",
+      username: "Nombre de usuario",
+      password: "Contraseña",
+      role: "Rol",
+      phone: "Teléfono",
+      license: "Licencia",
+      licenseExpiry: "Vencimiento de licencia",
+      emergencyContact: "Contacto de emergencia",
+      selectRole: "Seleccionar rol",
+      admin: "Administrador",
+      supervisor: "Supervisor",
+      cashier: "Cajero",
+      driver: "Chofer",
+      assistant: "Ayudante",
+      addUser: "Agregar Usuario",
+      editUser: "Editar Usuario",
 
       // Success messages
       success: "Éxito",
       batchCreated: "Lote de producción creado exitosamente",
       warehouseCreated: "Almacén creado exitosamente",
       warehouseUpdated: "Almacén actualizado exitosamente",
+      userCreated: "Usuario creado exitosamente",
+      userUpdated: "Usuario actualizado exitosamente",
+      userDeleted: "Usuario eliminado exitosamente",
 
       // Error messages
       error: "Error",
