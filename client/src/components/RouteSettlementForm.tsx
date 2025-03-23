@@ -92,6 +92,19 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     control: form.control,
     name: "items"
   });
+  
+  // Este useEffect actualiza el formulario cuando los datos del vehículo están disponibles
+  React.useEffect(() => {
+    if (vehicleLoading && vehicleLoading.items && vehicleLoading.items.length > 0) {
+      console.log("Actualizando formulario con datos del vehículo:", {
+        vehicleLoadingId: vehicleLoading.id,
+        items: vehicleLoading.items.length
+      });
+      
+      // Forzar actualización del formulario con los datos actuales
+      form.reset(defaultFormValues);
+    }
+  }, [vehicleLoading, defaultFormValues, form]);
 
   const calculateTotals = () => {
     const values = form.getValues();
@@ -143,13 +156,7 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
 
   const totals = calculateTotals();
 
-  if (loadingData || !vehicleLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  // Este estado de carga fue movido más abajo para tener un manejo de estados más cohesivo
 
 
   // Logs de depuración más seguros
