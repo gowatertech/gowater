@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { z } from "zod";
+import { LocationSelector } from "@/components/map/LocationSelector";
 
 // UI Components
 import {
@@ -515,6 +516,20 @@ export default function Customers() {
                         <FormLabel>Referencia</FormLabel>
                         <FormControl>
                           <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="coordinates"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Ubicación en Mapa</FormLabel>
+                        <FormControl>
+                          <LocationSelector value={field.value} onChange={field.onChange} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
