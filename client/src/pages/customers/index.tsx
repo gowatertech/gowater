@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { insertCustomerSchema, CustomerWithDetails, Province, Municipality, Zone } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -246,10 +247,27 @@ export default function Customers() {
     setSelectedCustomer(customer);
     setSelectedProvinceId(customer.provinceid);
     setIsEditing(false);
-    form.reset({
-      ...customer,
-      creditlimit: customer.creditlimit.toString()
-    });
+    
+    // Prepara los datos para el formulario, convirtiendo null a undefined
+    const formData = {
+      businessname: customer.businessname,
+      managername: customer.managername,
+      phone: customer.phone,
+      email: customer.email || undefined,
+      rnc: customer.rnc || undefined,
+      zoneid: customer.zoneid || undefined,
+      street: customer.street,
+      streetnumber: customer.streetnumber,
+      provinceid: customer.provinceid,
+      municipalityid: customer.municipalityid,
+      reference: customer.reference || undefined,
+      // La propiedad coordinates está garantizada porque se requiere al crear clientes
+      coordinates: customer.street + ", " + customer.municipalityName,
+      creditlimit: customer.creditlimit.toString(),
+      logo: customer.logo || undefined
+    };
+    
+    form.reset(formData);
     setIsViewDialogOpen(true);
   };
 
@@ -277,43 +295,43 @@ export default function Customers() {
           <TabsTrigger value="new">Nuevo Cliente</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="list" className="border rounded-md p-4">
+        <TabsContent value="list" className="border rounded-md p-2 sm:p-4">
           <Card>
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Logo</TableHead>
-                    <TableHead>Nombre del Negocio</TableHead>
-                    <TableHead>RNC</TableHead>
-                    <TableHead>Nombre del Encargado</TableHead>
-                    <TableHead>Teléfono</TableHead>
-                    <TableHead>Dirección</TableHead>
-                    <TableHead>Límite de Crédito</TableHead>
+                    <TableHead className="hidden sm:table-cell">Logo</TableHead>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead className="hidden md:table-cell">RNC</TableHead>
+                    <TableHead className="hidden md:table-cell">Encargado</TableHead>
+                    <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
+                    <TableHead className="hidden lg:table-cell">Dirección</TableHead>
+                    <TableHead>Crédito</TableHead>
                     <TableHead>Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {customers?.map((customer) => (
                     <TableRow key={customer.id}>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {customer.logo ? (
                           <img
                             src={`data:image/jpeg;base64,${customer.logo}`}
                             alt="Logo"
-                            className="w-12 h-12 object-contain"
+                            className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
                             No logo
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>{customer.businessname}</TableCell>
-                      <TableCell>{customer.rnc || '-'}</TableCell>
-                      <TableCell>{customer.managername}</TableCell>
-                      <TableCell>{customer.phone}</TableCell>
-                      <TableCell>
+                      <TableCell className="font-medium">{customer.businessname}</TableCell>
+                      <TableCell className="hidden md:table-cell">{customer.rnc || '-'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{customer.managername}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{customer.phone}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
                       </TableCell>
                       <TableCell>
@@ -337,9 +355,9 @@ export default function Customers() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="new" className="border rounded-md p-4">
-          <Card className="p-4">
-            <h2 className="text-xl font-bold mb-4">Nuevo Cliente</h2>
+        <TabsContent value="new" className="border rounded-md p-2 sm:p-4">
+          <Card className="p-2 sm:p-4">
+            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Nuevo Cliente</h2>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -659,19 +677,19 @@ export default function Customers() {
 
       {/* Dialog para ver/editar cliente */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader className="flex flex-row justify-between items-center">
-            <DialogTitle>{isEditing ? 'Editar Cliente' : 'Ver Cliente'}</DialogTitle>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto p-3 sm:p-6">
+          <DialogHeader className="flex flex-row justify-between items-center mb-2">
+            <DialogTitle className="text-lg sm:text-xl">{isEditing ? 'Editar Cliente' : 'Ver Cliente'}</DialogTitle>
             {!isEditing && (
               <Button onClick={handleEditClick} variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                Editar
+                <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Editar</span>
               </Button>
             )}
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-              <div className="grid md:grid-cols-2 gap-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
                   name="logo"
