@@ -132,7 +132,21 @@ export default function Customers() {
         title: "Éxito",
         description: "Cliente creado correctamente",
       });
-      form.reset();
+      form.reset({
+        logo: undefined,
+        rnc: "",
+        businessname: "",
+        managername: "",
+        phone: "",
+        email: "",
+        zoneid: undefined,
+        street: "",
+        streetnumber: "",
+        provinceid: undefined,
+        municipalityid: undefined,
+        reference: "",
+        creditlimit: "0.00",
+      });
       setIsDialogOpen(false);
       setSelectedProvinceId(null);
     },
