@@ -58,27 +58,34 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     }
   });
 
-  // Importante: Declarar useFieldArray antes de cualquier return condicional
-  const { fields, append } = useFieldArray({
+  // Inicializar valores por defecto para items antes de useFieldArray
+  React.useEffect(() => {
+    if (vehicleLoading?.items) {
+      const itemsData = vehicleLoading.items.map(item => ({
+        productId: item.productId,
+        loadedQuantity: item.quantity,
+        returnedQuantity: item.returnedQuantity || 0,
+        soldQuantity: item.quantity - (item.returnedQuantity || 0),
+        returnedContainers: 0,
+        notes: item.notes || ""
+      }));
+      
+      form.reset({
+        vehicleLoadingId,
+        totalCashReceived: "0.00",
+        totalCreditReceived: "0.00",
+        totalInvoiced: "0.00",
+        notes: "",
+        items: itemsData
+      });
+    }
+  }, [vehicleLoading, form, vehicleLoadingId]);
+  
+  // Importante: Declarar useFieldArray después de la inicialización de los valores
+  const { fields } = useFieldArray({
     control: form.control,
     name: "items"
   });
-
-  React.useEffect(() => {
-    if (vehicleLoading?.items) {
-      form.reset({
-        ...form.getValues(),
-        items: vehicleLoading.items.map(item => ({
-          productId: item.productId,
-          loadedQuantity: item.quantity,
-          returnedQuantity: item.returnedQuantity || 0,
-          soldQuantity: item.quantity - (item.returnedQuantity || 0),
-          returnedContainers: 0,
-          notes: item.notes || ""
-        }))
-      });
-    }
-  }, [vehicleLoading, form]);
 
   const onSubmit = async (values: InsertRouteSettlement) => {
     try {
@@ -144,31 +151,36 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              {vehicleLoading.items.map((item, index) => (
-                <div key={item.id} className="border p-4 rounded-lg">
-                  <h3 className="font-medium">{item.product.name}</h3>
-                  <div className="grid grid-cols-3 gap-4 mt-2">
-                    <div>
-                      <span className="text-sm text-gray-500">Cantidad Cargada</span>
-                      <p>{item.quantity}</p>
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500">Cantidad Devuelta</span>
-                      <Input
-                        type="number"
-                        {...form.register(`items.${index}.returnedQuantity`)}
-                      />
-                    </div>
-                    <div>
-                      <span className="text-sm text-gray-500">Envases Devueltos</span>
-                      <Input
-                        type="number"
-                        {...form.register(`items.${index}.returnedContainers`)}
-                      />
+              {fields.map((field, index) => {
+                const item = vehicleLoading.items[index];
+                if (!item) return null;
+                
+                return (
+                  <div key={field.id} className="border p-4 rounded-lg">
+                    <h3 className="font-medium">{item.product.name}</h3>
+                    <div className="grid grid-cols-3 gap-4 mt-2">
+                      <div>
+                        <span className="text-sm text-gray-500">Cantidad Cargada</span>
+                        <p>{item.quantity}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500">Cantidad Devuelta</span>
+                        <Input
+                          type="number"
+                          {...form.register(`items.${index}.returnedQuantity`)}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-sm text-gray-500">Envases Devueltos</span>
+                        <Input
+                          type="number"
+                          {...form.register(`items.${index}.returnedContainers`)}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

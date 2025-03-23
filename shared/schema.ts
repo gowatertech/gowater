@@ -831,4 +831,4 @@ export const insertRouteSettlementSchema = z.object({
 export type RouteSettlement = typeof routeSettlements.$inferSelect;
 export type InsertRouteSettlement = z.infer<typeof insertRouteSettlementSchema>;
 export type RouteSettlementItem = typeof routeSettlementItems.$inferSelect;
-export type InsertRouteSettlementItem = z.infer<typeof insertRouteSettlementSchema>;
+export type InsertRouteSettlementItem = z.infer<typeof insertRouteSettlementSchema["shape"]["items"]["element"]>;
