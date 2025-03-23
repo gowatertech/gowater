@@ -14,12 +14,17 @@ const loadGoogleMapsAPI = () => {
     // Función callback que será llamada cuando el script esté cargado
     window.initGoogleMapsAPI = () => {
       resolve();
-      delete window.initGoogleMapsAPI;
+      // Asignar null es más seguro que usar delete
+      window.initGoogleMapsAPI = null as any;
     };
 
     // Crear el script
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places,drawing&callback=initGoogleMapsAPI`;
+    // Obtener la API key del archivo .env a través de Vite
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
+    console.log("Using Google Maps API Key:", apiKey ? "Configured" : "Missing");
+    
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,drawing&callback=initGoogleMapsAPI`;
     script.async = true;
     script.defer = true;
     script.onerror = (error) => {
