@@ -172,6 +172,10 @@ export default function Inventory() {
         const res = await apiRequest("DELETE", `/api/products/${id}`);
         if (!res.ok) {
           const errorData = await res.text();
+          // Verificar si la respuesta contiene un mensaje sobre clave foránea
+          if (errorData.includes("foreign key constraint") || errorData.includes("vehicle_loading_items")) {
+            throw new Error(`El producto está siendo utilizado en carga de vehículos y no puede ser eliminado.`);
+          }
           throw new Error(`Error al eliminar el producto: ${errorData || res.statusText}`);
         }
         return await res.json();
@@ -186,12 +190,14 @@ export default function Inventory() {
         title: "Éxito",
         description: "Producto eliminado exitosamente",
       });
+      setIsDeleteDialogOpen(false);
     },
     onError: (error) => {
+      // No cerramos el diálogo para mostrar el mensaje de error dentro de él
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: "No se pudo eliminar el producto",
       });
     },
   });
@@ -228,14 +234,23 @@ export default function Inventory() {
     setIsEditDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm("¿Está seguro que desea eliminar este producto?")) {
-      console.log("Eliminando producto con ID:", id);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleDeleteClick = (id: number) => {
+    setDeleteId(id);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteId !== null) {
+      console.log("Eliminando producto con ID:", deleteId);
       try {
-        deleteMutation.mutate(id);
+        deleteMutation.mutate(deleteId);
       } catch (error) {
         console.error("Error en handleDelete:", error);
       }
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -409,7 +424,7 @@ export default function Inventory() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDelete(product.id)}
+                        onClick={() => handleDeleteClick(product.id)}
                         className="h-8 w-8 p-0 text-destructive focus:ring-destructive"
                       >
                         <Trash className="h-4 w-4" />
@@ -527,6 +542,35 @@ export default function Inventory() {
               </Button>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">¿Está seguro que desea eliminar este producto?</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-center space-x-4 mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </div>
+          {deleteMutation.isError && (
+            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
+              Error: No se puede eliminar este producto porque está siendo utilizado en cargas de vehículos.
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
