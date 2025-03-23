@@ -52,8 +52,8 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     retry: 1
   });
 
-  // Mostrar estado de carga
-  if (isLoading || !vehicleLoading || !vehicleLoading.items) {
+  // Mostrar estado de carga o mensajes de error cuando sea necesario
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin mb-4" />
@@ -62,18 +62,36 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     );
   }
 
-  // Inicializar los items del formulario
+  if (!vehicleLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <p className="text-red-500 mb-4">Error: No se pudo cargar la información del vehículo</p>
+        <p className="text-muted-foreground">Intente nuevamente más tarde</p>
+      </div>
+    );
+  }
+
+  // Verificar si la carga tiene items
+  if (!vehicleLoading.items) {
+    vehicleLoading.items = []; // Proporcionar un array vacío para evitar errores
+    console.warn("La carga del vehículo no tiene items definidos");
+  }
+
+  // Inicializar los items del formulario de manera segura
   const formItems = [];
-  for (const item of vehicleLoading.items) {
-    if (item && item.product) {
-      formItems.push({
-        productId: item.productId,
-        loadedQuantity: item.quantity,
-        returnedQuantity: 0,
-        soldQuantity: item.quantity,
-        returnedContainers: 0,
-        notes: ""
-      });
+  // Verificar si items existe y es un array antes de iterarlo
+  if (vehicleLoading.items && Array.isArray(vehicleLoading.items)) {
+    for (const item of vehicleLoading.items) {
+      if (item && item.product && typeof item.product === 'object') {
+        formItems.push({
+          productId: item.productId,
+          loadedQuantity: item.quantity,
+          returnedQuantity: 0,
+          soldQuantity: item.quantity,
+          returnedContainers: 0,
+          notes: ""
+        });
+      }
     }
   }
 
@@ -136,8 +154,13 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   const totalInvoiced = parseFloat(values.totalInvoiced) || 0;
   const difference = totalReceived - totalInvoiced;
 
-  // Filtrar items válidos
-  const validItems = vehicleLoading.items.filter((item: LoadingItem) => item && item.product);
+  // Verificar si items existe y filtrarlo de forma segura
+  const validItems = vehicleLoading.items && Array.isArray(vehicleLoading.items) 
+    ? vehicleLoading.items.filter((item: LoadingItem) => item && item.product && typeof item.product === 'object')
+    : [];
+  
+  // Validar si hay productos para mostrar
+  const hasValidItems = validItems.length > 0;
 
   return (
     <Form {...form}>
@@ -174,41 +197,48 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
             {/* Tabla de productos cargados */}
             <div className="border rounded-lg p-4 mb-6">
               <h3 className="font-medium mb-3">Productos Cargados</h3>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Producto</th>
-                    <th className="text-right p-2">Precio</th>
-                    <th className="text-right p-2">Cantidad</th>
-                    <th className="text-right p-2">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {validItems.map((item: LoadingItem) => {
-                    const price = parseFloat(item.product.price);
-                    return (
-                      <tr key={item.id} className="border-b">
-                        <td className="p-2">{item.product.name}</td>
-                        <td className="p-2 text-right">RD$ {formatCurrency(price)}</td>
-                        <td className="p-2 text-right">{item.quantity}</td>
-                        <td className="p-2 text-right">RD$ {formatCurrency(item.quantity * price)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={3} className="text-right p-2 font-medium">Total:</td>
-                    <td className="text-right p-2 font-medium">
-                      RD$ {formatCurrency(
-                        validItems.reduce((total: number, item: LoadingItem) => {
-                          return total + (item.quantity * parseFloat(item.product.price));
-                        }, 0)
-                      )}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+              {hasValidItems ? (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Producto</th>
+                      <th className="text-right p-2">Precio</th>
+                      <th className="text-right p-2">Cantidad</th>
+                      <th className="text-right p-2">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {validItems.map((item: LoadingItem) => {
+                      const price = parseFloat(item.product.price);
+                      const validPrice = isNaN(price) ? 0 : price;
+                      return (
+                        <tr key={item.id} className="border-b">
+                          <td className="p-2">{item.product.name}</td>
+                          <td className="p-2 text-right">RD$ {formatCurrency(validPrice)}</td>
+                          <td className="p-2 text-right">{item.quantity}</td>
+                          <td className="p-2 text-right">RD$ {formatCurrency(item.quantity * validPrice)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={3} className="text-right p-2 font-medium">Total:</td>
+                      <td className="text-right p-2 font-medium">
+                        RD$ {formatCurrency(
+                          validItems.reduce((total: number, item: LoadingItem) => {
+                            const price = parseFloat(item.product.price);
+                            const validPrice = isNaN(price) ? 0 : price;
+                            return total + (item.quantity * validPrice);
+                          }, 0)
+                        )}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              ) : (
+                <p className="text-center text-muted-foreground py-4">No hay productos para mostrar</p>
+              )}
             </div>
 
             {/* Tabla de cuadre de ruta */}
@@ -229,16 +259,21 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                   </thead>
                   <tbody>
                     {fields.map((field, index) => {
-                      // Buscar el producto correspondiente
-                      const loadingItem = validItems.find(item => item.productId === field.productId);
-                      if (!loadingItem) return null;
+                      // Buscar el producto correspondiente de manera segura
+                      const loadingItem = validItems.find(item => item && item.productId === field.productId);
+                      
+                      // Verificar si el item y su producto existen antes de renderizar
+                      if (!loadingItem || !loadingItem.product) {
+                        console.log(`Item no encontrado para productId: ${field.productId}`);
+                        return null;
+                      }
                       
                       const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
                       const soldQty = field.loadedQuantity - returnedQty;
                       
                       return (
                         <tr key={field.id} className="border-b">
-                          <td className="p-2">{loadingItem.product.name}</td>
+                          <td className="p-2">{loadingItem.product.name || "Producto sin nombre"}</td>
                           <td className="p-2 text-right">{field.loadedQuantity}</td>
                           <td className="p-2">
                             <Input
@@ -249,8 +284,13 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                               {...form.register(`items.${index}.returnedQuantity`, {
                                 valueAsNumber: true,
                                 onChange: (e) => {
-                                  const returned = parseInt(e.target.value) || 0;
-                                  form.setValue(`items.${index}.soldQuantity`, field.loadedQuantity - returned);
+                                  try {
+                                    const returned = parseInt(e.target.value) || 0;
+                                    form.setValue(`items.${index}.soldQuantity`, field.loadedQuantity - returned);
+                                  } catch (error) {
+                                    console.error("Error al calcular cantidad vendida:", error);
+                                    form.setValue(`items.${index}.soldQuantity`, field.loadedQuantity);
+                                  }
                                 }
                               })}
                             />
