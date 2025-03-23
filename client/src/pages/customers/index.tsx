@@ -96,6 +96,7 @@ export default function Customers() {
       provinceid: undefined,
       municipalityid: undefined,
       reference: "",
+      coordinates: "",
       creditlimit: "0.00",
     }
   });
@@ -146,6 +147,7 @@ export default function Customers() {
         provinceid: undefined,
         municipalityid: undefined,
         reference: "",
+        coordinates: "",
         creditlimit: "0.00",
       });
       setIsDialogOpen(false);

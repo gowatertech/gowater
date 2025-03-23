@@ -69,7 +69,7 @@ export function LocationSelector({ value, onChange, initialCenter = [19.075380, 
 
   return (
     <div className="space-y-2">
-      <AddressSearchBox onLocationSelected={(lat, lng) => handleSearchLocationSelected(lat, lng, "")} />
+      <AddressSearchBox onLocationSelected={(lat, lng, address) => handleSearchLocationSelected(lat, lng)} />
       
       <ResponsiveMapContainer fixedHeight aspectRatio="square">
         <MapContainer
