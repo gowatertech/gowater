@@ -28,6 +28,7 @@ import i18n from "./lib/i18n";
 import VehicleLoadingPage from "@/pages/routes/vehicle-loading";
 import RouteSettlementPage from "@/pages/routes/settlements";
 import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
+import RecurringOrders from "./pages/routes/RecurringOrders";
 
 function Router() {
   return (
@@ -48,6 +49,7 @@ function Router() {
         <Route path="/routes" component={Routes} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
+        <Route path="/routes/recurring-orders" component={RecurringOrders} />
         <Route path="/users" component={Users} />
         <Route path="/trucks" component={TrucksPage} />
         <Route path="/drivers/view" component={DriverView} />
