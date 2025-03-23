@@ -74,6 +74,21 @@ const resources = {
       assistant: "Assistant",
       addUser: "Add User",
       editUser: "Edit User",
+      
+      // User Form Sections
+      basicInfo: "Basic Information",
+      credentials: "Login Credentials",
+      contactInfo: "Contact Information",
+      driverInfo: "Driver Information",
+      newPassword: "New Password",
+      leaveEmptyToKeep: "Leave empty to keep current password",
+      passwordHint: "Leave password field empty if you don't want to change it",
+      enterName: "Enter full name",
+      enterUsername: "Enter username for login",
+      enterPassword: "Enter password",
+      enterPhone: "Enter phone number",
+      enterEmergencyContact: "Enter emergency contact",
+      enterLicense: "Enter license number",
 
       // Success messages
       success: "Success",
@@ -160,6 +175,21 @@ const resources = {
       assistant: "Ayudante",
       addUser: "Agregar Usuario",
       editUser: "Editar Usuario",
+      
+      // User Form Sections
+      basicInfo: "Información Básica",
+      credentials: "Credenciales de Acceso",
+      contactInfo: "Información de Contacto",
+      driverInfo: "Información del Chofer",
+      newPassword: "Nueva Contraseña",
+      leaveEmptyToKeep: "Dejar vacío para mantener la actual",
+      passwordHint: "Deje el campo vacío si no desea cambiar la contraseña",
+      enterName: "Ingrese nombre completo",
+      enterUsername: "Ingrese nombre de usuario",
+      enterPassword: "Ingrese contraseña",
+      enterPhone: "Ingrese número de teléfono",
+      enterEmergencyContact: "Ingrese contacto de emergencia",
+      enterLicense: "Ingrese número de licencia",
 
       // Success messages
       success: "Éxito",

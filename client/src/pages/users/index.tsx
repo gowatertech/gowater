@@ -228,141 +228,203 @@ export default function Users() {
           <DialogTrigger asChild>
             <Button>{t("addUser")}</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-xl font-bold text-center pb-2">
                 {editingUser ? t("editUser") : t("addUser")}
               </DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("name")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("username")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("password")}</FormLabel>
-                      <FormControl>
-                        <Input type="password" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("role")}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t("selectRole")} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">{t("admin")}</SelectItem>
-                          <SelectItem value="supervisor">{t("supervisor")}</SelectItem>
-                          <SelectItem value="cashier">{t("cashier")}</SelectItem>
-                          <SelectItem value="driver">{t("driver")}</SelectItem>
-                          <SelectItem value="assistant">{t("assistant")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("phone")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                {form.watch("role") === "driver" && (
-                  <>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Sección de información básica */}
+                <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                  <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("basicInfo")}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="license"
+                      name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("license")}</FormLabel>
+                          <FormLabel>{t("name")}</FormLabel>
                           <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    {/* Actualizar el FormField para licenseExpiry */}
-                    <FormField
-                      control={form.control}
-                      name="licenseExpiry"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t("licenseExpiry")}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="date"
-                              {...field}
-                              value={field.value || ''}
+                            <Input 
+                              {...field} 
+                              placeholder={t("enterName")}
+                              autoComplete="name"
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                  </>
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("role")}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t("selectRole")} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="admin">{t("admin")}</SelectItem>
+                              <SelectItem value="supervisor">{t("supervisor")}</SelectItem>
+                              <SelectItem value="cashier">{t("cashier")}</SelectItem>
+                              <SelectItem value="driver">{t("driver")}</SelectItem>
+                              <SelectItem value="assistant">{t("assistant")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Sección de credenciales */}
+                <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                  <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("credentials")}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("username")}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              placeholder={t("enterUsername")}
+                              autoComplete="username"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{editingUser ? t("newPassword") : t("password")}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              {...field}
+                              placeholder={editingUser ? t("leaveEmptyToKeep") : t("enterPassword")}
+                              autoComplete={editingUser ? "new-password" : "current-password"}
+                            />
+                          </FormControl>
+                          {editingUser && (
+                            <p className="text-xs text-muted-foreground">{t("passwordHint")}</p>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Sección de contacto */}
+                <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                  <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("contactInfo")}</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("phone")}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              placeholder={t("enterPhone")}
+                              type="tel"
+                              autoComplete="tel"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="emergencyContact"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("emergencyContact")}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              placeholder={t("enterEmergencyContact")}
+                              type="tel"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Sección específica para conductores */}
+                {form.watch("role") === "driver" && (
+                  <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                    <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("driverInfo")}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="license"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t("license")}</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder={t("enterLicense")}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="licenseExpiry"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t("licenseExpiry")}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="date"
+                                {...field}
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 )}
-                <FormField
-                  control={form.control}
-                  name="emergencyContact"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t("emergencyContact")}</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full">
-                  {editingUser ? t("update") : t("create")}
-                </Button>
+
+                <div className="flex items-center justify-end space-x-2 pt-4">
+                  <Button 
+                    variant="outline" 
+                    type="button" 
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    {t("cancel")}
+                  </Button>
+                  <Button type="submit">
+                    {editingUser ? t("update") : t("create")}
+                  </Button>
+                </div>
               </form>
             </Form>
           </DialogContent>
