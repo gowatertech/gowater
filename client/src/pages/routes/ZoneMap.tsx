@@ -225,10 +225,31 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   
   useEffect(() => {
     if (zonesQuery.data) {
-      console.log("Zonas cargadas exitosamente:", zonesQuery.data);
+      console.log("ZoneMap - Zonas cargadas exitosamente:", zonesQuery.data);
+      
+      // Verificar si zonesQuery.data es un array o un objeto
+      if (Array.isArray(zonesQuery.data)) {
+        console.log("ZoneMap - zonesQuery.data es un array con", zonesQuery.data.length, "elementos");
+        
+        // Analizar cada zona para ver si tiene los campos esperados
+        zonesQuery.data.forEach((zone, index) => {
+          console.log(`ZoneMap - Zona ${index}:`, {
+            id: zone.id,
+            name: zone.name,
+            color: zone.color,
+            coordinates_type: Array.isArray(zone.coordinates) ? "array" : typeof zone.coordinates,
+            coordinates_length: Array.isArray(zone.coordinates) ? zone.coordinates.length : "N/A",
+            coordinates_sample: Array.isArray(zone.coordinates) && zone.coordinates.length > 0 
+              ? zone.coordinates.slice(0, 3) 
+              : "No coordinates"
+          });
+        });
+      } else {
+        console.warn("ZoneMap - zonesQuery.data no es un array:", typeof zonesQuery.data);
+      }
     }
     if (zonesQuery.error) {
-      console.error("Error al cargar zonas:", zonesQuery.error);
+      console.error("ZoneMap - Error al cargar zonas:", zonesQuery.error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -237,7 +258,8 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
   }, [zonesQuery.data, zonesQuery.error, toast]);
   
-  const zones = zonesQuery.data || [];
+  // Asegurémonos de que zones sea un array
+  const zones = Array.isArray(zonesQuery.data) ? zonesQuery.data : [];
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
