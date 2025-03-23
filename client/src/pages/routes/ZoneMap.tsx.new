@@ -334,89 +334,23 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
         style={{ height: "100%", width: "100%" }}
         className="rounded-lg"
       >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
 
-          {/* Este componente mantendrá el mapa centrado en la posición deseada */}
-          <MapCenterController position={initialPosition} />
-          
-          <DrawingControl onPolygonComplete={handlePolygonComplete} />
+        {/* Este componente mantendrá el mapa centrado en la posición deseada */}
+        <MapCenterController position={initialPosition} />
+        
+        {/* Control de dibujo para crear nuevas zonas */}
+        <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
-        {/* Render existing zones */}
-        {zones && zones.length > 0 ? (
-          zones.map((zone) => {
-            try {
-              console.log("Procesando zona:", zone);
-              
-              if (!zone || !zone.coordinates || !Array.isArray(zone.coordinates) || zone.coordinates.length < 3) {
-                console.error(`Zona ${zone?.id || 'unknown'} tiene coordenadas inválidas:`, zone?.coordinates);
-                return null;
-              }
-              
-              const positions = zone.coordinates.map((coord): LatLngExpression => {
-                if (typeof coord !== 'string') {
-                  console.error(`Formato de coordenada inválido en zona ${zone.id}:`, coord);
-                  return [0, 0]; // Valor predeterminado para evitar errores
-                }
-                
-                const parts = coord.split(",");
-                if (parts.length !== 2) {
-                  console.error(`Formato de coordenada inválido en zona ${zone.id}: ${coord}`);
-                  return [0, 0]; // Valor predeterminado para evitar errores
-                }
-                
-                const lat = parseFloat(parts[0]);
-                const lng = parseFloat(parts[1]);
-                
-                if (isNaN(lat) || isNaN(lng)) {
-                  console.error(`Coordenadas numéricas inválidas en zona ${zone.id}: ${coord}`);
-                  return [0, 0]; // Valor predeterminado para evitar errores
-                }
-                
-                return [lat, lng];
-              });
-              
-              // Verificamos que tengamos al menos 3 puntos válidos (triángulo mínimo)
-              const validPositions = positions.filter(pos => pos[0] !== 0 || pos[1] !== 0);
-              if (validPositions.length < 3) {
-                console.error(`Zona ${zone.id} no tiene suficientes coordenadas válidas`);
-                return null;
-              }
+        {/* Renderizar zonas existentes usando el componente dedicado */}
+        <ZonePolygons zones={zones} />
 
-              console.log("Posiciones procesadas para zona", zone.id, ":", validPositions);
-
-              return (
-                <Polygon
-                  key={zone.id}
-                  positions={validPositions}
-                  pathOptions={{ 
-                    color: zone.color || '#3388ff',
-                    fillColor: zone.color || '#3388ff',
-                    fillOpacity: 0.2,
-                    weight: 2
-                  }}
-                >
-                  <Tooltip>
-                    {zone.name || `Zona ${zone.id}`}
-                  </Tooltip>
-                </Polygon>
-              );
-            } catch (error) {
-              console.error(`Error al renderizar zona ${zone?.id || 'unknown'}:`, error);
-              return null;
-            }
-          })
-        ) : (
-          // Si no hay zonas o aún no se han cargado
-          <></>
-        )}
-
-        {/* Render customer markers */}
+        {/* Renderizar marcadores de clientes */}
         {customers.map((customer: any) => {
           // Buscar si el cliente tiene coordenadas en sus datos
-          // Primero comprobar si hay un campo coordinates y luego intentar usar latitude/longitude
           if (customer.coordinates) {
             try {
               const [lat, lng] = customer.coordinates.split(",").map(Number);
