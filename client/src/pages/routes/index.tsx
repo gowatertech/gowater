@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X } from "lucide-react";
+import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X, Edit, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { Zone } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 // Vista del chofer
 import DriverView from "./DriverView";
@@ -36,6 +40,12 @@ export default function Routes() {
   const [isCreatingZone, setIsCreatingZone] = useState(false);
   const [zoneName, setZoneName] = useState("");
   const [zoneColor, setZoneColor] = useState("#0088FE");
+  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
+  const [viewZoneDialogOpen, setViewZoneDialogOpen] = useState(false);
+  const [editZoneDialogOpen, setEditZoneDialogOpen] = useState(false);
+  const [editZoneName, setEditZoneName] = useState("");
+  const [editZoneColor, setEditZoneColor] = useState("");
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -104,10 +114,68 @@ export default function Routes() {
     }
   });
 
+  // Mutación para actualizar zona
+  const updateZoneMutation = useMutation({
+    mutationFn: async (zone: { id: number; name: string; color: string }) => {
+      const response = await apiRequest("PATCH", `/api/zones/${zone.id}`, zone);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar la zona');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
+      setEditZoneDialogOpen(false);
+      toast({
+        description: "Zona actualizada exitosamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message
+      });
+    }
+  });
+
+  // Handler para ver zona
+  const handleViewZone = (zone: Zone) => {
+    setSelectedZone(zone);
+    setViewZoneDialogOpen(true);
+  };
+
+  // Handler para editar zona
+  const handleEditZone = (zone: Zone) => {
+    setSelectedZone(zone);
+    setEditZoneName(zone.name);
+    setEditZoneColor(zone.color);
+    setEditZoneDialogOpen(true);
+  };
+
+  // Handler para guardar edición de zona
+  const handleSaveZone = () => {
+    if (selectedZone && editZoneName.trim()) {
+      updateZoneMutation.mutate({
+        id: selectedZone.id,
+        name: editZoneName,
+        color: editZoneColor
+      });
+    }
+  };
+
   // Handler para eliminar zona
-  const handleDeleteZone = (zoneId: number) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta zona?')) {
-      deleteZoneMutation.mutate(zoneId);
+  const handleDeleteZone = (zone: Zone) => {
+    setSelectedZone(zone);
+    setDeleteAlertOpen(true);
+  };
+
+  // Handler para confirmar eliminación de zona
+  const handleConfirmDelete = () => {
+    if (selectedZone) {
+      deleteZoneMutation.mutate(selectedZone.id);
+      setDeleteAlertOpen(false);
     }
   };
 
@@ -204,14 +272,23 @@ export default function Routes() {
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-primary"
+                    onClick={() => handleViewZone(zone)}
                   >
-                    <MapPin className="h-4 w-4" />
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-secondary"
+                    onClick={() => handleEditZone(zone)}
+                  >
+                    <Edit className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeleteZone(zone.id)}
+                    onClick={() => handleDeleteZone(zone)}
                     disabled={deleteZoneMutation.isPending}
                   >
                     <X className="h-4 w-4" />
@@ -447,6 +524,115 @@ export default function Routes() {
               ))}
         </TabsContent>
       </Tabs>
+      
+      {/* Modal para ver detalles de zona */}
+      <Dialog open={viewZoneDialogOpen} onOpenChange={setViewZoneDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detalles de la Zona</DialogTitle>
+          </DialogHeader>
+          {selectedZone && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-6 h-6 rounded"
+                  style={{ backgroundColor: selectedZone.color }}
+                />
+                <span className="text-xl font-bold">{selectedZone.name}</span>
+              </div>
+              <div>
+                <Label>Fecha de creación</Label>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(selectedZone.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <Label>Número de puntos</Label>
+                <p className="font-medium">{selectedZone.coordinates.length} puntos</p>
+              </div>
+              <div>
+                <Label>Coordenadas</Label>
+                <div className="text-xs mt-1 bg-slate-50 p-2 rounded max-h-40 overflow-y-auto">
+                  {selectedZone.coordinates.map((coord, index) => (
+                    <div key={index} className="mb-1">
+                      Punto {index + 1}: {coord}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para editar zona */}
+      <Dialog open={editZoneDialogOpen} onOpenChange={setEditZoneDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Zona</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="zone-name">Nombre de la zona</Label>
+              <Input
+                id="zone-name"
+                value={editZoneName}
+                onChange={(e) => setEditZoneName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="zone-color">Color</Label>
+              <Input
+                id="zone-color"
+                type="color"
+                value={editZoneColor}
+                onChange={(e) => setEditZoneColor(e.target.value)}
+                className="h-10"
+              />
+            </div>
+            {selectedZone && (
+              <div>
+                <Label>Número de puntos</Label>
+                <p className="font-medium">{selectedZone.coordinates.length} puntos</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Las coordenadas no pueden ser modificadas. Para cambiar el área de la zona, crea una nueva.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditZoneDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveZone} disabled={updateZoneMutation.isPending}>
+              {updateZoneMutation.isPending ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de confirmación para eliminar zona */}
+      <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Eliminarás permanentemente la zona
+              <strong> {selectedZone?.name}</strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-500 hover:bg-red-600"
+              disabled={deleteZoneMutation.isPending}
+            >
+              {deleteZoneMutation.isPending ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
