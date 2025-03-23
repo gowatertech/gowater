@@ -26,7 +26,7 @@ interface DrawingControlProps {
 function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   const [points, setPoints] = useState<LatLngExpression[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [searchVisible, setSearchVisible] = useState(false);
+  const [drawMode, setDrawMode] = useState<'manual' | 'search'>('manual');
   const { toast } = useToast();
 
   const map = useMapEvents({
@@ -78,9 +78,19 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   const handleStartDrawing = () => {
     setIsDrawing(true);
     setPoints([]);
+    setDrawMode('manual');
     map.dragging.disable();
     toast({
       description: "Haz clic en el mapa para añadir puntos a la zona",
+    });
+  };
+
+  const handleStartSearch = () => {
+    setIsDrawing(true);
+    setPoints([]);
+    setDrawMode('search');
+    toast({
+      description: "Busca ubicaciones para añadir puntos a la zona",
     });
   };
 
@@ -94,14 +104,24 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
     <>
       <div className="absolute top-2 right-2 z-[1000] bg-white p-2 rounded-lg shadow-lg">
         {!isDrawing ? (
-          <Button
-            variant="default"
-            onClick={handleStartDrawing}
-            className="flex items-center gap-2"
-          >
-            <Pencil size={16} />
-            Dibujar Zona
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button
+              variant="default"
+              onClick={handleStartDrawing}
+              className="flex items-center gap-2"
+            >
+              <Pencil size={16} />
+              Dibujar Manualmente
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleStartSearch}
+              className="flex items-center gap-2"
+            >
+              <Search size={16} />
+              Dibujar con Búsqueda
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
@@ -122,19 +142,7 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
               </Button>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSearchVisible(!searchVisible)}
-                className="flex items-center gap-1"
-              >
-                <Search size={16} />
-                {searchVisible ? "Ocultar búsqueda" : "Buscar ubicación"}
-              </Button>
-            </div>
-            
-            {searchVisible && (
+            {drawMode === 'search' && (
               <div className="w-full mt-2">
                 <AddressSearchBox onLocationSelected={handleLocationSelected} />
               </div>
