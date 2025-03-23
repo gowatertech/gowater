@@ -824,6 +824,7 @@ export const insertRouteSettlementSchema = z.object({
     returnedContainers: z.number().default(0),
     notes: z.string().optional(),
   })),
+  cashDifference: z.string().regex(/^-?\d+\.\d{2}$/).optional(),
 }).strict();
 
 // Add to type exports

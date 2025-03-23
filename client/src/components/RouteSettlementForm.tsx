@@ -158,111 +158,93 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div>
-            <label className="text-sm font-medium">Efectivo</label>
-            <Input
-              {...form.register("totalCashReceived")}
-              type="number"
-              step="0.01"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Crédito</label>
-            <Input
-              {...form.register("totalCreditReceived")}
-              type="number"
-              step="0.01"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Facturado</label>
-            <Input
-              {...form.register("totalInvoiced")}
-              type="number"
-              step="0.01"
-              className="mt-1"
-            />
-          </div>
-        </div>
-
-        <Card className="bg-muted/50">
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <span className="font-medium">Total Recibido:</span>
-                <span className="ml-1">RD$ {totals.totalReceived}</span>
+        <Card>
+          <CardHeader>
+            <CardTitle>Efectivo y Crédito</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label>Efectivo Recibido</label>
+                <Input
+                  {...form.register("totalCashReceived")}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                />
               </div>
-              <div>
-                <span className="font-medium">Diferencia:</span>
-                <span className={`ml-1 ${parseFloat(totals.difference) < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                  RD$ {totals.difference}
-                </span>
+              <div className="space-y-2">
+                <label>Crédito Otorgado</label>
+                <Input
+                  {...form.register("totalCreditReceived")}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <label>Total Facturado</label>
+                <Input
+                  {...form.register("totalInvoiced")}
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                />
               </div>
             </div>
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Productos y Devoluciones</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {fields.map((field, index) => (
+                <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded">
+                  <div>
+                    <label className="text-sm font-medium">Producto</label>
+                    <div className="mt-1">
+                      {vehicleLoading.items[index].product.name}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Cantidad Cargada</label>
+                    <Input
+                      {...form.register(`items.${index}.loadedQuantity`)}
+                      type="number"
+                      disabled
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Cantidad Devuelta</label>
+                    <Input
+                      {...form.register(`items.${index}.returnedQuantity`)}
+                      type="number"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Envases Devueltos</label>
+                    <Input
+                      {...form.register(`items.${index}.returnedContainers`)}
+                      type="number"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Notas</label>
+                    <Input
+                      {...form.register(`items.${index}.notes`)}
+                      placeholder="Observaciones..."
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="space-y-2">
-          <h3 className="text-sm font-medium">Detalle de Productos</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted">
-                <tr>
-                  <th className="p-2 text-left">Producto</th>
-                  <th className="p-2 text-right">Precio</th>
-                  <th className="p-2 text-right">Cargado</th>
-                  <th className="p-2 text-right">Devuelto</th>
-                  <th className="p-2 text-right">Vendido</th>
-                  <th className="p-2 text-right">Envases</th>
-                  <th className="p-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => {
-                  const item = vehicleLoading.items.find(i => i.productId === field.productId);
-                  if (!item?.product) return null;
-
-                  const loadedQty = form.watch(`items.${index}.loadedQuantity`);
-                  const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
-                  const soldQty = loadedQty - returnedQty;
-                  const total = parseFloat(item.product.price) * soldQty;
-
-                  return (
-                    <tr key={field.id} className="border-b">
-                      <td className="p-1">{item.product.name}</td>
-                      <td className="p-1 text-right">RD$ {item.product.price}</td>
-                      <td className="p-1 text-right">{loadedQty}</td>
-                      <td className="p-1">
-                        <Input
-                          {...form.register(`items.${index}.returnedQuantity` as const)}
-                          type="number"
-                          className="w-16 text-right"
-                          min="0"
-                          max={loadedQty}
-                        />
-                      </td>
-                      <td className="p-1 text-right">{soldQty}</td>
-                      <td className="p-1">
-                        <Input
-                          {...form.register(`items.${index}.returnedContainers` as const)}
-                          type="number"
-                          className="w-16 text-right"
-                          min="0"
-                        />
-                      </td>
-                      <td className="p-1 text-right">RD$ {total.toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div>
           <label className="text-sm font-medium">Notas</label>
           <textarea
             {...form.register("notes")}
