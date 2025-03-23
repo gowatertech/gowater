@@ -51,6 +51,7 @@ export function GoogleMapsProvider({ children, apiKey: propApiKey }: GoogleMapsP
     }
 
     console.log("Cargando Google Maps con API key:", apiKey ? "Configurada correctamente" : "Faltante");
+    console.log("API Key actual:", apiKey);
 
     // Comprobar si la API ya está cargada
     if (window.google && window.google.maps) {
