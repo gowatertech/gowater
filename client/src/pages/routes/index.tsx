@@ -25,6 +25,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
+import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
 
 // Vista del chofer
 import DriverView from "./DriverView";
@@ -527,7 +529,7 @@ export default function Routes() {
       
       {/* Modal para ver detalles de zona */}
       <Dialog open={viewZoneDialogOpen} onOpenChange={setViewZoneDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Detalles de la Zona</DialogTitle>
           </DialogHeader>
@@ -540,24 +542,54 @@ export default function Routes() {
                 />
                 <span className="text-xl font-bold">{selectedZone.name}</span>
               </div>
-              <div>
-                <Label>Fecha de creación</Label>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(selectedZone.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div>
-                <Label>Número de puntos</Label>
-                <p className="font-medium">{selectedZone.coordinates.length} puntos</p>
-              </div>
-              <div>
-                <Label>Coordenadas</Label>
-                <div className="text-xs mt-1 bg-slate-50 p-2 rounded max-h-40 overflow-y-auto">
-                  {selectedZone.coordinates.map((coord, index) => (
-                    <div key={index} className="mb-1">
-                      Punto {index + 1}: {coord}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div>
+                    <Label>Fecha de creación</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(selectedZone.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Número de puntos</Label>
+                    <p className="font-medium">{selectedZone.coordinates.length} puntos</p>
+                  </div>
+                  <div>
+                    <Label>Coordenadas</Label>
+                    <div className="text-xs mt-1 bg-slate-50 p-2 rounded max-h-40 overflow-y-auto">
+                      {selectedZone.coordinates.map((coord, index) => (
+                        <div key={index} className="mb-1">
+                          Punto {index + 1}: {coord}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="border rounded overflow-hidden">
+                    {typeof window !== 'undefined' && (
+                      <ResponsiveMapContainer fixedHeight aspectRatio="square">
+                        <MapContainer
+                          center={[19.075380, -70.128822]}
+                          zoom={9}
+                          style={{ height: '100%', width: '100%' }}
+                        >
+                          <TileLayer
+                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                          />
+                          {/* Dibuja el polígono de la zona */}
+                          <Polygon
+                            positions={selectedZone.coordinates.map(coord => {
+                              const [lat, lng] = coord.split(',').map(parseFloat);
+                              return [lat, lng];
+                            })}
+                            pathOptions={{ color: selectedZone.color, fillOpacity: 0.2 }}
+                          />
+                        </MapContainer>
+                      </ResponsiveMapContainer>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
