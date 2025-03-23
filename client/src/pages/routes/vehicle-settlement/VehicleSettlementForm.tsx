@@ -1,27 +1,38 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { InsertRouteSettlement, VehicleLoading, Product, User, Truck } from "@shared/schema";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { BarChart4, Truck } from "lucide-react";
+import type { VehicleLoading, Product, User, Truck as TruckType } from "@shared/schema";
 
-// Interface para representar las relaciones completas
+// Esquema para validar formulario de cuadre
+const settlementSchema = z.object({
+  vehicleLoadingId: z.number(),
+  totalCashReceived: z.string().min(1, "Campo requerido"),
+  totalCreditReceived: z.string().min(1, "Campo requerido"),
+  totalInvoiced: z.string().min(1, "Campo requerido"),
+  notes: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.number(),
+    loadedQuantity: z.number(),
+    returnedQuantity: z.number(),
+    soldQuantity: z.number(),
+    returnedContainers: z.number(),
+    notes: z.string().optional(),
+  })),
+});
+
 interface LoadingWithRelations extends VehicleLoading {
-  truck: Truck;
+  truck: TruckType;
   driver: User;
   items: Array<{
     id: number;
@@ -40,55 +51,37 @@ interface SettlementFormProps {
 
 export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  
   const [calculatedTotals, setCalculatedTotals] = useState({
     cashDifference: "0.00",
     totalSold: "0.00",
   });
 
-  // Schema for form
-  const settlementSchema = z.object({
-    vehicleLoadingId: z.number(),
-    totalCashReceived: z.string().min(1, "Requerido"),
-    totalCreditReceived: z.string().min(1, "Requerido"),
-    totalInvoiced: z.string().min(1, "Requerido"),
-    notes: z.string().optional(),
-    items: z.array(
-      z.object({
-        productId: z.number(),
-        loadedQuantity: z.number(),
-        returnedQuantity: z.number().min(0, "No puede ser negativo"),
-        soldQuantity: z.number().min(0, "No puede ser negativo"),
-        returnedContainers: z.number().min(0, "No puede ser negativo"),
-        notes: z.string().optional(),
-      })
-    ),
-  });
-
-  // Crear valores predeterminados basados en la carga
+  // Preparar valores iniciales para el formulario
   const defaultValues = {
     vehicleLoadingId: loading.id,
     totalCashReceived: "0.00",
     totalCreditReceived: "0.00",
-    totalInvoiced: calculateTotalInvoiced(), // Calcular el total facturado basado en los productos
+    totalInvoiced: "0.00",
     notes: "",
     items: loading.items.map(item => ({
       productId: item.productId,
       loadedQuantity: item.quantity,
       returnedQuantity: 0,
-      soldQuantity: 0,
+      soldQuantity: item.quantity,
       returnedContainers: 0,
       notes: "",
     })),
   };
 
+  // Inicializar formulario con validación
   const form = useForm<z.infer<typeof settlementSchema>>({
     resolver: zodResolver(settlementSchema),
     defaultValues,
   });
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: InsertRouteSettlement) => {
+    mutationFn: async (data: any) => {
       return apiRequest<any>("/api/route-settlements", {
         method: "POST",
         body: JSON.stringify(data),
@@ -127,10 +120,6 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
     const values = form.getValues();
     const totalCashReceived = parseFloat(values.totalCashReceived) || 0;
     const totalCreditReceived = parseFloat(values.totalCreditReceived) || 0;
-    const totalInvoiced = parseFloat(values.totalInvoiced) || 0;
-    
-    // Diferencia entre lo recibido (efectivo + crédito) y lo facturado
-    const cashDifference = (totalCashReceived + totalCreditReceived - totalInvoiced).toFixed(2);
     
     // Total vendido basado en la cantidad vendida de cada producto
     let totalSold = 0;
@@ -141,6 +130,14 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
         totalSold += price * item.soldQuantity;
       }
     });
+    
+    // Actualizar el valor facturado con lo que realmente se vendió
+    const totalInvoiced = totalSold;
+    form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
+    
+    // Diferencia entre lo recibido (efectivo + crédito) y lo facturado
+    // Si es positivo, hay un sobrante. Si es negativo, hay un faltante.
+    const cashDifference = (totalCashReceived + totalCreditReceived - totalInvoiced).toFixed(2);
     
     setCalculatedTotals({
       cashDifference,
@@ -175,7 +172,7 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
       cashDifference: calculatedTotals.cashDifference,
     };
     
-    mutate(formattedData as InsertRouteSettlement);
+    mutate(formattedData);
   };
 
   return (

@@ -37,7 +37,7 @@ export async function registerRouteSettlements(app: Express) {
         .update(vehicleLoading)
         .set({
           status: "completed",
-          completedAt: new Date()
+          completedAt: new Date().toISOString()
         })
         .where(eq(vehicleLoading.id, vehicleLoadingId));
 
