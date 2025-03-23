@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MapPin } from "lucide-react";
+import { Search, MapPin, AlertTriangle } from "lucide-react";
+import { useGoogleMaps } from "./GoogleMapsProvider";
+import { useToast } from "@/hooks/use-toast";
 
 interface SearchResult {
   place_id: string;
@@ -23,6 +25,9 @@ interface AddressSearchBoxProps {
 }
 
 export function AddressSearchBox({ onLocationSelected }: AddressSearchBoxProps) {
+  const { isLoaded, hasError, error: googleError } = useGoogleMaps();
+  const { toast } = useToast();
+  
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -37,24 +42,43 @@ export function AddressSearchBox({ onLocationSelected }: AddressSearchBoxProps) 
   // Elemento de mapa oculto necesario para el servicio Places
   const dummyMapElementRef = useRef<HTMLDivElement>(null);
   
-  // Inicializar servicios de Google Maps al montar el componente
+  // Inicializar servicios de Google Maps cuando la API está cargada
   useEffect(() => {
-    if (window.google && window.google.maps && window.google.maps.places) {
-      // Crear token de sesión para optimización de costos de la API
-      sessionToken.current = new google.maps.places.AutocompleteSessionToken();
-      
-      // Inicializar servicio de autocompletado
-      autoCompleteService.current = new google.maps.places.AutocompleteService();
-      
-      // Crear un elemento div oculto para el servicio Places
-      if (dummyMapElementRef.current) {
-        placesService.current = new google.maps.places.PlacesService(dummyMapElementRef.current);
+    if (isLoaded && window.google && window.google.maps && window.google.maps.places) {
+      try {
+        // Crear token de sesión para optimización de costos de la API
+        sessionToken.current = new google.maps.places.AutocompleteSessionToken();
+        
+        // Inicializar servicio de autocompletado
+        autoCompleteService.current = new google.maps.places.AutocompleteService();
+        
+        // Crear un elemento div oculto para el servicio Places
+        if (dummyMapElementRef.current) {
+          placesService.current = new google.maps.places.PlacesService(dummyMapElementRef.current);
+        }
+        
+        console.log("Servicios de Google Maps inicializados correctamente");
+      } catch (err) {
+        console.error("Error al inicializar servicios de Google Maps:", err);
+        toast({
+          title: "Error",
+          description: "No se pudieron inicializar los servicios de mapas",
+          variant: "destructive"
+        });
       }
     }
-  }, []);
+  }, [isLoaded, toast]);
 
   const searchAddress = async () => {
-    if (!query.trim() || !autoCompleteService.current) return;
+    if (!isLoaded) {
+      setError("Los servicios de mapas no están disponibles");
+      return;
+    }
+    
+    if (!query.trim() || !autoCompleteService.current) {
+      setError("Ingrese una dirección para buscar");
+      return;
+    }
 
     setIsSearching(true);
     setError(null);
@@ -134,6 +158,30 @@ export function AddressSearchBox({ onLocationSelected }: AddressSearchBoxProps) 
       }
     );
   };
+
+  // Si hay un error con Google Maps, mostrar mensaje informativo
+  if (hasError) {
+    return (
+      <div className="w-full p-3 border border-red-200 rounded-md bg-red-50">
+        <div className="flex items-center gap-2 text-red-600">
+          <AlertTriangle className="h-5 w-5" />
+          <div>
+            <h4 className="text-sm font-medium">Error en la API de Google Maps</h4>
+            <p className="text-xs">{googleError || "No se pudo cargar la API de mapas"}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Si la API aún no ha cargado
+  if (!isLoaded) {
+    return (
+      <div className="w-full p-3 border rounded-md bg-gray-50">
+        <p className="text-sm text-gray-600">Cargando servicios de mapas...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full relative">

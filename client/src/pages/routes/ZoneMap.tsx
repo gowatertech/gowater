@@ -4,10 +4,11 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { type Zone, type Customer } from "@shared/schema";
-import { Pencil, X, Search, MapPin } from "lucide-react";
+import { Pencil, X, Search, MapPin, AlertTriangle } from "lucide-react";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { AddressSearchBox } from "@/components/map/AddressSearchBox";
-import { GoogleMap, useJsApiLoader, Polygon as GooglePolygon, Marker as GoogleMarker, Polyline as GooglePolyline, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, Polygon as GooglePolygon, Marker as GoogleMarker, Polyline as GooglePolyline } from '@react-google-maps/api';
+import { useGoogleMaps } from "@/components/map/GoogleMapsProvider";
 
 // Definición de tipos
 type LatLng = google.maps.LatLngLiteral;
@@ -31,18 +32,33 @@ const defaultOptions = {
   fullscreenControl: true,
 };
 
-// Cargador de la API de Google Maps
-function MapApiLoader({ children }: { children: React.ReactNode }) {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places', 'drawing', 'geometry'],
-  });
+// Componente para manejar la carga del mapa
+function MapLoadingHandler({ children }: { children: React.ReactNode }) {
+  const { isLoaded, hasError, error } = useGoogleMaps();
+
+  if (hasError) {
+    return (
+      <ResponsiveMapContainer className="flex items-center justify-center bg-white">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md max-w-md">
+          <div className="flex items-start gap-2 text-red-600">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-medium">Error al cargar Google Maps</h3>
+              <p className="text-sm mt-1">{error || "No se pudo inicializar la API de mapas. Verifique la API key y su configuración."}</p>
+            </div>
+          </div>
+        </div>
+      </ResponsiveMapContainer>
+    );
+  }
 
   if (!isLoaded) {
     return (
       <ResponsiveMapContainer className="flex items-center justify-center bg-white">
-        <p className="text-muted-foreground">Cargando mapa de Google...</p>
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+          <p className="text-muted-foreground">Cargando mapa de Google...</p>
+        </div>
       </ResponsiveMapContainer>
     );
   }
@@ -457,8 +473,8 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
 
 export default function ZoneMap(props: ZoneMapProps) {
   return (
-    <MapApiLoader>
+    <MapLoadingHandler>
       <ZoneMapContent {...props} />
-    </MapApiLoader>
+    </MapLoadingHandler>
   );
 }
