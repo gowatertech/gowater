@@ -53,6 +53,7 @@ const sidebarItems = [
       { label: "Rutas", href: "/routes" },
       { label: "Vista del Chofer", href: "/drivers/view" },
       { label: "Carga de Vehículo", href: "/routes/vehicle-loading" },
+      { label: "Cuadre de Vehículo", href: "/routes/vehicle-settlement" },
       { label: "Cuadre de Ruta", href: "/routes/settlements" },
       { label: "Pedidos Recurrentes", href: "/routes/recurring" },
       { label: "Vehículos", href: "/trucks" },

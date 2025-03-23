@@ -27,6 +27,7 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 import VehicleLoadingPage from "@/pages/routes/vehicle-loading";
 import RouteSettlementPage from "@/pages/routes/settlements";
+import VehicleSettlementPage from "@/pages/routes/vehicle-settlement";
 
 function Router() {
   return (
@@ -46,6 +47,7 @@ function Router() {
         <Route path="/orders" component={Orders} />
         <Route path="/routes" component={Routes} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
+        <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/users" component={Users} />
         <Route path="/trucks" component={TrucksPage} />
         <Route path="/drivers/view" component={DriverView} />
