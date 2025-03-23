@@ -10,7 +10,7 @@ import { AddressSearchBox } from "@/components/map/AddressSearchBox";
 import { GoogleMap, useJsApiLoader, Polygon as GooglePolygon, Marker as GoogleMarker, Polyline as GooglePolyline, InfoWindow } from '@react-google-maps/api';
 
 // Definición de tipos
-type LatLng = google.maps.LatLng | google.maps.LatLngLiteral;
+type LatLng = google.maps.LatLngLiteral;
 type PolygonCoordinates = LatLng[];
 type MapClickHandler = (event: google.maps.MapMouseEvent) => void;
 
@@ -35,7 +35,7 @@ const defaultOptions = {
 function MapApiLoader({ children }: { children: React.ReactNode }) {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+    googleMapsApiKey: import.meta.env.GOOGLE_MAPS_API_KEY || '',
     libraries: ['places', 'drawing', 'geometry'],
   });
 
@@ -235,12 +235,11 @@ function DrawingControl({ map, onPolygonComplete }: DrawingControlProps) {
       {/* Renderizar líneas entre puntos */}
       {isDrawing && points.length > 1 && (
         <GooglePolyline
-          path={points}
+          path={points as google.maps.LatLngLiteral[]}
           options={{
             strokeColor: '#0088FE',
             strokeOpacity: 0.8,
-            strokeWeight: 2,
-            strokeDashArray: [5, 5]
+            strokeWeight: 2
           }}
         />
       )}
@@ -272,7 +271,13 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
   });
   
   // Consultar la configuración del negocio para obtener la ubicación inicial
-  const settingsQuery = useQuery({
+  const settingsQuery = useQuery<{
+    id: number;
+    businessName: string;
+    latitude: string;
+    longitude: string;
+    address: string;
+  }>({
     queryKey: ["/api/settings"],
     staleTime: Infinity,
   });
@@ -283,7 +288,11 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
   });
 
   // Consultar clientes
-  const { data: customers = [] } = useQuery<Customer[]>({
+  const { data: customers = [] } = useQuery<(Customer & {
+    coordinates?: string;
+    latitude?: string; 
+    longitude?: string;
+  })[]>({
     queryKey: ["/api/customers"],
   });
 
@@ -354,7 +363,9 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
       // Convertir coordenadas al formato requerido por el schema
       const coordStrings = points.map(point => {
         // Asegurar formato exacto con 6 decimales
-        return `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`;
+        const lat = typeof point.lat === 'function' ? point.lat() : point.lat;
+        const lng = typeof point.lng === 'function' ? point.lng() : point.lng;
+        return `${lat.toFixed(6)},${lng.toFixed(6)}`;
       });
 
       // Crear la zona
@@ -401,7 +412,7 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
         {zones.map(zone => (
           <GooglePolygon
             key={`zone-${zone.id}`}
-            paths={getPolygonPathForZone(zone)}
+            paths={getPolygonPathForZone(zone) as google.maps.LatLngLiteral[]}
             options={{
               fillColor: zone.color,
               fillOpacity: 0.2,
