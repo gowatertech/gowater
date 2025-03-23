@@ -4,10 +4,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { type Zone, type Customer, type Settings } from "@shared/schema";
+import { type Zone, type Customer } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
 import { Pencil, X } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
+import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -147,10 +148,15 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   const [mapReady, setMapReady] = useState(false);
 
   // Consultar la configuración del negocio para obtener la ubicación inicial
-  useQuery({
+  const settingsQuery = useQuery({
     queryKey: ["/api/settings"],
     staleTime: Infinity,
-    onSuccess: (data: any) => {
+  });
+  
+  // Efecto para manejar los cambios en los datos de configuración
+  useEffect(() => {
+    if (settingsQuery.data) {
+      const data = settingsQuery.data;
       if (data?.latitude && data?.longitude) {
         const lat = parseFloat(data.latitude);
         const lng = parseFloat(data.longitude);
@@ -159,12 +165,11 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
         }
       }
       setMapReady(true);
-    },
-    onError: () => {
+    } else if (settingsQuery.error || settingsQuery.isError) {
       // Si hay error, seguimos con la posición por defecto
       setMapReady(true);
     }
-  });
+  }, [settingsQuery.data, settingsQuery.error, settingsQuery.isError]);
 
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
@@ -251,29 +256,20 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   // Si no estamos listos para renderizar el mapa, mostrar un mensaje de carga
   if (!mapReady) {
     return (
-      <div className="bg-white rounded-lg shadow-sm flex items-center justify-center" style={{ 
-        height: "500px",
-        width: "100%",
-        position: "relative"
-      }}>
+      <ResponsiveMapContainer className="flex items-center justify-center bg-white">
         <p className="text-muted-foreground">Cargando mapa...</p>
-      </div>
+      </ResponsiveMapContainer>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm" style={{ 
-      height: "500px",
-      width: "100%",
-      position: "relative"
-    }}>
-      <div className="h-full w-full">
-        <MapContainer
-          center={initialPosition}
-          zoom={13}
-          style={{ height: "100%", width: "100%" }}
-          className="rounded-lg"
-        >
+    <ResponsiveMapContainer className="bg-white" fixedHeight>
+      <MapContainer
+        center={initialPosition}
+        zoom={13}
+        style={{ height: "100%", width: "100%" }}
+        className="rounded-lg"
+      >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -359,7 +355,6 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
           return null;
         })}
       </MapContainer>
-      </div>
-    </div>
+    </ResponsiveMapContainer>
   );
 }
