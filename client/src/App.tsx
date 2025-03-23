@@ -58,11 +58,11 @@ function Router() {
         <Route path="/reports" component={Reports} />
         <Route path="/reports/:type" component={Reports} />
 
-        {/* Rutas para envases */}
-        <Route path="/envases/devolucion" component={DevolucionEnvases} />
-        <Route path="/envases/balance" component={BalanceEnvases} />
-        <Route path="/envases/faltantes" component={Faltantes} />
-        <Route path="/envases/asignar-responsabilidad" component={AsignarResponsabilidad} />
+        {/* Rutas para bottles (envases) */}
+        <Route path="/bottles/return" component={DevolucionEnvases} />
+        <Route path="/bottles/balance" component={BalanceEnvases} />
+        <Route path="/bottles/missing" component={Faltantes} />
+        <Route path="/bottles/assign-responsibility" component={AsignarResponsabilidad} />
         <Route path="/routes/vehicle-loading" component={VehicleLoadingPage} />
 
         <Route component={NotFound} />

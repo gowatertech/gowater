@@ -25,10 +25,10 @@ import {
 
 const menuColors = {
   dashboard: "#0088FE",
-  almacen: "#00C49F",
-  rutas: "#FF8042",
-  envases: "#FFBB28",
-  pagos: "#8884d8",
+  inventory: "#00C49F",
+  routes: "#FF8042",
+  bottles: "#FFBB28",
+  payments: "#8884d8",
   admin: "#FF8042",
   settings: "#8884d8",
 };
@@ -48,7 +48,7 @@ const sidebarItems = [
   {
     icon: Route,
     label: "Rutas y Entregas",
-    href: "/rutas",
+    href: "/routes",
     subItems: [
       { label: "Rutas", href: "/routes" },
       { label: "Vista del Chofer", href: "/drivers/view" },
@@ -62,21 +62,21 @@ const sidebarItems = [
   {
     icon: RefreshCcw,
     label: "Control de Envases",
-    href: "/envases",
+    href: "/bottles",
     subItems: [
-      { label: "Registrar Devolución", href: "/envases/devolucion" },
-      { label: "Balance de Envases", href: "/envases/balance" },
-      { label: "Cobrar Faltantes", href: "/envases/faltantes" },
+      { label: "Registrar Devolución", href: "/bottles/return" },
+      { label: "Balance de Envases", href: "/bottles/balance" },
+      { label: "Cobrar Faltantes", href: "/bottles/missing" },
     ],
   },
   {
     icon: CreditCard,
     label: "Gestión de Pagos",
-    href: "/pagos",
+    href: "/payments",
     subItems: [
       { label: "Pagos", href: "/payments" },
       { label: "Facturación", href: "/billing" },
-      { label: "Comisiones", href: "/pagos/comisiones" },
+      { label: "Comisiones", href: "/payments/commissions" },
     ],
   },
   {
