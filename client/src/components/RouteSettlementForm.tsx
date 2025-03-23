@@ -58,17 +58,32 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   });
 
   React.useEffect(() => {
-    if (vehicleLoading?.items) {
-      form.reset({
-        ...form.getValues(),
-        items: vehicleLoading.items.map(item => ({
+    if (vehicleLoading?.items && vehicleLoading.items.length > 0) {
+      console.log("Cargando items en el formulario:", vehicleLoading.items);
+      
+      // Mapear los ítems con verificación extra
+      const formItems = vehicleLoading.items
+        .filter(item => item.product) // Solo incluir items con producto
+        .map(item => ({
           productId: item.productId,
           loadedQuantity: item.quantity,
           returnedQuantity: item.returnedQuantity || 0,
           soldQuantity: item.quantity - (item.returnedQuantity || 0),
           returnedContainers: 0,
           notes: item.notes || ""
-        }))
+        }));
+      
+      console.log("Items formateados para el formulario:", formItems);
+      
+      // Resetear el formulario con los nuevos valores
+      form.reset({
+        ...form.getValues(),
+        vehicleLoadingId: vehicleLoading.id,
+        totalCashReceived: "0.00",
+        totalCreditReceived: "0.00",
+        totalInvoiced: "0.00",
+        notes: "",
+        items: formItems
       });
     }
   }, [vehicleLoading, form]);
@@ -124,10 +139,23 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
 
   const totals = calculateTotals();
 
-  if (loadingData || !vehicleLoading) {
+  // Mejorar la verificación para asegurarnos de que tenemos todos los datos necesarios
+  if (loadingData || !vehicleLoading || !vehicleLoading.items || vehicleLoading.items.length === 0) {
     return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="h-6 w-6 animate-spin" />
+      <div className="flex flex-col items-center justify-center h-48">
+        <Loader2 className="h-6 w-6 animate-spin mb-2" />
+        <p className="text-sm text-muted-foreground">Cargando datos del vehículo...</p>
+      </div>
+    );
+  }
+  
+  // Verificar si hay productos con la información completa
+  const validItems = vehicleLoading.items.filter(item => item.product);
+  if (validItems.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48">
+        <p className="text-red-500">No se encontraron productos válidos para esta carga.</p>
+        <p className="text-sm text-muted-foreground mt-2">Por favor, verifica la carga del vehículo.</p>
       </div>
     );
   }
@@ -222,8 +250,23 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
               </thead>
               <tbody>
                 {fields.map((field, index) => {
+                  // Log para depuración
+                  console.log("Field:", field);
+                  console.log("VehicleLoading items:", vehicleLoading.items);
+                  
+                  // Buscar el item correspondiente de manera más robusta
                   const item = vehicleLoading.items.find(i => i.productId === field.productId);
-                  if (!item?.product) return null;
+                  
+                  // Verificar si el item existe y tiene un producto asociado
+                  if (!item) {
+                    console.warn(`No se encontró item para productId: ${field.productId}`);
+                    return null;
+                  }
+                  
+                  if (!item.product) {
+                    console.warn(`El item con productId: ${field.productId} no tiene información de producto`);
+                    return null;
+                  }
 
                   const loadedQty = form.watch(`items.${index}.loadedQuantity`);
                   const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
