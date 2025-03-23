@@ -894,6 +894,24 @@ export default function Customers() {
 
                 <FormField
                   control={form.control}
+                  name="coordinates"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Ubicación en Mapa</FormLabel>
+                      <FormControl>
+                        {isEditing ? (
+                          <LocationSelector value={field.value} onChange={field.onChange} />
+                        ) : (
+                          <Input value={field.value} readOnly />
+                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="creditlimit"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
