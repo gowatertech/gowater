@@ -200,13 +200,24 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     setIsOptimizing(true);
 
     try {
+      // Define depot/almacén principal (empresa) - hardcoded coordinates
+      const depot: Customer = {
+        id: 0, // Use 0 to represent depot
+        businessname: "Almacén Principal",
+        phone: "",
+        street: "",
+        streetnumber: "",
+        coordinates: "19.075380,-70.128822", // Coordenadas empresa
+        municipalityName: "",
+        provinceName: ""
+      };
+      
       // This would normally be an API call to a route optimization service
       // For this example, we'll use a very simple distance-based algorithm
       
-      // Start with a depot or first customer
-      const startPoint = selectedCustomers[0];
-      const unvisited = [...selectedCustomers.slice(1)];
-      const optimized = [startPoint];
+      // Start with depot
+      const unvisited = [...selectedCustomers];
+      const optimized = [depot];
 
       while (unvisited.length > 0) {
         const currentPoint = optimized[optimized.length - 1];
@@ -620,11 +631,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   <div className="border rounded-md p-4 space-y-3 max-h-[300px] overflow-y-auto">
                     {optimizedRoute.map((customer, index) => (
                       <div key={customer.id} className="flex items-center">
-                        <Badge variant="outline" className="mr-3 h-6 w-6 rounded-full">
-                          {index + 1}
+                        <Badge 
+                          variant={index === 0 ? "secondary" : "outline"} 
+                          className={`mr-3 h-6 w-6 rounded-full ${index === 0 ? "bg-primary text-white" : ""}`}
+                        >
+                          {index}
                         </Badge>
                         <div>
-                          <div className="font-medium">{customer.businessname}</div>
+                          <div className="font-medium">
+                            {customer.businessname}
+                            {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Inicio</span>}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             {customer.street} {customer.streetnumber}
                           </div>
@@ -678,7 +695,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                           
                           // Create a custom icon with the order number
                           const numberIcon = new L.DivIcon({
-                            html: `<div class="flex items-center justify-center bg-primary text-white rounded-full w-6 h-6 text-sm font-semibold">${index + 1}</div>`,
+                            html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-primary'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
                             className: 'custom-number-icon',
                             iconSize: [24, 24],
                             iconAnchor: [12, 12]
@@ -692,9 +709,15 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                             >
                               <Popup>
                                 <div className="text-sm">
-                                  <strong>Parada {index + 1}</strong>
+                                  {index === 0 ? (
+                                    <strong>Almacén Principal (Inicio)</strong>
+                                  ) : (
+                                    <strong>Parada {index}</strong>
+                                  )}
                                   <div>{customer.businessname}</div>
-                                  <div>{customer.street} {customer.streetnumber}</div>
+                                  {customer.street && (
+                                    <div>{customer.street} {customer.streetnumber}</div>
+                                  )}
                                 </div>
                               </Popup>
                             </Marker>
