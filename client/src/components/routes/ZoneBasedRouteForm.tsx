@@ -139,10 +139,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
 
   // Toggle customer selection
   const toggleCustomerSelection = (customer: Customer) => {
+    // Asegurar que el cliente tenga coordenadas
+    const customerWithCoordinates = {
+      ...customer,
+      // Usar las coordenadas existentes o crear coordenadas de ejemplo basadas en la posición relativa al depósito
+      coordinates: customer.coordinates || `${19.075380 + (customer.id * 0.005)},${-70.128822 - (customer.id * 0.004)}`
+    };
+    
     if (selectedCustomers.some(c => c.id === customer.id)) {
       setSelectedCustomers(selectedCustomers.filter(c => c.id !== customer.id));
     } else {
-      setSelectedCustomers([...selectedCustomers, customer]);
+      setSelectedCustomers([...selectedCustomers, customerWithCoordinates]);
     }
     // Reset optimized route when selection changes
     setOptimizedRoute([]);
