@@ -374,14 +374,14 @@ export const insertZoneSchema = z.object({
 export const recurringOrders = pgTable("recurring_orders", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").notNull().references(() => customers.id),
-  frequency: text("frequency", { enum: ["daily", "weekly", "monthly"] }).notNull(),
+  frequency: text("frequency", { enum: ["daily", "weekly", "biweekly", "monthly"] }).notNull(),
   nextOrderDate: timestamp("next_order_date").notNull(),
   isActive: boolean("is_active").notNull().default(true),
 });
 
 export const insertRecurringOrderSchema = z.object({
   customerId: z.number(),
-  frequency: z.enum(["daily", "weekly", "monthly"]),
+  frequency: z.enum(["daily", "weekly", "biweekly", "monthly"]),
   nextOrderDate: z.string().datetime(),
   isActive: z.boolean().default(true),
 });

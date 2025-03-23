@@ -5,36 +5,24 @@ import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "lucide-react";
 import RecurringOrderManager from "@/components/orders/RecurringOrderManager";
-import type { Route } from "@shared/schema";
+
+// Define el tipo específico para la respuesta de pedidos recurrentes,
+// ya que no coincide exactamente con el tipo Route del schema
+type RecurringOrderResponse = {
+  id: number;
+  customerId: number;
+  frequency: string;
+  nextDeliveryDate: string;
+  customerName: string;
+  order: string;
+  isActive: boolean;
+};
 
 export default function RecurringOrders() {
   const { t } = useTranslation();
 
-  const { data: recurringOrders = [] } = useQuery<Route[]>({
-    queryKey: ['/api/recurring-orders'],
-    queryFn: async () => {
-      // Temporalmente retornamos datos de ejemplo
-      return [
-        {
-          id: 1,
-          customerId: 1,
-          frequency: "weekly",
-          nextDeliveryDate: "2025-03-16",
-          customerName: "Supermercado Nacional",
-          order: "5 Botellones",
-          isActive: true
-        },
-        {
-          id: 2,
-          customerId: 2,
-          frequency: "biweekly",
-          nextDeliveryDate: "2025-03-23",
-          customerName: "Restaurante La Plaza",
-          order: "8 Botellones",
-          isActive: true
-        }
-      ];
-    }
+  const { data: recurringOrders = [] } = useQuery<RecurringOrderResponse[]>({
+    queryKey: ['/api/recurring-orders']
   });
 
   return (

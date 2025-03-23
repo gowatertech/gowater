@@ -24,9 +24,40 @@ export async function registerRoutes(app: Express) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Registrar las rutas de carga de vehículo y cuadre
+  // Registrar las rutas de carga de vehículo, cuadre y pedidos recurrentes
   await registerVehicleLoadingRoutes(app);
   await registerRouteSettlements(app);
+  
+  // Ruta para pedidos recurrentes
+  app.get("/api/recurring-orders", async (req, res) => {
+    try {
+      // Temporalmente retornamos datos de ejemplo
+      const recurringOrders = [
+        {
+          id: 1,
+          customerId: 1,
+          frequency: "weekly",
+          nextDeliveryDate: "2025-03-16",
+          customerName: "Supermercado Nacional",
+          order: "5 Botellones",
+          isActive: true
+        },
+        {
+          id: 2,
+          customerId: 2,
+          frequency: "biweekly",
+          nextDeliveryDate: "2025-03-23",
+          customerName: "Restaurante La Plaza",
+          order: "8 Botellones",
+          isActive: true
+        }
+      ];
+      res.json(recurringOrders);
+    } catch (error) {
+      console.error("Error al obtener pedidos recurrentes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Warehouses endpoints
   app.get("/api/warehouses", async (req, res) => {
