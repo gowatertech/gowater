@@ -939,8 +939,70 @@ export async function registerRoutes(app: Express) {
       console.log("POST /api/products - Producto creado:", product);      
       res.json(product);
     } catch (error) {
-            console.error("Error al crear producto:", error);      res.status(500).json({ error: String(error) });
-        }
+      console.error("Error al crear producto:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.patch("/api/products/:id", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      console.log("PATCH /api/products/:id - Body recibido:", req.body);
+
+      const productData = {
+        ...req.body,
+        stock: req.body.stock !== undefined ? Number(req.body.stock) : undefined,
+        price: req.body.price !== undefined ? Number(req.body.price).toFixed(2) : undefined,
+      };
+
+      const [existingProduct] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, productId));
+
+      if (!existingProduct) {
+        return res.status(404).json({ error: "Producto no encontrado" });
+      }
+
+      const [updatedProduct] = await db
+        .update(products)
+        .set(productData)
+        .where(eq(products.id, productId))
+        .returning();
+
+      console.log("PATCH /api/products/:id - Producto actualizado:", updatedProduct);
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error("Error al actualizar producto:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.delete("/api/products/:id", async (req, res) => {
+    try {
+      const productId = parseInt(req.params.id);
+      console.log("DELETE /api/products/:id - Eliminando producto:", productId);
+
+      const [existingProduct] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, productId));
+
+      if (!existingProduct) {
+        return res.status(404).json({ error: "Producto no encontrado" });
+      }
+
+      const deletedProduct = await db
+        .delete(products)
+        .where(eq(products.id, productId))
+        .returning();
+
+      console.log("DELETE /api/products/:id - Producto eliminado:", deletedProduct);
+      res.json({ success: true, message: "Producto eliminado correctamente" });
+    } catch (error) {
+      console.error("Error al eliminar producto:", error);
+      res.status(500).json({ error: String(error) });
+    }
   });
 
   // Pagos
