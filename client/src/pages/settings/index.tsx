@@ -7,9 +7,10 @@ import { queryClient } from "@/lib/queryClient";
 import type { InsertSettings, Province, Municipality } from "@shared/schema";
 import { insertSettingsSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
 import { LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { AddressSearchBox } from "@/components/map/AddressSearchBox";
 
 import {
   Form,
@@ -539,6 +540,17 @@ function Settings() {
   );
 }
 
+// Componente para centrar el mapa en una ubicación
+function MapCenterController({ position }: { position: LatLngExpression }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    map.setView(position, map.getZoom());
+  }, [map, position]);
+  
+  return null;
+}
+
 // Componente para seleccionar ubicación en el mapa
 interface LocationSelectorProps {
   initialPosition: [number, number];
@@ -547,7 +559,9 @@ interface LocationSelectorProps {
 
 function LocationSelector({ initialPosition, onPositionSelected }: LocationSelectorProps) {
   const [position, setPosition] = useState<LatLngExpression>(initialPosition);
+  const [address, setAddress] = useState<string>("");
   const markerRef = useRef<any>(null);
+  const { toast } = useToast();
 
   // Función para manejar el movimiento del marcador
   const eventHandlers = useMemo(
@@ -575,12 +589,27 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
     return null;
   }
 
+  const handleAddressSelected = (lat: number, lng: number, selectedAddress: string) => {
+    setPosition([lat, lng]);
+    setAddress(selectedAddress);
+    onPositionSelected(lat, lng);
+    toast({
+      title: "Ubicación seleccionada",
+      description: "Se ha seleccionado la dirección correctamente."
+    });
+  };
+
   return (
     <div className="w-full h-full">
       <h3 className="text-lg font-medium mb-2">Selecciona la ubicación de tu empresa</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Haz clic en el mapa o arrastra el marcador para seleccionar la ubicación exacta.
+        Busca una dirección o haz clic en el mapa para seleccionar la ubicación exacta.
       </p>
+      
+      <div className="mb-4">
+        <AddressSearchBox onLocationSelected={handleAddressSelected} />
+      </div>
+      
       <ResponsiveMapContainer>
         <MapContainer
           center={position}
@@ -598,23 +627,34 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
             eventHandlers={eventHandlers}
           />
           <MapClickHandler />
+          <MapCenterController position={position} />
         </MapContainer>
       </ResponsiveMapContainer>
-      <div className="mt-4 text-center">
-        <p className="text-sm text-muted-foreground">
-          Coordenadas seleccionadas: <br />
-          <span className="font-mono">{typeof position === 'object' ? `Lat: ${(position as [number, number])[0].toFixed(6)}, Lng: ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
-        </p>
-        <Button 
-          className="mt-2" 
-          onClick={() => {
-            if (typeof position === 'object') {
-              onPositionSelected((position as [number, number])[0], (position as [number, number])[1]);
-            }
-          }}
-        >
-          Confirmar ubicación
-        </Button>
+      
+      <div className="mt-4">
+        {address && (
+          <div className="mb-2 p-2 bg-muted rounded-md">
+            <p className="text-sm font-medium">Dirección seleccionada:</p>
+            <p className="text-sm">{address}</p>
+          </div>
+        )}
+        
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">
+            Coordenadas seleccionadas: <br />
+            <span className="font-mono">{typeof position === 'object' ? `Lat: ${(position as [number, number])[0].toFixed(6)}, Lng: ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
+          </p>
+          <Button 
+            className="mt-2" 
+            onClick={() => {
+              if (typeof position === 'object') {
+                onPositionSelected((position as [number, number])[0], (position as [number, number])[1]);
+              }
+            }}
+          >
+            Confirmar ubicación
+          </Button>
+        </div>
       </div>
     </div>
   );

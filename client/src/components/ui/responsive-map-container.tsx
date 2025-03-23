@@ -8,18 +8,22 @@ interface ResponsiveMapContainerProps {
 
 export function ResponsiveMapContainer({ 
   children, 
-  className = "",
-  style = {}
+  className,
+  style
 }: ResponsiveMapContainerProps) {
   return (
     <div 
-      className={`w-full relative ${className}`} 
+      className={`relative w-full ${className || ""}`} 
       style={{ 
-        height: "400px", 
+        paddingBottom: "75%", // Proporción 4:3 
         ...style 
       }}
     >
-      {children}
+      <div 
+        className="absolute top-0 left-0 w-full h-full rounded-md overflow-hidden border border-border"
+      >
+        {children}
+      </div>
     </div>
   );
 }
