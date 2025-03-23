@@ -6,9 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { type Zone, type Customer } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
-import { Pencil, X } from "lucide-react";
+import { Pencil, X, Search, MapPin } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
+import { AddressSearchBox } from "@/components/map/AddressSearchBox";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -25,6 +26,7 @@ interface DrawingControlProps {
 function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   const [points, setPoints] = useState<LatLngExpression[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [searchVisible, setSearchVisible] = useState(false);
   const { toast } = useToast();
 
   const map = useMapEvents({
@@ -40,6 +42,23 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
       });
     },
   });
+  
+  // Esta función maneja cuando se selecciona una ubicación desde la búsqueda
+  const handleLocationSelected = (lat: number, lng: number, address: string) => {
+    if (!isDrawing) return;
+    
+    const newPoint: LatLngExpression = [lat, lng];
+    setPoints(prev => [...prev, newPoint]);
+    
+    // Centrar el mapa en la ubicación seleccionada
+    map.setView([lat, lng], map.getZoom());
+    
+    // Feedback visual
+    toast({
+      description: `Punto añadido: ${address.split(',')[0]}`,
+      duration: 2000,
+    });
+  };
 
   const handleComplete = () => {
     if (points.length >= 3) {
@@ -84,22 +103,42 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
             Dibujar Zona
           </Button>
         ) : (
-          <div className="flex gap-2">
-            <Button
-              variant="destructive"
-              onClick={handleCancel}
-              className="flex items-center gap-2"
-            >
-              <X size={16} />
-              Cancelar
-            </Button>
-            <Button
-              variant="default"
-              disabled={points.length < 3}
-              onClick={handleComplete}
-            >
-              Completar ({points.length} puntos)
-            </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                onClick={handleCancel}
+                className="flex items-center gap-2"
+              >
+                <X size={16} />
+                Cancelar
+              </Button>
+              <Button
+                variant="default"
+                disabled={points.length < 3}
+                onClick={handleComplete}
+              >
+                Completar ({points.length} puntos)
+              </Button>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSearchVisible(!searchVisible)}
+                className="flex items-center gap-1"
+              >
+                <Search size={16} />
+                {searchVisible ? "Ocultar búsqueda" : "Buscar ubicación"}
+              </Button>
+            </div>
+            
+            {searchVisible && (
+              <div className="w-full mt-2">
+                <AddressSearchBox onLocationSelected={handleLocationSelected} />
+              </div>
+            )}
           </div>
         )}
       </div>
