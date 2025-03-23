@@ -520,19 +520,35 @@ export async function registerRoutes(app: Express) {
           zoneid: customers.zoneid,
           street: customers.street,
           streetnumber: customers.streetnumber,
-          coordinates: customers.coordinates,
           provinceid: customers.provinceid,
           municipalityid: customers.municipalityid,
           reference: customers.reference,
-          municipalityName: municipalities.name,
-          provinceName: provinces.name,
         })
         .from(customers)
-        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id))
         .where(eq(customers.zoneid, zoneId));
 
-      res.json(customersInZone);
+      // Obtener información de provincia y municipio para cada cliente
+      const customersWithDetails = await Promise.all(
+        customersInZone.map(async (customer) => {
+          const [province] = await db
+            .select({ name: provinces.name })
+            .from(provinces)
+            .where(eq(provinces.id, customer.provinceid));
+            
+          const [municipality] = await db
+            .select({ name: municipalities.name })
+            .from(municipalities)
+            .where(eq(municipalities.id, customer.municipalityid));
+            
+          return {
+            ...customer,
+            municipalityName: municipality?.name || '',
+            provinceName: province?.name || '',
+          };
+        })
+      );
+
+      res.json(customersWithDetails);
     } catch (error) {
       console.error("Error al obtener clientes por zona:", error);
       res.status(500).json({ error: String(error) });
