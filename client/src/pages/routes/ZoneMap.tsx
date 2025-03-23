@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { MapContainer, TileLayer, Polygon, Marker, Polyline, useMapEvents } from "react-leaflet";
+import { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Polygon, Marker, Polyline, useMapEvents, useMap } from "react-leaflet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { type Zone, type Customer } from "@shared/schema";
+import { type Zone, type Customer, type Settings } from "@shared/schema";
 import { LatLngExpression, LatLng, Icon } from 'leaflet';
 import { Pencil, X } from "lucide-react";
 import 'leaflet/dist/leaflet.css';
+import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 
 // Fix Leaflet icon issue
 delete (Icon.Default.prototype as any)._getIconUrl;
@@ -124,6 +125,17 @@ function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
   );
 }
 
+// Componente para centrar el mapa en una ubicación específica
+function MapCenterController({ position }: { position: LatLngExpression }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    map.setView(position, map.getZoom());
+  }, [map, position]);
+  
+  return null;
+}
+
 interface ZoneMapProps {
   newZoneName: string;
   selectedColor: string;
@@ -132,6 +144,27 @@ interface ZoneMapProps {
 
 export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: ZoneMapProps) {
   const { toast } = useToast();
+  const [initialPosition, setInitialPosition] = useState<LatLngExpression>([18.4955, -69.8534]); // Default Santo Domingo
+  const [mapReady, setMapReady] = useState(false);
+
+  // Consultar la configuración del negocio para obtener la ubicación inicial
+  useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    onSuccess: (data: Settings) => {
+      if (data?.latitude && data?.longitude) {
+        const lat = parseFloat(data.latitude);
+        const lng = parseFloat(data.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setInitialPosition([lat, lng]);
+        }
+      }
+      setMapReady(true);
+    },
+    onError: () => {
+      // Si hay error, seguimos con la posición por defecto
+      setMapReady(true);
+    }
+  });
 
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
@@ -215,24 +248,41 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
   };
 
+  // Si no estamos listos para renderizar el mapa, mostrar un mensaje de carga
+  if (!mapReady) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm flex items-center justify-center" style={{ 
+        height: "500px",
+        width: "100%",
+        position: "relative"
+      }}>
+        <p className="text-muted-foreground">Cargando mapa...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm" style={{ 
       height: "500px",
       width: "100%",
       position: "relative"
     }}>
-      <MapContainer
-        center={[18.4955, -69.8534]} // Santo Domingo coordinates
-        zoom={13}
-        style={{ height: "100%", width: "100%" }}
-        className="rounded-lg"
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+      <div className="h-full w-full">
+        <MapContainer
+          center={initialPosition}
+          zoom={13}
+          style={{ height: "100%", width: "100%" }}
+          className="rounded-lg"
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
 
-        <DrawingControl onPolygonComplete={handlePolygonComplete} />
+          {/* Este componente mantendrá el mapa centrado en la posición deseada */}
+          <MapCenterController position={initialPosition} />
+          
+          <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
         {/* Render existing zones */}
         {zones.map((zone) => {
@@ -268,25 +318,30 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
 
         {/* Render customer markers */}
         {customers.map((customer) => {
-          if (!customer.coordinates) return null;
-          try {
-            const [lat, lng] = customer.coordinates.split(",").map(Number);
-            if (isNaN(lat) || isNaN(lng)) {
-              throw new Error(`Coordenadas inválidas para cliente ${customer.id}`);
+          // Buscar si el cliente tiene coordenadas en sus datos
+          if (customer.latitude && customer.longitude) {
+            try {
+              const lat = parseFloat(customer.latitude);
+              const lng = parseFloat(customer.longitude);
+              if (isNaN(lat) || isNaN(lng)) {
+                return null;
+              }
+              return (
+                <Marker
+                  key={customer.id}
+                  position={[lat, lng]}
+                  title={customer.businessname || `Cliente ${customer.id}`}
+                />
+              );
+            } catch (error) {
+              console.error(`Error al renderizar cliente ${customer.id}:`, error);
+              return null;
             }
-            return (
-              <Marker
-                key={customer.id}
-                position={[lat, lng]}
-                title={customer.name}
-              />
-            );
-          } catch (error) {
-            console.error(`Error al renderizar cliente ${customer.id}:`, error);
-            return null;
           }
+          return null;
         })}
       </MapContainer>
+      </div>
     </div>
   );
 }
