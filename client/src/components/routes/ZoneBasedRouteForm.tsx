@@ -73,6 +73,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     refetch: refetchCustomers
   } = useQuery({
     queryKey: ["/api/customers/by-zone", selectedZone],
+    queryFn: async () => {
+      if (!selectedZone) return [];
+      const response = await apiRequest("GET", `/api/customers/by-zone?zoneId=${selectedZone}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch customers for zone");
+      }
+      return response.json();
+    },
     enabled: !!selectedZone,
   });
 
