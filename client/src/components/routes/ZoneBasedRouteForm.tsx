@@ -675,10 +675,20 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                       {optimizedRoute.map((customer, index) => {
                         if (customer.coordinates) {
                           const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                          
+                          // Create a custom icon with the order number
+                          const numberIcon = new L.DivIcon({
+                            html: `<div class="flex items-center justify-center bg-primary text-white rounded-full w-6 h-6 text-sm font-semibold">${index + 1}</div>`,
+                            className: 'custom-number-icon',
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                          });
+                          
                           return (
                             <Marker
                               key={customer.id}
                               position={[lat, lng]}
+                              icon={numberIcon}
                             >
                               <Popup>
                                 <div className="text-sm">
