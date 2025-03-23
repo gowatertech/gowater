@@ -29,10 +29,14 @@ export function GoogleMapsProvider({ children, apiKey: propApiKey }: GoogleMapsP
   const [error, setError] = useState<string | null>(null);
   
   // Obtener la API key del secreto de entorno
-  // Usamos una copia de seguridad en caso de que la variable de entorno no esté disponible
+  // Usamos la API key proporcionada directamente si está disponible en las props
+  // O usamos la API key de las variables de entorno
+  // Para depuración, usamos una clave constante si no hay nada más disponible
   const apiKey = propApiKey || 
-                import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string || 
-                '';
+                (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || 
+                "AIzaSyCKR-m2mB162WETaSakhurLxpYDXj3oGmU";
+                
+  console.log("Google Maps API Key disponible en GoogleMapsProvider:", apiKey ? "Sí" : "No");
 
   useEffect(() => {
     // Si ya está cargado o hay un error, no hacer nada

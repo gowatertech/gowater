@@ -171,12 +171,15 @@ export default function Inventory() {
       try {
         const res = await apiRequest("DELETE", `/api/products/${id}`);
         if (!res.ok) {
-          const errorData = await res.text();
-          // Verificar si la respuesta contiene un mensaje sobre clave foránea
-          if (errorData.includes("foreign key constraint") || errorData.includes("vehicle_loading_items")) {
-            throw new Error(`El producto está siendo utilizado en carga de vehículos y no puede ser eliminado.`);
+          const errorData = await res.json();
+          console.log("Error al eliminar producto:", errorData);
+          
+          // Verificar el código de error específico para un mensaje más claro
+          if (errorData.code === "PRODUCT_IN_USE") {
+            throw new Error(errorData.error || "El producto está siendo utilizado y no puede ser eliminado.");
           }
-          throw new Error(`Error al eliminar el producto: ${errorData || res.statusText}`);
+          
+          throw new Error(`Error al eliminar el producto: ${errorData.error || res.statusText}`);
         }
         return await res.json();
       } catch (error) {
@@ -192,12 +195,12 @@ export default function Inventory() {
       });
       setIsDeleteDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       // No cerramos el diálogo para mostrar el mensaje de error dentro de él
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo eliminar el producto",
+        description: error.message || "No se pudo eliminar el producto",
       });
     },
   });
@@ -568,7 +571,7 @@ export default function Inventory() {
           </div>
           {deleteMutation.isError && (
             <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
-              Error: No se puede eliminar este producto porque está siendo utilizado en cargas de vehículos.
+              Error: {(deleteMutation.error as Error)?.message || "No se puede eliminar este producto porque está siendo utilizado en otras partes del sistema."}
             </div>
           )}
         </DialogContent>

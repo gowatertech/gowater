@@ -992,6 +992,35 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Producto no encontrado" });
       }
 
+      // Verificar si el producto está siendo utilizado en alguna carga de vehículo
+      const vehicleLoadingItems = await db
+        .select()
+        .from(vehicleLoadingItems)
+        .where(eq(vehicleLoadingItems.productId, productId))
+        .limit(1);
+
+      if (vehicleLoadingItems.length > 0) {
+        return res.status(400).json({ 
+          error: "No se puede eliminar este producto porque está siendo utilizado en cargas de vehículos",
+          code: "PRODUCT_IN_USE"
+        });
+      }
+
+      // Comprobar si se usa en órdenes
+      const orderItems = await db
+        .select()
+        .from(orderItems)
+        .where(eq(orderItems.productId, productId))
+        .limit(1);
+
+      if (orderItems.length > 0) {
+        return res.status(400).json({ 
+          error: "No se puede eliminar este producto porque está siendo utilizado en órdenes",
+          code: "PRODUCT_IN_USE"
+        });
+      }
+
+      // Si no está siendo usado, proceder con la eliminación
       const deletedProduct = await db
         .delete(products)
         .where(eq(products.id, productId))
