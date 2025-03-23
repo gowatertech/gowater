@@ -59,10 +59,13 @@ export default function RouteSettlementPage() {
       </div>
 
       {selectedLoadingId ? (
-        <RouteSettlementForm
-          vehicleLoadingId={selectedLoadingId}
-          onSuccess={handleSettlementSuccess}
-        />
+        <>
+          {console.log("Cargando formulario para vehicleLoadingId:", selectedLoadingId)}
+          <RouteSettlementForm
+            vehicleLoadingId={selectedLoadingId}
+            onSuccess={handleSettlementSuccess}
+          />
+        </>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {pendingLoads.map((loading) => (

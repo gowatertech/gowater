@@ -22,28 +22,45 @@ interface RouteSettlementFormProps {
   onSuccess?: () => void;
 }
 
+interface LoadingItem {
+  id: number;
+  loadingId: number;
+  productId: number;
+  quantity: number;
+  returnedQuantity: number | null;
+  notes: string | null;
+  product: Product; // Garantizamos que producto siempre exista
+}
+
 interface LoadingWithRelations extends VehicleLoading {
   truck: Truck;
   driver: User;
-  items: Array<{
-    id: number;
-    productId: number;
-    quantity: number;
-    returnedQuantity: number | null;
-    notes: string | null;
-    product: Product;
-  }>;
+  items: LoadingItem[];
 }
 
 export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettlementFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  console.log("RouteSettlementForm - Iniciando con vehicleLoadingId:", vehicleLoadingId);
+
   const { data: vehicleLoading, isLoading: loadingData } = useQuery<LoadingWithRelations>({
     queryKey: ["/api/vehicle-loading", vehicleLoadingId],
     retry: 1,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: false
   });
+  
+  // Usar useEffect para los logs en lugar de callbacks en la query
+  React.useEffect(() => {
+    if (vehicleLoading) {
+      console.log("Datos recibidos del vehículo:", vehicleLoading);
+      console.log("Cantidad de items:", vehicleLoading.items?.length);
+      if (vehicleLoading.items && vehicleLoading.items.length > 0) {
+        console.log("Primer item:", vehicleLoading.items[0]);
+        console.log("¿Tienen productos los items?", vehicleLoading.items.every((item: LoadingItem) => item.product));
+      }
+    }
+  }, [vehicleLoading]);
 
   const form = useForm<InsertRouteSettlement>({
     resolver: zodResolver(insertRouteSettlementSchema),
@@ -249,32 +266,24 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                 </tr>
               </thead>
               <tbody>
-                {fields.map((field, index) => {
-                  // Log para depuración
-                  console.log("Field:", field);
-                  console.log("VehicleLoading items:", vehicleLoading.items);
+                {/* Renderizar directamente desde los items de vehicleLoading en lugar de fields */}
+                {vehicleLoading.items.filter(item => item.product).map((item, index) => {
+                  // Buscar el campo correspondiente
+                  const field = fields.find(f => f.productId === item.productId);
                   
-                  // Buscar el item correspondiente de manera más robusta
-                  const item = vehicleLoading.items.find(i => i.productId === field.productId);
-                  
-                  // Verificar si el item existe y tiene un producto asociado
-                  if (!item) {
-                    console.warn(`No se encontró item para productId: ${field.productId}`);
+                  if (!field) {
+                    console.warn(`No se encontró campo para item con productId: ${item.productId}`);
                     return null;
                   }
                   
-                  if (!item.product) {
-                    console.warn(`El item con productId: ${field.productId} no tiene información de producto`);
-                    return null;
-                  }
-
-                  const loadedQty = form.watch(`items.${index}.loadedQuantity`);
+                  // Valores para calcular
+                  const loadedQty = item.quantity;
                   const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
                   const soldQty = loadedQty - returnedQty;
                   const total = parseFloat(item.product.price) * soldQty;
 
                   return (
-                    <tr key={field.id} className="border-b">
+                    <tr key={item.id} className="border-b">
                       <td className="p-1">{item.product.name}</td>
                       <td className="p-1 text-right">RD$ {item.product.price}</td>
                       <td className="p-1 text-right">{loadedQty}</td>
