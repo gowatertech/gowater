@@ -282,60 +282,55 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                 </tr>
               </thead>
               <tbody>
-                {/* Utilizar fields directamente para renderizar la tabla */}
-                {fields.map((field, index) => {
-                  // Buscar el item correspondiente en la carga del vehículo
-                  const loadingItem = vehicleLoading.items.find(item => 
-                    item.productId === field.productId && item.product
-                  );
-                  
-                  // Si no se encuentra el item o no tiene producto, no lo mostramos
-                  if (!loadingItem || !loadingItem.product) {
-                    return null;
-                  }
-                  
-                  // Valores para calcular
-                  const loadedQty = field.loadedQuantity;
-                  const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
-                  const soldQty = loadedQty - returnedQty;
-                  const total = parseFloat(loadingItem.product.price) * soldQty;
-                  
-                  // Mostrar información de debug
-                  console.log(`Renderizando ítem ${index}:`, {
-                    fieldId: field.id,
-                    productId: field.productId,
-                    loadedQty,
-                    returnedQty,
-                    product: loadingItem.product.name
-                  });
-
-                  return (
-                    <tr key={field.id} className="border-b">
-                      <td className="p-1">{loadingItem.product.name}</td>
-                      <td className="p-1 text-right">RD$ {loadingItem.product.price}</td>
-                      <td className="p-1 text-right">{loadedQty}</td>
-                      <td className="p-1">
-                        <Input
-                          {...form.register(`items.${index}.returnedQuantity` as const)}
-                          type="number"
-                          className="w-16 text-right"
-                          min="0"
-                          max={loadedQty}
-                        />
-                      </td>
-                      <td className="p-1 text-right">{soldQty}</td>
-                      <td className="p-1">
-                        <Input
-                          {...form.register(`items.${index}.returnedContainers` as const)}
-                          type="number"
-                          className="w-16 text-right"
-                          min="0"
-                        />
-                      </td>
-                      <td className="p-1 text-right">RD$ {total.toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
+                {/* Renderizar directamente los productos en la carga */}
+                {vehicleLoading.items
+                  .filter(item => item.product)
+                  .map((item, index) => {
+                    console.log("Procesando item para tabla:", item);
+                    console.log("Producto:", item.product);
+                    
+                    // Valores para calcular
+                    const loadedQty = item.quantity;
+                    const returnedQty = 0; // Valor inicial
+                    const soldQty = loadedQty - returnedQty;
+                    const price = parseFloat(item.product.price);
+                    const total = price * soldQty;
+                    
+                    return (
+                      <tr key={item.id} className="border-b">
+                        <td className="p-1">{item.product.name}</td>
+                        <td className="p-1 text-right">RD$ {price}</td>
+                        <td className="p-1 text-right">{loadedQty}</td>
+                        <td className="p-1">
+                          <Input
+                            type="number"
+                            defaultValue="0"
+                            className="w-16 text-right"
+                            min="0"
+                            max={loadedQty}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value || "0");
+                              console.log(`Cambiando cantidad devuelta para ${item.product.name}: ${val}`);
+                            }}
+                          />
+                        </td>
+                        <td className="p-1 text-right">{soldQty}</td>
+                        <td className="p-1">
+                          <Input
+                            type="number"
+                            defaultValue="0"
+                            className="w-16 text-right"
+                            min="0"
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value || "0");
+                              console.log(`Cambiando envases para ${item.product.name}: ${val}`);
+                            }}
+                          />
+                        </td>
+                        <td className="p-1 text-right">RD$ {total.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
