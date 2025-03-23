@@ -46,6 +46,10 @@ export default function RouteSettlementPage() {
     );
   }
 
+  // Agregamos debugging para ver qué está pasando con el ID seleccionado
+  console.log("SelectedLoadingId:", selectedLoadingId);
+  console.log("pendingLoads:", pendingLoads);
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex items-center justify-between mb-4">
@@ -59,17 +63,23 @@ export default function RouteSettlementPage() {
       </div>
 
       {selectedLoadingId ? (
-        <RouteSettlementForm
-          vehicleLoadingId={selectedLoadingId}
-          onSuccess={handleSettlementSuccess}
-        />
+        // Añadimos clave key para forzar un re-render completo cuando cambia el ID
+        <div key={`loading-${selectedLoadingId}`}>
+          <RouteSettlementForm
+            vehicleLoadingId={selectedLoadingId}
+            onSuccess={handleSettlementSuccess}
+          />
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {pendingLoads.map((loading) => (
             <Card
               key={loading.id}
               className="cursor-pointer hover:bg-accent/5"
-              onClick={() => setSelectedLoadingId(loading.id)}
+              onClick={() => {
+                console.log("Clicked on loading:", loading.id);
+                setSelectedLoadingId(loading.id);
+              }}
             >
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">
