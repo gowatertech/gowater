@@ -36,6 +36,7 @@ const resources = {
       description: "Description",
       active: "Active",
       inactive: "Inactive",
+      createRoute: "Create Route",
 
       // Forms
       name: "Name",
@@ -95,6 +96,7 @@ const resources = {
       description: "Descripción",
       active: "Activo",
       inactive: "Inactivo",
+      createRoute: "Crear Ruta",
 
       // Forms
       name: "Nombre",
