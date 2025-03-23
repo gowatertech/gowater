@@ -223,8 +223,13 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                           onBlur={(e) => {
                             // Formatear el valor para mostrar dos decimales
                             const value = e.target.value.trim();
-                            const parsedValue = parseFloat(value) || 0;
-                            const formattedValue = parsedValue.toFixed(2);
+                            // Si no hay punto decimal, añadir .00
+                            let formattedValue;
+                            if (value && !value.includes('.')) {
+                              formattedValue = parseFloat(value).toFixed(2);
+                            } else {
+                              formattedValue = (parseFloat(value) || 0).toFixed(2);
+                            }
                             e.target.value = formattedValue;
                             field.onChange(formattedValue);
                             handleChange();
@@ -232,7 +237,12 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                           onChange={(e) => {
                             // Permitir solo números y un punto decimal
                             const value = e.target.value.replace(/[^\d.]/g, '');
-                            field.onChange(value);
+                            // Prevenir múltiples puntos decimales
+                            const parts = value.split('.');
+                            const newValue = parts.length > 2 
+                              ? parts[0] + '.' + parts.slice(1).join('') 
+                              : value;
+                            field.onChange(newValue);
                             handleChange();
                           }}
                         />
@@ -251,11 +261,31 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                       <FormControl>
                         <Input 
                           {...field} 
-                          type="number" 
-                          min="0" 
-                          step="0.01" 
+                          type="text" 
+                          inputMode="decimal"
+                          onBlur={(e) => {
+                            // Formatear el valor para mostrar dos decimales
+                            const value = e.target.value.trim();
+                            // Si no hay punto decimal, añadir .00
+                            let formattedValue;
+                            if (value && !value.includes('.')) {
+                              formattedValue = parseFloat(value).toFixed(2);
+                            } else {
+                              formattedValue = (parseFloat(value) || 0).toFixed(2);
+                            }
+                            e.target.value = formattedValue;
+                            field.onChange(formattedValue);
+                            handleChange();
+                          }}
                           onChange={(e) => {
-                            field.onChange(e);
+                            // Permitir solo números y un punto decimal
+                            const value = e.target.value.replace(/[^\d.]/g, '');
+                            // Prevenir múltiples puntos decimales
+                            const parts = value.split('.');
+                            const newValue = parts.length > 2 
+                              ? parts[0] + '.' + parts.slice(1).join('') 
+                              : value;
+                            field.onChange(newValue);
                             handleChange();
                           }}
                         />
@@ -274,15 +304,12 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                       <FormControl>
                         <Input 
                           {...field} 
-                          type="number" 
-                          min="0" 
-                          step="0.01" 
-                          onChange={(e) => {
-                            field.onChange(e);
-                            handleChange();
-                          }}
+                          type="text" 
+                          inputMode="decimal"
                           className="bg-gray-50"
                           readOnly
+                          // Garantiza que siempre se muestre con dos decimales en UI
+                          value={(parseFloat(field.value) || 0).toFixed(2)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -342,14 +369,17 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                                 <FormControl>
                                   <Input 
                                     {...field}
-                                    type="number" 
-                                    min="0" 
-                                    max={item.quantity}
+                                    type="text"
+                                    inputMode="numeric"
                                     value={field.value}
                                     onChange={(e) => {
-                                      const value = parseInt(e.target.value) || 0;
-                                      field.onChange(value);
-                                      updateSoldQuantity(index, value);
+                                      // Solo permitir números enteros
+                                      const value = e.target.value.replace(/\D/g, '');
+                                      const intValue = parseInt(value) || 0;
+                                      // Validar que no exceda el máximo
+                                      const validValue = Math.min(intValue, item.quantity);
+                                      field.onChange(validValue);
+                                      updateSoldQuantity(index, validValue);
                                     }}
                                     className="w-20 mx-auto text-center"
                                   />
