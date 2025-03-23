@@ -1,15 +1,11 @@
-import { useTranslation } from "react-i18next";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { type CustomerWithDetails, type Province, type Municipality, type Zone, insertCustomerSchema } from "@shared/schema";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { insertCustomerSchema, CustomerWithDetails, Province, Municipality, Zone } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { z } from "zod";
-import { LocationSelector } from "@/components/map/LocationSelector";
-
-// UI Components
 import {
   Table,
   TableBody,
@@ -23,7 +19,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -47,6 +42,7 @@ import { PlusCircle, Eye, Edit, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LocationSelector } from "@/components/map/LocationSelector";
 
 type CustomerFormData = z.infer<typeof insertCustomerSchema>;
 
@@ -58,6 +54,7 @@ export default function Customers() {
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("list");
+  const queryClient = useQueryClient();
 
   // Obtener provincias
   const { data: provinces = [] } = useQuery<Province[]>({
@@ -154,7 +151,7 @@ export default function Customers() {
         coordinates: "",
         creditlimit: "0.00",
       });
-      setIsDialogOpen(false);
+      setActiveTab("list");
       setSelectedProvinceId(null);
     },
     onError: (error) => {
@@ -268,17 +265,81 @@ export default function Customers() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Clientes</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Nuevo Cliente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Nuevo Cliente</DialogTitle>
-            </DialogHeader>
+        <Button onClick={() => setActiveTab("new")}>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Nuevo Cliente
+        </Button>
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="list">Lista de Clientes</TabsTrigger>
+          <TabsTrigger value="new">Nuevo Cliente</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="border rounded-md p-4">
+          <Card>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Logo</TableHead>
+                    <TableHead>Nombre del Negocio</TableHead>
+                    <TableHead>RNC</TableHead>
+                    <TableHead>Nombre del Encargado</TableHead>
+                    <TableHead>Teléfono</TableHead>
+                    <TableHead>Dirección</TableHead>
+                    <TableHead>Límite de Crédito</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {customers?.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell>
+                        {customer.logo ? (
+                          <img
+                            src={`data:image/jpeg;base64,${customer.logo}`}
+                            alt="Logo"
+                            className="w-12 h-12 object-contain"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
+                            No logo
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>{customer.businessname}</TableCell>
+                      <TableCell>{customer.rnc || '-'}</TableCell>
+                      <TableCell>{customer.managername}</TableCell>
+                      <TableCell>{customer.phone}</TableCell>
+                      <TableCell>
+                        {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
+                      </TableCell>
+                      <TableCell>
+                        RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewCustomer(customer)}
+                          className="text-blue-500 hover:text-blue-700"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="new" className="border rounded-md p-4">
+          <Card className="p-4">
+            <h2 className="text-xl font-bold mb-4">Nuevo Cliente</h2>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -335,7 +396,7 @@ export default function Customers() {
                       <FormItem>
                         <FormLabel>RNC</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -391,7 +452,7 @@ export default function Customers() {
                       <FormItem>
                         <FormLabel>Email</FormLabel>
                         <FormControl>
-                          <Input type="email" {...field} />
+                          <Input type="email" {...field} value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -521,7 +582,7 @@ export default function Customers() {
                       <FormItem className="md:col-span-2">
                         <FormLabel>Referencia</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -592,9 +653,9 @@ export default function Customers() {
                 </Button>
               </form>
             </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog para ver/editar cliente */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
@@ -671,7 +732,6 @@ export default function Customers() {
                                   onChange(file);
                                 }
                               }}
-                              disabled={!isEditing}
                               {...field}
                             />
                           )}
@@ -689,7 +749,7 @@ export default function Customers() {
                     <FormItem>
                       <FormLabel>RNC</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -745,7 +805,7 @@ export default function Customers() {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -762,6 +822,7 @@ export default function Customers() {
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
+                          disabled={!isEditing}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -779,7 +840,7 @@ export default function Customers() {
                       ) : (
                         <FormControl>
                           <Input 
-                            value={zones.find(z => z.id === selectedCustomer?.zoneid)?.name || ''}
+                            value={zones.find(z => z.id === field.value)?.name || "No asignada"} 
                             readOnly 
                           />
                         </FormControl>
@@ -830,6 +891,7 @@ export default function Customers() {
                             setSelectedProvinceId(parseInt(value));
                           }}
                           value={field.value?.toString()}
+                          disabled={!isEditing}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -846,7 +908,10 @@ export default function Customers() {
                         </Select>
                       ) : (
                         <FormControl>
-                          <Input value={selectedCustomer?.provinceName || ''} readOnly />
+                          <Input 
+                            value={provinces.find(p => p.id === field.value)?.name || ""} 
+                            readOnly 
+                          />
                         </FormControl>
                       )}
                       <FormMessage />
@@ -864,7 +929,7 @@ export default function Customers() {
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
-                          disabled={!selectedProvinceId || isLoadingMunicipalities}
+                          disabled={!selectedProvinceId || isLoadingMunicipalities || !isEditing}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -881,7 +946,10 @@ export default function Customers() {
                         </Select>
                       ) : (
                         <FormControl>
-                          <Input value={selectedCustomer?.municipalityName || ''} readOnly />
+                          <Input 
+                            value={municipalities.find(m => m.id === field.value)?.name || ""} 
+                            readOnly 
+                          />
                         </FormControl>
                       )}
                       <FormMessage />
@@ -896,39 +964,32 @@ export default function Customers() {
                     <FormItem className="md:col-span-2">
                       <FormLabel>Referencia</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="coordinates"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel>Ubicación en Mapa</FormLabel>
-                      <FormControl>
-                        {isEditing ? (
+                {isEditing && (
+                  <FormField
+                    control={form.control}
+                    name="coordinates"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Ubicación en Mapa</FormLabel>
+                        <FormControl>
                           <LocationSelector 
                             value={field.value || ""} 
                             onChange={field.onChange} 
                             initialCenter={[19.075380, -70.128822]} 
                           />
-                        ) : (
-                          <Input value={field.value || ""} readOnly />
-                        )}
-                      </FormControl>
-                      {isEditing && (
-                        <div className="text-sm text-muted-foreground mt-1">
-                          Mueva el marcador para seleccionar la ubicación exacta del cliente, o use la barra de búsqueda para encontrar una dirección
-                        </div>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}
@@ -942,6 +1003,7 @@ export default function Customers() {
                           inputMode="decimal"
                           {...field}
                           onChange={(e) => {
+                            if (!isEditing) return;
                             const value = e.target.value.replace(/[^\d.]/g, '');
                             const parts = value.split('.');
                             if (parts.length > 2) return;
@@ -949,6 +1011,7 @@ export default function Customers() {
                             field.onChange(value);
                           }}
                           onBlur={(e) => {
+                            if (!isEditing) return;
                             const value = e.target.value || '0';
                             const number = parseFloat(value);
                             if (!isNaN(number)) {
@@ -963,9 +1026,13 @@ export default function Customers() {
                   )}
                 />
               </div>
+
               {isEditing && (
-                <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
-                  <Save className="h-4 w-4 mr-2" />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={updateMutation.isPending}
+                >
                   {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                 </Button>
               )}
@@ -973,62 +1040,6 @@ export default function Customers() {
           </Form>
         </DialogContent>
       </Dialog>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Logo</TableHead>
-              <TableHead>Nombre del Negocio</TableHead>
-              <TableHead>RNC</TableHead>
-              <TableHead>Nombre del Encargado</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Dirección</TableHead>
-              <TableHead>Límite de Crédito</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {customers?.map((customer) => (
-              <TableRow key={customer.id}>
-                <TableCell>
-                  {customer.logo ? (
-                    <img
-                      src={`data:image/jpeg;base64,${customer.logo}`}
-                      alt="Logo"
-                      className="w-12 h-12 object-contain"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-gray-100 flex items-center justify-center text-gray-400">
-                      No logo
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>{customer.businessname}</TableCell>
-                <TableCell>{customer.rnc || '-'}</TableCell>
-                <TableCell>{customer.managername}</TableCell>
-                <TableCell>{customer.phone}</TableCell>
-                <TableCell>
-                  {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
-                </TableCell>
-                <TableCell>
-                  RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleViewCustomer(customer)}
-                    className="text-blue-500 hover:text-blue-700"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
     </div>
   );
 }
