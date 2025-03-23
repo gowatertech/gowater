@@ -362,10 +362,9 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
 
       // Convertir coordenadas al formato requerido por el schema
       const coordStrings = points.map(point => {
-        // Asegurar formato exacto con 6 decimales
-        const lat = typeof point.lat === 'function' ? point.lat() : point.lat;
-        const lng = typeof point.lng === 'function' ? point.lng() : point.lng;
-        return `${lat.toFixed(6)},${lng.toFixed(6)}`;
+        // Las coordenadas ya son LatLngLiteral (definido como un tipo simple), así que son números directos
+        // que se pueden formatear
+        return `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`;
       });
 
       // Crear la zona
