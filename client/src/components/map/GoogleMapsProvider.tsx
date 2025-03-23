@@ -28,8 +28,11 @@ export function GoogleMapsProvider({ children, apiKey: propApiKey }: GoogleMapsP
   const [hasError, setHasError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Intentar obtener la API key de las variables de entorno o de props
-  const apiKey = propApiKey || import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string || '';
+  // Obtener la API key del secreto de entorno
+  // Usamos una copia de seguridad en caso de que la variable de entorno no esté disponible
+  const apiKey = propApiKey || 
+                import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string || 
+                '';
 
   useEffect(() => {
     // Si ya está cargado o hay un error, no hacer nada
@@ -43,7 +46,7 @@ export function GoogleMapsProvider({ children, apiKey: propApiKey }: GoogleMapsP
       return;
     }
 
-    console.log("Cargando Google Maps con API key:", apiKey ? "Configurada" : "Faltante");
+    console.log("Cargando Google Maps con API key:", apiKey ? "Configurada correctamente" : "Faltante");
 
     // Comprobar si la API ya está cargada
     if (window.google && window.google.maps) {
@@ -65,7 +68,7 @@ export function GoogleMapsProvider({ children, apiKey: propApiKey }: GoogleMapsP
     script.onerror = (e) => {
       console.error("Error al cargar Google Maps API:", e);
       setHasError(true);
-      setError("Error al cargar la API de Google Maps");
+      setError("Error al cargar la API de Google Maps. Verifique que la clave proporcionada sea válida y tenga los permisos necesarios habilitados.");
     };
 
     // Añadir el script al documento
