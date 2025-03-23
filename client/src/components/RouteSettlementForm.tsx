@@ -51,27 +51,46 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   });
   
   // Usar useEffect para los logs en lugar de callbacks en la query
-  React.useEffect(() => {
-    if (vehicleLoading) {
-      console.log("Datos recibidos del vehículo:", vehicleLoading);
-      console.log("Cantidad de items:", vehicleLoading.items?.length);
-      if (vehicleLoading.items && vehicleLoading.items.length > 0) {
-        console.log("Primer item:", vehicleLoading.items[0]);
-        console.log("¿Tienen productos los items?", vehicleLoading.items.every((item: LoadingItem) => item.product));
-      }
+  // Preparar los valores por defecto para el formulario
+  const defaultFormValues = React.useMemo(() => {
+    if (!vehicleLoading) {
+      return {
+        vehicleLoadingId,
+        totalCashReceived: "0.00",
+        totalCreditReceived: "0.00",
+        totalInvoiced: "0.00",
+        notes: "",
+        items: []
+      };
     }
-  }, [vehicleLoading]);
-
-  const form = useForm<InsertRouteSettlement>({
-    resolver: zodResolver(insertRouteSettlementSchema),
-    defaultValues: {
+    
+    // Mapear los items de la carga a los items del cuadre
+    const itemsWithProducts = vehicleLoading.items
+      .filter(item => item.product) // Solo incluir items con productos
+      .map(item => ({
+        productId: item.productId,
+        loadedQuantity: item.quantity,
+        returnedQuantity: 0,
+        soldQuantity: item.quantity, // Por defecto, asumimos que todos fueron vendidos
+        returnedContainers: 0,
+        notes: ""
+      }));
+    
+    console.log("Items preparados para el formulario:", itemsWithProducts);
+    
+    return {
       vehicleLoadingId,
       totalCashReceived: "0.00",
       totalCreditReceived: "0.00",
       totalInvoiced: "0.00",
       notes: "",
-      items: []
-    }
+      items: itemsWithProducts
+    };
+  }, [vehicleLoading, vehicleLoadingId]);
+
+  const form = useForm<InsertRouteSettlement>({
+    resolver: zodResolver(insertRouteSettlementSchema),
+    defaultValues: defaultFormValues
   });
 
   React.useEffect(() => {
@@ -172,17 +191,19 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   console.log("Items en la carga:", vehicleLoading.items);
   console.log("Items con productos:", vehicleLoading.items.filter(item => item.product));
   
-  // Si la carga tiene el id 1, que es la que sabemos que funciona, mostremos manualmente sus datos
-  if (vehicleLoading.id === 1) {
-    console.log("Es la carga #1, mostrando ítems fijos para prueba");
-    console.log("Ítems originales de carga #1:", [
-      {id: 1, loadingId: 1, productId: 1, quantity: 10, returnedQuantity: 0, notes: null, 
-       product: {id: 1, name: "botellon de agua", price: "144", stock: 264}},
-      {id: 2, loadingId: 1, productId: 5, quantity: 1, returnedQuantity: 0, notes: null, 
-       product: {id: 5, name: "botellon de agua", price: "145", stock: 100}},
-      {id: 3, loadingId: 1, productId: 8, quantity: 1, returnedQuantity: 0, notes: null, 
-       product: {id: 8, name: "Botellón 10L", price: "100", stock: 0}}
-    ]);
+  // Mostrar información sobre los productos para ayudar a depurar
+  if (vehicleLoading.id) {
+    const productInfo = vehicleLoading.items
+      .filter(item => item.product)
+      .map(item => ({
+        id: item.id,
+        productId: item.productId,
+        name: item.product?.name || 'Producto sin nombre',
+        quantity: item.quantity,
+        price: item.product?.price || '0'
+      }));
+    
+    console.log(`Productos en la carga #${vehicleLoading.id}:`, productInfo);
   }
   
   // Verificar si hay productos con la información completa
@@ -295,112 +316,71 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                 </tr>
               </thead>
               <tbody>
-                {/* Usar datos estáticos para el cuadre de ruta #1 */}
-                {vehicleLoading.id === 1 ? (
-                  // Productos para carga #1 (datos fijos que sabemos que funcionan)
-                  [
-                    {id: 1, name: "botellon de agua", price: 144, quantity: 10},
-                    {id: 5, name: "botellon de agua", price: 145, quantity: 1},
-                    {id: 8, name: "Botellón 10L", price: 100, quantity: 1},
-                    {id: 9, name: "Galón 5L", price: 50, quantity: 51},
-                    {id: 3, name: "Botellón de Agua 5G", price: 299, quantity: 1},
-                    {id: 10, name: "Botella 1.5L", price: 25, quantity: 1100},
-                    {id: 13, name: "Agua 1 Galón", price: 50, quantity: 1100},
-                    {id: 12, name: "Agua 5 Galones", price: 100, quantity: 300}
-                  ].map((product, index) => {
-                    // Valores para calcular
-                    const loadedQty = product.quantity;
-                    const returnedQty = 0; // Valor inicial
+                {/* Renderizar los productos directamente desde los datos obtenidos del API */}
+                {vehicleLoading.items
+                  .filter(item => item.product) // Solo incluir items con producto
+                  .map((item, index) => {
+                    // Calcular valores necesarios para la tabla
+                    const loadedQty = item.quantity;
+                    const fieldIndex = fields.findIndex(field => field.productId === item.productId);
+                    const returnedQty = fieldIndex >= 0 
+                      ? form.watch(`items.${fieldIndex}.returnedQuantity`) || 0 
+                      : 0;
                     const soldQty = loadedQty - returnedQty;
-                    const price = product.price;
+                    const price = parseFloat(item.product.price);
                     const total = price * soldQty;
                     
+                    console.log(`Renderizando fila para producto ${item.product.name} (fieldIndex: ${fieldIndex})`);
+                    
                     return (
-                      <tr key={product.id} className="border-b">
-                        <td className="p-1">{product.name}</td>
+                      <tr key={item.id} className="border-b">
+                        <td className="p-1">{item.product.name}</td>
                         <td className="p-1 text-right">RD$ {price}</td>
                         <td className="p-1 text-right">{loadedQty}</td>
                         <td className="p-1">
-                          <Input
-                            type="number"
-                            defaultValue="0"
-                            className="w-16 text-right"
-                            min="0"
-                            max={loadedQty}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value || "0");
-                              console.log(`Cambiando cantidad devuelta para ${product.name}: ${val}`);
-                            }}
-                          />
+                          {fieldIndex >= 0 ? (
+                            <Input
+                              {...form.register(`items.${fieldIndex}.returnedQuantity` as const, { 
+                                valueAsNumber: true 
+                              })}
+                              type="number"
+                              className="w-16 text-right"
+                              min="0"
+                              max={loadedQty}
+                            />
+                          ) : (
+                            <Input
+                              type="number"
+                              defaultValue="0"
+                              className="w-16 text-right"
+                              disabled
+                            />
+                          )}
                         </td>
                         <td className="p-1 text-right">{soldQty}</td>
                         <td className="p-1">
-                          <Input
-                            type="number"
-                            defaultValue="0"
-                            className="w-16 text-right"
-                            min="0"
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value || "0");
-                              console.log(`Cambiando envases para ${product.name}: ${val}`);
-                            }}
-                          />
+                          {fieldIndex >= 0 ? (
+                            <Input
+                              {...form.register(`items.${fieldIndex}.returnedContainers` as const, { 
+                                valueAsNumber: true 
+                              })}
+                              type="number"
+                              className="w-16 text-right"
+                              min="0"
+                            />
+                          ) : (
+                            <Input
+                              type="number"
+                              defaultValue="0"
+                              className="w-16 text-right"
+                              disabled
+                            />
+                          )}
                         </td>
                         <td className="p-1 text-right">RD$ {total.toFixed(2)}</td>
                       </tr>
                     );
-                  })
-                ) : (
-                  // Para otros IDs, usar los datos de la carga
-                  vehicleLoading.items
-                    .filter(item => item.product)
-                    .map((item, index) => {
-                      console.log("Procesando item para tabla:", item);
-                      console.log("Producto:", item.product);
-                      
-                      // Valores para calcular
-                      const loadedQty = item.quantity;
-                      const returnedQty = 0; // Valor inicial
-                      const soldQty = loadedQty - returnedQty;
-                      const price = parseFloat(item.product.price);
-                      const total = price * soldQty;
-                      
-                      return (
-                        <tr key={item.id} className="border-b">
-                          <td className="p-1">{item.product.name}</td>
-                          <td className="p-1 text-right">RD$ {price}</td>
-                          <td className="p-1 text-right">{loadedQty}</td>
-                          <td className="p-1">
-                            <Input
-                              type="number"
-                              defaultValue="0"
-                              className="w-16 text-right"
-                              min="0"
-                              max={loadedQty}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value || "0");
-                                console.log(`Cambiando cantidad devuelta para ${item.product.name}: ${val}`);
-                              }}
-                            />
-                          </td>
-                          <td className="p-1 text-right">{soldQty}</td>
-                          <td className="p-1">
-                            <Input
-                              type="number"
-                              defaultValue="0"
-                              className="w-16 text-right"
-                              min="0"
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value || "0");
-                                console.log(`Cambiando envases para ${item.product.name}: ${val}`);
-                              }}
-                            />
-                          </td>
-                          <td className="p-1 text-right">RD$ {total.toFixed(2)}</td>
-                        </tr>
-                      );
-                    })
-                )}
+                  })}
               </tbody>
             </table>
           </div>
