@@ -49,6 +49,8 @@ function Settings() {
       country: "",
       currency: "",
       tax: "0.00",
+      latitude: undefined,
+      longitude: undefined,
     },
   });
 
@@ -420,6 +422,56 @@ function Settings() {
                             if (!isNaN(number)) {
                               field.onChange(number.toFixed(2));
                             }
+                          }}
+                          readOnly={!isEditing}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="latitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Latitud</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Ej: 18.4718"
+                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d.-]/g, '');
+                            field.onChange(value);
+                          }}
+                          readOnly={!isEditing}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="longitude"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Longitud</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="Ej: -69.8923"
+                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^\d.-]/g, '');
+                            field.onChange(value);
                           }}
                           readOnly={!isEditing}
                         />

@@ -540,6 +540,8 @@ export const settings = pgTable("settings", {
   country: text("country").notNull(),
   currency: text("currency").notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  latitude: decimal("latitude", { precision: 10, scale: 6 }),
+  longitude: decimal("longitude", { precision: 10, scale: 6 }),
 });
 
 // Add relations
@@ -567,6 +569,8 @@ export const insertSettingsSchema = z.object({
   country: z.string().min(1, "El país es requerido"),
   currency: z.string().min(1, "La moneda es requerida"),
   tax: z.string().regex(/^\d+\.\d{2}$/, "El impuesto debe tener 2 decimales").default("0.00"),
+  latitude: z.string().regex(/^-?\d+\.\d+$/, "Formato de latitud inválido").optional(),
+  longitude: z.string().regex(/^-?\d+\.\d+$/, "Formato de longitud inválido").optional(),
 });
 
 // Production Batches
