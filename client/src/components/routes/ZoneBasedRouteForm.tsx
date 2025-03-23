@@ -508,7 +508,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Route Name</FormLabel>
+                    <FormLabel>Nombre de la Ruta</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -523,14 +523,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   name="driverId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Driver</FormLabel>
+                      <FormLabel>Conductor</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a driver" />
+                            <SelectValue placeholder="Seleccionar un conductor" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -557,7 +557,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   name="date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date</FormLabel>
+                      <FormLabel>Fecha</FormLabel>
                       <FormControl>
                         <Input 
                           type="date" 
@@ -578,7 +578,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
 
               {optimizedRoute.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Stop Sequence ({optimizedRoute.length})</h3>
+                  <h3 className="text-sm font-medium mb-2">Secuencia de Paradas ({optimizedRoute.length})</h3>
                   <div className="border rounded-md p-4 space-y-3 max-h-[300px] overflow-y-auto">
                     {optimizedRoute.map((customer, index) => (
                       <div key={customer.id} className="flex items-center">
@@ -644,7 +644,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                             >
                               <Popup>
                                 <div className="text-sm">
-                                  <strong>Stop {index + 1}</strong>
+                                  <strong>Parada {index + 1}</strong>
                                   <div>{customer.businessname}</div>
                                   <div>{customer.street} {customer.streetnumber}</div>
                                 </div>
@@ -665,7 +665,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   variant="outline" 
                   onClick={() => setSelectedTab("customers")}
                 >
-                  Back
+                  Atrás
                 </Button>
                 
                 <Button 
@@ -675,10 +675,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   {createRouteMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating route...
+                      Creando ruta...
                     </>
                   ) : (
-                    "Create Route"
+                    "Crear Ruta"
                   )}
                 </Button>
               </div>
