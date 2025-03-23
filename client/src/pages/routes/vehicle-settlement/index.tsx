@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Calculator, Truck, AlertCircle } from "lucide-react";
 import type { VehicleLoading, Product, User, Truck as TruckType } from "@shared/schema";
 import { Loader2 } from "lucide-react";
-import { VehicleSettlementForm } from "./VehicleSettlementForm";
+import VehicleSettlementForm from "./VehicleSettlementForm";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;

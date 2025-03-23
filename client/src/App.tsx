@@ -27,7 +27,7 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 import VehicleLoadingPage from "@/pages/routes/vehicle-loading";
 import RouteSettlementPage from "@/pages/routes/settlements";
-import VehicleSettlementPage from "@/pages/routes/vehicle-settlement";
+import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
 
 function Router() {
   return (

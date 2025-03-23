@@ -49,7 +49,8 @@ interface SettlementFormProps {
   onSuccess: () => void;
 }
 
-export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProps) {
+// Exportación por defecto y por nombre para mayor flexibilidad
+export default function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProps) {
   const { toast } = useToast();
   
   const [calculatedTotals, setCalculatedTotals] = useState({
