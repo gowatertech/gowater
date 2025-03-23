@@ -1,149 +1,57 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Polygon, Marker, Polyline, useMapEvents, useMap } from "react-leaflet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { type Zone, type Customer } from "@shared/schema";
-import { Pencil, X, Search, MapPin, AlertTriangle } from "lucide-react";
+import { LatLngExpression, LatLng, Icon } from 'leaflet';
+import { Pencil, X, Search, MapPin } from "lucide-react";
+import 'leaflet/dist/leaflet.css';
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { AddressSearchBox } from "@/components/map/AddressSearchBox";
-import { GoogleMap, Polygon as GooglePolygon, Marker as GoogleMarker, Polyline as GooglePolyline } from '@react-google-maps/api';
-import { useGoogleMaps } from "@/components/map/GoogleMapsProvider";
 
-// Definición de tipos
-type LatLng = google.maps.LatLngLiteral;
-type PolygonCoordinates = LatLng[];
-type MapClickHandler = (event: google.maps.MapMouseEvent) => void;
+// Fix Leaflet icon issue
+delete (Icon.Default.prototype as any)._getIconUrl;
+Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
-// Configuraciones del mapa
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
-  borderRadius: '0.5rem',
-};
-
-const defaultOptions = {
-  disableDefaultUI: false,
-  zoomControl: true,
-  mapTypeControl: true,
-  scaleControl: true,
-  streetViewControl: true,
-  rotateControl: true,
-  fullscreenControl: true,
-};
-
-// Componente para manejar la carga del mapa
-function MapLoadingHandler({ children }: { children: React.ReactNode }) {
-  const { isLoaded, hasError, error } = useGoogleMaps();
-
-  if (hasError) {
-    return (
-      <ResponsiveMapContainer className="flex items-center justify-center bg-white">
-        <div className="p-4 bg-red-50 border border-red-200 rounded-md max-w-md">
-          <div className="flex items-start gap-2 text-red-600">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-medium">Error al cargar Google Maps</h3>
-              <p className="text-sm mt-1">{error || "No se pudo inicializar la API de mapas. Verifique la API key y su configuración."}</p>
-            </div>
-          </div>
-        </div>
-      </ResponsiveMapContainer>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <ResponsiveMapContainer className="flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-          <p className="text-muted-foreground">Cargando mapa de Google...</p>
-        </div>
-      </ResponsiveMapContainer>
-    );
-  }
-
-  return <>{children}</>;
-}
-
-// Componente para dibujar zonas
 interface DrawingControlProps {
-  map: google.maps.Map | null;
-  onPolygonComplete: (coordinates: LatLng[]) => void;
+  onPolygonComplete: (coordinates: LatLngExpression[]) => void;
 }
 
-function DrawingControl({ map, onPolygonComplete }: DrawingControlProps) {
-  const [points, setPoints] = useState<LatLng[]>([]);
+function DrawingControl({ onPolygonComplete }: DrawingControlProps) {
+  const [points, setPoints] = useState<LatLngExpression[]>([]);
   const [isDrawing, setIsDrawing] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const { toast } = useToast();
-  const clickListenerRef = useRef<google.maps.MapsEventListener | null>(null);
 
-  // Registrar el manejador de clics cuando se activa el modo dibujo
-  useEffect(() => {
-    if (!map) return;
+  const map = useMapEvents({
+    click(e) {
+      if (!isDrawing) return;
+      const newPoint: LatLngExpression = [e.latlng.lat, e.latlng.lng];
+      setPoints(prev => [...prev, newPoint]);
 
-    // Si estamos en modo dibujo, activamos el listener de clics
-    if (isDrawing) {
-      // Desactivar el paneo del mapa para facilitar el dibujo
-      map.setOptions({ draggable: false });
-      
-      // Registrar manejador de clics
-      clickListenerRef.current = google.maps.event.addListener(map, 'click', (e: google.maps.MapMouseEvent) => {
-        if (!e.latLng) return;
-        
-        // Verificar si el clic es en un elemento del DOM de la UI
-        if (e.domEvent && e.domEvent.target) {
-          const target = e.domEvent.target as HTMLElement;
-          if (
-            target.closest('button') || 
-            target.closest('input') || 
-            target.closest('.absolute') ||
-            target.tagName === 'BUTTON' || 
-            target.tagName === 'INPUT' || 
-            target.tagName === 'LABEL' || 
-            target.tagName === 'A'
-          ) {
-            return;
-          }
-        }
-        
-        const newPoint = e.latLng.toJSON();
-        setPoints(prev => [...prev, newPoint]);
-        
-        // Feedback visual
-        toast({
-          description: `Punto añadido (${points.length + 1})`,
-          duration: 1000,
-        });
+      // Feedback visual
+      toast({
+        description: `Punto añadido (${points.length + 1})`,
+        duration: 1000,
       });
-    } else {
-      // Si no estamos en modo dibujo, eliminamos el listener y permitimos el paneo
-      if (clickListenerRef.current) {
-        google.maps.event.removeListener(clickListenerRef.current);
-        clickListenerRef.current = null;
-      }
-      map.setOptions({ draggable: true });
-    }
-    
-    return () => {
-      // Limpiar al desmontar
-      if (clickListenerRef.current) {
-        google.maps.event.removeListener(clickListenerRef.current);
-        clickListenerRef.current = null;
-      }
-    };
-  }, [isDrawing, map, points.length, toast]);
+    },
+  });
   
-  // Función para manejar la selección de ubicación desde el cuadro de búsqueda
+  // Esta función maneja cuando se selecciona una ubicación desde la búsqueda
   const handleLocationSelected = (lat: number, lng: number, address: string) => {
-    if (!isDrawing || !map) return;
+    if (!isDrawing) return;
     
-    const newPoint = { lat, lng };
+    const newPoint: LatLngExpression = [lat, lng];
     setPoints(prev => [...prev, newPoint]);
     
     // Centrar el mapa en la ubicación seleccionada
-    map.panTo(newPoint);
+    map.setView([lat, lng], map.getZoom());
     
     // Feedback visual
     toast({
@@ -152,13 +60,12 @@ function DrawingControl({ map, onPolygonComplete }: DrawingControlProps) {
     });
   };
 
-  // Completar el dibujo del polígono
   const handleComplete = () => {
     if (points.length >= 3) {
-      onPolygonComplete([...points]); // Enviar una copia de los puntos
+      onPolygonComplete([...points]); // Send a copy of points
       setPoints([]);
       setIsDrawing(false);
-      if (map) map.setOptions({ draggable: true });
+      map.dragging.enable();
     } else {
       toast({
         variant: "destructive",
@@ -168,25 +75,23 @@ function DrawingControl({ map, onPolygonComplete }: DrawingControlProps) {
     }
   };
 
-  // Iniciar el dibujo
   const handleStartDrawing = () => {
     setIsDrawing(true);
     setPoints([]);
+    map.dragging.disable();
     toast({
       description: "Haz clic en el mapa para añadir puntos a la zona",
     });
   };
 
-  // Cancelar el dibujo
   const handleCancel = () => {
     setIsDrawing(false);
     setPoints([]);
-    if (map) map.setOptions({ draggable: true });
+    map.dragging.enable();
   };
 
   return (
     <>
-      {/* Panel de controles principal */}
       <div className="absolute top-2 right-2 z-[1000] bg-white p-2 rounded-lg shadow-lg">
         {!isDrawing ? (
           <Button
@@ -216,60 +121,58 @@ function DrawingControl({ map, onPolygonComplete }: DrawingControlProps) {
                 Completar ({points.length} puntos)
               </Button>
             </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Panel de búsqueda */}
-      {isDrawing && (
-        <div className="absolute top-2 left-2 z-[1000] bg-white p-2 rounded-lg shadow-lg max-w-md">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Buscar pueblos o ciudades</h3>
+            
+            <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setSearchVisible(!searchVisible)}
-                className="h-7 w-7 p-0"
+                className="flex items-center gap-1"
               >
-                {searchVisible ? <X size={15} /> : <Search size={15} />}
+                <Search size={16} />
+                {searchVisible ? "Ocultar búsqueda" : "Buscar ubicación"}
               </Button>
             </div>
             
             {searchVisible && (
               <div className="w-full mt-2">
                 <AddressSearchBox onLocationSelected={handleLocationSelected} />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Busca una ubicación y al seleccionarla se añadirá automáticamente como punto.
-                </p>
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Renderizar líneas entre puntos */}
-      {isDrawing && points.length > 1 && (
-        <GooglePolyline
-          path={points as google.maps.LatLngLiteral[]}
-          options={{
-            strokeColor: '#0088FE',
-            strokeOpacity: 0.8,
-            strokeWeight: 2
-          }}
-        />
+      {/* Visualizar los puntos mientras se dibuja */}
+      {isDrawing && points.length > 0 && (
+        <>
+          <Polyline 
+            positions={points} 
+            color="blue" 
+            weight={2} 
+            dashArray="5,10"
+          />
+          {points.map((point, index) => (
+            <Marker 
+              key={index} 
+              position={point}
+            />
+          ))}
+        </>
       )}
-      
-      {/* Renderizar marcadores para cada punto */}
-      {isDrawing && points.map((point, index) => (
-        <GoogleMarker 
-          key={`draw-point-${index}`}
-          position={point}
-          label={(index + 1).toString()}
-        />
-      ))}
     </>
   );
+}
+
+// Componente para centrar el mapa en una ubicación específica
+function MapCenterController({ position }: { position: LatLngExpression }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    map.setView(position, map.getZoom());
+  }, [map, position]);
+  
+  return null;
 }
 
 interface ZoneMapProps {
@@ -278,41 +181,43 @@ interface ZoneMapProps {
   onZoneCreated: () => void;
 }
 
-function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapProps) {
+export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: ZoneMapProps) {
   const { toast } = useToast();
-  const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
-  const [center, setCenter] = useState<google.maps.LatLngLiteral>({ 
-    lat: 18.4955, 
-    lng: -69.8534 // Por defecto Santo Domingo
-  });
-  
+  const [initialPosition, setInitialPosition] = useState<LatLngExpression>([18.4955, -69.8534]); // Default Santo Domingo
+  const [mapReady, setMapReady] = useState(false);
+
   // Consultar la configuración del negocio para obtener la ubicación inicial
-  const settingsQuery = useQuery<{
-    id: number;
-    businessName: string;
-    latitude: string;
-    longitude: string;
-    address: string;
-  }>({
+  const settingsQuery = useQuery({
     queryKey: ["/api/settings"],
     staleTime: Infinity,
   });
   
-  // Consultar zonas existentes
+  // Efecto para manejar los cambios en los datos de configuración
+  useEffect(() => {
+    if (settingsQuery.data) {
+      const data = settingsQuery.data;
+      if (data?.latitude && data?.longitude) {
+        const lat = parseFloat(data.latitude);
+        const lng = parseFloat(data.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setInitialPosition([lat, lng]);
+        }
+      }
+      setMapReady(true);
+    } else if (settingsQuery.error || settingsQuery.isError) {
+      // Si hay error, seguimos con la posición por defecto
+      setMapReady(true);
+    }
+  }, [settingsQuery.data, settingsQuery.error, settingsQuery.isError]);
+
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
   });
 
-  // Consultar clientes
-  const { data: customers = [] } = useQuery<(Customer & {
-    coordinates?: string;
-    latitude?: string; 
-    longitude?: string;
-  })[]>({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
-  // Mutation para crear una nueva zona
   const createZoneMutation = useMutation({
     mutationFn: async (data: { name: string; color: string; coordinates: string[] }) => {
       const response = await apiRequest("POST", "/api/zones", data);
@@ -338,29 +243,7 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
     }
   });
 
-  // Efecto para actualizar el centro del mapa cuando se cargan los ajustes
-  useEffect(() => {
-    if (settingsQuery.data && settingsQuery.data.latitude && settingsQuery.data.longitude) {
-      const lat = parseFloat(settingsQuery.data.latitude);
-      const lng = parseFloat(settingsQuery.data.longitude);
-      if (!isNaN(lat) && !isNaN(lng)) {
-        setCenter({ lat, lng });
-      }
-    }
-  }, [settingsQuery.data]);
-  
-  // Manejador de carga del mapa
-  const onLoad = useCallback((map: google.maps.Map) => {
-    setMapRef(map);
-  }, []);
-  
-  // Manejador de desmontaje del mapa
-  const onUnmount = useCallback(() => {
-    setMapRef(null);
-  }, []);
-
-  // Manejador cuando se completa un polígono
-  const handlePolygonComplete = (points: LatLng[]) => {
+  const handlePolygonComplete = (coordinates: LatLngExpression[]) => {
     if (!newZoneName) {
       toast({
         variant: "destructive",
@@ -372,15 +255,25 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
 
     try {
       // Asegurar que tenemos suficientes puntos
-      if (points.length < 3) {
+      if (coordinates.length < 3) {
         throw new Error("Se necesitan al menos 3 puntos para crear una zona");
       }
 
       // Convertir coordenadas al formato requerido por el schema
-      const coordStrings = points.map(point => {
-        // Las coordenadas ya son LatLngLiteral (definido como un tipo simple), así que son números directos
-        // que se pueden formatear
-        return `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`;
+      const coordStrings = coordinates.map(coord => {
+        let lat: number, lng: number;
+
+        if (Array.isArray(coord)) {
+          [lat, lng] = coord;
+        } else if (coord instanceof LatLng) {
+          lat = coord.lat;
+          lng = coord.lng;
+        } else {
+          throw new Error('Formato de coordenadas inválido');
+        }
+
+        // Asegurar formato exacto con 6 decimales
+        return `${lat.toFixed(6)},${lng.toFixed(6)}`;
       });
 
       // Crear la zona
@@ -399,85 +292,108 @@ function ZoneMapContent({ newZoneName, selectedColor, onZoneCreated }: ZoneMapPr
     }
   };
 
-  // Convertir coordenadas para zonas existentes
-  const getPolygonPathForZone = (zone: Zone): LatLng[] => {
-    return zone.coordinates.map(coordStr => {
-      const [lat, lng] = coordStr.split(',').map(Number);
-      return { lat, lng };
-    });
-  };
+  // Si no estamos listos para renderizar el mapa, mostrar un mensaje de carga
+  if (!mapReady) {
+    return (
+      <ResponsiveMapContainer className="flex items-center justify-center bg-white">
+        <p className="text-muted-foreground">Cargando mapa...</p>
+      </ResponsiveMapContainer>
+    );
+  }
 
   return (
-    <ResponsiveMapContainer className="bg-white relative" fixedHeight>
-      <div className="absolute inset-0 z-0 gmaps-container">
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={center}
-          zoom={13}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          options={defaultOptions}
-          mapContainerClassName="gmaps-container"
-        >
-          {/* Controles de dibujo */}
-          <DrawingControl 
-            map={mapRef} 
-            onPolygonComplete={handlePolygonComplete} 
+    <ResponsiveMapContainer className="bg-white" fixedHeight>
+      <MapContainer
+        center={initialPosition}
+        zoom={13}
+        style={{ height: "100%", width: "100%" }}
+        className="rounded-lg"
+      >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
+
+          {/* Este componente mantendrá el mapa centrado en la posición deseada */}
+          <MapCenterController position={initialPosition} />
           
-          {/* Renderizar zonas existentes */}
-          {zones.map(zone => (
-            <GooglePolygon
-              key={`zone-${zone.id}`}
-              paths={getPolygonPathForZone(zone) as google.maps.LatLngLiteral[]}
-              options={{
-                fillColor: zone.color,
-                fillOpacity: 0.2,
-                strokeColor: zone.color,
-                strokeOpacity: 1,
-                strokeWeight: 2,
-              }}
-            />
-          ))}
-          
-          {/* Renderizar marcadores de clientes */}
-          {customers.map(customer => {
-            // Intentar obtener las coordenadas del cliente
-            let position: google.maps.LatLngLiteral | null = null;
-            
-            if (customer.coordinates) {
-              const [lat, lng] = customer.coordinates.split(',').map(Number);
-              if (!isNaN(lat) && !isNaN(lng)) {
-                position = { lat, lng };
+          <DrawingControl onPolygonComplete={handlePolygonComplete} />
+
+        {/* Render existing zones */}
+        {zones.map((zone) => {
+          try {
+            console.log("Procesando zona:", zone);
+            const positions = zone.coordinates.map((coord): LatLngExpression => {
+              const [lat, lng] = coord.split(",").map(Number);
+              if (isNaN(lat) || isNaN(lng)) {
+                throw new Error(`Coordenadas inválidas en zona ${zone.id}: ${coord}`);
               }
-            } else if (customer.latitude && customer.longitude) {
-              const lat = parseFloat(customer.latitude);
-              const lng = parseFloat(customer.longitude);
-              if (!isNaN(lat) && !isNaN(lng)) {
-                position = { lat, lng };
-              }
-            }
-            
-            if (!position) return null;
-            
+              return [lat, lng];
+            });
+
+            console.log("Posiciones procesadas para zona", zone.id, ":", positions);
+
             return (
-              <GoogleMarker
-                key={`customer-${customer.id}`}
-                position={position}
-                title={customer.businessname || `Cliente ${customer.id}`}
+              <Polygon
+                key={zone.id}
+                positions={positions}
+                pathOptions={{ 
+                  color: zone.color,
+                  fillColor: zone.color,
+                  fillOpacity: 0.2,
+                  weight: 2
+                }}
               />
             );
-          })}
-        </GoogleMap>
-      </div>
-    </ResponsiveMapContainer>
-  );
-}
+          } catch (error) {
+            console.error(`Error al renderizar zona ${zone.id}:`, error);
+            return null;
+          }
+        })}
 
-export default function ZoneMap(props: ZoneMapProps) {
-  return (
-    <MapLoadingHandler>
-      <ZoneMapContent {...props} />
-    </MapLoadingHandler>
+        {/* Render customer markers */}
+        {customers.map((customer: any) => {
+          // Buscar si el cliente tiene coordenadas en sus datos
+          // Primero comprobar si hay un campo coordinates y luego intentar usar latitude/longitude
+          if (customer.coordinates) {
+            try {
+              const [lat, lng] = customer.coordinates.split(",").map(Number);
+              if (isNaN(lat) || isNaN(lng)) {
+                return null;
+              }
+              return (
+                <Marker
+                  key={customer.id}
+                  position={[lat, lng]}
+                  title={customer.businessname || customer.name || `Cliente ${customer.id}`}
+                />
+              );
+            } catch (error) {
+              console.error(`Error al renderizar cliente ${customer.id}:`, error);
+              return null;
+            }
+          } else if (customer.latitude && customer.longitude) {
+            try {
+              const lat = parseFloat(customer.latitude);
+              const lng = parseFloat(customer.longitude);
+              if (isNaN(lat) || isNaN(lng)) {
+                return null;
+              }
+              return (
+                <Marker
+                  key={customer.id}
+                  position={[lat, lng]}
+                  title={customer.businessname || customer.name || `Cliente ${customer.id}`}
+                />
+              );
+            } catch (error) {
+              console.error(`Error al renderizar cliente ${customer.id}:`, error);
+              return null;
+            }
+          }
+          return null;
+        })}
+      </MapContainer>
+    </ResponsiveMapContainer>
   );
 }
