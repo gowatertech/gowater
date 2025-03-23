@@ -1,0 +1,647 @@
+import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertRouteSchema } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Check, Loader2, MapPin, User, Truck, Calendar } from "lucide-react";
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+
+interface ZoneBasedRouteFormProps {
+  onRouteCreated: () => void;
+}
+
+interface Customer {
+  id: number;
+  businessname: string;
+  phone: string;
+  street: string;
+  streetnumber: string;
+  coordinates?: string; // Format: "lat,lng"
+  municipalityName?: string;
+  provinceName?: string;
+}
+
+export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFormProps) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [selectedTab, setSelectedTab] = useState("zone");
+  const [selectedZone, setSelectedZone] = useState<number | null>(null);
+  const [selectedCustomers, setSelectedCustomers] = useState<Customer[]>([]);
+  const [optimizedRoute, setOptimizedRoute] = useState<Customer[]>([]);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+
+  // Fetch drivers
+  const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
+    queryKey: ["/api/users?role=driver"],
+  });
+
+  // Fetch zones
+  const { data: zones = [], isLoading: isLoadingZones } = useQuery({
+    queryKey: ["/api/zones"],
+  });
+
+  // Fetch customers for the selected zone
+  const { 
+    data: zoneCustomers = [], 
+    isLoading: isLoadingCustomers,
+    refetch: refetchCustomers
+  } = useQuery({
+    queryKey: ["/api/customers/by-zone", selectedZone],
+    enabled: !!selectedZone,
+  });
+
+  const form = useForm({
+    resolver: zodResolver(insertRouteSchema),
+    defaultValues: {
+      name: "",
+      driverId: undefined,
+      zoneId: undefined,
+      date: new Date(),
+      status: "pending" as const,
+      isCompleted: false,
+      stops: [] as string[]
+    },
+  });
+
+  // When zone is selected in the form
+  useEffect(() => {
+    const zoneId = form.watch("zoneId");
+    if (zoneId !== selectedZone) {
+      setSelectedZone(zoneId);
+      setSelectedCustomers([]);
+      setOptimizedRoute([]);
+    }
+  }, [form.watch("zoneId"), selectedZone]);
+
+  // Update form name when zone is selected
+  useEffect(() => {
+    if (selectedZone) {
+      const selectedZoneObj = zones.find((z: any) => z.id === selectedZone);
+      if (selectedZoneObj) {
+        const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+        form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
+      }
+    }
+  }, [selectedZone, zones, form]);
+
+  // Update stops array when optimized route changes
+  useEffect(() => {
+    if (optimizedRoute.length > 0) {
+      const stops = optimizedRoute.map(customer => 
+        `${customer.id}:${customer.businessname}:${customer.coordinates || ""}`
+      );
+      form.setValue("stops", stops);
+    }
+  }, [optimizedRoute, form]);
+
+  // Toggle customer selection
+  const toggleCustomerSelection = (customer: Customer) => {
+    if (selectedCustomers.some(c => c.id === customer.id)) {
+      setSelectedCustomers(selectedCustomers.filter(c => c.id !== customer.id));
+    } else {
+      setSelectedCustomers([...selectedCustomers, customer]);
+    }
+    // Reset optimized route when selection changes
+    setOptimizedRoute([]);
+  };
+
+  // Optimize route order based on proximity
+  const optimizeRoute = async () => {
+    if (selectedCustomers.length < 2) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Selecciona al menos 2 clientes para optimizar la ruta",
+      });
+      return;
+    }
+
+    setIsOptimizing(true);
+
+    try {
+      // This would normally be an API call to a route optimization service
+      // For this example, we'll use a very simple distance-based algorithm
+      
+      // Start with a depot or first customer
+      const startPoint = selectedCustomers[0];
+      const unvisited = [...selectedCustomers.slice(1)];
+      const optimized = [startPoint];
+
+      while (unvisited.length > 0) {
+        const currentPoint = optimized[optimized.length - 1];
+        
+        // Find the closest unvisited point
+        let closestIdx = 0;
+        let closestDistance = Infinity;
+        
+        for (let i = 0; i < unvisited.length; i++) {
+          const distance = calculateDistance(
+            currentPoint.coordinates || "19.0,-70.0", 
+            unvisited[i].coordinates || "19.0,-70.0"
+          );
+          
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestIdx = i;
+          }
+        }
+        
+        // Add the closest point to our route
+        optimized.push(unvisited[closestIdx]);
+        unvisited.splice(closestIdx, 1);
+      }
+      
+      // Set the optimized route
+      setOptimizedRoute(optimized);
+      
+      // Progress to the next tab
+      setSelectedTab("review");
+      
+      toast({
+        title: "Ruta optimizada",
+        description: `Se ha optimizado la ruta para ${optimized.length} clientes`,
+      });
+    } catch (error) {
+      console.error("Error optimizing route:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo optimizar la ruta. Intenta nuevamente.",
+      });
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  // Calculate simple distance between two coordinates
+  const calculateDistance = (coord1: string, coord2: string) => {
+    try {
+      const [lat1, lng1] = coord1.split(',').map(parseFloat);
+      const [lat2, lng2] = coord2.split(',').map(parseFloat);
+      
+      // Simplified distance calculation (as the crow flies)
+      return Math.sqrt(
+        Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2)
+      );
+    } catch (e) {
+      console.error("Error calculating distance:", e);
+      return Infinity;
+    }
+  };
+
+  // Create route mutation
+  const createRouteMutation = useMutation({
+    mutationFn: async (data: any) => {
+      console.log("Submitting route data:", data);
+      const response = await apiRequest("POST", "/api/routes", {
+        ...data,
+        date: new Date(data.date),
+        driverId: Number(data.driverId),
+        zoneId: Number(data.zoneId),
+        status: "pending",
+        isCompleted: false
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al crear la ruta');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+      toast({
+        description: t("routeCreated"),
+      });
+      form.reset();
+      onRouteCreated();
+    },
+    onError: (error: Error) => {
+      console.error("Error creating route:", error);
+      toast({
+        variant: "destructive",
+        title: t("error"),
+        description: error.message,
+      });
+    },
+  });
+
+  const onSubmit = async (data: any) => {
+    if (optimizedRoute.length === 0 && selectedCustomers.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debes optimizar la ruta antes de guardar",
+      });
+      return;
+    }
+
+    try {
+      await createRouteMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("Submit error:", error);
+    }
+  };
+
+  return (
+    <div>
+      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="zone">
+            <MapPin className="h-4 w-4 mr-2" />
+            Zona
+          </TabsTrigger>
+          <TabsTrigger value="customers" disabled={!selectedZone}>
+            <User className="h-4 w-4 mr-2" />
+            Clientes
+          </TabsTrigger>
+          <TabsTrigger value="review" disabled={selectedCustomers.length === 0}>
+            <Truck className="h-4 w-4 mr-2" />
+            Revisar Ruta
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="zone" className="mt-4">
+          <Form {...form}>
+            <form className="space-y-4">
+              <FormField
+                control={form.control}
+                name="zoneId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zona de Entrega</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una zona" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingZones ? (
+                          <div className="p-2">
+                            <Skeleton className="h-5 w-full" />
+                            <Skeleton className="h-5 w-full mt-2" />
+                          </div>
+                        ) : (
+                          zones?.map((zone: any) => (
+                            <SelectItem key={zone.id} value={zone.id.toString()}>
+                              {zone.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {selectedZone && (
+                <div className="pt-4">
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={() => setSelectedTab("customers")}
+                    className="w-full"
+                  >
+                    Continuar a Selección de Clientes
+                  </Button>
+                </div>
+              )}
+            </form>
+          </Form>
+
+          {selectedZone && (
+            <div className="mt-6">
+              <div className="text-sm font-medium mb-2">Mapa de la Zona</div>
+              <div className="border rounded-md overflow-hidden">
+                <ResponsiveMapContainer fixedHeight aspectRatio="video">
+                  {typeof window !== "undefined" && (
+                    <MapContainer
+                      center={[19.0, -70.0]}
+                      zoom={10}
+                      style={{ height: "100%", width: "100%" }}
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      />
+                      {zones
+                        .filter((zone: any) => zone.id === selectedZone)
+                        .map((zone: any) => (
+                          <Polyline
+                            key={zone.id}
+                            positions={zone.coordinates.map((coord: string) => {
+                              const [lat, lng] = coord.split(",").map(parseFloat);
+                              return [lat, lng];
+                            })}
+                            color={zone.color}
+                            weight={3}
+                          />
+                        ))}
+                    </MapContainer>
+                  )}
+                </ResponsiveMapContainer>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="customers" className="mt-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Clientes en la Zona</h3>
+              <Badge variant="outline">
+                {selectedCustomers.length} seleccionados
+              </Badge>
+            </div>
+
+            {isLoadingCustomers ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2 mt-2" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : zoneCustomers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay clientes registrados en esta zona
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                {zoneCustomers.map((customer: Customer) => (
+                  <Card 
+                    key={customer.id} 
+                    className={`cursor-pointer transition-colors ${
+                      selectedCustomers.some(c => c.id === customer.id)
+                        ? "border-primary bg-primary/5"
+                        : ""
+                    }`}
+                    onClick={() => toggleCustomerSelection(customer)}
+                  >
+                    <CardContent className="p-4 flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">{customer.businessname}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {customer.street} {customer.streetnumber}, {customer.municipalityName}
+                        </div>
+                        <div className="text-sm">{customer.phone}</div>
+                      </div>
+                      <div>
+                        {selectedCustomers.some(c => c.id === customer.id) && (
+                          <Check className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-between pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setSelectedTab("zone")}
+              >
+                Atrás
+              </Button>
+              
+              <Button 
+                type="button"
+                onClick={optimizeRoute}
+                disabled={selectedCustomers.length < 2 || isOptimizing}
+              >
+                {isOptimizing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Optimizando...
+                  </>
+                ) : (
+                  "Optimizar Ruta"
+                )}
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="review" className="mt-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre de la Ruta</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="driverId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Conductor</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un conductor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingDrivers ? (
+                            <div className="p-2">
+                              <Skeleton className="h-5 w-full" />
+                            </div>
+                          ) : (
+                            drivers?.map((driver: any) => (
+                              <SelectItem key={driver.id} value={driver.id.toString()}>
+                                {driver.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fecha</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          {...field}
+                          value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            const date = new Date(e.target.value);
+                            date.setHours(12); // Set to noon to avoid timezone issues
+                            field.onChange(date);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {optimizedRoute.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Secuencia de Paradas ({optimizedRoute.length})</h3>
+                  <div className="border rounded-md p-4 space-y-3 max-h-[300px] overflow-y-auto">
+                    {optimizedRoute.map((customer, index) => (
+                      <div key={customer.id} className="flex items-center">
+                        <Badge variant="outline" className="mr-3 h-6 w-6 rounded-full">
+                          {index + 1}
+                        </Badge>
+                        <div>
+                          <div className="font-medium">{customer.businessname}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {customer.street} {customer.streetnumber}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="border rounded-md overflow-hidden">
+                <ResponsiveMapContainer fixedHeight aspectRatio="video">
+                  {typeof window !== "undefined" && optimizedRoute.length > 0 && (
+                    <MapContainer
+                      center={[19.0, -70.0]}
+                      zoom={10}
+                      style={{ height: "100%", width: "100%" }}
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      />
+                      
+                      {/* Draw the route line */}
+                      {optimizedRoute.map((customer, index) => {
+                        if (customer.coordinates && index < optimizedRoute.length - 1) {
+                          const nextCustomer = optimizedRoute[index + 1];
+                          if (nextCustomer.coordinates) {
+                            const start = customer.coordinates.split(',').map(parseFloat);
+                            const end = nextCustomer.coordinates.split(',').map(parseFloat);
+                            return (
+                              <Polyline
+                                key={`${customer.id}-${nextCustomer.id}`}
+                                positions={[[start[0], start[1]], [end[0], end[1]]]}
+                                color="#0088FE"
+                                weight={3}
+                              />
+                            );
+                          }
+                        }
+                        return null;
+                      })}
+                      
+                      {/* Place markers for each stop */}
+                      {optimizedRoute.map((customer, index) => {
+                        if (customer.coordinates) {
+                          const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                          return (
+                            <Marker
+                              key={customer.id}
+                              position={[lat, lng]}
+                            >
+                              <Popup>
+                                <div className="text-sm">
+                                  <strong>Parada {index + 1}</strong>
+                                  <div>{customer.businessname}</div>
+                                  <div>{customer.street} {customer.streetnumber}</div>
+                                </div>
+                              </Popup>
+                            </Marker>
+                          );
+                        }
+                        return null;
+                      })}
+                    </MapContainer>
+                  )}
+                </ResponsiveMapContainer>
+              </div>
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setSelectedTab("customers")}
+                >
+                  Atrás
+                </Button>
+                
+                <Button 
+                  type="submit"
+                  disabled={createRouteMutation.isPending || !form.watch("driverId")}
+                >
+                  {createRouteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creando ruta...
+                    </>
+                  ) : (
+                    "Crear Ruta"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

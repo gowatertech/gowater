@@ -31,6 +31,7 @@ import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
 // Vista del chofer
 import DriverView from "./DriverView";
 import DeliveryTracking from "./DeliveryTracking";
+import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 
 export default function Routes() {
   const { t } = useTranslation();
@@ -194,7 +195,8 @@ export default function Routes() {
         </div>
         <Card>
           <CardContent className="p-6">
-            <NewRouteForm onRouteCreated={handleRouteCreated} />
+            {/* Reemplazamos el formulario antiguo con nuestro nuevo formulario basado en zonas */}
+            <ZoneBasedRouteForm onRouteCreated={handleRouteCreated} />
           </CardContent>
         </Card>
       </div>

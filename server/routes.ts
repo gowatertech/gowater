@@ -502,6 +502,43 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/customers/by-zone", async (req, res) => {
+    try {
+      const zoneId = parseInt(req.query.zoneId as string);
+      
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
+
+      const customersInZone = await db
+        .select({
+          id: customers.id,
+          businessname: customers.businessname,
+          managername: customers.managername,
+          phone: customers.phone,
+          email: customers.email,
+          zoneid: customers.zoneid,
+          street: customers.street,
+          streetnumber: customers.streetnumber,
+          coordinates: customers.coordinates,
+          provinceid: customers.provinceid,
+          municipalityid: customers.municipalityid,
+          reference: customers.reference,
+          municipalityName: municipalities.name,
+          provinceName: provinces.name,
+        })
+        .from(customers)
+        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id))
+        .where(eq(customers.zoneid, zoneId));
+
+      res.json(customersInZone);
+    } catch (error) {
+      console.error("Error al obtener clientes por zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.get("/api/customers/:id", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
@@ -512,8 +549,8 @@ export async function registerRoutes(app: Express) {
           municipalityName: municipalities.name,
         })
         .from(customers)
-        .leftJoin(provinces, eq(customers.provinceId, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipalityId, municipalities.id))
+        .leftJoin(provinces, eq(customers.provinceid, provinces.id))
+        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id))
         .where(eq(customers.id, customerId));
 
       if (!customer) {
