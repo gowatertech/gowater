@@ -82,7 +82,7 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest<any>("/api/route-settlements", {
+      return apiRequest("/api/route-settlements", {
         method: "POST",
         body: JSON.stringify(data),
       });
@@ -398,8 +398,8 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                                 <FormControl>
                                   <Input 
                                     {...field}
-                                    type="number" 
-                                    min="0" 
+                                    type="text"
+                                    inputMode="numeric"
                                     value={field.value}
                                     readOnly
                                     className="w-20 mx-auto text-center bg-gray-50"
@@ -419,13 +419,17 @@ export function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProp
                                   <FormControl>
                                     <Input 
                                       {...field}
-                                      type="number" 
-                                      min="0" 
-                                      max={form.getValues().items[index].soldQuantity}
+                                      type="text"
+                                      inputMode="numeric"
                                       value={field.value}
                                       onChange={(e) => {
-                                        const value = parseInt(e.target.value) || 0;
-                                        field.onChange(value);
+                                        // Solo permitir números enteros
+                                        const value = e.target.value.replace(/\D/g, '');
+                                        const intValue = parseInt(value) || 0;
+                                        // Validar que no exceda el máximo
+                                        const maxValue = form.getValues().items[index].soldQuantity;
+                                        const validValue = Math.min(intValue, maxValue);
+                                        field.onChange(validValue);
                                         handleChange();
                                       }}
                                       className="w-20 mx-auto text-center"
