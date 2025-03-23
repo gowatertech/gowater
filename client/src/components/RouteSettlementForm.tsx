@@ -79,9 +79,10 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       console.log("Cargando items en el formulario:", vehicleLoading.items);
       
       // Mapear los ítems con verificación extra
-      const formItems = vehicleLoading.items
-        .filter(item => item.product) // Solo incluir items con producto
-        .map(item => ({
+      const validItems = vehicleLoading.items.filter(item => item.product); // Solo incluir items con producto
+      
+      if (validItems.length > 0) {
+        const formItems = validItems.map(item => ({
           productId: item.productId,
           loadedQuantity: item.quantity,
           returnedQuantity: item.returnedQuantity || 0,
@@ -89,19 +90,19 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           returnedContainers: 0,
           notes: item.notes || ""
         }));
-      
-      console.log("Items formateados para el formulario:", formItems);
-      
-      // Resetear el formulario con los nuevos valores
-      form.reset({
-        ...form.getValues(),
-        vehicleLoadingId: vehicleLoading.id,
-        totalCashReceived: "0.00",
-        totalCreditReceived: "0.00",
-        totalInvoiced: "0.00",
-        notes: "",
-        items: formItems
-      });
+        
+        console.log("Items formateados para el formulario:", formItems);
+        
+        // Resetear el formulario con los nuevos valores
+        form.reset({
+          vehicleLoadingId: vehicleLoading.id,
+          totalCashReceived: "0.00",
+          totalCreditReceived: "0.00",
+          totalInvoiced: "0.00",
+          notes: "",
+          items: formItems
+        });
+      }
     }
   }, [vehicleLoading, form]);
 
@@ -266,26 +267,37 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
                 </tr>
               </thead>
               <tbody>
-                {/* Renderizar directamente desde los items de vehicleLoading en lugar de fields */}
-                {vehicleLoading.items.filter(item => item.product).map((item, index) => {
-                  // Buscar el campo correspondiente
-                  const field = fields.find(f => f.productId === item.productId);
+                {/* Utilizar fields directamente para renderizar la tabla */}
+                {fields.map((field, index) => {
+                  // Buscar el item correspondiente en la carga del vehículo
+                  const loadingItem = vehicleLoading.items.find(item => 
+                    item.productId === field.productId && item.product
+                  );
                   
-                  if (!field) {
-                    console.warn(`No se encontró campo para item con productId: ${item.productId}`);
+                  // Si no se encuentra el item o no tiene producto, no lo mostramos
+                  if (!loadingItem || !loadingItem.product) {
                     return null;
                   }
                   
                   // Valores para calcular
-                  const loadedQty = item.quantity;
+                  const loadedQty = field.loadedQuantity;
                   const returnedQty = form.watch(`items.${index}.returnedQuantity`) || 0;
                   const soldQty = loadedQty - returnedQty;
-                  const total = parseFloat(item.product.price) * soldQty;
+                  const total = parseFloat(loadingItem.product.price) * soldQty;
+                  
+                  // Mostrar información de debug
+                  console.log(`Renderizando ítem ${index}:`, {
+                    fieldId: field.id,
+                    productId: field.productId,
+                    loadedQty,
+                    returnedQty,
+                    product: loadingItem.product.name
+                  });
 
                   return (
-                    <tr key={item.id} className="border-b">
-                      <td className="p-1">{item.product.name}</td>
-                      <td className="p-1 text-right">RD$ {item.product.price}</td>
+                    <tr key={field.id} className="border-b">
+                      <td className="p-1">{loadingItem.product.name}</td>
+                      <td className="p-1 text-right">RD$ {loadingItem.product.price}</td>
                       <td className="p-1 text-right">{loadedQty}</td>
                       <td className="p-1">
                         <Input
