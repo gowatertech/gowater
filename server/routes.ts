@@ -488,6 +488,7 @@ export async function registerRoutes(app: Express) {
           provinceid: customers.provinceid,
           municipalityid: customers.municipalityid,
           reference: customers.reference,
+          coordinates: customers.coordinates,
           municipalityName: municipalities.name,
           provinceName: provinces.name,
         })
@@ -523,6 +524,7 @@ export async function registerRoutes(app: Express) {
           provinceid: customers.provinceid,
           municipalityid: customers.municipalityid,
           reference: customers.reference,
+          coordinates: customers.coordinates,
         })
         .from(customers)
         .where(eq(customers.zoneid, zoneId));
