@@ -180,8 +180,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
       // Set the optimized route
       setOptimizedRoute(optimized);
       
-      // Progress to the next tab
-      setSelectedTab("review");
+      // Add a small delay to ensure state is updated before changing tab
+      setTimeout(() => {
+        // Progress to the next tab
+        setSelectedTab("review");
+      }, 100);
       
       toast({
         title: "Ruta optimizada",
@@ -516,7 +519,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   name="date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Fecha</FormLabel>
+                      <FormLabel>Date</FormLabel>
                       <FormControl>
                         <Input 
                           type="date" 
