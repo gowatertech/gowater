@@ -507,7 +507,7 @@ function Settings() {
                             Seleccionar en mapa
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-3xl h-[80vh]">
+                        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto sm:h-auto md:h-auto">
                           <LocationSelector 
                             initialPosition={
                               form.watch("latitude") && form.watch("longitude")
@@ -600,13 +600,13 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full">
       <h3 className="text-lg font-medium mb-2">Selecciona la ubicación de tu empresa</h3>
-      <p className="text-sm text-muted-foreground mb-4">
+      <p className="text-sm text-muted-foreground mb-2">
         Busca una dirección o haz clic en el mapa para seleccionar la ubicación exacta.
       </p>
       
-      <div className="mb-4">
+      <div className="mb-3">
         <AddressSearchBox onLocationSelected={handleAddressSelected} />
       </div>
       
@@ -614,7 +614,7 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
         <MapContainer
           center={position}
           zoom={13}
-          style={{ height: "100%", width: "100%", minHeight: "400px" }}
+          style={{ height: "100%", width: "100%", minHeight: "300px" }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -631,21 +631,19 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
         </MapContainer>
       </ResponsiveMapContainer>
       
-      <div className="mt-4">
+      <div className="mt-3">
         {address && (
           <div className="mb-2 p-2 bg-muted rounded-md">
             <p className="text-sm font-medium">Dirección seleccionada:</p>
-            <p className="text-sm">{address}</p>
+            <p className="text-sm text-ellipsis overflow-hidden">{address}</p>
           </div>
         )}
         
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            Coordenadas seleccionadas: <br />
-            <span className="font-mono">{typeof position === 'object' ? `Lat: ${(position as [number, number])[0].toFixed(6)}, Lng: ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
+        <div className="flex flex-col sm:flex-row justify-between items-center">
+          <p className="text-xs text-muted-foreground mb-2 sm:mb-0">
+            Coordenadas: <span className="font-mono">{typeof position === 'object' ? `${(position as [number, number])[0].toFixed(6)}, ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
           </p>
           <Button 
-            className="mt-2" 
             onClick={() => {
               if (typeof position === 'object') {
                 onPositionSelected((position as [number, number])[0], (position as [number, number])[1]);

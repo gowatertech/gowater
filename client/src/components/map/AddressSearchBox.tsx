@@ -70,7 +70,7 @@ export function AddressSearchBox({ onLocationSelected }: AddressSearchBoxProps) 
   };
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full relative">
       <div className="flex space-x-2">
         <Input
           placeholder="Buscar dirección..."
@@ -84,16 +84,18 @@ export function AddressSearchBox({ onLocationSelected }: AddressSearchBoxProps) 
           disabled={isSearching}
           type="button"
           variant="outline"
+          size="sm"
+          className="px-3"
         >
-          <Search className="h-4 w-4 mr-1" />
-          Buscar
+          <Search className="h-4 w-4" />
+          <span className="hidden sm:inline ml-1">Buscar</span>
         </Button>
       </div>
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
 
       {showResults && results.length > 0 && (
-        <div className="bg-white border rounded-md shadow-md max-h-60 overflow-y-auto">
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-md max-h-60 overflow-y-auto">
           <ul className="divide-y">
             {results.map((result) => (
               <li
@@ -112,7 +114,7 @@ export function AddressSearchBox({ onLocationSelected }: AddressSearchBoxProps) 
       )}
 
       {showResults && results.length === 0 && !isSearching && (
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-xs mt-1">
           No se encontraron resultados para "{query}"
         </p>
       )}

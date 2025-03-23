@@ -15,12 +15,12 @@ export function ResponsiveMapContainer({
     <div 
       className={`relative w-full ${className || ""}`} 
       style={{ 
-        paddingBottom: "75%", // Proporción 4:3 
+        paddingBottom: "56.25%", // Proporción 16:9 más compacta 
         ...style 
       }}
     >
       <div 
-        className="absolute top-0 left-0 w-full h-full rounded-md overflow-hidden border border-border"
+        className="absolute top-0 left-0 w-full h-full rounded-md overflow-hidden border border-border shadow-sm"
       >
         {children}
       </div>
