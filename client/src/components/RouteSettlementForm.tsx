@@ -39,8 +39,9 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: vehicleLoading, isLoading: loadingData } = useQuery<LoadingWithRelations>({
+  const { data: vehicleLoading, isLoading, error } = useQuery<LoadingWithRelations>({
     queryKey: ["/api/vehicle-loading", vehicleLoadingId],
+    enabled: !!vehicleLoadingId,
     retry: 1,
     refetchOnWindowFocus: false,
   });
@@ -73,23 +74,34 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     }
   }, [vehicleLoading, form]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-red-500">Error al cargar los datos: {error.message}</p>
+      </div>
+    );
+  }
+
+  if (!vehicleLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-gray-500">No se encontraron datos para esta carga</p>
+      </div>
+    );
+  }
+
   const { fields } = useFieldArray({
     control: form.control,
     name: "items"
   });
-
-  const calculateTotals = () => {
-    const values = form.getValues();
-    const cashReceived = parseFloat(values.totalCashReceived) || 0;
-    const creditReceived = parseFloat(values.totalCreditReceived) || 0;
-    const totalInvoiced = parseFloat(values.totalInvoiced) || 0;
-    const difference = cashReceived + creditReceived - totalInvoiced;
-
-    return {
-      totalReceived: cashReceived + creditReceived,
-      difference: difference.toFixed(2)
-    };
-  };
 
   const onSubmit = async (values: InsertRouteSettlement) => {
     try {
@@ -122,38 +134,41 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     }
   };
 
-  const totals = calculateTotals();
-
-  if (loadingData || !vehicleLoading) {
-    return (
-      <div className="flex items-center justify-center h-48">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Card className="bg-muted/50">
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-              <div>
-                <span className="font-medium">Vehículo:</span>
-                <span className="ml-1">{vehicleLoading.truck?.plate}</span>
-              </div>
-              <div>
-                <span className="font-medium">Conductor:</span>
-                <span className="ml-1">{vehicleLoading.driver?.name}</span>
-              </div>
-              <div>
-                <span className="font-medium">Fecha:</span>
-                <span className="ml-1">{new Date(vehicleLoading.date).toLocaleDateString()}</span>
-              </div>
-              <div>
-                <span className="font-medium">Inicial:</span>
-                <span className="ml-1">RD$ {vehicleLoading.initialCash}</span>
-              </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Datos de la Carga #{vehicleLoading.loadingNumber}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {vehicleLoading.items.map((item, index) => (
+                <div key={item.id} className="border p-4 rounded-lg">
+                  <h3 className="font-medium">{item.product.name}</h3>
+                  <div className="grid grid-cols-3 gap-4 mt-2">
+                    <div>
+                      <span className="text-sm text-gray-500">Cantidad Cargada</span>
+                      <p>{item.quantity}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Cantidad Devuelta</span>
+                      <Input
+                        type="number"
+                        {...form.register(`items.${index}.returnedQuantity`)}
+                      />
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">Envases Devueltos</span>
+                      <Input
+                        type="number"
+                        {...form.register(`items.${index}.returnedContainers`)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -162,98 +177,37 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
           <CardHeader>
             <CardTitle>Efectivo y Crédito</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label>Efectivo Recibido</label>
-                <Input
-                  {...form.register("totalCashReceived")}
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <label>Crédito Otorgado</label>
-                <Input
-                  {...form.register("totalCreditReceived")}
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <label>Total Facturado</label>
-                <Input
-                  {...form.register("totalInvoiced")}
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Productos y Devoluciones</CardTitle>
-          </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {fields.map((field, index) => (
-                <div key={field.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 border rounded">
-                  <div>
-                    <label className="text-sm font-medium">Producto</label>
-                    <div className="mt-1">
-                      {vehicleLoading.items[index].product.name}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Cantidad Cargada</label>
-                    <Input
-                      {...form.register(`items.${index}.loadedQuantity`)}
-                      type="number"
-                      disabled
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Cantidad Devuelta</label>
-                    <Input
-                      {...form.register(`items.${index}.returnedQuantity`)}
-                      type="number"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Envases Devueltos</label>
-                    <Input
-                      {...form.register(`items.${index}.returnedContainers`)}
-                      type="number"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium">Notas</label>
-                    <Input
-                      {...form.register(`items.${index}.notes`)}
-                      placeholder="Observaciones..."
-                    />
-                  </div>
-                </div>
-              ))}
+            <div className="grid gap-4">
+              <div>
+                <span className="text-sm text-gray-500">Total Efectivo Recibido</span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...form.register('totalCashReceived')}
+                />
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Total Crédito</span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...form.register('totalCreditReceived')}
+                />
+              </div>
+              <div>
+                <span className="text-sm text-gray-500">Total Facturado</span>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...form.register('totalInvoiced')}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Notas</label>
-          <textarea
-            {...form.register("notes")}
-            className="w-full h-20 p-2 mt-1 border rounded"
-            placeholder="Agregar notas o comentarios adicionales..."
-          />
-        </div>
-
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-4">
           <Button type="submit">
             Guardar Cuadre
           </Button>
