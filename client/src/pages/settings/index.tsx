@@ -517,6 +517,20 @@ function Settings() {
                             onPositionSelected={(lat, lng) => {
                               form.setValue("latitude", lat.toString());
                               form.setValue("longitude", lng.toString());
+                              
+                              // Notificar al usuario que las coordenadas se han guardado
+                              toast({
+                                title: "Ubicación actualizada",
+                                description: `Latitud: ${lat.toFixed(6)}, Longitud: ${lng.toFixed(6)}`,
+                              });
+                              
+                              // Cerrar el diálogo automáticamente
+                              setTimeout(() => {
+                                const closeButton = document.querySelector('[data-radix-focus-guard]')?.parentElement?.querySelector('[aria-label="Close"]');
+                                if (closeButton) {
+                                  (closeButton as HTMLButtonElement).click();
+                                }
+                              }, 100);
                             }}
                           />
                         </DialogContent>
@@ -644,9 +658,14 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
             Coordenadas: <span className="font-mono">{typeof position === 'object' ? `${(position as [number, number])[0].toFixed(6)}, ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
           </p>
           <Button 
+            type="button"
             onClick={() => {
               if (typeof position === 'object') {
                 onPositionSelected((position as [number, number])[0], (position as [number, number])[1]);
+                // Cerrar el diálogo al hacer clic
+                document.querySelector('[aria-label="Close"]')?.dispatchEvent(
+                  new MouseEvent('click', { bubbles: true })
+                );
               }
             }}
           >
