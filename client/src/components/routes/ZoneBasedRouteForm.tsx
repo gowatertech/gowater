@@ -668,25 +668,19 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                       {/* Auto-center map component */}
                       <MapCenterFixer />
                       
-                      {/* Draw the route line */}
-                      {optimizedRoute.map((customer, index) => {
-                        if (customer.coordinates && index < optimizedRoute.length - 1) {
-                          const nextCustomer = optimizedRoute[index + 1];
-                          if (nextCustomer.coordinates) {
-                            const start = customer.coordinates.split(',').map(parseFloat);
-                            const end = nextCustomer.coordinates.split(',').map(parseFloat);
-                            return (
-                              <Polyline
-                                key={`${customer.id}-${nextCustomer.id}`}
-                                positions={[[start[0], start[1]], [end[0], end[1]]]}
-                                color="#0088FE"
-                                weight={3}
-                              />
-                            );
-                          }
-                        }
-                        return null;
-                      })}
+                      {/* Draw the complete route as a single polyline */}
+                      {optimizedRoute.length > 1 && (
+                        <Polyline
+                          positions={optimizedRoute
+                            .filter(customer => customer.coordinates)
+                            .map(customer => {
+                              const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
+                              return [lat, lng];
+                            })}
+                          color="#0088FE"
+                          weight={3}
+                        />
+                      )}
                       
                       {/* Place markers for each stop */}
                       {optimizedRoute.map((customer, index) => {
