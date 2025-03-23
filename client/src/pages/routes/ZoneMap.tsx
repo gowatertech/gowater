@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Polygon, Marker, Polyline, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polygon, Marker, Polyline, useMapEvents, useMap, Tooltip } from "react-leaflet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -218,9 +218,25 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
     }
   }, [settingsQuery.data, settingsQuery.error, settingsQuery.isError]);
 
-  const { data: zones = [] } = useQuery<Zone[]>({
+  const zonesQuery = useQuery({
     queryKey: ["/api/zones"],
   });
+  
+  useEffect(() => {
+    if (zonesQuery.data) {
+      console.log("Zonas cargadas exitosamente:", zonesQuery.data);
+    }
+    if (zonesQuery.error) {
+      console.error("Error al cargar zonas:", zonesQuery.error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron cargar las zonas existentes"
+      });
+    }
+  }, [zonesQuery.data, zonesQuery.error, toast]);
+  
+  const zones = zonesQuery.data || [];
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -328,36 +344,73 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
           <DrawingControl onPolygonComplete={handlePolygonComplete} />
 
         {/* Render existing zones */}
-        {zones.map((zone) => {
-          try {
-            console.log("Procesando zona:", zone);
-            const positions = zone.coordinates.map((coord): LatLngExpression => {
-              const [lat, lng] = coord.split(",").map(Number);
-              if (isNaN(lat) || isNaN(lng)) {
-                throw new Error(`Coordenadas inválidas en zona ${zone.id}: ${coord}`);
+        {zones && zones.length > 0 ? (
+          zones.map((zone) => {
+            try {
+              console.log("Procesando zona:", zone);
+              
+              if (!zone || !zone.coordinates || !Array.isArray(zone.coordinates) || zone.coordinates.length < 3) {
+                console.error(`Zona ${zone?.id || 'unknown'} tiene coordenadas inválidas:`, zone?.coordinates);
+                return null;
               }
-              return [lat, lng];
-            });
+              
+              const positions = zone.coordinates.map((coord): LatLngExpression => {
+                if (typeof coord !== 'string') {
+                  console.error(`Formato de coordenada inválido en zona ${zone.id}:`, coord);
+                  return [0, 0]; // Valor predeterminado para evitar errores
+                }
+                
+                const parts = coord.split(",");
+                if (parts.length !== 2) {
+                  console.error(`Formato de coordenada inválido en zona ${zone.id}: ${coord}`);
+                  return [0, 0]; // Valor predeterminado para evitar errores
+                }
+                
+                const lat = parseFloat(parts[0]);
+                const lng = parseFloat(parts[1]);
+                
+                if (isNaN(lat) || isNaN(lng)) {
+                  console.error(`Coordenadas numéricas inválidas en zona ${zone.id}: ${coord}`);
+                  return [0, 0]; // Valor predeterminado para evitar errores
+                }
+                
+                return [lat, lng];
+              });
+              
+              // Verificamos que tengamos al menos 3 puntos válidos (triángulo mínimo)
+              const validPositions = positions.filter(pos => pos[0] !== 0 || pos[1] !== 0);
+              if (validPositions.length < 3) {
+                console.error(`Zona ${zone.id} no tiene suficientes coordenadas válidas`);
+                return null;
+              }
 
-            console.log("Posiciones procesadas para zona", zone.id, ":", positions);
+              console.log("Posiciones procesadas para zona", zone.id, ":", validPositions);
 
-            return (
-              <Polygon
-                key={zone.id}
-                positions={positions}
-                pathOptions={{ 
-                  color: zone.color,
-                  fillColor: zone.color,
-                  fillOpacity: 0.2,
-                  weight: 2
-                }}
-              />
-            );
-          } catch (error) {
-            console.error(`Error al renderizar zona ${zone.id}:`, error);
-            return null;
-          }
-        })}
+              return (
+                <Polygon
+                  key={zone.id}
+                  positions={validPositions}
+                  pathOptions={{ 
+                    color: zone.color || '#3388ff',
+                    fillColor: zone.color || '#3388ff',
+                    fillOpacity: 0.2,
+                    weight: 2
+                  }}
+                >
+                  <Tooltip>
+                    {zone.name || `Zona ${zone.id}`}
+                  </Tooltip>
+                </Polygon>
+              );
+            } catch (error) {
+              console.error(`Error al renderizar zona ${zone?.id || 'unknown'}:`, error);
+              return null;
+            }
+          })
+        ) : (
+          // Si no hay zonas o aún no se han cargado
+          <></>
+        )}
 
         {/* Render customer markers */}
         {customers.map((customer: any) => {
