@@ -130,11 +130,18 @@ export default function Inventory() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
+      // Asegurarnos de que tenemos un objeto formateado correctamente para la API
       const formattedData = {
         ...data,
         price: Number(data.price).toFixed(2),
-        stock: Number(data.stock)
+        stock: Number(data.stock),
+        // Asegurarnos de que icon sea una cadena o null, nunca undefined
+        icon: data.icon || null,
+        isReturnable: !!data.isReturnable,
+        depositAmount: (Number(data.depositAmount || 0)).toFixed(2)
       };
+      
+      console.log("Enviando datos para actualizar producto:", formattedData);
       const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
       return res.json();
     },
@@ -159,9 +166,19 @@ export default function Inventory() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest("DELETE", `/api/products/${id}`);
-      if (!res.ok) throw new Error("Error al eliminar el producto");
-      return res.json();
+      console.log("Eliminando producto con ID:", id);
+      // Intentar eliminar el producto con manejo de errores mejorado
+      try {
+        const res = await apiRequest("DELETE", `/api/products/${id}`);
+        if (!res.ok) {
+          const errorData = await res.text();
+          throw new Error(`Error al eliminar el producto: ${errorData || res.statusText}`);
+        }
+        return await res.json();
+      } catch (error) {
+        console.error("Error en deleteMutation:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -194,12 +211,20 @@ export default function Inventory() {
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
-    editForm.reset({
+    
+    // Usar un objeto con tipado seguro
+    const formValues = {
       name: product.name,
       price: product.price.toString(),
       stock: product.stock,
-      icon: product.icon || undefined, // Convertir null a undefined para evitar error de tipos
-    });
+      // Si icon es null o undefined, usar una cadena vacía
+      icon: product.icon || "",
+      isReturnable: product.isReturnable || false,
+      depositAmount: product.depositAmount?.toString() || "0.00"
+    };
+    
+    console.log("Editando producto con valores:", formValues);
+    editForm.reset(formValues);
     setIsEditDialogOpen(true);
   };
 
