@@ -388,6 +388,142 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para obtener un usuario por ID
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      if (!user) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error al obtener usuario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoint para crear un nuevo usuario
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userData = req.body;
+      
+      // Validar el formato de los datos
+      const result = insertUserSchema.safeParse(userData);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Datos de usuario inválidos", 
+          details: result.error.format() 
+        });
+      }
+      
+      // Verificar si el username ya existe
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, userData.username));
+        
+      if (existingUser.length > 0) {
+        return res.status(400).json({ 
+          error: "Este nombre de usuario ya existe" 
+        });
+      }
+      
+      // Preparar los datos para la inserción con licenseExpiry en formato Date
+      const insertData = {
+        ...userData,
+        licenseExpiry: userData.licenseExpiry ? new Date(userData.licenseExpiry) : null,
+        hireDate: new Date()
+      };
+      
+      // Crear el usuario
+      const [newUser] = await db
+        .insert(users)
+        .values(insertData)
+        .returning();
+      
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error al crear usuario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoint para actualizar un usuario
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const userData = req.body;
+      
+      // Verificar si el usuario existe
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+        
+      if (!existingUser) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+      
+      // Preparar datos para actualización
+      const updateData = {
+        ...userData,
+        licenseExpiry: userData.licenseExpiry ? new Date(userData.licenseExpiry) : null
+      };
+      
+      // Si la contraseña está vacía, no actualizarla
+      if (!updateData.password) {
+        delete updateData.password;
+      }
+      
+      // Actualizar el usuario
+      const [updatedUser] = await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error al actualizar usuario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoint para eliminar un usuario (soft delete)
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Verificar si el usuario existe
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+        
+      if (!existingUser) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+      }
+      
+      // Marcar como inactivo en lugar de eliminar
+      const [deletedUser] = await db
+        .update(users)
+        .set({ active: false })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      res.json(deletedUser);
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Rutas
   app.get("/api/routes", async (req, res) => {
