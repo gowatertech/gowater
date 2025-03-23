@@ -58,6 +58,12 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
     }
   });
 
+  // Importante: Declarar useFieldArray antes de cualquier return condicional
+  const { fields, append } = useFieldArray({
+    control: form.control,
+    name: "items"
+  });
+
   React.useEffect(() => {
     if (vehicleLoading?.items) {
       form.reset({
@@ -73,6 +79,37 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       });
     }
   }, [vehicleLoading, form]);
+
+  const onSubmit = async (values: InsertRouteSettlement) => {
+    try {
+      const response = await fetch("/api/route-settlements", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(values)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Error al crear el cuadre de ruta");
+      }
+
+      toast({
+        description: "Cuadre de ruta registrado exitosamente",
+        duration: 3000,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/route-settlements"] });
+      onSuccess?.();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        description: error instanceof Error ? error.message : "Error al crear el cuadre de ruta",
+        duration: 5000,
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -97,43 +134,6 @@ export function RouteSettlementForm({ vehicleLoadingId, onSuccess }: RouteSettle
       </div>
     );
   }
-
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: "items"
-  });
-
-  const onSubmit = async (values: InsertRouteSettlement) => {
-    try {
-      const response = await fetch("/api/route-settlements", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(values)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Error al crear el cuadre de ruta");
-      }
-
-      toast({
-        description: "Cuadre de ruta registrado exitosamente",
-        duration: 3000,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["/api/route-settlements"] });
-      onSuccess?.();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        description: error instanceof Error ? error.message : "Error al crear el cuadre de ruta",
-        duration: 5000,
-      });
-    }
-  };
-
 
   return (
     <Form {...form}>
