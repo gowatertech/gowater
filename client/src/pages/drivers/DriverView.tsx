@@ -95,13 +95,42 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * c;
 }
 
+// Componente para ajustar automáticamente la vista del mapa a todos los puntos
+function MapBoundsAdjuster({ deliveries }: { deliveries: Delivery[] }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (deliveries.length === 0) return;
+    
+    // Crear los límites iniciales
+    const bounds = L.latLngBounds([]);
+    
+    // Añadir cada punto de entrega a los límites
+    deliveries.forEach(delivery => {
+      bounds.extend(delivery.coordinates);
+    });
+    
+    // Si tenemos coordenadas válidas, ajustar el mapa
+    if (bounds.isValid()) {
+      // Añadir un pequeño padding alrededor de los límites
+      map.fitBounds(bounds, {
+        padding: [50, 50], // 50px de padding en todas direcciones
+        maxZoom: 13,       // Limitar el zoom máximo
+        animate: true
+      });
+    }
+  }, [map, deliveries]);
+  
+  return null;
+}
+
 // Componente para centrar el mapa en la posición actual
 function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const map = useMap();
 
   useEffect(() => {
-    map.locate({ setView: true, maxZoom: 13 });
+    map.locate({ setView: false, maxZoom: 13 });
     
     map.on('locationfound', (e) => {
       const newPos: [number, number] = [e.latlng.lat, e.latlng.lng];
@@ -118,7 +147,17 @@ function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number,
   }, [map, onPositionChange]);
 
   return position === null ? null : (
-    <Marker position={position}>
+    <Marker 
+      position={position}
+      icon={L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="marker-pin bg-blue-500 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+              </div>`,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      })}
+    >
       <Popup>Tu ubicación actual</Popup>
     </Marker>
   );
@@ -436,8 +475,9 @@ export default function DriverView() {
                   />
                   <LocationMarker onPositionChange={setCurrentPosition} />
                   <RouteLines deliveries={todayDeliveries} currentPosition={currentPosition} />
+                  <MapBoundsAdjuster deliveries={todayDeliveries} />
                   
-                  {todayDeliveries.map((delivery) => (
+                  {todayDeliveries.map((delivery, index) => (
                     <Marker 
                       key={delivery.id}
                       position={delivery.coordinates as LatLngExpression}
@@ -445,11 +485,14 @@ export default function DriverView() {
                         className: 'custom-div-icon',
                         html: `<div class="marker-pin ${
                           delivery.status === 'delivered' ? 'bg-green-500' : 
-                          delivery.status === 'pending' ? 'bg-yellow-500' : 
-                          'bg-blue-500'
-                        } flex items-center justify-center text-white rounded-full w-6 h-6 border-2 border-white shadow-md">${delivery.id}</div>`,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15]
+                          delivery.status === 'pending' 
+                            ? (index === 0 ? 'bg-orange-500' : 
+                               index === todayDeliveries.length - 1 ? 'bg-green-500' : 
+                               'bg-blue-500') 
+                            : 'bg-purple-500'
+                        } flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md font-bold">${delivery.id}</div>`,
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 20]
                       })}
                     >
                       <Popup>
