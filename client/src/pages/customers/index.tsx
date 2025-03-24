@@ -7,6 +7,7 @@ import { z } from "zod";
 import { insertCustomerSchema, CustomerWithDetails, Province, Municipality, Zone } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Table,
   TableBody,
@@ -15,12 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -39,22 +34,56 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Eye, Edit, Save } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LocationSelector } from "@/components/map/LocationSelector";
+import { 
+  PlusCircle, 
+  Eye, 
+  Edit, 
+  Save, 
+  Users, 
+  Search, 
+  X, 
+  Building2, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  ArrowLeft, 
+  CreditCard,
+  FileText,
+  DollarSign,
+  User,
+  ClipboardCheck,
+  Home
+} from "lucide-react";
 
 type CustomerFormData = z.infer<typeof insertCustomerSchema>;
 
 export default function Customers() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerWithDetails | null>(null);
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("list");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const queryClient = useQueryClient();
 
   // Obtener provincias
@@ -82,6 +111,15 @@ export default function Customers() {
   const { data: customers = [], isLoading } = useQuery<CustomerWithDetails[]>({
     queryKey: ["/api/customers"],
   });
+  
+  // Filtrar clientes según término de búsqueda
+  const filteredCustomers = customers.filter(
+    customer => 
+      customer.businessname.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.managername.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer.rnc && customer.rnc.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      customer.phone.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
@@ -242,7 +280,7 @@ export default function Customers() {
         description: "Cliente actualizado correctamente",
       });
       setIsEditing(false);
-      setIsViewDialogOpen(false);
+      setActiveTab("list");
     },
     onError: (error) => {
       console.error("Error al actualizar:", error);
@@ -292,7 +330,7 @@ export default function Customers() {
     };
     
     form.reset(formData);
-    setIsViewDialogOpen(true);
+    setActiveTab("details");
   };
 
   const handleEditClick = () => {
@@ -303,87 +341,341 @@ export default function Customers() {
     return <div className="p-8">Cargando...</div>;
   }
 
+  // Estadísticas de clientes
+  const getCustomerStats = () => {
+    const totalCustomers = customers.length;
+    const totalCredit = customers.reduce((sum, customer) => 
+      sum + parseFloat(customer.creditlimit.toString()), 0
+    );
+    const avgCredit = totalCustomers > 0 ? totalCredit / totalCustomers : 0;
+    
+    // Obtener provincias de los clientes
+    const uniqueProvinces = new Set<number>();
+    customers.forEach(c => uniqueProvinces.add(c.provinceid));
+    const provinces = uniqueProvinces.size;
+    
+    return {
+      totalCustomers,
+      totalCredit,
+      avgCredit,
+      provinces
+    };
+  };
+
+  const stats = getCustomerStats();
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Clientes</h1>
-        <Button onClick={() => setActiveTab("new")}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Nuevo Cliente
-        </Button>
+    <div className={`${isMobile ? 'p-2' : 'p-4'} max-w-6xl mx-auto`}>
+      {/* Cabecera */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold flex items-center">
+          <Users className="h-6 w-6 mr-2 text-blue-600" />
+          Gestión de Clientes
+        </h1>
+        {!isMobile && (
+          <Button 
+            onClick={() => setActiveTab("new")} 
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Nuevo Cliente
+          </Button>
+        )}
       </div>
       
+      {/* Tabs de navegación */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="list">Lista de Clientes</TabsTrigger>
-          <TabsTrigger value="new">Nuevo Cliente</TabsTrigger>
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : activeTab === "details" ? 'grid-cols-3' : 'grid-cols-3'} mb-4`}>
+          <TabsTrigger value="list" className="flex items-center gap-1">
+            <Users className="h-4 w-4" />
+            <span>Clientes</span>
+          </TabsTrigger>
+          <TabsTrigger value="new" className="flex items-center gap-1">
+            <PlusCircle className="h-4 w-4" />
+            <span>Nuevo</span>
+          </TabsTrigger>
+          {!isMobile && (
+            <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-1">
+              <FileText className="h-4 w-4" />
+              <span>{isEditing ? "Editar" : "Detalles"}</span>
+            </TabsTrigger>
+          )}
         </TabsList>
         
-        <TabsContent value="list" className="border rounded-md p-2 sm:p-4">
-          <Card>
-            <div className="overflow-x-auto">
-              <Table className="min-w-full">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="hidden sm:table-cell">Logo</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead className="hidden md:table-cell">RNC</TableHead>
-                    <TableHead className="hidden md:table-cell">Encargado</TableHead>
-                    <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
-                    <TableHead className="hidden lg:table-cell">Dirección</TableHead>
-                    <TableHead>Crédito</TableHead>
-                    <TableHead>Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {customers?.map((customer) => (
-                    <TableRow key={customer.id}>
-                      <TableCell className="hidden sm:table-cell">
-                        {customer.logo ? (
-                          <img
-                            src={`data:image/jpeg;base64,${customer.logo}`}
-                            alt="Logo"
-                            className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
-                            No logo
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">{customer.businessname}</TableCell>
-                      <TableCell className="hidden md:table-cell">{customer.rnc || '-'}</TableCell>
-                      <TableCell className="hidden md:table-cell">{customer.managername}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{customer.phone}</TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
-                      </TableCell>
-                      <TableCell>
-                        RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewCustomer(customer)}
-                          className="text-blue-500 hover:text-blue-700"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        {/* Contenido del Tab de Lista de Clientes */}
+        <TabsContent value="list" className="space-y-4">
+          {/* Estadísticas */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Clientes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold flex items-center">
+                  <Users className="mr-2 h-4 w-4 text-blue-500" />
+                  {stats.totalCustomers}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Crédito Total</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold flex items-center">
+                  <DollarSign className="mr-2 h-4 w-4 text-green-500" />
+                  RD$ {stats.totalCredit.toFixed(2)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Crédito Promedio</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold flex items-center">
+                  <CreditCard className="mr-2 h-4 w-4 text-amber-500" />
+                  RD$ {stats.avgCredit.toFixed(2)}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Provincias</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold flex items-center">
+                  <MapPin className="mr-2 h-4 w-4 text-purple-500" />
+                  {stats.provinces}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="p-4">
+            {/* Buscador */}
+            <div className="relative mb-4">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Buscar por nombre, encargado, RNC o teléfono..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+              {searchTerm && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
             </div>
+
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-blue-600" />
+                <h2 className="font-semibold">Directorio de Clientes</h2>
+              </div>
+              <Badge variant="outline">{filteredCustomers.length} clientes</Badge>
+            </div>
+
+            {isMobile ? (
+              /* Vista de tarjetas para móvil */
+              <ScrollArea className="h-[400px]">
+                <div className="space-y-3">
+                  {filteredCustomers.length === 0 ? (
+                    <div className="text-center py-4 text-gray-500">
+                      No se encontraron clientes
+                    </div>
+                  ) : (
+                    filteredCustomers.map((customer) => (
+                      <Card 
+                        key={customer.id} 
+                        className="p-3 border-l-4 border-l-blue-500"
+                        onClick={() => {
+                          setSelectedCustomer(customer);
+                          setSelectedProvinceId(customer.provinceid);
+                          setIsEditing(false);
+                          setActiveTab("details");
+                          
+                          // Preparar datos para el formulario
+                          const formData = {
+                            businessname: customer.businessname,
+                            managername: customer.managername,
+                            phone: customer.phone,
+                            email: customer.email || undefined,
+                            rnc: customer.rnc || undefined,
+                            zoneid: customer.zoneid || undefined,
+                            street: customer.street,
+                            streetnumber: customer.streetnumber,
+                            provinceid: customer.provinceid,
+                            municipalityid: customer.municipalityid,
+                            reference: customer.reference || undefined,
+                            coordinates: customer.street + ", " + customer.municipalityName,
+                            creditlimit: customer.creditlimit.toString(),
+                            logo: customer.logo || undefined
+                          };
+                          
+                          form.reset(formData);
+                        }}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-2">
+                            {customer.logo ? (
+                              <div className="w-10 h-10 shrink-0 rounded-md overflow-hidden">
+                                <img
+                                  src={`data:image/jpeg;base64,${customer.logo}`}
+                                  alt="Logo"
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 shrink-0 bg-blue-50 rounded-md flex items-center justify-center">
+                                <Building2 className="h-6 w-6 text-blue-500" />
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-medium text-sm">{customer.businessname}</h3>
+                              <p className="text-xs text-gray-500 flex items-center">
+                                <User className="h-3 w-3 mr-1" /> {customer.managername}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                            RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                          </Badge>
+                        </div>
+                        
+                        <div className="mt-2 grid grid-cols-2 gap-1 text-xs">
+                          <div className="flex items-center text-gray-500">
+                            <Phone className="h-3 w-3 mr-1" />
+                            <span>{customer.phone}</span>
+                          </div>
+                          <div className="flex items-center text-gray-500">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            <span>{customer.municipalityName || 'N/A'}</span>
+                          </div>
+                          {customer.rnc && (
+                            <div className="flex items-center text-gray-500">
+                              <ClipboardCheck className="h-3 w-3 mr-1" />
+                              <span>{customer.rnc}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center justify-end mt-2 pt-2 border-t border-gray-100">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewCustomer(customer);
+                              setActiveTab("details");
+                            }}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Ver Detalles
+                          </Button>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
+            ) : (
+              /* Tabla para escritorio */
+              <div className="overflow-x-auto">
+                <Table className="min-w-full">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Logo</TableHead>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>RNC</TableHead>
+                      <TableHead>Encargado</TableHead>
+                      <TableHead>Teléfono</TableHead>
+                      <TableHead>Dirección</TableHead>
+                      <TableHead>Crédito</TableHead>
+                      <TableHead>Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCustomers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-6 text-gray-500">
+                          No se encontraron clientes
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredCustomers.map((customer) => (
+                        <TableRow key={customer.id}>
+                          <TableCell>
+                            {customer.logo ? (
+                              <img
+                                src={`data:image/jpeg;base64,${customer.logo}`}
+                                alt="Logo"
+                                className="w-10 h-10 object-contain"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-blue-50 rounded-md flex items-center justify-center">
+                                <Building2 className="h-6 w-6 text-blue-500" />
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-medium">{customer.businessname}</TableCell>
+                          <TableCell>{customer.rnc || '-'}</TableCell>
+                          <TableCell>{customer.managername}</TableCell>
+                          <TableCell>{customer.phone}</TableCell>
+                          <TableCell className="max-w-[250px] truncate">
+                            {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                              RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                handleViewCustomer(customer);
+                                setActiveTab("details");
+                              }}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </Card>
         </TabsContent>
         
+        {/* Contenido del Tab de Nuevo Cliente */}
         <TabsContent value="new" className="border rounded-md p-2 sm:p-4">
-          <Card className="p-2 sm:p-4">
-            <h2 className="text-lg sm:text-xl font-bold mb-2 sm:mb-4">Nuevo Cliente</h2>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Card className="p-4">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="text-xl font-bold flex items-center">
+                <PlusCircle className="h-5 w-5 mr-2 text-blue-600" />
+                Registrar Nuevo Cliente
+              </CardTitle>
+              <CardDescription>
+                Complete los datos para crear un nuevo cliente en el sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -695,22 +987,36 @@ export default function Customers() {
                 </Button>
               </form>
             </Form>
+            </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
-
-      {/* Dialog para ver/editar cliente */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto p-3 sm:p-6">
-          <DialogHeader className="flex flex-row justify-between items-center mb-2">
-            <DialogTitle className="text-lg sm:text-xl">{isEditing ? 'Editar Cliente' : 'Ver Cliente'}</DialogTitle>
-            {!isEditing && (
-              <Button onClick={handleEditClick} variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Editar</span>
-              </Button>
-            )}
-          </DialogHeader>
+        
+        {/* Contenido del Tab de Detalles de Cliente */}
+        <TabsContent value="details" className="border rounded-md p-2 sm:p-4">
+          <Card className="p-4">
+            <CardHeader className="px-0 pt-0">
+              <div className="flex flex-row justify-between items-center mb-2">
+                <CardTitle className="text-xl font-bold flex items-center">
+                  <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+                  {isEditing ? 'Editar Cliente' : 'Detalles del Cliente'}
+                </CardTitle>
+                {!isEditing ? (
+                  <Button onClick={handleEditClick} variant="outline" size="sm">
+                    <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Editar</span>
+                  </Button>
+                ) : (
+                  <Button onClick={() => setIsEditing(false)} variant="outline" size="sm">
+                    <X className="h-4 w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Cancelar</span>
+                  </Button>
+                )}
+              </div>
+              <CardDescription>
+                {isEditing ? 'Modifique la información del cliente según sea necesario' : 'Información detallada del cliente'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">
@@ -1080,8 +1386,10 @@ export default function Customers() {
               )}
             </form>
           </Form>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
