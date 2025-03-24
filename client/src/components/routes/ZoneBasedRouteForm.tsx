@@ -56,6 +56,15 @@ interface Customer {
   provinceName?: string;
 }
 
+interface Truck {
+  id: number;
+  brand: string;
+  model: string;
+  plate: string;
+  capacity: number;
+  status: string;
+}
+
 export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -68,6 +77,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
     queryKey: ["/api/users?role=driver"],
+  });
+
+  // Fetch trucks (vehículos)
+  const { data: trucks = [], isLoading: isLoadingTrucks } = useQuery<Truck[]>({
+    queryKey: ["/api/trucks"],
   });
 
   // Fetch zones
@@ -98,6 +112,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     defaultValues: {
       name: "",
       driverId: undefined,
+      truckId: undefined,
       zoneId: undefined,
       date: new Date(),
       status: "pending" as const,
