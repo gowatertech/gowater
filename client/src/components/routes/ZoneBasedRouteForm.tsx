@@ -43,6 +43,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 interface ZoneBasedRouteFormProps {
   onRouteCreated: () => void;
+  compact?: boolean;
 }
 
 interface Customer {
@@ -65,7 +66,7 @@ interface Truck {
   status: string;
 }
 
-export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFormProps) {
+export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: ZoneBasedRouteFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState("zone");
@@ -477,17 +478,19 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
   };
 
   return (
-    <div>
+    <div className={compact ? "compact-form" : ""}>
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${compact ? "grid-cols-2" : "grid-cols-3"}`}>
           <TabsTrigger value="zone">
             <MapPin className="h-4 w-4 mr-2" />
             Zona
           </TabsTrigger>
-          <TabsTrigger value="customers" disabled={!selectedZone}>
-            <User className="h-4 w-4 mr-2" />
-            Clientes
-          </TabsTrigger>
+          {!compact && (
+            <TabsTrigger value="customers" disabled={!selectedZone}>
+              <User className="h-4 w-4 mr-2" />
+              Clientes
+            </TabsTrigger>
+          )}
           <TabsTrigger value="review" disabled={selectedCustomers.length === 0}>
             <Truck className="h-4 w-4 mr-2" />
             Revisar Ruta
@@ -504,8 +507,22 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                   <FormItem>
                     <FormLabel>Zona de Entrega</FormLabel>
                     <Select
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      value={field.value?.toString()}
+                      onValueChange={(value) => {
+                        field.onChange(Number(value));
+                        // Si estamos en modo compacto, después de seleccionar la zona, mostrar los clientes automáticamente
+                        if (compact && value) {
+                          // Esperar a que se carguen los clientes de la zona
+                          setTimeout(() => {
+                            // Generar un nombre automático para la ruta
+                            const selectedZoneObj = zones.find((z: any) => z.id === Number(value));
+                            if (selectedZoneObj) {
+                              const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+                              form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
+                            }
+                          }, 500);
+                        }
+                      }}
+                      value={field.value?.toString() || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -519,7 +536,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                             <Skeleton className="h-5 w-full mt-2" />
                           </div>
                         ) : (
-                          zones?.map((zone: any) => (
+                          zones && Array.isArray(zones) && zones.map((zone: any) => (
                             <SelectItem key={zone.id} value={zone.id.toString()}>
                               {zone.name}
                             </SelectItem>
@@ -532,7 +549,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                 )}
               />
 
-              {selectedZone && (
+              {selectedZone && !compact && (
                 <div className="pt-4">
                   <Button 
                     type="button" 
@@ -541,6 +558,32 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                     className="w-full"
                   >
                     Continuar a Selección de Clientes
+                  </Button>
+                </div>
+              )}
+
+              {selectedZone && compact && (
+                <div className="pt-4 grid grid-cols-2 gap-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setSelectedCustomers(zoneCustomers || []);
+                      optimizeRoute();
+                    }}
+                    className="w-full"
+                    disabled={!zoneCustomers || zoneCustomers.length < 2}
+                  >
+                    Seleccionar todos
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="default" 
+                    onClick={() => setSelectedTab("review")}
+                    className="w-full"
+                    disabled={selectedCustomers.length === 0}
+                  >
+                    Revisar Ruta
                   </Button>
                 </div>
               )}

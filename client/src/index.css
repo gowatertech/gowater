@@ -16,6 +16,28 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
+/* Estilos para el modo compacto del formulario de creación de rutas */
+.compact-form {
+  /* Reducir el espacio vertical */
+  @apply space-y-2;
+}
+
+.compact-form .map-container {
+  /* Mapa más pequeño en modo compacto */
+  max-height: 250px !important;
+  min-height: 200px !important;
+}
+
+.compact-form .form-section {
+  /* Secciones de formulario más compactas */
+  @apply p-3;
+}
+
+.compact-form .space-y-4 {
+  /* Reducir espaciado vertical en espacios */
+  @apply space-y-2;
+}
+
 @layer base {
   * {
     @apply border-border;

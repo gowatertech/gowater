@@ -182,6 +182,9 @@ export default function Routes() {
     }
   };
 
+  // Calcular si hay rutas activas
+  const hasActiveRoutes = !loading && !error && routes?.some(route => !route.isCompleted);
+
   if (isCreatingRoute) {
     return (
       <div className="container py-6">
@@ -195,8 +198,11 @@ export default function Routes() {
         </div>
         <Card>
           <CardContent className="p-6">
-            {/* Reemplazamos el formulario antiguo con nuestro nuevo formulario basado en zonas */}
-            <ZoneBasedRouteForm onRouteCreated={handleRouteCreated} />
+            {/* Pasamos la prop compact si hay rutas activas */}
+            <ZoneBasedRouteForm 
+              onRouteCreated={handleRouteCreated} 
+              compact={hasActiveRoutes}
+            />
           </CardContent>
         </Card>
       </div>
