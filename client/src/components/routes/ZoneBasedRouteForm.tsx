@@ -509,12 +509,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
             <div className="mt-6">
               <div className="text-sm font-medium mb-2">Mapa de la Zona</div>
               <div className="border rounded-md overflow-hidden">
-                <ResponsiveMapContainer fixedHeight aspectRatio="square">
+                <ResponsiveMapContainer 
+                  fixedHeight 
+                  minHeight="300px"
+                  className="map-container"
+                >
                   {typeof window !== "undefined" && (
                     <MapContainer
                       center={[19.0, -70.0]}
                       zoom={10}
-                      style={{ height: "240px", width: "100%" }}
+                      style={{ width: "100%" }}
+                      className="zone-map"
                     >
                       <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -762,12 +767,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
               {optimizedRoute.length > 0 && (
                 <div className="border rounded-md overflow-hidden mt-4">
                   <div className="text-sm font-medium mb-2">Mapa de Ruta Optimizada</div>
-                  <ResponsiveMapContainer fixedHeight aspectRatio="square">
+                  <ResponsiveMapContainer 
+                    fixedHeight 
+                    minHeight="350px"
+                    className="map-container"
+                  >
                     {typeof window !== "undefined" && (
                       <MapContainer
                         center={[19.0, -70.0]}
                         zoom={10}
-                        style={{ height: "240px", width: "100%" }}
+                        style={{ width: "100%" }}
+                        className="route-map"
                       >
                         <TileLayer
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

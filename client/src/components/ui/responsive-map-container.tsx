@@ -1,5 +1,5 @@
-import React from "react";
-import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
+import React, { useEffect, useState } from "react";
+import { useIsMobile, useIsTablet, useIsDesktop } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 interface ResponsiveMapContainerProps {
@@ -7,8 +7,10 @@ interface ResponsiveMapContainerProps {
   className?: string;
   style?: React.CSSProperties;
   fixedHeight?: boolean;
+  fullHeight?: boolean;
   aspectRatio?: "square" | "video" | "wide" | "ultra-wide" | "custom";
   customRatio?: string;
+  minHeight?: string;
 }
 
 export function ResponsiveMapContainer({ 
@@ -16,11 +18,29 @@ export function ResponsiveMapContainer({
   className,
   style,
   fixedHeight = false,
+  fullHeight = false,
   aspectRatio = "video", // Default 16:9
   customRatio,
+  minHeight,
 }: ResponsiveMapContainerProps) {
   const isMobile = useIsMobile();
   const isTablet = useIsTablet();
+  const isDesktop = useIsDesktop();
+  const [windowHeight, setWindowHeight] = useState<number>(
+    typeof window !== 'undefined' ? window.innerHeight : 0
+  );
+  
+  // Add window resize listener
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleResize = () => {
+      setWindowHeight(window.innerHeight);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Determine padding-bottom based on aspect ratio
   let paddingBottom = "56.25%"; // Default 16:9 (video)
@@ -33,6 +53,31 @@ export function ResponsiveMapContainer({
     paddingBottom = "32.25%"; // 32:9 (ultra-wide)
   } else if (aspectRatio === "custom" && customRatio) {
     paddingBottom = customRatio;
+  }
+  
+  if (fullHeight) {
+    // Dynamically calculate height based on viewport
+    const calculatedHeight = isMobile 
+      ? `${windowHeight * 0.5}px` // 50% of viewport on mobile
+      : isTablet 
+        ? `${windowHeight * 0.6}px` // 60% of viewport on tablet
+        : `${windowHeight * 0.7}px`; // 70% of viewport on desktop
+    
+    return (
+      <div 
+        className={cn(
+          "relative rounded-lg overflow-hidden shadow-sm w-full responsive-map-container",
+          className
+        )}
+        style={{
+          ...style,
+          height: calculatedHeight,
+          minHeight: minHeight || (isMobile ? '300px' : '400px')
+        }}
+      >
+        {children}
+      </div>
+    );
   }
   
   if (fixedHeight) {
@@ -48,12 +93,13 @@ export function ResponsiveMapContainer({
     return (
       <div 
         className={cn(
-          "relative rounded-lg overflow-hidden shadow-sm w-full",
+          "relative rounded-lg overflow-hidden shadow-sm w-full responsive-map-container",
           className
         )}
         style={{
           ...style,
-          height
+          height,
+          minHeight: minHeight || '300px'
         }}
       >
         {children}
@@ -64,10 +110,11 @@ export function ResponsiveMapContainer({
   // Responsive with aspect ratio
   return (
     <div 
-      className={cn("relative w-full", className)} 
+      className={cn("relative w-full responsive-map-container", className)} 
       style={{ 
         paddingBottom, 
-        ...style 
+        ...style,
+        minHeight: minHeight
       }}
     >
       <div 
