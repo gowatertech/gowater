@@ -452,9 +452,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         // Incluir datos de la ruta optimizada
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
         stops: optimizedRoute.map(customer => customer.coordinates || ""),
-        // Añadir información calculada (corregido para asegurar que se guarden como números)
-        totalDistance: Number((totalDistance / 1000).toFixed(2)), // Convertir a km y asegurar que sea número
-        estimatedDuration: Number(estimatedDuration), // Asegurar que sea número
+        // Añadir información calculada
+        totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear con 2 decimales
+        estimatedDuration: estimatedDuration, // En minutos
       };
       
       console.log("Route data processed:", routeData);
@@ -543,17 +543,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         <TabsList className={`grid w-full ${compact ? "grid-cols-2" : "grid-cols-3"}`}>
           <TabsTrigger value="zone">
             <MapPin className="h-4 w-4 mr-2" />
-            Zone
+            Zona
           </TabsTrigger>
           {!compact && (
             <TabsTrigger value="customers" disabled={!selectedZone}>
               <User className="h-4 w-4 mr-2" />
-              Customers
+              Clientes
             </TabsTrigger>
           )}
           <TabsTrigger value="review" disabled={selectedCustomers.length === 0}>
             <Truck className="h-4 w-4 mr-2" />
-            Review Route
+            Revisar Ruta
           </TabsTrigger>
         </TabsList>
 
@@ -565,7 +565,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 name="zoneId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Delivery Zone</FormLabel>
+                    <FormLabel>Zona de Entrega</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(Number(value));
@@ -586,7 +586,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a zone" />
+                          <SelectValue placeholder="Seleccionar una zona" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -694,9 +694,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         <TabsContent value="customers" className="mt-4">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Customers in Zone</h3>
+              <h3 className="text-lg font-medium">Clientes en la Zona</h3>
               <Badge variant="outline">
-                {selectedCustomers.length} selected
+                {selectedCustomers.length} seleccionados
               </Badge>
             </div>
 
