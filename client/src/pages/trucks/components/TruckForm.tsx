@@ -50,10 +50,11 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
     defaultValues: {
       brand: "",
       model: "",
-      year: currentYear,
+      year: currentYear.toString(),
       plate: "",
-      capacity: 1000,
-      status: "available"
+      color: "",
+      capacity: "1000",
+      status: "disponible"
     }
   });
 
@@ -62,14 +63,15 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
       setIsSubmitting(true);
       console.log("Submitting truck data:", values);
 
-      // Convert year and capacity to numbers
+      // Asegúrate de que todos los valores estén en el formato correcto como strings
       const submittedValues = {
         brand: values.brand.trim(),
         model: values.model.trim(),
-        year: Number(values.year),
+        year: String(values.year),
         plate: values.plate.trim().toUpperCase(),
-        capacity: Number(values.capacity),
-        status: values.status || "available"
+        color: values.color?.trim() || "",
+        capacity: String(values.capacity),
+        status: values.status || "disponible"
       };
 
       console.log("Processed truck data for submission:", submittedValues);
@@ -224,6 +226,24 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
 
             <FormField
               control={form.control}
+              name="color"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Color</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Ingrese el color" 
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value.trim())}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="status"
               render={({ field }) => (
                 <FormItem>
@@ -235,9 +255,9 @@ export function TruckForm({ open, onOpenChange }: TruckFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="available">Disponible</SelectItem>
-                      <SelectItem value="on_route">En ruta</SelectItem>
-                      <SelectItem value="maintenance">En mantenimiento</SelectItem>
+                      <SelectItem value="disponible">Disponible</SelectItem>
+                      <SelectItem value="en_ruta">En ruta</SelectItem>
+                      <SelectItem value="en_reparacion">En mantenimiento</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
