@@ -117,15 +117,7 @@ export default function RouteOptimizer() {
       orderIds: selectedOrderIds
     };
     
-    // Agregar truckId si está seleccionado
-    if (selectedTruck) {
-      payload.truckId = Number(selectedTruck);
-    }
-    
-    // Agregar assistantId si está seleccionado
-    if (selectedAssistant) {
-      payload.assistantId = Number(selectedAssistant);
-    }
+    // Removidos campos de truck y assistant del proceso de optimización
     
     optimizeRouteMutation.mutate(payload);
   };
