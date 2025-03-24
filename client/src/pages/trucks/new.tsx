@@ -187,7 +187,6 @@ export default function NewTruckPage() {
                       <FormControl>
                         <Input 
                           type="text"
-                          defaultValue={currentYear.toString()}
                           {...field}
                           onChange={(e) => {
                             // No es necesaria la conversión ya que será un string
@@ -248,7 +247,6 @@ export default function NewTruckPage() {
                         <Input 
                           type="text" 
                           placeholder="Ingrese la capacidad"
-                          defaultValue="1000"
                           {...field}
                           onChange={(e) => {
                             // No es necesaria la conversión ya que será un string
