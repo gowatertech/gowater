@@ -340,7 +340,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     }
   };
 
-  // Calculate simple distance between two coordinates
+  // Calculate distance between two coordinates using Haversine formula
   const calculateDistance = (coord1: string, coord2: string) => {
     try {
       // Verificar formato de coordenadas
@@ -369,14 +369,61 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         return Infinity;
       }
       
-      // Simplified distance calculation (as the crow flies)
-      return Math.sqrt(
-        Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2)
-      );
+      // Haversine formula for more accurate distance calculation
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLng/2) * Math.sin(dLng/2);
+        
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c; // Distance in km
+      
+      return distance;
     } catch (e) {
       console.error("Error calculating distance:", e);
       return Infinity;
     }
+  };
+  
+  // Calculate total route distance in meters
+  const calculateTotalRouteDistance = (route: Customer[]) => {
+    if (route.length < 2) return 0;
+    
+    let totalDistance = 0;
+    
+    for (let i = 0; i < route.length - 1; i++) {
+      if (!route[i].coordinates || !route[i+1].coordinates) {
+        console.warn("Missing coordinates for distance calculation");
+        continue;
+      }
+      
+      totalDistance += calculateDistance(
+        route[i].coordinates,
+        route[i+1].coordinates
+      );
+    }
+    
+    // Convert to meters
+    return Math.round(totalDistance * 1000);
+  };
+  
+  // Estimate duration in minutes based on distance and stops
+  const calculateEstimatedDuration = (distance: number, numStops: number) => {
+    const AVERAGE_SPEED = 30; // km/h
+    const TIME_PER_STOP = 10; // minutes per delivery stop
+    
+    // Calculate travel time in minutes: distance (km) / speed (km/h) * 60 min/h
+    const travelTimeMinutes = (distance / 1000) / AVERAGE_SPEED * 60;
+    
+    // Add time for deliveries
+    const deliveryTimeMinutes = numStops * TIME_PER_STOP;
+    
+    // Total estimated minutes, rounded up
+    return Math.ceil(travelTimeMinutes + deliveryTimeMinutes);
   };
 
   // Create route mutation
