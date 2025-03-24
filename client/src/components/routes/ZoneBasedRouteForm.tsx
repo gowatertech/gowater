@@ -653,111 +653,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                 )}
               />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="driverId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Conductor</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar un conductor" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingDrivers ? (
-                            <div className="p-2">
-                              <Skeleton className="h-5 w-full" />
-                            </div>
-                          ) : (
-                            drivers?.map((driver: any) => (
-                              <SelectItem key={driver.id} value={driver.id.toString()}>
-                                {driver.name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="assistantId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ayudante</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar un ayudante (opcional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="">Sin ayudante</SelectItem>
-                          {isLoadingAssistants ? (
-                            <div className="p-2">
-                              <Skeleton className="h-5 w-full" />
-                            </div>
-                          ) : (
-                            assistants?.map((assistant: any) => (
-                              <SelectItem key={assistant.id} value={assistant.id.toString()}>
-                                {assistant.name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="truckId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehículo</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar un vehículo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingTrucks ? (
-                            <div className="p-2">
-                              <Skeleton className="h-5 w-full" />
-                            </div>
-                          ) : (
-                            trucks?.map((truck: Truck) => (
-                              <SelectItem key={truck.id} value={truck.id.toString()}>
-                                {truck.brand} {truck.model} - {truck.plate}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="grid grid-cols-1 gap-4">
 
                 <FormField
                   control={form.control}
@@ -935,7 +831,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                 
                 <Button 
                   type="submit"
-                  disabled={createRouteMutation.isPending || !form.watch("driverId") || !form.watch("truckId")}
+                  disabled={createRouteMutation.isPending}
                 >
                   {createRouteMutation.isPending ? (
                     <>
