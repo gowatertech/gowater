@@ -236,11 +236,14 @@ function RouteLines({ deliveries, currentPosition }: {
   // Si no hay suficientes puntos, no mostrar líneas
   if (stopCoordinates.length < 2) return null;
 
+  // Usar un color azul más brillante para las líneas de ruta
   return (
     <Polyline 
       positions={stopCoordinates} 
-      color="blue" 
+      color="#2563eb" 
       weight={3}
+      opacity={0.9}
+      dashArray="5, 5" // Línea discontinua opcional
     />
   );
 }
@@ -535,8 +538,8 @@ export default function DriverView() {
                     key="warehouse"
                     position={initialPosition}
                     icon={new L.DivIcon({
-                      html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-full w-6 h-6 text-sm font-semibold">0</div>`,
-                      className: 'custom-number-icon',
+                      html: `<div style="display:flex;align-items:center;justify-content:center;background-color:#16a34a;color:white;border-radius:9999px;width:24px;height:24px;font-size:12px;font-weight:600;box-shadow:0 0 10px rgba(0,0,0,0.3);">0</div>`,
+                      className: '',
                       iconSize: [24, 24],
                       iconAnchor: [12, 12]
                     })}
@@ -550,8 +553,8 @@ export default function DriverView() {
                       key={delivery.id}
                       position={delivery.coordinates as LatLngExpression}
                       icon={new L.DivIcon({
-                        html: `<div class="flex items-center justify-center bg-blue-600 text-white rounded-full w-6 h-6 text-sm font-semibold">${delivery.id}</div>`,
-                        className: 'custom-number-icon',
+                        html: `<div style="display:flex;align-items:center;justify-content:center;background-color:#2563eb;color:white;border-radius:9999px;width:24px;height:24px;font-size:12px;font-weight:600;box-shadow:0 0 10px rgba(0,0,0,0.3);">${delivery.id}</div>`,
+                        className: '',
                         iconSize: [24, 24],
                         iconAnchor: [12, 12]
                       })}
