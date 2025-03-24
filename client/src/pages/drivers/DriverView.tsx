@@ -199,71 +199,48 @@ function RouteLines({ deliveries, currentPosition }: {
   deliveries: Delivery[]; 
   currentPosition: [number, number] | null;
 }) {
-  if (!currentPosition || deliveries.length === 0) return null;
+  // Si no hay entregas, no mostramos nada
+  if (deliveries.length === 0) return null;
 
   // Filtrar solo entregas pendientes
   const pendingDeliveries = deliveries.filter(d => d.status === 'pending');
   
   if (pendingDeliveries.length === 0) return null;
   
-  // Ordenar las entregas por distancia desde la posición actual
-  const sortedDeliveries = [...pendingDeliveries].sort((a, b) => {
-    const distA = getDistance(
-      currentPosition[0], 
-      currentPosition[1], 
-      a.coordinates[0], 
-      a.coordinates[1]
-    );
-    const distB = getDistance(
-      currentPosition[0], 
-      currentPosition[1], 
-      b.coordinates[0], 
-      b.coordinates[1]
-    );
-    return distA - distB;
+  // Crear puntos de la ruta, empezando desde el almacén (punto 0)
+  const routePoints: LatLngExpression[] = [];
+  
+  // Añadir depósito/almacén como primer punto (0)
+  const settingsQuery = useQuery<any>({
+    queryKey: ["/api/settings"],
+    staleTime: Infinity,
   });
   
-  // Crear una ruta completa desde la posición actual a todas las entregas pendientes
-  const routePoints: LatLngExpression[] = [currentPosition];
+  if (settingsQuery.data?.latitude && settingsQuery.data?.longitude) {
+    const warehouseLat = parseFloat(settingsQuery.data.latitude);
+    const warehouseLng = parseFloat(settingsQuery.data.longitude);
+    if (!isNaN(warehouseLat) && !isNaN(warehouseLng)) {
+      routePoints.push([warehouseLat, warehouseLng]);
+    }
+  }
   
-  // Añadir cada punto de entrega en el orden calculado
-  sortedDeliveries.forEach(delivery => {
-    routePoints.push(delivery.coordinates as LatLngExpression);
-  });
+  // Añadir cada punto de entrega ordenados por ID (1, 2, 3...)
+  pendingDeliveries
+    .sort((a, b) => a.id - b.id)
+    .forEach(delivery => {
+      routePoints.push(delivery.coordinates as LatLngExpression);
+    });
+  
+  // Si no hay suficientes puntos, no mostrar nada
+  if (routePoints.length < 2) return null;
 
   return (
-    <>
-      {/* Línea principal que conecta todos los puntos */}
-      <Polyline 
-        positions={routePoints}
-        color="#4F46E5"
-        weight={4}
-        opacity={0.7}
-        dashArray="10,10"
-      />
-      
-      {/* Líneas de conexión entre puntos para mayor claridad */}
-      {sortedDeliveries.map((delivery, index) => {
-        // Si es el primer punto, conectar desde la posición actual
-        const fromPoint = index === 0 
-          ? currentPosition 
-          : sortedDeliveries[index - 1].coordinates;
-          
-        return (
-          <Polyline 
-            key={`route-${delivery.id}`}
-            positions={[fromPoint, delivery.coordinates]}
-            color={
-              index === 0 ? "#FF5722" : // Naranja para la primera conexión
-              index === sortedDeliveries.length - 1 ? "#4CAF50" : // Verde para la última
-              "#2196F3" // Azul para las intermedias
-            }
-            weight={3}
-            opacity={0.8}
-          />
-        );
-      })}
-    </>
+    <Polyline 
+      positions={routePoints}
+      color="#2563EB" // Azul sólido como en la imagen
+      weight={3} 
+      opacity={0.9}
+    />
   );
 }
 
@@ -552,20 +529,28 @@ export default function DriverView() {
                   <RouteLines deliveries={todayDeliveries} currentPosition={currentPosition} />
                   <MapBoundsAdjuster deliveries={todayDeliveries} />
                   
+                  {/* Marcador para el depósito/almacén (punto 0) */}
+                  <Marker 
+                    key="warehouse"
+                    position={initialPosition}
+                    icon={L.divIcon({
+                      className: 'custom-div-icon',
+                      html: `<div class="marker-pin bg-green-600 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md font-bold">0</div>`,
+                      iconSize: [40, 40],
+                      iconAnchor: [20, 20]
+                    })}
+                  >
+                    <Popup>Almacén principal</Popup>
+                  </Marker>
+                  
+                  {/* Marcadores de las entregas (puntos 1, 2, 3...) */}
                   {todayDeliveries.map((delivery, index) => (
                     <Marker 
                       key={delivery.id}
                       position={delivery.coordinates as LatLngExpression}
                       icon={L.divIcon({
                         className: 'custom-div-icon',
-                        html: `<div class="marker-pin ${
-                          delivery.status === 'delivered' ? 'bg-green-500' : 
-                          delivery.status === 'pending' 
-                            ? (index === 0 ? 'bg-orange-500' : 
-                               index === todayDeliveries.length - 1 ? 'bg-green-500' : 
-                               'bg-blue-500') 
-                            : 'bg-purple-500'
-                        } flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md font-bold">${delivery.id}</div>`,
+                        html: `<div class="marker-pin bg-blue-600 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md font-bold">${delivery.id}</div>`,
                         iconSize: [40, 40],
                         iconAnchor: [20, 20]
                       })}
