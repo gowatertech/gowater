@@ -52,6 +52,8 @@ export default function RouteOptimizer() {
   const { toast } = useToast();
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
   const [optimizedRoute, setOptimizedRoute] = useState<any>(null);
+  const [selectedTruck, setSelectedTruck] = useState<string>("");
+  const [selectedAssistant, setSelectedAssistant] = useState<string>("");
 
   // Consultas
   const { data: orders = [] } = useQuery<Order[]>({
@@ -62,11 +64,27 @@ export default function RouteOptimizer() {
       return orders.filter((o: Order) => o.status === "pending");
     },
   });
+  
+  const { data: trucks = [] } = useQuery<Truck[]>({
+    queryKey: ["/api/trucks"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/trucks");
+      return response.json();
+    },
+  });
+  
+  const { data: assistants = [] } = useQuery<User[]>({
+    queryKey: ["/api/users/drivers", { role: "assistant" }],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/users/drivers?role=assistant");
+      return response.json();
+    },
+  });
 
   // Mutaciones
   const optimizeRouteMutation = useMutation({
-    mutationFn: async (orderIds: number[]) => {
-      const response = await apiRequest("POST", "/api/routes/optimize", { orderIds });
+    mutationFn: async (data: { orderIds: number[], truckId?: number, assistantId?: number }) => {
+      const response = await apiRequest("POST", "/api/routes/optimize", data);
       return response.json();
     },
     onSuccess: (data) => {
@@ -94,7 +112,22 @@ export default function RouteOptimizer() {
       });
       return;
     }
-    optimizeRouteMutation.mutate(selectedOrderIds);
+    
+    const payload: { orderIds: number[], truckId?: number, assistantId?: number } = {
+      orderIds: selectedOrderIds
+    };
+    
+    // Agregar truckId si está seleccionado
+    if (selectedTruck) {
+      payload.truckId = Number(selectedTruck);
+    }
+    
+    // Agregar assistantId si está seleccionado
+    if (selectedAssistant) {
+      payload.assistantId = Number(selectedAssistant);
+    }
+    
+    optimizeRouteMutation.mutate(payload);
   };
 
   // Obtener la ruta como array de coordenadas
@@ -156,6 +189,51 @@ export default function RouteOptimizer() {
                   </TableBody>
                 </Table>
               </ScrollArea>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="truck">{t("vehicle")}</Label>
+                <Select
+                  value={selectedTruck}
+                  onValueChange={setSelectedTruck}
+                >
+                  <SelectTrigger id="truck">
+                    <SelectValue placeholder={t("selectVehicle")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">{t("selectVehicle")}</SelectItem>
+                    {trucks
+                      .filter(truck => truck.status === "disponible")
+                      .map(truck => (
+                        <SelectItem key={truck.id} value={truck.id.toString()}>
+                          {truck.brand} {truck.model} ({truck.plate})
+                        </SelectItem>
+                      ))
+                    }
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="assistant">{t("assistant")}</Label>
+                <Select
+                  value={selectedAssistant}
+                  onValueChange={setSelectedAssistant}
+                >
+                  <SelectTrigger id="assistant">
+                    <SelectValue placeholder={t("selectAssistant")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">{t("selectAssistant")}</SelectItem>
+                    {assistants.map(assistant => (
+                      <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                        {assistant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <Button

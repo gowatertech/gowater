@@ -20,6 +20,8 @@ interface OptimizedRoute {
   totalDistance: number;
   estimatedDuration: number;
   points: Point[];
+  truckId?: number;
+  assistantId?: number;
 }
 
 const AVERAGE_SPEED = 30; // km/h

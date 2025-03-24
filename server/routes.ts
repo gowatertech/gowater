@@ -539,6 +539,46 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para optimizar ruta
+  app.post("/api/routes/optimize", async (req, res) => {
+    try {
+      console.log("POST /api/routes/optimize - Body recibido:", req.body);
+      const { orderIds, truckId, assistantId } = req.body;
+      
+      if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+        return res.status(400).json({ error: "Se requiere un array de IDs de pedidos" });
+      }
+      
+      // Obtener las órdenes completas basadas en los IDs recibidos
+      const ordersToOptimize = await db
+        .select()
+        .from(orders)
+        .where(inArray(orders.id, orderIds));
+      
+      if (ordersToOptimize.length === 0) {
+        return res.status(404).json({ error: "No se encontraron pedidos con los IDs proporcionados" });
+      }
+      
+      // Calcular la ruta óptima usando el servicio de optimización
+      const optimizedRoute = calculateOptimalRoute(ordersToOptimize);
+      
+      // Agregar información de vehículo y ayudante si se proporcionaron
+      if (truckId) {
+        optimizedRoute.truckId = truckId;
+      }
+      
+      if (assistantId) {
+        optimizedRoute.assistantId = assistantId;
+      }
+      
+      console.log("Ruta optimizada calculada:", optimizedRoute);
+      res.json(optimizedRoute);
+    } catch (error) {
+      console.error("Error al optimizar ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   app.post("/api/routes", async (req, res) => {
     try {
