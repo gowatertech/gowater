@@ -212,7 +212,9 @@ export default function TrucksPage() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="list">Lista de Vehículos</TabsTrigger>
           <TabsTrigger value="new">Nuevo Vehículo</TabsTrigger>
-          <TabsTrigger value="details" disabled={!selectedTruck}>Detalles</TabsTrigger>
+          <TabsTrigger value="details" disabled={!selectedTruck}>
+            {isEditing ? "Editar Vehículo" : "Detalles"}
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="list" className="border rounded-md p-2 sm:p-4">
@@ -405,197 +407,205 @@ export default function TrucksPage() {
             </Form>
           </Card>
         </TabsContent>
-      </Tabs>
 
-      {/* Modal para ver detalles del vehículo */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-[625px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <TruckIcon className="h-5 w-5 mr-2" />
-              {isEditing ? "Editar Vehículo" : "Detalles del Vehículo"}
-            </DialogTitle>
-          </DialogHeader>
+        <TabsContent value="details" className="border rounded-md p-2 sm:p-4">
+          <Card className="p-2 sm:p-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg sm:text-xl font-bold flex items-center">
+                <TruckIcon className="h-5 w-5 mr-2" />
+                {isEditing ? "Editar Vehículo" : "Detalles del Vehículo"}
+              </h2>
+              <Button
+                variant="outline"
+                onClick={() => setActiveTab("list")}
+                size="sm"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Volver
+              </Button>
+            </div>
 
-          {selectedTruck && (
-            <>
-              {!isEditing ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="font-semibold">Marca:</h3>
-                    <p>{selectedTruck.brand}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Modelo:</h3>
-                    <p>{selectedTruck.model}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Año:</h3>
-                    <p>{selectedTruck.year}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Placa:</h3>
-                    <p>{selectedTruck.plate}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Color:</h3>
-                    <p>{selectedTruck.color}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Capacidad:</h3>
-                    <p>{selectedTruck.capacity}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">Estado:</h3>
-                    <p>{getStatusBadge(selectedTruck.status)}</p>
-                  </div>
-                  
-
-                  <Button
-                    onClick={handleEditClick}
-                    className="col-span-2 mt-4"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                </div>
-              ) : (
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="brand"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Marca</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="model"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Modelo</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="year"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Año</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="plate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Placa</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="color"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Color</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="capacity"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Capacidad</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem className="col-span-2">
-                            <FormLabel>Estado</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Seleccionar estado" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="disponible">Disponible</SelectItem>
-                                <SelectItem value="en_reparacion">En Reparación</SelectItem>
-                                <SelectItem value="en_ruta">En Ruta</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+            {selectedTruck && (
+              <>
+                {!isEditing ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="font-semibold">Marca:</h3>
+                      <p>{selectedTruck.brand}</p>
                     </div>
-
-                    <div className="flex justify-end space-x-2 pt-4">
+                    <div>
+                      <h3 className="font-semibold">Modelo:</h3>
+                      <p>{selectedTruck.model}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Año:</h3>
+                      <p>{selectedTruck.year}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Placa:</h3>
+                      <p>{selectedTruck.plate}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Color:</h3>
+                      <p>{selectedTruck.color}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Capacidad:</h3>
+                      <p>{selectedTruck.capacity}</p>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Estado:</h3>
+                      <p>{getStatusBadge(selectedTruck.status)}</p>
+                    </div>
+                    
+                    <div className="col-span-2 mt-4">
                       <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsEditing(false)}
+                        onClick={handleEditClick}
+                        className="w-full"
                       >
-                        Cancelar
-                      </Button>
-                      <Button type="submit" disabled={updateMutation.isPending}>
-                        {updateMutation.isPending ? 
-                          "Guardando..." : 
-                          <><Save className="h-4 w-4 mr-2" />Guardar</>
-                        }
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
                       </Button>
                     </div>
-                  </form>
-                </Form>
-              )}
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                  </div>
+                ) : (
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="brand"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Marca</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="model"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Modelo</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="year"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Año</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="plate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Placa</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="color"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Color</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="capacity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Capacidad</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="status"
+                          render={({ field }) => (
+                            <FormItem className="col-span-2">
+                              <FormLabel>Estado</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Seleccionar estado" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="disponible">Disponible</SelectItem>
+                                  <SelectItem value="en_reparacion">En Reparación</SelectItem>
+                                  <SelectItem value="en_ruta">En Ruta</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsEditing(false)}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button type="submit" disabled={updateMutation.isPending}>
+                          {updateMutation.isPending ? 
+                            "Guardando..." : 
+                            <><Save className="h-4 w-4 mr-2" />Guardar</>
+                          }
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
+              </>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
