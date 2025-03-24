@@ -540,6 +540,83 @@ export async function registerRoutes(app: Express) {
     }
   });
   
+  // Endpoint para obtener una ruta por ID
+  app.get("/api/routes/:id", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      
+      if (isNaN(routeId)) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+      
+      // Obtener la ruta específica
+      const routeData = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.id, routeId))
+        .limit(1);
+        
+      if (routeData.length === 0) {
+        return res.status(404).json({ error: "Ruta no encontrada" });
+      }
+      
+      const route = routeData[0];
+      
+      // Obtener información del conductor y ayudante
+      let driverName = null;
+      let assistantName = null;
+      let truckDetails = null;
+      
+      if (route.driverId) {
+        const driverData = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, route.driverId))
+          .limit(1);
+          
+        if (driverData.length > 0) {
+          driverName = driverData[0].name;
+        }
+      }
+      
+      if (route.assistantId) {
+        const assistantData = await db
+          .select({ name: users.name })
+          .from(users)
+          .where(eq(users.id, route.assistantId))
+          .limit(1);
+          
+        if (assistantData.length > 0) {
+          assistantName = assistantData[0].name;
+        }
+      }
+      
+      if (route.truckId) {
+        const truckData = await db
+          .select()
+          .from(trucks)
+          .where(eq(trucks.id, route.truckId))
+          .limit(1);
+          
+        if (truckData.length > 0) {
+          const truck = truckData[0];
+          truckDetails = `${truck.brand} ${truck.model} (${truck.plate})`;
+        }
+      }
+      
+      // Devolver la ruta con información adicional
+      res.json({
+        ...route,
+        driverName,
+        assistantName,
+        truckDetails
+      });
+    } catch (error) {
+      console.error("Error al obtener detalles de ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Endpoint para optimizar ruta
   app.post("/api/routes/optimize", async (req, res) => {
     try {
