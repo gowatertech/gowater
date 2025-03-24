@@ -18,6 +18,42 @@ import RouteTimeline from "@/components/routes/RouteTimeline";
 import RouteSummary from "@/components/routes/RouteSummary";
 
 // Define la interfaz para la ruta con información extendida
+// Interfaz para adaptar los tipos esperados por los componentes
+interface RouteComponent {
+  id: number;
+  name: string;
+  driverId: number;
+  assistantId: number | null;
+  truckId: number | null;
+  zoneId: number | null;
+  isCompleted: boolean;
+  date: Date;
+  status: "pending" | "in_progress" | "completed";
+  currentLocation: string | null;
+  lastUpdate: Date | null;
+  deliverySequence: string[] | null;
+  estimatedDuration: number | null;
+  actualDuration: number | null;
+  totalDistance: string | null;
+  completion: number | null;
+  orderUpdates: string[] | null;
+  stops: string[] | null;
+  driverStartedAt: Date | null;
+  driverCompletedAt: Date | null;
+  startTime: Date | null;
+  endTime: Date | null;
+  totalRevenue: string | null;
+}
+
+// Función adaptadora para convertir los tipos
+function adaptRouteForComponent(route: RouteDetails): RouteComponent {
+  return {
+    ...route,
+    totalRevenue: route.totalRevenue || "0.00",
+    totalDistance: route.totalDistance ? String(route.totalDistance) : null,
+  };
+}
+
 interface RouteDetails {
   id: number;
   name: string;
@@ -222,7 +258,10 @@ export default function RouteDetails() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <RouteMap route={route} className="h-[60vh]" />
+              <RouteMap 
+                route={adaptRouteForComponent(route)} 
+                className="h-[60vh]" 
+              />
             </CardContent>
           </Card>
           
@@ -273,7 +312,10 @@ export default function RouteDetails() {
               <CardTitle>{t("routeStatistics")}</CardTitle>
             </CardHeader>
             <CardContent>
-              <RouteStats route={route} className="h-[40vh]" />
+              <RouteStats 
+                route={adaptRouteForComponent(route)} 
+                className="h-[40vh]" 
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -287,7 +329,10 @@ export default function RouteDetails() {
                   <CardTitle>{t("deliveryTimeline")}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RouteTimeline route={route} className="h-[50vh]" />
+                  <RouteTimeline 
+                    route={adaptRouteForComponent(route)} 
+                    className="h-[50vh]" 
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -298,7 +343,9 @@ export default function RouteDetails() {
                   <CardTitle>{t("routeSummary")}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <RouteSummary route={route} />
+                  <RouteSummary
+                    route={adaptRouteForComponent(route)}
+                  />
                 </CardContent>
               </Card>
             </div>
