@@ -208,6 +208,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
       if (optimizedRoute.length > 0) {
         const center = getMapCenter();
         map.setView(center as [number, number], 11);
+        console.log("Mapa centrado en:", center);
       }
     }, [map, optimizedRoute]);
     
@@ -294,15 +295,21 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         throw new Error("Algunos clientes no tienen coordenadas válidas");
       }
       
-      // Establecer ruta optimizada y cambiar pestaña
+      // Primero establecemos la ruta optimizada
       setOptimizedRoute(optimized);
-      setSelectedTab("review");
       
       // Mensaje de éxito
       toast({
         title: "Ruta optimizada",
         description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes`, // -1 porque el depósito no es un cliente
       });
+      
+      // Cambiamos a la pestaña de revisión después de un breve retraso
+      // para asegurar que el estado se haya actualizado
+      setTimeout(() => {
+        console.log("Navegando a pestaña de revisión");
+        setSelectedTab("review");
+      }, 500);
     } catch (error) {
       console.error("Error optimizing route:", error);
       toast({
