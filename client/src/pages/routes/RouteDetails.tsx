@@ -33,7 +33,7 @@ interface RouteDetails {
   status: "pending" | "in_progress" | "completed";
   currentLocation: string | null;
   lastUpdate: Date | null;
-  deliverySequence: number[] | null;
+  deliverySequence: string[] | null; // Cambiado de number[] para compatibilidad
   estimatedDuration: number | null;
   actualDuration: number | null;
   totalDistance: number | null;
@@ -43,9 +43,9 @@ interface RouteDetails {
   driverStartedAt: Date | null;
   driverCompletedAt: Date | null;
   // Campos adicionales que necesitan los componentes
-  startTime?: Date | null;
-  endTime?: Date | null;
-  totalRevenue?: string | null;
+  startTime: Date | null;
+  endTime: Date | null;
+  totalRevenue: string | null;
 }
 
 export default function RouteDetails() {
@@ -71,12 +71,23 @@ export default function RouteDetails() {
         throw new Error("Error al cargar los detalles de la ruta");
       }
       const data = await response.json();
+      // Convertir deliverySequence a string[] si viene como number[]
+      let formattedData = { ...data };
+      if (Array.isArray(data.deliverySequence)) {
+        formattedData.deliverySequence = data.deliverySequence.map(String);
+      }
+
       return {
-        ...data,
+        ...formattedData,
         date: new Date(data.date),
         lastUpdate: data.lastUpdate ? new Date(data.lastUpdate) : null,
         driverStartedAt: data.driverStartedAt ? new Date(data.driverStartedAt) : null,
         driverCompletedAt: data.driverCompletedAt ? new Date(data.driverCompletedAt) : null,
+        // Campos adicionales necesarios para los componentes
+        startTime: data.driverStartedAt ? new Date(data.driverStartedAt) : null,
+        endTime: data.driverCompletedAt ? new Date(data.driverCompletedAt) : null,
+        // Asegurar que totalRevenue nunca es undefined
+        totalRevenue: "0.00",
       };
     },
     enabled: routeId > 0,
