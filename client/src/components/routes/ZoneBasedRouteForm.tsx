@@ -325,11 +325,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         form.setValue("name", `Ruta ${dateStr} - Zona ${selectedZone}`);
       }
       
-      // Cambiamos automáticamente a la pestaña de revisión para mostrar
-      // los controles de selección de conductor y vehículo
-      setTimeout(() => {
-        setSelectedTab("review");
-      }, 500);
+      // Ya no cambiamos automáticamente a la pestaña de revisión
+      // El usuario debe hacer clic en el botón "Seleccionar Conductor y Vehículo"
     } catch (error) {
       console.error("Error optimizing route:", error);
       toast({
