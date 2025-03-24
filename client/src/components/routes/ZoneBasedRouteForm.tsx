@@ -483,17 +483,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         <TabsList className={`grid w-full ${compact ? "grid-cols-2" : "grid-cols-3"}`}>
           <TabsTrigger value="zone">
             <MapPin className="h-4 w-4 mr-2" />
-            Zona
+            Zone
           </TabsTrigger>
           {!compact && (
             <TabsTrigger value="customers" disabled={!selectedZone}>
               <User className="h-4 w-4 mr-2" />
-              Clientes
+              Customers
             </TabsTrigger>
           )}
           <TabsTrigger value="review" disabled={selectedCustomers.length === 0}>
             <Truck className="h-4 w-4 mr-2" />
-            Revisar Ruta
+            Review Route
           </TabsTrigger>
         </TabsList>
 
@@ -505,19 +505,19 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 name="zoneId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Zona de Entrega</FormLabel>
+                    <FormLabel>Delivery Zone</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(Number(value));
-                        // Si estamos en modo compacto, después de seleccionar la zona, mostrar los clientes automáticamente
+                        // If we are in compact mode, after selecting the zone, automatically show customers
                         if (compact && value) {
-                          // Esperar a que se carguen los clientes de la zona
+                          // Wait for zone customers to load
                           setTimeout(() => {
-                            // Generar un nombre automático para la ruta
+                            // Generate an automatic name for the route
                             const selectedZoneObj = zones.find((z: any) => z.id === Number(value));
                             if (selectedZoneObj) {
-                              const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
-                              form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
+                              const today = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
+                              form.setValue("name", `Route ${selectedZoneObj.name} - ${today}`);
                             }
                           }, 500);
                         }
@@ -526,7 +526,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecciona una zona" />
+                          <SelectValue placeholder="Select a zone" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -557,7 +557,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     onClick={() => setSelectedTab("customers")}
                     className="w-full"
                   >
-                    Continuar a Selección de Clientes
+                    Continue to Customer Selection
                   </Button>
                 </div>
               )}
@@ -574,7 +574,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     className="w-full"
                     disabled={!zoneCustomers || zoneCustomers.length < 2}
                   >
-                    Seleccionar todos
+                    Select All
                   </Button>
                   <Button 
                     type="button" 
@@ -583,7 +583,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     className="w-full"
                     disabled={selectedCustomers.length === 0}
                   >
-                    Revisar Ruta
+                    Review Route
                   </Button>
                 </div>
               )}
@@ -592,7 +592,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
           {selectedZone && (
             <div className="mt-6">
-              <div className="text-sm font-medium mb-2">Mapa de la Zona</div>
+              <div className="text-sm font-medium mb-2">Zone Map</div>
               <div className="border rounded-md overflow-hidden">
                 <ResponsiveMapContainer 
                   fixedHeight 
