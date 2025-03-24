@@ -122,12 +122,28 @@ export default function RouteOptimizer() {
     optimizeRouteMutation.mutate(payload);
   };
 
-  // Obtener la ruta como array de coordenadas
+  // Obtener la ruta como array de coordenadas en el orden correcto de la secuencia
   const getRouteCoordinates = (): LatLngExpression[] => {
     if (!optimizedRoute) return [];
 
+    // Ordenar los puntos según la secuencia optimizada
     const points = optimizedRoute.points || [];
-    return points.map((point: any) => 
+    const sequence = optimizedRoute.sequence || [];
+    
+    // Crear un mapeo de ID a índice en la secuencia para ordenar
+    const sequenceOrder = new Map<number, number>();
+    sequence.forEach((id, index) => {
+      sequenceOrder.set(id, index);
+    });
+    
+    // Ordenar puntos según la secuencia
+    const sortedPoints = [...points].sort((a, b) => {
+      const aIndex = sequenceOrder.get(a.properties.id) || 0;
+      const bIndex = sequenceOrder.get(b.properties.id) || 0;
+      return aIndex - bIndex;
+    });
+    
+    return sortedPoints.map((point: any) => 
       point.geometry.coordinates.reverse() as LatLngExpression
     );
   };
@@ -280,22 +296,46 @@ export default function RouteOptimizer() {
                       opacity={0.7}
                     />
 
-                    {/* Marcadores de puntos de entrega */}
-                    {optimizedRoute.points?.map((point: any, index: number) => (
-                      <Marker
-                        key={index}
-                        position={point.geometry.coordinates.reverse() as LatLngExpression}
-                      >
-                        <Popup>
-                          <div className="text-sm">
-                            <strong>Parada #{index + 1}</strong><br />
-                            {point.properties?.estimatedTime && 
-                              `Tiempo estimado: ${point.properties.estimatedTime} min`
-                            }
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ))}
+                    {/* Marcadores de puntos de entrega en orden de secuencia */}
+                    {(() => {
+                      // Ordenar los puntos según la secuencia optimizada
+                      const points = optimizedRoute.points || [];
+                      const sequence = optimizedRoute.sequence || [];
+                      
+                      // Crear un mapeo de ID a índice en la secuencia para ordenar
+                      const sequenceOrder = new Map<number, number>();
+                      sequence.forEach((id, index) => {
+                        sequenceOrder.set(id, index);
+                      });
+                      
+                      // Ordenar puntos según la secuencia
+                      const sortedPoints = [...points].sort((a, b) => {
+                        const aIndex = sequenceOrder.get(a.properties.id) || 0;
+                        const bIndex = sequenceOrder.get(b.properties.id) || 0;
+                        return aIndex - bIndex;
+                      });
+                      
+                      return sortedPoints.map((point: any, index: number) => {
+                        // Hacemos una copia de las coordenadas antes de reversar para no modificar el objeto original
+                        const coordinates = [...point.geometry.coordinates];
+                        return (
+                          <Marker
+                            key={index}
+                            position={coordinates.reverse() as LatLngExpression}
+                          >
+                            <Popup>
+                              <div className="text-sm">
+                                <strong>Parada #{index + 1}</strong><br />
+                                <span>Cliente: #{point.properties.id}</span><br />
+                                {point.properties?.estimatedTime && 
+                                  `Tiempo estimado: ${point.properties.estimatedTime} min`
+                                }
+                              </div>
+                            </Popup>
+                          </Marker>
+                        );
+                      });
+                    })()}
                   </MapContainer>
                 </div>
               </div>
