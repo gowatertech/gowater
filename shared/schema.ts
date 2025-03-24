@@ -167,7 +167,7 @@ export const trucks = pgTable("trucks", {
   color: text("color").notNull(),
   capacity: text("capacity").notNull(),
   status: text("status", { 
-    enum: ["disponible", "en_mantenimiento", "en_ruta"] 
+    enum: ["disponible", "en_reparacion", "en_ruta"] 
   }).notNull().default("disponible"),
 });
 
@@ -178,7 +178,7 @@ export const insertTruckSchema = z.object({
   plate: z.string().min(1, "La placa es requerida"),
   color: z.string().min(1, "El color es requerido"),
   capacity: z.string().min(1, "La capacidad es requerida"),
-  status: z.enum(["disponible", "en_mantenimiento", "en_ruta"]).default("disponible"),
+  status: z.enum(["disponible", "en_reparacion", "en_ruta"]).default("disponible"),
 });
 
 // Routes

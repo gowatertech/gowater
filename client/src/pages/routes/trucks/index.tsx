@@ -129,7 +129,7 @@ export default function TrucksPage() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: "disponible" | "en_mantenimiento" | "en_ruta" }) => {
+    mutationFn: async ({ id, status }: { id: number; status: "disponible" | "en_reparacion" | "en_ruta" }) => {
       const response = await apiRequest("PATCH", `/api/trucks/${id}/status`, { status });
       return response.json();
     },
@@ -570,7 +570,7 @@ export default function TrucksPage() {
                               </FormControl>
                               <SelectContent>
                                 <SelectItem value="disponible">Disponible</SelectItem>
-                                <SelectItem value="en_mantenimiento">En Mantenimiento</SelectItem>
+                                <SelectItem value="en_reparacion">En Reparación</SelectItem>
                                 <SelectItem value="en_ruta">En Ruta</SelectItem>
                               </SelectContent>
                             </Select>
