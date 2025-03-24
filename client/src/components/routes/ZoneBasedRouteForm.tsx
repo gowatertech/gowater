@@ -634,9 +634,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         <TabsContent value="customers" className="mt-4">
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Clientes en la Zona</h3>
+              <h3 className="text-lg font-medium">Customers in Zone</h3>
               <Badge variant="outline">
-                {selectedCustomers.length} seleccionados
+                {selectedCustomers.length} selected
               </Badge>
             </div>
 
@@ -653,7 +653,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
               </div>
             ) : zoneCustomers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No hay clientes registrados en esta zona
+                No customers registered in this zone
               </div>
             ) : (
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
@@ -702,7 +702,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     variant="secondary"
                     onClick={() => setSelectedTab("review")}
                   >
-                    Revisar y Guardar Ruta
+                    Review and Save Route
                   </Button>
                 )}
                 
@@ -714,10 +714,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   {isOptimizing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Optimizando...
+                      Optimizing...
                     </>
                   ) : (
-                    "Optimizar Ruta"
+                    "Optimize Route"
                   )}
                 </Button>
               </div>
@@ -733,7 +733,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nombre de la Ruta</FormLabel>
+                    <FormLabel>Route Name</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -748,14 +748,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="driverId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Conductor</FormLabel>
+                      <FormLabel>Driver</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Seleccionar un conductor" />
+                            <SelectValue placeholder="Select a driver" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -782,7 +782,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de entrega</FormLabel>
+                      <FormLabel>Delivery Date</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -795,7 +795,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                               {field.value ? (
                                 format(field.value, "PPP", { locale: es })
                               ) : (
-                                <span>Selecciona una fecha</span>
+                                <span>Select a date</span>
                               )}
                               <Calendar className="h-4 w-4 opacity-50" />
                             </Button>
