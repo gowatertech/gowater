@@ -1,10 +1,10 @@
 import {
-  users, customers, products, orders, orderItems,
+  users, customers, products, routes, orders, orderItems,
   settings as settingsTable, trucks,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
-  // Route types have been removed
+  type Route, type InsertRoute,
   type Order, type InsertOrder,
   type OrderItem, type InsertOrderItem,
   type Settings, type InsertSettings,
@@ -43,8 +43,13 @@ export interface IStorage {
   listProducts(): Promise<Product[]>;
   updateProductStock(id: number, quantity: number): Promise<Product>;
 
-  // Routes - Removed
-  /* Route functions removed */
+  // Routes
+  getRoute(id: number): Promise<Route | undefined>;
+  createRoute(route: InsertRoute): Promise<Route>;
+  listRoutes(): Promise<Route[]>;
+  updateRouteStatus(id: number, status: "pending" | "in_progress" | "completed", currentLocation?: string): Promise<Route>;
+  updateRouteProgress(id: number, currentLocation: string, lastUpdate: Date): Promise<Route>;
+  updateOrderDeliveryTimes(routeId: number, updates: Partial<Order>[]): Promise<Order[]>;
 
   // Orders
   getOrder(id: number): Promise<Order | undefined>;
@@ -186,8 +191,95 @@ export class DatabaseStorage implements IStorage {
     return updatedProduct;
   }
 
-  // Routes - Removed
-  /* Route methods removed */
+  // Routes
+  async getRoute(id: number): Promise<Route | undefined> {
+    const [route] = await db.select().from(routes).where(eq(routes.id, id));
+    return route;
+  }
+
+  async createRoute(route: InsertRoute): Promise<Route> {
+    const routeData = {
+      ...route,
+      date: new Date(route.date),
+      startTime: route.startTime ? new Date(route.startTime) : null,
+      endTime: route.endTime ? new Date(route.endTime) : null,
+      lastUpdate: route.lastUpdate ? new Date(route.lastUpdate) : null,
+      driverStartedAt: route.driverStartedAt ? new Date(route.driverStartedAt) : null,
+    };
+    const [newRoute] = await db.insert(routes).values([routeData]).returning();
+    return newRoute;
+  }
+
+  async listRoutes(): Promise<Route[]> {
+    return db.select().from(routes);
+  }
+
+  async updateRouteStatus(
+    id: number,
+    status: "pending" | "in_progress" | "completed",
+    currentLocation?: string
+  ): Promise<Route> {
+    const updates: Partial<Route> = {
+      status,
+      lastUpdate: new Date()
+    };
+
+    if (currentLocation) {
+      updates.currentLocation = currentLocation;
+    }
+
+    if (status === "in_progress" && !updates.startTime) {
+      updates.startTime = new Date();
+    } else if (status === "completed" && !updates.endTime) {
+      updates.endTime = new Date();
+    }
+
+    const [route] = await db
+      .update(routes)
+      .set(updates)
+      .where(eq(routes.id, id))
+      .returning();
+
+    return route;
+  }
+
+  async updateRouteProgress(
+    id: number,
+    currentLocation: string,
+    lastUpdate: Date
+  ): Promise<Route> {
+    const [route] = await db
+      .update(routes)
+      .set({
+        currentLocation,
+        lastUpdate
+      })
+      .where(eq(routes.id, id))
+      .returning();
+
+    return route;
+  }
+
+  async updateOrderDeliveryTimes(
+    routeId: number,
+    updates: Partial<Order>[]
+  ): Promise<Order[]> {
+    const updatedOrders: Order[] = [];
+
+    for (const update of updates) {
+      if (!update.id) continue;
+
+      const [order] = await db
+        .update(orders)
+        .set(update)
+        .where(eq(orders.id, update.id))
+        .returning();
+
+      updatedOrders.push(order);
+    }
+
+    return updatedOrders;
+  }
 
   // Orders
   async getOrder(id: number): Promise<Order | undefined> {
@@ -464,14 +556,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBottleReturnsByDriver(driverId: number): Promise<BottleReturn[]> {
-    // Obtenemos directamente las órdenes donde el conductor es el driverId
-    // Ya que eliminamos la tabla de rutas, ahora usamos el driverId directamente del pedido
-    const ordersWithDriver = await db
+    // Primero obtenemos todas las órdenes del conductor
+    const routesWithDriver = await db
+      .select()
+      .from(routes)
+      .where(eq(routes.driverId, driverId));
+
+    const routeIds = routesWithDriver.map(route => route.id);
+
+    // Luego obtenemos las órdenes asociadas a esas rutas
+    const ordersInRoutes = await db
       .select()
       .from(orders)
-      .where(eq(orders.driverId, driverId));
+      .where(inArray(orders.routeId, routeIds));
 
-    const orderIds = ordersWithDriver.map(order => order.id);
+    const orderIds = ordersInRoutes.map(order => order.id);
 
     // Finalmente obtenemos las devoluciones de envases para esas órdenes
     return db

@@ -50,7 +50,7 @@ function Router() {
         <Route path="/routes" component={Routes} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
-        {/* Ruta de pedidos recurrentes eliminada */}
+        <Route path="/routes/recurring-orders" component={RecurringOrders} />
         <Route path="/routes/trucks" component={TrucksPage} />
         <Route path="/users" component={Users} />
         <Route path="/entregas" component={Entregas} />

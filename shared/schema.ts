@@ -181,7 +181,51 @@ export const insertTruckSchema = z.object({
   status: z.enum(["disponible", "en_reparacion", "en_ruta"]).default("disponible"),
 });
 
-// Routes table has been removed
+// Routes
+export const routes = pgTable("routes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  driverId: integer("driver_id").notNull().references(() => users.id),
+  assistantId: integer("assistant_id").references(() => users.id),
+  truckId: integer("truck_id").notNull().references(() => trucks.id),
+  zoneId: integer("zone_id").references(() => zones.id),
+  status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  startTime: timestamp("start_time"),
+  endTime: timestamp("end_time"),
+  estimatedDuration: integer("estimated_duration"),
+  actualDuration: integer("actual_duration"),
+  totalDistance: decimal("total_distance", { precision: 10, scale: 2 }),
+  totalRevenue: decimal("total_revenue", { precision: 10, scale: 2 }),
+  deliverySequence: text("delivery_sequence").array(),
+  currentLocation: text("current_location"),
+  lastUpdate: timestamp("last_update"),
+  driverStartedAt: timestamp("driver_started_at"),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  stops: text("stops").array(),
+});
+
+export const insertRouteSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  driverId: z.number({ required_error: "Se requiere un conductor" }),
+  assistantId: z.number().optional(),
+  truckId: z.number({ required_error: "Se requiere un vehículo" }),
+  date: z.date(),
+  zoneId: z.number({ required_error: "Se requiere una zona" }),
+  status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
+  isCompleted: z.boolean().default(false),
+  startTime: z.string().datetime().optional(),
+  endTime: z.string().datetime().optional(),
+  estimatedDuration: z.number().optional(),
+  actualDuration: z.number().optional(),
+  totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
+  deliverySequence: z.array(z.string()).optional(),
+  currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
+  lastUpdate: z.string().datetime().optional(),
+  driverStartedAt: z.string().datetime().optional(),
+  stops: z.array(z.string()).optional(),
+});
 
 // Orders
 export const orders = pgTable("orders", {
@@ -200,7 +244,7 @@ export const orders = pgTable("orders", {
   cashCollected: decimal("cash_collected", { precision: 10, scale: 2 }).default("0.00"),
   driverCommission: decimal("driver_commission", { precision: 10, scale: 2 }).default("0.00"),
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).default("0.00"),
-  recurringOrderId: integer("recurring_order_id"),
+  recurringOrderId: integer("recurring_order_id").references(() => recurringOrders.id),
 });
 
 export const orderItems = pgTable("order_items", {
@@ -333,7 +377,21 @@ export const insertZoneSchema = z.object({
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
-// Recurring Orders table has been removed
+// Recurring Orders
+export const recurringOrders = pgTable("recurring_orders", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  frequency: text("frequency", { enum: ["daily", "weekly", "biweekly", "monthly"] }).notNull(),
+  nextOrderDate: timestamp("next_order_date").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+export const insertRecurringOrderSchema = z.object({
+  customerId: z.number(),
+  frequency: z.enum(["daily", "weekly", "biweekly", "monthly"]),
+  nextOrderDate: z.string().datetime(),
+  isActive: z.boolean().default(true),
+});
 
 // Warehouses
 export const warehouses = pgTable("warehouses", {
@@ -565,7 +623,8 @@ export type Product = typeof products.$inferSelect;
 export type InsertProduct = z.infer<typeof insertProductSchema>;
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
-// Route types have been removed
+export type Route = typeof routes.$inferSelect;
+export type InsertRoute = z.infer<typeof insertRouteSchema>;
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;
@@ -586,7 +645,8 @@ export type Sector = typeof sectors.$inferSelect;
 export type InsertSector = z.infer<typeof insertSectorSchema>;
 export type ReturnedBottle = typeof returnedBottles.$inferSelect;
 export type InsertReturnedBottle = z.infer<typeof insertReturnedBottleSchema>;
-// RecurringOrder types have been removed
+export type RecurringOrder = typeof recurringOrders.$inferSelect;
+export type InsertRecurringOrder = z.infer<typeof insertRecurringOrderSchema>;
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Invoice = typeof invoices.$inferSelect;
