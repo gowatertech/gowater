@@ -774,10 +774,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   {isOptimizing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Optimizing...
+                      Optimizando...
                     </>
                   ) : (
-                    "Optimize Route"
+                    "Optimizar Ruta"
                   )}
                 </Button>
               </div>
@@ -793,7 +793,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Route Name</FormLabel>
+                    <FormLabel>Nombre de Ruta</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -808,14 +808,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="driverId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Driver</FormLabel>
+                      <FormLabel>Conductor</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a driver" />
+                            <SelectValue placeholder="Seleccionar conductor" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -1023,10 +1023,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   {createRouteMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating route...
+                      Creando ruta...
                     </>
                   ) : (
-                    "Create Route"
+                    "Crear Ruta"
                   )}
                 </Button>
               </div>
