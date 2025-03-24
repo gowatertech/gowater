@@ -778,7 +778,7 @@ export default function Billing() {
                     <label className="text-sm font-medium">Cliente</label>
                     <Select
                       onValueChange={(value) => {
-                        const customer = customers.find(c => c.id === parseInt(value));
+                        const customer = customers.find((c: Customer) => c.id === parseInt(value));
                         setSelectedCustomer(customer || null);
                       }}
                     >
@@ -801,20 +801,21 @@ export default function Billing() {
                   
                   <div>
                     <label className="text-sm font-medium">Método de Pago</label>
-                    <Select
-                      value={paymentMethod}
-                      onValueChange={(value) => setPaymentMethod(value as 'cash' | 'credit' | 'card')}
-                      className="mt-1"
-                    >
-                      <SelectTrigger className="h-9 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash">Efectivo</SelectItem>
-                        <SelectItem value="credit">Crédito</SelectItem>
-                        <SelectItem value="card">Tarjeta</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="mt-1">
+                      <Select
+                        value={paymentMethod}
+                        onValueChange={(value) => setPaymentMethod(value as 'cash' | 'credit' | 'card')}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Efectivo</SelectItem>
+                          <SelectItem value="credit">Crédito</SelectItem>
+                          <SelectItem value="card">Tarjeta</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   {selectedCustomer && (
@@ -979,7 +980,7 @@ export default function Billing() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="font-medium">Cliente: </span>
-                    {customers.find(c => c.id === selectedInvoice.customerId)?.name}
+                    {customers.find(c => c.id === selectedInvoice.customerId)?.businessname}
                   </div>
                   <div>
                     <span className="font-medium">Fecha: </span>
@@ -1028,7 +1029,7 @@ export default function Billing() {
                     {invoiceDetails.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell>
-                          {products.find(p => p.id === item.productId)?.name}
+                          {products.find((p: Product) => p.id === item.productId)?.name}
                         </TableCell>
                         <TableCell className="text-right">{item.quantity}</TableCell>
                         <TableCell className="text-right">
