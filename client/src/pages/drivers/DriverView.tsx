@@ -241,9 +241,8 @@ function RouteLines({ deliveries, currentPosition }: {
     <Polyline 
       positions={stopCoordinates} 
       color="#2563eb" 
-      weight={3}
-      opacity={0.9}
-      dashArray="5, 5" // Línea discontinua opcional
+      weight={4}
+      opacity={1}
     />
   );
 }
@@ -537,11 +536,15 @@ export default function DriverView() {
                   <Marker 
                     key="warehouse"
                     position={initialPosition}
-                    icon={new L.DivIcon({
-                      html: `<div style="display:flex;align-items:center;justify-content:center;background-color:#16a34a;color:white;border-radius:9999px;width:24px;height:24px;font-size:12px;font-weight:600;box-shadow:0 0 10px rgba(0,0,0,0.3);">0</div>`,
+                    icon={L.divIcon({
+                      html: `
+                        <div style="display:flex; align-items:center; justify-content:center; background-color:#16a34a; color:white; width:30px; height:30px; border-radius:50%; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 0 8px rgba(0,0,0,0.5);">
+                          0
+                        </div>
+                      `,
                       className: '',
-                      iconSize: [24, 24],
-                      iconAnchor: [12, 12]
+                      iconSize: [30, 30],
+                      iconAnchor: [15, 15]
                     })}
                   >
                     <Popup>Almacén principal</Popup>
@@ -552,11 +555,15 @@ export default function DriverView() {
                     <Marker 
                       key={delivery.id}
                       position={delivery.coordinates as LatLngExpression}
-                      icon={new L.DivIcon({
-                        html: `<div style="display:flex;align-items:center;justify-content:center;background-color:#2563eb;color:white;border-radius:9999px;width:24px;height:24px;font-size:12px;font-weight:600;box-shadow:0 0 10px rgba(0,0,0,0.3);">${delivery.id}</div>`,
+                      icon={L.divIcon({
+                        html: `
+                          <div style="display:flex; align-items:center; justify-content:center; background-color:#2563eb; color:white; width:30px; height:30px; border-radius:50%; font-size:14px; font-weight:bold; border:2px solid white; box-shadow:0 0 8px rgba(0,0,0,0.5);">
+                            ${delivery.id}
+                          </div>
+                        `,
                         className: '',
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12]
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
                       })}
                     >
                       <Popup>
