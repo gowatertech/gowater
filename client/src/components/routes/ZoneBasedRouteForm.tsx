@@ -278,18 +278,30 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         unvisited.splice(closestIdx, 1);
       }
       
-      // Set the optimized route
+      // Set the optimized route and log for debugging
+      console.log("Ruta optimizada:", optimized);
+      
+      // Importante validar que haya coordenadas válidas antes de establecer la ruta
+      const hasValidCoordinates = optimized.every(customer => {
+        if (!customer.coordinates) {
+          console.error(`Cliente sin coordenadas: ID ${customer.id}, ${customer.businessname}`);
+          return false;
+        }
+        return true;
+      });
+      
+      if (!hasValidCoordinates) {
+        throw new Error("Algunos clientes no tienen coordenadas válidas");
+      }
+      
+      // Establecer ruta optimizada y cambiar pestaña
       setOptimizedRoute(optimized);
+      setSelectedTab("review");
       
-      // Add a small delay to ensure state is updated before changing tab
-      setTimeout(() => {
-        // Progress to the next tab
-        setSelectedTab("review");
-      }, 100);
-      
+      // Mensaje de éxito
       toast({
         title: "Ruta optimizada",
-        description: `Se ha optimizado la ruta para ${optimized.length} clientes`,
+        description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes`, // -1 porque el depósito no es un cliente
       });
     } catch (error) {
       console.error("Error optimizing route:", error);
