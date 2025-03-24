@@ -10,6 +10,26 @@ interface RouteStatsProps {
 export default function RouteStats({ route, className }: RouteStatsProps) {
   const { t } = useTranslation();
   
+  // Parsear totalDistance a número si es string
+  let distance: number | undefined;
+  if (route.totalDistance) {
+    if (typeof route.totalDistance === 'number') {
+      distance = route.totalDistance;
+    } else if (typeof route.totalDistance === 'string') {
+      distance = parseFloat(route.totalDistance);
+    }
+  }
+  
+  // Parsear totalRevenue a número si es string
+  let revenue: number = 0;
+  if (route.totalRevenue) {
+    if (typeof route.totalRevenue === 'number') {
+      revenue = route.totalRevenue;
+    } else if (typeof route.totalRevenue === 'string') {
+      revenue = parseFloat(route.totalRevenue);
+    }
+  }
+  
   return (
     <div className={`grid grid-cols-3 gap-4 ${className}`}>
       <div>
@@ -19,13 +39,13 @@ export default function RouteStats({ route, className }: RouteStatsProps) {
       <div>
         <p className="text-xs text-muted-foreground">{t("distance")}</p>
         <p className="font-medium">
-          {route.totalDistance ? `${route.totalDistance.toFixed(1)} km` : "-"}
+          {distance && !isNaN(distance) ? `${distance.toFixed(1)} km` : "-"}
         </p>
       </div>
       <div>
         <p className="text-xs text-muted-foreground">{t("revenue")}</p>
         <p className="font-medium">
-          {formatCurrency(route.totalRevenue || 0)}
+          {formatCurrency(revenue)}
         </p>
       </div>
     </div>
