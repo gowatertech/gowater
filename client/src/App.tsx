@@ -8,6 +8,7 @@ import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
 import Orders from "@/pages/orders";
 import Routes from "@/pages/routes";
+import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
 import Payments from "@/pages/payments";
 import Billing from "@/pages/billing";
@@ -47,11 +48,13 @@ function Router() {
         <Route path="/inventory" component={InventoryPage} />
 
         <Route path="/orders" component={Orders} />
-        <Route path="/routes" component={Routes} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/recurring-orders" component={RecurringOrders} />
         <Route path="/routes/trucks" component={TrucksPage} />
+        <Route path="/routes/vehicle-loading" component={VehicleLoadingPage} />
+        <Route path="/routes/:id" component={RouteDetails} />
+        <Route path="/routes" component={Routes} />
         <Route path="/users" component={Users} />
         <Route path="/entregas" component={Entregas} />
         <Route path="/drivers/view" component={DriverView} />
@@ -65,7 +68,6 @@ function Router() {
         <Route path="/bottles/balance" component={BalanceEnvases} />
         <Route path="/bottles/missing" component={Faltantes} />
         <Route path="/bottles/assign-responsibility" component={AsignarResponsabilidad} />
-        <Route path="/routes/vehicle-loading" component={VehicleLoadingPage} />
 
         <Route component={NotFound} />
       </Switch>
