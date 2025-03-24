@@ -377,8 +377,8 @@ export default function Routes() {
               ?.filter((route) => !route.isCompleted)
               .map((route) => (
                 <Card key={route.id} className="overflow-hidden">
-                  <div className="grid grid-cols-4 items-stretch">
-                    <div className="p-2 col-span-3">
+                  <div className="flex items-center p-2">
+                    <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <Truck className="h-4 w-4" />
                         <span className="font-medium text-sm">
@@ -415,28 +415,18 @@ export default function Routes() {
                             : "Calculando..."}
                         </div>
                       </div>
-                      
-                      <div className="flex justify-end mt-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          className="h-6 px-2"
-                        >
-                          <Link href={`/routes/${route.id}`}>
-                            <span className="text-xs mr-1">Ver detalles</span>
-                            <ArrowRight className="h-3 w-3" />
-                          </Link>
-                        </Button>
-                      </div>
                     </div>
                     
-                    <div className="border-l h-full">
-                      <RouteMap
-                        route={route}
-                        className="h-full w-full min-h-[90px]"
-                      />
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      className="h-8 ml-2"
+                    >
+                      <Link href={`/routes/${route.id}`}>
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
                 </Card>
               ))}
