@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
 import Orders from "@/pages/orders";
+import Routes from "@/pages/routes";
 import Users from "@/pages/users";
 import Payments from "@/pages/payments";
 import Billing from "@/pages/billing";
@@ -27,7 +28,7 @@ import i18n from "./lib/i18n";
 import VehicleLoadingPage from "@/pages/routes/vehicle-loading";
 import RouteSettlementPage from "@/pages/routes/settlements";
 import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
-import RouteCreator from "./pages/routes/RouteCreator";
+import RecurringOrders from "./pages/routes/RecurringOrders";
 import TrucksPage from "./pages/routes/trucks";
 
 function Router() {
@@ -46,9 +47,10 @@ function Router() {
         <Route path="/inventory" component={InventoryPage} />
 
         <Route path="/orders" component={Orders} />
-        <Route path="/routes" component={RouteCreator} />
+        <Route path="/routes" component={Routes} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
+        <Route path="/routes/recurring-orders" component={RecurringOrders} />
         <Route path="/routes/trucks" component={TrucksPage} />
         <Route path="/users" component={Users} />
         <Route path="/entregas" component={Entregas} />
