@@ -322,10 +322,16 @@ export async function registerDriverRoutes(app: Express) {
           // Crear nuevo registro
           await db.insert(bottleReturns).values({
             orderId,
-            driverId: req.user?.id || 2,
-            customerId: existingOrder[0].customerId,
+            productId: req.body.productId || 1, // Utilizamos el ID del producto o un valor predeterminado
+            expectedQuantity: req.body.expectedQuantity || returnedContainers, // Cantidad esperada igual a retornada si no se especifica
             returnedQuantity: returnedContainers,
-            status: 'pending'
+            pendingQuantity: (req.body.expectedQuantity || returnedContainers) - returnedContainers,
+            returnDate: new Date().toISOString(),
+            status: 'pending',
+            amountCharged: "0.00",
+            depositAmount: "0.00",
+            automaticAlert: false,
+            manuallyAssigned: false
           });
         }
       }
