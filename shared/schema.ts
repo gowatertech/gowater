@@ -157,7 +157,7 @@ export const insertCustomerSchema = z.object({
   creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
 });
 
-// Trucks
+// Trucks (Vehículos)
 export const trucks = pgTable("trucks", {
   id: serial("id").primaryKey(),
   brand: text("brand").notNull(),
@@ -166,7 +166,10 @@ export const trucks = pgTable("trucks", {
   plate: text("plate").notNull().unique(),
   color: text("color").notNull(),
   capacity: text("capacity").notNull(),
-  status: text("status", { enum: ["disponible", "en_reparacion", "en_ruta"] }).notNull().default("disponible"),
+  status: text("status", { 
+    enum: ["disponible", "en_mantenimiento", "en_ruta"] 
+  }).notNull().default("disponible"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertTruckSchema = z.object({
@@ -176,7 +179,7 @@ export const insertTruckSchema = z.object({
   plate: z.string().min(1, "La placa es requerida"),
   color: z.string().min(1, "El color es requerido"),
   capacity: z.string().min(1, "La capacidad es requerida"),
-  status: z.enum(["disponible", "en_reparacion", "en_ruta"]).default("disponible"),
+  status: z.enum(["disponible", "en_mantenimiento", "en_ruta"]).default("disponible"),
 });
 
 // Routes
