@@ -672,7 +672,10 @@ export async function registerRoutes(app: Express) {
         // Ya no se requiere truckId (es opcional)
         // Campos opcionales si están presentes
         deliverySequence: req.body.deliverySequence || [],
-        stops: req.body.stops || []
+        stops: req.body.stops || [],
+        // Incluir información calculada si está presente
+        totalDistance: req.body.totalDistance || null,
+        estimatedDuration: req.body.estimatedDuration ? Number(req.body.estimatedDuration) : null
       };
       
       console.log("Datos procesados para inserción:", routeData);

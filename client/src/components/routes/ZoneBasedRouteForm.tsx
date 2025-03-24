@@ -402,8 +402,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       }
       
       totalDistance += calculateDistance(
-        route[i].coordinates,
-        route[i+1].coordinates
+        route[i].coordinates || "",
+        route[i+1].coordinates || ""
       );
     }
     
@@ -414,22 +414,32 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   // Estimate duration in minutes based on distance and stops
   const calculateEstimatedDuration = (distance: number, numStops: number) => {
     const AVERAGE_SPEED = 30; // km/h
-    const TIME_PER_STOP = 10; // minutes per delivery stop
+    const TIME_PER_STOP = 10; // minutos por parada de entrega
+    const EXTRA_TIME_PER_DELIVERY = 5; // 5 minutos adicionales por entrega
     
-    // Calculate travel time in minutes: distance (km) / speed (km/h) * 60 min/h
+    // Calcular tiempo de viaje en minutos: distancia (km) / velocidad (km/h) * 60 min/h
     const travelTimeMinutes = (distance / 1000) / AVERAGE_SPEED * 60;
     
-    // Add time for deliveries
-    const deliveryTimeMinutes = numStops * TIME_PER_STOP;
+    // Añadir tiempo para entregas (tiempo por parada + tiempo adicional por entrega)
+    const stopTimeMinutes = numStops * TIME_PER_STOP;
+    const deliveryTimeMinutes = numStops * EXTRA_TIME_PER_DELIVERY;
     
-    // Total estimated minutes, rounded up
-    return Math.ceil(travelTimeMinutes + deliveryTimeMinutes);
+    // Total de minutos estimados, redondeado hacia arriba
+    return Math.ceil(travelTimeMinutes + stopTimeMinutes + deliveryTimeMinutes);
   };
 
   // Create route mutation
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Submitting route data:", data);
+      
+      // Calcular la distancia total de la ruta optimizada
+      const totalDistance = calculateTotalRouteDistance(optimizedRoute);
+      
+      // Calcular la duración estimada basada en la distancia y el número de paradas
+      const estimatedDuration = calculateEstimatedDuration(totalDistance, optimizedRoute.length - 1); // -1 porque el depósito no es una parada
+      
+      console.log(`Ruta calculada: Distancia total: ${totalDistance} metros, Duración estimada: ${estimatedDuration} minutos`);
       
       // Preparar los datos para enviar al servidor
       const routeData = {
@@ -441,7 +451,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         isCompleted: false,
         // Incluir datos de la ruta optimizada
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
-        stops: optimizedRoute.map(customer => customer.coordinates || "")
+        stops: optimizedRoute.map(customer => customer.coordinates || ""),
+        // Añadir información calculada
+        totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear con 2 decimales
+        estimatedDuration: estimatedDuration, // En minutos
       };
       
       console.log("Route data processed:", routeData);
