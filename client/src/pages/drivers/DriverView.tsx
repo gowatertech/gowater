@@ -195,6 +195,7 @@ function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number,
 }
 
 // Componente para renderizar las rutas en el mapa
+// Componente para dibujar las rutas entre almacén y puntos de entrega
 function RouteLines({ deliveries, currentPosition }: { 
   deliveries: Delivery[]; 
   currentPosition: [number, number] | null;
@@ -208,38 +209,38 @@ function RouteLines({ deliveries, currentPosition }: {
   if (pendingDeliveries.length === 0) return null;
   
   // Crear puntos de la ruta, empezando desde el almacén (punto 0)
-  const routePoints: LatLngExpression[] = [];
+  const stopCoordinates: LatLngExpression[] = [];
   
-  // Añadir depósito/almacén como primer punto (0)
+  // Usar la configuración global para obtener las coordenadas del almacén
   const settingsQuery = useQuery<any>({
     queryKey: ["/api/settings"],
     staleTime: Infinity,
   });
   
+  // Añadir el punto de inicio (almacén principal)
   if (settingsQuery.data?.latitude && settingsQuery.data?.longitude) {
     const warehouseLat = parseFloat(settingsQuery.data.latitude);
     const warehouseLng = parseFloat(settingsQuery.data.longitude);
     if (!isNaN(warehouseLat) && !isNaN(warehouseLng)) {
-      routePoints.push([warehouseLat, warehouseLng]);
+      stopCoordinates.push([warehouseLat, warehouseLng]);
     }
   }
   
-  // Añadir cada punto de entrega ordenados por ID (1, 2, 3...)
+  // Añadir cada punto de entrega ordenados por ID
   pendingDeliveries
     .sort((a, b) => a.id - b.id)
     .forEach(delivery => {
-      routePoints.push(delivery.coordinates as LatLngExpression);
+      stopCoordinates.push(delivery.coordinates as LatLngExpression);
     });
   
-  // Si no hay suficientes puntos, no mostrar nada
-  if (routePoints.length < 2) return null;
+  // Si no hay suficientes puntos, no mostrar líneas
+  if (stopCoordinates.length < 2) return null;
 
   return (
     <Polyline 
-      positions={routePoints}
-      color="#2563EB" // Azul sólido como en la imagen
-      weight={3} 
-      opacity={0.9}
+      positions={stopCoordinates} 
+      color="blue" 
+      weight={3}
     />
   );
 }
@@ -533,11 +534,11 @@ export default function DriverView() {
                   <Marker 
                     key="warehouse"
                     position={initialPosition}
-                    icon={L.divIcon({
-                      className: 'custom-div-icon',
-                      html: `<div class="marker-pin bg-green-600 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md font-bold">0</div>`,
-                      iconSize: [40, 40],
-                      iconAnchor: [20, 20]
+                    icon={new L.DivIcon({
+                      html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-full w-6 h-6 text-sm font-semibold">0</div>`,
+                      className: 'custom-number-icon',
+                      iconSize: [24, 24],
+                      iconAnchor: [12, 12]
                     })}
                   >
                     <Popup>Almacén principal</Popup>
@@ -548,11 +549,11 @@ export default function DriverView() {
                     <Marker 
                       key={delivery.id}
                       position={delivery.coordinates as LatLngExpression}
-                      icon={L.divIcon({
-                        className: 'custom-div-icon',
-                        html: `<div class="marker-pin bg-blue-600 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md font-bold">${delivery.id}</div>`,
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 20]
+                      icon={new L.DivIcon({
+                        html: `<div class="flex items-center justify-center bg-blue-600 text-white rounded-full w-6 h-6 text-sm font-semibold">${delivery.id}</div>`,
+                        className: 'custom-number-icon',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
                       })}
                     >
                       <Popup>
