@@ -55,7 +55,16 @@ export default function NewTruckPage() {
     try {
       setIsSubmitting(true);
       
+      // Verificar que todos los campos requeridos existan y tengan valor
+      if (!values.brand || !values.model || !values.plate || !values.color) {
+        throw new Error("Todos los campos son obligatorios");
+      }
+      
       console.log("Form values before conversion:", values);
+
+      // Asegurar que los valores numéricos nunca son NaN
+      const year = typeof values.year === 'number' ? values.year : (Number(values.year) || currentYear);
+      const capacity = typeof values.capacity === 'number' ? values.capacity : (Number(values.capacity) || 1000);
 
       // Ensure all values are in the correct format
       const submittedValues = {
@@ -63,9 +72,9 @@ export default function NewTruckPage() {
         brand: String(values.brand).trim(),
         model: String(values.model).trim(),
         color: String(values.color).trim(),
-        year: typeof values.year === 'number' ? values.year : Number(values.year),
+        year: year,
         plate: String(values.plate).trim().toUpperCase(),
-        capacity: typeof values.capacity === 'number' ? values.capacity : Number(values.capacity),
+        capacity: capacity,
         status: values.status || "disponible"
       };
       
