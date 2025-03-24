@@ -824,7 +824,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
               {optimizedRoute.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Secuencia de Paradas ({optimizedRoute.length})</h3>
+                  <h3 className="text-sm font-medium mb-2">Stop Sequence ({optimizedRoute.length})</h3>
                   <div className="border rounded-md p-4 space-y-3 max-h-[300px] overflow-y-auto">
                     {optimizedRoute.map((customer, index) => (
                       <div key={customer.id} className="flex items-center">
@@ -837,7 +837,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                         <div>
                           <div className="font-medium">
                             {customer.businessname}
-                            {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Inicio</span>}
+                            {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Start</span>}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {customer.street} {customer.streetnumber}
@@ -851,7 +851,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
               {optimizedRoute.length > 0 && (
                 <div className="border rounded-md overflow-hidden mt-4">
-                  <div className="text-sm font-medium mb-2">Mapa de Ruta Optimizada</div>
+                  <div className="text-sm font-medium mb-2">Optimized Route Map</div>
                   <ResponsiveMapContainer 
                     fixedHeight 
                     minHeight="350px"
@@ -880,7 +880,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                               .map(customer => {
                                 try {
                                   if (!customer.coordinates) {
-                                    console.error("Cliente sin coordenadas:", customer);
+                                    console.error("Customer without coordinates:", customer);
                                     return [19.0, -70.0]; // Fallback
                                   }
                                   const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
@@ -903,7 +903,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                             const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
                             
                             if (isNaN(lat) || isNaN(lng)) {
-                              console.error("Coordenadas inválidas:", customer.coordinates);
+                              console.error("Invalid coordinates:", customer.coordinates);
                               return null;
                             }
                             
@@ -924,9 +924,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                                 <Popup>
                                   <div className="text-sm">
                                     {index === 0 ? (
-                                      <strong>Almacén Principal (Inicio)</strong>
+                                      <strong>Main Warehouse (Start)</strong>
                                     ) : (
-                                      <strong>Parada {index}</strong>
+                                      <strong>Stop {index}</strong>
                                     )}
                                     <div>{customer.businessname}</div>
                                     {customer.street && (
@@ -953,7 +953,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   variant="outline" 
                   onClick={() => setSelectedTab("customers")}
                 >
-                  Atrás
+                  Back
                 </Button>
                 
                 <Button 
@@ -963,10 +963,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   {createRouteMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creando ruta...
+                      Creating route...
                     </>
                   ) : (
-                    "Crear Ruta"
+                    "Create Route"
                   )}
                 </Button>
               </div>
