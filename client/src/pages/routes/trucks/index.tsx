@@ -15,12 +15,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   Form,
   FormControl,
   FormField,
@@ -37,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Eye, Edit, Save, Truck as TruckIcon, AlertCircle } from "lucide-react";
+import { PlusCircle, Eye, Edit, Save, Truck as TruckIcon, AlertCircle, ArrowLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +41,6 @@ type TruckFormData = typeof insertTruckSchema._type;
 export default function TrucksPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedTruck, setSelectedTruck] = useState<Truck | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("list");
@@ -116,7 +109,7 @@ export default function TrucksPage() {
         description: "Vehículo actualizado correctamente",
       });
       setIsEditing(false);
-      setIsViewDialogOpen(false);
+      setActiveTab("list");
     },
     onError: (error: Error) => {
       console.error("Error al actualizar:", error);
@@ -177,7 +170,7 @@ export default function TrucksPage() {
     };
     
     form.reset(formData);
-    setIsViewDialogOpen(true);
+    setActiveTab("details");
   };
 
   const handleEditClick = () => {
@@ -216,9 +209,10 @@ export default function TrucksPage() {
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="list">Lista de Vehículos</TabsTrigger>
           <TabsTrigger value="new">Nuevo Vehículo</TabsTrigger>
+          <TabsTrigger value="details" disabled={!selectedTruck}>Detalles</TabsTrigger>
         </TabsList>
         
         <TabsContent value="list" className="border rounded-md p-2 sm:p-4">
