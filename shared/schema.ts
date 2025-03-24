@@ -179,12 +179,13 @@ export const insertTruckSchema = z.object({
   status: z.enum(["disponible", "en_reparacion", "en_ruta"]).default("disponible"),
 });
 
-// Routes - updated to remove truck references
+// Routes
 export const routes = pgTable("routes", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   driverId: integer("driver_id").notNull().references(() => users.id),
   assistantId: integer("assistant_id").references(() => users.id),
+  truckId: integer("truck_id").notNull().references(() => trucks.id),
   zoneId: integer("zone_id").references(() => zones.id),
   status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
