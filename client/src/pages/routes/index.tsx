@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X, Edit, Eye } from "lucide-react";
+import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X, Edit, Eye, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
@@ -377,75 +377,56 @@ export default function Routes() {
               ?.filter((route) => !route.isCompleted)
               .map((route) => (
                 <Card key={route.id} className="overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-3">
-                    <div className="p-6">
-                      <CardTitle className="mb-4 flex items-center gap-2">
-                        <Truck className="h-5 w-5" />
-                        <span>
-                          {t("route")} #{route.id}
+                  <div className="flex items-center p-2">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4" />
+                        <span className="font-medium text-sm">
+                          {route.name || `Ruta #${route.id}`}
                         </span>
                         <Badge
                           variant={
                             route.driverStartedAt ? "secondary" : "outline"
                           }
-                          className="ml-2"
+                          className="ml-auto text-xs py-0 h-5"
                         >
                           {route.driverStartedAt
                             ? t("inProgress")
                             : t("notStarted")}
                         </Badge>
-                      </CardTitle>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            {format(new Date(route.date), "MMMM d, yyyy")}
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-2 mt-1 text-xs">
+                        <div className="flex items-center">
+                          <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
+                          <span className="text-muted-foreground">
+                            {format(new Date(route.date), "dd/MM/yyyy")}
                           </span>
                         </div>
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">
-                              {route.stops?.length} {t("stops")}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {route.totalDistance
-                                ? `${Number(route.totalDistance).toFixed(1)} km`
-                                : t("calculatingRoute")}
-                            </p>
-                          </div>
+                        <div className="flex items-center">
+                          <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
+                          <span className="text-muted-foreground">
+                            {route.stops?.length} paradas
+                          </span>
                         </div>
-                      </div>
-
-                      <RouteSummary route={route} className="mt-4" />
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="h-8"
-                        >
-                          <Link href={`/routes/${route.id}`}>
-                            {t("viewDetails")}
-                          </Link>
-                        </Button>
+                        <div className="flex items-center justify-end">
+                          {route.totalDistance
+                            ? `${Number(route.totalDistance).toFixed(1)} km`
+                            : "Calculando..."}
+                        </div>
                       </div>
                     </div>
-                    {!isMobile && (
-                      <>
-                        <div className="border-l">
-                          <RouteMap
-                            route={route}
-                            className="h-full w-full min-h-[250px]"
-                          />
-                        </div>
-                        <div className="border-l p-6">
-                          <RouteTimeline route={route} />
-                        </div>
-                      </>
-                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      className="h-8 ml-2"
+                    >
+                      <Link href={`/routes/${route.id}`}>
+                        <ArrowRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
                 </Card>
               ))}
