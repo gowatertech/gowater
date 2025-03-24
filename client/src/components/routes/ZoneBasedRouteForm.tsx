@@ -388,7 +388,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         name: data.name,
         date: new Date(data.date),
         driverId: Number(data.driverId),
-        zoneId: Number(data.zoneId),
+        zoneId: Number(data.zoneId || selectedZone),
+        status: "pending",
+        isCompleted: false,
         // Incluir datos de la ruta optimizada
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
         stops: optimizedRoute.map(customer => customer.coordinates || "")
@@ -433,6 +435,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     console.log("Form submitted with data:", data);
     console.log("Selected customers:", selectedCustomers.length);
     console.log("Optimized route:", optimizedRoute.length);
+    console.log("Form values:", form.getValues());
+    console.log("Form state:", form.formState);
     
     if (optimizedRoute.length === 0 && selectedCustomers.length > 0) {
       toast({
@@ -453,7 +457,20 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     }
 
     try {
-      await createRouteMutation.mutateAsync(data);
+      // Asegurarnos de que zoneId esté en los datos
+      if (!data.zoneId && selectedZone) {
+        data.zoneId = selectedZone;
+      }
+      
+      console.log("Submitting data with zoneId:", data.zoneId);
+      const result = await createRouteMutation.mutateAsync(data);
+      console.log("Mutation result:", result);
+      
+      // Mostrar mensaje de éxito
+      toast({
+        title: "Éxito",
+        description: "Ruta creada correctamente",
+      });
     } catch (error) {
       console.error("Submit error:", error);
     }
