@@ -382,18 +382,25 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Submitting route data:", data);
-      const response = await apiRequest("POST", "/api/routes", {
-        ...data,
+      
+      // Preparar los datos para enviar al servidor
+      const routeData = {
+        name: data.name,
         date: new Date(data.date),
         driverId: Number(data.driverId),
-        // Ya no enviamos truckId ni assistantId, solo el conductor
         zoneId: Number(data.zoneId),
-        status: "pending",
-        isCompleted: false
-      });
+        // Incluir datos de la ruta optimizada
+        deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
+        stops: optimizedRoute.map(customer => customer.coordinates || "")
+      };
+      
+      console.log("Route data processed:", routeData);
+      
+      const response = await apiRequest("POST", "/api/routes", routeData);
 
       if (!response.ok) {
         const error = await response.json();
+        console.error("Server returned error:", error);
         throw new Error(error.error || 'Error al crear la ruta');
       }
 
@@ -402,27 +409,45 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
       toast({
-        description: t("routeCreated"),
+        description: "Ruta creada exitosamente",
+        title: "Éxito",
       });
       form.reset();
+      setSelectedZone(null);
+      setSelectedCustomers([]);
+      setOptimizedRoute([]);
+      setSelectedTab("zone");
       onRouteCreated();
     },
     onError: (error: Error) => {
       console.error("Error creating route:", error);
       toast({
         variant: "destructive",
-        title: t("error"),
+        title: "Error",
         description: error.message,
       });
     },
   });
 
   const onSubmit = async (data: any) => {
+    console.log("Form submitted with data:", data);
+    console.log("Selected customers:", selectedCustomers.length);
+    console.log("Optimized route:", optimizedRoute.length);
+    
     if (optimizedRoute.length === 0 && selectedCustomers.length > 0) {
       toast({
         variant: "destructive",
         title: "Error",
         description: "Debes optimizar la ruta antes de guardar",
+      });
+      return;
+    }
+    
+    if (!data.driverId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Por favor selecciona un conductor",
       });
       return;
     }
