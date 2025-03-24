@@ -100,25 +100,56 @@ function MapBoundsAdjuster({ deliveries }: { deliveries: Delivery[] }) {
   const map = useMap();
   
   useEffect(() => {
-    if (deliveries.length === 0) return;
+    // Forzar un retraso para asegurar que el mapa está completamente cargado
+    const timer = setTimeout(() => {
+      console.log("Ajustando mapa a los puntos de entrega:", deliveries);
+      
+      if (deliveries.length === 0) {
+        // Si no hay entregas, centrar en una coordenada predeterminada
+        map.setView([19.0700, -70.1300], 10);
+        return;
+      }
+      
+      try {
+        // Crear los límites iniciales
+        const bounds = L.latLngBounds([]);
+        
+        // Añadir cada punto de entrega a los límites
+        deliveries.forEach(delivery => {
+          if (delivery.coordinates && 
+              Array.isArray(delivery.coordinates) && 
+              delivery.coordinates.length === 2 &&
+              !isNaN(delivery.coordinates[0]) && 
+              !isNaN(delivery.coordinates[1])) {
+            
+            console.log("Añadiendo coordenada al mapa:", delivery.coordinates);
+            bounds.extend(delivery.coordinates);
+          }
+        });
+        
+        // Si tenemos coordenadas válidas, ajustar el mapa
+        if (bounds.isValid()) {
+          console.log("Ajustando a límites:", bounds.toString());
+          
+          // Añadir un pequeño padding alrededor de los límites y hacer zoom
+          map.fitBounds(bounds, {
+            padding: [100, 100], // 100px de padding en todas direcciones
+            maxZoom: 12,         // Limitar el zoom máximo
+            animate: true
+          });
+        } else {
+          // Fallback a una ubicación predeterminada si los límites no son válidos
+          console.log("Límites no válidos, usando ubicación predeterminada");
+          map.setView([19.0700, -70.1300], 10);
+        }
+      } catch (error) {
+        console.error("Error al ajustar los límites del mapa:", error);
+        // Fallback a una ubicación predeterminada si hay un error
+        map.setView([19.0700, -70.1300], 10);
+      }
+    }, 500);  // Esperamos 500ms para que el mapa se inicialice completamente
     
-    // Crear los límites iniciales
-    const bounds = L.latLngBounds([]);
-    
-    // Añadir cada punto de entrega a los límites
-    deliveries.forEach(delivery => {
-      bounds.extend(delivery.coordinates);
-    });
-    
-    // Si tenemos coordenadas válidas, ajustar el mapa
-    if (bounds.isValid()) {
-      // Añadir un pequeño padding alrededor de los límites
-      map.fitBounds(bounds, {
-        padding: [50, 50], // 50px de padding en todas direcciones
-        maxZoom: 13,       // Limitar el zoom máximo
-        animate: true
-      });
-    }
+    return () => clearTimeout(timer);
   }, [map, deliveries]);
   
   return null;
@@ -466,8 +497,29 @@ export default function DriverView() {
               <ResponsiveMapContainer minHeight="35vh">
                 <MapContainer
                   center={[19.0700, -70.1300]} // Coordenadas de República Dominicana (centro)
-                  zoom={10}
+                  zoom={9}
                   style={{ height: "100%", width: "100%" }}
+                  whenCreated={(mapInstance) => {
+                    console.log("Mapa creado");
+                    // Intentamos hacer zoom inicial manual para asegurar que se adapta
+                    if (todayDeliveries && todayDeliveries.length > 0) {
+                      const bounds = L.latLngBounds([]);
+                      todayDeliveries.forEach(delivery => {
+                        if (delivery.coordinates) {
+                          bounds.extend(delivery.coordinates);
+                        }
+                      });
+                      if (bounds.isValid()) {
+                        console.log("Haciendo zoom inicial a:", bounds.toString());
+                        setTimeout(() => {
+                          mapInstance.fitBounds(bounds, {
+                            padding: [100, 100],
+                            maxZoom: 12
+                          });
+                        }, 100);
+                      }
+                    }
+                  }}
                 >
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
