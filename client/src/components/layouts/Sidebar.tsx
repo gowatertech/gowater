@@ -46,15 +46,12 @@ const sidebarItems = [
   },
   {
     icon: Route,
-    label: "Rutas y Entregas",
-    href: "/routes",
+    label: "Vehículos y Entregas",
+    href: "/routes/vehicle-loading",
     subItems: [
-      { label: "Rutas", href: "/routes" },
-      { label: "Vista del Chofer", href: "/drivers/view" },
       { label: "Vehículos", href: "/routes/trucks" },
       { label: "Carga de Vehículo", href: "/routes/vehicle-loading" },
       { label: "Cuadre de Vehículo", href: "/routes/vehicle-settlement" },
-      { label: "Pedidos Recurrentes", href: "/routes/recurring-orders" },
       { label: "Pedidos", href: "/orders" },
     ],
   },
