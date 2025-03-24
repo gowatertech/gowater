@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -55,8 +55,8 @@ const sidebarItems = [
       { label: "Carga de Vehículo", href: "/routes/vehicle-loading" },
       { label: "Cuadre de Vehículo", href: "/routes/vehicle-settlement" },
       { label: "Pedidos Recurrentes", href: "/routes/recurring-orders" },
-      { label: "Crear Vehículo", href: "/trucks/new" },
       { label: "Vehículos", href: "/trucks" },
+      { label: "Crear Vehículo", href: "/trucks/new" },
       { label: "Pedidos", href: "/orders" },
     ],
   },
@@ -115,6 +115,26 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
   const [location] = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [activeItems, setActiveItems] = useState<string[]>([]);
+
+  const handleItemClick = (label: string) => {
+    if (activeItems.includes(label)) {
+      setActiveItems(activeItems.filter(item => item !== label));
+    } else {
+      setActiveItems([...activeItems, label]);
+    }
+  };
+
+  // Si alguna ruta está activa, mostrar automáticamente el menú expandido
+  useEffect(() => {
+    const activeMainItem = sidebarItems.find(item => 
+      location === item.href || (item.subItems?.some(sub => location === sub.href))
+    );
+    
+    if (activeMainItem && !activeItems.includes(activeMainItem.label)) {
+      setActiveItems(prev => [...prev, activeMainItem.label]);
+    }
+  }, [location]);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
@@ -187,7 +207,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                   <div
                     className={cn(
                       "overflow-hidden transition-[max-height] duration-200 ease-in-out",
-                      isHovered ? "max-h-48" : "max-h-0"
+                      (isHovered || isActive || activeItems.includes(item.label)) ? "max-h-80" : "max-h-0"
                     )}
                   >
                     <div className="py-1 px-2 space-y-1">
