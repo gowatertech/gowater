@@ -162,20 +162,20 @@ export const trucks = pgTable("trucks", {
   id: serial("id").primaryKey(),
   brand: text("brand").notNull(),
   model: text("model").notNull(),
-  year: integer("year").notNull(),
+  year: text("year").notNull(),
   plate: text("plate").notNull().unique(),
   color: text("color").notNull(),
-  capacity: integer("capacity").notNull(),
+  capacity: text("capacity").notNull(),
   status: text("status", { enum: ["disponible", "en_reparacion", "en_ruta"] }).notNull().default("disponible"),
 });
 
 export const insertTruckSchema = z.object({
   brand: z.string().min(1, "La marca es requerida"),
   model: z.string().min(1, "El modelo es requerido"),
-  year: z.coerce.number().min(1990, "El año debe ser mayor a 1990"),
+  year: z.string().min(1, "El año es requerido"),
   plate: z.string().min(1, "La placa es requerida"),
   color: z.string().min(1, "El color es requerido"),
-  capacity: z.coerce.number().min(1, "La capacidad debe ser mayor a 0"),
+  capacity: z.string().min(1, "La capacidad es requerida"),
   status: z.enum(["disponible", "en_reparacion", "en_ruta"]).default("disponible"),
 });
 
