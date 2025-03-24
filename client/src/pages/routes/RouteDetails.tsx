@@ -50,7 +50,7 @@ function adaptRouteForComponent(route: RouteDetails): RouteComponent {
   return {
     ...route,
     totalRevenue: route.totalRevenue || "0.00",
-    totalDistance: route.totalDistance ? String(route.totalDistance) : null,
+    totalDistance: route.totalDistance ? String(route.totalDistance) : "0",
   };
 }
 
@@ -122,8 +122,8 @@ export default function RouteDetails() {
         // Campos adicionales necesarios para los componentes
         startTime: data.driverStartedAt ? new Date(data.driverStartedAt) : null,
         endTime: data.driverCompletedAt ? new Date(data.driverCompletedAt) : null,
-        // Asegurar que totalRevenue nunca es undefined
-        totalRevenue: "0.00",
+        // Asegurar que totalRevenue siempre tenga un valor válido con formato adecuado
+        totalRevenue: data.totalRevenue ? Number(data.totalRevenue).toFixed(2) : "0.00",
       };
     },
     enabled: routeId > 0,
@@ -272,7 +272,7 @@ export default function RouteDetails() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {route.totalDistance ? `${(route.totalDistance / 1000).toFixed(2)} km` : '-'}
+                  {route.totalDistance ? `${(route.totalDistance / 1000).toFixed(2)} km` : '0.00 km'}
                 </div>
               </CardContent>
             </Card>
@@ -285,7 +285,7 @@ export default function RouteDetails() {
                 <div className="text-2xl font-bold">
                   {route.estimatedDuration 
                     ? `${Math.floor(route.estimatedDuration / 60)}h ${route.estimatedDuration % 60}m` 
-                    : '-'}
+                    : '0h 0m'}
                 </div>
               </CardContent>
             </Card>
@@ -298,7 +298,7 @@ export default function RouteDetails() {
                 <div className="text-2xl font-bold">
                   {route.actualDuration 
                     ? `${Math.floor(route.actualDuration / 60)}h ${route.actualDuration % 60}m` 
-                    : '-'}
+                    : '0h 0m'}
                 </div>
               </CardContent>
             </Card>
