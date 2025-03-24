@@ -32,7 +32,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface OrderItem {
   id?: number;
@@ -451,7 +454,6 @@ export default function Billing() {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6">
-      {/* Encabezado con botón nueva factura */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <h1 className="text-2xl md:text-3xl font-bold">Facturación</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -643,20 +645,45 @@ export default function Billing() {
         </Dialog>
       </div>
 
-      {/* Tabla de Facturas */}
-      <Card>
-        <ScrollArea className="h-[calc(100vh-200px)]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Factura No.</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
+      {/* Contenido principal con pestañas */}
+      <Tabs defaultValue="facturas" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="facturas">Facturas</TabsTrigger>
+          <TabsTrigger value="nueva">Nueva Factura</TabsTrigger>
+        </TabsList>
+        
+        {/* Pestaña de Facturas */}
+        <TabsContent value="facturas">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">Listado de Facturas</CardTitle>
+                <div className="relative w-full max-w-sm">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Buscar factura por cliente..."
+                    className="w-full pl-8 h-9 text-sm"
+                  />
+                </div>
+              </div>
+              <CardDescription>
+                Gestione las facturas emitidas a los clientes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ScrollArea className="h-[calc(100vh-250px)]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Cliente</TableHead>
+                      <TableHead className="text-xs">Fecha</TableHead>
+                      <TableHead className="text-xs">Factura No.</TableHead>
+                      <TableHead className="text-xs">Estado</TableHead>
+                      <TableHead className="text-xs text-right">Total</TableHead>
+                      <TableHead className="text-xs">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
             <TableBody>
               {invoicesError ? (
                 <TableRow>
@@ -728,9 +755,214 @@ export default function Billing() {
                 })
               )}
             </TableBody>
-          </Table>
-        </ScrollArea>
-      </Card>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Pestaña de Nueva Factura */}
+        <TabsContent value="nueva">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Crear Nueva Factura</CardTitle>
+              <CardDescription>
+                Complete el formulario para crear una nueva factura
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Cliente y Notas */}
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="text-sm font-medium">Cliente</label>
+                    <Select
+                      onValueChange={(value) => {
+                        const customer = customers.find(c => c.id === parseInt(value));
+                        setSelectedCustomer(customer || null);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-sm mt-1">
+                        <SelectValue placeholder="Seleccionar Cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map((customer) => (
+                          <SelectItem
+                            key={customer.id}
+                            value={customer.id.toString()}
+                            className="text-sm py-2"
+                          >
+                            {customer.businessname}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium">Método de Pago</label>
+                    <Select
+                      value={paymentMethod}
+                      onValueChange={(value) => setPaymentMethod(value as 'cash' | 'credit' | 'card')}
+                      className="mt-1"
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Efectivo</SelectItem>
+                        <SelectItem value="credit">Crédito</SelectItem>
+                        <SelectItem value="card">Tarjeta</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedCustomer && (
+                    <div className="text-sm md:col-span-3 bg-muted p-3 rounded-lg">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="font-medium">Nombre: </span>
+                          {selectedCustomer.managername}
+                        </div>
+                        <div>
+                          <span className="font-medium">RNC: </span>
+                          {selectedCustomer.rnc || "No disponible"}
+                        </div>
+                        <div>
+                          <span className="font-medium">Teléfono: </span>
+                          {selectedCustomer.phone}
+                        </div>
+                        <div>
+                          <span className="font-medium">Dirección: </span>
+                          {selectedCustomer.street} {selectedCustomer.streetnumber}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="md:col-span-3">
+                    <label className="text-sm font-medium">Nota</label>
+                    <Textarea
+                      value={notes}
+                      onChange={(e) => {
+                        if (e.target.value.length <= 200) {
+                          setNotes(e.target.value);
+                        }
+                      }}
+                      placeholder="Añadir nota a la factura (máximo 200 caracteres)"
+                      className="h-20 text-sm resize-none mt-1"
+                      maxLength={200}
+                    />
+                    <div className="text-xs text-muted-foreground text-right mt-1">
+                      {notes.length}/200 caracteres
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tabla de Productos */}
+                <div className="border rounded-lg overflow-hidden">
+                  <ScrollArea className="h-[35vh] sm:h-[30vh]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20 text-xs sticky top-0 bg-background">Código</TableHead>
+                          <TableHead className="text-xs sticky top-0 bg-background">Descripción</TableHead>
+                          <TableHead className="w-16 text-right text-xs sticky top-0 bg-background">Cant.</TableHead>
+                          <TableHead className="w-24 text-right text-xs sticky top-0 bg-background">Precio</TableHead>
+                          <TableHead className="w-24 text-right text-xs sticky top-0 bg-background">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orderItems.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell className="p-0.5">
+                              <Select
+                                value={item.code}
+                                onValueChange={(value) => handleProductChange(index, value)}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder="---" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {products.map((product) => (
+                                    <SelectItem
+                                      key={product.id}
+                                      value={product.id.toString()}
+                                      className="text-sm py-1.5"
+                                    >
+                                      {product.id}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="p-0.5">
+                              <Input
+                                value={item.description}
+                                readOnly
+                                className="bg-muted h-8 text-sm"
+                              />
+                            </TableCell>
+                            <TableCell className="p-0.5">
+                              <Input
+                                type="number"
+                                min="0"
+                                value={item.quantity}
+                                onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                                className="text-right h-8 text-sm"
+                              />
+                            </TableCell>
+                            <TableCell className="p-0.5">
+                              <Input
+                                value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
+                                readOnly
+                                className="text-right bg-muted h-8 text-sm"
+                              />
+                            </TableCell>
+                            <TableCell className="p-0.5">
+                              <Input
+                                value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
+                                readOnly
+                                className="text-right bg-muted h-8 text-sm"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </div>
+
+                {/* Totales y Botón */}
+                <div className="grid md:grid-cols-2 gap-4 items-end">
+                  <div className="bg-muted p-3 rounded-lg space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span>Sub-total:</span>
+                      <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>ITBIS (18%):</span>
+                      <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-base">
+                      <span>Total:</span>
+                      <span>RD$ {calculateTotal().total.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    className="w-full h-10"
+                    disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0)}
+                    onClick={handleCreateInvoice}
+                  >
+                    {createMutation.isPending ? "Creando..." : "Crear Factura"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog para ver detalles de la factura */}
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
