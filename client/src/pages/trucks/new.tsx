@@ -42,10 +42,10 @@ export default function NewTruckPage() {
     defaultValues: {
       brand: "",
       model: "",
-      year: currentYear,
+      year: currentYear.toString(),
       plate: "",
       color: "",
-      capacity: 1000,
+      capacity: "1000",
       status: "disponible"
     },
     mode: "onChange"
@@ -62,19 +62,15 @@ export default function NewTruckPage() {
       
       console.log("Form values before conversion:", values);
 
-      // Asegurar que los valores numéricos nunca son NaN
-      const year = typeof values.year === 'number' ? values.year : (Number(values.year) || currentYear);
-      const capacity = typeof values.capacity === 'number' ? values.capacity : (Number(values.capacity) || 1000);
-
-      // Ensure all values are in the correct format
+      // Ensure all values are in the correct format as strings
       const submittedValues = {
         ...values,
         brand: String(values.brand).trim(),
         model: String(values.model).trim(),
         color: String(values.color).trim(),
-        year: year,
+        year: String(values.year),
         plate: String(values.plate).trim().toUpperCase(),
-        capacity: capacity,
+        capacity: String(values.capacity),
         status: values.status || "disponible"
       };
       
@@ -190,20 +186,13 @@ export default function NewTruckPage() {
                       <FormLabel>Año</FormLabel>
                       <FormControl>
                         <Input 
-                          type="number"
-                          min={1990}
-                          max={currentYear}
-                          value={field.value}
+                          type="text"
+                          defaultValue={currentYear.toString()}
+                          {...field}
                           onChange={(e) => {
-                            // Si el campo está vacío, establece un valor predeterminado
-                            if (e.target.value === '') {
-                              field.onChange(currentYear);
-                            } else {
-                              const value = parseInt(e.target.value);
-                              if (!isNaN(value) && value >= 1990 && value <= currentYear) {
-                                field.onChange(value);
-                              }
-                            }
+                            // No es necesaria la conversión ya que será un string
+                            const newValue = e.target.value === '' ? currentYear.toString() : e.target.value;
+                            field.onChange(newValue);
                           }}
                         />
                       </FormControl>
@@ -257,20 +246,14 @@ export default function NewTruckPage() {
                       <FormLabel>Capacidad (L)</FormLabel>
                       <FormControl>
                         <Input 
-                          type="number" 
-                          min={1}
-                          placeholder="Ingrese la capacidad" 
-                          value={field.value}
+                          type="text" 
+                          placeholder="Ingrese la capacidad"
+                          defaultValue="1000"
+                          {...field}
                           onChange={(e) => {
-                            // Si el campo está vacío, establece un valor predeterminado
-                            if (e.target.value === '') {
-                              field.onChange(1000);
-                            } else {
-                              const value = parseInt(e.target.value);
-                              if (!isNaN(value) && value >= 1) {
-                                field.onChange(value);
-                              }
-                            }
+                            // No es necesaria la conversión ya que será un string
+                            const newValue = e.target.value === '' ? "1000" : e.target.value;
+                            field.onChange(newValue);
                           }}
                         />
                       </FormControl>
