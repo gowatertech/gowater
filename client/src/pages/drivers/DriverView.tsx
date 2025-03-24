@@ -131,31 +131,69 @@ function RouteLines({ deliveries, currentPosition }: {
 }) {
   if (!currentPosition || deliveries.length === 0) return null;
 
-  // Ordenar entregas por estado (primero las pendientes)
-  const sortedDeliveries = [...deliveries].sort((a, b) => {
-    if (a.status === 'pending' && b.status !== 'pending') return -1;
-    if (a.status !== 'pending' && b.status === 'pending') return 1;
-    return 0;
+  // Filtrar solo entregas pendientes
+  const pendingDeliveries = deliveries.filter(d => d.status === 'pending');
+  
+  if (pendingDeliveries.length === 0) return null;
+  
+  // Ordenar las entregas por distancia desde la posición actual
+  const sortedDeliveries = [...pendingDeliveries].sort((a, b) => {
+    const distA = getDistance(
+      currentPosition[0], 
+      currentPosition[1], 
+      a.coordinates[0], 
+      a.coordinates[1]
+    );
+    const distB = getDistance(
+      currentPosition[0], 
+      currentPosition[1], 
+      b.coordinates[0], 
+      b.coordinates[1]
+    );
+    return distA - distB;
+  });
+  
+  // Crear una ruta completa desde la posición actual a todas las entregas pendientes
+  const routePoints: LatLngExpression[] = [currentPosition];
+  
+  // Añadir cada punto de entrega en el orden calculado
+  sortedDeliveries.forEach(delivery => {
+    routePoints.push(delivery.coordinates as LatLngExpression);
   });
 
-  // Crear una línea desde la posición actual a la primera entrega pendiente
-  const pendingDelivery = sortedDeliveries.find(d => d.status === 'pending');
-  
-  if (!pendingDelivery) return null;
-  
-  const routeLine: LatLngExpression[] = [
-    currentPosition,
-    pendingDelivery.coordinates
-  ];
-
   return (
-    <Polyline 
-      positions={routeLine}
-      color="#4F46E5"
-      weight={4}
-      opacity={0.7}
-      dashArray="10,10"
-    />
+    <>
+      {/* Línea principal que conecta todos los puntos */}
+      <Polyline 
+        positions={routePoints}
+        color="#4F46E5"
+        weight={4}
+        opacity={0.7}
+        dashArray="10,10"
+      />
+      
+      {/* Líneas de conexión entre puntos para mayor claridad */}
+      {sortedDeliveries.map((delivery, index) => {
+        // Si es el primer punto, conectar desde la posición actual
+        const fromPoint = index === 0 
+          ? currentPosition 
+          : sortedDeliveries[index - 1].coordinates;
+          
+        return (
+          <Polyline 
+            key={`route-${delivery.id}`}
+            positions={[fromPoint, delivery.coordinates]}
+            color={
+              index === 0 ? "#FF5722" : // Naranja para la primera conexión
+              index === sortedDeliveries.length - 1 ? "#4CAF50" : // Verde para la última
+              "#2196F3" // Azul para las intermedias
+            }
+            weight={3}
+            opacity={0.8}
+          />
+        );
+      })}
+    </>
   );
 }
 
@@ -388,8 +426,8 @@ export default function DriverView() {
             <Card className="overflow-hidden p-0">
               <ResponsiveMapContainer minHeight="35vh">
                 <MapContainer
-                  center={[18.4700, -69.9100]} // Santo Domingo
-                  zoom={13}
+                  center={[19.0700, -70.1300]} // Coordenadas de República Dominicana (centro)
+                  zoom={10}
                   style={{ height: "100%", width: "100%" }}
                 >
                   <TileLayer
