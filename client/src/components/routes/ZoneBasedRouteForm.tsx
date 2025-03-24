@@ -606,20 +606,32 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                 Back
               </Button>
               
-              <Button 
-                type="button"
-                onClick={optimizeRoute}
-                disabled={selectedCustomers.length < 2 || isOptimizing}
-              >
-                {isOptimizing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Optimizing...
-                  </>
-                ) : (
-                  "Optimize Route"
+              <div className="space-x-2">
+                {optimizedRoute.length > 0 && (
+                  <Button 
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setSelectedTab("review")}
+                  >
+                    Seleccionar Conductor y Vehículo
+                  </Button>
                 )}
-              </Button>
+                
+                <Button 
+                  type="button"
+                  onClick={optimizeRoute}
+                  disabled={selectedCustomers.length < 2 || isOptimizing}
+                >
+                  {isOptimizing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Optimizando...
+                    </>
+                  ) : (
+                    "Optimizar Ruta"
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </TabsContent>
