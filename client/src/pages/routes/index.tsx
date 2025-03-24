@@ -61,12 +61,12 @@ export default function Routes() {
   const isDriver = user?.role === "driver";
   const isAssistant = user?.role === "assistant";
 
-  // La interfaz del conductor muestra el estado actual y próximas entregas
+  // The driver interface shows current status and upcoming deliveries
   if (isDriver) {
     return <DriverView />;
   }
 
-  // Asistentes de entrega ven el seguimiento de pedidos
+  // Delivery assistants see order tracking
   if (isAssistant) {
     return <DeliveryTracking />;
   }
@@ -77,22 +77,22 @@ export default function Routes() {
     setZoneName("");
   };
 
-  // Click handler para el botón de crear ruta
+  // Click handler for the create route button
   const handleCreateRoute = () => {
     setIsCreatingRoute(true);
   };
 
-  // Cuando se cancela la creación volvemos al listado
+  // When creation is canceled we return to the list
   const handleCancelCreate = () => {
     setIsCreatingRoute(false);
   };
 
-  // Cuando se crea una ruta volvemos al listado
+  // When a route is created we return to the list
   const handleRouteCreated = () => {
     setIsCreatingRoute(false);
   };
 
-  // Mutación para eliminar zona
+  // Mutation for deleting a zone
   const deleteZoneMutation = useMutation({
     mutationFn: async (zoneId: number) => {
       const response = await apiRequest("DELETE", `/api/zones/${zoneId}`);
@@ -117,7 +117,7 @@ export default function Routes() {
     }
   });
 
-  // Mutación para actualizar zona
+  // Mutation for updating a zone
   const updateZoneMutation = useMutation({
     mutationFn: async (zone: { id: number; name: string; color: string }) => {
       const response = await apiRequest("PATCH", `/api/zones/${zone.id}`, zone);
