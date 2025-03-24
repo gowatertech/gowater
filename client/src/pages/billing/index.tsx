@@ -478,7 +478,7 @@ export default function Billing() {
                     <SelectValue placeholder="Seleccionar Cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {customers.map((customer) => (
+                    {customers.map((customer: Customer) => (
                       <SelectItem
                         key={customer.id}
                         value={customer.id.toString()}
