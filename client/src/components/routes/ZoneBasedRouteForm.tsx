@@ -569,18 +569,19 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     <Select
                       onValueChange={(value) => {
                         field.onChange(Number(value));
-                        // If we are in compact mode, after selecting the zone, automatically show customers
-                        if (compact && value) {
-                          // Wait for zone customers to load
-                          setTimeout(() => {
-                            // Generate an automatic name for the route
-                            const selectedZoneObj = zones.find((z: any) => z.id === Number(value));
-                            if (selectedZoneObj) {
-                              const today = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
-                              form.setValue("name", `Route ${selectedZoneObj.name} - ${today}`);
-                            }
-                          }, 500);
-                        }
+                        setSelectedZone(Number(value));
+                        
+                        // Automáticamente mostrar los clientes después de seleccionar la zona
+                        setTimeout(() => {
+                          // Generate an automatic name for the route
+                          const selectedZoneObj = zones.find((z: any) => z.id === Number(value));
+                          if (selectedZoneObj) {
+                            const today = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
+                            form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
+                            // Cambiar automáticamente a la tab de clientes
+                            setSelectedTab("customers");
+                          }
+                        }, 500);
                       }}
                       value={field.value?.toString() || ""}
                     >
@@ -609,31 +610,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 )}
               />
 
-              {selectedZone && !compact && (
-                <div className="pt-4">
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    onClick={() => setSelectedTab("customers")}
-                    className="w-full"
-                  >
-                    Continuar a Selección de Clientes
-                  </Button>
-                </div>
-              )}
-
-              {selectedZone && compact && (
-                <div className="pt-4">
-                  <Button 
-                    type="button" 
-                    variant="default" 
-                    onClick={() => setSelectedTab("customers")}
-                    className="w-full"
-                  >
-                    Seleccionar Clientes
-                  </Button>
-                </div>
-              )}
+              {/* Los botones de selección de clientes se eliminaron porque ahora es automático */}
             </form>
           </Form>
 
