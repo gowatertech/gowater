@@ -414,7 +414,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   // Estimate duration in minutes based on distance and stops
   const calculateEstimatedDuration = (distance: number, numStops: number) => {
     const AVERAGE_SPEED = 30; // km/h
-    const TIME_PER_STOP = 10; // minutos por parada de entrega
+    const TIME_PER_STOP = 5; // minutos por parada de entrega (ajustado a 5 min)
     const EXTRA_TIME_PER_DELIVERY = 5; // 5 minutos adicionales por entrega
     
     // Calcular tiempo de viaje en minutos: distancia (km) / velocidad (km/h) * 60 min/h
