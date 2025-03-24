@@ -5,11 +5,12 @@ import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema } from "@shared/schema";
 import { db } from './db';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import express from 'express';
 import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
 import { registerRouteSettlements } from "./routes/routeSettlements";
 import {Request, Response} from 'express';
+import { calculateOptimalRoute } from './services/routeOptimizer';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({

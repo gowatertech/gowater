@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type Order, type Route } from "@shared/schema";
+import { type Order, type Route, type Truck, type User } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from 'react-leaflet';
@@ -38,6 +38,14 @@ import {
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export default function RouteOptimizer() {
   const { t } = useTranslation();
