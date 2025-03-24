@@ -169,7 +169,6 @@ export const trucks = pgTable("trucks", {
   status: text("status", { 
     enum: ["disponible", "en_mantenimiento", "en_ruta"] 
   }).notNull().default("disponible"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertTruckSchema = z.object({

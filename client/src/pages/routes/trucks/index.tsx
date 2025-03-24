@@ -455,10 +455,7 @@ export default function TrucksPage() {
                     <h3 className="font-semibold">Estado:</h3>
                     <p>{getStatusBadge(selectedTruck.status)}</p>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">Creado:</h3>
-                    <p>{new Date(selectedTruck.createdAt).toLocaleDateString()}</p>
-                  </div>
+                  
 
                   <Button
                     onClick={handleEditClick}
