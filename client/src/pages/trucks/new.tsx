@@ -186,9 +186,14 @@ export default function NewTruckPage() {
                           max={currentYear}
                           value={field.value}
                           onChange={(e) => {
-                            const value = e.target.value === '' ? '' : parseInt(e.target.value);
-                            if (value === '' || (!isNaN(value) && value >= 1990 && value <= currentYear)) {
-                              field.onChange(value);
+                            // Si el campo está vacío, establece un valor predeterminado
+                            if (e.target.value === '') {
+                              field.onChange(currentYear);
+                            } else {
+                              const value = parseInt(e.target.value);
+                              if (!isNaN(value) && value >= 1990 && value <= currentYear) {
+                                field.onChange(value);
+                              }
                             }
                           }}
                         />
@@ -248,9 +253,14 @@ export default function NewTruckPage() {
                           placeholder="Ingrese la capacidad" 
                           value={field.value}
                           onChange={(e) => {
-                            const value = e.target.value === '' ? '' : parseInt(e.target.value);
-                            if (value === '' || (!isNaN(value) && value >= 1)) {
-                              field.onChange(value);
+                            // Si el campo está vacío, establece un valor predeterminado
+                            if (e.target.value === '') {
+                              field.onChange(1000);
+                            } else {
+                              const value = parseInt(e.target.value);
+                              if (!isNaN(value) && value >= 1) {
+                                field.onChange(value);
+                              }
                             }
                           }}
                         />
