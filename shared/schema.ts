@@ -206,6 +206,7 @@ export const routes = pgTable("routes", {
 export const insertRouteSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   driverId: z.number({ required_error: "Se requiere un conductor" }),
+  assistantId: z.number().optional(),
   truckId: z.number({ required_error: "Se requiere un vehículo" }),
   date: z.date(),
   zoneId: z.number({ required_error: "Se requiere una zona" }),

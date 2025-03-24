@@ -78,6 +78,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
     queryKey: ["/api/users?role=driver"],
   });
+  
+  // Fetch assistants
+  const { data: assistants = [], isLoading: isLoadingAssistants } = useQuery({
+    queryKey: ["/api/users?role=assistant"],
+  });
 
   // Fetch trucks (vehículos)
   const { data: trucks = [], isLoading: isLoadingTrucks } = useQuery<Truck[]>({
@@ -112,6 +117,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
     defaultValues: {
       name: "",
       driverId: undefined,
+      assistantId: undefined,
       truckId: undefined,
       zoneId: undefined,
       date: new Date(),
