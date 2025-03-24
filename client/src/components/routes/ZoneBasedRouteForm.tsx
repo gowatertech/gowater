@@ -452,9 +452,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         // Incluir datos de la ruta optimizada
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
         stops: optimizedRoute.map(customer => customer.coordinates || ""),
-        // Añadir información calculada
-        totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear con 2 decimales
-        estimatedDuration: estimatedDuration, // En minutos
+        // Añadir información calculada (corregido para asegurar que se guarden como números)
+        totalDistance: Number((totalDistance / 1000).toFixed(2)), // Convertir a km y asegurar que sea número
+        estimatedDuration: Number(estimatedDuration), // Asegurar que sea número
       };
       
       console.log("Route data processed:", routeData);
