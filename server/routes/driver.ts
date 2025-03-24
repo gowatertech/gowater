@@ -256,14 +256,20 @@ export async function registerDriverRoutes(app: Express) {
         count: sql<number>`count(*)`
       })
       .from(orders)
-      .where(sql`${orders.routeId} IN (${routeIds.join(',')})`);
+      .where(
+        routeIds.length === 1 
+          ? eq(orders.routeId, routeIds[0]) 
+          : sql`${orders.routeId} IN (${sql.join(routeIds.map(id => sql`${id}`), sql`, `)})`
+      );
       
       const deliveredOrders = await db.select({
         count: sql<number>`count(*)`
       })
       .from(orders)
       .where(and(
-        sql`${orders.routeId} IN (${routeIds.join(',')})`,
+        routeIds.length === 1 
+          ? eq(orders.routeId, routeIds[0]) 
+          : sql`${orders.routeId} IN (${sql.join(routeIds.map(id => sql`${id}`), sql`, `)})`,
         eq(orders.status, 'delivered')
       ));
       
