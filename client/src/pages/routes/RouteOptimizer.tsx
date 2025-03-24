@@ -198,58 +198,62 @@ export default function RouteOptimizer() {
               )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="truck">{t("vehicle")}</Label>
-                <Select
-                  value={selectedTruck}
-                  onValueChange={setSelectedTruck}
-                >
-                  <SelectTrigger id="truck">
-                    <SelectValue placeholder={t("selectVehicle")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">{t("selectVehicle")}</SelectItem>
-                    {trucks
-                      .filter(truck => truck.status === "disponible")
-                      .map(truck => (
-                        <SelectItem key={truck.id} value={truck.id.toString()}>
-                          {truck.brand} {truck.model} ({truck.plate})
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="assistant">{t("assistant")}</Label>
-                <Select
-                  value={selectedAssistant}
-                  onValueChange={setSelectedAssistant}
-                >
-                  <SelectTrigger id="assistant">
-                    <SelectValue placeholder={t("selectAssistant")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">{t("selectAssistant")}</SelectItem>
-                    {assistants.map(assistant => (
-                      <SelectItem key={assistant.id} value={assistant.id.toString()}>
-                        {assistant.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            {orders.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="truck">{t("vehicle")}</Label>
+                    <Select
+                      value={selectedTruck}
+                      onValueChange={setSelectedTruck}
+                    >
+                      <SelectTrigger id="truck">
+                        <SelectValue placeholder={t("selectVehicle")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">{t("selectVehicle")}</SelectItem>
+                        {trucks
+                          .filter(truck => truck.status === "disponible")
+                          .map(truck => (
+                            <SelectItem key={truck.id} value={truck.id.toString()}>
+                              {truck.brand} {truck.model} ({truck.plate})
+                            </SelectItem>
+                          ))
+                        }
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="assistant">{t("assistant")}</Label>
+                    <Select
+                      value={selectedAssistant}
+                      onValueChange={setSelectedAssistant}
+                    >
+                      <SelectTrigger id="assistant">
+                        <SelectValue placeholder={t("selectAssistant")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">{t("selectAssistant")}</SelectItem>
+                        {assistants.map(assistant => (
+                          <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                            {assistant.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            <Button
-              className="w-full"
-              onClick={handleOptimizeRoute}
-              disabled={selectedOrderIds.length === 0}
-            >
-              {optimizeRouteMutation.isPending ? t("optimizing") : t("optimizeRoute")}
-            </Button>
+                <Button
+                  className="w-full"
+                  onClick={handleOptimizeRoute}
+                  disabled={selectedOrderIds.length === 0}
+                >
+                  {optimizeRouteMutation.isPending ? t("optimizing") : t("optimizeRoute")}
+                </Button>
+              </>
+            )}
 
             {optimizedRoute && (
               <div className="space-y-4">
