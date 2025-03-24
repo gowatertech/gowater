@@ -193,13 +193,14 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                       "w-full justify-start gap-4 hover:bg-blue-50/50 pr-8",
                       isActive && "bg-blue-50 shadow-sm"
                     )}
+                    onClick={() => handleItemClick(item.label)}
                   >
                     <Icon className="h-4 w-4" style={{ color: itemColor }} />
                     <span style={{ color: isActive ? itemColor : "#64748b" }}>{t(item.label)}</span>
                     <ChevronRight
                       className={cn(
                         "h-4 w-4 absolute right-2 top-1/2 -translate-y-1/2 transition-transform",
-                        isHovered && "rotate-90"
+                        (isHovered || activeItems.includes(item.label)) && "rotate-90"
                       )}
                     />
                   </UISidebarMenuButton>
