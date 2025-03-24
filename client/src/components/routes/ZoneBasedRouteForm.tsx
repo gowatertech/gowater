@@ -617,33 +617,20 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     onClick={() => setSelectedTab("customers")}
                     className="w-full"
                   >
-                    Continue to Customer Selection
+                    Continuar a Selección de Clientes
                   </Button>
                 </div>
               )}
 
               {selectedZone && compact && (
-                <div className="pt-4 grid grid-cols-2 gap-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => {
-                      setSelectedCustomers(zoneCustomers || []);
-                      optimizeRoute();
-                    }}
-                    className="w-full"
-                    disabled={!zoneCustomers || zoneCustomers.length < 2}
-                  >
-                    Select All
-                  </Button>
+                <div className="pt-4">
                   <Button 
                     type="button" 
                     variant="default" 
-                    onClick={() => setSelectedTab("review")}
+                    onClick={() => setSelectedTab("customers")}
                     className="w-full"
-                    disabled={selectedCustomers.length === 0}
                   >
-                    Review Route
+                    Seleccionar Clientes
                   </Button>
                 </div>
               )}
