@@ -470,7 +470,7 @@ export default function Billing() {
               <div className="grid gap-3">
                 <Select
                   onValueChange={(value) => {
-                    const customer = customers.find(c => c.id === parseInt(value));
+                    const customer = customers.find((c: Customer) => c.id === parseInt(value));
                     setSelectedCustomer(customer || null);
                   }}
                 >
@@ -494,7 +494,7 @@ export default function Billing() {
                   <div className="text-sm grid grid-cols-1 gap-2 bg-muted p-2 rounded">
                     <div>
                       <span className="font-medium">Nombre: </span>
-                      {selectedCustomer.name}
+                      {selectedCustomer.managername}
                     </div>
                     <div>
                       <span className="font-medium">Dirección: </span>
@@ -708,7 +708,7 @@ export default function Billing() {
                 </TableRow>
               ) : (
                 invoices.map((invoice) => {
-                  const customer = customers.find(c => c.id === invoice.customerId);
+                  const customer = customers.find((c: Customer) => c.id === invoice.customerId);
                   return (
                     <TableRow key={invoice.id}>
                       <TableCell>{customer?.businessname || 'Cliente no encontrado'}</TableCell>
@@ -786,7 +786,7 @@ export default function Billing() {
                         <SelectValue placeholder="Seleccionar Cliente" />
                       </SelectTrigger>
                       <SelectContent>
-                        {customers.map((customer) => (
+                        {customers.map((customer: Customer) => (
                           <SelectItem
                             key={customer.id}
                             value={customer.id.toString()}
@@ -980,7 +980,7 @@ export default function Billing() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="font-medium">Cliente: </span>
-                    {customers.find(c => c.id === selectedInvoice.customerId)?.businessname}
+                    {customers.find((c: Customer) => c.id === selectedInvoice.customerId)?.businessname}
                   </div>
                   <div>
                     <span className="font-medium">Fecha: </span>
