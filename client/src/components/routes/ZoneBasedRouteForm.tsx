@@ -842,7 +842,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Delivery Date</FormLabel>
+                      <FormLabel>Fecha de Entrega</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -855,7 +855,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                               {field.value ? (
                                 format(field.value, "PPP", { locale: es })
                               ) : (
-                                <span>Select a date</span>
+                                <span>Seleccionar fecha</span>
                               )}
                               <Calendar className="h-4 w-4 opacity-50" />
                             </Button>
@@ -884,7 +884,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
               {optimizedRoute.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Stop Sequence ({optimizedRoute.length})</h3>
+                  <h3 className="text-sm font-medium mb-2">Secuencia de Paradas ({optimizedRoute.length})</h3>
                   <div className="border rounded-md p-4 space-y-3 max-h-[300px] overflow-y-auto">
                     {optimizedRoute.map((customer, index) => (
                       <div key={customer.id} className="flex items-center">
@@ -897,7 +897,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                         <div>
                           <div className="font-medium">
                             {customer.businessname}
-                            {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Start</span>}
+                            {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Inicio</span>}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {customer.street} {customer.streetnumber}
@@ -911,7 +911,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
               {optimizedRoute.length > 0 && (
                 <div className="border rounded-md overflow-hidden mt-4">
-                  <div className="text-sm font-medium mb-2">Optimized Route Map</div>
+                  <div className="text-sm font-medium mb-2">Mapa de Ruta Optimizada</div>
                   <ResponsiveMapContainer 
                     fixedHeight 
                     minHeight="350px"
@@ -984,9 +984,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                                 <Popup>
                                   <div className="text-sm">
                                     {index === 0 ? (
-                                      <strong>Main Warehouse (Start)</strong>
+                                      <strong>Almacén Principal (Inicio)</strong>
                                     ) : (
-                                      <strong>Stop {index}</strong>
+                                      <strong>Parada {index}</strong>
                                     )}
                                     <div>{customer.businessname}</div>
                                     {customer.street && (
