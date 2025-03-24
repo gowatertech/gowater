@@ -713,7 +713,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
               </div>
             ) : zoneCustomers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No customers registered in this zone
+                No hay clientes registrados en esta zona
               </div>
             ) : (
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
@@ -752,7 +752,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 variant="outline" 
                 onClick={() => setSelectedTab("zone")}
               >
-                Back
+                Atrás
               </Button>
               
               <div className="space-x-2">
@@ -762,7 +762,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     variant="secondary"
                     onClick={() => setSelectedTab("review")}
                   >
-                    Review and Save Route
+                    Revisar y Guardar Ruta
                   </Button>
                 )}
                 
@@ -1013,7 +1013,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   variant="outline" 
                   onClick={() => setSelectedTab("customers")}
                 >
-                  Back
+                  Atrás
                 </Button>
                 
                 <Button 
