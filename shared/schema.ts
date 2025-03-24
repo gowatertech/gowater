@@ -187,7 +187,7 @@ export const routes = pgTable("routes", {
   name: text("name").notNull(),
   driverId: integer("driver_id").notNull().references(() => users.id),
   assistantId: integer("assistant_id").references(() => users.id),
-  truckId: integer("truck_id").notNull().references(() => trucks.id),
+  truckId: integer("truck_id").references(() => trucks.id), // Ya no es NOT NULL
   zoneId: integer("zone_id").references(() => zones.id),
   status: text("status", { enum: ["pending", "in_progress", "completed"] }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
@@ -209,7 +209,7 @@ export const insertRouteSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   driverId: z.number({ required_error: "Se requiere un conductor" }),
   assistantId: z.number().optional(),
-  truckId: z.number({ required_error: "Se requiere un vehículo" }),
+  truckId: z.number().optional(), // Ya no es requerido
   date: z.date(),
   zoneId: z.number({ required_error: "Se requiere una zona" }),
   status: z.enum(["pending", "in_progress", "completed"]).default("pending"),

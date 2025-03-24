@@ -592,8 +592,7 @@ export async function registerRoutes(app: Express) {
         zoneId: Number(req.body.zoneId),
         status: "pending",
         isCompleted: false,
-        // Valores por defecto para campos requeridos pero no enviados desde el cliente
-        truckId: 5, // ID de camión por defecto
+        // Ya no se requiere truckId (es opcional)
         // Campos opcionales si están presentes
         deliverySequence: req.body.deliverySequence || [],
         stops: req.body.stops || []
