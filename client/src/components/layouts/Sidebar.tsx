@@ -4,7 +4,6 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import {
   Users,
-  Truck,
   Route,
   Package,
   FileText,
@@ -55,8 +54,6 @@ const sidebarItems = [
       { label: "Carga de Vehículo", href: "/routes/vehicle-loading" },
       { label: "Cuadre de Vehículo", href: "/routes/vehicle-settlement" },
       { label: "Pedidos Recurrentes", href: "/routes/recurring-orders" },
-      { label: "Vehículos", href: "/trucks" },
-      { label: "Crear Vehículo", href: "/trucks/new" },
       { label: "Pedidos", href: "/orders" },
     ],
   },
