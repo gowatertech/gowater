@@ -325,12 +325,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         form.setValue("name", `Ruta ${dateStr} - Zona ${selectedZone}`);
       }
       
-      // Cambiamos a la pestaña de revisión después de un breve retraso
-      // para asegurar que el estado se haya actualizado
-      setTimeout(() => {
-        console.log("Navegando a pestaña de revisión");
-        setSelectedTab("review");
-      }, 800);
+      // Aquí dejamos que el usuario decida cuando pasar a la pestaña de revisión
+      // en lugar de cambiar automáticamente
     } catch (error) {
       console.error("Error optimizing route:", error);
       toast({
