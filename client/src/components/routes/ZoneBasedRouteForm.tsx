@@ -306,8 +306,31 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
   // Calculate simple distance between two coordinates
   const calculateDistance = (coord1: string, coord2: string) => {
     try {
-      const [lat1, lng1] = coord1.split(',').map(parseFloat);
-      const [lat2, lng2] = coord2.split(',').map(parseFloat);
+      // Verificar formato de coordenadas
+      console.log("Calculando distancia entre coordenadas:", coord1, coord2);
+      
+      if (!coord1 || !coord2 || typeof coord1 !== 'string' || typeof coord2 !== 'string') {
+        console.error("Coordenadas inválidas:", { coord1, coord2 });
+        return Infinity;
+      }
+      
+      const [lat1Str, lng1Str] = coord1.split(',');
+      const [lat2Str, lng2Str] = coord2.split(',');
+      
+      if (!lat1Str || !lng1Str || !lat2Str || !lng2Str) {
+        console.error("Formato de coordenadas incorrecto:", { coord1, coord2 });
+        return Infinity;
+      }
+      
+      const lat1 = parseFloat(lat1Str);
+      const lng1 = parseFloat(lng1Str);
+      const lat2 = parseFloat(lat2Str);
+      const lng2 = parseFloat(lng2Str);
+      
+      if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
+        console.error("Coordenadas no son números válidos:", { lat1, lng1, lat2, lng2 });
+        return Infinity;
+      }
       
       // Simplified distance calculation (as the crow flies)
       return Math.sqrt(
