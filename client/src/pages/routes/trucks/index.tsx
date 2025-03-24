@@ -173,7 +173,7 @@ export default function TrucksPage() {
       plate: truck.plate,
       color: truck.color,
       capacity: truck.capacity,
-      status: truck.status as "disponible" | "en_mantenimiento" | "en_ruta",
+      status: truck.status as "disponible" | "en_reparacion" | "en_ruta",
     };
     
     form.reset(formData);
@@ -184,7 +184,7 @@ export default function TrucksPage() {
     setIsEditing(true);
   };
 
-  const handleStatusChange = (truckId: number, newStatus: "disponible" | "en_mantenimiento" | "en_ruta") => {
+  const handleStatusChange = (truckId: number, newStatus: "disponible" | "en_reparacion" | "en_ruta") => {
     updateStatusMutation.mutate({ id: truckId, status: newStatus });
   };
 
@@ -192,8 +192,8 @@ export default function TrucksPage() {
     switch (status) {
       case "disponible":
         return <Badge className="bg-green-500">Disponible</Badge>;
-      case "en_mantenimiento":
-        return <Badge className="bg-amber-500">En Mantenimiento</Badge>;
+      case "en_reparacion":
+        return <Badge className="bg-amber-500">En Reparación</Badge>;
       case "en_ruta":
         return <Badge className="bg-blue-500">En Ruta</Badge>;
       default:
@@ -257,14 +257,14 @@ export default function TrucksPage() {
                           </Button>
                           <Select
                             value={truck.status}
-                            onValueChange={(value) => handleStatusChange(truck.id, value as "disponible" | "en_mantenimiento" | "en_ruta")}
+                            onValueChange={(value) => handleStatusChange(truck.id, value as "disponible" | "en_reparacion" | "en_ruta")}
                           >
                             <SelectTrigger className="w-[130px]">
                               <SelectValue placeholder="Cambiar estado" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="disponible">Disponible</SelectItem>
-                              <SelectItem value="en_mantenimiento">En Mantenimiento</SelectItem>
+                              <SelectItem value="en_reparacion">En Reparación</SelectItem>
                               <SelectItem value="en_ruta">En Ruta</SelectItem>
                             </SelectContent>
                           </Select>
@@ -385,7 +385,7 @@ export default function TrucksPage() {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="disponible">Disponible</SelectItem>
-                            <SelectItem value="en_mantenimiento">En Mantenimiento</SelectItem>
+                            <SelectItem value="en_reparacion">En Reparación</SelectItem>
                             <SelectItem value="en_ruta">En Ruta</SelectItem>
                           </SelectContent>
                         </Select>
