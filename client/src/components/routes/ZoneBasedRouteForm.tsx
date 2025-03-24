@@ -248,11 +248,35 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         coords: c.coordinates
       })));
       
+      // Verificar que los clientes tengan coordenadas válidas
+      const customersWithCoordinates = selectedCustomers.filter(customer => {
+        if (!customer.coordinates) {
+          console.warn(`Cliente sin coordenadas: ID ${customer.id}, ${customer.businessname}. Se omitirá de la optimización.`);
+          return false;
+        }
+        
+        try {
+          const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`Cliente con coordenadas inválidas: ID ${customer.id}, ${customer.businessname}, coords: ${customer.coordinates}`);
+            return false;
+          }
+          return true;
+        } catch (e) {
+          console.warn(`Error validando coordenadas del cliente: ID ${customer.id}`, e);
+          return false;
+        }
+      });
+      
+      if (customersWithCoordinates.length < 1) {
+        throw new Error("Ninguno de los clientes seleccionados tiene coordenadas válidas");
+      }
+      
       // This would normally be an API call to a route optimization service
       // For this example, we'll use a very simple distance-based algorithm
       
       // Start with depot
-      const unvisited = [...selectedCustomers];
+      const unvisited = [...customersWithCoordinates];
       const optimized = [depot];
 
       while (unvisited.length > 0) {
@@ -282,20 +306,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
       // Set the optimized route and log for debugging
       console.log("Ruta optimizada:", optimized);
       
-      // Importante validar que haya coordenadas válidas antes de establecer la ruta
-      const hasValidCoordinates = optimized.every(customer => {
-        if (!customer.coordinates) {
-          console.error(`Cliente sin coordenadas: ID ${customer.id}, ${customer.businessname}`);
-          return false;
-        }
-        return true;
-      });
-      
-      if (!hasValidCoordinates) {
-        throw new Error("Algunos clientes no tienen coordenadas válidas");
-      }
-      
-      // Primero establecemos la ruta optimizada
+      // Establecemos la ruta optimizada
       setOptimizedRoute(optimized);
       
       // Mensaje de éxito
@@ -304,18 +315,28 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes`, // -1 porque el depósito no es un cliente
       });
       
+      // Limpiar cualquier error anterior
+      form.clearErrors();
+      
+      // Generar un nombre de ruta automático si no hay uno
+      if (!form.getValues("name")) {
+        const today = new Date();
+        const dateStr = today.toLocaleDateString("es-DO", { day: '2-digit', month: '2-digit', year: 'numeric' });
+        form.setValue("name", `Ruta ${dateStr} - Zona ${selectedZone}`);
+      }
+      
       // Cambiamos a la pestaña de revisión después de un breve retraso
       // para asegurar que el estado se haya actualizado
       setTimeout(() => {
         console.log("Navegando a pestaña de revisión");
         setSelectedTab("review");
-      }, 500);
+      }, 800);
     } catch (error) {
       console.error("Error optimizing route:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo optimizar la ruta. Intenta nuevamente.",
+        description: error instanceof Error ? error.message : "No se pudo optimizar la ruta. Intenta nuevamente.",
       });
     } finally {
       setIsOptimizing(false);
@@ -802,77 +823,98 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                 </div>
               )}
 
-              <div className="border rounded-md overflow-hidden">
-                <ResponsiveMapContainer fixedHeight aspectRatio="square">
-                  {typeof window !== "undefined" && optimizedRoute.length > 0 && (
-                    <MapContainer
-                      center={[19.0, -70.0]}
-                      zoom={10}
-                      style={{ height: "240px", width: "100%" }}
-                    >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      />
-                      
-                      {/* Auto-center map component */}
-                      <MapCenterFixer />
-                      
-                      {/* Draw the complete route as a single polyline */}
-                      {optimizedRoute.length > 1 && (
-                        <Polyline
-                          positions={optimizedRoute
-                            .filter(customer => customer.coordinates)
-                            .map(customer => {
-                              const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
-                              return [lat, lng];
-                            })}
-                          color="#0088FE"
-                          weight={3}
+              {optimizedRoute.length > 0 && (
+                <div className="border rounded-md overflow-hidden mt-4">
+                  <div className="text-sm font-medium mb-2">Mapa de Ruta Optimizada</div>
+                  <ResponsiveMapContainer fixedHeight aspectRatio="square">
+                    {typeof window !== "undefined" && (
+                      <MapContainer
+                        center={[19.0, -70.0]}
+                        zoom={10}
+                        style={{ height: "240px", width: "100%" }}
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         />
-                      )}
-                      
-                      {/* Place markers for each stop */}
-                      {optimizedRoute.map((customer, index) => {
-                        if (customer.coordinates) {
-                          const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                        
+                        {/* Auto-center map component */}
+                        <MapCenterFixer />
+                        
+                        {/* Draw the complete route as a single polyline */}
+                        {optimizedRoute.length > 1 && (
+                          <Polyline
+                            positions={optimizedRoute
+                              .filter(customer => customer.coordinates)
+                              .map(customer => {
+                                try {
+                                  if (!customer.coordinates) {
+                                    console.error("Cliente sin coordenadas:", customer);
+                                    return [19.0, -70.0]; // Fallback
+                                  }
+                                  const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                                  return [lat, lng];
+                                } catch (e) {
+                                  console.error("Error parsing coordinates:", e, customer);
+                                  return [19.0, -70.0]; // Fallback
+                                }
+                              })}
+                            color="#0088FE"
+                            weight={3}
+                          />
+                        )}
+                        
+                        {/* Place markers for each stop */}
+                        {optimizedRoute.map((customer, index) => {
+                          if (!customer.coordinates) return null;
                           
-                          // Create a custom icon with the order number
-                          const numberIcon = new L.DivIcon({
-                            html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-primary'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
-                            className: 'custom-number-icon',
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12]
-                          });
-                          
-                          return (
-                            <Marker
-                              key={customer.id}
-                              position={[lat, lng]}
-                              icon={numberIcon}
-                            >
-                              <Popup>
-                                <div className="text-sm">
-                                  {index === 0 ? (
-                                    <strong>Almacén Principal (Inicio)</strong>
-                                  ) : (
-                                    <strong>Parada {index}</strong>
-                                  )}
-                                  <div>{customer.businessname}</div>
-                                  {customer.street && (
-                                    <div>{customer.street} {customer.streetnumber}</div>
-                                  )}
-                                </div>
-                              </Popup>
-                            </Marker>
-                          );
-                        }
-                        return null;
-                      })}
-                    </MapContainer>
-                  )}
-                </ResponsiveMapContainer>
-              </div>
+                          try {
+                            const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                            
+                            if (isNaN(lat) || isNaN(lng)) {
+                              console.error("Coordenadas inválidas:", customer.coordinates);
+                              return null;
+                            }
+                            
+                            // Create a custom icon with the order number
+                            const numberIcon = new L.DivIcon({
+                              html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-primary'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
+                              className: 'custom-number-icon',
+                              iconSize: [24, 24],
+                              iconAnchor: [12, 12]
+                            });
+                            
+                            return (
+                              <Marker
+                                key={customer.id}
+                                position={[lat, lng]}
+                                icon={numberIcon}
+                              >
+                                <Popup>
+                                  <div className="text-sm">
+                                    {index === 0 ? (
+                                      <strong>Almacén Principal (Inicio)</strong>
+                                    ) : (
+                                      <strong>Parada {index}</strong>
+                                    )}
+                                    <div>{customer.businessname}</div>
+                                    {customer.street && (
+                                      <div>{customer.street} {customer.streetnumber}</div>
+                                    )}
+                                  </div>
+                                </Popup>
+                              </Marker>
+                            );
+                          } catch (e) {
+                            console.error("Error rendering marker:", e, customer);
+                            return null;
+                          }
+                        })}
+                      </MapContainer>
+                    )}
+                  </ResponsiveMapContainer>
+                </div>
+              )}
 
               <div className="flex justify-between pt-4">
                 <Button 
