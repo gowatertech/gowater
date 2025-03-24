@@ -15,6 +15,7 @@ import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
 import Reports from "@/pages/reports";
 import TrucksPage from "./pages/trucks";
+import NewTruckPage from "./pages/trucks/new";
 import DevolucionEnvases from "@/pages/envases/devolucion";
 import BalanceEnvases from "@/pages/envases/balance";
 import Faltantes from "@/pages/envases/faltantes";
@@ -51,6 +52,7 @@ function Router() {
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/recurring-orders" component={RecurringOrders} />
         <Route path="/users" component={Users} />
+        <Route path="/trucks/new" component={NewTruckPage} />
         <Route path="/trucks" component={TrucksPage} />
         <Route path="/drivers/view" component={DriverView} />
         <Route path="/tutorial" component={TutorialPage} />

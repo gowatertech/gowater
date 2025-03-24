@@ -55,6 +55,7 @@ const sidebarItems = [
       { label: "Carga de Vehículo", href: "/routes/vehicle-loading" },
       { label: "Cuadre de Vehículo", href: "/routes/vehicle-settlement" },
       { label: "Pedidos Recurrentes", href: "/routes/recurring-orders" },
+      { label: "Crear Vehículo", href: "/trucks/new" },
       { label: "Vehículos", href: "/trucks" },
       { label: "Pedidos", href: "/orders" },
     ],
