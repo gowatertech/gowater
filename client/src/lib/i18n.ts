@@ -45,6 +45,11 @@ const resources = {
       noCompletedRoutes: "No completed routes",
       update: "Update",
       confirmDelete: "Are you sure you want to delete this item?",
+      inProgress: "In Progress",
+      notStarted: "Not Started",
+      viewDetails: "View Details",
+      stops: "Stops",
+      calculatingRoute: "Calculating Route...",
 
       // Forms
       name: "Name",
@@ -146,6 +151,11 @@ const resources = {
       noCompletedRoutes: "No hay rutas completadas",
       update: "Actualizar",
       confirmDelete: "¿Estás seguro de que deseas eliminar este elemento?",
+      inProgress: "En Progreso",
+      notStarted: "No Iniciada",
+      viewDetails: "Ver Detalles",
+      stops: "Paradas",
+      calculatingRoute: "Calculando Ruta...",
 
       // Forms
       name: "Nombre",
