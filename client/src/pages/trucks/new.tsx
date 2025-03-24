@@ -47,24 +47,29 @@ export default function NewTruckPage() {
       color: "",
       capacity: 1000,
       status: "disponible"
-    }
+    },
+    mode: "onChange"
   });
 
   const onSubmit = async (values: InsertTruck) => {
     try {
       setIsSubmitting(true);
+      
+      console.log("Form values before conversion:", values);
 
-      // Convert year and capacity to numbers
+      // Ensure all values are in the correct format
       const submittedValues = {
         ...values,
-        brand: values.brand.trim(),
-        model: values.model.trim(),
-        color: values.color.trim(),
-        year: Number(values.year),
-        plate: values.plate.trim().toUpperCase(),
-        capacity: Number(values.capacity),
+        brand: String(values.brand).trim(),
+        model: String(values.model).trim(),
+        color: String(values.color).trim(),
+        year: typeof values.year === 'number' ? values.year : Number(values.year),
+        plate: String(values.plate).trim().toUpperCase(),
+        capacity: typeof values.capacity === 'number' ? values.capacity : Number(values.capacity),
         status: values.status || "disponible"
       };
+      
+      console.log("Submitted values after conversion:", submittedValues);
 
       const response = await apiRequest("POST", "/api/trucks", {
         headers: {
@@ -174,18 +179,20 @@ export default function NewTruckPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Año</FormLabel>
-                      <Input 
-                        type="number"
-                        min={1990}
-                        max={currentYear}
-                        {...field}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value);
-                          if (!isNaN(value)) {
-                            field.onChange(value);
-                          }
-                        }}
-                      />
+                      <FormControl>
+                        <Input 
+                          type="number"
+                          min={1990}
+                          max={currentYear}
+                          value={field.value}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? '' : parseInt(e.target.value);
+                            if (value === '' || (!isNaN(value) && value >= 1990 && value <= currentYear)) {
+                              field.onChange(value);
+                            }
+                          }}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -239,10 +246,10 @@ export default function NewTruckPage() {
                           type="number" 
                           min={1}
                           placeholder="Ingrese la capacidad" 
-                          {...field}
+                          value={field.value}
                           onChange={(e) => {
-                            const value = parseInt(e.target.value);
-                            if (!isNaN(value)) {
+                            const value = e.target.value === '' ? '' : parseInt(e.target.value);
+                            if (value === '' || (!isNaN(value) && value >= 1)) {
                               field.onChange(value);
                             }
                           }}
