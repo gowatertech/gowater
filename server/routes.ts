@@ -9,6 +9,7 @@ import { eq, and, sql, inArray } from 'drizzle-orm';
 import express from 'express';
 import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
 import { registerRouteSettlements } from "./routes/routeSettlements";
+import { registerDriverRoutes } from "./routes/driver";
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
 
@@ -28,6 +29,7 @@ export async function registerRoutes(app: Express) {
   // Registrar las rutas de carga de vehículo, cuadre y pedidos recurrentes
   await registerVehicleLoadingRoutes(app);
   await registerRouteSettlements(app);
+  await registerDriverRoutes(app);
   
   // Ruta para pedidos recurrentes
   app.get("/api/recurring-orders", async (req, res) => {
