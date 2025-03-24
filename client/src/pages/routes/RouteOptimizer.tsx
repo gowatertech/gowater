@@ -153,42 +153,49 @@ export default function RouteOptimizer() {
 
           <div className="space-y-4">
             <div className="border rounded-lg overflow-hidden">
-              <ScrollArea className="h-[35vh]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12 text-center">✓</TableHead>
-                      <TableHead>{t("order")}</TableHead>
-                      <TableHead>{t("client")}</TableHead>
-                      <TableHead>{t("address")}</TableHead>
-                      <TableHead>{t("date")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders.map((order) => (
-                      <TableRow
-                        key={order.id}
-                        className="cursor-pointer"
-                        onClick={() => {
-                          if (selectedOrderIds.includes(order.id)) {
-                            setSelectedOrderIds(selectedOrderIds.filter(id => id !== order.id));
-                          } else {
-                            setSelectedOrderIds([...selectedOrderIds, order.id]);
-                          }
-                        }}
-                      >
-                        <TableCell className="text-center">
-                          {selectedOrderIds.includes(order.id) ? "✓" : ""}
-                        </TableCell>
-                        <TableCell>#{order.id}</TableCell>
-                        <TableCell>{order.customerId}</TableCell>
-                        <TableCell>{order.deliveryCoordinates || "N/A"}</TableCell>
-                        <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+              {orders.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-lg font-medium text-gray-500">{t("noOrdersAvailable")}</p>
+                  <p className="text-sm text-gray-400 mt-2">{t("createOrdersFirst")}</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[35vh]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12 text-center">✓</TableHead>
+                        <TableHead>{t("order")}</TableHead>
+                        <TableHead>{t("client")}</TableHead>
+                        <TableHead>{t("address")}</TableHead>
+                        <TableHead>{t("date")}</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
+                    </TableHeader>
+                    <TableBody>
+                      {orders.map((order) => (
+                        <TableRow
+                          key={order.id}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            if (selectedOrderIds.includes(order.id)) {
+                              setSelectedOrderIds(selectedOrderIds.filter(id => id !== order.id));
+                            } else {
+                              setSelectedOrderIds([...selectedOrderIds, order.id]);
+                            }
+                          }}
+                        >
+                          <TableCell className="text-center">
+                            {selectedOrderIds.includes(order.id) ? "✓" : ""}
+                          </TableCell>
+                          <TableCell>#{order.id}</TableCell>
+                          <TableCell>{order.customerId}</TableCell>
+                          <TableCell>{order.deliveryCoordinates || "N/A"}</TableCell>
+                          <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
