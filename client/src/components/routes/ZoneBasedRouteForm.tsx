@@ -240,6 +240,13 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         provinceName: ""
       };
       
+      // Log para depuración
+      console.log("Optimizando ruta con clientes:", selectedCustomers.map(c => ({
+        id: c.id,
+        name: c.businessname,
+        coords: c.coordinates
+      })));
+      
       // This would normally be an API call to a route optimization service
       // For this example, we'll use a very simple distance-based algorithm
       
