@@ -276,6 +276,29 @@ export default function DriverView() {
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [initialPosition, setInitialPosition] = useState<[number, number]>([19.0700, -70.1300]); // Default para RD
+  
+  // Consultar la configuración del negocio para obtener la ubicación del almacén principal
+  const settingsQuery = useQuery<any>({
+    queryKey: ["/api/settings"],
+    staleTime: Infinity,
+  });
+  
+  // Efecto para obtener la ubicación del almacén de la configuración
+  useEffect(() => {
+    if (settingsQuery.data) {
+      const data = settingsQuery.data;
+      console.log("Configuración cargada:", data);
+      if (data?.latitude && data?.longitude) {
+        const lat = parseFloat(data.latitude);
+        const lng = parseFloat(data.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          console.log("Ubicación del almacén principal:", [lat, lng]);
+          setInitialPosition([lat, lng]);
+        }
+      }
+    }
+  }, [settingsQuery.data]);
   
   // Datos de ejemplo para desarrollo - En producción, estos vendrían de la API
   const mockDeliveries: Delivery[] = [
@@ -496,10 +519,10 @@ export default function DriverView() {
             <Card className="overflow-hidden p-0">
               <ResponsiveMapContainer minHeight="35vh">
                 <MapContainer
-                  center={[19.0700, -70.1300]} // Coordenadas de República Dominicana (centro)
-                  zoom={9}
+                  center={initialPosition} // Usamos la ubicación del almacén principal de la configuración
+                  zoom={10}
                   style={{ height: "100%", width: "100%" }}
-                  whenCreated={(mapInstance) => {
+                  whenReady={(map) => {
                     console.log("Mapa creado");
                     // Intentamos hacer zoom inicial manual para asegurar que se adapta
                     if (todayDeliveries && todayDeliveries.length > 0) {
@@ -512,11 +535,11 @@ export default function DriverView() {
                       if (bounds.isValid()) {
                         console.log("Haciendo zoom inicial a:", bounds.toString());
                         setTimeout(() => {
-                          mapInstance.fitBounds(bounds, {
+                          map.target.fitBounds(bounds, {
                             padding: [100, 100],
                             maxZoom: 12
                           });
-                        }, 100);
+                        }, 500);
                       }
                     }
                   }}
