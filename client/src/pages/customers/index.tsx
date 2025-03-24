@@ -676,7 +676,7 @@ export default function Customers() {
             <CardContent className="px-0 pb-0">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
                   <FormField
                     control={form.control}
                     name="logo"
@@ -927,17 +927,19 @@ export default function Customers() {
                     control={form.control}
                     name="coordinates"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
+                      <FormItem className="md:col-span-3">
                         <FormLabel>Ubicación en Mapa</FormLabel>
                         <FormControl>
-                          <LocationSelector 
-                            value={field.value || ""} 
-                            onChange={field.onChange} 
-                            initialCenter={[19.075380, -70.128822]} 
-                          />
+                          <div className="h-[200px] w-full">
+                            <LocationSelector 
+                              value={field.value || ""} 
+                              onChange={field.onChange} 
+                              initialCenter={[19.075380, -70.128822]} 
+                            />
+                          </div>
                         </FormControl>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          Mueva el marcador para seleccionar la ubicación exacta del cliente, o use la barra de búsqueda para encontrar una dirección
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Mueva el marcador para seleccionar la ubicación exacta del cliente
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -1019,7 +1021,7 @@ export default function Customers() {
             <CardContent className="px-0 pb-0">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                 <FormField
                   control={form.control}
                   name="logo"
@@ -1324,15 +1326,20 @@ export default function Customers() {
                     control={form.control}
                     name="coordinates"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
+                      <FormItem className="md:col-span-3">
                         <FormLabel>Ubicación en Mapa</FormLabel>
                         <FormControl>
-                          <LocationSelector 
-                            value={field.value || ""} 
-                            onChange={field.onChange} 
-                            initialCenter={[19.075380, -70.128822]} 
-                          />
+                          <div className="h-[200px] w-full">
+                            <LocationSelector 
+                              value={field.value || ""} 
+                              onChange={field.onChange} 
+                              initialCenter={[19.075380, -70.128822]} 
+                            />
+                          </div>
                         </FormControl>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Mueva el marcador para seleccionar la ubicación exacta
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
