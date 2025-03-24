@@ -386,8 +386,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
         ...data,
         date: new Date(data.date),
         driverId: Number(data.driverId),
-        truckId: Number(data.truckId),
-        assistantId: data.assistantId ? Number(data.assistantId) : undefined,
+        // Ya no enviamos truckId ni assistantId, solo el conductor
         zoneId: Number(data.zoneId),
         status: "pending",
         isCompleted: false
@@ -654,6 +653,39 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
               />
 
               <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="driverId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Conductor</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar un conductor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingDrivers ? (
+                            <div className="p-2">
+                              <Skeleton className="h-5 w-full" />
+                            </div>
+                          ) : (
+                            drivers?.map((driver: any) => (
+                              <SelectItem key={driver.id} value={driver.id.toString()}>
+                                {driver.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -831,7 +863,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated }: ZoneBasedRouteFor
                 
                 <Button 
                   type="submit"
-                  disabled={createRouteMutation.isPending}
+                  disabled={createRouteMutation.isPending || !form.watch("driverId")}
                 >
                   {createRouteMutation.isPending ? (
                     <>
