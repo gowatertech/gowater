@@ -163,7 +163,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   // Update form name when zone is selected
   useEffect(() => {
     if (selectedZone) {
-      const selectedZoneObj = zones.find((z: any) => z.id === selectedZone);
+      const selectedZoneObj = zones && Array.isArray(zones) ? zones.find((z: any) => z.id === selectedZone) : null;
       if (selectedZoneObj) {
         const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
         form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
@@ -217,8 +217,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     }
     
     // Calculate center point
-    const sumLat = pointsWithCoords.reduce((sum, point) => sum + point[0], 0);
-    const sumLng = pointsWithCoords.reduce((sum, point) => sum + point[1], 0);
+    const sumLat = pointsWithCoords.reduce((sum: number, point: number[]) => sum + point[0], 0);
+    const sumLng = pointsWithCoords.reduce((sum: number, point: number[]) => sum + point[1], 0);
     
     return [sumLat / pointsWithCoords.length, sumLng / pointsWithCoords.length];
   };
@@ -475,33 +475,32 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
         stops: optimizedRoute.map(customer => customer.coordinates || ""),
         // Añadir información calculada
-        totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear con 2 decimales
-        estimatedDuration: estimatedDuration, // En minutos
+        totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear a 2 decimales
+        estimatedDuration: estimatedDuration
       };
       
-      console.log("Route data processed:", routeData);
-      
+      // Enviar los datos de la ruta al servidor
       const response = await apiRequest("POST", "/api/routes", routeData);
-
       if (!response.ok) {
-        const error = await response.json();
-        console.error("Server returned error:", error);
-        throw new Error(error.error || 'Error al crear la ruta');
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create route");
       }
-
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
       toast({
-        description: "Ruta creada exitosamente",
-        title: "Éxito",
+        title: "Ruta creada",
+        description: "La ruta se ha creado exitosamente",
       });
+      // Invalidate routes cache to refresh list
+      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+      // Reset form and state
       form.reset();
       setSelectedZone(null);
       setSelectedCustomers([]);
       setOptimizedRoute([]);
       setSelectedTab("zone");
+      // Call onRouteCreated callback
       onRouteCreated();
     },
     onError: (error: Error) => {
@@ -509,23 +508,18 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "No se pudo crear la ruta. Intenta nuevamente.",
       });
-    },
+    }
   });
 
-  const onSubmit = async (data: any) => {
-    console.log("Form submitted with data:", data);
-    console.log("Selected customers:", selectedCustomers.length);
-    console.log("Optimized route:", optimizedRoute.length);
-    console.log("Form values:", form.getValues());
-    console.log("Form state:", form.formState);
-    
-    if (optimizedRoute.length === 0 && selectedCustomers.length > 0) {
+  // Form submission handler
+  const onSubmit = (data: any) => {
+    if (optimizedRoute.length < 2) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Debes optimizar la ruta antes de guardar",
+        description: "Debes optimizar la ruta antes de guardarla",
       });
       return;
     }
@@ -534,45 +528,31 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Por favor selecciona un conductor",
+        description: "Debes seleccionar un conductor para la ruta",
       });
       return;
     }
-
-    try {
-      // Asegurarnos de que zoneId esté en los datos
-      if (!data.zoneId && selectedZone) {
-        data.zoneId = selectedZone;
-      }
-      
-      console.log("Submitting data with zoneId:", data.zoneId);
-      const result = await createRouteMutation.mutateAsync(data);
-      console.log("Mutation result:", result);
-      
-      // Mostrar mensaje de éxito
-      toast({
-        title: "Éxito",
-        description: "Ruta creada correctamente",
-      });
-    } catch (error) {
-      console.error("Submit error:", error);
-    }
+    
+    createRouteMutation.mutate(data);
   };
 
-  // Estadísticas para la ruta
+  // Calcular estadísticas de la ruta para mostrar en las tarjetas
   const routeStats = {
-    totalCustomers: selectedCustomers.length,
-    totalDistance: optimizedRoute.length > 0 ? (calculateTotalRouteDistance(optimizedRoute) / 1000).toFixed(2) : "0.00",
-    estimatedDuration: optimizedRoute.length > 0 ? calculateEstimatedDuration(calculateTotalRouteDistance(optimizedRoute), optimizedRoute.length - 1) : 0,
+    totalDistance: optimizedRoute.length >= 2 
+      ? (calculateTotalRouteDistance(optimizedRoute) / 1000).toFixed(2) 
+      : "0.00",
+    estimatedDuration: optimizedRoute.length >= 2 
+      ? calculateEstimatedDuration(calculateTotalRouteDistance(optimizedRoute), optimizedRoute.length - 1) 
+      : 0
   };
-
-  // Filtrar clientes por búsqueda
-  const filteredCustomers = searchQuery.trim() === "" 
-    ? zoneCustomers 
-    : zoneCustomers.filter((customer: Customer) => 
+  
+  // Filtrar clientes de la zona por búsqueda
+  const filteredZoneCustomers = searchQuery 
+    ? zoneCustomers.filter((customer: Customer) => 
         customer.businessname.toLowerCase().includes(searchQuery.toLowerCase()) || 
         customer.phone.includes(searchQuery)
-      );
+      )
+    : zoneCustomers;
 
   return (
     <div className="p-2 md:p-4 space-y-2">
@@ -651,7 +631,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                         // Automáticamente mostrar los clientes después de seleccionar la zona
                         setTimeout(() => {
                           // Generate an automatic name for the route
-                          const selectedZoneObj = zones.find((z: any) => z.id === Number(value));
+                          const selectedZoneObj = zones && Array.isArray(zones) ? zones.find((z: any) => z.id === Number(value)) : null;
                           if (selectedZoneObj) {
                             const today = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
                             form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
@@ -711,7 +691,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                       />
-                      {zones
+                      {zones && Array.isArray(zones) &&
+                        zones
                         .filter((zone: any) => zone.id === selectedZone)
                         .map((zone: any) => (
                           <Polyline
@@ -752,13 +733,13 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   </Card>
                 ))}
               </div>
-            ) : zoneCustomers.length === 0 ? (
+            ) : filteredZoneCustomers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No hay clientes registrados en esta zona
               </div>
             ) : (
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                {zoneCustomers.map((customer: Customer) => (
+                {filteredZoneCustomers.map((customer: Customer) => (
                   <Card 
                     key={customer.id} 
                     className={`cursor-pointer transition-colors ${
@@ -865,7 +846,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                               <Skeleton className="h-5 w-full" />
                             </div>
                           ) : (
-                            drivers?.map((driver: any) => (
+                            drivers && Array.isArray(drivers) && drivers.map((driver: any) => (
                               <SelectItem key={driver.id} value={driver.id.toString()}>
                                 {driver.name}
                               </SelectItem>
@@ -941,7 +922,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                             {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Inicio</span>}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            {customer.street} {customer.streetnumber}
+                            {customer.street} {customer.streetnumber}{customer.municipalityName ? `, ${customer.municipalityName}` : ''}
                           </div>
                         </div>
                       </div>
@@ -955,13 +936,13 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   <div className="text-sm font-medium mb-2">Mapa de Ruta Optimizada</div>
                   <ResponsiveMapContainer 
                     fixedHeight 
-                    minHeight="350px"
+                    minHeight="300px"
                     className="map-container"
                   >
                     {typeof window !== "undefined" && (
                       <MapContainer
-                        center={[19.0, -70.0]}
-                        zoom={10}
+                        center={getMapCenter() as [number, number]}
+                        zoom={11}
                         style={{ width: "100%" }}
                         className="route-map"
                       >
@@ -969,70 +950,57 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         />
-                        
-                        {/* Auto-center map component */}
                         <MapCenterFixer />
-                        
-                        {/* Draw the complete route as a single polyline */}
+                        {/* Polyline para la ruta */}
                         {optimizedRoute.length > 1 && (
                           <Polyline
                             positions={optimizedRoute
                               .filter(customer => customer.coordinates)
                               .map(customer => {
-                                try {
-                                  if (!customer.coordinates) {
-                                    console.error("Customer without coordinates:", customer);
-                                    return [19.0, -70.0]; // Fallback
-                                  }
-                                  const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
-                                  return [lat, lng];
-                                } catch (e) {
-                                  console.error("Error parsing coordinates:", e, customer);
-                                  return [19.0, -70.0]; // Fallback
-                                }
+                                const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
+                                return [lat, lng] as [number, number];
                               })}
-                            color="#0088FE"
+                            color="#3366ff"
                             weight={3}
+                            opacity={0.7}
+                            dashArray="5,10"
                           />
                         )}
                         
-                        {/* Place markers for each stop */}
+                        {/* Markers for each point */}
                         {optimizedRoute.map((customer, index) => {
-                          if (!customer.coordinates) return null;
-                          
                           try {
-                            const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
-                            
-                            if (isNaN(lat) || isNaN(lng)) {
-                              console.error("Invalid coordinates:", customer.coordinates);
+                            if (!customer.coordinates) {
+                              console.warn(`No coordinates for customer: ${customer.id}`);
                               return null;
                             }
                             
-                            // Create a custom icon with the order number
-                            const numberIcon = new L.DivIcon({
+                            const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                            if (isNaN(lat) || isNaN(lng)) {
+                              console.warn(`Invalid coordinates for customer: ${customer.id}`, customer.coordinates);
+                              return null;
+                            }
+                            
+                            // Use Leaflet divIcon to customize marker appearance
+                            const customIcon = L.divIcon({
+                              className: 'custom-marker',
                               html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-primary'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
-                              className: 'custom-number-icon',
                               iconSize: [24, 24],
                               iconAnchor: [12, 12]
                             });
                             
                             return (
-                              <Marker
-                                key={customer.id}
+                              <Marker 
+                                key={`${customer.id}-${index}`}
                                 position={[lat, lng]}
-                                icon={numberIcon}
+                                icon={customIcon}
                               >
                                 <Popup>
                                   <div className="text-sm">
-                                    {index === 0 ? (
-                                      <strong>Almacén Principal (Inicio)</strong>
-                                    ) : (
-                                      <strong>Parada {index}</strong>
-                                    )}
-                                    <div>{customer.businessname}</div>
-                                    {customer.street && (
-                                      <div>{customer.street} {customer.streetnumber}</div>
-                                    )}
+                                    <strong>{customer.businessname}</strong>
+                                    <br />
+                                    Parada #{index}
+                                    {index === 0 && " (Inicio)"}
                                   </div>
                                 </Popup>
                               </Marker>
@@ -1074,7 +1042,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
             </form>
           </Form>
         </TabsContent>
-      </Tabs>
+        </Tabs>
       </div>
     </div>
   );
