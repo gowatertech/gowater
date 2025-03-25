@@ -205,8 +205,9 @@ export default function Payments() {
 
     const paymentData = {
       invoiceId: selectedInvoice.id,
+      customerId: selectedInvoice.customerId,
       amount: paymentAmount,
-      method: paymentMethod,
+      paymentMethod: paymentMethod, // Usamos paymentMethod para cumplir con el esquema del servidor
       notes: paymentNotes || undefined
     };
 

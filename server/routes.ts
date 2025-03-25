@@ -1473,6 +1473,7 @@ export async function registerRoutes(app: Express) {
           amount: payments.amount,          
           date: payments.date,
           notes: payments.notes,
+          method: payments.paymentMethod,
           customerName: customers.businessname,
           invoiceNumber: invoices.invoiceNumber
         })
