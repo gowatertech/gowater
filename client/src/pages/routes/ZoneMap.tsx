@@ -469,11 +469,11 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   }
 
   return (
-    <div className="flex flex-col gap-1">
-      {/* Formulario compacto */}
-      <div className="grid gap-1 grid-cols-2 mb-1">
-        <div className="col-span-2 md:col-span-1">
-          <label htmlFor="zoneName" className="text-xs font-medium mb-1 block">
+    <div className="flex flex-col gap-0.5">
+      {/* Formulario ultracompacto */}
+      <div className="grid grid-cols-2 gap-1 mb-0.5">
+        <div>
+          <label htmlFor="zoneName" className="text-xs font-medium mb-0.5 block">
             Nombre de la Zona
           </label>
           <input
@@ -481,33 +481,34 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
             type="text"
             value={newZoneName}
             onChange={(e) => setNewZoneName(e.target.value)}
-            className="w-full px-2 py-1 text-sm border rounded-md"
+            className="w-full px-1.5 py-0.5 text-xs border rounded-md"
             placeholder="Ingrese nombre de zona"
           />
         </div>
-        <div className="col-span-2 md:col-span-1">
-          <label htmlFor="zoneColor" className="text-xs font-medium mb-1 block">
+        <div>
+          <label htmlFor="zoneColor" className="text-xs font-medium mb-0.5 block">
             Color
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <input
               type="color"
               value={selectedColor}
               onChange={(e) => setSelectedColor(e.target.value)}
-              className="h-6 w-12 border rounded-md"
+              className="h-5 w-8 border rounded-md"
             />
             <span className="text-xs">{selectedColor}</span>
           </div>
         </div>
       </div>
 
-      {/* Mapa compacto para dibujar la nueva zona */}
-      <ResponsiveMapContainer className="bg-white" fixedHeight minHeight="240px">
+      {/* Mapa muy compacto */}
+      <ResponsiveMapContainer className="bg-white border rounded-md" fixedHeight minHeight="180px">
         <MapContainer
           center={initialPosition}
-          zoom={13}
+          zoom={12}
           style={{ height: "100%", width: "100%" }}
           className="rounded-lg"
+          zoomControl={false}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -554,24 +555,26 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
         </MapContainer>
       </ResponsiveMapContainer>
       
-      {/* Botones de control */}
-      <div className="flex justify-between mt-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => onZoneCreated()}
-          className="text-xs"
-        >
-          Cancelar
-        </Button>
-        <div className="space-x-1">
+      {/* Botones de acción */}
+      <div className="flex items-center justify-between mt-0.5 gap-1">
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onZoneCreated()}
+            className="text-xs h-7 px-2"
+          >
+            Cancelar
+          </Button>
+        </div>
+        <div className="flex items-center gap-1">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => document.getElementById('zone-file-input')?.click()}
-            className="text-xs"
+            className="text-xs h-7 px-2"
           >
             Importar
           </Button>
@@ -580,7 +583,7 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
             variant="default"
             size="sm"
             onClick={() => handlePolygonComplete([])}
-            className="text-xs"
+            className="text-xs h-7 px-2"
           >
             Guardar Zona
           </Button>
