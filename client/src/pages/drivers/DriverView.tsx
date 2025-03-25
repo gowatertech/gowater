@@ -834,22 +834,50 @@ export default function DriverView() {
                 <h2 className="font-semibold">Estadísticas del Día</h2>
               </div>
               
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-blue-50 rounded-md p-3 border border-blue-100">
-                  <p className="text-xs text-blue-600 font-medium">Total Entregas</p>
-                  <p className="text-2xl font-bold text-blue-700">{totalCount}</p>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Total Entregas
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-blue-600">
+                      {totalCount}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-green-50 rounded-md p-3 border border-green-100">
-                  <p className="text-xs text-green-600 font-medium">Completadas</p>
-                  <p className="text-2xl font-bold text-green-700">{deliveredCount}</p>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Completadas
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-green-600">
+                      {deliveredCount}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-yellow-50 rounded-md p-3 border border-yellow-100">
-                  <p className="text-xs text-yellow-600 font-medium">Pendientes</p>
-                  <p className="text-2xl font-bold text-yellow-700">{pendingCount}</p>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Pendientes
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-yellow-600">
+                      {pendingCount}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-red-50 rounded-md p-3 border border-red-100">
-                  <p className="text-xs text-red-600 font-medium">Canceladas</p>
-                  <p className="text-2xl font-bold text-red-700">{cancelledCount}</p>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Canceladas
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-red-600">
+                      {cancelledCount}
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -951,54 +979,66 @@ export default function DriverView() {
             </div>
           </div>
           
-          <div className="grid grid-cols-4 gap-4">
-            <Card className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-blue-600 font-medium">Total Entregas</p>
-                  <p className="text-2xl font-bold text-blue-700">{totalCount}</p>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Total Entregas
+                  </div>
+                  <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
                 </div>
-                <div className="p-2 bg-blue-600 rounded-full text-white">
-                  <ClipboardList className="h-4 w-4" />
+                <div className="mt-1 text-base font-semibold text-blue-600">
+                  {totalCount}
                 </div>
               </div>
-            </Card>
+            </div>
             
-            <Card className="p-3 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-green-600 font-medium">Completadas</p>
-                  <p className="text-2xl font-bold text-green-700">{deliveredCount}</p>
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Completadas
+                  </div>
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
                 </div>
-                <div className="p-2 bg-green-600 rounded-full text-white">
-                  <CheckCircle className="h-4 w-4" />
+                <div className="mt-1 text-base font-semibold text-green-600">
+                  {deliveredCount}
                 </div>
               </div>
-            </Card>
+            </div>
             
-            <Card className="p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-yellow-600 font-medium">Pendientes</p>
-                  <p className="text-2xl font-bold text-yellow-700">{pendingCount}</p>
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Pendientes
+                  </div>
+                  <Clock className="h-3.5 w-3.5 text-yellow-500" />
                 </div>
-                <div className="p-2 bg-yellow-600 rounded-full text-white">
-                  <Clock className="h-4 w-4" />
+                <div className="mt-1 text-base font-semibold text-yellow-600">
+                  {pendingCount}
                 </div>
               </div>
-            </Card>
+            </div>
             
-            <Card className="p-3 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-purple-600 font-medium">Tiempo Promedio</p>
-                  <p className="text-2xl font-bold text-purple-700">{performance.averageDeliveryTime} min</p>
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-purple-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Tiempo Promedio
+                  </div>
+                  <TrendingUp className="h-3.5 w-3.5 text-purple-500" />
                 </div>
-                <div className="p-2 bg-purple-600 rounded-full text-white">
-                  <TrendingUp className="h-4 w-4" />
+                <div className="mt-1 text-base font-semibold text-purple-600">
+                  {performance.averageDeliveryTime} min
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
           
           <div className="grid grid-cols-12 gap-4">
