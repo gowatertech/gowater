@@ -727,12 +727,16 @@ export default function Customers() {
                     control={form.control}
                     name="rnc"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>RNC</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">RNC</FormLabel>
                         <FormControl>
-                          <Input {...field} value={field.value || ""} />
+                          <Input 
+                            className="h-7 text-xs px-2 py-0" 
+                            {...field} 
+                            value={field.value || ""} 
+                          />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
