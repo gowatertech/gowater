@@ -407,67 +407,46 @@ export default function Customers() {
         
         {/* Contenido del Tab de Lista de Clientes */}
         <TabsContent value="list" className="space-y-4">
-          {/* Estadísticas - versión compacta */}
+          {/* Estadísticas - versión compacta que coincide exactamente con la vista de rutas */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
-            <Card className="border border-blue-100 shadow-sm">
-              <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium flex items-center">
-                  <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500 mr-1">
-                    Total Clientes
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 pt-0">
-                <div className="text-lg font-bold flex items-center">
-                  <Users className="mr-1.5 h-3.5 w-3.5 text-blue-500" />
-                  {stats.totalCustomers}
+            <Card className="border-l-4 border-l-blue-600 hover:bg-blue-50/5">
+              <div className="p-4">
+                <p className="text-sm text-muted-foreground">Total Clientes</p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-2xl font-bold">{stats.totalCustomers}</p>
+                  <Users className="h-5 w-5 text-blue-600" />
                 </div>
-              </CardContent>
+              </div>
             </Card>
-            <Card className="border border-green-100 shadow-sm">
-              <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium flex items-center">
-                  <Badge className="px-2 py-0 h-5 text-[10px] bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500 mr-1">
-                    Crédito Total
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 pt-0">
-                <div className="text-lg font-bold flex items-center">
-                  <DollarSign className="mr-1.5 h-3.5 w-3.5 text-green-500" />
-                  RD$ {stats.totalCredit.toFixed(2)}
+            
+            <Card className="border-l-4 border-l-green-600 hover:bg-green-50/5">
+              <div className="p-4">
+                <p className="text-sm text-muted-foreground">Crédito Total</p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-2xl font-bold">RD$ {stats.totalCredit.toFixed(2)}</p>
+                  <DollarSign className="h-5 w-5 text-green-600" />
                 </div>
-              </CardContent>
+              </div>
             </Card>
-            <Card className="border border-amber-100 shadow-sm">
-              <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium flex items-center">
-                  <Badge className="px-2 py-0 h-5 text-[10px] bg-amber-50 text-amber-700 border-amber-200 border-l-4 border-l-amber-500 mr-1">
-                    Crédito Promedio
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 pt-0">
-                <div className="text-lg font-bold flex items-center">
-                  <CreditCard className="mr-1.5 h-3.5 w-3.5 text-amber-500" />
-                  RD$ {stats.avgCredit.toFixed(2)}
+            
+            <Card className="border-l-4 border-l-amber-600 hover:bg-amber-50/5">
+              <div className="p-4">
+                <p className="text-sm text-muted-foreground">Crédito Promedio</p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-2xl font-bold">RD$ {stats.avgCredit.toFixed(2)}</p>
+                  <CreditCard className="h-5 w-5 text-amber-600" />
                 </div>
-              </CardContent>
+              </div>
             </Card>
-            <Card className="border border-purple-100 shadow-sm">
-              <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium flex items-center">
-                  <Badge className="px-2 py-0 h-5 text-[10px] bg-purple-50 text-purple-700 border-purple-200 border-l-4 border-l-purple-500 mr-1">
-                    Provincias
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 pt-0">
-                <div className="text-lg font-bold flex items-center">
-                  <MapPin className="mr-1.5 h-3.5 w-3.5 text-purple-500" />
-                  {stats.provinces}
+            
+            <Card className="border-l-4 border-l-purple-600 hover:bg-purple-50/5">
+              <div className="p-4">
+                <p className="text-sm text-muted-foreground">Provincias</p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-2xl font-bold">{stats.provinces}</p>
+                  <MapPin className="h-5 w-5 text-purple-600" />
                 </div>
-              </CardContent>
+              </div>
             </Card>
           </div>
 
