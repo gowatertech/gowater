@@ -1289,20 +1289,47 @@ export async function registerRoutes(app: Express) {
   app.post("/api/invoices/:id/items", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
-      const result = insertInvoiceItemSchema.safeParse({
-        ...req.body,
-        invoiceId,
-      });
+      const { productId, quantity, price } = req.body;
 
-      if (!result.success) {
-        return res.status(400).json({ error: result.error.format() });
+      // Validar datos básicos
+      if (!productId || !quantity || !price) {
+        return res.status(400).json({ error: "Faltan datos requeridos: productId, quantity, price" });
       }
 
+      // Convertir a valores numéricos
+      const numPrice = parseFloat(price);
+      const numQuantity = parseInt(quantity);
+      
+      // Calcular el total
+      const total = (numPrice * numQuantity).toFixed(2);
+      
+      // Guardar directamente en la base de datos
       const [item] = await db
         .insert(invoiceItems)
-        .values(result.data)
+        .values({
+          invoiceId,
+          productId,
+          quantity: numQuantity,
+          price,
+          total
+        })
         .returning();
 
+      // Actualizar el total de la factura
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, invoiceId));
+
+      if (invoice) {
+        const newTotal = (parseFloat(invoice.total) + parseFloat(total)).toFixed(2);
+        await db
+          .update(invoices)
+          .set({ total: newTotal })
+          .where(eq(invoices.id, invoiceId));
+      }
+
+      console.log("Item de factura creado:", item);
       res.json(item);
     } catch (error) {
       console.error("Error al crear item de factura:", error);

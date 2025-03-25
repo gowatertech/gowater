@@ -445,6 +445,7 @@ export const insertInvoiceItemSchema = z.object({
   productId: z.number(),
   quantity: z.number(),
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
 });
 
 // Bills (Facturas)
