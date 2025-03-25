@@ -475,679 +475,575 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
         stops: optimizedRoute.map(customer => customer.coordinates || ""),
         // Añadir información calculada
-        totalDistance: (totalDistance / 1000).toFixed(2), // Convert to km and format
+        totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear a 2 decimales
         estimatedDuration: estimatedDuration
       };
       
-      // Si hay assistantId, agregarlo también
-      if (data.assistantId) {
-        routeData.assistantId = Number(data.assistantId);
+      // Enviar los datos de la ruta al servidor
+      const response = await apiRequest("POST", "/api/routes", routeData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create route");
       }
-      
-      // Si hay truckId, agregarlo también
-      if (data.truckId) {
-        routeData.truckId = Number(data.truckId);
-      }
-      
-      const res = await apiRequest("POST", "/api/routes", routeData);
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || "Failed to create route");
-      }
-      return res.json();
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Ruta creada",
-        description: `La ruta "${data.name}" ha sido creada con éxito`,
+        description: "La ruta se ha creado exitosamente",
       });
-      // Recargar lista de rutas
+      // Invalidate routes cache to refresh list
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      // Notificar al componente padre
-      if (onRouteCreated) {
-        onRouteCreated();
-      }
+      // Reset form and state
+      form.reset();
+      setSelectedZone(null);
+      setSelectedCustomers([]);
+      setOptimizedRoute([]);
+      setSelectedTab("zone");
+      // Call onRouteCreated callback
+      onRouteCreated();
     },
     onError: (error: Error) => {
+      console.error("Error creating route:", error);
       toast({
         variant: "destructive",
         title: "Error",
         description: error.message || "No se pudo crear la ruta. Intenta nuevamente.",
       });
-    },
+    }
   });
-  
-  // Submit form handler
+
+  // Form submission handler
   const onSubmit = (data: any) => {
     if (optimizedRoute.length < 2) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Debes optimizar la ruta primero",
+        description: "Debes optimizar la ruta antes de guardarla",
       });
       return;
     }
     
-    // Validate driver selection
     if (!data.driverId) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Debes seleccionar un chofer para la ruta",
+        description: "Debes seleccionar un conductor para la ruta",
       });
       return;
     }
     
-    // Attempt to create the route
     createRouteMutation.mutate(data);
   };
-  
-  // Filter customers by search query
-  const filteredZoneCustomers = searchQuery 
-    ? zoneCustomers.filter((customer: Customer) => 
-        customer.businessname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.street.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (customer.municipalityName && customer.municipalityName.toLowerCase().includes(searchQuery.toLowerCase())))
-    : zoneCustomers;
 
-  // Calculate route statistics
+  // Calcular estadísticas de la ruta para mostrar en las tarjetas
   const routeStats = {
-    totalDistance: optimizedRoute.length > 1 
+    totalDistance: optimizedRoute.length >= 2 
       ? (calculateTotalRouteDistance(optimizedRoute) / 1000).toFixed(2) 
       : "0.00",
-    estimatedDuration: optimizedRoute.length > 1 
+    estimatedDuration: optimizedRoute.length >= 2 
       ? calculateEstimatedDuration(calculateTotalRouteDistance(optimizedRoute), optimizedRoute.length - 1) 
       : 0
   };
+  
+  // Filtrar clientes de la zona por búsqueda
+  const filteredZoneCustomers = searchQuery 
+    ? zoneCustomers.filter((customer: Customer) => 
+        customer.businessname.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        customer.phone.includes(searchQuery)
+      )
+    : zoneCustomers;
 
   return (
-    <div className="space-y-4">
-      {/* Stats Cards similar to Billing*/}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-md border-l-4 border-l-blue-500">
-          <CardContent className="p-6 flex justify-between items-center">
+    <div className="p-2 md:p-4 space-y-2">
+      {/* Cabecera con título e icono */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <Truck className="h-5 w-5 text-primary" />
+          <h1 className="text-lg md:text-xl font-bold">Planificación de Rutas</h1>
+        </div>
+      </div>
+
+      {/* Tarjetas de estadísticas */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+        <Card className="bg-blue-50 border-blue-100">
+          <CardContent className="p-2 flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Clientes Seleccionados</p>
-              <p className="text-2xl font-bold mt-1">{selectedCustomers.length}</p>
+              <p className="text-xs text-muted-foreground">Clientes Seleccionados</p>
+              <p className="text-lg font-bold text-blue-600">{selectedCustomers.length}</p>
             </div>
-            <Users className="h-8 w-8 text-blue-500" />
+            <Users className="h-6 w-6 text-blue-400" />
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-l-4 border-l-yellow-500">
-          <CardContent className="p-6 flex justify-between items-center">
+        <Card className="bg-yellow-50 border-yellow-100">
+          <CardContent className="p-2 flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Distancia Total</p>
-              <p className="text-2xl font-bold mt-1">{routeStats.totalDistance} km</p>
+              <p className="text-xs text-muted-foreground">Distancia Total</p>
+              <p className="text-lg font-bold text-yellow-600">{routeStats.totalDistance} km</p>
             </div>
-            <Route className="h-8 w-8 text-yellow-500" />
+            <Route className="h-6 w-6 text-yellow-400" />
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-l-4 border-l-green-500">
-          <CardContent className="p-6 flex justify-between items-center">
+        <Card className="bg-green-50 border-green-100">
+          <CardContent className="p-2 flex items-center justify-between">
             <div>
-              <p className="text-sm text-muted-foreground">Duración Estimada</p>
-              <p className="text-2xl font-bold mt-1">{routeStats.estimatedDuration} min</p>
+              <p className="text-xs text-muted-foreground">Duración Estimada</p>
+              <p className="text-lg font-bold text-green-600">{routeStats.estimatedDuration} min</p>
             </div>
-            <Clock className="h-8 w-8 text-green-500" />
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-md border-l-4 border-l-purple-500">
-          <CardContent className="p-6 flex justify-between items-center">
-            <div>
-              <p className="text-sm text-muted-foreground">Zonas Activas</p>
-              <p className="text-2xl font-bold mt-1">{selectedZone ? '1' : '0'}</p>
-            </div>
-            <MapPin className="h-8 w-8 text-purple-500" />
+            <Clock className="h-6 w-6 text-green-400" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content */}
-      <Card className="shadow-md">
-        <CardHeader className="border-b bg-muted/50 px-5 py-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Truck className="h-5 w-5 text-primary" />
-            Planificación de Rutas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
-              <TabsTrigger 
-                value="zone" 
-                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Zona
+      {/* Contenido principal con pestañas */}
+      <div className="bg-card rounded-lg shadow-sm border p-1">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-2">
+          <TabsList className="w-full grid grid-cols-3 h-9">
+            <TabsTrigger value="zone" className="flex items-center gap-1 text-xs">
+              <MapPin className="h-3 w-3" /> Zona
+            </TabsTrigger>
+            {!compact && (
+              <TabsTrigger value="customers" disabled={!selectedZone} className="flex items-center gap-1 text-xs">
+                <User className="h-3 w-3" /> Clientes
               </TabsTrigger>
-              {!compact && (
-                <TabsTrigger 
-                  value="customers" 
-                  disabled={!selectedZone}
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  Clientes
-                </TabsTrigger>
-              )}
-              <TabsTrigger 
-                value="review" 
-                disabled={selectedCustomers.length === 0}
-                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <Truck className="h-4 w-4 mr-2" />
-                Revisar Ruta
-              </TabsTrigger>
-            </TabsList>
+            )}
+            <TabsTrigger value="review" disabled={selectedCustomers.length === 0} className="flex items-center gap-1 text-xs">
+              <Truck className="h-3 w-3" /> Revisar Ruta
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="zone" className="p-4 pt-6">
-              <Form {...form}>
-                <form className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="zoneId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Zona de Entrega</FormLabel>
-                          <Select
-                            onValueChange={(value) => {
-                              field.onChange(Number(value));
-                              setSelectedZone(Number(value));
-                              
-                              // Automáticamente mostrar los clientes después de seleccionar la zona
-                              setTimeout(() => {
-                                // Generate an automatic name for the route
-                                const selectedZoneObj = zones && Array.isArray(zones) ? zones.find((z: any) => z.id === Number(value)) : null;
-                                if (selectedZoneObj) {
-                                  const today = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
-                                  form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
-                                  // Cambiar automáticamente a la tab de clientes
-                                  setSelectedTab("customers");
-                                }
-                              }, 300);
-                            }}
-                            value={field.value?.toString() || ""}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona una zona" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {isLoadingZones ? (
-                                <div className="p-2">
-                                  <Skeleton className="h-5 w-full" />
-                                </div>
-                              ) : (
-                                Array.isArray(zones) && zones.map((zone: any) => (
-                                  <SelectItem key={zone.id} value={zone.id.toString()}>
-                                    {zone.name}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="driverId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Chofer</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(Number(value))}
-                            value={field.value?.toString() || ""}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un chofer" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {isLoadingDrivers ? (
-                                <div className="p-2">
-                                  <Skeleton className="h-5 w-full" />
-                                </div>
-                              ) : (
-                                Array.isArray(drivers) && drivers.map((driver: any) => (
-                                  <SelectItem key={driver.id} value={driver.id.toString()}>
-                                    {driver.name}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Fecha programada</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className="w-full pl-3 text-left font-normal"
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP", { locale: es })
-                                  ) : (
-                                    <span>Selecciona una fecha</span>
-                                  )}
-                                  <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <CalendarComponent
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) => date < new Date("1900-01-01")}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="assistantId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Asistente (Opcional)</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(Number(value))}
-                            value={field.value?.toString() || ""}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un asistente" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Ninguno</SelectItem>
-                              {isLoadingAssistants ? (
-                                <div className="p-2">
-                                  <Skeleton className="h-5 w-full" />
-                                </div>
-                              ) : (
-                                Array.isArray(assistants) && assistants.map((assistant: any) => (
-                                  <SelectItem key={assistant.id} value={assistant.id.toString()}>
-                                    {assistant.name}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="truckId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Vehículo (Opcional)</FormLabel>
-                          <Select
-                            onValueChange={(value) => field.onChange(Number(value))}
-                            value={field.value?.toString() || ""}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un vehículo" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">Ninguno</SelectItem>
-                              {isLoadingTrucks ? (
-                                <div className="p-2">
-                                  <Skeleton className="h-5 w-full" />
-                                </div>
-                              ) : (
-                                Array.isArray(trucks) && trucks.map((truck: Truck) => (
-                                  <SelectItem key={truck.id} value={truck.id.toString()}>
-                                    {truck.brand} {truck.model} ({truck.plate})
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre de la ruta</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: Ruta Centro Norte - 12/05/2023" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex justify-end space-x-2 pt-4">
-                    <Button 
-                      type="button" 
-                      variant="default"
-                      onClick={() => {
-                        if (selectedZone && form.getValues("zoneId")) {
-                          setSelectedTab("customers");
-                        } else {
-                          // Si no hay zona seleccionada, mostrar un mensaje
-                          toast({
-                            variant: "destructive",
-                            title: "Error",
-                            description: "Debes seleccionar una zona primero",
-                          });
-                        }
+        <TabsContent value="zone" className="mt-4">
+          <Form {...form}>
+            <form className="space-y-4">
+              <FormField
+                control={form.control}
+                name="zoneId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Zona de Entrega</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(Number(value));
+                        setSelectedZone(Number(value));
+                        
+                        // Automáticamente mostrar los clientes después de seleccionar la zona
+                        setTimeout(() => {
+                          // Generate an automatic name for the route
+                          const selectedZoneObj = zones && Array.isArray(zones) ? zones.find((z: any) => z.id === Number(value)) : null;
+                          if (selectedZoneObj) {
+                            const today = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
+                            form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
+                            // Cambiar automáticamente a la tab de clientes
+                            setSelectedTab("customers");
+                          }
+                        }, 500);
                       }}
+                      value={field.value?.toString() || ""}
                     >
-                      Siguiente
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </TabsContent>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar una zona" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingZones ? (
+                          <div className="p-2">
+                            <Skeleton className="h-5 w-full" />
+                            <Skeleton className="h-5 w-full mt-2" />
+                          </div>
+                        ) : (
+                          zones && Array.isArray(zones) && zones.map((zone: any) => (
+                            <SelectItem key={zone.id} value={zone.id.toString()}>
+                              {zone.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <TabsContent value="customers" className="p-4 pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Clientes en la Zona</h3>
-                  <div className="relative w-64">
-                    <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar cliente..."
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                </div>
+              {/* Los botones de selección de clientes se eliminaron porque ahora es automático */}
+            </form>
+          </Form>
 
-                {isLoadingCustomers ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                ) : filteredZoneCustomers.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {searchQuery
-                      ? "No se encontraron clientes para tu búsqueda"
-                      : "No hay clientes en esta zona"}
-                  </div>
-                ) : (
-                  <ScrollArea className="h-64 rounded-md border">
-                    <div className="p-4 space-y-2">
-                      {filteredZoneCustomers.map((customer: Customer) => (
-                        <div
-                          key={customer.id}
-                          className={`flex items-center justify-between p-3 rounded-lg border text-sm cursor-pointer transition-colors ${
-                            selectedCustomers.some(c => c.id === customer.id)
-                              ? "bg-primary/10 border-primary/25"
-                              : "hover:bg-muted"
-                          }`}
-                          onClick={() => toggleCustomerSelection(customer)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <div
-                              className={`w-5 h-5 rounded-full flex items-center justify-center ${
-                                selectedCustomers.some(c => c.id === customer.id)
-                                  ? "bg-primary text-primary-foreground"
-                                  : "border border-muted-foreground"
+          {selectedZone && (
+            <div className="mt-6">
+              <div className="text-sm font-medium mb-2">Zone Map</div>
+              <div className="border rounded-md overflow-hidden">
+                <ResponsiveMapContainer 
+                  fixedHeight 
+                  minHeight="300px"
+                  className="map-container"
+                >
+                  {typeof window !== "undefined" && (
+                    <MapContainer
+                      center={[19.0, -70.0]}
+                      zoom={10}
+                      style={{ width: "100%" }}
+                      className="zone-map"
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      />
+                      {zones && Array.isArray(zones) &&
+                        zones
+                        .filter((zone: any) => zone.id === selectedZone)
+                        .map((zone: any) => (
+                          <Polyline
+                            key={zone.id}
+                            positions={zone.coordinates.map((coord: string) => {
+                              const [lat, lng] = coord.split(",").map(parseFloat);
+                              return [lat, lng];
+                            })}
+                            color={zone.color}
+                            weight={3}
+                          />
+                        ))}
+                    </MapContainer>
+                  )}
+                </ResponsiveMapContainer>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="customers" className="mt-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Clientes en la Zona</h3>
+              <Badge variant="outline">
+                {selectedCustomers.length} seleccionados
+              </Badge>
+            </div>
+
+            {isLoadingCustomers ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2 mt-2" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : filteredZoneCustomers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay clientes registrados en esta zona
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                {filteredZoneCustomers.map((customer: Customer) => (
+                  <Card 
+                    key={customer.id} 
+                    className={`cursor-pointer transition-colors ${
+                      selectedCustomers.some(c => c.id === customer.id)
+                        ? "border-primary bg-primary/5"
+                        : ""
+                    }`}
+                    onClick={() => toggleCustomerSelection(customer)}
+                  >
+                    <CardContent className="p-4 flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">{customer.businessname}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {customer.street} {customer.streetnumber}, {customer.municipalityName}
+                        </div>
+                        <div className="text-sm">{customer.phone}</div>
+                      </div>
+                      <div>
+                        {selectedCustomers.some(c => c.id === customer.id) && (
+                          <Check className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-between pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setSelectedTab("zone")}
+              >
+                Atrás
+              </Button>
+              
+              <div className="space-x-2">
+                {optimizedRoute.length > 0 && (
+                  <Button 
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setSelectedTab("review")}
+                  >
+                    Revisar y Guardar Ruta
+                  </Button>
+                )}
+                
+                <Button 
+                  type="button"
+                  onClick={optimizeRoute}
+                  disabled={selectedCustomers.length < 2 || isOptimizing}
+                >
+                  {isOptimizing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Optimizando...
+                    </>
+                  ) : (
+                    "Optimizar Ruta"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="review" className="mt-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre de Ruta</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="driverId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Conductor</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar conductor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingDrivers ? (
+                            <div className="p-2">
+                              <Skeleton className="h-5 w-full" />
+                            </div>
+                          ) : (
+                            drivers && Array.isArray(drivers) && drivers.map((driver: any) => (
+                              <SelectItem key={driver.id} value={driver.id.toString()}>
+                                {driver.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Fecha de Entrega</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={`w-full pl-3 text-left font-normal flex justify-between items-center ${
+                                !field.value ? "text-muted-foreground" : ""
                               }`}
                             >
-                              {selectedCustomers.some(c => c.id === customer.id) && (
-                                <Check className="h-3 w-3" />
+                              {field.value ? (
+                                format(field.value, "PPP", { locale: es })
+                              ) : (
+                                <span>Seleccionar fecha</span>
                               )}
-                            </div>
-                            <div>
-                              <p className="font-medium">
-                                {customer.businessname}
-                              </p>
-                              <p className="text-xs text-muted-foreground flex items-center">
-                                <MapPin className="h-3 w-3 mr-1 inline" />
-                                {customer.street} {customer.streetnumber}
-                                {customer.municipalityName && `, ${customer.municipalityName}`}
-                              </p>
-                            </div>
-                          </div>
-                          {customer.coordinates ? (
-                            <Badge variant="outline" className="text-xs bg-green-50 border-green-200 text-green-800">
-                              Geo
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-200 text-yellow-800">
-                              Sin Geo
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                )}
-
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    {selectedCustomers.length} clientes seleccionados
-                  </p>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelectedTab("zone")}
-                    >
-                      Volver
-                    </Button>
-                    <Button
-                      onClick={optimizeRoute}
-                      disabled={selectedCustomers.length < 2 || isOptimizing}
-                    >
-                      {isOptimizing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Optimizando...
-                        </>
-                      ) : (
-                        <>
-                          <Route className="mr-2 h-4 w-4" />
-                          Optimizar Ruta
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="review" className="p-4 pt-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">Revisar y Crear Ruta</h3>
-                    <p className="text-sm text-muted-foreground">
-                      La ruta optimizada pasará por {optimizedRoute.length > 0 ? optimizedRoute.length - 1 : 0} clientes
-                    </p>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelectedTab("customers")}
-                    >
-                      Volver
-                    </Button>
-                    <Button
-                      onClick={form.handleSubmit(onSubmit)}
-                      disabled={createRouteMutation.isPending}
-                    >
-                      {createRouteMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creando...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Crear Ruta
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                <Card>
-                  <CardHeader className="pb-0">
-                    <CardTitle className="text-md">Detalles de la Ruta</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
-                    <div>
-                      <p className="text-sm font-medium">Nombre de la Ruta</p>
-                      <p className="text-sm text-muted-foreground">{form.getValues("name")}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Chofer Asignado</p>
-                      <p className="text-sm text-muted-foreground">
-                        {form.getValues("driverId")
-                          ? drivers.find((d: any) => d.id === Number(form.getValues("driverId")))?.name || "No seleccionado"
-                          : "No seleccionado"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Fecha Programada</p>
-                      <p className="text-sm text-muted-foreground">
-                        {form.getValues("date")
-                          ? format(new Date(form.getValues("date")), "PPP", { locale: es })
-                          : "No seleccionada"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Zona</p>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedZone
-                          ? zones.find((z: any) => z.id === selectedZone)?.name || "No seleccionada"
-                          : "No seleccionada"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Asistente</p>
-                      <p className="text-sm text-muted-foreground">
-                        {form.getValues("assistantId")
-                          ? assistants.find((a: any) => a.id === Number(form.getValues("assistantId")))?.name
-                          : "Ninguno"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Vehículo</p>
-                      <p className="text-sm text-muted-foreground">
-                        {form.getValues("truckId")
-                          ? (() => {
-                              const truck = trucks.find((t: any) => t.id === Number(form.getValues("truckId")));
-                              return truck ? `${truck.brand} ${truck.model} (${truck.plate})` : "Ninguno";
-                            })()
-                          : "Ninguno"}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-0">
-                    <CardTitle className="text-md">Vista Previa de la Ruta</CardTitle>
-                  </CardHeader>
-                  <CardContent className="py-4">
-                    <div className="border rounded-md">
-                      <ResponsiveMapContainer fixedHeight className="z-0 mb-1">
-                        <MapContainer
-                          center={getMapCenter() as [number, number]}
-                          zoom={11}
-                          style={{ height: '100%', width: '100%' }}
-                        >
-                          <TileLayer
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                              <Calendar className="h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarComponent
+                            mode="single"
+                            selected={field.value}
+                            onSelect={(date) => {
+                              if (date) {
+                                date.setHours(12); // Set to noon to avoid timezone issues
+                                field.onChange(date);
+                              }
+                            }}
+                            disabled={(date) => date < new Date()}
+                            initialFocus
                           />
-                          
-                          {/* Dibujar la línea que conecta los puntos */}
-                          {optimizedRoute.length > 1 && (
-                            <Polyline 
-                              positions={optimizedRoute.map(customer => {
-                                const [lat, lng] = customer.coordinates?.split(',').map(parseFloat) || [0, 0];
-                                return [lat, lng];
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {optimizedRoute.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Secuencia de Paradas ({optimizedRoute.length})</h3>
+                  <div className="border rounded-md p-4 space-y-3 max-h-[300px] overflow-y-auto">
+                    {optimizedRoute.map((customer, index) => (
+                      <div key={customer.id} className="flex items-center">
+                        <Badge 
+                          variant={index === 0 ? "secondary" : "outline"} 
+                          className={`mr-3 h-6 w-6 rounded-full ${index === 0 ? "bg-primary text-white" : ""}`}
+                        >
+                          {index}
+                        </Badge>
+                        <div>
+                          <div className="font-medium">
+                            {customer.businessname}
+                            {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Inicio</span>}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {customer.street} {customer.streetnumber}{customer.municipalityName ? `, ${customer.municipalityName}` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {optimizedRoute.length > 0 && (
+                <div className="border rounded-md overflow-hidden mt-4">
+                  <div className="text-sm font-medium mb-2">Mapa de Ruta Optimizada</div>
+                  <ResponsiveMapContainer 
+                    fixedHeight 
+                    minHeight="300px"
+                    className="map-container"
+                  >
+                    {typeof window !== "undefined" && (
+                      <MapContainer
+                        center={getMapCenter() as [number, number]}
+                        zoom={11}
+                        style={{ width: "100%" }}
+                        className="route-map"
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        <MapCenterFixer />
+                        {/* Polyline para la ruta */}
+                        {optimizedRoute.length > 1 && (
+                          <Polyline
+                            positions={optimizedRoute
+                              .filter(customer => customer.coordinates)
+                              .map(customer => {
+                                const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
+                                return [lat, lng] as [number, number];
                               })}
-                              color="#0088FE"
-                              weight={4}
-                              opacity={0.7}
-                            />
-                          )}
-                          
-                          {/* Custom markers for each point */}
-                          {optimizedRoute.map((customer, index) => {
-                            if (!customer.coordinates) return null;
+                            color="#3366ff"
+                            weight={3}
+                            opacity={0.7}
+                            dashArray="5,10"
+                          />
+                        )}
+                        
+                        {/* Markers for each point */}
+                        {optimizedRoute.map((customer, index) => {
+                          try {
+                            if (!customer.coordinates) {
+                              console.warn(`No coordinates for customer: ${customer.id}`);
+                              return null;
+                            }
                             
                             const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                            if (isNaN(lat) || isNaN(lng)) {
+                              console.warn(`Invalid coordinates for customer: ${customer.id}`, customer.coordinates);
+                              return null;
+                            }
                             
-                            // Depot (warehouse) is green, delivery points are blue
-                            const isDepot = customer.id === 0;
-                            const markerColor = isDepot ? "green" : "blue";
-                            
-                            // Create custom icon
+                            // Use Leaflet divIcon to customize marker appearance
                             const customIcon = L.divIcon({
                               className: 'custom-marker',
-                              html: `<div style="background-color:${markerColor}; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:12px;">${isDepot ? '0' : index}</div>`,
+                              html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-primary'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
                               iconSize: [24, 24],
                               iconAnchor: [12, 12]
                             });
                             
                             return (
-                              <Marker
+                              <Marker 
                                 key={`${customer.id}-${index}`}
                                 position={[lat, lng]}
                                 icon={customIcon}
                               >
                                 <Popup>
-                                  <div className="text-xs">
+                                  <div className="text-sm">
                                     <strong>{customer.businessname}</strong>
-                                    <p>{customer.street} {customer.streetnumber}</p>
-                                    <p className="text-muted-foreground">
-                                      {isDepot ? 'Almacén Principal' : `Parada #${index}`}
-                                    </p>
+                                    <br />
+                                    Parada #{index}
+                                    {index === 0 && " (Inicio)"}
                                   </div>
                                 </Popup>
                               </Marker>
                             );
-                          })}
-                          
-                          <MapCenterFixer />
-                        </MapContainer>
-                      </ResponsiveMapContainer>
-                    </div>
-                  </CardContent>
-                </Card>
+                          } catch (e) {
+                            console.error("Error rendering marker:", e, customer);
+                            return null;
+                          }
+                        })}
+                      </MapContainer>
+                    )}
+                  </ResponsiveMapContainer>
+                </div>
+              )}
+
+              <div className="flex justify-between pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setSelectedTab("customers")}
+                >
+                  Atrás
+                </Button>
+                
+                <Button 
+                  type="submit"
+                  disabled={createRouteMutation.isPending || !form.watch("driverId")}
+                >
+                  {createRouteMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creando ruta...
+                    </>
+                  ) : (
+                    "Crear Ruta"
+                  )}
+                </Button>
               </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </form>
+          </Form>
+        </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
