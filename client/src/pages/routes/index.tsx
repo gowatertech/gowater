@@ -187,24 +187,23 @@ export default function Routes() {
 
   if (isCreatingRoute) {
     return (
-      <div className="container py-6">
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t("createRoute")}
-          </h1>
-          <Button variant="outline" onClick={handleCancelCreate}>
+      <div className="container py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Truck className="h-5 w-5 text-primary" />
+            <h1 className="text-xl font-bold">{t("createRoute")}</h1>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleCancelCreate}>
+            <X className="h-4 w-4 mr-1" />
             {t("cancel")}
           </Button>
         </div>
-        <Card>
-          <CardContent className="p-6">
-            {/* Pasamos la prop compact si hay rutas activas */}
-            <ZoneBasedRouteForm 
-              onRouteCreated={handleRouteCreated} 
-              compact={hasActiveRoutes}
-            />
-          </CardContent>
-        </Card>
+
+        {/* Las cards de estadísticas y el formato moderno están dentro del componente ZoneBasedRouteForm */}
+        <ZoneBasedRouteForm 
+          onRouteCreated={handleRouteCreated} 
+          compact={hasActiveRoutes}
+        />
       </div>
     );
   }
