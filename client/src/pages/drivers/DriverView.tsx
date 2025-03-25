@@ -799,28 +799,54 @@ export default function DriverView() {
             </Card>
             
             <Card className="p-4">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="h-5 w-5 text-green-600" />
                 <h2 className="font-semibold">Balance de Efectivo</h2>
               </div>
               
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Balance Inicial:</span>
-                  <span className="font-medium">${cashBalance.initialBalance}</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Balance Inicial
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-blue-600">
+                      ${cashBalance.initialBalance}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Ingresos:</span>
-                  <span className="font-medium text-green-600">+${cashBalance.cashIn}</span>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Ingresos
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-green-600">
+                      +${cashBalance.cashIn}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Salidas:</span>
-                  <span className="font-medium text-red-600">-${cashBalance.cashOut}</span>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Salidas
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-red-600">
+                      -${cashBalance.cashOut}
+                    </div>
+                  </div>
                 </div>
-                <div className="pt-3 border-t">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">Balance Final:</span>
-                    <span className="font-bold text-lg">${cashBalance.finalBalance}</span>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-indigo-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Balance Final
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-indigo-600">
+                      ${cashBalance.finalBalance}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1325,28 +1351,54 @@ export default function DriverView() {
             </Card>
             
             <Card className="p-4">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="h-5 w-5 text-green-600" />
                 <h2 className="font-semibold">Balance de Efectivo</h2>
               </div>
               
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Balance Inicial:</span>
-                  <span className="font-medium">${cashBalance.initialBalance}</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Balance Inicial
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-blue-600">
+                      ${cashBalance.initialBalance}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Ingresos:</span>
-                  <span className="font-medium text-green-600">+${cashBalance.cashIn}</span>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Ingresos
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-green-600">
+                      +${cashBalance.cashIn}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Salidas:</span>
-                  <span className="font-medium text-red-600">-${cashBalance.cashOut}</span>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Salidas
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-red-600">
+                      -${cashBalance.cashOut}
+                    </div>
+                  </div>
                 </div>
-                <div className="pt-3 border-t">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">Balance Final:</span>
-                    <span className="font-bold text-lg">${cashBalance.finalBalance}</span>
+                <div className="relative overflow-hidden rounded-md border shadow-sm">
+                  <div className="absolute left-0 top-0 h-full w-1 bg-indigo-500"></div>
+                  <div className="p-2 pl-2.5">
+                    <div className="text-xs font-normal text-gray-500">
+                      Balance Final
+                    </div>
+                    <div className="mt-1 text-base font-semibold text-indigo-600">
+                      ${cashBalance.finalBalance}
+                    </div>
                   </div>
                 </div>
               </div>
