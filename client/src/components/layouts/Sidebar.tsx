@@ -180,34 +180,55 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
 
-  // Ya no necesitamos este manejador para abrir/cerrar manualmente,
-  // ahora la apertura/cierre se hace automáticamente por hover
+  // Manejador para abrir y cerrar menús al hacer clic
   const handleItemClick = (label: string) => {
-    // Mantener este método para uso en dispositivos móviles
-    // donde hover no está disponible
-    if (window.innerWidth < 768) {
-      if (activeItems.includes(label)) {
-        setActiveItems(activeItems.filter(item => item !== label));
-      } else {
-        setActiveItems([...activeItems, label]);
-      }
+    // Si el elemento ya está en activeItems, lo removemos (cerramos el submenú)
+    if (activeItems.includes(label)) {
+      setActiveItems([]);
+    } else {
+      // Si no está, lo agregamos (y quitamos todos los demás para cerrar otros submenús)
+      setActiveItems([label]);
     }
   };
 
-  // Modificado para solo mantener activo el ítem actual y cerrar los demás
+  // Al cambiar de ubicación, actualizar el ítem activo automáticamente
   useEffect(() => {
+    // Encontrar el ítem principal activo basado en la ubicación actual
     const activeMainItem = sidebarItems.find(item => 
       location === item.href || (item.subItems?.some(sub => location === sub.href))
     );
     
     if (activeMainItem) {
-      // Solo mantener en activeItems el ítem activo actualmente
-      setActiveItems([activeMainItem.label]);
+      // Si tiene subitems y uno está activo, mantenerlo abierto
+      if (activeMainItem.subItems?.some(sub => location === sub.href)) {
+        setActiveItems([activeMainItem.label]);
+      } else {
+        // Si es un ítem principal sin subitems, cerrar todos los menús
+        setActiveItems([]);
+      }
     } else {
       // Si no hay ítem activo, limpiar la lista
       setActiveItems([]);
     }
   }, [location]);
+  
+  // Elimina el hover effect para desktop - solo queremos interacción con clic
+  useEffect(() => {
+    const handleMouseMove = () => {
+      if (hoveredItem) {
+        setHoveredItem(null);
+      }
+    };
+    
+    // Solo añadir listener si hay un elemento hover
+    if (hoveredItem) {
+      document.addEventListener("mousemove", handleMouseMove);
+    }
+    
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [hoveredItem]);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-background">
@@ -236,8 +257,9 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         {sidebarItems.map((item) => {
           const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
           const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
-          const isHovered = hoveredItem === item.label;
-          const isExpanded = isHovered || isActive || activeItems.includes(item.label);
+          // El "hover" ya no se usa para expandir el menú, solo para efectos visuales
+          const isHovered = false; // Deshabilitamos el efecto hover completamente
+          const isExpanded = isActive || activeItems.includes(item.label);
           
           return (
             <UISidebarMenuItem
