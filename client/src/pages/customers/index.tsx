@@ -857,8 +857,8 @@ export default function Customers() {
                     control={form.control}
                     name="provinceid"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Provincia</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Provincia</FormLabel>
                         <Select
                           onValueChange={(value) => {
                             field.onChange(parseInt(value));
@@ -867,19 +867,19 @@ export default function Customers() {
                           value={field.value?.toString()}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-7 text-xs">
                               <SelectValue placeholder="Seleccione una provincia" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {provinces.map((province) => (
-                              <SelectItem key={province.id} value={province.id.toString()}>
+                              <SelectItem key={province.id} value={province.id.toString()} className="text-xs">
                                 {province.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -888,27 +888,27 @@ export default function Customers() {
                     control={form.control}
                     name="municipalityid"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Municipio</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Municipio</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
                           disabled={!selectedProvinceId || isLoadingMunicipalities}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-7 text-xs">
                               <SelectValue placeholder="Seleccione un municipio" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {municipalities.map((municipality) => (
-                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                              <SelectItem key={municipality.id} value={municipality.id.toString()} className="text-xs">
                                 {municipality.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -917,12 +917,12 @@ export default function Customers() {
                     control={form.control}
                     name="reference"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Referencia</FormLabel>
+                      <FormItem className="md:col-span-2 space-y-1">
+                        <FormLabel className="text-xs">Referencia</FormLabel>
                         <FormControl>
-                          <Input {...field} value={field.value || ""} />
+                          <Input className="h-7 text-xs px-2 py-0" {...field} value={field.value || ""} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -931,10 +931,10 @@ export default function Customers() {
                     control={form.control}
                     name="coordinates"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-3">
-                        <FormLabel>Ubicación en Mapa</FormLabel>
+                      <FormItem className="md:col-span-3 space-y-1">
+                        <FormLabel className="text-xs">Ubicación en Mapa</FormLabel>
                         <FormControl>
-                          <div className="h-[200px] w-full">
+                          <div className="h-[180px] w-full">
                             <LocationSelector 
                               value={field.value || ""} 
                               onChange={field.onChange} 
@@ -942,10 +942,10 @@ export default function Customers() {
                             />
                           </div>
                         </FormControl>
-                        <div className="text-xs text-muted-foreground mt-1">
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
                           Mueva el marcador para seleccionar la ubicación exacta del cliente
                         </div>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -954,12 +954,13 @@ export default function Customers() {
                     control={form.control}
                     name="creditlimit"
                     render={({ field }) => (
-                      <FormItem className="md:col-span-2">
-                        <FormLabel>Límite de Crédito</FormLabel>
+                      <FormItem className="md:col-span-2 space-y-1">
+                        <FormLabel className="text-xs">Límite de Crédito</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
                             inputMode="decimal"
+                            className="h-7 text-xs px-2 py-0"
                             {...field}
                             onChange={(e) => {
                               const value = e.target.value.replace(/[^\d.]/g, '');
@@ -978,7 +979,7 @@ export default function Customers() {
                             defaultValue="0.00"
                           />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
