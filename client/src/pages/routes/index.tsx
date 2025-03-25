@@ -294,40 +294,40 @@ export default function Routes() {
 
   return (
     <div className="container py-2">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1">
+      <div className="mb-2 flex flex-col md:flex-row items-center justify-between">
+        <div className="flex items-center gap-1 w-full md:w-auto mb-2 md:mb-0">
           <RouteIcon className="h-4 w-4 text-primary" />
           <h1 className="text-lg font-bold">{t("routes")}</h1>
         </div>
-        <div className="flex flex-wrap gap-1">
+        <div className="flex items-center gap-1 w-full justify-between md:w-auto md:justify-end">
           <Button
             variant="outline"
             size="sm"
-            className="h-7 px-2 text-xs"
+            className="h-7 flex-1 md:flex-none px-1 md:px-2 text-[10px] md:text-xs"
             onClick={() => {
               window.location.reload();
             }}
           >
-            <RefreshCw className="h-3 w-3 mr-1" />
-            <span>{t("refresh")}</span>
+            <RefreshCw className="h-3 w-3 mr-0.5 md:mr-1" />
+            <span className="whitespace-nowrap">{t("refresh")}</span>
           </Button>
           <Button
             variant="default"
             size="sm"
-            className="h-7 px-2 text-xs"
+            className="h-7 flex-1 md:flex-none px-1 md:px-2 text-[10px] md:text-xs"
             onClick={() => setIsCreatingZone(true)}
           >
-            <MapPin className="h-3 w-3 mr-1" />
-            <span>{t("createZone")}</span>
+            <MapPin className="h-3 w-3 mr-0.5 md:mr-1" />
+            <span className="whitespace-nowrap">{t("createZone")}</span>
           </Button>
           <Button
             variant="default"
             size="sm"
-            className="h-7 px-2 text-xs"
+            className="h-7 flex-1 md:flex-none px-1 md:px-2 text-[10px] md:text-xs"
             onClick={handleCreateRoute}
           >
-            <PlusCircle className="h-3 w-3 mr-1" />
-            <span>{t("createRoute")}</span>
+            <PlusCircle className="h-3 w-3 mr-0.5 md:mr-1" />
+            <span className="whitespace-nowrap">{t("createRoute")}</span>
           </Button>
         </div>
       </div>
