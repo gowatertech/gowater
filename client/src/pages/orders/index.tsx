@@ -92,7 +92,6 @@ export default function Orders() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -274,7 +273,6 @@ export default function Orders() {
         title: t("success"),
         description: t("orderCreated"),
       });
-      setIsDialogOpen(false);
       setSelectedCustomer(null);
       setNotes("");
       setOrderItems(Array(5).fill({
