@@ -410,7 +410,11 @@ export default function Customers() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
             <Card className="border border-blue-100 shadow-sm">
               <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Total Clientes</CardTitle>
+                <CardTitle className="text-xs font-medium flex items-center">
+                  <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500 mr-1">
+                    Total Clientes
+                  </Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-2 pt-0">
                 <div className="text-lg font-bold flex items-center">
@@ -421,7 +425,11 @@ export default function Customers() {
             </Card>
             <Card className="border border-green-100 shadow-sm">
               <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Crédito Total</CardTitle>
+                <CardTitle className="text-xs font-medium flex items-center">
+                  <Badge className="px-2 py-0 h-5 text-[10px] bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500 mr-1">
+                    Crédito Total
+                  </Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-2 pt-0">
                 <div className="text-lg font-bold flex items-center">
@@ -432,7 +440,11 @@ export default function Customers() {
             </Card>
             <Card className="border border-amber-100 shadow-sm">
               <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Crédito Promedio</CardTitle>
+                <CardTitle className="text-xs font-medium flex items-center">
+                  <Badge className="px-2 py-0 h-5 text-[10px] bg-amber-50 text-amber-700 border-amber-200 border-l-4 border-l-amber-500 mr-1">
+                    Crédito Promedio
+                  </Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-2 pt-0">
                 <div className="text-lg font-bold flex items-center">
@@ -443,7 +455,11 @@ export default function Customers() {
             </Card>
             <Card className="border border-purple-100 shadow-sm">
               <CardHeader className="p-2 pb-0">
-                <CardTitle className="text-xs font-medium text-muted-foreground">Provincias</CardTitle>
+                <CardTitle className="text-xs font-medium flex items-center">
+                  <Badge className="px-2 py-0 h-5 text-[10px] bg-purple-50 text-purple-700 border-purple-200 border-l-4 border-l-purple-500 mr-1">
+                    Provincias
+                  </Badge>
+                </CardTitle>
               </CardHeader>
               <CardContent className="p-2 pt-0">
                 <div className="text-lg font-bold flex items-center">
