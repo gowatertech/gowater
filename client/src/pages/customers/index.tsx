@@ -674,8 +674,8 @@ export default function Customers() {
             </div>
             
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-1">
                   <FormField
                     control={form.control}
                     name="logo"
@@ -745,12 +745,12 @@ export default function Customers() {
                     control={form.control}
                     name="businessname"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre del Negocio</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -759,12 +759,12 @@ export default function Customers() {
                     control={form.control}
                     name="managername"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nombre del Encargado</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -773,12 +773,12 @@ export default function Customers() {
                     control={form.control}
                     name="phone"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Teléfono</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -787,12 +787,12 @@ export default function Customers() {
                     control={form.control}
                     name="email"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Email</FormLabel>
                         <FormControl>
-                          <Input type="email" {...field} value={field.value || ""} />
+                          <Input className="h-7 text-xs px-2 py-0" type="email" {...field} value={field.value || ""} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -801,26 +801,26 @@ export default function Customers() {
                     control={form.control}
                     name="zoneid"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Zona</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Zona</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-7 text-xs">
                               <SelectValue placeholder="Seleccione una zona" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {zones.map((zone) => (
-                              <SelectItem key={zone.id} value={zone.id.toString()}>
+                              <SelectItem key={zone.id} value={zone.id.toString()} className="text-xs">
                                 {zone.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -829,12 +829,12 @@ export default function Customers() {
                     control={form.control}
                     name="street"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Calle</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Calle</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -843,12 +843,12 @@ export default function Customers() {
                     control={form.control}
                     name="streetnumber"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Número</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Número</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
