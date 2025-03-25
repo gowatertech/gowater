@@ -513,7 +513,7 @@ export default function Customers() {
                     filteredCustomers.map((customer) => (
                       <Card 
                         key={customer.id} 
-                        className="border-l-4 shadow-sm"
+                        className="overflow-hidden hover:bg-accent/5 transition-colors border-l-4"
                         style={{ 
                           borderLeftColor: customer.zoneid === 1 ? '#3b82f6' : 
                                           customer.zoneid === 2 ? '#ef4444' : 
@@ -547,15 +547,38 @@ export default function Customers() {
                           form.reset(formData);
                         }}
                       >
-                        <CardContent className="p-2 flex justify-between items-center">
-                          <div>
-                            <p className="text-xs text-muted-foreground">{customer.businessname}</p>
-                            <p className="text-base font-bold">{customer.managername}</p>
-                            <div className="flex items-center text-xs text-muted-foreground mt-1">
-                              <Phone className="h-3 w-3 mr-1" /> 
-                              {customer.phone}
+                        <div className="flex items-center p-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="h-4 w-4 text-blue-500" />
+                              <span className="text-sm font-medium">
+                                {customer.businessname}
+                              </span>
+                              {customer.rnc && (
+                                <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4">
+                                  RNC: {customer.rnc}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-2 mt-1 text-[11px]">
+                              <div className="flex items-center text-muted-foreground">
+                                <User className="h-3 w-3 mr-1" />
+                                <span>{customer.managername}</span>
+                              </div>
+                              <div className="flex items-center text-muted-foreground">
+                                <Phone className="h-3 w-3 mr-1" />
+                                <span>{customer.phone}</span>
+                              </div>
+                              {customer.email && (
+                                <div className="flex items-center text-muted-foreground">
+                                  <Mail className="h-3 w-3 mr-1" />
+                                  <span>{customer.email}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
+                          
                           <div>
                             {customer.zoneid === 1 ? (
                               <Building2 className="h-5 w-5 text-blue-500" />
@@ -567,7 +590,7 @@ export default function Customers() {
                               <Building2 className="h-5 w-5 text-gray-500" />
                             )}
                           </div>
-                        </CardContent>
+                        </div>
                       </Card>
                     ))
                   )}
