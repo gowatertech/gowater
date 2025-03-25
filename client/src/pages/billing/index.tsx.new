@@ -1,7 +1,11 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type Customer, type Product, type Invoice } from "@shared/schema";
+import { 
+  type Customer, 
+  type Product, 
+  type Invoice
+} from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -20,6 +24,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
@@ -51,14 +56,23 @@ import {
 } from "@/components/ui/card";
 
 import {
-  Search,
+  ShoppingCart,
+  ClipboardList,
   Plus,
-  Eye,
+  Search,
+  X,
   FileText,
   CheckCircle,
   Clock,
+  CircleX,
+  Truck,
+  CalendarDays,
+  Package,
+  User,
   DollarSign,
   AlertTriangle,
+  Eye,
+  Filter,
   ListFilter,
 } from "lucide-react";
 
@@ -87,8 +101,8 @@ export default function Billing() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("list");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [activeTab, setActiveTab] = useState<string>("list");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([{
     code: "",
     description: "",
@@ -193,7 +207,7 @@ export default function Billing() {
   const filteredInvoices = invoices.filter((invoice) => {
     // Filtrar por término de búsqueda
     const customerName = invoice.businessName || 
-      customers.find((c: any) => c.id === invoice.customerId)?.businessname || "";
+      customers.find((c: Customer) => c.id === invoice.customerId)?.businessname || "";
     
     const matchesSearch = customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       invoice.id.toString().includes(searchQuery);
@@ -593,7 +607,7 @@ export default function Billing() {
                             <TableCell>
                               <div className="font-medium">
                                 {invoice.businessName || 
-                                  customers.find((c: any) => c.id === invoice.customerId)?.businessname ||
+                                  customers.find((c: Customer) => c.id === invoice.customerId)?.businessname ||
                                   "Cliente"}
                               </div>
                               <div className="text-sm text-muted-foreground">
@@ -638,6 +652,48 @@ export default function Billing() {
                 </ScrollArea>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-blue-50 border-blue-100">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Total Facturas</p>
+                    <p className="text-2xl font-bold text-blue-600">{filteredInvoices.length}</p>
+                  </div>
+                  <FileText className="h-8 w-8 text-blue-400" />
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-yellow-50 border-yellow-100">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Pendientes</p>
+                    <p className="text-2xl font-bold text-yellow-600">{totalPendientes}</p>
+                  </div>
+                  <Clock className="h-8 w-8 text-yellow-400" />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-green-50 border-green-100">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Pagadas</p>
+                    <p className="text-2xl font-bold text-green-600">{totalPagadas}</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-green-400" />
+                </CardContent>
+              </Card>
+
+              <Card className="bg-purple-50 border-purple-100">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Valor Total</p>
+                    <p className="text-2xl font-bold text-purple-600">RD$ {totalMonto.toFixed(2)}</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-purple-400" />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Pestaña de Nueva Factura */}
@@ -661,7 +717,7 @@ export default function Billing() {
                       <label className="text-sm font-medium">Cliente</label>
                       <Select
                         onValueChange={(value) => {
-                          const customer = customers.find((c: any) => c.id === parseInt(value));
+                          const customer = customers.find((c: Customer) => c.id === parseInt(value));
                           setSelectedCustomer(customer || null);
                         }}
                       >
@@ -669,7 +725,7 @@ export default function Billing() {
                           <SelectValue placeholder="Seleccionar Cliente" />
                         </SelectTrigger>
                         <SelectContent>
-                          {customers.map((customer: any) => (
+                          {customers.map((customer: Customer) => (
                             <SelectItem
                               key={customer.id}
                               value={customer.id.toString()}
@@ -886,7 +942,7 @@ export default function Billing() {
                       <div className="text-sm font-medium text-muted-foreground">Cliente</div>
                       <div className="font-medium">
                         {selectedInvoice.businessName || 
-                          customers.find((c: any) => c.id === selectedInvoice.customerId)?.businessname || 
+                          customers.find((c: Customer) => c.id === selectedInvoice.customerId)?.businessname || 
                           "Cliente"}
                       </div>
                     </div>
@@ -922,7 +978,7 @@ export default function Billing() {
                             invoiceDetails.map((item: any) => (
                               <TableRow key={item.id}>
                                 <TableCell>
-                                  {products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
+                                  {products.find(p => p.id === item.productId)?.name || "Producto"}
                                 </TableCell>
                                 <TableCell className="text-right">{item.quantity}</TableCell>
                                 <TableCell className="text-right">{parseFloat(item.price).toFixed(2)}</TableCell>
