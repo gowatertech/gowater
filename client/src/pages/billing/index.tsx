@@ -200,6 +200,15 @@ export default function Billing() {
 
     // Filtrar por estado
     if (statusFilter === "all") return matchesSearch;
+    
+    // Caso especial para facturas con pago parcial
+    if (statusFilter === "partial") {
+      return matchesSearch && 
+             invoice.status === "pending" && 
+             parseFloat(invoice.totalPaid || "0") > 0 && 
+             parseFloat(invoice.pendingAmount || "0") > 0;
+    }
+    
     return matchesSearch && invoice.status === statusFilter;
   });
 
@@ -409,23 +418,30 @@ export default function Billing() {
   // Calcular totales para estadísticas
   const totalPendientes = filteredInvoices.filter(i => i.status === "pending").length;
   const totalPagadas = filteredInvoices.filter(i => i.status === "paid").length;
-  const totalParciales = filteredInvoices.filter(i => i.status === "partial").length;
+  // Nota: Las facturas parcialmente pagadas se considerarían aún como "pending"
+  const totalParciales = filteredInvoices.filter(i => 
+    parseFloat(i.pendingAmount || "0") > 0 && 
+    parseFloat(i.totalPaid || "0") > 0
+  ).length;
   const totalMonto = filteredInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.total || "0"), 0);
 
   // Función para renderizar el indicador de estado
-  const StatusBadge = ({ status }: { status: string }) => {
+  const StatusBadge = ({ status, invoice }: { status: string, invoice?: InvoiceWithDetails }) => {
     let variant: "default" | "destructive" | "outline" | "secondary" = "outline";
     let label = "Pendiente";
     
     if (status === "paid") {
       variant = "default";
       label = "Pagada";
-    } else if (status === "partial") {
-      variant = "secondary";
-      label = "Parcial";
     } else if (status === "cancelled") {
       variant = "destructive";
       label = "Cancelada";
+    }
+    
+    // Para facturas con pago parcial (estado sigue siendo pending)
+    if (status === "pending" && invoice && parseFloat(invoice.totalPaid || "0") > 0) {
+      variant = "secondary";
+      label = "Parcial";
     }
     
     return <Badge variant={variant} className="text-xs px-2 py-0.5">{label}</Badge>;
@@ -613,7 +629,7 @@ export default function Billing() {
                               {invoice.id}
                             </TableCell>
                             <TableCell className="py-1">
-                              <StatusBadge status={invoice.status} />
+                              <StatusBadge status={invoice.status} invoice={invoice} />
                             </TableCell>
                             <TableCell className="py-1 text-right text-xs font-medium">
                               {parseFloat(invoice.total).toFixed(2)}
@@ -902,7 +918,7 @@ export default function Billing() {
                     </div>
                     <div className="space-y-1">
                       <div className="text-xs font-medium text-muted-foreground">Estado</div>
-                      <StatusBadge status={selectedInvoice.status} />
+                      <StatusBadge status={selectedInvoice.status} invoice={selectedInvoice} />
                     </div>
 
                     <div className="md:col-span-3">
