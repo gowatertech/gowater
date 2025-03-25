@@ -143,27 +143,30 @@ function Settings() {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <Card>
-        <CardHeader className="flex flex-row justify-between items-center">
-          <CardTitle>Configuración de la Empresa</CardTitle>
+    <div className="space-y-2 p-2">
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row justify-between items-center px-2 py-1.5">
+          <div className="flex items-center gap-1">
+            <Edit className="h-3.5 w-3.5 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Configuración de la Empresa</CardTitle>
+          </div>
           {!isEditing && (
-            <Button onClick={handleEditClick} variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-2" />
+            <Button onClick={handleEditClick} variant="outline" size="sm" className="h-7 text-xs px-2 py-0">
+              <Edit className="h-3.5 w-3.5 mr-1" />
               Editar
             </Button>
           )}
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-2">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <FormField
                   control={form.control}
                   name="logo"
                   render={({ field: { value, onChange, ...field } }) => (
-                    <FormItem>
-                      <FormLabel>Logo</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Logo</FormLabel>
                       <FormControl>
                         <div className="flex items-center gap-4">
                           {value && typeof value === 'string' && (
@@ -212,10 +215,10 @@ function Settings() {
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre de la Empresa</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Nombre de la Empresa</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -226,10 +229,10 @@ function Settings() {
                   control={form.control}
                   name="rnc"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>RNC</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">RNC</FormLabel>
                       <FormControl>
-                        <Input {...field} value={field.value || ''} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" {...field} value={field.value || ''} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -240,10 +243,10 @@ function Settings() {
                   control={form.control}
                   name="street"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Calle</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Calle</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -254,10 +257,10 @@ function Settings() {
                   control={form.control}
                   name="streetNumber"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Número</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -268,8 +271,8 @@ function Settings() {
                   control={form.control}
                   name="provinceId"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Provincia</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Provincia</FormLabel>
                       {isEditing ? (
                         <Select
                           onValueChange={(value) => {
@@ -314,8 +317,8 @@ function Settings() {
                   control={form.control}
                   name="municipalityId"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Municipio</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Municipio</FormLabel>
                       {isEditing ? (
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
@@ -352,10 +355,10 @@ function Settings() {
                   control={form.control}
                   name="contactPhone"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Teléfono de Contacto</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Teléfono de Contacto</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -366,10 +369,10 @@ function Settings() {
                   control={form.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Email</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} value={field.value || ''} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" type="email" {...field} value={field.value || ''} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -380,10 +383,10 @@ function Settings() {
                   control={form.control}
                   name="country"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>País</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">País</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -394,10 +397,10 @@ function Settings() {
                   control={form.control}
                   name="currency"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Moneda</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Moneda</FormLabel>
                       <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
+                        <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -408,8 +411,8 @@ function Settings() {
                   control={form.control}
                   name="tax"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ITBIS (%)</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">ITBIS (%)</FormLabel>
                       <FormControl>
                         <Input
                           type="text"
@@ -451,8 +454,8 @@ function Settings() {
                       control={form.control}
                       name="latitude"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Latitud</FormLabel>
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">Latitud</FormLabel>
                           <FormControl>
                             <Input
                               type="text"
@@ -476,8 +479,8 @@ function Settings() {
                       control={form.control}
                       name="longitude"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Longitud</FormLabel>
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">Longitud</FormLabel>
                           <FormControl>
                             <Input
                               type="text"
