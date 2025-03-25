@@ -61,6 +61,7 @@ import { Textarea } from "@/components/ui/textarea";
 type PaymentWithCustomer = Payment & {
   customerName: string;
   invoiceNumber: string;
+  method?: string; // Alias para paymentMethod
 };
 
 // Tipo para las estadísticas de pagos
@@ -78,7 +79,7 @@ export default function Payments() {
   const [activeTab, setActiveTab] = useState<string>("list");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithDetails | null>(null);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [paymentNotes, setPaymentNotes] = useState<string>("");
