@@ -441,15 +441,18 @@ function Settings() {
                 />
 
                 {/* Campos de ubicación con selector de mapa */}
-                <div className="col-span-2">
-                  <div className="flex flex-col space-y-2 mb-4">
-                    <h3 className="text-lg font-medium">Ubicación de la Empresa</h3>
-                    <p className="text-sm text-muted-foreground">
+                <div className="col-span-3">
+                  <div className="flex flex-col space-y-1 mb-2">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 text-blue-500" />
+                      <h3 className="text-sm font-medium">Ubicación de la Empresa</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
                       Estos datos serán utilizados como punto de inicio para las rutas de entrega.
                     </p>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
                     <FormField
                       control={form.control}
                       name="latitude"
@@ -502,11 +505,11 @@ function Settings() {
                   </div>
 
                   {isEditing && (
-                    <div className="flex justify-center mt-2 mb-4">
+                    <div className="flex justify-start mt-1 mb-2">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button type="button" variant="outline">
-                            <MapPin className="h-4 w-4 mr-2" />
+                          <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2 py-0">
+                            <MapPin className="h-3.5 w-3.5 mr-1" />
                             Seleccionar en mapa
                           </Button>
                         </DialogTrigger>
@@ -544,8 +547,8 @@ function Settings() {
               </div>
 
               {isEditing && (
-                <Button type="submit" className="w-full" disabled={updateMutation.isPending}>
-                  <Save className="mr-2 h-4 w-4" />
+                <Button type="submit" variant="default" size="sm" className="h-8 mt-1 w-full text-xs" disabled={updateMutation.isPending}>
+                  <Save className="mr-1 h-3.5 w-3.5" />
                   {updateMutation.isPending ? "Guardando..." : "Guardar Configuración"}
                 </Button>
               )}
@@ -618,12 +621,15 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
 
   return (
     <div className="w-full">
-      <h3 className="text-lg font-medium mb-2">Selecciona la ubicación de tu empresa</h3>
-      <p className="text-sm text-muted-foreground mb-2">
+      <div className="flex items-center gap-1 mb-1">
+        <MapPin className="h-3.5 w-3.5 text-blue-500" />
+        <h3 className="text-sm font-medium">Selecciona la ubicación de tu empresa</h3>
+      </div>
+      <p className="text-xs text-muted-foreground mb-1">
         Busca una dirección o haz clic en el mapa para seleccionar la ubicación exacta.
       </p>
       
-      <div className="mb-3">
+      <div className="mb-2">
         <AddressSearchBox onLocationSelected={handleAddressSelected} />
       </div>
       
