@@ -70,7 +70,8 @@ import {
   DollarSign,
   User,
   ClipboardCheck,
-  Home
+  Home,
+  ImageIcon
 } from "lucide-react";
 
 type CustomerFormData = z.infer<typeof insertCustomerSchema>;
@@ -697,7 +698,7 @@ export default function Customers() {
                               Logo (JPG/PNG, máx. 5MB)
                             </Badge>
                           </div>
-                          <Image className="h-4 w-4 text-slate-500" />
+                          <ImageIcon className="h-4 w-4 text-slate-500" />
                         </FormLabel>
                         <FormControl>
                           <Input
