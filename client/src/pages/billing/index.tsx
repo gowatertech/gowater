@@ -641,31 +641,31 @@ export default function Billing() {
           </TabsContent>
 
           {/* Pestaña de Nueva Factura */}
-          <TabsContent value="new" className="space-y-4">
+          <TabsContent value="new" className="space-y-2">
             <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-primary" />
-                  <CardTitle>Nueva Factura</CardTitle>
+              <CardHeader className="p-3">
+                <div className="flex items-center gap-1">
+                  <Plus className="h-4 w-4 text-primary" />
+                  <CardTitle className="text-base">Nueva Factura</CardTitle>
                 </div>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   Crea una nueva factura para un cliente
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2 p-3">
                 {/* Formulario */}
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {/* Cliente */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2 md:col-span-3">
-                      <label className="text-sm font-medium">Cliente</label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="space-y-1 md:col-span-3">
+                      <label className="text-xs font-medium">Cliente</label>
                       <Select
                         onValueChange={(value) => {
                           const customer = customers.find((c: any) => c.id === parseInt(value));
                           setSelectedCustomer(customer || null);
                         }}
                       >
-                        <SelectTrigger className="h-9 text-sm">
+                        <SelectTrigger className="h-7 text-xs">
                           <SelectValue placeholder="Seleccionar Cliente" />
                         </SelectTrigger>
                         <SelectContent>
@@ -673,7 +673,7 @@ export default function Billing() {
                             <SelectItem
                               key={customer.id}
                               value={customer.id.toString()}
-                              className="text-sm py-2"
+                              className="text-xs py-1"
                             >
                               {customer.businessname}
                             </SelectItem>
@@ -684,24 +684,24 @@ export default function Billing() {
 
                     {selectedCustomer && (
                       <>
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground">Nombre del Gerente</div>
-                          <div className="text-sm">{selectedCustomer.managername}</div>
+                        <div className="bg-muted/30 rounded p-1.5">
+                          <div className="text-[10px] font-medium text-muted-foreground">Nombre del Gerente</div>
+                          <div className="text-xs">{selectedCustomer.managername}</div>
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground">Dirección</div>
-                          <div className="text-sm">{selectedCustomer.street} {selectedCustomer.streetnumber}</div>
+                        <div className="bg-muted/30 rounded p-1.5">
+                          <div className="text-[10px] font-medium text-muted-foreground">Dirección</div>
+                          <div className="text-xs">{selectedCustomer.street} {selectedCustomer.streetnumber}</div>
                         </div>
-                        <div className="space-y-1">
-                          <div className="text-xs font-medium text-muted-foreground">Teléfono</div>
-                          <div className="text-sm">{selectedCustomer.phone}</div>
+                        <div className="bg-muted/30 rounded p-1.5">
+                          <div className="text-[10px] font-medium text-muted-foreground">Teléfono</div>
+                          <div className="text-xs">{selectedCustomer.phone}</div>
                         </div>
                       </>
                     )}
 
                     {/* Campo de Notas */}
-                    <div className="space-y-2 md:col-span-3">
-                      <label className="text-sm font-medium">Nota</label>
+                    <div className="space-y-1 md:col-span-3">
+                      <label className="text-xs font-medium">Nota</label>
                       <Textarea
                         value={notes}
                         onChange={(e) => {
@@ -710,25 +710,25 @@ export default function Billing() {
                           }
                         }}
                         placeholder="Añadir nota a la factura (máximo 200 caracteres)"
-                        className="h-20 text-sm resize-none"
+                        className="h-16 text-xs resize-none"
                         maxLength={200}
                       />
-                      <div className="text-xs text-muted-foreground text-right">
+                      <div className="text-[10px] text-muted-foreground text-right">
                         {notes.length}/200 caracteres
                       </div>
                     </div>
                   </div>
 
                   {/* Método de Pago */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Método de Pago</label>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">Método de Pago</label>
+                    <div className="flex flex-wrap gap-1">
                       <Button
                         type="button"
                         variant={paymentMethod === 'cash' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setPaymentMethod('cash')}
-                        className="text-xs flex-1"
+                        className="text-xs h-6 flex-1"
                       >
                         Efectivo
                       </Button>
@@ -737,7 +737,7 @@ export default function Billing() {
                         variant={paymentMethod === 'credit' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setPaymentMethod('credit')}
-                        className="text-xs flex-1"
+                        className="text-xs h-6 flex-1"
                       >
                         Crédito
                       </Button>
@@ -746,7 +746,7 @@ export default function Billing() {
                         variant={paymentMethod === 'card' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setPaymentMethod('card')}
-                        className="text-xs flex-1"
+                        className="text-xs h-6 flex-1"
                       >
                         Tarjeta
                       </Button>
@@ -757,23 +757,23 @@ export default function Billing() {
                   <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader className="bg-muted/50">
-                        <TableRow>
-                          <TableHead className="w-[180px]">Producto</TableHead>
-                          <TableHead>Descripción</TableHead>
-                          <TableHead className="w-[80px] text-right">Cant.</TableHead>
-                          <TableHead className="w-[100px] text-right">Precio</TableHead>
-                          <TableHead className="w-[100px] text-right">Total</TableHead>
+                        <TableRow className="text-[10px]">
+                          <TableHead className="py-1 w-[140px]">Producto</TableHead>
+                          <TableHead className="py-1">Descripción</TableHead>
+                          <TableHead className="py-1 w-[60px] text-right">Cant.</TableHead>
+                          <TableHead className="py-1 w-[70px] text-right">Precio</TableHead>
+                          <TableHead className="py-1 w-[70px] text-right">Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {orderItems.map((item, index) => (
                           <TableRow key={index}>
-                            <TableCell className="p-2">
+                            <TableCell className="p-1">
                               <Select
                                 value={item.code}
                                 onValueChange={(value) => handleProductChange(index, value)}
                               >
-                                <SelectTrigger className="h-8 text-xs">
+                                <SelectTrigger className="h-7 text-xs">
                                   <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -789,20 +789,20 @@ export default function Billing() {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell className="text-xs">{item.description}</TableCell>
-                            <TableCell className="p-2">
+                            <TableCell className="text-xs p-1">{item.description}</TableCell>
+                            <TableCell className="p-1">
                               <Input
                                 type="number"
                                 value={item.quantity}
                                 onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                                className="h-8 text-xs text-right"
+                                className="h-7 text-xs text-right"
                                 min="0"
                               />
                             </TableCell>
-                            <TableCell className="text-right text-xs">
+                            <TableCell className="text-right text-xs p-1">
                               {item.price.toFixed(2)}
                             </TableCell>
-                            <TableCell className="text-right text-xs">
+                            <TableCell className="text-right text-xs p-1">
                               {item.total.toFixed(2)}
                             </TableCell>
                           </TableRow>
@@ -812,19 +812,19 @@ export default function Billing() {
                   </div>
 
                   {/* Totales */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div className="md:col-span-2"></div>
-                    <div className="space-y-2 p-3 bg-muted rounded-lg">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1 p-2 bg-muted rounded-lg">
+                      <div className="flex justify-between text-xs">
                         <span>Subtotal:</span>
                         <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs">
                         <span>ITBIS (18%):</span>
                         <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
                       </div>
-                      <Separator className="my-1" />
-                      <div className="flex justify-between font-semibold">
+                      <Separator className="my-0.5" />
+                      <div className="flex justify-between text-xs font-semibold">
                         <span>Total:</span>
                         <span>RD$ {calculateTotal().total.toFixed(2)}</span>
                       </div>
@@ -832,20 +832,24 @@ export default function Billing() {
                   </div>
 
                   {/* Botones */}
-                  <div className="flex justify-end gap-2 pt-2">
+                  <div className="flex justify-end gap-2 pt-1">
                     <Button
                       variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
                       onClick={() => setActiveTab("list")}
                     >
                       Cancelar
                     </Button>
                     <Button
+                      size="sm"
+                      className="h-7 text-xs"
                       onClick={handleCreateInvoice}
                       disabled={createMutation.isPending}
                     >
                       {createMutation.isPending ? (
                         <>
-                          <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                          <div className="animate-spin mr-1 h-3 w-3 border-2 border-current border-t-transparent rounded-full"></div>
                           Creando...
                         </>
                       ) : (
