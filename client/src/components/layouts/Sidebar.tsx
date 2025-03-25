@@ -177,22 +177,32 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
 
+  // Ya no necesitamos este manejador para abrir/cerrar manualmente,
+  // ahora la apertura/cierre se hace automáticamente por hover
   const handleItemClick = (label: string) => {
-    if (activeItems.includes(label)) {
-      setActiveItems(activeItems.filter(item => item !== label));
-    } else {
-      setActiveItems([...activeItems, label]);
+    // Mantener este método para uso en dispositivos móviles
+    // donde hover no está disponible
+    if (window.innerWidth < 768) {
+      if (activeItems.includes(label)) {
+        setActiveItems(activeItems.filter(item => item !== label));
+      } else {
+        setActiveItems([...activeItems, label]);
+      }
     }
   };
 
-  // Si alguna ruta está activa, mostrar automáticamente el menú expandido
+  // Modificado para solo mantener activo el ítem actual y cerrar los demás
   useEffect(() => {
     const activeMainItem = sidebarItems.find(item => 
       location === item.href || (item.subItems?.some(sub => location === sub.href))
     );
     
-    if (activeMainItem && !activeItems.includes(activeMainItem.label)) {
-      setActiveItems(prev => [...prev, activeMainItem.label]);
+    if (activeMainItem) {
+      // Solo mantener en activeItems el ítem activo actualmente
+      setActiveItems([activeMainItem.label]);
+    } else {
+      // Si no hay ítem activo, limpiar la lista
+      setActiveItems([]);
     }
   }, [location]);
 
