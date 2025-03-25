@@ -565,54 +565,85 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       </div>
 
       {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
-        <Card className="bg-blue-50 border-blue-100">
-          <CardContent className="p-2 flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
             <div>
-              <p className="text-xs text-muted-foreground">Clientes Seleccionados</p>
-              <p className="text-lg font-bold text-blue-600">{selectedCustomers.length}</p>
+              <p className="text-sm text-muted-foreground">Clientes Seleccionados</p>
+              <p className="text-xl font-bold mt-1">{selectedCustomers.length}</p>
             </div>
-            <Users className="h-6 w-6 text-blue-400" />
+            <Users className="h-7 w-7 text-blue-500" />
           </CardContent>
         </Card>
 
-        <Card className="bg-yellow-50 border-yellow-100">
-          <CardContent className="p-2 flex items-center justify-between">
+        <Card className="border-l-4 border-l-yellow-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
             <div>
-              <p className="text-xs text-muted-foreground">Distancia Total</p>
-              <p className="text-lg font-bold text-yellow-600">{routeStats.totalDistance} km</p>
+              <p className="text-sm text-muted-foreground">Distancia Total</p>
+              <p className="text-xl font-bold mt-1">{routeStats.totalDistance} km</p>
             </div>
-            <Route className="h-6 w-6 text-yellow-400" />
+            <Route className="h-7 w-7 text-yellow-500" />
           </CardContent>
         </Card>
 
-        <Card className="bg-green-50 border-green-100">
-          <CardContent className="p-2 flex items-center justify-between">
+        <Card className="border-l-4 border-l-green-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
             <div>
-              <p className="text-xs text-muted-foreground">Duración Estimada</p>
-              <p className="text-lg font-bold text-green-600">{routeStats.estimatedDuration} min</p>
+              <p className="text-sm text-muted-foreground">Duración Estimada</p>
+              <p className="text-xl font-bold mt-1">{routeStats.estimatedDuration} min</p>
             </div>
-            <Clock className="h-6 w-6 text-green-400" />
+            <Clock className="h-7 w-7 text-green-500" />
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-purple-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Zonas Activas</p>
+              <p className="text-xl font-bold mt-1">{selectedZone ? '1' : '0'}</p>
+            </div>
+            <MapPin className="h-7 w-7 text-purple-500" />
           </CardContent>
         </Card>
       </div>
 
       {/* Contenido principal con pestañas */}
-      <div className="bg-card rounded-lg shadow-sm border p-1">
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-2">
-          <TabsList className="w-full grid grid-cols-3 h-9">
-            <TabsTrigger value="zone" className="flex items-center gap-1 text-xs">
-              <MapPin className="h-3 w-3" /> Zona
-            </TabsTrigger>
-            {!compact && (
-              <TabsTrigger value="customers" disabled={!selectedZone} className="flex items-center gap-1 text-xs">
-                <User className="h-3 w-3" /> Clientes
+      <Card className="shadow-md">
+        <CardHeader className="border-b bg-muted/50 px-5 py-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Truck className="h-5 w-5 text-primary" />
+            Planificación de Rutas
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+            <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+              <TabsTrigger 
+                value="zone" 
+                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+              >
+                <MapPin className="h-4 w-4 mr-2" />
+                Zona
               </TabsTrigger>
-            )}
-            <TabsTrigger value="review" disabled={selectedCustomers.length === 0} className="flex items-center gap-1 text-xs">
-              <Truck className="h-3 w-3" /> Revisar Ruta
-            </TabsTrigger>
-          </TabsList>
+              {!compact && (
+                <TabsTrigger 
+                  value="customers" 
+                  disabled={!selectedZone}
+                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Clientes
+                </TabsTrigger>
+              )}
+              <TabsTrigger 
+                value="review" 
+                disabled={selectedCustomers.length === 0}
+                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+              >
+                <Truck className="h-4 w-4 mr-2" />
+                Revisar Ruta
+              </TabsTrigger>
+            </TabsList>
 
         <TabsContent value="zone" className="mt-4">
           <Form {...form}>
@@ -1042,8 +1073,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
             </form>
           </Form>
         </TabsContent>
-        </Tabs>
-      </div>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }
