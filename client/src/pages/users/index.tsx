@@ -306,7 +306,7 @@ export default function Users() {
       </div>
 
       {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
         <Card className="bg-blue-50 border-blue-100">
           <CardContent className="p-2 flex items-center justify-between">
             <div>
