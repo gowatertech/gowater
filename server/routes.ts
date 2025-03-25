@@ -969,6 +969,59 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Facturas pendientes de pago
+  app.get("/api/invoices/pending", async (req, res) => {
+    try {
+      // Obtener todas las facturas con estado pendiente
+      const allInvoices = await db
+        .select({
+          id: invoices.id,
+          invoiceNumber: invoices.invoiceNumber,
+          customerId: invoices.customerId,
+          businessName: customers.businessname,
+          total: invoices.total,
+          status: invoices.status,
+          paymentMethod: invoices.paymentMethod,
+          date: invoices.date,
+          notes: invoices.notes,
+        })
+        .from(invoices)
+        .leftJoin(customers, eq(invoices.customerId, customers.id))
+        .where(eq(invoices.status, "pending"))
+        .orderBy(invoices.date);
+      
+      // Calcular el monto pagado y pendiente para cada factura
+      const invoicesWithPayments = await Promise.all(allInvoices.map(async (invoice) => {
+        const paymentsForInvoice = await db
+          .select()
+          .from(payments)
+          .where(eq(payments.invoiceId, invoice.id));
+        
+        const totalPaid = paymentsForInvoice.reduce((sum, payment) => sum + parseFloat(payment.amount.toString()), 0);
+        const pendingAmount = parseFloat(invoice.total) - totalPaid;
+        
+        // Solo incluir facturas que tengan un monto pendiente mayor a cero
+        if (pendingAmount > 0) {
+          return {
+            ...invoice,
+            totalPaid: totalPaid.toFixed(2),
+            pendingAmount: pendingAmount.toFixed(2)
+          };
+        }
+        return null;
+      }));
+      
+      // Filtrar facturas nulas (totalmente pagadas)
+      const pendingInvoices = invoicesWithPayments.filter(invoice => invoice !== null);
+      
+      console.log("GET /api/invoices/pending - Retornando:", pendingInvoices.length, "facturas pendientes");
+      res.json(pendingInvoices);
+    } catch (error) {
+      console.error("Error al obtener facturas pendientes:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   app.post("/api/invoices", async (req, res) => {
     try {

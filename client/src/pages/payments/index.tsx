@@ -2,6 +2,13 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Payment, type Invoice } from "@shared/schema";
+
+// Extender el tipo Invoice para incluir campos adicionales del endpoint
+interface InvoiceWithDetails extends Invoice {
+  businessName?: string;
+  totalPaid?: string;
+  pendingAmount?: string;
+}
 import {
   Table,
   TableBody,
@@ -82,7 +89,7 @@ export default function Payments() {
   });
 
   // Fetch invoices with pending payments
-  const { data: invoices = [], isLoading: isLoadingInvoices } = useQuery<Invoice[]>({
+  const { data: invoices = [], isLoading: isLoadingInvoices } = useQuery<InvoiceWithDetails[]>({
     queryKey: ["/api/invoices/pending"],
   });
 
