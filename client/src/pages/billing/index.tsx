@@ -590,13 +590,13 @@ export default function Billing() {
                       ) : (
                         filteredInvoices.map((invoice) => (
                           <TableRow key={invoice.id} className="hover:bg-muted/50">
-                            <TableCell>
-                              <div className="font-medium">
+                            <TableCell className="py-1">
+                              <div className="font-medium text-xs">
                                 {invoice.businessName || 
                                   customers.find((c: any) => c.id === invoice.customerId)?.businessname ||
                                   "Cliente"}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-xs text-muted-foreground">
                                 {invoice.totalPaid && invoice.total && 
                                   (parseFloat(invoice.totalPaid) >= parseFloat(invoice.total) 
                                     ? "Pagada Completamente" 
@@ -605,29 +605,29 @@ export default function Billing() {
                                 }
                               </div>
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-1 text-xs">
                               {new Date(invoice.date).toLocaleDateString()}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-1 text-xs">
                               {invoice.id}
                             </TableCell>
-                            <TableCell>
+                            <TableCell className="py-1">
                               <StatusBadge status={invoice.status} />
                             </TableCell>
-                            <TableCell className="text-right font-medium">
+                            <TableCell className="py-1 text-right text-xs font-medium">
                               {parseFloat(invoice.total).toFixed(2)}
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="py-1 text-right">
                               <Button 
                                 variant="ghost" 
                                 size="sm"
-                                className="h-8 w-8 p-0"
+                                className="h-6 w-6 p-0"
                                 onClick={() => {
                                   setSelectedInvoice(invoice);
                                   setActiveTab("details");
                                 }}
                               >
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-3 w-3" />
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -862,53 +862,54 @@ export default function Billing() {
           <TabsContent value="details" className="space-y-4">
             {selectedInvoice ? (
               <Card>
-                <CardHeader>
+                <CardHeader className="p-3">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <CardTitle>Detalle de Factura #{selectedInvoice.id}</CardTitle>
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <CardTitle className="text-base">Detalle de Factura #{selectedInvoice.id}</CardTitle>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-7 text-xs"
                       onClick={() => setActiveTab("list")}
                     >
                       Volver a la Lista
                     </Button>
                   </div>
-                  <CardDescription>
+                  <CardDescription className="text-xs">
                     Información detallada de la factura
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <CardContent className="space-y-4 p-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <div className="text-sm font-medium text-muted-foreground">Cliente</div>
-                      <div className="font-medium">
+                      <div className="text-xs font-medium text-muted-foreground">Cliente</div>
+                      <div className="font-medium text-xs">
                         {selectedInvoice.businessName || 
                           customers.find((c: any) => c.id === selectedInvoice.customerId)?.businessname || 
                           "Cliente"}
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <div className="text-sm font-medium text-muted-foreground">Fecha</div>
-                      <div>{new Date(selectedInvoice.date).toLocaleDateString()}</div>
+                      <div className="text-xs font-medium text-muted-foreground">Fecha</div>
+                      <div className="text-xs">{new Date(selectedInvoice.date).toLocaleDateString()}</div>
                     </div>
                     <div className="space-y-1">
-                      <div className="text-sm font-medium text-muted-foreground">Estado</div>
+                      <div className="text-xs font-medium text-muted-foreground">Estado</div>
                       <StatusBadge status={selectedInvoice.status} />
                     </div>
 
                     <div className="md:col-span-3">
-                      <Separator className="my-4" />
-                      <div className="font-medium mb-2">Detalles de Productos</div>
+                      <Separator className="my-2" />
+                      <div className="font-medium mb-1 text-sm">Detalles de Productos</div>
                       <Table>
                         <TableHeader className="bg-muted/50">
                           <TableRow>
-                            <TableHead>Producto</TableHead>
-                            <TableHead className="text-right">Cantidad</TableHead>
-                            <TableHead className="text-right">Precio</TableHead>
-                            <TableHead className="text-right">Total</TableHead>
+                            <TableHead className="py-1.5 text-xs">Producto</TableHead>
+                            <TableHead className="py-1.5 text-xs text-right">Cantidad</TableHead>
+                            <TableHead className="py-1.5 text-xs text-right">Precio</TableHead>
+                            <TableHead className="py-1.5 text-xs text-right">Total</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -921,12 +922,12 @@ export default function Billing() {
                           ) : (
                             invoiceDetails.map((item: any) => (
                               <TableRow key={item.id}>
-                                <TableCell>
+                                <TableCell className="py-1.5 text-xs">
                                   {products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
                                 </TableCell>
-                                <TableCell className="text-right">{item.quantity}</TableCell>
-                                <TableCell className="text-right">{parseFloat(item.price).toFixed(2)}</TableCell>
-                                <TableCell className="text-right">{parseFloat(item.total).toFixed(2)}</TableCell>
+                                <TableCell className="py-1.5 text-xs text-right">{item.quantity}</TableCell>
+                                <TableCell className="py-1.5 text-xs text-right">{parseFloat(item.price).toFixed(2)}</TableCell>
+                                <TableCell className="py-1.5 text-xs text-right">{parseFloat(item.total).toFixed(2)}</TableCell>
                               </TableRow>
                             ))
                           )}
@@ -936,23 +937,23 @@ export default function Billing() {
 
                     <div className="md:col-span-2">
                       <div className="space-y-1">
-                        <div className="text-sm font-medium text-muted-foreground">Notas</div>
-                        <p className="text-sm">{selectedInvoice.notes || "Sin notas"}</p>
+                        <div className="text-xs font-medium text-muted-foreground">Notas</div>
+                        <p className="text-xs">{selectedInvoice.notes || "Sin notas"}</p>
                       </div>
                     </div>
 
-                    <div className="space-y-2 p-3 bg-muted rounded-lg">
-                      <div className="flex justify-between text-sm">
+                    <div className="space-y-1.5 p-2 bg-muted rounded-lg">
+                      <div className="flex justify-between text-xs">
                         <span>Total:</span>
                         <span className="font-medium">RD$ {parseFloat(selectedInvoice.total).toFixed(2)}</span>
                       </div>
                       {selectedInvoice.totalPaid && (
                         <>
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between text-xs">
                             <span>Pagado:</span>
                             <span className="font-medium">RD$ {parseFloat(selectedInvoice.totalPaid).toFixed(2)}</span>
                           </div>
-                          <div className="flex justify-between text-sm">
+                          <div className="flex justify-between text-xs">
                             <span>Pendiente:</span>
                             <span className="font-medium">RD$ {parseFloat(selectedInvoice.pendingAmount || "0").toFixed(2)}</span>
                           </div>
@@ -962,18 +963,20 @@ export default function Billing() {
                   </div>
 
                   {selectedInvoice.status !== "paid" && (
-                    <div className="p-4 border rounded-lg space-y-3 mt-4">
-                      <h3 className="font-medium">Registrar Pago</h3>
+                    <div className="p-2 border rounded-lg space-y-1.5 mt-2">
+                      <h3 className="font-medium text-xs">Registrar Pago</h3>
                       <div className="flex gap-2">
                         <Input
                           type="number"
                           placeholder="Monto a pagar"
-                          className="max-w-xs"
+                          className="max-w-xs h-7 text-xs"
                           min="0"
                           step="0.01"
                           id="paymentAmount"
                         />
                         <Button
+                          size="sm"
+                          className="h-7 text-xs"
                           onClick={() => {
                             const amountInput = document.getElementById("paymentAmount") as HTMLInputElement;
                             handlePayment(selectedInvoice, amountInput.value);
