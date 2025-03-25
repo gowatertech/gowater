@@ -253,16 +253,20 @@ export default function TrucksPage() {
   }
 
   return (
-    <div className={`${isMobile ? 'p-2' : 'p-4'} max-w-6xl mx-auto`}>
+    <div className={`${isMobile ? 'p-1' : 'p-2'} max-w-6xl mx-auto`}>
       {/* Cabecera con título y botón de nuevo vehículo */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold flex items-center">
-          <TruckIcon className="h-6 w-6 mr-2 text-blue-600" />
+      <div className="flex justify-between items-center mb-2">
+        <h1 className={`${isMobile ? 'text-base' : 'text-lg'} font-bold flex items-center`}>
+          <TruckIcon className="h-4 w-4 mr-1.5 text-blue-600" />
           Gestión de Vehículos
         </h1>
         {!isMobile && (
-          <Button onClick={() => setActiveTab("new")} className="bg-blue-600 hover:bg-blue-700">
-            <PlusCircle className="h-4 w-4 mr-2" />
+          <Button 
+            size="sm"
+            onClick={() => setActiveTab("new")} 
+            className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
+          >
+            <PlusCircle className="h-3.5 w-3.5 mr-1" />
             Nuevo Vehículo
           </Button>
         )}
@@ -270,18 +274,18 @@ export default function TrucksPage() {
       
       {/* Tabs de navegación */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-4`}>
-          <TabsTrigger value="list" className="flex items-center gap-1">
-            <TruckIcon className="h-4 w-4" />
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-2 h-8`}>
+          <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2">
+            <TruckIcon className="h-3.5 w-3.5" />
             <span>Vehículos</span>
           </TabsTrigger>
-          <TabsTrigger value="new" className="flex items-center gap-1">
-            <PlusCircle className="h-4 w-4" />
+          <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2">
+            <PlusCircle className="h-3.5 w-3.5" />
             <span>Nuevo</span>
           </TabsTrigger>
           {!isMobile && (
-            <TabsTrigger value="details" disabled={!selectedTruck} className="flex items-center gap-1">
-              <Eye className="h-4 w-4" />
+            <TabsTrigger value="details" disabled={!selectedTruck} className="flex items-center gap-1 text-xs px-2">
+              <Eye className="h-3.5 w-3.5" />
               <span>{isEditing ? "Editar" : "Detalles"}</span>
             </TabsTrigger>
           )}
@@ -290,20 +294,20 @@ export default function TrucksPage() {
         {/* Contenido del Tab de Lista de Vehículos */}
         <TabsContent value="list" className="space-y-4">
           {/* Buscador */}
-          <Card className="p-4">
-            <div className="relative mb-4">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Card className="p-2">
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <Input 
                 placeholder="Buscar por marca, modelo o placa..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="pl-7 h-7 text-xs"
               />
               {searchTerm && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
                   onClick={() => setSearchTerm('')}
                 >
                   <X className="h-3 w-3" />
@@ -311,88 +315,88 @@ export default function TrucksPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <TruckIcon className="h-5 w-5 text-blue-600" />
-                <h2 className="font-semibold">Flota de Vehículos</h2>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <TruckIcon className="h-3.5 w-3.5 text-blue-600" />
+                <h2 className="text-xs font-medium">Flota de Vehículos</h2>
               </div>
-              <Badge variant="outline">{filteredTrucks.length} vehículos</Badge>
+              <Badge variant="outline" className="text-[10px] py-0 h-5">{filteredTrucks.length} vehículos</Badge>
             </div>
 
             {isMobile ? (
               /* Vista de tarjetas para móvil */
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-3">
+              <ScrollArea className="h-[calc(100vh-220px)]">
+                <div className="space-y-1.5">
                   {filteredTrucks.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500">
+                    <div className="text-center py-2 text-xs text-gray-500">
                       No se encontraron vehículos
                     </div>
                   ) : (
                     filteredTrucks.map((truck) => (
                       <Card 
                         key={truck.id} 
-                        className={`p-3 border-l-4 ${getStatusColor(truck.status)}`}
+                        className={`p-2 border-l-2 ${getStatusColor(truck.status)}`}
                         onClick={() => handleViewTruck(truck)}
                       >
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-medium">{truck.brand} {truck.model}</h3>
-                            <p className="text-xs text-gray-500">Placa: {truck.plate}</p>
+                            <h3 className="text-xs font-medium leading-tight">{truck.brand} {truck.model}</h3>
+                            <p className="text-[10px] text-gray-500 leading-tight">Placa: {truck.plate}</p>
                           </div>
                           <div className="flex flex-col items-end">
-                            <Badge variant="outline" className="flex items-center gap-1">
+                            <Badge variant="outline" className="flex items-center gap-0.5 text-[10px] h-4 px-1.5">
                               {getStatusIcon(truck.status)}
                               <span>
                                 {truck.status === 'disponible' ? 'Disponible' : 
-                                truck.status === 'en_reparacion' ? 'En reparación' : 
-                                truck.status === 'en_ruta' ? 'En ruta' : 'Desconocido'}
+                                truck.status === 'en_reparacion' ? 'En Rep.' : 
+                                truck.status === 'en_ruta' ? 'En Ruta' : 'Descon.'}
                               </span>
                             </Badge>
-                            <p className="text-xs mt-1">
-                              Capacidad: {truck.capacity}
+                            <p className="text-[10px] mt-0.5 leading-tight">
+                              Cap: {truck.capacity}
                             </p>
                           </div>
                         </div>
                         
-                        <div className="flex gap-2 mt-2 text-xs">
+                        <div className="flex gap-1 mt-1 text-[10px]">
                           <Button 
                             size="sm" 
                             variant="ghost"
-                            className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                            className="h-5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-0 px-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewTruck(truck);
                             }}
                           >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Detalles
+                            <Eye className="h-3 w-3 mr-0.5" />
+                            <span className="leading-none">Ver</span>
                           </Button>
                           <Button 
                             size="sm" 
                             variant="ghost"
-                            className="h-7 text-green-600 hover:text-green-700 hover:bg-green-50 px-2"
+                            className="h-5 text-green-600 hover:text-green-700 hover:bg-green-50 p-0 px-1"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleStatusChange(truck.id, "disponible");
                             }}
                             disabled={truck.status === "disponible"}
                           >
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Disponible
+                            <CheckCircle className="h-3 w-3 mr-0.5" />
+                            <span className="leading-none">Disp.</span>
                           </Button>
                           
                           <Button 
                             size="sm" 
                             variant="ghost"
-                            className="h-7 text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 ml-auto"
+                            className="h-5 text-amber-600 hover:text-amber-700 hover:bg-amber-50 p-0 px-1 ml-auto"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleStatusChange(truck.id, "en_reparacion");
                             }}
                             disabled={truck.status === "en_reparacion"}
                           >
-                            <Settings className="h-3 w-3 mr-1" />
-                            Reparación
+                            <Settings className="h-3 w-3 mr-0.5" />
+                            <span className="leading-none">Rep.</span>
                           </Button>
                         </div>
                       </Card>
@@ -403,75 +407,73 @@ export default function TrucksPage() {
             ) : (
               /* Tabla para escritorio */
               <div className="overflow-x-auto">
-                <Table className="min-w-full">
+                <Table className="min-w-full text-xs">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Marca</TableHead>
-                      <TableHead>Modelo</TableHead>
-                      <TableHead>Año</TableHead>
-                      <TableHead>Placa</TableHead>
-                      <TableHead>Capacidad</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Acciones</TableHead>
+                    <TableRow className="h-7">
+                      <TableHead className="py-1">Marca</TableHead>
+                      <TableHead className="py-1">Modelo</TableHead>
+                      <TableHead className="py-1">Placa</TableHead>
+                      <TableHead className="py-1">Cap.</TableHead>
+                      <TableHead className="py-1">Estado</TableHead>
+                      <TableHead className="py-1">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredTrucks.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-6 text-gray-500">
+                        <TableCell colSpan={6} className="text-center py-2 text-xs text-gray-500">
                           No se encontraron vehículos
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredTrucks.map((truck) => (
-                        <TableRow key={truck.id}>
-                          <TableCell className="font-medium">{truck.brand}</TableCell>
-                          <TableCell>{truck.model}</TableCell>
-                          <TableCell>{truck.year}</TableCell>
-                          <TableCell>{truck.plate}</TableCell>
-                          <TableCell>{truck.capacity}</TableCell>
-                          <TableCell>
+                        <TableRow key={truck.id} className="h-8 hover:bg-gray-50">
+                          <TableCell className="py-1 font-medium">{truck.brand}</TableCell>
+                          <TableCell className="py-1">{truck.model}</TableCell>
+                          <TableCell className="py-1">{truck.plate}</TableCell>
+                          <TableCell className="py-1">{truck.capacity}</TableCell>
+                          <TableCell className="py-1">
                             <div className="flex items-center gap-1">
                               {getStatusIcon(truck.status)}
-                              <span>
+                              <span className="text-xs">
                                 {truck.status === 'disponible' ? 'Disponible' : 
-                                truck.status === 'en_reparacion' ? 'En reparación' : 
-                                truck.status === 'en_ruta' ? 'En ruta' : 'Desconocido'}
+                                truck.status === 'en_reparacion' ? 'En Rep.' : 
+                                truck.status === 'en_ruta' ? 'En Ruta' : 'Descon.'}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleViewTruck(truck)}
-                                className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-1.5"
                               >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Detalles
+                                <Eye className="h-3 w-3 mr-1" />
+                                Ver
                               </Button>
                               <Select
                                 value={truck.status}
                                 onValueChange={(value) => handleStatusChange(truck.id, value as "disponible" | "en_reparacion" | "en_ruta")}
                               >
-                                <SelectTrigger className="w-[140px] h-8 text-sm">
-                                  <SelectValue placeholder="Cambiar estado" />
+                                <SelectTrigger className="w-[100px] h-6 text-xs">
+                                  <SelectValue placeholder="Estado" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="disponible">
+                                  <SelectItem value="disponible" className="text-xs py-1">
                                     <div className="flex items-center gap-1">
                                       <CheckCircle className="h-3 w-3 text-green-600" />
                                       <span>Disponible</span>
                                     </div>
                                   </SelectItem>
-                                  <SelectItem value="en_reparacion">
+                                  <SelectItem value="en_reparacion" className="text-xs py-1">
                                     <div className="flex items-center gap-1">
                                       <Settings className="h-3 w-3 text-amber-600" />
                                       <span>En Reparación</span>
                                     </div>
                                   </SelectItem>
-                                  <SelectItem value="en_ruta">
+                                  <SelectItem value="en_ruta" className="text-xs py-1">
                                     <div className="flex items-center gap-1">
                                       <TruckIcon className="h-3 w-3 text-blue-600" />
                                       <span>En Ruta</span>
@@ -490,31 +492,31 @@ export default function TrucksPage() {
             )}
             
             {/* Estadísticas de vehículos */}
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <div className="bg-green-50 rounded-md p-3 border border-green-100">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                  <p className="text-xs text-green-600 font-medium">Disponibles</p>
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
+              <div className="bg-green-50 rounded-md p-1.5 border border-green-100">
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <p className="text-[10px] text-green-600 font-medium">Disponibles</p>
                 </div>
-                <p className="text-xl font-bold text-green-700">
+                <p className="text-base font-bold text-green-700 mt-0.5">
                   {trucks.filter(t => t.status === "disponible").length}
                 </p>
               </div>
-              <div className="bg-amber-50 rounded-md p-3 border border-amber-100">
-                <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4 text-amber-600" />
-                  <p className="text-xs text-amber-600 font-medium">En Reparación</p>
+              <div className="bg-amber-50 rounded-md p-1.5 border border-amber-100">
+                <div className="flex items-center gap-1">
+                  <Settings className="h-3 w-3 text-amber-600" />
+                  <p className="text-[10px] text-amber-600 font-medium">En Reparación</p>
                 </div>
-                <p className="text-xl font-bold text-amber-700">
+                <p className="text-base font-bold text-amber-700 mt-0.5">
                   {trucks.filter(t => t.status === "en_reparacion").length}
                 </p>
               </div>
-              <div className="bg-blue-50 rounded-md p-3 border border-blue-100">
-                <div className="flex items-center gap-2">
-                  <TruckIcon className="h-4 w-4 text-blue-600" />
-                  <p className="text-xs text-blue-600 font-medium">En Ruta</p>
+              <div className="bg-blue-50 rounded-md p-1.5 border border-blue-100">
+                <div className="flex items-center gap-1">
+                  <TruckIcon className="h-3 w-3 text-blue-600" />
+                  <p className="text-[10px] text-blue-600 font-medium">En Ruta</p>
                 </div>
-                <p className="text-xl font-bold text-blue-700">
+                <p className="text-base font-bold text-blue-700 mt-0.5">
                   {trucks.filter(t => t.status === "en_ruta").length}
                 </p>
               </div>
@@ -523,31 +525,31 @@ export default function TrucksPage() {
         </TabsContent>
         
         {/* Contenido del Tab de Nuevo Vehículo */}
-        <TabsContent value="new" className="space-y-4">
-          <Card className="p-4">
-            <CardHeader className="px-0 pt-0">
-              <div className="flex items-center gap-2 mb-2">
-                <PlusCircle className="h-5 w-5 text-blue-600" />
-                <CardTitle>Registro de Nuevo Vehículo</CardTitle>
+        <TabsContent value="new" className="space-y-2">
+          <Card className="p-2">
+            <CardHeader className="px-0 pt-0 pb-1.5">
+              <div className="flex items-center gap-1.5 mb-1">
+                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
+                <CardTitle className="text-sm">Registro de Vehículo</CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 Ingresa la información del nuevo vehículo para la flota
               </CardDescription>
             </CardHeader>
             
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+                <div className="grid md:grid-cols-3 gap-x-3 gap-y-2">
                   <FormField
                     control={form.control}
                     name="brand"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Marca</FormLabel>
+                        <FormLabel className="text-xs mb-1">Marca</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Toyota, Honda, etc." />
+                          <Input {...field} placeholder="Toyota, Honda, etc." className="h-7 text-xs" />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -557,11 +559,11 @@ export default function TrucksPage() {
                     name="model"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Modelo</FormLabel>
+                        <FormLabel className="text-xs mb-1">Modelo</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Hilux, Dyna, etc." />
+                          <Input {...field} placeholder="Hilux, Dyna, etc." className="h-7 text-xs" />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -571,11 +573,11 @@ export default function TrucksPage() {
                     name="year"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Año</FormLabel>
+                        <FormLabel className="text-xs mb-1">Año</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="2025" />
+                          <Input {...field} placeholder="2025" className="h-7 text-xs" />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -585,11 +587,11 @@ export default function TrucksPage() {
                     name="plate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Placa</FormLabel>
+                        <FormLabel className="text-xs mb-1">Placa</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="ABC-123" />
+                          <Input {...field} placeholder="ABC-123" className="h-7 text-xs" />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -599,11 +601,11 @@ export default function TrucksPage() {
                     name="color"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Color</FormLabel>
+                        <FormLabel className="text-xs mb-1">Color</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Blanco, Rojo, etc." />
+                          <Input {...field} placeholder="Blanco, Rojo, etc." className="h-7 text-xs" />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -613,11 +615,11 @@ export default function TrucksPage() {
                     name="capacity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Capacidad</FormLabel>
+                        <FormLabel className="text-xs mb-1">Capacidad</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="500, 1000, etc." />
+                          <Input {...field} placeholder="500, 1000, etc." className="h-7 text-xs" />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
@@ -626,72 +628,78 @@ export default function TrucksPage() {
                     control={form.control}
                     name="status"
                     render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Estado</FormLabel>
+                      <FormItem className="col-span-3">
+                        <FormLabel className="text-xs mb-1">Estado</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           defaultValue={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-7 text-xs">
                               <SelectValue placeholder="Seleccionar estado" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="disponible">
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600" />
+                            <SelectItem value="disponible" className="text-xs py-1">
+                              <div className="flex items-center gap-1">
+                                <CheckCircle className="h-3.5 w-3.5 text-green-600" />
                                 <span>Disponible</span>
                               </div>
                             </SelectItem>
-                            <SelectItem value="en_reparacion">
-                              <div className="flex items-center gap-2">
-                                <Settings className="h-4 w-4 text-amber-600" />
+                            <SelectItem value="en_reparacion" className="text-xs py-1">
+                              <div className="flex items-center gap-1">
+                                <Settings className="h-3.5 w-3.5 text-amber-600" />
                                 <span>En Reparación</span>
                               </div>
                             </SelectItem>
-                            <SelectItem value="en_ruta">
-                              <div className="flex items-center gap-2">
-                                <TruckIcon className="h-4 w-4 text-blue-600" />
+                            <SelectItem value="en_ruta" className="text-xs py-1">
+                              <div className="flex items-center gap-1">
+                                <TruckIcon className="h-3.5 w-3.5 text-blue-600" />
                                 <span>En Ruta</span>
                               </div>
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
+                        <FormMessage className="text-[10px]" />
                       </FormItem>
                     )}
                   />
                 </div>
 
-                <div className="bg-blue-50 p-3 rounded-md border border-blue-100 mt-4">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="bg-blue-50 p-1.5 rounded-md border border-blue-100 mt-2">
+                  <div className="flex items-start gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-blue-800">Importante:</p>
-                      <p className="text-xs text-blue-700">Asegúrate de que la información ingresada sea precisa. La capacidad se refiere a la cantidad de productos que puede transportar.</p>
+                      <p className="text-xs font-medium text-blue-800">Importante:</p>
+                      <p className="text-[10px] text-blue-700">La capacidad se refiere a la cantidad de productos que puede transportar el vehículo.</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end space-x-2 pt-4">
+                <div className="flex justify-end space-x-2 pt-2">
                   <Button
                     type="button"
                     variant="outline"
+                    size="sm"
                     onClick={() => setActiveTab("list")}
+                    className="h-7 text-xs"
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={createMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+                  <Button type="submit" 
+                    size="sm"
+                    disabled={createMutation.isPending} 
+                    className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
+                  >
                     {createMutation.isPending ? (
                       <span className="flex items-center gap-1">
-                        <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
-                        Guardando...
+                        <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                        <span>Guardando...</span>
                       </span>
                     ) : (
                       <span className="flex items-center gap-1">
-                        <Save className="h-4 w-4" />
-                        Guardar Vehículo
+                        <Save className="h-3.5 w-3.5" />
+                        <span>Guardar</span>
                       </span>
                     )}
                   </Button>
