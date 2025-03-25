@@ -481,7 +481,7 @@ export default function Customers() {
                 <Building2 className="h-4 w-4 text-blue-600" />
                 <h2 className="font-semibold text-sm">Directorio de Clientes</h2>
               </div>
-              <Badge variant="outline" className="text-xs py-0 h-5">{filteredCustomers.length} clientes</Badge>
+              <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500">{filteredCustomers.length} clientes</Badge>
             </div>
 
             {isMobile ? (
@@ -496,7 +496,7 @@ export default function Customers() {
                     filteredCustomers.map((customer) => (
                       <Card 
                         key={customer.id} 
-                        className="p-2 border-l-4 border-l-blue-500"
+                        className={`p-2 border-l-4 ${customer.zoneid === 1 ? 'border-l-blue-500' : customer.zoneid === 2 ? 'border-l-red-500' : customer.zoneid === 3 ? 'border-l-green-500' : 'border-l-gray-500'}`}
                         onClick={() => {
                           setSelectedCustomer(customer);
                           setSelectedProvinceId(customer.provinceid);
@@ -546,9 +546,30 @@ export default function Customers() {
                               </p>
                             </div>
                           </div>
-                          <Badge className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-                            RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                          </Badge>
+                          <div className="flex gap-1">
+                            <Badge 
+                              className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500"
+                              title="Límite de crédito"
+                            >
+                              RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                            </Badge>
+                            {customer.zoneid && (
+                              <Badge 
+                                className={`px-1.5 py-0 h-5 text-[10px] ${
+                                  customer.zoneid === 1
+                                    ? 'bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500'
+                                    : customer.zoneid === 2
+                                    ? 'bg-red-50 text-red-700 border-red-200 border-l-4 border-l-red-500'
+                                    : customer.zoneid === 3
+                                    ? 'bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500'
+                                    : 'bg-gray-50 text-gray-700 border-gray-200 border-l-4 border-l-gray-500'
+                                }`}
+                                title="Zona asignada"
+                              >
+                                Zona {customer.zoneid}
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="mt-1.5 grid grid-cols-2 gap-1 text-[10px]">
@@ -639,9 +660,30 @@ export default function Customers() {
                             {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}`}
                           </TableCell>
                           <TableCell className="py-1 px-2">
-                            <Badge className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-                              RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                            </Badge>
+                            <div className="flex gap-1">
+                              <Badge 
+                                className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500"
+                                title="Límite de crédito"
+                              >
+                                RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                              </Badge>
+                              {customer.zoneid && (
+                                <Badge 
+                                  className={`px-1.5 py-0 h-5 text-[10px] ${
+                                    customer.zoneid === 1
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500'
+                                      : customer.zoneid === 2
+                                      ? 'bg-red-50 text-red-700 border-red-200 border-l-4 border-l-red-500'
+                                      : customer.zoneid === 3
+                                      ? 'bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500'
+                                      : 'bg-gray-50 text-gray-700 border-gray-200 border-l-4 border-l-gray-500'
+                                  }`}
+                                  title="Zona asignada"
+                                >
+                                  Zona {customer.zoneid}
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="py-1 px-2">
                             <Button
