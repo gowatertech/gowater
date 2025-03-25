@@ -33,7 +33,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -101,8 +100,8 @@ export default function Inventory() {
   const [activeTab, setActiveTab] = useState<string>("list");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -184,7 +183,7 @@ export default function Inventory() {
         description: "Producto creado exitosamente",
       });
       form.reset();
-      setIsDialogOpen(false);
+      setActiveTab("list");
     },
     onError: (error) => {
       toast({
@@ -203,12 +202,9 @@ export default function Inventory() {
         price: Number(data.price).toFixed(2),
         stock: Number(data.stock),
         // Asegurarnos de que icon sea una cadena o null, nunca undefined
-        icon: data.icon || null,
-        isReturnable: !!data.isReturnable,
-        depositAmount: (Number(data.depositAmount || 0)).toFixed(2)
+        icon: data.icon || null
       };
       
-      console.log("Enviando datos para actualizar producto:", formattedData);
       const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
       return res.json();
     },
@@ -219,8 +215,8 @@ export default function Inventory() {
         description: "Producto actualizado exitosamente",
       });
       editForm.reset();
-      setIsEditDialogOpen(false);
       setEditingProduct(null);
+      setActiveTab("list");
     },
     onError: (error) => {
       toast({
@@ -233,7 +229,6 @@ export default function Inventory() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      console.log("Eliminando producto con ID:", id);
       // Intentar eliminar el producto con manejo de errores mejorado
       try {
         const res = await apiRequest("DELETE", `/api/products/${id}`);
@@ -274,7 +269,6 @@ export default function Inventory() {
   };
 
   const onEdit = (data: any) => {
-    console.log("Editando producto:", data, "ID:", editingProduct?.id);
     try {
       updateMutation.mutate(data);
     } catch (error) {
@@ -291,18 +285,12 @@ export default function Inventory() {
       price: product.price.toString(),
       stock: product.stock,
       // Si icon es null o undefined, usar una cadena vacía
-      icon: product.icon || "",
-      isReturnable: product.isReturnable || false,
-      depositAmount: product.depositAmount?.toString() || "0.00"
+      icon: product.icon || ""
     };
     
-    console.log("Editando producto con valores:", formValues);
     editForm.reset(formValues);
-    setIsEditDialogOpen(true);
+    setActiveTab("form");
   };
-
-  const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const handleDeleteClick = (id: number) => {
     setDeleteId(id);
@@ -311,331 +299,400 @@ export default function Inventory() {
 
   const handleConfirmDelete = () => {
     if (deleteId !== null) {
-      console.log("Eliminando producto con ID:", deleteId);
       try {
         deleteMutation.mutate(deleteId);
       } catch (error) {
         console.error("Error en handleDelete:", error);
       }
-      setIsDeleteDialogOpen(false);
     }
   };
 
-  if (isLoading) {
-    return <div className="p-8">Cargando...</div>;
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Inventario</h1>
-      </div>
+    <div className="container mx-auto py-4">
+      <div className="flex flex-col space-y-2">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Box className="h-5 w-5 text-primary" />
+            Gestión de Productos
+          </h1>
+        </div>
 
-      <div className="flex justify-end">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Nuevo Producto
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md md:max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl">Nuevo Producto</DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid gap-4 py-2">
-                  <FormField
-                    control={form.control}
-                    name="icon"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">Tipo de Producto</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full h-12">
-                              <SelectValue placeholder="Seleccione un tipo de producto" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <div className="grid grid-cols-1 gap-2 p-2">
-                              {productTypes.map((item) => (
-                                <SelectItem
-                                  key={item.id}
-                                  value={item.id}
-                                  className="flex items-center gap-2 h-16"
-                                >
-                                  <img 
-                                    src={item.imageSrc} 
-                                    alt={item.label}
-                                    className="h-10 w-10 object-contain"
-                                  />
-                                  <span>{item.label}</span>
-                                </SelectItem>
-                              ))}
-                            </div>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">Nombre</FormLabel>
-                        <FormControl>
-                          <Input {...field} className="h-12" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">Precio (RD$)</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-12"
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="stock"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-base">Existencia</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            className="h-12"
-                            onChange={(e) => field.onChange(Number(e.target.value))}
-                            value={field.value}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+        {/* Estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-2">
+          <Card className="bg-muted/20">
+            <CardContent className="p-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Total Productos</p>
+                <p className="text-lg font-bold">{productStats.totalProducts}</p>
+              </div>
+              <Package className="h-8 w-8 text-primary/50" />
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/20">
+            <CardContent className="p-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Con Existencia</p>
+                <p className="text-lg font-bold">{productStats.hasStock}</p>
+              </div>
+              <PackageCheck className="h-8 w-8 text-primary/50" />
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/20">
+            <CardContent className="p-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Sin Existencia</p>
+                <p className="text-lg font-bold">{productStats.outOfStock}</p>
+              </div>
+              <PackageX className="h-8 w-8 text-primary/50" />
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/20">
+            <CardContent className="p-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Total Unidades</p>
+                <p className="text-lg font-bold">{productStats.totalStock}</p>
+              </div>
+              <RotateCcw className="h-8 w-8 text-primary/50" />
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/20">
+            <CardContent className="p-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Precio Promedio</p>
+                <p className="text-lg font-bold">RD$ {productStats.averagePrice.toFixed(2)}</p>
+              </div>
+              <CircleDollarSign className="h-8 w-8 text-primary/50" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Pestañas */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-2">
+            <TabsTrigger value="list" className="text-xs">Lista de Productos</TabsTrigger>
+            <TabsTrigger value="form" className="text-xs">
+              {editingProduct ? "Editar Producto" : "Nuevo Producto"}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Pestaña de Lista */}
+          <TabsContent value="list" className="space-y-2">
+            <Card>
+              <CardHeader className="p-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-1">
+                    <Package className="h-4 w-4 text-primary" />
+                    Lista de Productos
+                  </CardTitle>
+                  <Button 
+                    size="sm" 
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      setEditingProduct(null);
+                      form.reset({
+                        name: "",
+                        price: "0.00",
+                        stock: 0,
+                        icon: ""
+                      });
+                      setActiveTab("form");
+                    }}
+                  >
+                    Nuevo Producto
+                  </Button>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full h-12 mt-6"
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending ? "Guardando..." : "Guardar"}
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[100px] md:w-[150px]">Tipo</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead className="w-[100px] text-center">Precio</TableHead>
-              <TableHead className="w-[80px] text-center">Existencia</TableHead>
-              <TableHead className="w-[100px] text-center">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products?.map((product) => {
-              const productType = productTypes.find(i => i.id === product.icon);
-              return (
-                <TableRow key={product.id} className="h-20">
-                  <TableCell className="p-4">
-                    {productType ? (
-                      <div className="flex justify-center">
-                        <img 
-                          src={productType.imageSrc} 
-                          alt={productType.label}
-                          className="h-16 w-16 object-contain"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-16 w-16 bg-gray-100 rounded-md mx-auto" />
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-center">RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
-                  <TableCell className="text-center">{product.stock}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-center space-x-2">
+                <CardDescription className="text-xs">
+                  Consulta y gestiona los productos disponibles en el sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                {/* Filtros */}
+                <div className="flex flex-col md:flex-row gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nombre de producto"
+                      className="pl-8 h-8 text-xs"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    {searchTerm && (
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(product)}
-                        className="h-8 w-8 p-0"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+                        onClick={() => setSearchTerm("")}
                       >
-                        <Pencil className="h-4 w-4" />
+                        <X className="h-3 w-3" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteClick(product.id)}
-                        className="h-8 w-8 p-0 text-destructive focus:ring-destructive"
+                    )}
+                  </div>
+                </div>
+
+                {/* Tabla de Productos */}
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow className="text-[10px]">
+                        <TableHead className="py-1 w-[80px]">Tipo</TableHead>
+                        <TableHead className="py-1">Nombre</TableHead>
+                        <TableHead className="py-1 w-[100px] text-right">Precio</TableHead>
+                        <TableHead className="py-1 w-[80px] text-center">Existencia</TableHead>
+                        <TableHead className="py-1 w-[100px] text-center">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            Cargando productos...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            No se encontraron productos
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredProducts.map((product) => {
+                          const productType = productTypes.find(i => i.id === product.icon);
+                          return (
+                            <TableRow key={product.id} className="text-xs">
+                              <TableCell className="py-2">
+                                {productType ? (
+                                  <div className="flex justify-center">
+                                    <img 
+                                      src={productType.imageSrc} 
+                                      alt={productType.label}
+                                      className="h-10 w-10 object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="h-10 w-10 bg-gray-100 rounded-md mx-auto" />
+                                )}
+                              </TableCell>
+                              <TableCell className="py-2 font-medium">{product.name}</TableCell>
+                              <TableCell className="py-2 text-right">RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
+                              <TableCell className="py-2 text-center">
+                                <Badge variant={product.stock > 0 ? "default" : "secondary"}>
+                                  {product.stock}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <div className="flex justify-center space-x-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(product)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteClick(product.id)}
+                                    className="h-6 w-6 p-0 text-destructive"
+                                  >
+                                    <Trash className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Pestaña de Formulario */}
+          <TabsContent value="form">
+            <Card>
+              <CardHeader className="p-3">
+                <CardTitle className="text-base flex items-center gap-1">
+                  <Package className="h-4 w-4 text-primary" />
+                  {editingProduct ? "Editar Producto" : "Nuevo Producto"}
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {editingProduct 
+                    ? "Actualiza la información del producto seleccionado" 
+                    : "Completa el formulario para crear un nuevo producto"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                <Form {...(editingProduct ? editForm : form)}>
+                  <form 
+                    onSubmit={editingProduct 
+                      ? editForm.handleSubmit(onEdit) 
+                      : form.handleSubmit(onSubmit)} 
+                    className="space-y-3"
+                  >
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <FormField
+                        control={editingProduct ? editForm.control : form.control}
+                        name="icon"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Tipo de Producto</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Seleccione un tipo" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <div className="grid grid-cols-1 gap-1 p-1">
+                                  {productTypes.map((item) => (
+                                    <SelectItem
+                                      key={item.id}
+                                      value={item.id}
+                                      className="flex items-center gap-2 h-12 text-xs"
+                                    >
+                                      <img 
+                                        src={item.imageSrc} 
+                                        alt={item.label}
+                                        className="h-8 w-8 object-contain"
+                                      />
+                                      <span>{item.label}</span>
+                                    </SelectItem>
+                                  ))}
+                                </div>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editingProduct ? editForm.control : form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Nombre</FormLabel>
+                            <FormControl>
+                              <Input {...field} className="h-8 text-xs" />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editingProduct ? editForm.control : form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Precio (RD$)</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                className="h-8 text-xs"
+                                onChange={(e) => field.onChange(e.target.value)}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editingProduct ? editForm.control : form.control}
+                        name="stock"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Existencia</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                className="h-8 text-xs"
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                value={field.value}
+                              />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex justify-between">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="text-xs h-8"
+                        onClick={() => {
+                          setActiveTab("list");
+                          setEditingProduct(null);
+                          form.reset();
+                          editForm.reset();
+                        }}
                       >
-                        <Trash className="h-4 w-4" />
+                        Cancelar
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        className="text-xs h-8"
+                        disabled={editingProduct ? updateMutation.isPending : createMutation.isPending}
+                      >
+                        {editingProduct 
+                          ? (updateMutation.isPending ? "Actualizando..." : "Actualizar") 
+                          : (createMutation.isPending ? "Guardando..." : "Guardar")}
                       </Button>
                     </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-md md:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl">Editar Producto</DialogTitle>
-          </DialogHeader>
-          <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(onEdit)} className="space-y-4">
-              <div className="grid gap-4 py-2">
-                <FormField
-                  control={editForm.control}
-                  name="icon"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">Tipo de Producto</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full h-12">
-                            <SelectValue placeholder="Seleccione un tipo de producto" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <div className="grid grid-cols-1 gap-2 p-2">
-                            {productTypes.map((item) => (
-                              <SelectItem
-                                key={item.id}
-                                value={item.id}
-                                className="flex items-center gap-2 h-16"
-                              >
-                                <img 
-                                  src={item.imageSrc} 
-                                  alt={item.label}
-                                  className="h-10 w-10 object-contain"
-                                />
-                                <span>{item.label}</span>
-                              </SelectItem>
-                            ))}
-                          </div>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">Nombre</FormLabel>
-                      <FormControl>
-                        <Input {...field} className="h-12" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">Precio (RD$)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="h-12"
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="stock"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel className="text-base">Existencia</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          className="h-12"
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full h-12 mt-6"
-                disabled={updateMutation.isPending}
-              >
-                {updateMutation.isPending ? "Guardando..." : "Guardar"}
-              </Button>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo de confirmación para eliminar */}
+      {/* Diálogo de eliminación de producto */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-center">¿Está seguro que desea eliminar este producto?</DialogTitle>
+            <DialogTitle className="text-base">Confirmar Eliminación</DialogTitle>
           </DialogHeader>
-          <div className="flex justify-center space-x-4 mt-4">
-            <Button 
-              variant="outline" 
+          <div className="py-3">
+            <p className="text-sm">
+              ¿Está seguro de que desea eliminar este producto?
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+          <DialogFooter className="flex justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              className="text-xs h-8"
               onClick={() => setIsDeleteDialogOpen(false)}
             >
               Cancelar
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
+              className="text-xs h-8"
               onClick={handleConfirmDelete}
               disabled={deleteMutation.isPending}
             >
               {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
             </Button>
-          </div>
+          </DialogFooter>
           {deleteMutation.isError && (
-            <div className="mt-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
-              Error: No se puede eliminar este producto porque está siendo utilizado en cargas de vehículos.
+            <div className="text-destructive text-xs mt-2 text-center">
+              Error: No se pudo eliminar el producto.
+              <p>El producto puede estar siendo usado en algunas operaciones.</p>
             </div>
           )}
         </DialogContent>
