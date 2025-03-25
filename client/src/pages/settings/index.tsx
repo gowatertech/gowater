@@ -34,7 +34,23 @@ import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Edit, Save, MapPin } from "lucide-react";
+import { 
+  Edit, 
+  Save, 
+  MapPin,
+  Building2, 
+  FileText, 
+  Mail, 
+  Phone, 
+  Map, 
+  Home, 
+  MapPinned,
+  Banknote,
+  Globe,
+  Percent,
+  Image,
+  CheckCircle2
+} from "lucide-react";
 
 function Settings() {
   const { toast } = useToast();
@@ -166,11 +182,14 @@ function Settings() {
                   name="logo"
                   render={({ field: { value, onChange, ...field } }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Logo</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Image className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Logo</FormLabel>
+                      </div>
                       <FormControl>
                         <div className="flex items-center gap-4">
                           {value && typeof value === 'string' && (
-                            <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-white">
+                            <div className="relative w-32 h-32 border rounded-lg overflow-hidden bg-gradient-to-br from-blue-50 to-white shadow-inner">
                               <img
                                 src={`data:image/png;base64,${value}`}
                                 alt="Logo de la empresa"
@@ -216,7 +235,10 @@ function Settings() {
                   name="name"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nombre de la Empresa</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Nombre de la Empresa</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -230,7 +252,10 @@ function Settings() {
                   name="rnc"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">RNC</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">RNC</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" {...field} value={field.value || ''} readOnly={!isEditing} />
                       </FormControl>
@@ -244,7 +269,10 @@ function Settings() {
                   name="street"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Calle</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Home className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Calle</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -258,7 +286,10 @@ function Settings() {
                   name="streetNumber"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Número</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <MapPinned className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Número</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -272,7 +303,10 @@ function Settings() {
                   name="provinceId"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Provincia</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Map className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Provincia</FormLabel>
+                      </div>
                       {isEditing ? (
                         <Select
                           onValueChange={(value) => {
@@ -280,7 +314,7 @@ function Settings() {
                             const currentProvinceId = field.value;
 
                             if (currentProvinceId && newProvinceId !== currentProvinceId) {
-                              form.setValue("municipalityId", undefined);
+                              form.setValue("municipalityId", null as any);
                             }
 
                             field.onChange(newProvinceId);
@@ -288,7 +322,7 @@ function Settings() {
                           value={field.value?.toString()}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-7 text-xs">
                               <SelectValue placeholder="Seleccione una provincia" />
                             </SelectTrigger>
                           </FormControl>
@@ -303,6 +337,7 @@ function Settings() {
                       ) : (
                         <FormControl>
                           <Input
+                            className="h-7 text-xs"
                             value={provinces.find(p => p.id === field.value)?.name || ''}
                             readOnly
                           />
@@ -318,7 +353,10 @@ function Settings() {
                   name="municipalityId"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Municipio</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Municipio</FormLabel>
+                      </div>
                       {isEditing ? (
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
@@ -326,7 +364,7 @@ function Settings() {
                           disabled={!form.watch("provinceId") || isLoadingMunicipalities}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="h-7 text-xs">
                               <SelectValue placeholder="Seleccione un municipio" />
                             </SelectTrigger>
                           </FormControl>
@@ -341,6 +379,7 @@ function Settings() {
                       ) : (
                         <FormControl>
                           <Input
+                            className="h-7 text-xs"
                             value={municipalities.find(m => m.id === field.value)?.name || ''}
                             readOnly
                           />
@@ -356,7 +395,10 @@ function Settings() {
                   name="contactPhone"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Teléfono de Contacto</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Teléfono de Contacto</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -370,7 +412,10 @@ function Settings() {
                   name="email"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Email</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Email</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" type="email" {...field} value={field.value || ''} readOnly={!isEditing} />
                       </FormControl>
@@ -384,7 +429,10 @@ function Settings() {
                   name="country"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">País</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">País</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -398,7 +446,10 @@ function Settings() {
                   name="currency"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Moneda</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Banknote className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">Moneda</FormLabel>
+                      </div>
                       <FormControl>
                         <Input className="h-7 text-xs" {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -412,9 +463,13 @@ function Settings() {
                   name="tax"
                   render={({ field }) => (
                     <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">ITBIS (%)</FormLabel>
+                      <div className="flex items-center gap-1.5">
+                        <Percent className="h-3.5 w-3.5 text-blue-500" />
+                        <FormLabel className="text-xs">ITBIS (%)</FormLabel>
+                      </div>
                       <FormControl>
                         <Input
+                          className="h-7 text-xs"
                           type="text"
                           inputMode="decimal"
                           {...field}
@@ -443,9 +498,9 @@ function Settings() {
                 {/* Campos de ubicación con selector de mapa */}
                 <div className="col-span-3">
                   <div className="flex flex-col space-y-1 mb-2">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5 p-1 bg-blue-50 rounded-md">
                       <MapPin className="h-3.5 w-3.5 text-blue-500" />
-                      <h3 className="text-sm font-medium">Ubicación de la Empresa</h3>
+                      <h3 className="text-sm font-medium text-blue-700">Ubicación de la Empresa</h3>
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Estos datos serán utilizados como punto de inicio para las rutas de entrega.
@@ -458,9 +513,13 @@ function Settings() {
                       name="latitude"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Latitud</FormLabel>
+                          <div className="flex items-center gap-1.5">
+                            <MapPinned className="h-3.5 w-3.5 text-blue-500" />
+                            <FormLabel className="text-xs">Latitud</FormLabel>
+                          </div>
                           <FormControl>
                             <Input
+                              className="h-7 text-xs font-mono"
                               type="text"
                               inputMode="decimal"
                               placeholder="Ej: 18.4718"
@@ -483,9 +542,13 @@ function Settings() {
                       name="longitude"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Longitud</FormLabel>
+                          <div className="flex items-center gap-1.5">
+                            <MapPinned className="h-3.5 w-3.5 text-green-500" />
+                            <FormLabel className="text-xs">Longitud</FormLabel>
+                          </div>
                           <FormControl>
                             <Input
+                              className="h-7 text-xs font-mono"
                               type="text"
                               inputMode="decimal"
                               placeholder="Ej: -69.8923"
@@ -547,10 +610,27 @@ function Settings() {
               </div>
 
               {isEditing && (
-                <Button type="submit" variant="default" size="sm" className="h-8 mt-1 w-full text-xs" disabled={updateMutation.isPending}>
-                  <Save className="mr-1 h-3.5 w-3.5" />
-                  {updateMutation.isPending ? "Guardando..." : "Guardar Configuración"}
-                </Button>
+                <div className="bg-blue-50 rounded-md p-2 mt-2">
+                  <Button 
+                    type="submit" 
+                    variant="default" 
+                    size="sm" 
+                    className="h-8 w-full text-xs bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200"
+                    disabled={updateMutation.isPending}
+                  >
+                    {updateMutation.isPending ? (
+                      <>
+                        <span className="mr-1 h-3.5 w-3.5 animate-spin inline-block rounded-full border-2 border-white border-t-transparent"></span>
+                        Guardando configuración...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-1 h-3.5 w-3.5" />
+                        Guardar Configuración
+                      </>
+                    )}
+                  </Button>
+                </div>
               )}
             </form>
           </Form>
@@ -621,23 +701,27 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
 
   return (
     <div className="w-full">
-      <div className="flex items-center gap-1 mb-1">
-        <MapPin className="h-3.5 w-3.5 text-blue-500" />
-        <h3 className="text-sm font-medium">Selecciona la ubicación de tu empresa</h3>
+      <div className="flex items-center gap-1.5 p-1.5 bg-blue-50 rounded-md mb-3">
+        <MapPin className="h-4 w-4 text-blue-600" />
+        <h3 className="text-sm font-medium text-blue-700">Selecciona la ubicación de tu empresa</h3>
       </div>
-      <p className="text-xs text-muted-foreground mb-1">
-        Busca una dirección o haz clic en el mapa para seleccionar la ubicación exacta.
-      </p>
       
-      <div className="mb-2">
-        <AddressSearchBox onLocationSelected={handleAddressSelected} />
+      <div className="bg-gray-50 p-2 rounded-md mb-3">
+        <p className="text-xs text-muted-foreground mb-2">
+          Busca una dirección o haz clic en el mapa para seleccionar la ubicación exacta.
+        </p>
+        
+        <div className="mb-2">
+          <AddressSearchBox onLocationSelected={handleAddressSelected} />
+        </div>
       </div>
       
       <ResponsiveMapContainer>
         <MapContainer
           center={position}
           zoom={13}
-          style={{ height: "100%", width: "100%", minHeight: "300px" }}
+          style={{ height: "100%", width: "100%", minHeight: "350px" }}
+          className="rounded-md border border-blue-100 shadow-sm"
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -654,20 +738,28 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
         </MapContainer>
       </ResponsiveMapContainer>
       
-      <div className="mt-3">
+      <div className="mt-4 p-2 bg-gray-50 rounded-md">
         {address && (
-          <div className="mb-2 p-2 bg-muted rounded-md">
-            <p className="text-sm font-medium">Dirección seleccionada:</p>
-            <p className="text-sm text-ellipsis overflow-hidden">{address}</p>
+          <div className="mb-3 p-2 bg-white border border-blue-100 rounded-md shadow-sm">
+            <div className="flex items-center gap-1.5 mb-1">
+              <MapPinned className="h-3.5 w-3.5 text-green-500" />
+              <p className="text-sm font-medium text-gray-700">Dirección seleccionada:</p>
+            </div>
+            <p className="text-sm text-gray-600 text-ellipsis overflow-hidden pl-5">{address}</p>
           </div>
         )}
         
         <div className="flex flex-col sm:flex-row justify-between items-center">
-          <p className="text-xs text-muted-foreground mb-2 sm:mb-0">
-            Coordenadas: <span className="font-mono">{typeof position === 'object' ? `${(position as [number, number])[0].toFixed(6)}, ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
-          </p>
+          <div className="mb-2 sm:mb-0 flex items-center">
+            <MapPin className="h-3.5 w-3.5 text-blue-500 mr-1.5" />
+            <p className="text-xs text-gray-600">
+              Coordenadas: <span className="font-mono bg-blue-50 px-1.5 py-0.5 rounded text-blue-700">{typeof position === 'object' ? `${(position as [number, number])[0].toFixed(6)}, ${(position as [number, number])[1].toFixed(6)}` : ''}</span>
+            </p>
+          </div>
           <Button 
             type="button"
+            variant="default"
+            className="h-8 text-xs bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-200"
             onClick={() => {
               if (typeof position === 'object') {
                 onPositionSelected((position as [number, number])[0], (position as [number, number])[1]);
@@ -678,6 +770,7 @@ function LocationSelector({ initialPosition, onPositionSelected }: LocationSelec
               }
             }}
           >
+            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
             Confirmar ubicación
           </Button>
         </div>
