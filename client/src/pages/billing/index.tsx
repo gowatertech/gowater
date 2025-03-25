@@ -404,12 +404,10 @@ export default function Billing() {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <h1 className="text-2xl md:text-3xl font-bold">Facturación</h1>
-      </div>
+      <h1 className="text-2xl md:text-3xl font-bold">Facturación</h1>
 
       <Tabs defaultValue="facturas" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="facturas">Facturas</TabsTrigger>
           <TabsTrigger value="nueva">Nueva Factura</TabsTrigger>
         </TabsList>
