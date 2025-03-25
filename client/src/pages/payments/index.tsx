@@ -255,7 +255,7 @@ export default function Payments() {
       <div className="flex flex-col space-y-2">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-primary" />
+            <Wallet className="h-5 w-5 text-yellow-400" />
             Gestión de Pagos
           </h1>
         </div>
@@ -268,7 +268,7 @@ export default function Payments() {
                 <p className="text-xs text-muted-foreground">Pagos Hoy</p>
                 <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalToday)}</p>
               </div>
-              <Calendar className="h-8 w-8 text-primary/50" />
+              <Calendar className="h-8 w-8 text-blue-400" />
             </CardContent>
           </Card>
           
@@ -278,7 +278,7 @@ export default function Payments() {
                 <p className="text-xs text-muted-foreground">Pagos Esta Semana</p>
                 <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalWeek)}</p>
               </div>
-              <CreditCard className="h-8 w-8 text-primary/50" />
+              <CreditCard className="h-8 w-8 text-green-400" />
             </CardContent>
           </Card>
           
@@ -288,7 +288,7 @@ export default function Payments() {
                 <p className="text-xs text-muted-foreground">Pagos Este Mes</p>
                 <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalMonth)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-primary/50" />
+              <DollarSign className="h-8 w-8 text-yellow-400" />
             </CardContent>
           </Card>
           
@@ -298,7 +298,7 @@ export default function Payments() {
                 <p className="text-xs text-muted-foreground">Monto Pendiente</p>
                 <p className="text-lg font-bold">{formatCurrency(paymentsStats.pendingAmount)}</p>
               </div>
-              <AlertCircle className="h-8 w-8 text-amber-500/50" />
+              <AlertCircle className="h-8 w-8 text-purple-400" />
             </CardContent>
           </Card>
         </div>
@@ -316,7 +316,7 @@ export default function Payments() {
               <CardHeader className="p-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base flex items-center gap-1">
-                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <CheckCircle className="h-4 w-4 text-blue-400" />
                     Historial de Pagos
                   </CardTitle>
                   <Button 
@@ -463,7 +463,7 @@ export default function Payments() {
             <Card>
               <CardHeader className="p-3">
                 <div className="flex items-center gap-1">
-                  <CircleDollarSign className="h-4 w-4 text-primary" />
+                  <CircleDollarSign className="h-4 w-4 text-green-400" />
                   <CardTitle className="text-base">Registrar Pago</CardTitle>
                 </div>
                 <CardDescription className="text-xs">
