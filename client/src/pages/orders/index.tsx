@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Iconos
+// Iconos - Importación única para evitar duplicados
 import { 
   Plus, 
   ArrowLeft, 
