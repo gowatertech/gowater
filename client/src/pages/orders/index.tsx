@@ -641,23 +641,23 @@ export default function Orders() {
         </TabsContent>
 
         {/* Contenido del Tab de Nuevo Pedido */}
-        <TabsContent value="new" className="space-y-4">
-          <Card className="p-4">
-            <CardHeader className="px-0 pt-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Plus className="h-5 w-5 text-blue-600" />
-                <CardTitle>Crear Nuevo Pedido</CardTitle>
+        <TabsContent value="new" className="space-y-2">
+          <Card className="p-2">
+            <CardHeader className="px-0 pt-0 pb-2">
+              <div className="flex items-center gap-1 mb-1">
+                <Plus className="h-4 w-4 text-blue-600" />
+                <CardTitle className="text-base">Crear Nuevo Pedido</CardTitle>
               </div>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 Complete la información para registrar un nuevo pedido
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="px-0 space-y-4">
+            <CardContent className="px-0 space-y-3">
               {/* Cliente */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center">
-                  <User className="h-4 w-4 mr-1.5 text-blue-600" />
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium flex items-center">
+                  <User className="h-3.5 w-3.5 mr-1 text-blue-600" />
                   Información del Cliente
                 </h3>
                 <Select
@@ -667,7 +667,7 @@ export default function Orders() {
                   }}
                   disabled={isLoadingCustomers}
                 >
-                  <SelectTrigger className="h-9 text-sm">
+                  <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="Seleccionar Cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -675,7 +675,7 @@ export default function Orders() {
                       <SelectItem
                         key={customer.id}
                         value={customer.id.toString()}
-                        className="text-sm py-2"
+                        className="text-xs py-1"
                       >
                         {customer.businessname}
                       </SelectItem>
@@ -684,24 +684,24 @@ export default function Orders() {
                 </Select>
 
                 {selectedCustomer && (
-                  <div className="text-sm bg-blue-50 p-3 rounded-md border border-blue-100">
-                    <div className="space-y-1">
+                  <div className="text-xs bg-blue-50 p-2 rounded-md border border-blue-100">
+                    <div className="space-y-0.5">
                       <div className="flex items-start">
-                        <span className="font-medium w-28">Empresa:</span>
-                        <span>{selectedCustomer.businessname}</span>
+                        <span className="font-medium w-20">Empresa:</span>
+                        <span className="line-clamp-1">{selectedCustomer.businessname}</span>
                       </div>
                       <div className="flex items-start">
-                        <span className="font-medium w-28">Dirección:</span>
-                        <span>{`${selectedCustomer.street} ${selectedCustomer.streetnumber}`}</span>
+                        <span className="font-medium w-20">Dirección:</span>
+                        <span className="line-clamp-1">{`${selectedCustomer.street} ${selectedCustomer.streetnumber}`}</span>
                       </div>
                       <div className="flex items-start">
-                        <span className="font-medium w-28">Teléfono:</span>
+                        <span className="font-medium w-20">Teléfono:</span>
                         <span>{selectedCustomer.phone}</span>
                       </div>
                       {selectedCustomer.email && (
                         <div className="flex items-start">
-                          <span className="font-medium w-28">Email:</span>
-                          <span>{selectedCustomer.email}</span>
+                          <span className="font-medium w-20">Email:</span>
+                          <span className="line-clamp-1">{selectedCustomer.email}</span>
                         </div>
                       )}
                     </div>
@@ -709,35 +709,35 @@ export default function Orders() {
                 )}
               </div>
 
-              <Separator />
+              <Separator className="my-1.5" />
 
               {/* Productos */}
-              <div className="space-y-2">
-                <h3 className="text-sm font-medium flex items-center">
-                  <Package className="h-4 w-4 mr-1.5 text-blue-600" />
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium flex items-center">
+                  <Package className="h-3.5 w-3.5 mr-1 text-blue-600" />
                   Productos
                 </h3>
                 <div className="border rounded-lg overflow-hidden">
-                  <ScrollArea className="h-[35vh] sm:h-[30vh]">
+                  <ScrollArea className="h-[200px] sm:h-[240px]">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-20 text-sm sticky top-0 bg-background">Código</TableHead>
-                          <TableHead className="text-sm sticky top-0 bg-background">Descripción</TableHead>
-                          <TableHead className="w-16 text-right text-sm sticky top-0 bg-background">Cant.</TableHead>
-                          <TableHead className="w-24 text-right text-sm sticky top-0 bg-background">Precio</TableHead>
-                          <TableHead className="w-24 text-right text-sm sticky top-0 bg-background">Total</TableHead>
+                        <TableRow className="h-7">
+                          <TableHead className="w-20 text-xs sticky top-0 bg-background py-1.5">Código</TableHead>
+                          <TableHead className="text-xs sticky top-0 bg-background py-1.5">Descripción</TableHead>
+                          <TableHead className="w-16 text-right text-xs sticky top-0 bg-background py-1.5">Cant.</TableHead>
+                          <TableHead className="w-24 text-right text-xs sticky top-0 bg-background py-1.5">Precio</TableHead>
+                          <TableHead className="w-24 text-right text-xs sticky top-0 bg-background py-1.5">Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {orderItems.map((item, index) => (
-                          <TableRow key={index}>
+                          <TableRow key={index} className="h-7">
                             <TableCell className="p-0.5">
                               <Select
                                 value={item.code}
                                 onValueChange={(value) => handleProductChange(index, value)}
                               >
-                                <SelectTrigger className="h-8 text-sm">
+                                <SelectTrigger className="h-7 text-xs">
                                   <SelectValue placeholder="---" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -745,7 +745,7 @@ export default function Orders() {
                                     <SelectItem
                                       key={product.id}
                                       value={product.id.toString()}
-                                      className="text-sm py-1.5"
+                                      className="text-xs py-1"
                                     >
                                       <div className="flex items-center gap-1">
                                         <Tag className="h-3 w-3" />
@@ -760,7 +760,7 @@ export default function Orders() {
                               <Input
                                 value={item.description}
                                 readOnly
-                                className="bg-muted h-8 text-sm"
+                                className="bg-muted h-7 text-xs"
                               />
                             </TableCell>
                             <TableCell className="p-0.5">
@@ -769,21 +769,21 @@ export default function Orders() {
                                 min="0"
                                 value={item.quantity}
                                 onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                                className="text-right h-8 text-sm"
+                                className="text-right h-7 text-xs"
                               />
                             </TableCell>
                             <TableCell className="p-0.5">
                               <Input
                                 value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
                                 readOnly
-                                className="text-right bg-muted h-8 text-sm"
+                                className="text-right bg-muted h-7 text-xs"
                               />
                             </TableCell>
                             <TableCell className="p-0.5">
                               <Input
                                 value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
                                 readOnly
-                                className="text-right bg-muted h-8 text-sm"
+                                className="text-right bg-muted h-7 text-xs"
                               />
                             </TableCell>
                           </TableRow>
@@ -794,28 +794,28 @@ export default function Orders() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {/* Notas */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium flex items-center">
-                    <FileText className="h-4 w-4 mr-1.5 text-blue-600" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-medium flex items-center">
+                    <FileText className="h-3.5 w-3.5 mr-1 text-blue-600" />
                     Notas
                   </h3>
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Notas del pedido..."
-                    className="h-20 text-sm"
+                    className="h-16 text-xs"
                   />
                 </div>
 
                 {/* Totales */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1.5 text-blue-600" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-medium flex items-center">
+                    <DollarSign className="h-3.5 w-3.5 mr-1 text-blue-600" />
                     Resumen
                   </h3>
-                  <div className="bg-blue-50 p-3 rounded-lg space-y-1.5 text-sm border border-blue-100">
+                  <div className="bg-blue-50 p-2 rounded-md space-y-1 text-xs border border-blue-100">
                     <div className="flex justify-between">
                       <span>Sub-total:</span>
                       <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
@@ -824,8 +824,8 @@ export default function Orders() {
                       <span>ITBIS (18%):</span>
                       <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
                     </div>
-                    <Separator className="my-1.5" />
-                    <div className="flex justify-between font-bold text-base">
+                    <Separator className="my-1" />
+                    <div className="flex justify-between font-bold text-sm">
                       <span>Total:</span>
                       <span>RD$ {calculateTotal().total.toFixed(2)}</span>
                     </div>
@@ -833,39 +833,41 @@ export default function Orders() {
                 </div>
               </div>
 
-              <div className="bg-yellow-50 p-3 rounded-md border border-yellow-100 mt-4">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <div className="bg-yellow-50 p-2 rounded-md border border-yellow-100 mt-2">
+                <div className="flex items-start gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-yellow-800">Importante:</p>
+                    <p className="text-xs font-medium text-yellow-800">Importante:</p>
                     <p className="text-xs text-yellow-700">Asegúrese de seleccionar un cliente y agregar al menos un producto al pedido antes de guardar.</p>
                   </div>
                 </div>
               </div>
             </CardContent>
 
-            <CardFooter className="flex justify-end px-0 pt-4">
-              <div className="flex gap-2">
+            <CardFooter className="flex justify-end px-0 pt-2">
+              <div className="flex gap-1.5">
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
                   onClick={() => setActiveTab("list")}
                 >
                   Cancelar
                 </Button>
                 <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
                   disabled={!selectedCustomer || !orderItems.some(item => item.quantity > 0) || createMutation.isPending}
                   onClick={handleCreateOrder}
                 >
                   {createMutation.isPending ? (
                     <span className="flex items-center gap-1">
-                      <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                      <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
                       Guardando...
                     </span>
                   ) : (
                     <span className="flex items-center gap-1">
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-3 w-3" />
                       Crear Pedido
                     </span>
                   )}
@@ -876,122 +878,125 @@ export default function Orders() {
         </TabsContent>
 
         {/* Contenido del Tab de Detalles del Pedido */}
-        <TabsContent value="details" className="space-y-4">
+        <TabsContent value="details" className="space-y-2">
           {selectedOrder && (
-            <Card className="p-4">
-              <CardHeader className="px-0 pt-0">
+            <Card className="p-2">
+              <CardHeader className="px-0 pt-0 pb-2">
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-600" />
-                    <CardTitle>Detalles del Pedido #{selectedOrder.id}</CardTitle>
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <CardTitle className="text-base">Pedido #{selectedOrder.id}</CardTitle>
                   </div>
                   <Button
                     variant="outline"
                     onClick={() => setActiveTab("list")}
                     size="sm"
-                    className="h-8"
+                    className="h-7 text-xs"
                   >
-                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    <ArrowLeft className="h-3.5 w-3.5 mr-1" />
                     Volver
                   </Button>
                 </div>
               </CardHeader>
 
-              <CardContent className="px-0 space-y-4">
+              <CardContent className="px-0 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold">Pedido #{selectedOrder.id}</h2>
+                  <div className="flex items-center gap-1.5">
                     {getStatusBadge(selectedOrder.status)}
                   </div>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <CalendarDays className="h-4 w-4" /> {new Date(selectedOrder.date).toLocaleDateString()}
+                  <Badge variant="outline" className="flex items-center gap-1 text-xs h-5">
+                    <CalendarDays className="h-3 w-3" /> {new Date(selectedOrder.date).toLocaleDateString()}
                   </Badge>
                 </div>
                 
-                <Separator />
+                <Separator className="my-1" />
                 
                 {/* Información del Cliente */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium flex items-center">
-                    <User className="h-4 w-4 mr-1.5 text-blue-600" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-medium flex items-center">
+                    <User className="h-3.5 w-3.5 mr-1 text-blue-600" />
                     Información del Cliente
                   </h3>
-                  <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
-                    <div className="grid grid-cols-2 gap-y-2 text-sm">
+                  <div className="bg-blue-50 p-2 rounded-md border border-blue-100">
+                    <div className="grid grid-cols-2 gap-y-1 text-xs">
                       <div>
                         <span className="font-medium">Cliente: </span>
-                        {customers?.find(c => c.id === selectedOrder.customerId)?.businessname}
+                        <span className="line-clamp-1">{customers?.find(c => c.id === selectedOrder.customerId)?.businessname}</span>
                       </div>
                       <div>
                         <span className="font-medium">Teléfono: </span>
-                        {customers?.find(c => c.id === selectedOrder.customerId)?.phone}
+                        <span>{customers?.find(c => c.id === selectedOrder.customerId)?.phone}</span>
                       </div>
                       <div className="col-span-2">
                         <span className="font-medium">Dirección: </span>
-                        {(() => {
-                          const customer = customers?.find(c => c.id === selectedOrder.customerId);
-                          return customer ? `${customer.street} ${customer.streetnumber}` : "";
-                        })()}
+                        <span className="line-clamp-1">
+                          {(() => {
+                            const customer = customers?.find(c => c.id === selectedOrder.customerId);
+                            return customer ? `${customer.street} ${customer.streetnumber}` : "";
+                          })()}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Detalles del Pedido */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium flex items-center">
-                    <Package className="h-4 w-4 mr-1.5 text-blue-600" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-medium flex items-center">
+                    <Package className="h-3.5 w-3.5 mr-1 text-blue-600" />
                     Productos
                   </h3>
                   <div className="border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-sm">Producto</TableHead>
-                          <TableHead className="text-sm text-right">Cantidad</TableHead>
-                          <TableHead className="text-sm text-right">Precio Unit.</TableHead>
-                          <TableHead className="text-sm text-right">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {isLoadingDetails ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-4">
-                              Cargando detalles del pedido...
-                            </TableCell>
+                    <ScrollArea className="h-[180px] sm:h-[240px]">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="h-7">
+                            <TableHead className="py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
+                            <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
+                            <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Precio Unit.</TableHead>
+                            <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
                           </TableRow>
-                        ) : orderDetails.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-4">
-                              No hay productos en este pedido
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          orderDetails.map((item: any) => {
-                            const product = products?.find(p => p.id === item.productId);
-                            return (
-                              <TableRow key={item.id}>
-                                <TableCell>{product?.name || `Producto #${item.productId}`}</TableCell>
-                                <TableCell className="text-right">{item.quantity}</TableCell>
-                                <TableCell className="text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
-                                <TableCell className="text-right">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {isLoadingDetails ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-2 text-xs">
+                                Cargando detalles del pedido...
+                              </TableCell>
+                            </TableRow>
+                          ) : orderDetails.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-2 text-xs">
+                                No hay productos en este pedido
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            orderDetails.map((item: any) => {
+                              const product = products?.find(p => p.id === item.productId);
+                              return (
+                                <TableRow key={item.id} className="h-7">
+                                  <TableCell className="py-1 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
+                                  <TableCell className="py-1 text-xs text-right">{item.quantity}</TableCell>
+                                  <TableCell className="py-1 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
+                                  <TableCell className="py-1 text-xs text-right">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
+                                </TableRow>
+                              );
+                            })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
                   </div>
                 </div>
 
                 {/* Resumen */}
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1.5 text-blue-600" />
+                <div className="space-y-1">
+                  <h3 className="text-xs font-medium flex items-center">
+                    <DollarSign className="h-3.5 w-3.5 mr-1 text-blue-600" />
                     Resumen del Pedido
                   </h3>
-                  <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
-                    <div className="space-y-1.5 text-sm">
+                  <div className="bg-blue-50 p-2 rounded-md border border-blue-100">
+                    <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
                         <span>Método de Pago:</span>
                         <span>{selectedOrder.paymentMethod === 'cash' ? 'Efectivo' : 'Crédito'}</span>
@@ -1000,8 +1005,8 @@ export default function Orders() {
                         <span>Ruta Asignada:</span>
                         <span>{selectedOrder.routeId ? `#${selectedOrder.routeId}` : 'No asignada'}</span>
                       </div>
-                      <Separator className="my-2" />
-                      <div className="flex justify-between font-bold text-base">
+                      <Separator className="my-1" />
+                      <div className="flex justify-between font-bold text-sm">
                         <span>Total:</span>
                         <span>RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}</span>
                       </div>
@@ -1010,19 +1015,21 @@ export default function Orders() {
                 </div>
 
                 {/* Acciones */}
-                <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="grid grid-cols-2 gap-2 mt-2">
                   <Button
                     variant="outline"
-                    className="flex items-center justify-center gap-1"
+                    size="sm"
+                    className="h-7 text-xs flex items-center justify-center gap-1"
                   >
-                    <Truck className="h-4 w-4" />
+                    <Truck className="h-3.5 w-3.5" />
                     Asignar a Ruta
                   </Button>
                   
                   <Button 
-                    className="bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-1"
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 h-7 text-xs flex items-center justify-center gap-1"
                   >
-                    <FileText className="h-4 w-4" />
+                    <FileText className="h-3.5 w-3.5" />
                     Imprimir Pedido
                   </Button>
                 </div>
@@ -1034,99 +1041,126 @@ export default function Orders() {
 
       {/* Dialog para detalles en móvil */}
       <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-        <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-2 sm:p-4 gap-3">
-          <DialogHeader>
-            <DialogTitle>Detalles del Pedido #{selectedOrder?.id}</DialogTitle>
+        <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-1.5 sm:p-3 gap-2">
+          <DialogHeader className="p-0 space-y-1">
+            <div className="flex justify-between items-center">
+              <DialogTitle className="text-base flex items-center gap-1">
+                <FileText className="h-4 w-4 text-blue-600" />
+                Pedido #{selectedOrder?.id}
+              </DialogTitle>
+              {getStatusBadge(selectedOrder?.status || 'pending')}
+            </div>
+            <p className="text-xs text-gray-500 flex items-center gap-1">
+              <CalendarDays className="h-3 w-3" />
+              {selectedOrder && new Date(selectedOrder.date).toLocaleDateString()}
+            </p>
           </DialogHeader>
 
           {selectedOrder && (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {/* Información del cliente */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-2 flex items-center gap-1.5">
-                  <User className="h-4 w-4 text-blue-600" />
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium flex items-center">
+                  <User className="h-3.5 w-3.5 mr-1 text-blue-600" />
                   Información del Cliente
                 </h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-blue-50 p-2 rounded-md border border-blue-100 grid grid-cols-2 gap-y-1 text-xs">
                   <div>
                     <span className="font-medium">Cliente: </span>
-                    {customers?.find(c => c.id === selectedOrder.customerId)?.businessname}
+                    <span className="line-clamp-1">{customers?.find(c => c.id === selectedOrder.customerId)?.businessname}</span>
                   </div>
                   <div>
-                    <span className="font-medium">Fecha: </span>
-                    {new Date(selectedOrder.date).toLocaleDateString()}
+                    <span className="font-medium">Teléfono: </span>
+                    <span>{customers?.find(c => c.id === selectedOrder.customerId)?.phone}</span>
                   </div>
                   <div className="col-span-2">
-                    <span className="font-medium">Estado: </span>
-                    {getStatusBadge(selectedOrder.status)}
+                    <span className="font-medium">Dirección: </span>
+                    <span className="line-clamp-1">
+                      {(() => {
+                        const customer = customers?.find(c => c.id === selectedOrder.customerId);
+                        return customer ? `${customer.street} ${customer.streetnumber}` : "";
+                      })()}
+                    </span>
                   </div>
                 </div>
-              </Card>
+              </div>
 
               {/* Detalles del pedido */}
-              <Card className="p-4">
-                <h3 className="font-medium mb-2 flex items-center gap-1.5">
-                  <Package className="h-4 w-4 text-blue-600" />
-                  Detalles del Pedido
+              <div className="space-y-1">
+                <h3 className="text-xs font-medium flex items-center">
+                  <Package className="h-3.5 w-3.5 mr-1 text-blue-600" />
+                  Productos
                 </h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Producto</TableHead>
-                      <TableHead className="text-xs text-right">Cant.</TableHead>
-                      <TableHead className="text-xs text-right">Precio</TableHead>
-                      <TableHead className="text-xs text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {isLoadingDetails ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-3 text-sm">
-                          Cargando...
-                        </TableCell>
-                      </TableRow>
-                    ) : orderDetails.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-3 text-sm">
-                          No hay productos
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      orderDetails.map((item: any) => {
-                        const product = products?.find(p => p.id === item.productId);
-                        return (
-                          <TableRow key={item.id}>
-                            <TableCell className="text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
-                            <TableCell className="text-xs text-right">{item.quantity}</TableCell>
-                            <TableCell className="text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
-                            <TableCell className="text-xs text-right">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
+                <div className="border rounded-lg overflow-hidden">
+                  <ScrollArea className="h-[200px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="h-7">
+                          <TableHead className="py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
+                          <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
+                          <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Precio</TableHead>
+                          <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {isLoadingDetails ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-2 text-xs">
+                              Cargando...
+                            </TableCell>
                           </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-                <div className="mt-3 p-2 bg-blue-50 rounded-md">
-                  <div className="flex justify-between font-medium">
-                    <span>Total:</span>
-                    <span>RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}</span>
+                        ) : orderDetails.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center py-2 text-xs">
+                              No hay productos
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          orderDetails.map((item: any) => {
+                            const product = products?.find(p => p.id === item.productId);
+                            return (
+                              <TableRow key={item.id} className="h-7">
+                                <TableCell className="py-1 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
+                                <TableCell className="py-1 text-xs text-right">{item.quantity}</TableCell>
+                                <TableCell className="py-1 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
+                                <TableCell className="py-1 text-xs text-right">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </div>
+                <div className="bg-blue-50 p-2 rounded-md border border-blue-100">
+                  <div className="space-y-1 text-xs">
+                    <div className="flex justify-between">
+                      <span>Método de Pago:</span>
+                      <span>{selectedOrder.paymentMethod === 'cash' ? 'Efectivo' : 'Crédito'}</span>
+                    </div>
+                    <Separator className="my-1" />
+                    <div className="flex justify-between font-bold text-sm">
+                      <span>Total:</span>
+                      <span>RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
-              </Card>
+              </div>
 
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-1.5 pt-1">
                 <Button 
                   variant="outline" 
                   size="sm"
+                  className="h-7 text-xs"
                   onClick={() => setIsDetailsDialogOpen(false)}
                 >
                   Cerrar
                 </Button>
                 <Button 
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
                 >
-                  <FileText className="h-3.5 w-3.5 mr-1" />
+                  <FileText className="h-3 w-3 mr-1" />
                   Imprimir
                 </Button>
               </div>
