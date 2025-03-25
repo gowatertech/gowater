@@ -113,185 +113,198 @@ export default function Dashboard() {
     }).format(value);
   };
 
-  return (
-    <div className="space-y-3">
-      <h1 className="text-xl font-bold">{t("Panel de Control")}</h1>
+  // Componente de tarjeta estadística reutilizable
+  const StatCard = ({ 
+    color, 
+    title, 
+    value, 
+    isCurrency = false,
+    icon: Icon = null 
+  }: { 
+    color: "blue" | "green" | "yellow" | "orange" | "red" | "purple"; 
+    title: string; 
+    value: string | number; 
+    isCurrency?: boolean;
+    icon?: any;
+  }) => {
+    // Mapas de clases para colores
+    const colorMap = {
+      blue: "bg-blue-500",
+      green: "bg-green-500",
+      yellow: "bg-yellow-500",
+      orange: "bg-orange-500",
+      red: "bg-red-500",
+      purple: "bg-purple-500"
+    };
 
-      {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
-          <div className="p-2 pl-2.5">
+    const textColorMap = {
+      blue: "text-blue-600",
+      green: "text-green-600",
+      yellow: "text-yellow-600",
+      orange: "text-orange-600",
+      red: "text-red-600",
+      purple: "text-purple-600"
+    };
+
+    const iconColorMap = {
+      blue: "text-blue-500",
+      green: "text-green-500",
+      yellow: "text-yellow-500",
+      orange: "text-orange-500",
+      red: "text-red-500",
+      purple: "text-purple-500"
+    };
+
+    return (
+      <div className="relative overflow-hidden rounded-md border shadow-sm">
+        <div className={`absolute left-0 top-0 h-full w-1 ${colorMap[color]}`}></div>
+        <div className="p-2 pl-2.5">
+          <div className="flex items-center gap-1">
+            {Icon && <Icon className={`h-3 w-3 ${iconColorMap[color]}`} />}
             <div className="text-xs font-normal text-gray-500">
-              {t("Total Ventas")}
-            </div>
-            <div className="mt-1 text-base font-semibold text-blue-600">
-              {formatCurrency(stats?.totalSales || 0)}
+              {title}
             </div>
           </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
-          <div className="p-2 pl-2.5">
-            <div className="text-xs font-normal text-gray-500">
-              {t("Cuentas por Cobrar")}
-            </div>
-            <div className="mt-1 text-base font-semibold text-green-600">
-              {formatCurrency(stats?.pendingPayments || 0)}
-            </div>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
-          <div className="p-2 pl-2.5">
-            <div className="text-xs font-normal text-gray-500">
-              {t("Pedidos Pendientes")}
-            </div>
-            <div className="mt-1 text-base font-semibold text-yellow-600">
-              {stats?.pendingOrders || 0}
-            </div>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-orange-500"></div>
-          <div className="p-2 pl-2.5">
-            <div className="text-xs font-normal text-gray-500">
-              {t("Entregados (Mes)")}
-            </div>
-            <div className="mt-1 text-base font-semibold text-orange-600">
-              {stats?.deliveredOrders || 0}
-            </div>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
-          <div className="p-2 pl-2.5">
-            <div className="text-xs font-normal text-gray-500">
-              {t("Cancelados (Mes)")}
-            </div>
-            <div className="mt-1 text-base font-semibold text-red-600">
-              {stats?.cancelledOrders || 0}
-            </div>
+          <div className={`mt-1 text-base font-semibold ${textColorMap[color]}`}>
+            {isCurrency ? formatCurrency(value as number) : value}
           </div>
         </div>
       </div>
+    );
+  };
 
-      {/* Gráficos circulares */}
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
-          <div className="p-2 pl-2.5">
-            <div className="text-xs font-normal text-gray-500 mb-1">
-              {t("Distribución de Ventas")}
-            </div>
-            <div className="space-y-1 mb-1">
-              {salesData.map((entry, index) => (
-                <div key={`legend-${index}`} className="flex items-center">
-                  <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
-                  <span className="text-xs">{entry.name}: {formatCurrency(entry.value)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="h-[180px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={salesData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={30}
-                    outerRadius={45}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {salesData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+  // Componente de gráfico circular reutilizable
+  const ChartCard = ({ 
+    color, 
+    title, 
+    data, 
+    isCurrency = false,
+    icon: Icon = null 
+  }: { 
+    color: "blue" | "green" | "yellow" | "orange" | "red" | "purple"; 
+    title: string; 
+    data: ChartData[]; 
+    isCurrency?: boolean;
+    icon?: any;
+  }) => {
+    // Mapas de clases para colores
+    const colorMap = {
+      blue: "bg-blue-500",
+      green: "bg-green-500",
+      yellow: "bg-yellow-500",
+      orange: "bg-orange-500",
+      red: "bg-red-500",
+      purple: "bg-purple-500"
+    };
+
+    const iconColorMap = {
+      blue: "text-blue-500",
+      green: "text-green-500",
+      yellow: "text-yellow-500",
+      orange: "text-orange-500",
+      red: "text-red-500",
+      purple: "text-purple-500"
+    };
+
+    return (
+      <div className="relative overflow-hidden rounded-md border shadow-sm">
+        <div className={`absolute left-0 top-0 h-full w-1 ${colorMap[color]}`}></div>
+        <div className="p-2 pl-2.5">
+          <div className="flex items-center gap-1 mb-1">
+            {Icon && <Icon className={`h-3 w-3 ${iconColorMap[color]}`} />}
+            <div className="text-xs font-normal text-gray-500">
+              {title}
             </div>
           </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-orange-500"></div>
-          <div className="p-2 pl-2.5">
-            <div className="text-xs font-normal text-gray-500 mb-1">
-              {t("Estado de Pedidos")}
-            </div>
-            <div className="space-y-1 mb-1">
-              {ordersData.map((entry, index) => (
-                <div key={`legend-${index}`} className="flex items-center">
-                  <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
-                  <span className="text-xs">{entry.name}: {entry.value}</span>
-                </div>
-              ))}
-            </div>
-            <div className="h-[180px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={ordersData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={30}
-                    outerRadius={45}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {ordersData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="space-y-1 mb-1">
+            {data.map((entry, index) => (
+              <div key={`legend-${index}`} className="flex items-center">
+                <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
+                <span className="text-xs">
+                  {entry.name}: {isCurrency ? formatCurrency(entry.value) : entry.value}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="h-[120px] md:h-[140px] lg:h-[180px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={20}
+                  outerRadius={35}
+                  fill="#8884d8"
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
+      </div>
+    );
+  };
 
-        <div className="relative overflow-hidden rounded-md border shadow-sm">
-          <div className="absolute left-0 top-0 h-full w-1 bg-purple-500"></div>
-          <div className="p-2 pl-2.5">
-            <div className="text-xs font-normal text-gray-500 mb-1">
-              {t("Pagos Realizados")}
-            </div>
-            <div className="space-y-1 mb-1">
-              {paymentsData.map((entry, index) => (
-                <div key={`legend-${index}`} className="flex items-center">
-                  <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
-                  <span className="text-xs">{entry.name}: {formatCurrency(entry.value)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="h-[180px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={paymentsData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={30}
-                    outerRadius={45}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {paymentsData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
+  return (
+    <div className="space-y-2">
+      <h1 className="text-lg font-bold md:text-xl">{t("Panel de Control")}</h1>
+
+      {/* Tarjetas de estadísticas - reorganizadas para mejor visualización en móvil */}
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
+        <StatCard 
+          color="blue" 
+          title={t("Total Ventas")} 
+          value={stats?.totalSales || 0} 
+          isCurrency={true} 
+        />
+        <StatCard 
+          color="green" 
+          title={t("Cuentas por Cobrar")} 
+          value={stats?.pendingPayments || 0} 
+          isCurrency={true} 
+        />
+        <StatCard 
+          color="yellow" 
+          title={t("Pedidos Pendientes")} 
+          value={stats?.pendingOrders || 0} 
+        />
+        <StatCard 
+          color="orange" 
+          title={t("Entregados (Mes)")} 
+          value={stats?.deliveredOrders || 0} 
+        />
+        <StatCard 
+          color="red" 
+          title={t("Cancelados (Mes)")} 
+          value={stats?.cancelledOrders || 0} 
+        />
+      </div>
+
+      {/* Gráficos circulares - reorganizados para responsividad */}
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        <ChartCard 
+          color="blue" 
+          title={t("Distribución de Ventas")} 
+          data={salesData} 
+          isCurrency={true} 
+        />
+        <ChartCard 
+          color="orange" 
+          title={t("Estado de Pedidos")} 
+          data={ordersData} 
+        />
+        <ChartCard 
+          color="purple" 
+          title={t("Pagos Realizados")} 
+          data={paymentsData} 
+          isCurrency={true} 
+        />
       </div>
     </div>
   );
