@@ -328,22 +328,22 @@ export default function Users() {
         </Card>
 
         <Card className="bg-yellow-50 border-yellow-100">
-          <CardContent className="p-2 flex items-center justify-between">
+          <CardContent className="p-1.5 sm:p-2 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Conductores</p>
-              <p className="text-sm sm:text-lg font-bold text-yellow-600">{userStats.totalDrivers}</p>
+              <p className="text-sm sm:text-base font-bold text-yellow-600">{userStats.totalDrivers}</p>
             </div>
-            <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-400" />
+            <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
           </CardContent>
         </Card>
 
         <Card className="bg-purple-50 border-purple-100">
-          <CardContent className="p-2 flex items-center justify-between">
+          <CardContent className="p-1.5 sm:p-2 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Asistentes</p>
-              <p className="text-sm sm:text-lg font-bold text-purple-600">{userStats.totalAssistants}</p>
+              <p className="text-sm sm:text-base font-bold text-purple-600">{userStats.totalAssistants}</p>
             </div>
-            <HeartPulse className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
+            <HeartPulse className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
           </CardContent>
         </Card>
       </div>
