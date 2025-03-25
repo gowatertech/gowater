@@ -12,7 +12,7 @@ import {
   Eye, 
   ArrowRight, 
   Search, 
-  Route, 
+  Route as RouteIcon, 
   Clock, 
   CheckCircle, 
   FileText,
