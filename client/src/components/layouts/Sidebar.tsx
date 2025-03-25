@@ -45,9 +45,12 @@ const menuColors = {
   dashboard: "#4F46E5", // Indigo 600
   inventory: "#059669", // Emerald 600
   routes: "#F59E0B", // Amber 500
+  operaciones: "#F59E0B", // Amber 500 - mismo color que routes
   bottles: "#3B82F6", // Blue 500
   payments: "#8B5CF6", // Violet 500
+  finanzas: "#8B5CF6", // Violet 500 - mismo color que payments
   admin: "#EC4899", // Pink 500
+  administración: "#EC4899", // Pink 500 - mismo color que admin
   settings: "#6366F1", // Indigo 500
 };
 

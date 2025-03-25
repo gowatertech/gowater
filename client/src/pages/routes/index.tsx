@@ -296,7 +296,7 @@ export default function Routes() {
     <div className="container py-4">
       <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
-          <Route className="h-5 w-5 text-primary" />
+          <RouteIcon className="h-5 w-5 text-primary" />
           <h1 className="text-xl font-bold">{t("routes")}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -360,7 +360,7 @@ export default function Routes() {
               <p className="text-sm text-muted-foreground">Distancia Total</p>
               <p className="text-xl font-bold mt-1">{routeStats.totalDistance} km</p>
             </div>
-            <Route className="h-7 w-7 text-yellow-500" />
+            <RouteIcon className="h-7 w-7 text-yellow-500" />
           </CardContent>
         </Card>
         
@@ -562,7 +562,7 @@ export default function Routes() {
                 )}
                 {!loading && !error && filteredRoutes.filter(r => !r.isCompleted).length === 0 && (
                   <div className="text-center p-8 flex flex-col items-center justify-center text-muted-foreground">
-                    <Route className="h-12 w-12 mb-2 opacity-20" />
+                    <RouteIcon className="h-12 w-12 mb-2 opacity-20" />
                     <p>No se encontraron rutas activas</p>
                     {searchQuery && <p className="text-sm">Prueba con otra búsqueda</p>}
                   </div>
@@ -608,7 +608,7 @@ export default function Routes() {
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-start md:justify-end text-muted-foreground">
-                                  <Route className="h-4 w-4 mr-2" />
+                                  <RouteIcon className="h-4 w-4 mr-2" />
                                   <span>
                                     {route.totalDistance
                                       ? `${Number(route.totalDistance).toFixed(1)} km`
@@ -683,7 +683,7 @@ export default function Routes() {
                                   </span>
                                 </div>
                                 <div className="flex items-center text-sm text-muted-foreground">
-                                  <Route className="h-4 w-4 mr-2" />
+                                  <RouteIcon className="h-4 w-4 mr-2" />
                                   <span>
                                     {route.totalDistance
                                       ? `${Number(route.totalDistance).toFixed(1)} km`
