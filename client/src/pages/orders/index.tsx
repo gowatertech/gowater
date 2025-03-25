@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   type Customer, 
@@ -100,7 +100,7 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [notes, setNotes] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>(() => 
-    Array(5).fill(0).map(() => ({
+    Array.from({ length: 5 }, () => ({
       code: "",
       description: "",
       quantity: 0,
@@ -275,7 +275,7 @@ export default function Orders() {
       });
       setSelectedCustomer(null);
       setNotes("");
-      setOrderItems(Array(5).fill(0).map(() => ({
+      setOrderItems(Array.from({ length: 5 }, () => ({
         code: "",
         description: "",
         quantity: 0,
