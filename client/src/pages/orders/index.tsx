@@ -12,6 +12,30 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+// Iconos
+import { 
+  Plus, 
+  ArrowLeft, 
+  User, 
+  Package, 
+  Eye, 
+  Clock, 
+  CheckCircle, 
+  CircleX,
+  DollarSign, 
+  FileText, 
+  ShoppingCart, 
+  Tag, 
+  AlertTriangle,
+  Search,
+  X,
+  ClipboardList,
+  Filter,
+  ListFilter,
+  Truck,
+  CalendarDays
+} from "lucide-react";
+
 // Componentes UI
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -56,29 +80,6 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
-
-import {
-  ShoppingCart,
-  ClipboardList,
-  Plus,
-  Search,
-  X,
-  FileText,
-  CheckCircle,
-  Clock,
-  CircleX,
-  Truck,
-  CalendarDays,
-  Package,
-  User,
-  DollarSign,
-  AlertTriangle,
-  Eye,
-  Filter,
-  ListFilter,
-  Tag,
-  ArrowLeft,
-} from "lucide-react";
 
 interface OrderItem {
   code: string;
@@ -515,134 +516,78 @@ export default function Orders() {
               </Select>
             </div>
 
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1">
-                <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
-                <h2 className="font-medium text-xs">Lista de Pedidos</h2>
-              </div>
-              <Badge variant="outline" className="text-xs h-5 px-1.5">{filteredOrders.length} pedidos</Badge>
-            </div>
-
-            {isMobile ? (
-              /* Vista de tarjetas para móvil */
-              <ScrollArea className="h-[350px]">
-                <div className="space-y-2">
-                  {filteredOrders.length === 0 ? (
-                    <div className="text-center py-3 text-gray-500 text-xs">
-                      No se encontraron pedidos
-                    </div>
-                  ) : (
-                    filteredOrders.map((order) => {
-                      const customer = customers?.find(c => c.id === order.customerId);
-                      return (
-                        <Card 
-                          key={order.id} 
-                          className={`p-2 border-l-4 ${getStatusColor(order.status)}`}
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setActiveTab("details");
-                          }}
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-medium text-xs">Pedido #{order.id}</h3>
-                              <p className="text-[10px] text-gray-500 line-clamp-1 max-w-[150px]">
-                                {customer?.businessname || "Cliente desconocido"}
-                              </p>
-                            </div>
-                            <div className="flex flex-col items-end">
-                              {getStatusBadge(order.status)}
-                              <p className="text-[10px] mt-0.5">
-                                <CalendarDays className="h-2.5 w-2.5 inline mr-0.5" />
-                                {new Date(order.date).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="font-medium flex items-center text-xs">
-                              <DollarSign className="h-3 w-3 text-green-600 mr-0.5" />
-                              RD$ {parseFloat(order.total.toString()).toFixed(2)}
-                            </span>
-                            
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-1.5 text-[10px]"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedOrder(order);
-                                setIsDetailsDialogOpen(true);
-                              }}
-                            >
-                              <Eye className="h-2.5 w-2.5 mr-0.5" />
-                              Detalles
-                            </Button>
-                          </div>
-                        </Card>
-                      );
-                    })
-                  )}
+            {/* Lista de pedidos */}
+            {filteredOrders.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="mx-auto bg-gray-50 rounded-full h-12 w-12 flex items-center justify-center mb-2">
+                  <ShoppingCart className="h-5 w-5 text-gray-400" />
                 </div>
-              </ScrollArea>
+                <h3 className="text-sm font-medium text-gray-600">No hay pedidos</h3>
+                <p className="text-xs text-gray-500 max-w-xs mx-auto mt-1">
+                  {searchTerm || statusFilter !== "all" 
+                    ? "No se encontraron pedidos que coincidan con los filtros. Intente con otros criterios de búsqueda." 
+                    : "No hay pedidos registrados en el sistema. Cree uno nuevo para comenzar."}
+                </p>
+              </div>
             ) : (
-              /* Tabla para escritorio */
-              <div className="overflow-x-auto">
-                <Table className="min-w-full">
+              <div className="border rounded-md">
+                <Table>
                   <TableHeader>
                     <TableRow className="h-8">
-                      <TableHead className="text-xs py-1">No. Pedido</TableHead>
-                      <TableHead className="text-xs py-1">Cliente</TableHead>
-                      <TableHead className="text-xs py-1">Fecha</TableHead>
-                      <TableHead className="text-xs py-1">Total</TableHead>
-                      <TableHead className="text-xs py-1">Estado</TableHead>
-                      <TableHead className="text-xs py-1">Acciones</TableHead>
+                      <TableHead className="w-[10%] text-xs">ID</TableHead>
+                      <TableHead className="w-[25%] text-xs">Cliente</TableHead>
+                      <TableHead className="w-[15%] text-xs">Fecha</TableHead>
+                      <TableHead className="w-[15%] text-xs text-right">Total</TableHead>
+                      <TableHead className="w-[15%] text-xs">Estado</TableHead>
+                      <TableHead className="w-[20%] text-xs text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOrders.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4 text-gray-500 text-xs">
-                          No se encontraron pedidos
+                    {filteredOrders.map((order) => (
+                      <TableRow key={order.id} className="h-8">
+                        <TableCell className="font-medium text-xs py-1">#{order.id}</TableCell>
+                        <TableCell className="text-xs py-1">
+                          {customers?.find(c => c.id === order.customerId)?.businessname}
+                        </TableCell>
+                        <TableCell className="text-xs py-1">
+                          {new Date(order.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-xs py-1 text-right">
+                          RD$ {parseFloat(order.total.toString()).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="py-1">
+                          <div className="flex items-center gap-1">
+                            {getStatusBadge(order.status)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setActiveTab("details");
+                              }}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver
+                            </Button>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 text-gray-600 hover:text-gray-700 hover:bg-gray-50 text-xs"
+                              onClick={() => openStatusDialog(order)}
+                            >
+                              <Tag className="h-3 w-3 mr-1" />
+                              Estado
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ) : (
-                      filteredOrders.map((order) => (
-                        <TableRow key={order.id} className="h-8">
-                          <TableCell className="py-1 text-xs">#{order.id}</TableCell>
-                          <TableCell className="py-1 text-xs">
-                            {customers?.find(c => c.id === order.customerId)?.businessname || "Cliente desconocido"}
-                          </TableCell>
-                          <TableCell className="py-1 text-xs">
-                            {new Date(order.date).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell className="py-1 text-xs">
-                            RD$ {parseFloat(order.total.toString()).toFixed(2)}
-                          </TableCell>
-                          <TableCell className="py-1">
-                            <div className="flex items-center gap-1">
-                              {getStatusBadge(order.status)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-1">
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
-                                onClick={() => {
-                                  setSelectedOrder(order);
-                                  setActiveTab("details");
-                                }}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                Ver
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -943,279 +888,185 @@ export default function Orders() {
                     size="sm"
                     className="h-7 text-xs"
                   >
-                    <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                    <ArrowLeft className="h-3 w-3 mr-1" />
                     Volver
                   </Button>
                 </div>
+                <CardDescription className="text-xs mt-1">
+                  <span className="block">
+                    Cliente: {customers?.find(c => c.id === selectedOrder.customerId)?.businessname}
+                  </span>
+                  <span className="block">
+                    Fecha: {new Date(selectedOrder.date).toLocaleDateString()}
+                  </span>
+                </CardDescription>
               </CardHeader>
 
-              <CardContent className="px-0 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    {getStatusBadge(selectedOrder.status)}
+              <div className="space-y-4">
+                {/* Estado y detalles */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-medium">Estado del pedido</h3>
+                    <div className="p-2 rounded-md border bg-gray-50">
+                      <div className="flex items-center gap-1.5">
+                        {getStatusIcon(selectedOrder.status)}
+                        <span className="text-sm font-medium">
+                          {selectedOrder.status === "pending" && "Pendiente"}
+                          {selectedOrder.status === "delivered" && "Entregado"}
+                          {selectedOrder.status === "cancelled" && "Cancelado"}
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-2 text-xs h-7"
+                        onClick={() => openStatusDialog(selectedOrder)}
+                      >
+                        <Tag className="h-3 w-3 mr-1" />
+                        Cambiar estado
+                      </Button>
+                    </div>
                   </div>
-                  <Badge variant="outline" className="flex items-center gap-1 text-xs h-5">
-                    <CalendarDays className="h-3 w-3" /> {new Date(selectedOrder.date).toLocaleDateString()}
-                  </Badge>
-                </div>
-                
-                <Separator className="my-1" />
-                
-                {/* Información del Cliente */}
-                <div className="space-y-1">
-                  <h3 className="text-xs font-medium flex items-center">
-                    <User className="h-3.5 w-3.5 mr-1 text-blue-600" />
-                    Información del Cliente
-                  </h3>
-                  <div className="bg-blue-50 p-2 rounded-md border border-blue-100">
-                    <div className="grid grid-cols-2 gap-y-1 text-xs">
-                      <div>
-                        <span className="font-medium">Cliente: </span>
-                        <span className="line-clamp-1">{customers?.find(c => c.id === selectedOrder.customerId)?.businessname}</span>
+
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-medium">Detalles de pago</h3>
+                    <div className="p-2 rounded-md border bg-gray-50">
+                      <div className="flex justify-between text-xs">
+                        <span>Método de pago:</span>
+                        <span className="font-medium">
+                          {selectedOrder.paymentMethod === "cash" && "Efectivo"}
+                          {selectedOrder.paymentMethod === "transfer" && "Transferencia"}
+                          {selectedOrder.paymentMethod === "credit" && "Crédito"}
+                        </span>
                       </div>
-                      <div>
-                        <span className="font-medium">Teléfono: </span>
-                        <span>{customers?.find(c => c.id === selectedOrder.customerId)?.phone}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="font-medium">Dirección: </span>
-                        <span className="line-clamp-1">
-                          {(() => {
-                            const customer = customers?.find(c => c.id === selectedOrder.customerId);
-                            return customer ? `${customer.street} ${customer.streetnumber}` : "";
-                          })()}
+                      <div className="flex justify-between text-xs mt-1">
+                        <span>Total:</span>
+                        <span className="font-bold">
+                          RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Detalles del Pedido */}
+                {/* Productos */}
                 <div className="space-y-1">
                   <h3 className="text-xs font-medium flex items-center">
                     <Package className="h-3.5 w-3.5 mr-1 text-blue-600" />
                     Productos
                   </h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <ScrollArea className="h-[180px] sm:h-[240px]">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="h-8">
-                            <TableHead className="w-[40%] py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
-                            <TableHead className="w-[15%] py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
-                            <TableHead className="w-[22%] py-1.5 text-xs text-right sticky top-0 bg-background">Precio</TableHead>
-                            <TableHead className="w-[23%] py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="h-8">
+                          <TableHead className="text-xs w-[35%]">Producto</TableHead>
+                          <TableHead className="text-xs text-right w-[15%]">Cantidad</TableHead>
+                          <TableHead className="text-xs text-right w-[25%]">Precio</TableHead>
+                          <TableHead className="text-xs text-right w-[25%]">Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {!isLoadingDetails && orderDetails?.map((item: any) => (
+                          <TableRow key={item.id} className="h-8">
+                            <TableCell className="text-xs py-1 font-medium">
+                              {products?.find(p => p.id === item.productId)?.name || ""}
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-right">
+                              {item.quantity}
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-right">
+                              RD$ {parseFloat(item.price.toString()).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-xs py-1 text-right font-medium">
+                              RD$ {(item.quantity * parseFloat(item.price.toString())).toFixed(2)}
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {isLoadingDetails ? (
-                            <TableRow>
-                              <TableCell colSpan={4} className="text-center py-2 text-xs">
-                                Cargando detalles del pedido...
-                              </TableCell>
-                            </TableRow>
-                          ) : orderDetails.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={4} className="text-center py-2 text-xs">
-                                No hay productos en este pedido
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            orderDetails.map((item: any) => {
-                              const product = products?.find(p => p.id === item.productId);
-                              return (
-                                <TableRow key={item.id} className="h-8">
-                                  <TableCell className="py-1 px-2 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
-                                  <TableCell className="py-1 px-2 text-xs text-right">{item.quantity}</TableCell>
-                                  <TableCell className="py-1 px-2 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
-                                  <TableCell className="py-1 px-2 text-xs text-right font-medium">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
-                                </TableRow>
-                              );
-                            })
-                          )}
-                        </TableBody>
-                      </Table>
-                    </ScrollArea>
+                        ))}
+                        {isLoadingDetails && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="h-20 text-center">
+                              <div className="flex justify-center items-center">
+                                <span className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2" />
+                                <span className="text-xs">Cargando detalles...</span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
-
-                {/* Resumen */}
-                <div className="space-y-1">
-                  <h3 className="text-xs font-medium flex items-center">
-                    <DollarSign className="h-3.5 w-3.5 mr-1 text-blue-600" />
-                    Resumen del Pedido
-                  </h3>
-                  <div className="bg-blue-50 p-2 rounded-md border border-blue-100">
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between">
-                        <span>Método de Pago:</span>
-                        <span>{selectedOrder.paymentMethod === 'cash' ? 'Efectivo' : 'Crédito'}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Ruta Asignada:</span>
-                        <span>{selectedOrder.routeId ? `#${selectedOrder.routeId}` : 'No asignada'}</span>
-                      </div>
-                      <Separator className="my-1" />
-                      <div className="flex justify-between font-bold text-sm">
-                        <span>Total:</span>
-                        <span>RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Acciones */}
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs flex items-center justify-center gap-1"
-                  >
-                    <Truck className="h-3.5 w-3.5" />
-                    Asignar a Ruta
-                  </Button>
-                  
-                  <Button 
-                    size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 h-7 text-xs flex items-center justify-center gap-1"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    Imprimir Pedido
-                  </Button>
-                </div>
-              </CardContent>
+              </div>
             </Card>
           )}
         </TabsContent>
       </Tabs>
 
-      {/* Dialog para detalles en móvil */}
-      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-        <DialogContent className="w-[98vw] sm:w-[90vw] max-w-2xl p-1.5 sm:p-3 gap-2">
-          <DialogHeader className="p-0 space-y-1">
-            <div className="flex justify-between items-center">
-              <DialogTitle className="text-base flex items-center gap-1">
-                <FileText className="h-4 w-4 text-blue-600" />
-                Pedido #{selectedOrder?.id}
-              </DialogTitle>
-              {getStatusBadge(selectedOrder?.status || 'pending')}
-            </div>
-            <DialogDescription className="text-xs text-gray-500 flex items-center gap-1 p-0 m-0">
-              <CalendarDays className="h-3 w-3" />
-              {selectedOrder && new Date(selectedOrder.date).toLocaleDateString()}
+      {/* Diálogo para cambiar estado del pedido */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1">
+              <Tag className="h-4 w-4 text-blue-600" />
+              Cambiar Estado del Pedido
+            </DialogTitle>
+            <DialogDescription>
+              {orderToUpdate && (
+                <span className="text-xs">
+                  Pedido #{orderToUpdate.id} - Cliente: {customers?.find(c => c.id === orderToUpdate.customerId)?.businessname}
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
-
-          {selectedOrder && (
-            <div className="space-y-2">
-              {/* Información del cliente */}
-              <div className="space-y-1">
-                <h3 className="text-xs font-medium flex items-center">
-                  <User className="h-3.5 w-3.5 mr-1 text-blue-600" />
-                  Información del Cliente
-                </h3>
-                <div className="bg-blue-50 p-2 rounded-md border border-blue-100 grid grid-cols-2 gap-y-1 text-xs">
-                  <div>
-                    <span className="font-medium">Cliente: </span>
-                    <span className="line-clamp-1">{customers?.find(c => c.id === selectedOrder.customerId)?.businessname}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Teléfono: </span>
-                    <span>{customers?.find(c => c.id === selectedOrder.customerId)?.phone}</span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="font-medium">Dirección: </span>
-                    <span className="line-clamp-1">
-                      {(() => {
-                        const customer = customers?.find(c => c.id === selectedOrder.customerId);
-                        return customer ? `${customer.street} ${customer.streetnumber}` : "";
-                      })()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Detalles del pedido */}
-              <div className="space-y-1">
-                <h3 className="text-xs font-medium flex items-center">
-                  <Package className="h-3.5 w-3.5 mr-1 text-blue-600" />
-                  Productos
-                </h3>
-                <div className="border rounded-lg overflow-hidden">
-                  <ScrollArea className="h-[200px]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="h-8">
-                          <TableHead className="w-[40%] py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
-                          <TableHead className="w-[15%] py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
-                          <TableHead className="w-[22%] py-1.5 text-xs text-right sticky top-0 bg-background">Precio</TableHead>
-                          <TableHead className="w-[23%] py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {isLoadingDetails ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-2 text-xs">
-                              Cargando...
-                            </TableCell>
-                          </TableRow>
-                        ) : orderDetails.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-2 text-xs">
-                              No hay productos
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          orderDetails.map((item: any) => {
-                            const product = products?.find(p => p.id === item.productId);
-                            return (
-                              <TableRow key={item.id} className="h-8">
-                                <TableCell className="py-1 px-2 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
-                                <TableCell className="py-1 px-2 text-xs text-right">{item.quantity}</TableCell>
-                                <TableCell className="py-1 px-2 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
-                                <TableCell className="py-1 px-2 text-xs text-right font-medium">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                </div>
-                <div className="bg-blue-50 p-2 rounded-md border border-blue-100">
-                  <div className="space-y-1 text-xs">
-                    <div className="flex justify-between">
-                      <span>Método de Pago:</span>
-                      <span>{selectedOrder.paymentMethod === 'cash' ? 'Efectivo' : 'Crédito'}</span>
-                    </div>
-                    <Separator className="my-1" />
-                    <div className="flex justify-between font-bold text-sm">
-                      <span>Total:</span>
-                      <span>RD$ {parseFloat(selectedOrder.total.toString()).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-1.5 pt-1">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="h-7 text-xs"
-                  onClick={() => setIsDetailsDialogOpen(false)}
-                >
-                  Cerrar
-                </Button>
-                <Button 
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
-                >
-                  <FileText className="h-3 w-3 mr-1" />
-                  Imprimir
-                </Button>
-              </div>
-            </div>
-          )}
+          
+          <div className="space-y-3 py-4">
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending" className="flex items-center gap-1">
+                  <Clock className="h-4 w-4 text-yellow-600" />
+                  <span>Pendiente</span>
+                </SelectItem>
+                <SelectItem value="delivered" className="flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span>Entregado</span>
+                </SelectItem>
+                <SelectItem value="cancelled" className="flex items-center gap-1">
+                  <CircleX className="h-4 w-4 text-red-600" />
+                  <span>Cancelado</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsStatusDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleUpdateStatus}
+              size="sm"
+              disabled={updateStatusMutation.isPending || !newStatus}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {updateStatusMutation.isPending ? (
+                <span className="flex items-center gap-1">
+                  <span className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full" />
+                  Actualizando...
+                </span>
+              ) : (
+                "Actualizar Estado"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
