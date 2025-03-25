@@ -325,7 +325,7 @@ export default function Inventory() {
                 <p className="text-xs text-muted-foreground">Total Productos</p>
                 <p className="text-lg font-bold">{productStats.totalProducts}</p>
               </div>
-              <Package className="h-8 w-8 text-primary/50" />
+              <Package className="h-8 w-8 text-blue-400" />
             </CardContent>
           </Card>
           
@@ -335,7 +335,7 @@ export default function Inventory() {
                 <p className="text-xs text-muted-foreground">Con Existencia</p>
                 <p className="text-lg font-bold">{productStats.hasStock}</p>
               </div>
-              <PackageCheck className="h-8 w-8 text-primary/50" />
+              <PackageCheck className="h-8 w-8 text-green-400" />
             </CardContent>
           </Card>
           
@@ -345,7 +345,7 @@ export default function Inventory() {
                 <p className="text-xs text-muted-foreground">Sin Existencia</p>
                 <p className="text-lg font-bold">{productStats.outOfStock}</p>
               </div>
-              <PackageX className="h-8 w-8 text-primary/50" />
+              <PackageX className="h-8 w-8 text-yellow-400" />
             </CardContent>
           </Card>
           
@@ -355,7 +355,7 @@ export default function Inventory() {
                 <p className="text-xs text-muted-foreground">Total Unidades</p>
                 <p className="text-lg font-bold">{productStats.totalStock}</p>
               </div>
-              <RotateCcw className="h-8 w-8 text-primary/50" />
+              <RotateCcw className="h-8 w-8 text-purple-400" />
             </CardContent>
           </Card>
           
@@ -365,7 +365,7 @@ export default function Inventory() {
                 <p className="text-xs text-muted-foreground">Precio Promedio</p>
                 <p className="text-lg font-bold">RD$ {productStats.averagePrice.toFixed(2)}</p>
               </div>
-              <CircleDollarSign className="h-8 w-8 text-primary/50" />
+              <CircleDollarSign className="h-8 w-8 text-green-400" />
             </CardContent>
           </Card>
         </div>
