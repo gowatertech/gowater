@@ -180,7 +180,7 @@ export default function WarehousesPage() {
                 <p className="text-xs text-muted-foreground">Almacenes Activos</p>
                 <p className="text-lg font-bold">{warehouseStats.totalActive}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-primary/50" />
+              <CheckCircle className="h-8 w-8 text-green-400" />
             </CardContent>
           </Card>
           
@@ -190,7 +190,7 @@ export default function WarehousesPage() {
                 <p className="text-xs text-muted-foreground">Almacenes Inactivos</p>
                 <p className="text-lg font-bold">{warehouseStats.totalInactive}</p>
               </div>
-              <Building className="h-8 w-8 text-primary/50" />
+              <Building className="h-8 w-8 text-yellow-400" />
             </CardContent>
           </Card>
           
@@ -200,7 +200,7 @@ export default function WarehousesPage() {
                 <p className="text-xs text-muted-foreground">Total Almacenes</p>
                 <p className="text-lg font-bold">{warehouseStats.total}</p>
               </div>
-              <BarChart4 className="h-8 w-8 text-primary/50" />
+              <BarChart4 className="h-8 w-8 text-purple-400" />
             </CardContent>
           </Card>
         </div>
