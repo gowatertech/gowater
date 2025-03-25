@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
-import Orders from "@/pages/orders/OrdersPage";
+import OrdersPage from "@/pages/orders/OrdersPage";
 import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
@@ -47,7 +47,7 @@ function Router() {
         <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory" component={InventoryPage} />
 
-        <Route path="/orders" component={Orders} />
+        <Route path="/orders" component={OrdersPage} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/recurring-orders" component={RecurringOrders} />
