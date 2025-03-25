@@ -406,48 +406,48 @@ export default function Customers() {
         
         {/* Contenido del Tab de Lista de Clientes */}
         <TabsContent value="list" className="space-y-4">
-          {/* Estadísticas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Clientes</CardTitle>
+          {/* Estadísticas - versión compacta */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
+            <Card className="border border-blue-100 shadow-sm">
+              <CardHeader className="p-2 pb-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Total Clientes</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  <Users className="mr-2 h-4 w-4 text-blue-500" />
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold flex items-center">
+                  <Users className="mr-1.5 h-3.5 w-3.5 text-blue-500" />
                   {stats.totalCustomers}
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Crédito Total</CardTitle>
+            <Card className="border border-green-100 shadow-sm">
+              <CardHeader className="p-2 pb-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Crédito Total</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  <DollarSign className="mr-2 h-4 w-4 text-green-500" />
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold flex items-center">
+                  <DollarSign className="mr-1.5 h-3.5 w-3.5 text-green-500" />
                   RD$ {stats.totalCredit.toFixed(2)}
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Crédito Promedio</CardTitle>
+            <Card className="border border-amber-100 shadow-sm">
+              <CardHeader className="p-2 pb-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Crédito Promedio</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  <CreditCard className="mr-2 h-4 w-4 text-amber-500" />
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold flex items-center">
+                  <CreditCard className="mr-1.5 h-3.5 w-3.5 text-amber-500" />
                   RD$ {stats.avgCredit.toFixed(2)}
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Provincias</CardTitle>
+            <Card className="border border-purple-100 shadow-sm">
+              <CardHeader className="p-2 pb-0">
+                <CardTitle className="text-xs font-medium text-muted-foreground">Provincias</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold flex items-center">
-                  <MapPin className="mr-2 h-4 w-4 text-purple-500" />
+              <CardContent className="p-2 pt-0">
+                <div className="text-lg font-bold flex items-center">
+                  <MapPin className="mr-1.5 h-3.5 w-3.5 text-purple-500" />
                   {stats.provinces}
                 </div>
               </CardContent>
@@ -485,18 +485,18 @@ export default function Customers() {
             </div>
 
             {isMobile ? (
-              /* Vista de tarjetas para móvil */
+              /* Vista de tarjetas para móvil - versión compacta */
               <ScrollArea className="h-[400px]">
-                <div className="space-y-3">
+                <div className="space-y-1.5">
                   {filteredCustomers.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500">
+                    <div className="text-center py-2 text-gray-500 text-xs">
                       No se encontraron clientes
                     </div>
                   ) : (
                     filteredCustomers.map((customer) => (
                       <Card 
                         key={customer.id} 
-                        className="p-3 border-l-4 border-l-blue-500"
+                        className="p-2 border-l-4 border-l-blue-500"
                         onClick={() => {
                           setSelectedCustomer(customer);
                           setSelectedProvinceId(customer.provinceid);
@@ -527,7 +527,7 @@ export default function Customers() {
                         <div className="flex justify-between items-start">
                           <div className="flex items-center gap-2">
                             {customer.logo ? (
-                              <div className="w-10 h-10 shrink-0 rounded-md overflow-hidden">
+                              <div className="w-7 h-7 shrink-0 rounded-md overflow-hidden">
                                 <img
                                   src={`data:image/jpeg;base64,${customer.logo}`}
                                   alt="Logo"
@@ -535,44 +535,44 @@ export default function Customers() {
                                 />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 shrink-0 bg-blue-50 rounded-md flex items-center justify-center">
-                                <Building2 className="h-6 w-6 text-blue-500" />
+                              <div className="w-7 h-7 shrink-0 bg-blue-50 rounded-md flex items-center justify-center">
+                                <Building2 className="h-4 w-4 text-blue-500" />
                               </div>
                             )}
                             <div>
-                              <h3 className="font-medium text-sm">{customer.businessname}</h3>
-                              <p className="text-xs text-gray-500 flex items-center">
-                                <User className="h-3 w-3 mr-1" /> {customer.managername}
+                              <h3 className="font-medium text-xs">{customer.businessname}</h3>
+                              <p className="text-[10px] text-gray-500 flex items-center">
+                                <User className="h-2.5 w-2.5 mr-1" /> {customer.managername}
                               </p>
                             </div>
                           </div>
-                          <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
                             RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
                           </Badge>
                         </div>
                         
-                        <div className="mt-2 grid grid-cols-2 gap-1 text-xs">
+                        <div className="mt-1.5 grid grid-cols-2 gap-1 text-[10px]">
                           <div className="flex items-center text-gray-500">
-                            <Phone className="h-3 w-3 mr-1" />
+                            <Phone className="h-2.5 w-2.5 mr-1" />
                             <span>{customer.phone}</span>
                           </div>
                           <div className="flex items-center text-gray-500">
-                            <MapPin className="h-3 w-3 mr-1" />
+                            <MapPin className="h-2.5 w-2.5 mr-1" />
                             <span>{customer.municipalityName || 'N/A'}</span>
                           </div>
                           {customer.rnc && (
                             <div className="flex items-center text-gray-500">
-                              <ClipboardCheck className="h-3 w-3 mr-1" />
+                              <ClipboardCheck className="h-2.5 w-2.5 mr-1" />
                               <span>{customer.rnc}</span>
                             </div>
                           )}
                         </div>
                         
-                        <div className="flex items-center justify-end mt-2 pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-end mt-1.5 pt-1.5 border-t border-gray-100">
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                            className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-0"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleViewCustomer(customer);
@@ -589,65 +589,70 @@ export default function Customers() {
                 </div>
               </ScrollArea>
             ) : (
-              /* Tabla para escritorio */
+              /* Tabla para escritorio - versión compacta */
               <div className="overflow-x-auto">
-                <Table className="min-w-full">
+                <Table className="min-w-full text-xs">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Logo</TableHead>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>RNC</TableHead>
-                      <TableHead>Encargado</TableHead>
-                      <TableHead>Teléfono</TableHead>
-                      <TableHead>Dirección</TableHead>
-                      <TableHead>Crédito</TableHead>
-                      <TableHead>Acciones</TableHead>
+                    <TableRow className="h-7">
+                      <TableHead className="h-7 py-1 px-2">Logo</TableHead>
+                      <TableHead className="h-7 py-1 px-2">Nombre</TableHead>
+                      <TableHead className="h-7 py-1 px-2">RNC</TableHead>
+                      <TableHead className="h-7 py-1 px-2">Encargado</TableHead>
+                      <TableHead className="h-7 py-1 px-2">Teléfono</TableHead>
+                      <TableHead className="h-7 py-1 px-2">Dirección</TableHead>
+                      <TableHead className="h-7 py-1 px-2">Crédito</TableHead>
+                      <TableHead className="h-7 py-1 px-2">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredCustomers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-6 text-gray-500">
+                        <TableCell colSpan={8} className="text-center py-2 text-gray-500 text-xs">
                           No se encontraron clientes
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredCustomers.map((customer) => (
-                        <TableRow key={customer.id}>
-                          <TableCell>
+                        <TableRow key={customer.id} className="h-8 hover:bg-blue-50/50 cursor-pointer"
+                          onClick={() => {
+                            handleViewCustomer(customer);
+                            setActiveTab("details");
+                          }}>
+                          <TableCell className="py-1 px-2">
                             {customer.logo ? (
                               <img
                                 src={`data:image/jpeg;base64,${customer.logo}`}
                                 alt="Logo"
-                                className="w-10 h-10 object-contain"
+                                className="w-6 h-6 object-contain"
                               />
                             ) : (
-                              <div className="w-10 h-10 bg-blue-50 rounded-md flex items-center justify-center">
-                                <Building2 className="h-6 w-6 text-blue-500" />
+                              <div className="w-6 h-6 bg-blue-50 rounded-md flex items-center justify-center">
+                                <Building2 className="h-4 w-4 text-blue-500" />
                               </div>
                             )}
                           </TableCell>
-                          <TableCell className="font-medium">{customer.businessname}</TableCell>
-                          <TableCell>{customer.rnc || '-'}</TableCell>
-                          <TableCell>{customer.managername}</TableCell>
-                          <TableCell>{customer.phone}</TableCell>
-                          <TableCell className="max-w-[250px] truncate">
-                            {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}, ${customer.provinceName || ''}`}
+                          <TableCell className="py-1 px-2 font-medium">{customer.businessname}</TableCell>
+                          <TableCell className="py-1 px-2">{customer.rnc || '-'}</TableCell>
+                          <TableCell className="py-1 px-2">{customer.managername}</TableCell>
+                          <TableCell className="py-1 px-2">{customer.phone}</TableCell>
+                          <TableCell className="py-1 px-2 max-w-[180px] truncate">
+                            {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}`}
                           </TableCell>
-                          <TableCell>
-                            <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                          <TableCell className="py-1 px-2">
+                            <Badge className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200">
                               RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-1 px-2">
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleViewCustomer(customer);
                                 setActiveTab("details");
                               }}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-0"
                             >
                               <Eye className="h-3 w-3 mr-1" />
                               Ver
