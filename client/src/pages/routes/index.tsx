@@ -1,11 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X, Edit, Eye, ArrowRight } from "lucide-react";
+import { 
+  MapPin, 
+  Calendar, 
+  PlusCircle, 
+  Truck, 
+  RefreshCw, 
+  X, 
+  Edit, 
+  Eye, 
+  ArrowRight, 
+  Search, 
+  Route, 
+  Clock, 
+  CheckCircle, 
+  FileText,
+  Map,
+  ListFilter,
+  Users,
+  AlertTriangle
+} from "lucide-react";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRoutes } from "@/hooks/use-routes";
 import { Badge } from "@/components/ui/badge";
@@ -24,9 +43,26 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 // Vista del chofer
 import DriverView from "./DriverView";
