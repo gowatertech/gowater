@@ -289,16 +289,18 @@ export default function Users() {
 
   return (
     <div className="p-4 md:p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{t("users")}</h1>
+      <div className="flex justify-between items-center mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold">{t("users")}</h1>
         <Button 
           onClick={() => {
             form.reset();
             setEditingUser(null);
             setActiveTab("form");
           }}
+          size="sm"
+          className="h-8 sm:h-10 text-xs sm:text-sm"
         >
-          <UserPlus className="h-4 w-4 mr-2" />
+          <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           {t("addUser")}
         </Button>
       </div>
@@ -309,9 +311,9 @@ export default function Users() {
           <CardContent className="p-2 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Total Usuarios</p>
-              <p className="text-lg font-bold text-blue-600">{userStats.totalUsers}</p>
+              <p className="text-sm sm:text-lg font-bold text-blue-600">{userStats.totalUsers}</p>
             </div>
-            <UsersIcon className="h-6 w-6 text-blue-400" />
+            <UsersIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
           </CardContent>
         </Card>
 
@@ -319,9 +321,9 @@ export default function Users() {
           <CardContent className="p-2 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Administradores</p>
-              <p className="text-lg font-bold text-green-600">{userStats.totalAdmins}</p>
+              <p className="text-sm sm:text-lg font-bold text-green-600">{userStats.totalAdmins}</p>
             </div>
-            <Shield className="h-6 w-6 text-green-400" />
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
           </CardContent>
         </Card>
 
@@ -329,9 +331,9 @@ export default function Users() {
           <CardContent className="p-2 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Conductores</p>
-              <p className="text-lg font-bold text-yellow-600">{userStats.totalDrivers}</p>
+              <p className="text-sm sm:text-lg font-bold text-yellow-600">{userStats.totalDrivers}</p>
             </div>
-            <Truck className="h-6 w-6 text-yellow-400" />
+            <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-400" />
           </CardContent>
         </Card>
 
@@ -339,9 +341,9 @@ export default function Users() {
           <CardContent className="p-2 flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Asistentes</p>
-              <p className="text-lg font-bold text-purple-600">{userStats.totalAssistants}</p>
+              <p className="text-sm sm:text-lg font-bold text-purple-600">{userStats.totalAssistants}</p>
             </div>
-            <HeartPulse className="h-6 w-6 text-purple-400" />
+            <HeartPulse className="h-5 w-5 sm:h-6 sm:w-6 text-purple-400" />
           </CardContent>
         </Card>
       </div>
@@ -349,25 +351,25 @@ export default function Users() {
       {/* Contenido principal con pestañas */}
       <div className="bg-card rounded-lg shadow-sm border p-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-3 h-9">
-            <TabsTrigger value="list">Listado</TabsTrigger>
-            <TabsTrigger value="form">{editingUser ? "Editar Usuario" : "Nuevo Usuario"}</TabsTrigger>
-            <TabsTrigger value="inactive">Inactivos</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3 h-8 sm:h-9">
+            <TabsTrigger value="list" className="text-xs sm:text-sm">Listado</TabsTrigger>
+            <TabsTrigger value="form" className="text-xs sm:text-sm">{editingUser ? "Editar Usuario" : "Nuevo Usuario"}</TabsTrigger>
+            <TabsTrigger value="inactive" className="text-xs sm:text-sm">Inactivos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="list" className="mt-2 p-2">
             {/* Barra de búsqueda */}
-            <div className="flex items-center mb-4 relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center mb-3 sm:mb-4 relative">
+              <Search className="absolute left-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nombre, usuario o rol..."
-                className="pl-8 w-full"
+                className="pl-7 sm:pl-8 w-full text-xs sm:text-sm h-8 sm:h-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
                 <X
-                  className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground"
+                  className="absolute right-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground cursor-pointer hover:text-foreground"
                   onClick={() => setSearchQuery("")}
                 />
               )}
@@ -377,55 +379,55 @@ export default function Users() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("name")}</TableHead>
-                      <TableHead>{t("username")}</TableHead>
-                      <TableHead>{t("role")}</TableHead>
-                      <TableHead className="hidden md:table-cell">{t("phone")}</TableHead>
-                      <TableHead className="hidden lg:table-cell">{t("license")}</TableHead>
-                      <TableHead className="text-right">{t("actions")}</TableHead>
+                    <TableRow className="text-xs">
+                      <TableHead className="py-2">{t("name")}</TableHead>
+                      <TableHead className="py-2">{t("username")}</TableHead>
+                      <TableHead className="py-2">{t("role")}</TableHead>
+                      <TableHead className="py-2 hidden md:table-cell">{t("phone")}</TableHead>
+                      <TableHead className="py-2 hidden lg:table-cell">{t("license")}</TableHead>
+                      <TableHead className="py-2 text-right">{t("actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="text-sm">
                     {filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>
+                      <TableRow key={user.id} className="h-10 sm:h-12">
+                        <TableCell className="py-1 sm:py-2">{user.name}</TableCell>
+                        <TableCell className="py-1 sm:py-2">{user.username}</TableCell>
+                        <TableCell className="py-1 sm:py-2">
                           <Badge
                             variant="outline"
-                            className={
+                            className={`text-xs px-1.5 py-0.5 ${
                               user.role === "admin" ? "bg-blue-50 text-blue-700 border-blue-200" :
                               user.role === "driver" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
                               user.role === "assistant" ? "bg-purple-50 text-purple-700 border-purple-200" :
                               "bg-green-50 text-green-700 border-green-200"
-                            }
+                            }`}
                           >
                             {t(user.role)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">{user.phone || "-"}</TableCell>
-                        <TableCell className="hidden lg:table-cell">
+                        <TableCell className="py-1 sm:py-2 hidden md:table-cell">{user.phone || "-"}</TableCell>
+                        <TableCell className="py-1 sm:py-2 hidden lg:table-cell">
                           {user.role === "driver" && user.licenseExpiry
                             ? format(new Date(user.licenseExpiry), "dd/MM/yyyy", { locale: es })
                             : "-"}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="py-1 sm:py-2 text-right">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 mr-1"
+                            className="h-6 w-6 sm:h-8 sm:w-8 mr-1"
                             onClick={() => handleEditWithTabChange(user)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive"
+                            className="h-6 w-6 sm:h-8 sm:w-8 text-destructive"
                             onClick={() => handleDelete(user.id)}
                           >
-                            <Trash className="h-4 w-4" />
+                            <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -443,9 +445,9 @@ export default function Users() {
             </ScrollArea>
           </TabsContent>
         
-          <TabsContent value="form" className="mt-2 p-4">
-            <Card className="p-4 bg-background shadow-none border-0">
-              <h2 className="text-xl font-bold pb-4">
+          <TabsContent value="form" className="mt-2 p-2 px-1 sm:p-3">
+            <Card className="p-3 sm:p-4 bg-background shadow-none border-0">
+              <h2 className="text-lg sm:text-xl font-bold pb-2 sm:pb-4 text-center sm:text-left">
                 {editingUser ? t("editUser") : t("addUser")}
               </h2>
               
@@ -453,25 +455,26 @@ export default function Users() {
                 <form onSubmit={form.handleSubmit(async (data) => {
                   await onSubmit(data);
                   handleFormSuccess();
-                })} className="space-y-6">
+                })} className="space-y-4 sm:space-y-6">
                   {/* Sección de información básica */}
-                  <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                  <div className="bg-muted/30 p-3 sm:p-4 rounded-md space-y-3">
                     <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("basicInfo")}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <FormField
                         control={form.control}
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{t("name")}</FormLabel>
+                            <FormLabel className="text-sm">{t("name")}</FormLabel>
                             <FormControl>
                               <Input 
                                 {...field} 
                                 placeholder={t("enterName")}
                                 autoComplete="name"
+                                className="text-sm sm:text-base"
                               />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-xs" />
                           </FormItem>
                         )}
                       />
@@ -480,10 +483,10 @@ export default function Users() {
                         name="role"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{t("role")}</FormLabel>
+                            <FormLabel className="text-sm">{t("role")}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="text-sm sm:text-base">
                                   <SelectValue placeholder={t("selectRole")} />
                                 </SelectTrigger>
                               </FormControl>
@@ -495,31 +498,32 @@ export default function Users() {
                                 <SelectItem value="assistant">{t("assistant")}</SelectItem>
                               </SelectContent>
                             </Select>
-                            <FormMessage />
+                            <FormMessage className="text-xs" />
                           </FormItem>
                         )}
                       />
                     </div>
                   </div>
 
-                  {/* Sección de credenciales */}
-                  <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                  {/* Sección de credenciales en 3 columnas en pantallas grandes */}
+                  <div className="bg-muted/30 p-3 sm:p-4 rounded-md space-y-3">
                     <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("credentials")}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       <FormField
                         control={form.control}
                         name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{t("username")}</FormLabel>
+                            <FormLabel className="text-sm">{t("username")}</FormLabel>
                             <FormControl>
                               <Input 
                                 {...field} 
                                 placeholder={t("enterUsername")}
                                 autoComplete="username"
+                                className="text-sm sm:text-base"
                               />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-xs" />
                           </FormItem>
                         )}
                       />
@@ -527,45 +531,47 @@ export default function Users() {
                         control={form.control}
                         name="password"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{editingUser ? t("newPassword") : t("password")}</FormLabel>
+                          <FormItem className="lg:col-span-2">
+                            <FormLabel className="text-sm">{editingUser ? t("newPassword") : t("password")}</FormLabel>
                             <FormControl>
                               <Input 
                                 type="password" 
                                 {...field}
                                 placeholder={editingUser ? t("leaveEmptyToKeep") : t("enterPassword")}
                                 autoComplete={editingUser ? "new-password" : "current-password"}
+                                className="text-sm sm:text-base"
                               />
                             </FormControl>
                             {editingUser && (
                               <p className="text-xs text-muted-foreground">{t("passwordHint")}</p>
                             )}
-                            <FormMessage />
+                            <FormMessage className="text-xs" />
                           </FormItem>
                         )}
                       />
                     </div>
                   </div>
 
-                  {/* Sección de contacto */}
-                  <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                  {/* Sección de contacto en 3 columnas en pantallas grandes */}
+                  <div className="bg-muted/30 p-3 sm:p-4 rounded-md space-y-3">
                     <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("contactInfo")}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       <FormField
                         control={form.control}
                         name="phone"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{t("phone")}</FormLabel>
+                            <FormLabel className="text-sm">{t("phone")}</FormLabel>
                             <FormControl>
                               <Input 
                                 {...field} 
                                 placeholder={t("enterPhone")}
                                 type="tel"
                                 autoComplete="tel"
+                                className="text-sm sm:text-base"
                               />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-xs" />
                           </FormItem>
                         )}
                       />
@@ -573,16 +579,17 @@ export default function Users() {
                         control={form.control}
                         name="emergencyContact"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t("emergencyContact")}</FormLabel>
+                          <FormItem className="lg:col-span-2">
+                            <FormLabel className="text-sm">{t("emergencyContact")}</FormLabel>
                             <FormControl>
                               <Input 
                                 {...field} 
                                 placeholder={t("enterEmergencyContact")}
                                 type="tel"
+                                className="text-sm sm:text-base"
                               />
                             </FormControl>
-                            <FormMessage />
+                            <FormMessage className="text-xs" />
                           </FormItem>
                         )}
                       />
@@ -591,22 +598,23 @@ export default function Users() {
 
                   {/* Sección específica para conductores */}
                   {form.watch("role") === "driver" && (
-                    <div className="bg-muted/30 p-4 rounded-md space-y-3">
+                    <div className="bg-muted/30 p-3 sm:p-4 rounded-md space-y-3">
                       <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("driverInfo")}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <FormField
                           control={form.control}
                           name="license"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>{t("license")}</FormLabel>
+                              <FormLabel className="text-sm">{t("license")}</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
                                   placeholder={t("enterLicense")}
+                                  className="text-sm sm:text-base"
                                 />
                               </FormControl>
-                              <FormMessage />
+                              <FormMessage className="text-xs" />
                             </FormItem>
                           )}
                         />
@@ -615,15 +623,16 @@ export default function Users() {
                           name="licenseExpiry"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>{t("licenseExpiry")}</FormLabel>
+                              <FormLabel className="text-sm">{t("licenseExpiry")}</FormLabel>
                               <FormControl>
                                 <Input
                                   type="date"
                                   {...field}
                                   value={field.value || ''}
+                                  className="text-sm sm:text-base"
                                 />
                               </FormControl>
-                              <FormMessage />
+                              <FormMessage className="text-xs" />
                             </FormItem>
                           )}
                         />
@@ -631,17 +640,26 @@ export default function Users() {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-end space-x-2 pt-4">
+                  <div className="flex items-center justify-end gap-2 pt-4">
                     <Button 
                       variant="outline" 
                       type="button" 
                       onClick={handleCancel}
+                      size="sm"
+                      className="h-8 text-xs sm:text-sm px-2 sm:h-9 sm:px-3"
                     >
-                      <X className="h-4 w-4 mr-2" />
+                      <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       {t("cancel")}
                     </Button>
-                    <Button type="submit">
-                      {editingUser ? <Edit className="h-4 w-4 mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+                    <Button 
+                      type="submit"
+                      size="sm"
+                      className="h-8 text-xs sm:text-sm px-2 sm:h-9 sm:px-4"
+                    >
+                      {editingUser 
+                        ? <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> 
+                        : <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      }
                       {editingUser ? t("update") : t("create")}
                     </Button>
                   </div>
