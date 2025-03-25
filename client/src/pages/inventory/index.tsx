@@ -1,12 +1,24 @@
 import { useTranslation } from "react-i18next";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Product, insertProductSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Pencil, Trash } from "lucide-react";
-import { useState } from "react";
+import { 
+  PlusCircle, 
+  Pencil, 
+  Trash, 
+  Package,
+  RotateCcw,
+  Search, 
+  X, 
+  Box, 
+  CircleDollarSign, 
+  PackageCheck, 
+  PackageX 
+} from "lucide-react";
+import { useState, useMemo } from "react";
 
 import {
   Table,
@@ -22,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -40,6 +53,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const productTypes = [
   { 
@@ -69,16 +86,66 @@ const productTypes = [
   },
 ];
 
+interface ProductStats {
+  totalProducts: number;
+  totalStock: number;
+  averagePrice: number;
+  hasStock: number;
+  outOfStock: number;
+}
+
 export default function Inventory() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<string>("list");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-  const { data: products, isLoading } = useQuery<Product[]>({
+  const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
+  
+  // Filtrar productos por término de búsqueda
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    
+    return products
+      .filter(product => 
+        searchTerm === "" || 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [products, searchTerm]);
+  
+  // Calcular estadísticas de productos
+  const productStats: ProductStats = useMemo(() => {
+    if (!products || products.length === 0) {
+      return {
+        totalProducts: 0,
+        totalStock: 0,
+        averagePrice: 0,
+        hasStock: 0,
+        outOfStock: 0
+      };
+    }
+    
+    const total = products.length;
+    const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
+    const totalPrice = products.reduce((sum, p) => sum + parseFloat(p.price.toString()), 0);
+    const hasStock = products.filter(p => p.stock > 0).length;
+    const outOfStock = products.filter(p => p.stock === 0).length;
+    
+    return {
+      totalProducts: total,
+      totalStock,
+      averagePrice: totalPrice / total,
+      hasStock,
+      outOfStock
+    };
+  }, [products]);
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
