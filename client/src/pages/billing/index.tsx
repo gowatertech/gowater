@@ -49,7 +49,9 @@ import {
   Mail,
   MapPin,
   User,
-  CreditCard
+  CreditCard,
+  Filter,
+  ListFilter
 } from "lucide-react";
 
 interface OrderItem {
@@ -77,6 +79,8 @@ export default function Billing() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("facturas");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([{
     code: "",
     description: "",
@@ -402,15 +406,46 @@ export default function Billing() {
     </Badge>
   );
 
-  return (
-    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold">Facturación</h1>
+  // Calcular totales para estadísticas
+  const totalPendientes = filteredInvoices.filter(i => i.status === "pending").length;
+  const totalPagadas = filteredInvoices.filter(i => i.status === "paid").length;
+  const totalParciales = filteredInvoices.filter(i => i.status === "partial").length;
+  const totalMonto = filteredInvoices.reduce((sum, invoice) => sum + parseFloat(invoice.total || "0"), 0);
 
-      <Tabs defaultValue="facturas" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="facturas">Facturas</TabsTrigger>
-          <TabsTrigger value="nueva">Nueva Factura</TabsTrigger>
-        </TabsList>
+  return (
+    <div className="p-3 md:p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-bold">Gestión de Facturas</h1>
+        </div>
+        <Button 
+          onClick={() => setActiveTab("nueva")}
+          className="gap-1"
+          size="lg"
+        >
+          <Plus className="h-4 w-4" /> Nueva Factura
+        </Button>
+      </div>
+
+      <div className="bg-card rounded-lg shadow-sm border p-1">
+        <Tabs 
+          defaultValue="facturas" 
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-4"
+        >
+          <TabsList className="w-full grid grid-cols-3 h-12">
+            <TabsTrigger value="facturas" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Facturas
+            </TabsTrigger>
+            <TabsTrigger value="nueva" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" /> Nuevo
+            </TabsTrigger>
+            <TabsTrigger value="detalles" className="flex items-center gap-2">
+              <Eye className="h-4 w-4" /> Detalles
+            </TabsTrigger>
+          </TabsList>
         
         {/* Pestaña de Facturas */}
         <TabsContent value="facturas">
