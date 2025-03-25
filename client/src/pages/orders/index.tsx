@@ -99,14 +99,14 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [notes, setNotes] = useState("");
-  const [orderItems, setOrderItems] = useState<OrderItem[]>(
-    Array(5).fill({
+  const [orderItems, setOrderItems] = useState<OrderItem[]>(() => 
+    Array(5).fill(0).map(() => ({
       code: "",
       description: "",
       quantity: 0,
       price: 0,
       total: 0
-    })
+    }))
   );
 
   // Consultas para obtener datos
@@ -275,13 +275,13 @@ export default function Orders() {
       });
       setSelectedCustomer(null);
       setNotes("");
-      setOrderItems(Array(5).fill({
+      setOrderItems(Array(5).fill(0).map(() => ({
         code: "",
         description: "",
         quantity: 0,
         price: 0,
         total: 0
-      }));
+      })));
       setActiveTab("list");
     },
     onError: (error: any) => {
@@ -1048,10 +1048,10 @@ export default function Orders() {
               </DialogTitle>
               {getStatusBadge(selectedOrder?.status || 'pending')}
             </div>
-            <p className="text-xs text-gray-500 flex items-center gap-1">
+            <DialogDescription className="text-xs text-gray-500 flex items-center gap-1 p-0 m-0">
               <CalendarDays className="h-3 w-3" />
               {selectedOrder && new Date(selectedOrder.date).toLocaleDateString()}
-            </p>
+            </DialogDescription>
           </DialogHeader>
 
           {selectedOrder && (
