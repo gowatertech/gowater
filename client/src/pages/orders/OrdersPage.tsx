@@ -1,0 +1,757 @@
+import { useTranslation } from "react-i18next";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { 
+  type Customer, 
+  type Product, 
+  type Order, 
+  insertOrderSchema 
+} from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+// Iconos
+import { 
+  Plus, 
+  ArrowLeft, 
+  User, 
+  Package, 
+  Eye, 
+  Clock, 
+  CheckCircle, 
+  CircleX,
+  DollarSign, 
+  FileText, 
+  ShoppingCart, 
+  Tag, 
+  AlertTriangle,
+  Search,
+  X,
+  ClipboardList,
+  Filter,
+  ListFilter,
+  Truck,
+  CalendarDays
+} from "lucide-react";
+
+// Componentes UI
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+
+interface OrderItem {
+  code: string;
+  description: string;
+  quantity: number;
+  price: number;
+  total: number;
+}
+
+export default function OrdersPage() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("list");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [notes, setNotes] = useState("");
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [orderToUpdate, setOrderToUpdate] = useState<Order | null>(null);
+  const [newStatus, setNewStatus] = useState<string>("");
+  const [orderItems, setOrderItems] = useState<OrderItem[]>(() => 
+    Array.from({ length: 5 }, () => ({
+      code: "",
+      description: "",
+      quantity: 0,
+      price: 0,
+      total: 0
+    }))
+  );
+
+  // Consultas para obtener datos
+  const { data: orders = [] } = useQuery<Order[]>({
+    queryKey: ["/api/orders"],
+  });
+
+  // Obtener clientes
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ["/api/customers"],
+  });
+
+  // Obtener productos
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
+  
+  // Manejo de cambios en productos y cantidades
+  const handleProductChange = (index: number, code: string) => {
+    const product = products?.find(p => p.id.toString() === code);
+    if (!product) return;
+
+    const newItems = [...orderItems];
+    newItems[index] = {
+      code,
+      description: product.name,
+      quantity: 1,
+      price: parseFloat(product.price.toString()),
+      total: parseFloat(product.price.toString())
+    };
+    setOrderItems(newItems);
+  };
+
+  const handleQuantityChange = (index: number, quantity: number) => {
+    const newItems = [...orderItems];
+    const item = newItems[index];
+    item.quantity = quantity;
+    item.total = item.price * quantity;
+    setOrderItems(newItems);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
+    const tax = subtotal * 0.18; // 18% ITBIS
+    return { subtotal, tax, total: subtotal + tax };
+  };
+
+  // Filtrar órdenes según criterios de búsqueda
+  const filteredOrders = orders.filter(order => {
+    // Filtrar por término de búsqueda
+    const customer = customers?.find(c => c.id === order.customerId);
+    const searchMatch = 
+      customer?.businessname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.id.toString().includes(searchTerm) ||
+      order.total.toString().includes(searchTerm);
+    
+    // Filtrar por estado
+    const statusMatch = statusFilter === "all" || order.status === statusFilter;
+    
+    return searchMatch && statusMatch;
+  });
+
+  // Obtener estadísticas de pedidos
+  const getOrderStats = () => {
+    const pending = orders.filter(o => o.status === "pending").length;
+    const delivered = orders.filter(o => o.status === "delivered").length;
+    const cancelled = orders.filter(o => o.status === "cancelled").length;
+    const total = orders.length;
+
+    const totalAmount = orders.reduce((sum, order) => sum + parseFloat(order.total.toString()), 0);
+
+    return {
+      pending,
+      delivered,
+      cancelled,
+      total,
+      totalAmount
+    };
+  };
+
+  const stats = getOrderStats();
+
+  // Mutación para actualizar el estado del pedido
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number, status: string }) => {
+      const response = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar el estado del pedido');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setIsStatusDialogOpen(false);
+      
+      const statusText = newStatus === "delivered" 
+        ? "entregado" 
+        : newStatus === "cancelled" 
+          ? "cancelado" 
+          : "pendiente";
+          
+      toast({
+        title: "Estado actualizado",
+        description: `El pedido ahora está ${statusText}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+
+  const handleUpdateStatus = () => {
+    if (!orderToUpdate || !newStatus) return;
+    
+    updateStatusMutation.mutate({
+      orderId: orderToUpdate.id,
+      status: newStatus
+    });
+  };
+
+  const openStatusDialog = (order: Order) => {
+    setOrderToUpdate(order);
+    setNewStatus(order.status);
+    setIsStatusDialogOpen(true);
+  };
+
+  // Función para renderizar el estado con color apropiado
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return <Badge className="bg-green-100 text-green-800 border-green-300 hover:bg-green-200 flex items-center gap-1">
+          <CheckCircle className="h-3 w-3" /> Entregado
+        </Badge>;
+      case "pending":
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 flex items-center gap-1">
+          <Clock className="h-3 w-3" /> Pendiente
+        </Badge>;
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200 flex items-center gap-1">
+          <CircleX className="h-3 w-3" /> Cancelado
+        </Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200 flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" /> Desconocido
+        </Badge>;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return "border-l-green-500";
+      case "pending":
+        return "border-l-yellow-500";
+      case "cancelled":
+        return "border-l-red-500";
+      default:
+        return "border-l-gray-500";
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case "pending":
+        return <Clock className="h-4 w-4 text-yellow-600" />;
+      case "cancelled":
+        return <CircleX className="h-4 w-4 text-red-600" />;
+      default:
+        return <AlertTriangle className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  return (
+    <div className={`${isMobile ? 'p-1' : 'p-2'} max-w-6xl mx-auto`}>
+      {/* Cabecera */}
+      <div className="flex justify-between items-center mb-2">
+        <h1 className={`${isMobile ? 'text-base' : 'text-lg'} font-bold flex items-center`}>
+          <ShoppingCart className="h-4 w-4 mr-1.5 text-blue-600" />
+          Gestión de Pedidos
+        </h1>
+        {!isMobile && (
+          <Button 
+            size="sm"
+            onClick={() => setActiveTab("new")} 
+            className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Nuevo Pedido
+          </Button>
+        )}
+      </div>
+
+      {/* Tabs de navegación */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-2 h-8`}>
+          <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2">
+            <ClipboardList className="h-3.5 w-3.5" />
+            <span>Pedidos</span>
+          </TabsTrigger>
+          <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2">
+            <Plus className="h-3.5 w-3.5" />
+            <span>Nuevo</span>
+          </TabsTrigger>
+          {!isMobile && (
+            <TabsTrigger value="details" disabled={!selectedOrder} className="flex items-center gap-1 text-xs px-2">
+              <FileText className="h-3.5 w-3.5" />
+              <span>Detalles</span>
+            </TabsTrigger>
+          )}
+        </TabsList>
+
+        {/* Contenido del Tab de Lista de Pedidos */}
+        <TabsContent value="list" className="space-y-2">
+          <Card className="p-2">
+            {/* Buscador y filtros en una fila */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                <Input 
+                  placeholder="Buscar por cliente, pedido..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-7 h-7 text-xs"
+                />
+                {searchTerm && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+
+              <Select 
+                value={statusFilter} 
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="h-7 w-[140px] flex items-center text-xs">
+                  <ListFilter className="h-3 w-3 mr-1" />
+                  <span>Estado</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">Todos los estados</SelectItem>
+                  <SelectItem value="pending" className="text-xs">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-yellow-600" />
+                      <span>Pendientes</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="delivered" className="text-xs">
+                    <div className="flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <span>Entregados</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="cancelled" className="text-xs">
+                    <div className="flex items-center gap-1">
+                      <CircleX className="h-3 w-3 text-red-600" />
+                      <span>Cancelados</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Indicadores clave de pedidos */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+              <Card className="p-2 flex flex-col">
+                <p className="text-xs text-gray-500">Total Pedidos</p>
+                <p className="text-lg font-bold">{stats.total}</p>
+              </Card>
+              <Card className="p-2 flex flex-col">
+                <p className="text-xs text-gray-500">Pendientes</p>
+                <p className="text-lg font-bold text-yellow-600">{stats.pending}</p>
+              </Card>
+              <Card className="p-2 flex flex-col">
+                <p className="text-xs text-gray-500">Entregados</p>
+                <p className="text-lg font-bold text-green-600">{stats.delivered}</p>
+              </Card>
+              <Card className="p-2 flex flex-col">
+                <p className="text-xs text-gray-500">Cancelados</p>
+                <p className="text-lg font-bold text-red-600">{stats.cancelled}</p>
+              </Card>
+              <Card className="p-2 flex flex-col">
+                <p className="text-xs text-gray-500">Ingresos</p>
+                <p className="text-lg font-bold text-blue-600">
+                  ${stats.totalAmount.toFixed(2)}
+                </p>
+              </Card>
+            </div>
+
+            {/* Listado de pedidos */}
+            <div className="border rounded-md">
+              {filteredOrders.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60px]">ID</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="hidden md:table-cell">Fecha</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead className="w-[100px]">Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredOrders.map((order) => {
+                      const customer = customers?.find(c => c.id === order.customerId);
+                      return (
+                        <TableRow key={order.id} className={`border-l-4 ${getStatusColor(order.status)}`}>
+                          <TableCell className="font-medium">#{order.id}</TableCell>
+                          <TableCell className="max-w-[150px] truncate">
+                            {customer?.businessname || "Cliente"}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {new Date(order.date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>${parseFloat(order.total.toString()).toFixed(2)}</TableCell>
+                          <TableCell>{getStatusBadge(order.status)}</TableCell>
+                          <TableCell className="text-right space-x-1">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 w-7 p-0" 
+                              onClick={() => openStatusDialog(order)}
+                            >
+                              <Tag className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-7 w-7 p-0" 
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setIsDetailsDialogOpen(true);
+                                if (!isMobile) {
+                                  setActiveTab("details");
+                                }
+                              }}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="text-sm text-gray-500">No hay pedidos que coincidan con los criterios de búsqueda</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* Tab para crear nuevo pedido */}
+        <TabsContent value="new" className="space-y-2">
+          <Card className="p-3">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="text-base flex items-center gap-1">
+                <Plus className="h-4 w-4 text-blue-600" />
+                Crear Nuevo Pedido
+              </CardTitle>
+              <CardDescription>Complete los datos para crear un nuevo pedido</CardDescription>
+            </CardHeader>
+            
+            <CardContent className="px-0 pb-0">
+              {/* Selector de cliente */}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                  <User className="h-3.5 w-3.5 text-blue-600" />
+                  Seleccionar Cliente
+                </h3>
+                <Select
+                  onValueChange={(value) => {
+                    const customer = customers?.find(c => c.id.toString() === value);
+                    setSelectedCustomer(customer || null);
+                  }}
+                  value={selectedCustomer?.id.toString()}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers?.map((customer) => (
+                      <SelectItem 
+                        key={customer.id} 
+                        value={customer.id.toString()}
+                        className="flex justify-between items-center"
+                      >
+                        <div>
+                          <span>{customer.businessname}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                {selectedCustomer && (
+                  <div className="mt-2 p-2 border rounded-md bg-gray-50">
+                    <p className="text-xs">
+                      <span className="font-medium">Teléfono:</span> {selectedCustomer.phone}
+                    </p>
+                    <p className="text-xs">
+                      <span className="font-medium">Dirección:</span> {selectedCustomer.street} {selectedCustomer.streetnumber}
+                    </p>
+                    <p className="text-xs">
+                      <span className="font-medium">Crédito:</span> ${parseFloat(selectedCustomer.creditlimit.toString()).toFixed(2)}
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Listado de productos */}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1">
+                  <Package className="h-3.5 w-3.5 text-blue-600" />
+                  Seleccionar Productos
+                </h3>
+                
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[200px]">Producto</TableHead>
+                        <TableHead className="w-[80px]">Cantidad</TableHead>
+                        <TableHead>Precio</TableHead>
+                        <TableHead>Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orderItems.map((item, index) => (
+                        <TableRow key={`item-${index}`}>
+                          <TableCell>
+                            <Select
+                              value={item.code || undefined}
+                              onValueChange={(value) => handleProductChange(index, value)}
+                            >
+                              <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Seleccionar producto" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products?.map((product) => (
+                                  <SelectItem 
+                                    key={product.id} 
+                                    value={product.id.toString()}
+                                  >
+                                    {product.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Input 
+                              type="number"
+                              min="0"
+                              value={item.quantity}
+                              onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                              className="w-full h-8"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            ${item.price.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            ${item.total.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                
+                {/* Resumen de totales */}
+                <div className="mt-3 flex justify-end">
+                  <div className="w-[300px] space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Subtotal:</span>
+                      <span className="text-sm">${calculateTotal().subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">ITBIS (18%):</span>
+                      <span className="text-sm">${calculateTotal().tax.toFixed(2)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-bold">
+                      <span>Total:</span>
+                      <span>${calculateTotal().total.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Notas */}
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold mb-2">Notas adicionales</h3>
+                <Textarea 
+                  placeholder="Ingrese notas o instrucciones especiales para este pedido"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+            
+            <CardFooter className="flex justify-between px-0">
+              <Button 
+                variant="outline" 
+                className="text-xs h-8"
+                onClick={() => setActiveTab("list")}
+              >
+                <ArrowLeft className="h-3.5 w-3.5 mr-1" />
+                Volver a la lista
+              </Button>
+              <Button 
+                className="text-xs h-8 bg-blue-600 hover:bg-blue-700"
+                onClick={handleCreateOrder}
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? (
+                  <span>Procesando...</span>
+                ) : (
+                  <>
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Crear Pedido
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Diálogo para cambiar estado del pedido */}
+      <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-1">
+              <Tag className="h-4 w-4 text-blue-600" />
+              Cambiar Estado del Pedido
+            </DialogTitle>
+            <DialogDescription>
+              {orderToUpdate && (
+                <span className="text-xs">
+                  Pedido #{orderToUpdate.id} - Cliente: {customers?.find(c => c.id === orderToUpdate.customerId)?.businessname}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-4">
+            <Select value={newStatus} onValueChange={setNewStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4 text-yellow-600" />
+                    <span>Pendiente</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="delivered">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <span>Entregado</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="cancelled">
+                  <div className="flex items-center gap-1">
+                    <CircleX className="h-4 w-4 text-red-600" />
+                    <span>Cancelado</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div className="grid grid-cols-3 gap-3 pt-3">
+              <Button
+                variant={newStatus === "pending" ? "default" : "outline"}
+                className={newStatus === "pending" ? "bg-yellow-600 hover:bg-yellow-700" : ""}
+                onClick={() => setNewStatus("pending")}
+              >
+                <div className="flex flex-col items-center w-full">
+                  <Clock className="h-8 w-8 mb-1 text-yellow-600" />
+                  <span className="text-xs">Pendiente</span>
+                </div>
+              </Button>
+              <Button 
+                variant={newStatus === "delivered" ? "default" : "outline"}
+                className={newStatus === "delivered" ? "bg-green-600 hover:bg-green-700" : ""}
+                onClick={() => setNewStatus("delivered")}
+              >
+                <div className="flex flex-col items-center w-full">
+                  <CheckCircle className="h-8 w-8 mb-1 text-green-600" />
+                  <span className="text-xs">Entregado</span>
+                </div>
+              </Button>
+              <Button 
+                variant={newStatus === "cancelled" ? "default" : "outline"}
+                className={newStatus === "cancelled" ? "bg-red-600 hover:bg-red-700" : ""}
+                onClick={() => setNewStatus("cancelled")}
+              >
+                <div className="flex flex-col items-center w-full">
+                  <CircleX className="h-8 w-8 mb-1 text-red-600" />
+                  <span className="text-xs">Cancelado</span>
+                </div>
+              </Button>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsStatusDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              size="sm"
+              onClick={handleUpdateStatus}
+              disabled={updateStatusMutation.isPending || !newStatus}
+            >
+              {updateStatusMutation.isPending ? "Actualizando..." : "Actualizar Estado"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
