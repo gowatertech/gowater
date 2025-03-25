@@ -512,7 +512,13 @@ export default function Customers() {
                     filteredCustomers.map((customer) => (
                       <Card 
                         key={customer.id} 
-                        className={`p-2 border-l-4 ${customer.zoneid === 1 ? 'border-l-blue-500' : customer.zoneid === 2 ? 'border-l-red-500' : customer.zoneid === 3 ? 'border-l-green-500' : 'border-l-gray-500'}`}
+                        className="border-l-4 shadow-sm"
+                        style={{ 
+                          borderLeftColor: customer.zoneid === 1 ? '#3b82f6' : 
+                                          customer.zoneid === 2 ? '#ef4444' : 
+                                          customer.zoneid === 3 ? '#22c55e' : 
+                                          '#6b7280' 
+                        }}
                         onClick={() => {
                           setSelectedCustomer(customer);
                           setSelectedProvinceId(customer.provinceid);
@@ -540,86 +546,27 @@ export default function Customers() {
                           form.reset(formData);
                         }}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-center gap-2">
-                            {customer.logo ? (
-                              <div className="w-7 h-7 shrink-0 rounded-md overflow-hidden">
-                                <img
-                                  src={`data:image/jpeg;base64,${customer.logo}`}
-                                  alt="Logo"
-                                  className="w-full h-full object-contain"
-                                />
-                              </div>
+                        <CardContent className="p-2 flex justify-between items-center">
+                          <div>
+                            <p className="text-xs text-muted-foreground">{customer.businessname}</p>
+                            <p className="text-base font-bold">{customer.managername}</p>
+                            <div className="flex items-center text-xs text-muted-foreground mt-1">
+                              <Phone className="h-3 w-3 mr-1" /> 
+                              {customer.phone}
+                            </div>
+                          </div>
+                          <div>
+                            {customer.zoneid === 1 ? (
+                              <Building2 className="h-5 w-5 text-blue-500" />
+                            ) : customer.zoneid === 2 ? (
+                              <Building2 className="h-5 w-5 text-red-500" />
+                            ) : customer.zoneid === 3 ? (
+                              <Building2 className="h-5 w-5 text-green-500" />
                             ) : (
-                              <div className="w-7 h-7 shrink-0 bg-blue-50 rounded-md flex items-center justify-center">
-                                <Building2 className="h-4 w-4 text-blue-500" />
-                              </div>
-                            )}
-                            <div>
-                              <h3 className="font-medium text-xs">{customer.businessname}</h3>
-                              <p className="text-[10px] text-gray-500 flex items-center">
-                                <User className="h-2.5 w-2.5 mr-1" /> {customer.managername}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-1">
-                            <Badge 
-                              className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500"
-                              title="Límite de crédito"
-                            >
-                              RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                            </Badge>
-                            {customer.zoneid && (
-                              <Badge 
-                                className={`px-1.5 py-0 h-5 text-[10px] ${
-                                  customer.zoneid === 1
-                                    ? 'bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500'
-                                    : customer.zoneid === 2
-                                    ? 'bg-red-50 text-red-700 border-red-200 border-l-4 border-l-red-500'
-                                    : customer.zoneid === 3
-                                    ? 'bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500'
-                                    : 'bg-gray-50 text-gray-700 border-gray-200 border-l-4 border-l-gray-500'
-                                }`}
-                                title="Zona asignada"
-                              >
-                                Zona {customer.zoneid}
-                              </Badge>
+                              <Building2 className="h-5 w-5 text-gray-500" />
                             )}
                           </div>
-                        </div>
-                        
-                        <div className="mt-1.5 grid grid-cols-2 gap-1 text-[10px]">
-                          <div className="flex items-center text-gray-500">
-                            <Phone className="h-2.5 w-2.5 mr-1" />
-                            <span>{customer.phone}</span>
-                          </div>
-                          <div className="flex items-center text-gray-500">
-                            <MapPin className="h-2.5 w-2.5 mr-1" />
-                            <span>{customer.municipalityName || 'N/A'}</span>
-                          </div>
-                          {customer.rnc && (
-                            <div className="flex items-center text-gray-500">
-                              <ClipboardCheck className="h-2.5 w-2.5 mr-1" />
-                              <span>{customer.rnc}</span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center justify-end mt-1.5 pt-1.5 border-t border-gray-100">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewCustomer(customer);
-                              setActiveTab("details");
-                            }}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Ver Detalles
-                          </Button>
-                        </div>
+                        </CardContent>
                       </Card>
                     ))
                   )}
