@@ -432,61 +432,61 @@ export default function Billing() {
 
   // Renderizado del componente
   return (
-    <div className="p-3 md:p-6 space-y-4">
+    <div className="p-2 md:p-4 space-y-2">
       {/* Cabecera con título e icono */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileText className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl md:text-3xl font-bold">Gestión de Facturas</h1>
+        <div className="flex items-center gap-1">
+          <FileText className="h-5 w-5 text-primary" />
+          <h1 className="text-lg md:text-xl font-bold">Gestión de Facturas</h1>
         </div>
         <Button 
           onClick={() => setActiveTab("new")}
           className="gap-1"
-          size="lg"
+          size="sm"
         >
-          <Plus className="h-4 w-4" /> Nueva Factura
+          <Plus className="h-3 w-3" /> Nueva Factura
         </Button>
       </div>
 
       {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <Card className="bg-blue-50 border-blue-100">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Total Facturas</p>
-              <p className="text-3xl font-bold text-blue-600">{filteredInvoices.length}</p>
+          <CardContent className="p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Facturas</p>
+              <p className="text-lg font-bold text-blue-600">{filteredInvoices.length}</p>
             </div>
-            <FileText className="h-10 w-10 text-blue-400" />
+            <FileText className="h-6 w-6 text-blue-400" />
           </CardContent>
         </Card>
 
         <Card className="bg-yellow-50 border-yellow-100">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Pendientes</p>
-              <p className="text-3xl font-bold text-yellow-600">{totalPendientes}</p>
+          <CardContent className="p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Pendientes</p>
+              <p className="text-lg font-bold text-yellow-600">{totalPendientes}</p>
             </div>
-            <Clock className="h-10 w-10 text-yellow-400" />
+            <Clock className="h-6 w-6 text-yellow-400" />
           </CardContent>
         </Card>
 
         <Card className="bg-green-50 border-green-100">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Pagadas</p>
-              <p className="text-3xl font-bold text-green-600">{totalPagadas}</p>
+          <CardContent className="p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Pagadas</p>
+              <p className="text-lg font-bold text-green-600">{totalPagadas}</p>
             </div>
-            <CheckCircle className="h-10 w-10 text-green-400" />
+            <CheckCircle className="h-6 w-6 text-green-400" />
           </CardContent>
         </Card>
 
         <Card className="bg-purple-50 border-purple-100">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Valor Total</p>
-              <p className="text-3xl font-bold text-purple-600">RD$ {totalMonto.toFixed(2)}</p>
+          <CardContent className="p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Valor Total</p>
+              <p className="text-lg font-bold text-purple-600">RD$ {totalMonto.toFixed(2)}</p>
             </div>
-            <DollarSign className="h-10 w-10 text-purple-400" />
+            <DollarSign className="h-6 w-6 text-purple-400" />
           </CardContent>
         </Card>
       </div>
@@ -497,29 +497,29 @@ export default function Billing() {
           defaultValue="list" 
           value={activeTab}
           onValueChange={setActiveTab}
-          className="space-y-4"
+          className="space-y-2"
         >
-          <TabsList className="w-full grid grid-cols-3 h-12">
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Facturas
+          <TabsList className="w-full grid grid-cols-3 h-9">
+            <TabsTrigger value="list" className="flex items-center gap-1 text-xs">
+              <FileText className="h-3 w-3" /> Facturas
             </TabsTrigger>
-            <TabsTrigger value="new" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Nuevo
+            <TabsTrigger value="new" className="flex items-center gap-1 text-xs">
+              <Plus className="h-3 w-3" /> Nuevo
             </TabsTrigger>
-            <TabsTrigger value="details" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" /> Detalles
+            <TabsTrigger value="details" className="flex items-center gap-1 text-xs">
+              <Eye className="h-3 w-3" /> Detalles
             </TabsTrigger>
           </TabsList>
 
           {/* Pestaña de Listado de Facturas */}
-          <TabsContent value="list" className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-3 justify-between">
+          <TabsContent value="list" className="space-y-2">
+            <div className="flex flex-col md:flex-row gap-2 justify-between">
               <div className="relative flex-1 md:max-w-md">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   type="search"
                   placeholder="Buscar factura por cliente..."
-                  className="pl-8"
+                  className="pl-7 h-8 text-xs"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -529,16 +529,16 @@ export default function Billing() {
                   value={statusFilter}
                   onValueChange={setStatusFilter}
                 >
-                  <SelectTrigger className="w-[160px] flex gap-2">
-                    <ListFilter className="h-4 w-4" />
+                  <SelectTrigger className="w-[140px] h-8 text-xs flex gap-1">
+                    <ListFilter className="h-3.5 w-3.5" />
                     <SelectValue placeholder="Filtrar por estado" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value="pending">Pendientes</SelectItem>
-                    <SelectItem value="paid">Pagadas</SelectItem>
-                    <SelectItem value="partial">Parciales</SelectItem>
-                    <SelectItem value="cancelled">Canceladas</SelectItem>
+                    <SelectItem value="all" className="text-xs">Todos los estados</SelectItem>
+                    <SelectItem value="pending" className="text-xs">Pendientes</SelectItem>
+                    <SelectItem value="paid" className="text-xs">Pagadas</SelectItem>
+                    <SelectItem value="partial" className="text-xs">Parciales</SelectItem>
+                    <SelectItem value="cancelled" className="text-xs">Canceladas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -546,23 +546,23 @@ export default function Billing() {
 
             <div className="rounded-md border">
               <div className="relative">
-                <div className="flex items-center py-3 px-4 font-medium text-sm">
-                  <FileText className="mr-2 h-5 w-5 text-primary" />
+                <div className="flex items-center py-2 px-3 font-medium text-xs">
+                  <FileText className="mr-1 h-3.5 w-3.5 text-primary" />
                   <span>Lista de Facturas</span>
-                  <Badge variant="outline" className="ml-auto">
+                  <Badge variant="outline" className="ml-auto text-xs py-0 px-1.5">
                     {filteredInvoices.length} facturas
                   </Badge>
                 </div>
-                <ScrollArea className="h-[50vh]">
+                <ScrollArea className="h-[45vh]">
                   <Table>
                     <TableHeader className="bg-muted/50">
                       <TableRow>
-                        <TableHead className="w-[250px]">Cliente</TableHead>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Factura No.</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
+                        <TableHead className="py-1.5 text-xs">Cliente</TableHead>
+                        <TableHead className="py-1.5 text-xs">Fecha</TableHead>
+                        <TableHead className="py-1.5 text-xs">Factura No.</TableHead>
+                        <TableHead className="py-1.5 text-xs">Estado</TableHead>
+                        <TableHead className="py-1.5 text-xs text-right">Total</TableHead>
+                        <TableHead className="py-1.5 text-xs text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
