@@ -593,11 +593,21 @@ export default function Routes() {
                         <Card key={route.id} className="overflow-hidden hover:bg-accent/5 transition-colors">
                           <div className="flex items-center p-2">
                             <div className="flex-1">
-                              <div className="flex items-center gap-1">
-                                <Truck className="h-4 w-4 text-blue-500" />
-                                <span className="text-sm font-medium">
-                                  {route.name || `Ruta #${route.id}`}
-                                </span>
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <div className="flex items-center gap-1">
+                                  <Truck className="h-4 w-4 text-blue-500" />
+                                  <span className="text-xs md:text-sm font-medium truncate max-w-[120px]">
+                                    {route.name || `Ruta #${route.id}`}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center text-[10px] text-muted-foreground">
+                                  <Calendar className="h-3 w-3 mx-1" />
+                                  <span>
+                                    {format(new Date(route.date), "dd/MM/yyyy")}
+                                  </span>
+                                </div>
+                                
                                 <Badge
                                   variant={
                                     route.driverStartedAt ? "secondary" : "outline"
@@ -611,12 +621,6 @@ export default function Routes() {
                               </div>
                               
                               <div className="flex flex-wrap gap-2 mt-1 text-[11px]">
-                                <div className="flex items-center text-muted-foreground">
-                                  <Calendar className="h-3 w-3 mr-1" />
-                                  <span>
-                                    {format(new Date(route.date), "dd/MM/yyyy")}
-                                  </span>
-                                </div>
                                 <div className="flex items-center text-muted-foreground">
                                   <MapPin className="h-3 w-3 mr-1" />
                                   <span>
