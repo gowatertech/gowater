@@ -721,23 +721,23 @@ export default function Orders() {
                   <ScrollArea className="h-[200px] sm:h-[240px]">
                     <Table>
                       <TableHeader>
-                        <TableRow className="h-7">
-                          <TableHead className="w-20 text-xs sticky top-0 bg-background py-1.5">Código</TableHead>
-                          <TableHead className="text-xs sticky top-0 bg-background py-1.5">Descripción</TableHead>
-                          <TableHead className="w-16 text-right text-xs sticky top-0 bg-background py-1.5">Cant.</TableHead>
-                          <TableHead className="w-24 text-right text-xs sticky top-0 bg-background py-1.5">Precio</TableHead>
-                          <TableHead className="w-24 text-right text-xs sticky top-0 bg-background py-1.5">Total</TableHead>
+                        <TableRow className="h-8">
+                          <TableHead className="w-[22%] text-xs sticky top-0 bg-background py-1.5">Código</TableHead>
+                          <TableHead className="w-[30%] text-xs sticky top-0 bg-background py-1.5">Descripción</TableHead>
+                          <TableHead className="w-[13%] text-right text-xs sticky top-0 bg-background py-1.5">Cant.</TableHead>
+                          <TableHead className="w-[17%] text-right text-xs sticky top-0 bg-background py-1.5">Precio</TableHead>
+                          <TableHead className="w-[18%] text-right text-xs sticky top-0 bg-background py-1.5">Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {orderItems.map((item, index) => (
-                          <TableRow key={index} className="h-7">
+                          <TableRow key={index} className="h-8">
                             <TableCell className="p-0.5">
                               <Select
                                 value={item.code}
                                 onValueChange={(value) => handleProductChange(index, value)}
                               >
-                                <SelectTrigger className="h-7 text-xs">
+                                <SelectTrigger className="h-7 text-xs px-2">
                                   <SelectValue placeholder="---" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -760,7 +760,7 @@ export default function Orders() {
                               <Input
                                 value={item.description}
                                 readOnly
-                                className="bg-muted h-7 text-xs"
+                                className="bg-muted h-7 text-xs px-2"
                               />
                             </TableCell>
                             <TableCell className="p-0.5">
@@ -769,21 +769,21 @@ export default function Orders() {
                                 min="0"
                                 value={item.quantity}
                                 onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                                className="text-right h-7 text-xs"
+                                className="text-right h-7 text-xs px-2"
                               />
                             </TableCell>
                             <TableCell className="p-0.5">
                               <Input
                                 value={item.price ? `RD$ ${item.price.toFixed(2)}` : ""}
                                 readOnly
-                                className="text-right bg-muted h-7 text-xs"
+                                className="text-right bg-muted h-7 text-xs px-2"
                               />
                             </TableCell>
                             <TableCell className="p-0.5">
                               <Input
                                 value={item.total ? `RD$ ${item.total.toFixed(2)}` : ""}
                                 readOnly
-                                className="text-right bg-muted h-7 text-xs"
+                                className="text-right bg-muted h-7 text-xs px-2 font-medium"
                               />
                             </TableCell>
                           </TableRow>
@@ -950,11 +950,11 @@ export default function Orders() {
                     <ScrollArea className="h-[180px] sm:h-[240px]">
                       <Table>
                         <TableHeader>
-                          <TableRow className="h-7">
-                            <TableHead className="py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
-                            <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
-                            <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Precio Unit.</TableHead>
-                            <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
+                          <TableRow className="h-8">
+                            <TableHead className="w-[40%] py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
+                            <TableHead className="w-[15%] py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
+                            <TableHead className="w-[22%] py-1.5 text-xs text-right sticky top-0 bg-background">Precio</TableHead>
+                            <TableHead className="w-[23%] py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -974,11 +974,11 @@ export default function Orders() {
                             orderDetails.map((item: any) => {
                               const product = products?.find(p => p.id === item.productId);
                               return (
-                                <TableRow key={item.id} className="h-7">
-                                  <TableCell className="py-1 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
-                                  <TableCell className="py-1 text-xs text-right">{item.quantity}</TableCell>
-                                  <TableCell className="py-1 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
-                                  <TableCell className="py-1 text-xs text-right">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
+                                <TableRow key={item.id} className="h-8">
+                                  <TableCell className="py-1 px-2 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
+                                  <TableCell className="py-1 px-2 text-xs text-right">{item.quantity}</TableCell>
+                                  <TableCell className="py-1 px-2 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
+                                  <TableCell className="py-1 px-2 text-xs text-right font-medium">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
                                 </TableRow>
                               );
                             })
@@ -1095,11 +1095,11 @@ export default function Orders() {
                   <ScrollArea className="h-[200px]">
                     <Table>
                       <TableHeader>
-                        <TableRow className="h-7">
-                          <TableHead className="py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
-                          <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
-                          <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Precio</TableHead>
-                          <TableHead className="py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
+                        <TableRow className="h-8">
+                          <TableHead className="w-[40%] py-1.5 text-xs sticky top-0 bg-background">Producto</TableHead>
+                          <TableHead className="w-[15%] py-1.5 text-xs text-right sticky top-0 bg-background">Cant.</TableHead>
+                          <TableHead className="w-[22%] py-1.5 text-xs text-right sticky top-0 bg-background">Precio</TableHead>
+                          <TableHead className="w-[23%] py-1.5 text-xs text-right sticky top-0 bg-background">Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1119,11 +1119,11 @@ export default function Orders() {
                           orderDetails.map((item: any) => {
                             const product = products?.find(p => p.id === item.productId);
                             return (
-                              <TableRow key={item.id} className="h-7">
-                                <TableCell className="py-1 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
-                                <TableCell className="py-1 text-xs text-right">{item.quantity}</TableCell>
-                                <TableCell className="py-1 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
-                                <TableCell className="py-1 text-xs text-right">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
+                              <TableRow key={item.id} className="h-8">
+                                <TableCell className="py-1 px-2 text-xs">{product?.name || `Producto #${item.productId}`}</TableCell>
+                                <TableCell className="py-1 px-2 text-xs text-right">{item.quantity}</TableCell>
+                                <TableCell className="py-1 px-2 text-xs text-right">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
+                                <TableCell className="py-1 px-2 text-xs text-right font-medium">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
                               </TableRow>
                             );
                           })
