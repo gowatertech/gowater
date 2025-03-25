@@ -454,34 +454,34 @@ export default function Customers() {
             </Card>
           </div>
 
-          <Card className="p-4">
+          <Card className="p-2">
             {/* Buscador */}
-            <div className="relative mb-4">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
               <Input 
                 placeholder="Buscar por nombre, encargado, RNC o teléfono..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
+                className="pl-7 h-7 text-xs"
               />
               {searchTerm && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
                   onClick={() => setSearchTerm('')}
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-2.5 w-2.5" />
                 </Button>
               )}
             </div>
 
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-blue-600" />
-                <h2 className="font-semibold">Directorio de Clientes</h2>
+              <div className="flex items-center gap-1.5">
+                <Building2 className="h-4 w-4 text-blue-600" />
+                <h2 className="font-semibold text-sm">Directorio de Clientes</h2>
               </div>
-              <Badge variant="outline">{filteredCustomers.length} clientes</Badge>
+              <Badge variant="outline" className="text-xs py-0 h-5">{filteredCustomers.length} clientes</Badge>
             </div>
 
             {isMobile ? (
