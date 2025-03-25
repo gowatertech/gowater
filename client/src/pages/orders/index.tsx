@@ -77,6 +77,7 @@ import {
   Filter,
   ListFilter,
   Tag,
+  ArrowLeft,
 } from "lucide-react";
 
 interface OrderItem {
@@ -369,19 +370,20 @@ export default function Orders() {
   };
 
   return (
-    <div className={`${isMobile ? 'p-2' : 'p-4'} max-w-6xl mx-auto`}>
+    <div className={`${isMobile ? 'p-1' : 'p-2'} max-w-6xl mx-auto`}>
       {/* Cabecera */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold flex items-center">
-          <ShoppingCart className="h-6 w-6 mr-2 text-blue-600" />
+      <div className="flex justify-between items-center mb-2">
+        <h1 className={`${isMobile ? 'text-base' : 'text-lg'} font-bold flex items-center`}>
+          <ShoppingCart className="h-4 w-4 mr-1.5 text-blue-600" />
           Gestión de Pedidos
         </h1>
         {!isMobile && (
           <Button 
+            size="sm"
             onClick={() => setActiveTab("new")} 
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
           >
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-3.5 w-3.5 mr-1" />
             Nuevo Pedido
           </Button>
         )}
@@ -389,74 +391,73 @@ export default function Orders() {
 
       {/* Tabs de navegación */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-4`}>
-          <TabsTrigger value="list" className="flex items-center gap-1">
-            <ClipboardList className="h-4 w-4" />
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-2 h-8`}>
+          <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2">
+            <ClipboardList className="h-3.5 w-3.5" />
             <span>Pedidos</span>
           </TabsTrigger>
-          <TabsTrigger value="new" className="flex items-center gap-1">
-            <Plus className="h-4 w-4" />
+          <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2">
+            <Plus className="h-3.5 w-3.5" />
             <span>Nuevo</span>
           </TabsTrigger>
           {!isMobile && (
-            <TabsTrigger value="details" disabled={!selectedOrder} className="flex items-center gap-1">
-              <FileText className="h-4 w-4" />
+            <TabsTrigger value="details" disabled={!selectedOrder} className="flex items-center gap-1 text-xs px-2">
+              <FileText className="h-3.5 w-3.5" />
               <span>Detalles</span>
             </TabsTrigger>
           )}
         </TabsList>
 
         {/* Contenido del Tab de Lista de Pedidos */}
-        <TabsContent value="list" className="space-y-4">
-          <Card className="p-4">
-            {/* Buscador */}
-            <div className="relative mb-4">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input 
-                placeholder="Buscar por cliente, número de pedido..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
-              {searchTerm && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                  onClick={() => setSearchTerm('')}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
+        <TabsContent value="list" className="space-y-2">
+          <Card className="p-2">
+            {/* Buscador y filtros en una fila */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                <Input 
+                  placeholder="Buscar por cliente, pedido..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-7 h-7 text-xs"
+                />
+                {searchTerm && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
+                    onClick={() => setSearchTerm('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
 
-            {/* Filtros */}
-            <div className="flex flex-wrap gap-2 mb-4">
               <Select 
                 value={statusFilter} 
                 onValueChange={setStatusFilter}
               >
-                <SelectTrigger className="h-8 w-[180px] flex items-center text-sm">
-                  <ListFilter className="h-3.5 w-3.5 mr-1.5" />
-                  <span>Filtrar por estado</span>
+                <SelectTrigger className="h-7 w-[140px] flex items-center text-xs">
+                  <ListFilter className="h-3 w-3 mr-1" />
+                  <span>Estado</span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="pending">
+                  <SelectItem value="all" className="text-xs">Todos los estados</SelectItem>
+                  <SelectItem value="pending" className="text-xs">
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-yellow-600" />
+                      <Clock className="h-3 w-3 text-yellow-600" />
                       <span>Pendientes</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="delivered">
+                  <SelectItem value="delivered" className="text-xs">
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                      <CheckCircle className="h-3 w-3 text-green-600" />
                       <span>Entregados</span>
                     </div>
                   </SelectItem>
-                  <SelectItem value="cancelled">
+                  <SelectItem value="cancelled" className="text-xs">
                     <div className="flex items-center gap-1">
-                      <CircleX className="h-3.5 w-3.5 text-red-600" />
+                      <CircleX className="h-3 w-3 text-red-600" />
                       <span>Cancelados</span>
                     </div>
                   </SelectItem>
@@ -465,19 +466,19 @@ export default function Orders() {
             </div>
 
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-blue-600" />
-                <h2 className="font-semibold">Lista de Pedidos</h2>
+              <div className="flex items-center gap-1">
+                <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
+                <h2 className="font-medium text-xs">Lista de Pedidos</h2>
               </div>
-              <Badge variant="outline">{filteredOrders.length} pedidos</Badge>
+              <Badge variant="outline" className="text-xs h-5 px-1.5">{filteredOrders.length} pedidos</Badge>
             </div>
 
             {isMobile ? (
               /* Vista de tarjetas para móvil */
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-3">
+              <ScrollArea className="h-[350px]">
+                <div className="space-y-2">
                   {filteredOrders.length === 0 ? (
-                    <div className="text-center py-4 text-gray-500">
+                    <div className="text-center py-3 text-gray-500 text-xs">
                       No se encontraron pedidos
                     </div>
                   ) : (
@@ -486,45 +487,45 @@ export default function Orders() {
                       return (
                         <Card 
                           key={order.id} 
-                          className={`p-3 border-l-4 ${getStatusColor(order.status)}`}
+                          className={`p-2 border-l-4 ${getStatusColor(order.status)}`}
                           onClick={() => {
                             setSelectedOrder(order);
                             setActiveTab("details");
                           }}
                         >
-                          <div className="flex justify-between">
+                          <div className="flex justify-between items-start">
                             <div>
-                              <h3 className="font-medium">Pedido #{order.id}</h3>
-                              <p className="text-xs text-gray-500">
+                              <h3 className="font-medium text-xs">Pedido #{order.id}</h3>
+                              <p className="text-[10px] text-gray-500 line-clamp-1 max-w-[150px]">
                                 {customer?.businessname || "Cliente desconocido"}
                               </p>
                             </div>
                             <div className="flex flex-col items-end">
                               {getStatusBadge(order.status)}
-                              <p className="text-xs mt-1">
-                                <CalendarDays className="h-3 w-3 inline mr-1" />
+                              <p className="text-[10px] mt-0.5">
+                                <CalendarDays className="h-2.5 w-2.5 inline mr-0.5" />
                                 {new Date(order.date).toLocaleDateString()}
                               </p>
                             </div>
                           </div>
                           
-                          <div className="flex justify-between items-center mt-2 text-sm">
-                            <span className="font-medium flex items-center">
-                              <DollarSign className="h-3.5 w-3.5 text-green-600 mr-1" />
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="font-medium flex items-center text-xs">
+                              <DollarSign className="h-3 w-3 text-green-600 mr-0.5" />
                               RD$ {parseFloat(order.total.toString()).toFixed(2)}
                             </span>
                             
                             <Button 
                               size="sm" 
                               variant="ghost"
-                              className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2"
+                              className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-1.5 text-[10px]"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelectedOrder(order);
                                 setIsDetailsDialogOpen(true);
                               }}
                             >
-                              <Eye className="h-3 w-3 mr-1" />
+                              <Eye className="h-2.5 w-2.5 mr-0.5" />
                               Detalles
                             </Button>
                           </div>
@@ -539,53 +540,53 @@ export default function Orders() {
               <div className="overflow-x-auto">
                 <Table className="min-w-full">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>No. Pedido</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Acciones</TableHead>
+                    <TableRow className="h-8">
+                      <TableHead className="text-xs py-1">No. Pedido</TableHead>
+                      <TableHead className="text-xs py-1">Cliente</TableHead>
+                      <TableHead className="text-xs py-1">Fecha</TableHead>
+                      <TableHead className="text-xs py-1">Total</TableHead>
+                      <TableHead className="text-xs py-1">Estado</TableHead>
+                      <TableHead className="text-xs py-1">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredOrders.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                        <TableCell colSpan={6} className="text-center py-4 text-gray-500 text-xs">
                           No se encontraron pedidos
                         </TableCell>
                       </TableRow>
                     ) : (
                       filteredOrders.map((order) => (
-                        <TableRow key={order.id}>
-                          <TableCell>#{order.id}</TableCell>
-                          <TableCell>
+                        <TableRow key={order.id} className="h-8">
+                          <TableCell className="py-1 text-xs">#{order.id}</TableCell>
+                          <TableCell className="py-1 text-xs">
                             {customers?.find(c => c.id === order.customerId)?.businessname || "Cliente desconocido"}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-1 text-xs">
                             {new Date(order.date).toLocaleDateString()}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-1 text-xs">
                             RD$ {parseFloat(order.total.toString()).toFixed(2)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="py-1">
                             <div className="flex items-center gap-1">
                               {getStatusBadge(order.status)}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
                                 onClick={() => {
                                   setSelectedOrder(order);
                                   setActiveTab("details");
                                 }}
                               >
-                                <Eye className="h-4 w-4 mr-1" />
-                                Ver Detalles
+                                <Eye className="h-3 w-3 mr-1" />
+                                Ver
                               </Button>
                             </div>
                           </TableCell>
@@ -598,40 +599,40 @@ export default function Orders() {
             )}
 
             {/* Estadísticas de pedidos */}
-            <div className="mt-4 grid grid-cols-4 gap-3">
-              <div className="bg-blue-50 rounded-md p-3 border border-blue-100">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-blue-600" />
+            <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="bg-blue-50 rounded-md p-2 border border-blue-100">
+                <div className="flex items-center gap-1">
+                  <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
                   <p className="text-xs text-blue-600 font-medium">Total Pedidos</p>
                 </div>
-                <p className="text-xl font-bold text-blue-700">
+                <p className="text-lg font-bold text-blue-700">
                   {stats.total}
                 </p>
               </div>
-              <div className="bg-yellow-50 rounded-md p-3 border border-yellow-100">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-yellow-600" />
+              <div className="bg-yellow-50 rounded-md p-2 border border-yellow-100">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5 text-yellow-600" />
                   <p className="text-xs text-yellow-600 font-medium">Pendientes</p>
                 </div>
-                <p className="text-xl font-bold text-yellow-700">
+                <p className="text-lg font-bold text-yellow-700">
                   {stats.pending}
                 </p>
               </div>
-              <div className="bg-green-50 rounded-md p-3 border border-green-100">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+              <div className="bg-green-50 rounded-md p-2 border border-green-100">
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="h-3.5 w-3.5 text-green-600" />
                   <p className="text-xs text-green-600 font-medium">Entregados</p>
                 </div>
-                <p className="text-xl font-bold text-green-700">
+                <p className="text-lg font-bold text-green-700">
                   {stats.delivered}
                 </p>
               </div>
-              <div className="bg-purple-50 rounded-md p-3 border border-purple-100">
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-purple-600" />
+              <div className="bg-purple-50 rounded-md p-2 border border-purple-100">
+                <div className="flex items-center gap-1">
+                  <DollarSign className="h-3.5 w-3.5 text-purple-600" />
                   <p className="text-xs text-purple-600 font-medium">Valor Total</p>
                 </div>
-                <p className="text-xl font-bold text-purple-700">
+                <p className="text-lg font-bold text-purple-700">
                   RD$ {stats.totalAmount.toFixed(2)}
                 </p>
               </div>
