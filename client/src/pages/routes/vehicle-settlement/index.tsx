@@ -193,7 +193,7 @@ export default function VehicleSettlementPage() {
               </div>
               <div className="border-l-4 border-l-green-500 pl-2">
                 <p className="text-xs text-gray-500 flex items-center">
-                  <User className="h-3 w-3 mr-1 text-green-500" />
+                  <UserIcon className="h-3 w-3 mr-1 text-green-500" />
                   Conductor
                 </p>
                 <p className="font-medium text-sm">{selectedLoading.driver?.name}</p>
@@ -249,7 +249,7 @@ export default function VehicleSettlementPage() {
                           <span className="text-gray-600">{new Date(loading.date).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center">
-                          <User className="h-3 w-3 mr-1 text-gray-500" />
+                          <UserIcon className="h-3 w-3 mr-1 text-gray-500" />
                           <span className="text-gray-600 truncate">{loading.driver?.name || loading.driverId}</span>
                         </div>
                         <div className="flex items-center">
