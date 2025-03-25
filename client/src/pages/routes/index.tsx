@@ -293,151 +293,155 @@ export default function Routes() {
   }
 
   return (
-    <div className="container py-4">
-      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-2">
-          <RouteIcon className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold">{t("routes")}</h1>
+    <div className="container py-2">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <RouteIcon className="h-4 w-4 text-primary" />
+          <h1 className="text-lg font-bold">{t("routes")}</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-1">
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1"
+            className="h-7 px-2 text-xs"
             onClick={() => {
               window.location.reload();
             }}
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className="h-3 w-3 mr-1" />
             <span>{t("refresh")}</span>
           </Button>
           <Button
             variant="default"
             size="sm"
-            className="h-8 gap-1"
+            className="h-7 px-2 text-xs"
             onClick={() => setIsCreatingZone(true)}
           >
-            <MapPin className="h-3.5 w-3.5" />
+            <MapPin className="h-3 w-3 mr-1" />
             <span>{t("createZone")}</span>
           </Button>
           <Button
             variant="default"
             size="sm"
-            className="h-8 gap-1"
+            className="h-7 px-2 text-xs"
             onClick={handleCreateRoute}
           >
-            <PlusCircle className="h-3.5 w-3.5" />
+            <PlusCircle className="h-3 w-3 mr-1" />
             <span>{t("createRoute")}</span>
           </Button>
         </div>
       </div>
       
-      {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      {/* Tarjetas de estadísticas compactas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
         <Card className="border-l-4 border-l-blue-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Rutas Activas</p>
-              <p className="text-xl font-bold mt-1">{routeStats.totalActive}</p>
+              <p className="text-xs text-muted-foreground">Rutas Activas</p>
+              <p className="text-base font-bold">{routeStats.totalActive}</p>
             </div>
-            <Clock className="h-7 w-7 text-blue-500" />
+            <Clock className="h-5 w-5 text-blue-500" />
           </CardContent>
         </Card>
         
         <Card className="border-l-4 border-l-green-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Rutas Completadas</p>
-              <p className="text-xl font-bold mt-1">{routeStats.totalCompleted}</p>
+              <p className="text-xs text-muted-foreground">Rutas Completadas</p>
+              <p className="text-base font-bold">{routeStats.totalCompleted}</p>
             </div>
-            <CheckCircle className="h-7 w-7 text-green-500" />
+            <CheckCircle className="h-5 w-5 text-green-500" />
           </CardContent>
         </Card>
         
         <Card className="border-l-4 border-l-yellow-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Distancia Total</p>
-              <p className="text-xl font-bold mt-1">{routeStats.totalDistance} km</p>
+              <p className="text-xs text-muted-foreground">Distancia Total</p>
+              <p className="text-base font-bold">{routeStats.totalDistance} km</p>
             </div>
-            <RouteIcon className="h-7 w-7 text-yellow-500" />
+            <RouteIcon className="h-5 w-5 text-yellow-500" />
           </CardContent>
         </Card>
         
         <Card className="border-l-4 border-l-purple-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Total Paradas</p>
-              <p className="text-xl font-bold mt-1">{routeStats.totalStops}</p>
+              <p className="text-xs text-muted-foreground">Total Paradas</p>
+              <p className="text-base font-bold">{routeStats.totalStops}</p>
             </div>
-            <MapPin className="h-7 w-7 text-purple-500" />
+            <MapPin className="h-5 w-5 text-purple-500" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Lista de Zonas */}
-      <Card className="mb-6">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t("zones")}</CardTitle>
+      {/* Lista de Zonas - Versión compacta */}
+      <Card className="mb-3">
+        <CardHeader className="flex flex-row items-center justify-between py-2 px-3">
+          <CardTitle className="text-sm">{t("zones")}</CardTitle>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1"
+            className="h-6 gap-1 text-xs px-2"
             onClick={() => setIsCreatingZone(true)}
           >
-            <PlusCircle className="h-3.5 w-3.5" />
+            <PlusCircle className="h-3 w-3 mr-1" />
             <span>{t("createZone")}</span>
           </Button>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-2">
+          <div className="space-y-1">
             {zones.map((zone) => (
               <div
                 key={zone.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition-colors"
+                className="flex items-center justify-between p-2 border rounded-md hover:bg-accent/5 transition-colors"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <div
-                    className="w-4 h-4 rounded"
+                    className="w-3 h-3 rounded"
                     style={{ backgroundColor: zone.color }}
                   />
-                  <span className="font-medium">{zone.name}</span>
-                  <Badge variant="outline" title="Cada punto representa una coordenada geográfica que forma el perímetro de la zona">
+                  <span className="text-sm font-medium">{zone.name}</span>
+                  <Badge 
+                    variant="outline" 
+                    title="Cada punto representa una coordenada geográfica que forma el perímetro de la zona"
+                    className="text-xs h-5 py-0"
+                  >
                     {zone.coordinates.length} {t("points")}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-0.5">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-muted-foreground hover:text-primary"
+                    className="text-muted-foreground hover:text-primary h-7 w-7"
                     onClick={() => handleViewZone(zone)}
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-muted-foreground hover:text-secondary"
+                    className="text-muted-foreground hover:text-secondary h-7 w-7"
                     onClick={() => handleEditZone(zone)}
                   >
-                    <Edit className="h-4 w-4" />
+                    <Edit className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-muted-foreground hover:text-destructive"
+                    className="text-muted-foreground hover:text-destructive h-7 w-7"
                     onClick={() => handleDeleteZone(zone)}
                     disabled={deleteZoneMutation.isPending}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
             ))}
 
             {zones.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
+              <div className="text-center text-muted-foreground py-3 text-sm">
                 {t("noZones")}
               </div>
             )}
@@ -446,17 +450,17 @@ export default function Routes() {
       </Card>
 
       {isCreatingZone && (
-        <Card className="mb-4">
-          <CardHeader className="py-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
+        <Card className="mb-3">
+          <CardHeader className="py-2 px-3">
+            <CardTitle className="text-base flex items-center gap-1">
+              <MapPin className="h-4 w-4 text-primary" />
               {t("createZone")}
             </CardTitle>
           </CardHeader>
-          <CardContent className="pb-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+          <CardContent className="p-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">
+                <label className="text-xs text-muted-foreground mb-1 block">
                   {t("zoneName")}
                 </label>
                 <input
@@ -464,11 +468,11 @@ export default function Routes() {
                   value={zoneName}
                   onChange={(e) => setZoneName(e.target.value)}
                   placeholder={t("zoneName")}
-                  className="w-full px-3 py-2 border rounded-md"
+                  className="w-full px-2 py-1 text-sm h-8 border rounded-md"
                 />
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-1 block">
+                <label className="text-xs text-muted-foreground mb-1 block">
                   {t("zoneColor")}
                 </label>
                 <div className="flex items-center gap-2">
@@ -476,9 +480,9 @@ export default function Routes() {
                     type="color"
                     value={zoneColor}
                     onChange={(e) => setZoneColor(e.target.value)}
-                    className="h-9 w-14"
+                    className="h-8 w-12"
                   />
-                  <span className="text-sm px-2">{zoneColor}</span>
+                  <span className="text-xs px-1">{zoneColor}</span>
                 </div>
               </div>
             </div>
@@ -492,24 +496,24 @@ export default function Routes() {
       )}
 
       {/* Contenedor principal con barra de búsqueda, filtros y pestañas */}
-      <Card className="bg-card rounded-lg shadow-sm border p-1 mb-6">
-        {/* Barra de búsqueda y filtros */}
-        <div className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between border-b">
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <Card className="bg-card rounded-lg shadow-sm border p-1 mb-2">
+        {/* Barra de búsqueda y filtros - versión compacta */}
+        <div className="p-2 flex flex-col md:flex-row gap-2 items-center justify-between border-b">
+          <div className="relative w-full md:w-56">
+            <Search className="absolute left-2 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               placeholder="Buscar ruta..."
-              className="pl-8 w-full"
+              className="pl-7 w-full h-7 text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-2 w-full md:w-auto">
+          <div className="flex gap-1 w-full md:w-auto">
             <Select
               value={statusFilter}
               onValueChange={setStatusFilter}
             >
-              <SelectTrigger className="w-full md:w-[180px] h-10">
+              <SelectTrigger className="w-full md:w-[150px] h-7 text-xs">
                 <SelectValue placeholder="Filtrar por estado" />
               </SelectTrigger>
               <SelectContent>
@@ -520,46 +524,46 @@ export default function Routes() {
             </Select>
             <Button 
               variant="outline" 
-              className="h-10"
+              className="h-7 text-xs px-2"
               onClick={() => {
                 setSearchQuery("");
                 setStatusFilter("all");
               }}
             >
-              <X className="h-4 w-4 mr-1" /> Limpiar
+              <X className="h-3 w-3 mr-1" /> Limpiar
             </Button>
           </div>
         </div>
         
-        {/* Pestañas principales: Lista y Formulario */}
+        {/* Pestañas principales: Lista y Formulario - versión compacta */}
         <Tabs 
           defaultValue="list" 
           value={mainTab}
           onValueChange={setMainTab}
-          className="space-y-2"
+          className="space-y-1"
         >
-          <div className="px-4 pt-2">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="list">Lista de Rutas</TabsTrigger>
-              <TabsTrigger value="form">Crear Ruta</TabsTrigger>
+          <div className="px-2 pt-1">
+            <TabsList className="grid w-full grid-cols-2 h-8">
+              <TabsTrigger value="list" className="text-xs">Lista de Rutas</TabsTrigger>
+              <TabsTrigger value="form" className="text-xs">Crear Ruta</TabsTrigger>
             </TabsList>
           </div>
           
-          <TabsContent value="list" className="p-1 pt-2">
-            {/* Subtabs: Activas y Completadas */}
+          <TabsContent value="list" className="p-1 pt-1">
+            {/* Subtabs: Activas y Completadas - versión compacta */}
             <Tabs
               defaultValue="active"
               value={selectedTab}
               onValueChange={setSelectedTab}
-              className="space-y-4"
+              className="space-y-2"
             >
-              <TabsList className="w-full md:w-auto grid grid-cols-2 max-w-md">
-                <TabsTrigger value="active" className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
+              <TabsList className="w-full md:w-auto grid grid-cols-2 max-w-md h-7">
+                <TabsTrigger value="active" className="flex items-center gap-1 text-xs">
+                  <Clock className="h-3 w-3" />
                   <span>Rutas Activas</span>
                 </TabsTrigger>
-                <TabsTrigger value="completed" className="flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4" />
+                <TabsTrigger value="completed" className="flex items-center gap-1 text-xs">
+                  <CheckCircle className="h-3 w-3" />
                   <span>Rutas Completadas</span>
                 </TabsTrigger>
               </TabsList>
@@ -579,26 +583,26 @@ export default function Routes() {
                     {searchQuery && <p className="text-sm">Prueba con otra búsqueda</p>}
                   </div>
                 )}
-                {/* Lista de rutas activas */}
-                <div className="grid grid-cols-1 gap-4">
+                {/* Lista de rutas activas - versión compacta */}
+                <div className="grid grid-cols-1 gap-2">
                   {!loading &&
                     !error &&
                     filteredRoutes
                       .filter((route) => !route.isCompleted)
                       .map((route) => (
                         <Card key={route.id} className="overflow-hidden hover:bg-accent/5 transition-colors">
-                          <div className="flex items-center p-4">
+                          <div className="flex items-center p-2">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <Truck className="h-5 w-5 text-blue-500" />
-                                <span className="font-medium">
+                              <div className="flex items-center gap-1">
+                                <Truck className="h-4 w-4 text-blue-500" />
+                                <span className="text-sm font-medium">
                                   {route.name || `Ruta #${route.id}`}
                                 </span>
                                 <Badge
                                   variant={
                                     route.driverStartedAt ? "secondary" : "outline"
                                   }
-                                  className="ml-auto text-xs py-0 h-5"
+                                  className="ml-auto text-[10px] py-0 h-4"
                                 >
                                   {route.driverStartedAt
                                     ? "En progreso"
@@ -606,21 +610,21 @@ export default function Routes() {
                                 </Badge>
                               </div>
                               
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 text-sm">
+                              <div className="flex flex-wrap gap-2 mt-1 text-[11px]">
                                 <div className="flex items-center text-muted-foreground">
-                                  <Calendar className="h-4 w-4 mr-2" />
+                                  <Calendar className="h-3 w-3 mr-1" />
                                   <span>
                                     {format(new Date(route.date), "dd/MM/yyyy")}
                                   </span>
                                 </div>
                                 <div className="flex items-center text-muted-foreground">
-                                  <MapPin className="h-4 w-4 mr-2" />
+                                  <MapPin className="h-3 w-3 mr-1" />
                                   <span>
                                     {route.stops?.length || 0} paradas
                                   </span>
                                 </div>
-                                <div className="flex items-center justify-start md:justify-end text-muted-foreground">
-                                  <RouteIcon className="h-4 w-4 mr-2" />
+                                <div className="flex items-center text-muted-foreground">
+                                  <RouteIcon className="h-3 w-3 mr-1" />
                                   <span>
                                     {route.totalDistance
                                       ? `${Number(route.totalDistance).toFixed(1)} km`
@@ -634,10 +638,10 @@ export default function Routes() {
                               variant="ghost"
                               size="sm"
                               asChild
-                              className="h-10 w-10 ml-2 rounded-full"
+                              className="h-7 w-7 ml-1 rounded-full p-0"
                             >
                               <Link href={`/routes/${route.id}`}>
-                                <ArrowRight className="h-5 w-5" />
+                                <ArrowRight className="h-4 w-4" />
                               </Link>
                             </Button>
                           </div>
@@ -661,49 +665,52 @@ export default function Routes() {
                     {searchQuery && <p className="text-sm">Prueba con otra búsqueda</p>}
                   </div>
                 )}
-                {/* Lista de rutas completadas */}
-                <div className="grid grid-cols-1 gap-4">
+                {/* Lista de rutas completadas - versión compacta */}
+                <div className="grid grid-cols-1 gap-2">
                   {!loading &&
                     !error &&
                     filteredRoutes
                       .filter((route) => route.isCompleted)
                       .map((route) => (
                         <Card key={route.id} className="overflow-hidden hover:bg-accent/5 transition-colors">
-                          <div className="grid grid-cols-1 md:grid-cols-12">
-                            <div className="p-4 md:col-span-4">
-                              <div className="flex items-center gap-2 mb-4">
-                                <Truck className="h-5 w-5 text-green-500" />
-                                <span className="font-medium">
+                          <div className="grid grid-cols-1 md:grid-cols-9">
+                            <div className="p-2 md:col-span-3">
+                              <div className="flex items-center gap-1 mb-1">
+                                <Truck className="h-4 w-4 text-green-500" />
+                                <span className="text-sm font-medium">
                                   {route.name || `Ruta #${route.id}`}
                                 </span>
-                                <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 hover:bg-green-200">
+                                <Badge 
+                                  variant="secondary" 
+                                  className="ml-1 bg-green-100 text-green-800 hover:bg-green-200 text-[10px] h-4 py-0"
+                                >
                                   Completada
                                 </Badge>
                               </div>
 
-                              <div className="space-y-2">
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <Calendar className="h-4 w-4 mr-2" />
+                              <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 mt-1">
+                                <div className="flex items-center text-[11px] text-muted-foreground">
+                                  <Calendar className="h-3 w-3 mr-1" />
                                   <span>
                                     {format(new Date(route.date), "dd/MM/yyyy")}
                                   </span>
                                 </div>
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <MapPin className="h-4 w-4 mr-2" />
+                                <div className="flex items-center text-[11px] text-muted-foreground">
+                                  <MapPin className="h-3 w-3 mr-1" />
                                   <span>
                                     {route.stops?.length || 0} paradas
                                   </span>
                                 </div>
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <RouteIcon className="h-4 w-4 mr-2" />
+                                <div className="flex items-center text-[11px] text-muted-foreground">
+                                  <RouteIcon className="h-3 w-3 mr-1" />
                                   <span>
                                     {route.totalDistance
                                       ? `${Number(route.totalDistance).toFixed(1)} km`
                                       : "Calculando..."}
                                   </span>
                                 </div>
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <Clock className="h-4 w-4 mr-2" />
+                                <div className="flex items-center text-[11px] text-muted-foreground">
+                                  <Clock className="h-3 w-3 mr-1" />
                                   <span>
                                     {route.estimatedDuration
                                       ? `${Math.round(route.estimatedDuration / 60)} min`
@@ -712,12 +719,12 @@ export default function Routes() {
                                 </div>
                               </div>
 
-                              <div className="mt-4">
+                              <div className="mt-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   asChild
-                                  className="h-8"
+                                  className="h-6 text-xs px-2"
                                 >
                                   <Link href={`/routes/${route.id}`}>
                                     Ver detalles
@@ -728,14 +735,14 @@ export default function Routes() {
                             
                             {!isMobile && (
                               <>
-                                <div className="md:col-span-4 border-l border-t md:border-t-0">
+                                <div className="md:col-span-3 border-l border-t md:border-t-0 min-h-[120px]">
                                   <RouteMap
                                     route={route}
-                                    className="h-full w-full min-h-[200px]"
+                                    className="h-full w-full min-h-[120px]"
                                   />
                                 </div>
-                                <div className="p-4 md:col-span-4 border-l border-t md:border-t-0">
-                                  <h4 className="text-sm font-medium mb-2">Progreso</h4>
+                                <div className="p-2 md:col-span-3 border-l border-t md:border-t-0">
+                                  <h4 className="text-xs font-medium mb-1">Progreso</h4>
                                   <RouteTimeline route={route} />
                                 </div>
                               </>
