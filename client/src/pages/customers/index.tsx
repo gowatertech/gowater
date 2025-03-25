@@ -70,16 +70,7 @@ import {
   DollarSign,
   User,
   ClipboardCheck,
-  Home,
-  ImageIcon,
-  FileSignature,
-  Hash,
-  Mail as EmailIcon,
-  Map,
-  Building,
-  LocateFixed,
-  CircleDollarSign,
-  PersonStanding
+  Home
 } from "lucide-react";
 
 type CustomerFormData = z.infer<typeof insertCustomerSchema>;
@@ -754,11 +745,12 @@ export default function Customers() {
                     render={({ field: { value, onChange, ...field } }) => (
                       <FormItem className="space-y-1">
                         <FormLabel className="flex items-center justify-between text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500 flex items-center gap-1">
-                            <ImageIcon className="w-3 h-3" />
-                            Logo
-                          </Badge>
-                          <ImageIcon className="h-4 w-4 text-slate-500" />
+                          <div className="flex items-center">
+                            <Badge className="px-2 py-0 h-5 text-[10px] bg-slate-50 text-slate-700 border-slate-200 border-l-4 border-l-slate-500 mr-1">
+                              Logo (JPG/PNG, máx. 5MB)
+                            </Badge>
+                          </div>
+                          <Image className="h-4 w-4 text-slate-500" />
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -806,12 +798,7 @@ export default function Customers() {
                     name="rnc"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-indigo-50 text-indigo-700 border-indigo-200 border-l-4 border-l-indigo-500 flex items-center gap-1">
-                            <Hash className="w-3 h-3" />
-                            RNC
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">RNC</FormLabel>
                         <FormControl>
                           <Input 
                             className="h-7 text-xs px-2 py-0" 
@@ -829,12 +816,7 @@ export default function Customers() {
                     name="businessname"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500 flex items-center gap-1">
-                            <Building className="w-3 h-3" />
-                            Nombre del Negocio
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
                         <FormControl>
                           <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
@@ -848,12 +830,7 @@ export default function Customers() {
                     name="managername"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-amber-50 text-amber-700 border-amber-200 border-l-4 border-l-amber-500 flex items-center gap-1">
-                            <PersonStanding className="w-3 h-3" />
-                            Nombre del Encargado
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
                         <FormControl>
                           <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
@@ -867,12 +844,7 @@ export default function Customers() {
                     name="phone"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500 flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            Teléfono
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Teléfono</FormLabel>
                         <FormControl>
                           <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
@@ -886,12 +858,7 @@ export default function Customers() {
                     name="email"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-purple-50 text-purple-700 border-purple-200 border-l-4 border-l-purple-500 flex items-center gap-1">
-                            <EmailIcon className="w-3 h-3" />
-                            Email
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Email</FormLabel>
                         <FormControl>
                           <Input className="h-7 text-xs px-2 py-0" type="email" {...field} value={field.value || ""} />
                         </FormControl>
@@ -905,12 +872,7 @@ export default function Customers() {
                     name="zoneid"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-orange-50 text-orange-700 border-orange-200 border-l-4 border-l-orange-500 flex items-center gap-1">
-                            <Map className="w-3 h-3" />
-                            Zona
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Zona</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
@@ -938,12 +900,7 @@ export default function Customers() {
                     name="street"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            Calle
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Calle</FormLabel>
                         <FormControl>
                           <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
@@ -957,12 +914,7 @@ export default function Customers() {
                     name="streetnumber"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-orange-50 text-orange-700 border-orange-200 border-l-4 border-l-orange-500 flex items-center gap-1">
-                            <Hash className="w-3 h-3" />
-                            Número
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Número</FormLabel>
                         <FormControl>
                           <Input className="h-7 text-xs px-2 py-0" {...field} />
                         </FormControl>
@@ -976,12 +928,7 @@ export default function Customers() {
                     name="provinceid"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-purple-50 text-purple-700 border-purple-200 border-l-4 border-l-purple-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            Provincia
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Provincia</FormLabel>
                         <Select
                           onValueChange={(value) => {
                             field.onChange(parseInt(value));
@@ -1012,12 +959,7 @@ export default function Customers() {
                     name="municipalityid"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500 flex items-center gap-1">
-                            <Building2 className="w-3 h-3" />
-                            Municipio
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Municipio</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
                           value={field.value?.toString()}
@@ -1046,12 +988,7 @@ export default function Customers() {
                     name="reference"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2 space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-amber-50 text-amber-700 border-amber-200 border-l-4 border-l-amber-500 flex items-center gap-1">
-                            <FileText className="w-3 h-3" />
-                            Referencia
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Referencia</FormLabel>
                         <FormControl>
                           <Input className="h-7 text-xs px-2 py-0" {...field} value={field.value || ""} />
                         </FormControl>
@@ -1065,12 +1002,7 @@ export default function Customers() {
                     name="coordinates"
                     render={({ field }) => (
                       <FormItem className="md:col-span-3 space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            Ubicación en Mapa
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Ubicación en Mapa</FormLabel>
                         <FormControl>
                           <div className="h-[180px] w-full">
                             <LocationSelector 
@@ -1093,12 +1025,7 @@ export default function Customers() {
                     name="creditlimit"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2 space-y-1">
-                        <FormLabel className="text-xs">
-                          <Badge className="px-2 py-0 h-5 text-[10px] bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500 flex items-center gap-1">
-                            <DollarSign className="w-3 h-3" />
-                            Límite de Crédito
-                          </Badge>
-                        </FormLabel>
+                        <FormLabel className="text-xs">Límite de Crédito</FormLabel>
                         <FormControl>
                           <Input
                             type="text"
