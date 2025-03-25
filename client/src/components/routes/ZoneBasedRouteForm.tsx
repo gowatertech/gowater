@@ -575,24 +575,64 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       );
 
   return (
-    <div className="space-y-4">
-      <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-        <TabsList className={`grid w-full ${compact ? "grid-cols-2" : "grid-cols-3"}`}>
-          <TabsTrigger value="zone">
-            <MapPin className="h-4 w-4 mr-2" />
-            Zona
-          </TabsTrigger>
-          {!compact && (
-            <TabsTrigger value="customers" disabled={!selectedZone}>
-              <User className="h-4 w-4 mr-2" />
-              Clientes
+    <div className="p-2 md:p-4 space-y-2">
+      {/* Cabecera con título e icono */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          <Truck className="h-5 w-5 text-primary" />
+          <h1 className="text-lg md:text-xl font-bold">Planificación de Rutas</h1>
+        </div>
+      </div>
+
+      {/* Tarjetas de estadísticas */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+        <Card className="bg-blue-50 border-blue-100">
+          <CardContent className="p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Clientes Seleccionados</p>
+              <p className="text-lg font-bold text-blue-600">{selectedCustomers.length}</p>
+            </div>
+            <Users className="h-6 w-6 text-blue-400" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-yellow-50 border-yellow-100">
+          <CardContent className="p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Distancia Total</p>
+              <p className="text-lg font-bold text-yellow-600">{routeStats.totalDistance} km</p>
+            </div>
+            <Route className="h-6 w-6 text-yellow-400" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-green-50 border-green-100">
+          <CardContent className="p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Duración Estimada</p>
+              <p className="text-lg font-bold text-green-600">{routeStats.estimatedDuration} min</p>
+            </div>
+            <Clock className="h-6 w-6 text-green-400" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Contenido principal con pestañas */}
+      <div className="bg-card rounded-lg shadow-sm border p-1">
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-2">
+          <TabsList className="w-full grid grid-cols-3 h-9">
+            <TabsTrigger value="zone" className="flex items-center gap-1 text-xs">
+              <MapPin className="h-3 w-3" /> Zona
             </TabsTrigger>
-          )}
-          <TabsTrigger value="review" disabled={selectedCustomers.length === 0}>
-            <Truck className="h-4 w-4 mr-2" />
-            Revisar Ruta
-          </TabsTrigger>
-        </TabsList>
+            {!compact && (
+              <TabsTrigger value="customers" disabled={!selectedZone} className="flex items-center gap-1 text-xs">
+                <User className="h-3 w-3" /> Clientes
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="review" disabled={selectedCustomers.length === 0} className="flex items-center gap-1 text-xs">
+              <Truck className="h-3 w-3" /> Revisar Ruta
+            </TabsTrigger>
+          </TabsList>
 
         <TabsContent value="zone" className="mt-4">
           <Form {...form}>
@@ -1035,6 +1075,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
           </Form>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
