@@ -288,9 +288,9 @@ export default function Users() {
   }, [users, searchQuery, t]);
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="flex justify-between items-center mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold">{t("users")}</h1>
+    <div className="p-2 sm:p-3 md:p-4">
+      <div className="flex justify-between items-center mb-2 sm:mb-3">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{t("users")}</h1>
         <Button 
           onClick={() => {
             form.reset();
@@ -298,105 +298,105 @@ export default function Users() {
             setActiveTab("form");
           }}
           size="sm"
-          className="h-8 sm:h-10 text-xs sm:text-sm"
+          className="h-7 sm:h-8 text-xs px-2 py-0"
         >
-          <UserPlus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+          <UserPlus className="h-3 w-3 mr-1" />
           {t("addUser")}
         </Button>
       </div>
 
       {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 sm:mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2 mb-2 sm:mb-3">
         <Card className="bg-blue-50 border-blue-100">
-          <CardContent className="p-1.5 sm:p-2 flex items-center justify-between">
+          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Total Usuarios</p>
-              <p className="text-sm sm:text-base font-bold text-blue-600">{userStats.totalUsers}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Total Usuarios</p>
+              <p className="text-sm font-bold text-blue-600">{userStats.totalUsers}</p>
             </div>
-            <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
+            <UsersIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />
           </CardContent>
         </Card>
 
         <Card className="bg-green-50 border-green-100">
-          <CardContent className="p-1.5 sm:p-2 flex items-center justify-between">
+          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Administradores</p>
-              <p className="text-sm sm:text-base font-bold text-green-600">{userStats.totalAdmins}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Administradores</p>
+              <p className="text-sm font-bold text-green-600">{userStats.totalAdmins}</p>
             </div>
-            <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
+            <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-400" />
           </CardContent>
         </Card>
 
         <Card className="bg-yellow-50 border-yellow-100">
-          <CardContent className="p-1.5 sm:p-2 flex items-center justify-between">
+          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Conductores</p>
-              <p className="text-sm sm:text-base font-bold text-yellow-600">{userStats.totalDrivers}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Conductores</p>
+              <p className="text-sm font-bold text-yellow-600">{userStats.totalDrivers}</p>
             </div>
-            <Truck className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
+            <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400" />
           </CardContent>
         </Card>
 
         <Card className="bg-purple-50 border-purple-100">
-          <CardContent className="p-1.5 sm:p-2 flex items-center justify-between">
+          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
             <div>
-              <p className="text-xs text-muted-foreground">Asistentes</p>
-              <p className="text-sm sm:text-base font-bold text-purple-600">{userStats.totalAssistants}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Asistentes</p>
+              <p className="text-sm font-bold text-purple-600">{userStats.totalAssistants}</p>
             </div>
-            <HeartPulse className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+            <HeartPulse className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-400" />
           </CardContent>
         </Card>
       </div>
 
       {/* Contenido principal con pestañas */}
-      <div className="bg-card rounded-lg shadow-sm border p-1">
+      <div className="bg-card rounded-lg shadow-sm border p-0.5 sm:p-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-3 h-8 sm:h-9">
-            <TabsTrigger value="list" className="text-xs sm:text-sm">Listado</TabsTrigger>
-            <TabsTrigger value="form" className="text-xs sm:text-sm">{editingUser ? "Editar Usuario" : "Nuevo Usuario"}</TabsTrigger>
-            <TabsTrigger value="inactive" className="text-xs sm:text-sm">Inactivos</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3 h-7 sm:h-8">
+            <TabsTrigger value="list" className="text-[10px] sm:text-xs">Listado</TabsTrigger>
+            <TabsTrigger value="form" className="text-[10px] sm:text-xs">{editingUser ? "Editar" : "Nuevo"}</TabsTrigger>
+            <TabsTrigger value="inactive" className="text-[10px] sm:text-xs">Inactivos</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="list" className="mt-2 p-2">
+          <TabsContent value="list" className="mt-1 p-1 sm:p-2">
             {/* Barra de búsqueda */}
-            <div className="flex items-center mb-3 sm:mb-4 relative">
-              <Search className="absolute left-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            <div className="flex items-center mb-2 sm:mb-3 relative">
+              <Search className="absolute left-2 top-1.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nombre, usuario o rol..."
-                className="pl-7 sm:pl-8 w-full text-xs sm:text-sm h-8 sm:h-10"
+                placeholder="Buscar..."
+                className="pl-6 sm:pl-8 w-full text-[10px] sm:text-xs h-6 sm:h-8"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
               {searchQuery && (
                 <X
-                  className="absolute right-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground cursor-pointer hover:text-foreground"
+                  className="absolute right-2 top-1.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground cursor-pointer hover:text-foreground"
                   onClick={() => setSearchQuery("")}
                 />
               )}
             </div>
 
-            <ScrollArea className="h-[calc(100vh-330px)] md:h-[calc(100vh-310px)]">
+            <ScrollArea className="h-[calc(100vh-300px)] md:h-[calc(100vh-290px)]">
               <div className="w-full overflow-x-auto">
-                <Table>
+                <Table className="border-collapse">
                   <TableHeader>
-                    <TableRow className="text-xs">
-                      <TableHead className="py-1 sm:py-2">{t("name")}</TableHead>
-                      <TableHead className="py-1 sm:py-2">{t("username")}</TableHead>
-                      <TableHead className="py-1 sm:py-2">{t("role")}</TableHead>
-                      <TableHead className="py-1 sm:py-2 hidden md:table-cell">{t("phone")}</TableHead>
-                      <TableHead className="py-1 sm:py-2 hidden lg:table-cell">{t("license")}</TableHead>
-                      <TableHead className="py-1 sm:py-2 text-right">{t("actions")}</TableHead>
+                    <TableRow className="text-[10px] sm:text-xs">
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3">{t("name")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3 hidden sm:table-cell">{t("username")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3">{t("role")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3 hidden md:table-cell">{t("phone")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3 hidden lg:table-cell">{t("license")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3 text-right">{t("actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="text-sm">
+                  <TableBody className="text-[11px] sm:text-xs">
                     {filteredUsers.map((user) => (
-                      <TableRow key={user.id} className="h-10 sm:h-12">
-                        <TableCell className="py-1 sm:py-2">{user.name}</TableCell>
-                        <TableCell className="py-1 sm:py-2">{user.username}</TableCell>
-                        <TableCell className="py-1 sm:py-2">
+                      <TableRow key={user.id} className="h-7 sm:h-9">
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3">{user.name}</TableCell>
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3 hidden sm:table-cell">{user.username}</TableCell>
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3">
                           <Badge
                             variant="outline"
-                            className={`text-xs px-1.5 py-0.5 ${
+                            className={`text-[10px] sm:text-xs px-1 py-0 ${
                               user.role === "admin" ? "bg-blue-50 text-blue-700 border-blue-200" :
                               user.role === "driver" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
                               user.role === "assistant" ? "bg-purple-50 text-purple-700 border-purple-200" :
@@ -406,28 +406,28 @@ export default function Users() {
                             {t(user.role)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="py-1 sm:py-2 hidden md:table-cell">{user.phone || "-"}</TableCell>
-                        <TableCell className="py-1 sm:py-2 hidden lg:table-cell">
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3 hidden md:table-cell">{user.phone || "-"}</TableCell>
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3 hidden lg:table-cell">
                           {user.role === "driver" && user.licenseExpiry
                             ? format(new Date(user.licenseExpiry), "dd/MM/yyyy", { locale: es })
                             : "-"}
                         </TableCell>
-                        <TableCell className="py-1 sm:py-2 text-right">
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3 text-right">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 sm:h-8 sm:w-8 mr-1"
+                            className="h-5 w-5 sm:h-6 sm:w-6 mr-0.5 sm:mr-1 p-0"
                             onClick={() => handleEditWithTabChange(user)}
                           >
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Edit className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 sm:h-8 sm:w-8 text-destructive"
+                            className="h-5 w-5 sm:h-6 sm:w-6 text-destructive p-0"
                             onClick={() => handleDelete(user.id)}
                           >
-                            <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Trash className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -668,28 +668,28 @@ export default function Users() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="inactive" className="mt-2 p-1 sm:p-2">
-            <ScrollArea className="h-[calc(100vh-330px)] md:h-[calc(100vh-310px)]">
+          <TabsContent value="inactive" className="mt-1 p-1 sm:p-2">
+            <ScrollArea className="h-[calc(100vh-300px)] md:h-[calc(100vh-290px)]">
               <div className="w-full overflow-x-auto">
-                <Table>
+                <Table className="border-collapse">
                   <TableHeader>
-                    <TableRow className="text-xs">
-                      <TableHead className="py-1 sm:py-2">{t("name")}</TableHead>
-                      <TableHead className="py-1 sm:py-2">{t("username")}</TableHead>
-                      <TableHead className="py-1 sm:py-2">{t("role")}</TableHead>
-                      <TableHead className="py-1 sm:py-2 hidden md:table-cell">{t("phone")}</TableHead>
-                      <TableHead className="py-1 sm:py-2 text-right">{t("actions")}</TableHead>
+                    <TableRow className="text-[10px] sm:text-xs">
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3">{t("name")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3 hidden sm:table-cell">{t("username")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3">{t("role")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3 hidden md:table-cell">{t("phone")}</TableHead>
+                      <TableHead className="py-0.5 sm:py-1 px-1 sm:px-3 text-right">{t("actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody className="text-sm">
+                  <TableBody className="text-[11px] sm:text-xs">
                     {users.filter(user => !user.active).map((user) => (
-                      <TableRow key={user.id} className="opacity-60 h-10 sm:h-12">
-                        <TableCell className="py-1 sm:py-2">{user.name}</TableCell>
-                        <TableCell className="py-1 sm:py-2">{user.username}</TableCell>
-                        <TableCell className="py-1 sm:py-2">
+                      <TableRow key={user.id} className="opacity-60 h-7 sm:h-9">
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3">{user.name}</TableCell>
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3 hidden sm:table-cell">{user.username}</TableCell>
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3">
                           <Badge
                             variant="outline"
-                            className={`text-xs px-1.5 py-0.5 ${
+                            className={`text-[10px] sm:text-xs px-1 py-0 ${
                               user.role === "admin" ? "bg-blue-50 text-blue-700 border-blue-200" :
                               user.role === "driver" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
                               user.role === "assistant" ? "bg-purple-50 text-purple-700 border-purple-200" :
@@ -699,23 +699,23 @@ export default function Users() {
                             {t(user.role)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="py-1 sm:py-2 hidden md:table-cell">{user.phone || "-"}</TableCell>
-                        <TableCell className="py-1 sm:py-2 text-right">
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3 hidden md:table-cell">{user.phone || "-"}</TableCell>
+                        <TableCell className="py-0.5 sm:py-1 px-1 sm:px-3 text-right">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 sm:h-8 sm:w-8 mr-1"
+                            className="h-5 w-5 sm:h-6 sm:w-6 mr-0.5 sm:mr-1 p-0"
                             onClick={() => handleEditWithTabChange(user)}
                           >
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Edit className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 sm:h-8 sm:w-8 text-destructive"
+                            className="h-5 w-5 sm:h-6 sm:w-6 text-destructive p-0"
                             onClick={() => handleDelete(user.id)}
                           >
-                            <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Trash className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                           </Button>
                         </TableCell>
                       </TableRow>
