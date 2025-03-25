@@ -17,7 +17,8 @@ import {
   Route, 
   Clock, 
   Users,
-  CheckCircle 
+  CheckCircle,
+  Map as MapIcon
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -706,7 +707,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1">
-                  <Map className="h-4 w-4 text-primary" />
+                  <MapIcon className="h-4 w-4 text-primary" />
                   <h3 className="text-sm font-medium">Mapa de la Zona</h3>
                 </div>
                 {zones && Array.isArray(zones) && zones.find((z: any) => z.id === selectedZone) && (
@@ -975,40 +976,50 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
               )}
 
               {optimizedRoute.length > 0 && (
-                <div className="border rounded-md overflow-hidden mt-4">
-                  <div className="text-sm font-medium mb-2">Mapa de Ruta Optimizada</div>
-                  <ResponsiveMapContainer 
-                    fixedHeight 
-                    minHeight="300px"
-                    className="map-container"
-                  >
-                    {typeof window !== "undefined" && (
-                      <MapContainer
-                        center={getMapCenter() as [number, number]}
-                        zoom={11}
-                        style={{ width: "100%" }}
-                        className="route-map"
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4 text-primary" />
+                      <h3 className="text-sm font-medium">Mapa de Ruta Optimizada</h3>
+                    </div>
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-green-50 text-green-600 border-green-200">
+                      {optimizedRoute.length} paradas
+                    </Badge>
+                  </div>
+                  <Card className="overflow-hidden shadow-sm">
+                    <CardContent className="p-0">
+                      <ResponsiveMapContainer 
+                        fixedHeight 
+                        minHeight="300px"
+                        className="map-container"
                       >
-                        <TileLayer
-                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        />
-                        <MapCenterFixer />
-                        {/* Polyline para la ruta */}
-                        {optimizedRoute.length > 1 && (
-                          <Polyline
-                            positions={optimizedRoute
-                              .filter(customer => customer.coordinates)
-                              .map(customer => {
-                                const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
-                                return [lat, lng] as [number, number];
-                              })}
-                            color="#3366ff"
-                            weight={3}
-                            opacity={0.7}
-                            dashArray="5,10"
-                          />
-                        )}
+                        {typeof window !== "undefined" && (
+                          <MapContainer
+                            center={getMapCenter() as [number, number]}
+                            zoom={11}
+                            style={{ width: "100%" }}
+                            className="route-map"
+                          >
+                            <TileLayer
+                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            />
+                            <MapCenterFixer />
+                            {/* Polyline para la ruta */}
+                            {optimizedRoute.length > 1 && (
+                              <Polyline
+                                positions={optimizedRoute
+                                  .filter(customer => customer.coordinates)
+                                  .map(customer => {
+                                    const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
+                                    return [lat, lng] as [number, number];
+                                  })}
+                                color="#3366ff"
+                                weight={3}
+                                opacity={0.7}
+                                dashArray="5,10"
+                              />
+                            )}
                         
                         {/* Markers for each point */}
                         {optimizedRoute.map((customer, index) => {
@@ -1056,6 +1067,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                       </MapContainer>
                     )}
                   </ResponsiveMapContainer>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
 
@@ -1085,7 +1098,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
             </form>
           </Form>
         </TabsContent>
-          </Tabs>
+        </Tabs>
         </CardContent>
       </Card>
     </div>
