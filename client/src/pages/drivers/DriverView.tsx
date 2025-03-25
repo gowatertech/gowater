@@ -494,7 +494,7 @@ export default function DriverView() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="route" className="space-y-4">
+          <TabsContent value="route" className="space-y-2">
             {/* Mapa en la vista móvil */}
             <Card className="overflow-hidden p-0">
               <ResponsiveMapContainer minHeight="35vh">
@@ -757,7 +757,7 @@ export default function DriverView() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="inventory" className="space-y-4">
+          <TabsContent value="inventory" className="space-y-2">
             <Card className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <BoxesIcon className="h-5 w-5 text-orange-600" />
@@ -853,7 +853,7 @@ export default function DriverView() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="stats" className="space-y-4">
+          <TabsContent value="stats" className="space-y-2">
             <Card className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="h-5 w-5 text-purple-600" />
