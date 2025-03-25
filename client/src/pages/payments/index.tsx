@@ -62,6 +62,7 @@ type PaymentWithCustomer = Payment & {
   customerName: string;
   invoiceNumber: string;
   method?: string; // Alias para paymentMethod
+  paymentMethod?: string; // Campo real usado por el servidor
 };
 
 // Tipo para las estadísticas de pagos
@@ -228,17 +229,20 @@ export default function Payments() {
   };
 
   // Renderizar un badge de estado según el método de pago
-  const PaymentMethodBadge = ({ method }: { method: string }) => {
+  const PaymentMethodBadge = ({ method }: { method?: string }) => {
     let variant: "outline" | "default" | "secondary" = "outline";
     let label = "Desconocido";
+    
+    // Asegurarnos de que siempre tenemos un método válido
+    const paymentMethod = method || "cash";
 
-    if (method === "cash") {
+    if (paymentMethod === "cash") {
       variant = "default";
       label = "Efectivo";
-    } else if (method === "card") {
+    } else if (paymentMethod === "card") {
       variant = "secondary";
       label = "Tarjeta";
-    } else if (method === "transfer") {
+    } else if (paymentMethod === "transfer") {
       variant = "outline";
       label = "Transferencia";
     }
@@ -387,7 +391,7 @@ export default function Payments() {
                             </TableCell>
                             <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
                             <TableCell className="py-1.5">
-                              <PaymentMethodBadge method={payment.method || 'cash'} />
+                              <PaymentMethodBadge method={payment.method || payment.paymentMethod} />
                             </TableCell>
                             <TableCell className="py-1.5 truncate max-w-[150px]">{payment.notes || "-"}</TableCell>
                             <TableCell className="py-1.5 text-right font-semibold">
@@ -424,7 +428,7 @@ export default function Payments() {
                                       <div className="bg-muted/30 rounded p-2">
                                         <p className="text-xs text-muted-foreground">Método de Pago</p>
                                         <p className="font-medium">
-                                          <PaymentMethodBadge method={payment.method || 'cash'} />
+                                          <PaymentMethodBadge method={payment.method || payment.paymentMethod} />
                                         </p>
                                       </div>
                                     </div>
