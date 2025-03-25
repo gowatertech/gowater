@@ -506,9 +506,9 @@ export default function Users() {
                   </div>
 
                   {/* Sección de credenciales en 3 columnas en pantallas grandes */}
-                  <div className="bg-muted/30 p-3 sm:p-4 rounded-md space-y-3">
-                    <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("credentials")}</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-muted/30 p-2 sm:p-3 md:p-4 rounded-md space-y-2 sm:space-y-3">
+                    <h3 className="font-medium text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{t("credentials")}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                       <FormField
                         control={form.control}
                         name="username"
@@ -553,9 +553,9 @@ export default function Users() {
                   </div>
 
                   {/* Sección de contacto en 3 columnas en pantallas grandes */}
-                  <div className="bg-muted/30 p-3 sm:p-4 rounded-md space-y-3">
-                    <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("contactInfo")}</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-muted/30 p-2 sm:p-3 md:p-4 rounded-md space-y-2 sm:space-y-3">
+                    <h3 className="font-medium text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{t("contactInfo")}</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 md:gap-4">
                       <FormField
                         control={form.control}
                         name="phone"
@@ -598,9 +598,9 @@ export default function Users() {
 
                   {/* Sección específica para conductores */}
                   {form.watch("role") === "driver" && (
-                    <div className="bg-muted/30 p-3 sm:p-4 rounded-md space-y-3">
-                      <h3 className="font-medium text-sm text-muted-foreground mb-2">{t("driverInfo")}</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-muted/30 p-2 sm:p-3 md:p-4 rounded-md space-y-2 sm:space-y-3">
+                      <h3 className="font-medium text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{t("driverInfo")}</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 md:gap-4">
                         <FormField
                           control={form.control}
                           name="license"
@@ -668,17 +668,17 @@ export default function Users() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="inactive" className="mt-2 p-2">
-            <ScrollArea className="h-[calc(100vh-310px)]">
-              <div className="overflow-x-auto">
+          <TabsContent value="inactive" className="mt-2 p-1 sm:p-2">
+            <ScrollArea className="h-[calc(100vh-330px)] md:h-[calc(100vh-310px)]">
+              <div className="w-full overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="text-xs">
-                      <TableHead className="py-2">{t("name")}</TableHead>
-                      <TableHead className="py-2">{t("username")}</TableHead>
-                      <TableHead className="py-2">{t("role")}</TableHead>
-                      <TableHead className="py-2 hidden md:table-cell">{t("phone")}</TableHead>
-                      <TableHead className="py-2 text-right">{t("actions")}</TableHead>
+                      <TableHead className="py-1 sm:py-2">{t("name")}</TableHead>
+                      <TableHead className="py-1 sm:py-2">{t("username")}</TableHead>
+                      <TableHead className="py-1 sm:py-2">{t("role")}</TableHead>
+                      <TableHead className="py-1 sm:py-2 hidden md:table-cell">{t("phone")}</TableHead>
+                      <TableHead className="py-1 sm:py-2 text-right">{t("actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody className="text-sm">
