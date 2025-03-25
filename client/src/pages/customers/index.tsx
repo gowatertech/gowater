@@ -365,38 +365,38 @@ export default function Customers() {
   const stats = getCustomerStats();
 
   return (
-    <div className={`${isMobile ? 'p-2' : 'p-4'} max-w-6xl mx-auto`}>
-      {/* Cabecera */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold flex items-center">
-          <Users className="h-6 w-6 mr-2 text-blue-600" />
+    <div className={`${isMobile ? 'p-1' : 'p-2'} max-w-6xl mx-auto`}>
+      {/* Cabecera - versión compacta */}
+      <div className="flex justify-between items-center mb-2">
+        <h1 className="text-xl font-bold flex items-center">
+          <Users className="h-5 w-5 mr-1.5 text-blue-600" />
           Gestión de Clientes
         </h1>
         {!isMobile && (
           <Button 
             onClick={() => setActiveTab("new")} 
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700 h-8 text-xs"
           >
-            <PlusCircle className="h-4 w-4 mr-2" />
+            <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
             Nuevo Cliente
           </Button>
         )}
       </div>
       
-      {/* Tabs de navegación */}
+      {/* Tabs de navegación - versión compacta */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : activeTab === "details" ? 'grid-cols-3' : 'grid-cols-3'} mb-4`}>
-          <TabsTrigger value="list" className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : activeTab === "details" ? 'grid-cols-3' : 'grid-cols-3'} mb-2 h-8`}>
+          <TabsTrigger value="list" className="flex items-center gap-1 text-xs">
+            <Users className="h-3.5 w-3.5" />
             <span>Clientes</span>
           </TabsTrigger>
-          <TabsTrigger value="new" className="flex items-center gap-1">
-            <PlusCircle className="h-4 w-4" />
+          <TabsTrigger value="new" className="flex items-center gap-1 text-xs">
+            <PlusCircle className="h-3.5 w-3.5" />
             <span>Nuevo</span>
           </TabsTrigger>
           {!isMobile && (
-            <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-1">
-              <FileText className="h-4 w-4" />
+            <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-1 text-xs">
+              <FileText className="h-3.5 w-3.5" />
               <span>{isEditing ? "Editar" : "Detalles"}</span>
             </TabsTrigger>
           )}
@@ -662,21 +662,21 @@ export default function Customers() {
         </TabsContent>
         
         {/* Contenido del Tab de Nuevo Cliente */}
-        <TabsContent value="new" className="border rounded-md p-2 sm:p-4">
-          <Card className="p-4">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-xl font-bold flex items-center">
-                <PlusCircle className="h-5 w-5 mr-2 text-blue-600" />
+        <TabsContent value="new" className="border rounded-md p-1">
+          <Card className="p-2">
+            <CardHeader className="px-0 pt-0 pb-2">
+              <CardTitle className="text-lg font-bold flex items-center">
+                <PlusCircle className="h-4 w-4 mr-1.5 text-blue-600" />
                 Registrar Nuevo Cliente
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 Complete los datos para crear un nuevo cliente en el sistema
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0 pb-0">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
                   <FormField
                     control={form.control}
                     name="logo"
@@ -994,34 +994,34 @@ export default function Customers() {
         </TabsContent>
         
         {/* Contenido del Tab de Detalles de Cliente */}
-        <TabsContent value="details" className="border rounded-md p-2 sm:p-4">
-          <Card className="p-4">
-            <CardHeader className="px-0 pt-0">
-              <div className="flex flex-row justify-between items-center mb-2">
-                <CardTitle className="text-xl font-bold flex items-center">
-                  <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+        <TabsContent value="details" className="border rounded-md p-1">
+          <Card className="p-2">
+            <CardHeader className="px-0 pt-0 pb-2">
+              <div className="flex flex-row justify-between items-center mb-1">
+                <CardTitle className="text-lg font-bold flex items-center">
+                  <Building2 className="h-4 w-4 mr-1.5 text-blue-600" />
                   {isEditing ? 'Editar Cliente' : 'Detalles del Cliente'}
                 </CardTitle>
                 {!isEditing ? (
-                  <Button onClick={handleEditClick} variant="outline" size="sm">
-                    <Edit className="h-4 w-4 mr-1 sm:mr-2" />
+                  <Button onClick={handleEditClick} variant="outline" size="sm" className="h-7 text-xs">
+                    <Edit className="h-3.5 w-3.5 mr-1" />
                     <span className="hidden sm:inline">Editar</span>
                   </Button>
                 ) : (
-                  <Button onClick={() => setIsEditing(false)} variant="outline" size="sm">
-                    <X className="h-4 w-4 mr-1 sm:mr-2" />
+                  <Button onClick={() => setIsEditing(false)} variant="outline" size="sm" className="h-7 text-xs">
+                    <X className="h-3.5 w-3.5 mr-1" />
                     <span className="hidden sm:inline">Cancelar</span>
                   </Button>
                 )}
               </div>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 {isEditing ? 'Modifique la información del cliente según sea necesario' : 'Información detallada del cliente'}
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0 pb-0">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
                 <FormField
                   control={form.control}
                   name="logo"
