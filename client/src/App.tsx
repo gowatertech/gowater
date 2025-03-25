@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
-import Orders from "@/pages/orders/temp";
+import Orders from "@/pages/orders";
 import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";

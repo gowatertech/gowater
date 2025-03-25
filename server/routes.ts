@@ -1628,6 +1628,29 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Endpoint para actualizar el estado de un pedido
+  app.patch("/api/orders/:id/status", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: 'ID de pedido inválido' });
+      }
+
+      const { status } = req.body;
+      if (!status || !['pending', 'delivered', 'cancelled'].includes(status)) {
+        return res.status(400).json({ error: 'Estado inválido. Debe ser "pending", "delivered" o "cancelled"' });
+      }
+
+      const updatedOrder = await storage.updateOrderStatus(orderId, status);
+      console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a "${status}"`, updatedOrder);
+      
+      res.json(updatedOrder);
+    } catch (error) {
+      console.error("Error al actualizar estado del pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.get("/api/reports/sales", async (req, res) => {
     try {
       const range = req.query.range || 'month';
