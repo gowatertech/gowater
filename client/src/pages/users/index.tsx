@@ -673,49 +673,49 @@ export default function Users() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("name")}</TableHead>
-                      <TableHead>{t("username")}</TableHead>
-                      <TableHead>{t("role")}</TableHead>
-                      <TableHead className="hidden md:table-cell">{t("phone")}</TableHead>
-                      <TableHead className="text-right">{t("actions")}</TableHead>
+                    <TableRow className="text-xs">
+                      <TableHead className="py-2">{t("name")}</TableHead>
+                      <TableHead className="py-2">{t("username")}</TableHead>
+                      <TableHead className="py-2">{t("role")}</TableHead>
+                      <TableHead className="py-2 hidden md:table-cell">{t("phone")}</TableHead>
+                      <TableHead className="py-2 text-right">{t("actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="text-sm">
                     {users.filter(user => !user.active).map((user) => (
-                      <TableRow key={user.id} className="opacity-60">
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>{user.username}</TableCell>
-                        <TableCell>
+                      <TableRow key={user.id} className="opacity-60 h-10 sm:h-12">
+                        <TableCell className="py-1 sm:py-2">{user.name}</TableCell>
+                        <TableCell className="py-1 sm:py-2">{user.username}</TableCell>
+                        <TableCell className="py-1 sm:py-2">
                           <Badge
                             variant="outline"
-                            className={
+                            className={`text-xs px-1.5 py-0.5 ${
                               user.role === "admin" ? "bg-blue-50 text-blue-700 border-blue-200" :
                               user.role === "driver" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
                               user.role === "assistant" ? "bg-purple-50 text-purple-700 border-purple-200" :
                               "bg-green-50 text-green-700 border-green-200"
-                            }
+                            }`}
                           >
                             {t(user.role)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">{user.phone || "-"}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="py-1 sm:py-2 hidden md:table-cell">{user.phone || "-"}</TableCell>
+                        <TableCell className="py-1 sm:py-2 text-right">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 mr-1"
+                            className="h-6 w-6 sm:h-8 sm:w-8 mr-1"
                             onClick={() => handleEditWithTabChange(user)}
                           >
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive"
+                            className="h-6 w-6 sm:h-8 sm:w-8 text-destructive"
                             onClick={() => handleDelete(user.id)}
                           >
-                            <Trash className="h-4 w-4" />
+                            <Trash className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
