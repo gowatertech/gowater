@@ -556,63 +556,55 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     : zoneCustomers;
 
   return (
-    <div className="p-2 md:p-4 space-y-2">
-      {/* Cabecera con título e icono */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1">
-          <Truck className="h-5 w-5 text-primary" />
-          <h1 className="text-lg md:text-xl font-bold">Planificación de Rutas</h1>
-        </div>
-      </div>
-
-      {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="p-1 md:p-2 space-y-2">
+      {/* Tarjetas de estadísticas en filas compactas */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <Card className="border-l-4 border-l-blue-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-3 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Clientes Seleccionados</p>
-              <p className="text-xl font-bold mt-1">{selectedCustomers.length}</p>
+              <p className="text-xs text-muted-foreground">Clientes</p>
+              <p className="text-lg font-bold">{selectedCustomers.length}</p>
             </div>
-            <Users className="h-7 w-7 text-blue-500" />
+            <Users className="h-5 w-5 text-blue-500" />
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-yellow-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-3 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Distancia Total</p>
-              <p className="text-xl font-bold mt-1">{routeStats.totalDistance} km</p>
+              <p className="text-xs text-muted-foreground">Distancia</p>
+              <p className="text-lg font-bold">{routeStats.totalDistance} km</p>
             </div>
-            <Route className="h-7 w-7 text-yellow-500" />
+            <Route className="h-5 w-5 text-yellow-500" />
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-green-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-3 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Duración Estimada</p>
-              <p className="text-xl font-bold mt-1">{routeStats.estimatedDuration} min</p>
+              <p className="text-xs text-muted-foreground">Duración</p>
+              <p className="text-lg font-bold">{routeStats.estimatedDuration} min</p>
             </div>
-            <Clock className="h-7 w-7 text-green-500" />
+            <Clock className="h-5 w-5 text-green-500" />
           </CardContent>
         </Card>
         
         <Card className="border-l-4 border-l-purple-500 shadow-sm">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-3 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Zonas Activas</p>
-              <p className="text-xl font-bold mt-1">{selectedZone ? '1' : '0'}</p>
+              <p className="text-xs text-muted-foreground">Zona</p>
+              <p className="text-lg font-bold">{selectedZone ? '1' : '0'}</p>
             </div>
-            <MapPin className="h-7 w-7 text-purple-500" />
+            <MapPin className="h-5 w-5 text-purple-500" />
           </CardContent>
         </Card>
       </div>
 
       {/* Contenido principal con pestañas */}
-      <Card className="shadow-md">
-        <CardHeader className="border-b bg-muted/50 px-5 py-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Truck className="h-5 w-5 text-primary" />
+      <Card className="shadow-sm">
+        <CardHeader className="border-b bg-muted/50 px-4 py-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Truck className="h-4 w-4 text-primary" />
             Planificación de Rutas
           </CardTitle>
         </CardHeader>
@@ -621,27 +613,27 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
             <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
               <TabsTrigger 
                 value="zone" 
-                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
               >
-                <MapPin className="h-4 w-4 mr-2" />
+                <MapPin className="h-4 w-4 mr-1" />
                 Zona
               </TabsTrigger>
               {!compact && (
                 <TabsTrigger 
                   value="customers" 
                   disabled={!selectedZone}
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
                 >
-                  <User className="h-4 w-4 mr-2" />
+                  <User className="h-4 w-4 mr-1" />
                   Clientes
                 </TabsTrigger>
               )}
               <TabsTrigger 
                 value="review" 
                 disabled={selectedCustomers.length === 0}
-                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
               >
-                <Truck className="h-4 w-4 mr-2" />
+                <Truck className="h-4 w-4 mr-1" />
                 Revisar Ruta
               </TabsTrigger>
             </TabsList>

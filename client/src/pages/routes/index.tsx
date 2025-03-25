@@ -446,13 +446,19 @@ export default function Routes() {
       </Card>
 
       {isCreatingZone && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{t("createZone")}</CardTitle>
+        <Card className="mb-4">
+          <CardHeader className="py-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-primary" />
+              {t("createZone")}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pb-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
               <div>
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("zoneName")}
+                </label>
                 <input
                   type="text"
                   value={zoneName}
@@ -462,19 +468,25 @@ export default function Routes() {
                 />
               </div>
               <div>
-                <input
-                  type="color"
-                  value={zoneColor}
-                  onChange={(e) => setZoneColor(e.target.value)}
-                  className="w-full h-10"
-                />
+                <label className="text-sm text-muted-foreground mb-1 block">
+                  {t("zoneColor")}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={zoneColor}
+                    onChange={(e) => setZoneColor(e.target.value)}
+                    className="h-9 w-14"
+                  />
+                  <span className="text-sm px-2">{zoneColor}</span>
+                </div>
               </div>
-              <ZoneMap
-                newZoneName={zoneName}
-                selectedColor={zoneColor}
-                onZoneCreated={handleZoneCreated}
-              />
             </div>
+            <ZoneMap
+              newZoneName={zoneName}
+              selectedColor={zoneColor}
+              onZoneCreated={handleZoneCreated}
+            />
           </CardContent>
         </Card>
       )}

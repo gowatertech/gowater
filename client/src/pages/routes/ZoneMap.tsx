@@ -469,9 +469,9 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2">
       {/* Mapa para dibujar la nueva zona */}
-      <ResponsiveMapContainer className="bg-white" fixedHeight>
+      <ResponsiveMapContainer className="bg-white" fixedHeight minHeight="280px">
         <MapContainer
           center={initialPosition}
           zoom={13}
