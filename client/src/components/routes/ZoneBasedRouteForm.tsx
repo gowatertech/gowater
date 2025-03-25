@@ -155,7 +155,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   useEffect(() => {
     const zoneId = form.watch("zoneId");
     if (zoneId !== selectedZone) {
-      setSelectedZone(zoneId);
+      setSelectedZone(zoneId || null);
       setSelectedCustomers([]);
       setOptimizedRoute([]);
     }
@@ -672,7 +672,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                           }
                         }, 500);
                       }}
-                      value={field.value?.toString() || ""}
+                      value={field.value ? String(field.value) : ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -877,7 +877,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                       <FormLabel>Conductor</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value?.toString()}
+                        value={field.value ? String(field.value) : ""}
                       >
                         <FormControl>
                           <SelectTrigger>
