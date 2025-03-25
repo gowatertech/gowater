@@ -469,9 +469,40 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {/* Mapa para dibujar la nueva zona */}
-      <ResponsiveMapContainer className="bg-white" fixedHeight minHeight="280px">
+    <div className="flex flex-col gap-1">
+      {/* Formulario compacto */}
+      <div className="grid gap-1 grid-cols-2 mb-1">
+        <div className="col-span-2 md:col-span-1">
+          <label htmlFor="zoneName" className="text-xs font-medium mb-1 block">
+            Nombre de la Zona
+          </label>
+          <input
+            id="zoneName"
+            type="text"
+            value={newZoneName}
+            onChange={(e) => setNewZoneName(e.target.value)}
+            className="w-full px-2 py-1 text-sm border rounded-md"
+            placeholder="Ingrese nombre de zona"
+          />
+        </div>
+        <div className="col-span-2 md:col-span-1">
+          <label htmlFor="zoneColor" className="text-xs font-medium mb-1 block">
+            Color
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={selectedColor}
+              onChange={(e) => setSelectedColor(e.target.value)}
+              className="h-6 w-12 border rounded-md"
+            />
+            <span className="text-xs">{selectedColor}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Mapa compacto para dibujar la nueva zona */}
+      <ResponsiveMapContainer className="bg-white" fixedHeight minHeight="240px">
         <MapContainer
           center={initialPosition}
           zoom={13}
@@ -483,24 +514,15 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
-          {/* Este componente mantendrá el mapa centrado en la posición deseada */}
           <MapCenterController position={initialPosition} />
-          
-          {/* Control de dibujo para crear nuevas zonas */}
           <DrawingControl onPolygonComplete={handlePolygonComplete} />
-
-          {/* Renderizar zonas existentes usando el componente dedicado */}
           <ZonePolygons zones={zones} />
 
-          {/* Renderizar marcadores de clientes */}
           {customers.map((customer: any) => {
-            // Buscar si el cliente tiene coordenadas en sus datos
             if (customer.coordinates) {
               try {
                 const [lat, lng] = customer.coordinates.split(",").map(Number);
-                if (isNaN(lat) || isNaN(lng)) {
-                  return null;
-                }
+                if (isNaN(lat) || isNaN(lng)) return null;
                 return (
                   <Marker
                     key={customer.id}
@@ -509,16 +531,13 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
                   />
                 );
               } catch (error) {
-                console.error(`Error al renderizar cliente ${customer.id}:`, error);
                 return null;
               }
             } else if (customer.latitude && customer.longitude) {
               try {
                 const lat = parseFloat(customer.latitude);
                 const lng = parseFloat(customer.longitude);
-                if (isNaN(lat) || isNaN(lng)) {
-                  return null;
-                }
+                if (isNaN(lat) || isNaN(lng)) return null;
                 return (
                   <Marker
                     key={customer.id}
@@ -527,7 +546,6 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
                   />
                 );
               } catch (error) {
-                console.error(`Error al renderizar cliente ${customer.id}:`, error);
                 return null;
               }
             }
@@ -535,6 +553,39 @@ export default function ZoneMap({ newZoneName, selectedColor, onZoneCreated }: Z
           })}
         </MapContainer>
       </ResponsiveMapContainer>
+      
+      {/* Botones de control */}
+      <div className="flex justify-between mt-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onZoneCreated()}
+          className="text-xs"
+        >
+          Cancelar
+        </Button>
+        <div className="space-x-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => document.getElementById('zone-file-input')?.click()}
+            className="text-xs"
+          >
+            Importar
+          </Button>
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={() => handlePolygonComplete([])}
+            className="text-xs"
+          >
+            Guardar Zona
+          </Button>
+        </div>
+      </div>
 
       {/* Diálogo de ver/editar zona */}
       <Dialog open={showZoneDetails} onOpenChange={setShowZoneDetails}>
