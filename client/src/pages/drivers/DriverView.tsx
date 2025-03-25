@@ -855,12 +855,12 @@ export default function DriverView() {
           
           <TabsContent value="stats" className="space-y-2">
             <Card className="p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="h-5 w-5 text-purple-600" />
-                <h2 className="font-semibold">Estadísticas del Día</h2>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-purple-600" />
+                <h2 className="font-semibold text-sm">Estadísticas del Día</h2>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
                 <div className="relative overflow-hidden rounded-md border shadow-sm">
                   <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
                   <div className="p-2 pl-2.5">
