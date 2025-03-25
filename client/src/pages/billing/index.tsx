@@ -219,8 +219,8 @@ export default function Billing() {
         total: total.toFixed(2),
         status: "pending" as const,
         paymentMethod,
-        notes,
-        date: new Date().toISOString(),
+        notes: notes || undefined, // Si notes está vacío, lo enviamos como undefined para el esquema opcional
+        // Evitamos enviar la fecha ya que el servidor la establecerá como defaultNow()
       };
 
       const invoiceResponse = await apiRequest("POST", "/api/invoices", invoiceData);

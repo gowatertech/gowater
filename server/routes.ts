@@ -1025,21 +1025,23 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/invoices", async (req, res) => {
     try {
+      console.log("POST /api/invoices - Datos recibidos:", req.body);
       const result = insertInvoiceSchema.safeParse(req.body);
       if (!result.success) {
+        console.error("Error de validación:", result.error.format());
         return res.status(400).json({ error: result.error.format() });
       }
 
-      // Crear la factura
+      // Crear la factura - la fecha se establecerá automáticamente con defaultNow()
       const [invoice] = await db
         .insert(invoices)
         .values({
           ...result.data,
-          date: new Date(),
-          status: "pending",
+          date: new Date(), // Aseguramos que tenga una fecha actual
         })
         .returning();
 
+      console.log("Factura creada:", invoice);
       res.json(invoice);
     } catch (error) {
       console.error("Error al crear factura:", error);
