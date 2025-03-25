@@ -74,6 +74,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [selectedCustomers, setSelectedCustomers] = useState<Customer[]>([]);
   const [optimizedRoute, setOptimizedRoute] = useState<Customer[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
