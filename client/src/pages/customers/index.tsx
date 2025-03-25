@@ -744,7 +744,14 @@ export default function Customers() {
                     name="logo"
                     render={({ field: { value, onChange, ...field } }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Logo (JPG/PNG, máx. 5MB)</FormLabel>
+                        <FormLabel className="flex items-center justify-between text-xs">
+                          <div className="flex items-center">
+                            <Badge className="px-2 py-0 h-5 text-[10px] bg-slate-50 text-slate-700 border-slate-200 border-l-4 border-l-slate-500 mr-1">
+                              Logo (JPG/PNG, máx. 5MB)
+                            </Badge>
+                          </div>
+                          <Image className="h-4 w-4 text-slate-500" />
+                        </FormLabel>
                         <FormControl>
                           <Input
                             className="h-7 text-xs px-2 py-0"
