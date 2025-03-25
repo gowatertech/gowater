@@ -6,7 +6,19 @@ import { insertRouteSchema } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Check, Loader2, MapPin, User, Truck, Calendar } from "lucide-react";
+import { 
+  Check, 
+  Loader2, 
+  MapPin, 
+  User, 
+  Truck, 
+  Calendar, 
+  Search, 
+  Route, 
+  Clock, 
+  Users,
+  CheckCircle 
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import L from "leaflet";
@@ -28,7 +40,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter 
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +59,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
 interface ZoneBasedRouteFormProps {
   onRouteCreated: () => void;
@@ -538,8 +559,23 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     }
   };
 
+  // Estadísticas para la ruta
+  const routeStats = {
+    totalCustomers: selectedCustomers.length,
+    totalDistance: optimizedRoute.length > 0 ? (calculateTotalRouteDistance(optimizedRoute) / 1000).toFixed(2) : "0.00",
+    estimatedDuration: optimizedRoute.length > 0 ? calculateEstimatedDuration(calculateTotalRouteDistance(optimizedRoute), optimizedRoute.length - 1) : 0,
+  };
+
+  // Filtrar clientes por búsqueda
+  const filteredCustomers = searchQuery.trim() === "" 
+    ? zoneCustomers 
+    : zoneCustomers.filter((customer: Customer) => 
+        customer.businessname.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        customer.phone.includes(searchQuery)
+      );
+
   return (
-    <div className={compact ? "compact-form" : ""}>
+    <div className="space-y-4">
       <Tabs value={selectedTab} onValueChange={setSelectedTab}>
         <TabsList className={`grid w-full ${compact ? "grid-cols-2" : "grid-cols-3"}`}>
           <TabsTrigger value="zone">
