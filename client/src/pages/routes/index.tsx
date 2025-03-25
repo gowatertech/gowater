@@ -75,6 +75,7 @@ export default function Routes() {
   const { user } = useCurrentUser();
   const { routes, loading, error } = useRoutes();
   const [selectedTab, setSelectedTab] = useState("active");
+  const [mainTab, setMainTab] = useState("list");
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
   const [isCreatingZone, setIsCreatingZone] = useState(false);
   const [zoneName, setZoneName] = useState("");
@@ -85,6 +86,8 @@ export default function Routes() {
   const [editZoneName, setEditZoneName] = useState("");
   const [editZoneColor, setEditZoneColor] = useState("");
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -220,6 +223,51 @@ export default function Routes() {
 
   // Calcular si hay rutas activas
   const hasActiveRoutes = !loading && !error && routes?.some(route => !route.isCompleted);
+  
+  // Estadísticas para las tarjetas
+  const routeStats = useMemo(() => {
+    if (loading || error || !routes) return {
+      totalActive: 0,
+      totalCompleted: 0,
+      totalDistance: "0.00",
+      totalStops: 0
+    };
+    
+    const activeRoutes = routes.filter(r => !r.isCompleted);
+    const completedRoutes = routes.filter(r => r.isCompleted);
+    const totalDistance = routes
+      .filter(r => r.totalDistance)
+      .reduce((sum, r) => sum + Number(r.totalDistance || 0), 0)
+      .toFixed(2);
+    const totalStops = routes
+      .reduce((sum, r) => sum + (r.stops?.length || 0), 0);
+      
+    return {
+      totalActive: activeRoutes.length,
+      totalCompleted: completedRoutes.length,
+      totalDistance,
+      totalStops
+    };
+  }, [routes, loading, error]);
+  
+  // Filtrar rutas según la búsqueda y estado
+  const filteredRoutes = useMemo(() => {
+    if (loading || error || !routes) return [];
+    
+    return routes.filter(route => {
+      // Filtro por término de búsqueda
+      const matchesSearch = 
+        (route.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        route.id.toString().includes(searchQuery));
+      
+      // Filtro por estado
+      if (statusFilter === "all") return matchesSearch;
+      if (statusFilter === "active") return matchesSearch && !route.isCompleted;
+      if (statusFilter === "completed") return matchesSearch && route.isCompleted;
+      
+      return matchesSearch;
+    });
+  }, [routes, searchQuery, statusFilter, loading, error]);
 
   if (isCreatingRoute) {
     return (
@@ -245,9 +293,12 @@ export default function Routes() {
   }
 
   return (
-    <div className="container py-6">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">{t("routes")}</h1>
+    <div className="container py-4">
+      <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-2">
+          <Route className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-bold">{t("routes")}</h1>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -279,6 +330,49 @@ export default function Routes() {
             <span>{t("createRoute")}</span>
           </Button>
         </div>
+      </div>
+      
+      {/* Tarjetas de estadísticas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Rutas Activas</p>
+              <p className="text-xl font-bold mt-1">{routeStats.totalActive}</p>
+            </div>
+            <Clock className="h-7 w-7 text-blue-500" />
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-green-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Rutas Completadas</p>
+              <p className="text-xl font-bold mt-1">{routeStats.totalCompleted}</p>
+            </div>
+            <CheckCircle className="h-7 w-7 text-green-500" />
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-yellow-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Distancia Total</p>
+              <p className="text-xl font-bold mt-1">{routeStats.totalDistance} km</p>
+            </div>
+            <Route className="h-7 w-7 text-yellow-500" />
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-purple-500 shadow-sm">
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Paradas</p>
+              <p className="text-xl font-bold mt-1">{routeStats.totalStops}</p>
+            </div>
+            <MapPin className="h-7 w-7 text-purple-500" />
+          </CardContent>
+        </Card>
       </div>
 
       {/* Lista de Zonas */}
@@ -385,171 +479,271 @@ export default function Routes() {
         </Card>
       )}
 
-      <Tabs
-        defaultValue="active"
-        value={selectedTab}
-        onValueChange={setSelectedTab}
-        className="space-y-4"
-      >
-        <TabsList>
-          <TabsTrigger value="active">{t("activeRoutes")}</TabsTrigger>
-          <TabsTrigger value="completed">{t("completedRoutes")}</TabsTrigger>
-        </TabsList>
+      {/* Contenedor principal con barra de búsqueda, filtros y pestañas */}
+      <Card className="bg-card rounded-lg shadow-sm border p-1 mb-6">
+        {/* Barra de búsqueda y filtros */}
+        <div className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between border-b">
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar ruta..."
+              className="pl-8 w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            >
+              <SelectTrigger className="w-full md:w-[180px] h-10">
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="active">Rutas activas</SelectItem>
+                <SelectItem value="completed">Rutas completadas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              className="h-10"
+              onClick={() => {
+                setSearchQuery("");
+                setStatusFilter("all");
+              }}
+            >
+              <X className="h-4 w-4 mr-1" /> Limpiar
+            </Button>
+          </div>
+        </div>
+        
+        {/* Pestañas principales: Lista y Formulario */}
+        <Tabs 
+          defaultValue="list" 
+          value={mainTab}
+          onValueChange={setMainTab}
+          className="space-y-2"
+        >
+          <div className="px-4 pt-2">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="list">Lista de Rutas</TabsTrigger>
+              <TabsTrigger value="form">Crear Ruta</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="list" className="p-1 pt-2">
+            {/* Subtabs: Activas y Completadas */}
+            <Tabs
+              defaultValue="active"
+              value={selectedTab}
+              onValueChange={setSelectedTab}
+              className="space-y-4"
+            >
+              <TabsList className="w-full md:w-auto grid grid-cols-2 max-w-md">
+                <TabsTrigger value="active" className="flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span>Rutas Activas</span>
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="flex items-center gap-1">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Rutas Completadas</span>
+                </TabsTrigger>
+              </TabsList>
 
-        <TabsContent value="active" className="space-y-4">
-          {loading && <div className="text-center">{t("loading")}</div>}
-          {error && (
-            <div className="text-center text-red-500">
-              {t("errorLoadingRoutes")}
-            </div>
-          )}
-          {!loading && !error && routes?.length === 0 && (
-            <div className="text-center">{t("noActiveRoutes")}</div>
-          )}
-          {!loading &&
-            !error &&
-            routes
-              ?.filter((route) => !route.isCompleted)
-              .map((route) => (
-                <Card key={route.id} className="overflow-hidden">
-                  <div className="flex items-center p-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4" />
-                        <span className="font-medium text-sm">
-                          {route.name || `Ruta #${route.id}`}
-                        </span>
-                        <Badge
-                          variant={
-                            route.driverStartedAt ? "secondary" : "outline"
-                          }
-                          className="ml-auto text-xs py-0 h-5"
-                        >
-                          {route.driverStartedAt
-                            ? t("inProgress")
-                            : t("notStarted")}
-                        </Badge>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-2 mt-1 text-xs">
-                        <div className="flex items-center">
-                          <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
-                          <span className="text-muted-foreground">
-                            {format(new Date(route.date), "dd/MM/yyyy")}
-                          </span>
-                        </div>
-                        <div className="flex items-center">
-                          <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
-                          <span className="text-muted-foreground">
-                            {route.stops?.length} paradas
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-end">
-                          {route.totalDistance
-                            ? `${Number(route.totalDistance).toFixed(1)} km`
-                            : "Calculando..."}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="h-8 ml-2"
-                    >
-                      <Link href={`/routes/${route.id}`}>
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
+              {/* Contenido de Rutas Activas */}
+              <TabsContent value="active" className="space-y-4">
+                {loading && <div className="text-center p-8">{t("loading")}</div>}
+                {error && (
+                  <div className="text-center text-red-500 p-8">
+                    {t("errorLoadingRoutes")}
                   </div>
-                </Card>
-              ))}
-        </TabsContent>
-
-        <TabsContent value="completed" className="space-y-4">
-          {loading && <div className="text-center">{t("loading")}</div>}
-          {error && (
-            <div className="text-center text-red-500">
-              {t("errorLoadingRoutes")}
-            </div>
-          )}
-          {!loading && !error && routes?.length === 0 && (
-            <div className="text-center">{t("noCompletedRoutes")}</div>
-          )}
-          {!loading &&
-            !error &&
-            routes
-              ?.filter((route) => route.isCompleted)
-              .map((route) => (
-                <Card key={route.id} className="overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-3">
-                    <div className="p-6">
-                      <CardTitle className="mb-4 flex items-center gap-2">
-                        <Truck className="h-5 w-5" />
-                        <span>
-                          {t("route")} #{route.id}
-                        </span>
-                        <Badge variant="default" className="ml-2 bg-green-500 text-white">
-                          {t("completed")}
-                        </Badge>
-                      </CardTitle>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            {format(new Date(route.date), "MMMM d, yyyy")}
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium">
-                              {route.stops?.length} {t("stops")}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {route.totalDistance
-                                ? `${Number(route.totalDistance).toFixed(1)} km`
-                                : t("calculatingRoute")}
-                            </p>
+                )}
+                {!loading && !error && filteredRoutes.filter(r => !r.isCompleted).length === 0 && (
+                  <div className="text-center p-8 flex flex-col items-center justify-center text-muted-foreground">
+                    <Route className="h-12 w-12 mb-2 opacity-20" />
+                    <p>No se encontraron rutas activas</p>
+                    {searchQuery && <p className="text-sm">Prueba con otra búsqueda</p>}
+                  </div>
+                )}
+                {/* Lista de rutas activas */}
+                <div className="grid grid-cols-1 gap-4">
+                  {!loading &&
+                    !error &&
+                    filteredRoutes
+                      .filter((route) => !route.isCompleted)
+                      .map((route) => (
+                        <Card key={route.id} className="overflow-hidden hover:bg-accent/5 transition-colors">
+                          <div className="flex items-center p-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <Truck className="h-5 w-5 text-blue-500" />
+                                <span className="font-medium">
+                                  {route.name || `Ruta #${route.id}`}
+                                </span>
+                                <Badge
+                                  variant={
+                                    route.driverStartedAt ? "secondary" : "outline"
+                                  }
+                                  className="ml-auto text-xs py-0 h-5"
+                                >
+                                  {route.driverStartedAt
+                                    ? "En progreso"
+                                    : "No iniciada"}
+                                </Badge>
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 text-sm">
+                                <div className="flex items-center text-muted-foreground">
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {format(new Date(route.date), "dd/MM/yyyy")}
+                                  </span>
+                                </div>
+                                <div className="flex items-center text-muted-foreground">
+                                  <MapPin className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {route.stops?.length || 0} paradas
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-start md:justify-end text-muted-foreground">
+                                  <Route className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {route.totalDistance
+                                      ? `${Number(route.totalDistance).toFixed(1)} km`
+                                      : "Calculando..."}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                              className="h-10 w-10 ml-2 rounded-full"
+                            >
+                              <Link href={`/routes/${route.id}`}>
+                                <ArrowRight className="h-5 w-5" />
+                              </Link>
+                            </Button>
                           </div>
-                        </div>
-                      </div>
+                        </Card>
+                      ))}
+                </div>
+              </TabsContent>
 
-                      <RouteStats route={route} className="mt-4" />
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="h-8"
-                        >
-                          <Link href={`/routes/${route.id}`}>
-                            {t("viewDetails")}
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                    {!isMobile && (
-                      <>
-                        <div className="border-l">
-                          <RouteMap
-                            route={route}
-                            className="h-full w-full min-h-[250px]"
-                          />
-                        </div>
-                        <div className="border-l p-6">
-                          <RouteTimeline route={route} />
-                        </div>
-                      </>
-                    )}
+              {/* Contenido de Rutas Completadas */}
+              <TabsContent value="completed" className="space-y-4">
+                {loading && <div className="text-center p-8">{t("loading")}</div>}
+                {error && (
+                  <div className="text-center text-red-500 p-8">
+                    {t("errorLoadingRoutes")}
                   </div>
-                </Card>
-              ))}
-        </TabsContent>
-      </Tabs>
+                )}
+                {!loading && !error && filteredRoutes.filter(r => r.isCompleted).length === 0 && (
+                  <div className="text-center p-8 flex flex-col items-center justify-center text-muted-foreground">
+                    <CheckCircle className="h-12 w-12 mb-2 opacity-20" />
+                    <p>No se encontraron rutas completadas</p>
+                    {searchQuery && <p className="text-sm">Prueba con otra búsqueda</p>}
+                  </div>
+                )}
+                {/* Lista de rutas completadas */}
+                <div className="grid grid-cols-1 gap-4">
+                  {!loading &&
+                    !error &&
+                    filteredRoutes
+                      .filter((route) => route.isCompleted)
+                      .map((route) => (
+                        <Card key={route.id} className="overflow-hidden hover:bg-accent/5 transition-colors">
+                          <div className="grid grid-cols-1 md:grid-cols-12">
+                            <div className="p-4 md:col-span-4">
+                              <div className="flex items-center gap-2 mb-4">
+                                <Truck className="h-5 w-5 text-green-500" />
+                                <span className="font-medium">
+                                  {route.name || `Ruta #${route.id}`}
+                                </span>
+                                <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 hover:bg-green-200">
+                                  Completada
+                                </Badge>
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <Calendar className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {format(new Date(route.date), "dd/MM/yyyy")}
+                                  </span>
+                                </div>
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <MapPin className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {route.stops?.length || 0} paradas
+                                  </span>
+                                </div>
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <Route className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {route.totalDistance
+                                      ? `${Number(route.totalDistance).toFixed(1)} km`
+                                      : "Calculando..."}
+                                  </span>
+                                </div>
+                                <div className="flex items-center text-sm text-muted-foreground">
+                                  <Clock className="h-4 w-4 mr-2" />
+                                  <span>
+                                    {route.estimatedDuration
+                                      ? `${Math.round(route.estimatedDuration / 60)} min`
+                                      : "Calculando..."}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-4">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  asChild
+                                  className="h-8"
+                                >
+                                  <Link href={`/routes/${route.id}`}>
+                                    Ver detalles
+                                  </Link>
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            {!isMobile && (
+                              <>
+                                <div className="md:col-span-4 border-l border-t md:border-t-0">
+                                  <RouteMap
+                                    route={route}
+                                    className="h-full w-full min-h-[200px]"
+                                  />
+                                </div>
+                                <div className="p-4 md:col-span-4 border-l border-t md:border-t-0">
+                                  <h4 className="text-sm font-medium mb-2">Progreso</h4>
+                                  <RouteTimeline route={route} />
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+          
+          <TabsContent value="form" className="space-y-4 p-4">
+            <ZoneBasedRouteForm
+              onRouteCreated={() => setMainTab("list")}
+              compact={true}
+            />
+          </TabsContent>
+        </Tabs>
+      </Card>
       
       {/* Modal para ver detalles de zona */}
       <Dialog open={viewZoneDialogOpen} onOpenChange={setViewZoneDialogOpen}>
