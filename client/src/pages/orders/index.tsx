@@ -99,6 +99,9 @@ export default function Orders() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [notes, setNotes] = useState("");
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
+  const [orderToUpdate, setOrderToUpdate] = useState<Order | null>(null);
+  const [newStatus, setNewStatus] = useState<string>("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>(() => 
     Array.from({ length: 5 }, () => ({
       code: "",
@@ -208,6 +211,55 @@ export default function Orders() {
     const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0);
     const tax = subtotal * 0.18; // 18% ITBIS
     return { subtotal, tax, total: subtotal + tax };
+  };
+
+  // Mutación para actualizar el estado del pedido
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ orderId, status }: { orderId: number, status: string }) => {
+      const response = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar el estado del pedido');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      setIsStatusDialogOpen(false);
+      
+      const statusText = newStatus === "delivered" 
+        ? "entregado" 
+        : newStatus === "cancelled" 
+          ? "cancelado" 
+          : "pendiente";
+          
+      toast({
+        title: "Estado actualizado",
+        description: `El pedido ahora está ${statusText}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+
+  const handleUpdateStatus = () => {
+    if (!orderToUpdate || !newStatus) return;
+    
+    updateStatusMutation.mutate({
+      orderId: orderToUpdate.id,
+      status: newStatus
+    });
+  };
+
+  const openStatusDialog = (order: Order) => {
+    setOrderToUpdate(order);
+    setNewStatus(order.status);
+    setIsStatusDialogOpen(true);
   };
 
   // Mutación para crear pedidos
