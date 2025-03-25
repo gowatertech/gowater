@@ -664,29 +664,27 @@ export default function Customers() {
         </TabsContent>
         
         {/* Contenido del Tab de Nuevo Cliente */}
-        <TabsContent value="new" className="border rounded-md p-1">
-          <Card className="p-2">
-            <CardHeader className="px-0 pt-0 pb-2">
-              <CardTitle className="text-lg font-bold flex items-center">
-                <PlusCircle className="h-4 w-4 mr-1.5 text-blue-600" />
-                Registrar Nuevo Cliente
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Complete los datos para crear un nuevo cliente en el sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="px-0 pb-0">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+        <TabsContent value="new">
+          <div className="border rounded-md p-2 bg-white">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1">
+                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
+                <h3 className="text-sm font-medium">Registrar Cliente</h3>
+              </div>
+            </div>
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
                   <FormField
                     control={form.control}
                     name="logo"
                     render={({ field: { value, onChange, ...field } }) => (
-                      <FormItem>
-                        <FormLabel>Logo (JPG/PNG, máx. 5MB)</FormLabel>
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Logo (JPG/PNG, máx. 5MB)</FormLabel>
                         <FormControl>
                           <Input
+                            className="h-7 text-xs px-2 py-0"
                             type="file"
                             accept="image/jpeg,image/png"
                             onChange={(e) => {
@@ -991,8 +989,7 @@ export default function Customers() {
                 </Button>
               </form>
             </Form>
-            </CardContent>
-          </Card>
+          </div>
         </TabsContent>
         
         {/* Contenido del Tab de Detalles de Cliente */}
