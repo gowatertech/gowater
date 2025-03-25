@@ -1048,7 +1048,7 @@ export default function Customers() {
                       <FormItem className="md:col-span-2 space-y-1">
                         <FormLabel className="text-xs">
                           <Badge className="px-2 py-0 h-5 text-[10px] bg-amber-50 text-amber-700 border-amber-200 border-l-4 border-l-amber-500 flex items-center gap-1">
-                            <Info className="w-3 h-3" />
+                            <FileText className="w-3 h-3" />
                             Referencia
                           </Badge>
                         </FormLabel>
@@ -1093,7 +1093,12 @@ export default function Customers() {
                     name="creditlimit"
                     render={({ field }) => (
                       <FormItem className="md:col-span-2 space-y-1">
-                        <FormLabel className="text-xs">Límite de Crédito</FormLabel>
+                        <FormLabel className="text-xs">
+                          <Badge className="px-2 py-0 h-5 text-[10px] bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500 flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            Límite de Crédito
+                          </Badge>
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="text"
