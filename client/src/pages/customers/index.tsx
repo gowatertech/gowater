@@ -408,45 +408,45 @@ export default function Customers() {
         {/* Contenido del Tab de Lista de Clientes */}
         <TabsContent value="list" className="space-y-4">
           {/* Estadísticas - versión compacta que coincide exactamente con la vista de rutas */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
-            <Card className="border-l-4 border-l-blue-600 hover:bg-blue-50/5">
-              <div className="p-4">
-                <p className="text-sm text-muted-foreground">Total Clientes</p>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-2xl font-bold">{stats.totalCustomers}</p>
-                  <Users className="h-5 w-5 text-blue-600" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+              <CardContent className="p-2 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Clientes</p>
+                  <p className="text-base font-bold">{stats.totalCustomers}</p>
                 </div>
-              </div>
+                <Users className="h-5 w-5 text-blue-500" />
+              </CardContent>
             </Card>
             
-            <Card className="border-l-4 border-l-green-600 hover:bg-green-50/5">
-              <div className="p-4">
-                <p className="text-sm text-muted-foreground">Crédito Total</p>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-2xl font-bold">RD$ {stats.totalCredit.toFixed(2)}</p>
-                  <DollarSign className="h-5 w-5 text-green-600" />
+            <Card className="border-l-4 border-l-green-500 shadow-sm">
+              <CardContent className="p-2 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Crédito Total</p>
+                  <p className="text-base font-bold">RD$ {stats.totalCredit.toFixed(2)}</p>
                 </div>
-              </div>
+                <DollarSign className="h-5 w-5 text-green-500" />
+              </CardContent>
             </Card>
             
-            <Card className="border-l-4 border-l-amber-600 hover:bg-amber-50/5">
-              <div className="p-4">
-                <p className="text-sm text-muted-foreground">Crédito Promedio</p>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-2xl font-bold">RD$ {stats.avgCredit.toFixed(2)}</p>
-                  <CreditCard className="h-5 w-5 text-amber-600" />
+            <Card className="border-l-4 border-l-yellow-500 shadow-sm">
+              <CardContent className="p-2 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Crédito Promedio</p>
+                  <p className="text-base font-bold">RD$ {stats.avgCredit.toFixed(2)}</p>
                 </div>
-              </div>
+                <CreditCard className="h-5 w-5 text-yellow-500" />
+              </CardContent>
             </Card>
             
-            <Card className="border-l-4 border-l-purple-600 hover:bg-purple-50/5">
-              <div className="p-4">
-                <p className="text-sm text-muted-foreground">Provincias</p>
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-2xl font-bold">{stats.provinces}</p>
-                  <MapPin className="h-5 w-5 text-purple-600" />
+            <Card className="border-l-4 border-l-purple-500 shadow-sm">
+              <CardContent className="p-2 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Provincias</p>
+                  <p className="text-base font-bold">{stats.provinces}</p>
                 </div>
-              </div>
+                <MapPin className="h-5 w-5 text-purple-500" />
+              </CardContent>
             </Card>
           </div>
 
