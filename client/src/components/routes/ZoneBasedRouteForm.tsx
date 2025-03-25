@@ -704,42 +704,54 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
           {selectedZone && (
             <div className="mt-6">
-              <div className="text-sm font-medium mb-2">Zone Map</div>
-              <div className="border rounded-md overflow-hidden">
-                <ResponsiveMapContainer 
-                  fixedHeight 
-                  minHeight="300px"
-                  className="map-container"
-                >
-                  {typeof window !== "undefined" && (
-                    <MapContainer
-                      center={[19.0, -70.0]}
-                      zoom={10}
-                      style={{ width: "100%" }}
-                      className="zone-map"
-                    >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      />
-                      {zones && Array.isArray(zones) &&
-                        zones
-                        .filter((zone: any) => zone.id === selectedZone)
-                        .map((zone: any) => (
-                          <Polyline
-                            key={zone.id}
-                            positions={zone.coordinates.map((coord: string) => {
-                              const [lat, lng] = coord.split(",").map(parseFloat);
-                              return [lat, lng];
-                            })}
-                            color={zone.color}
-                            weight={3}
-                          />
-                        ))}
-                    </MapContainer>
-                  )}
-                </ResponsiveMapContainer>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1">
+                  <Map className="h-4 w-4 text-primary" />
+                  <h3 className="text-sm font-medium">Mapa de la Zona</h3>
+                </div>
+                {zones && Array.isArray(zones) && zones.find((z: any) => z.id === selectedZone) && (
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 border-blue-200">
+                    {zones.find((z: any) => z.id === selectedZone)?.name || ""}
+                  </Badge>
+                )}
               </div>
+              <Card className="overflow-hidden shadow-sm">
+                <CardContent className="p-0">
+                  <ResponsiveMapContainer 
+                    fixedHeight 
+                    minHeight="300px"
+                    className="map-container"
+                  >
+                    {typeof window !== "undefined" && (
+                      <MapContainer
+                        center={[19.0, -70.0]}
+                        zoom={10}
+                        style={{ width: "100%" }}
+                        className="zone-map"
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        {zones && Array.isArray(zones) &&
+                          zones
+                          .filter((zone: any) => zone.id === selectedZone)
+                          .map((zone: any) => (
+                            <Polyline
+                              key={zone.id}
+                              positions={zone.coordinates.map((coord: string) => {
+                                const [lat, lng] = coord.split(",").map(parseFloat);
+                                return [lat, lng];
+                              })}
+                              color={zone.color}
+                              weight={3}
+                            />
+                          ))}
+                      </MapContainer>
+                    )}
+                  </ResponsiveMapContainer>
+                </CardContent>
+              </Card>
             </div>
           )}
         </TabsContent>
