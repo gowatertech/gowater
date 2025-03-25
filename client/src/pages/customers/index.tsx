@@ -365,38 +365,40 @@ export default function Customers() {
   const stats = getCustomerStats();
 
   return (
-    <div className={`${isMobile ? 'p-1' : 'p-2'} max-w-6xl mx-auto`}>
-      {/* Cabecera - versión compacta */}
+    <div className="max-w-6xl mx-auto">
+      {/* Cabecera - formato exacto como rutas */}
       <div className="flex justify-between items-center mb-2">
-        <h1 className="text-xl font-bold flex items-center">
-          <Users className="h-5 w-5 mr-1.5 text-blue-600" />
-          Gestión de Clientes
+        <h1 className="text-lg font-bold flex items-center">
+          <Users className="h-4 w-4 mr-1 text-blue-600" />
+          Clientes
         </h1>
-        {!isMobile && (
-          <Button 
-            onClick={() => setActiveTab("new")} 
-            className="bg-blue-600 hover:bg-blue-700 h-8 text-xs"
-          >
-            <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
-            Nuevo Cliente
-          </Button>
-        )}
+        <div className="flex gap-1">
+          {!isMobile && (
+            <Button 
+              onClick={() => setActiveTab("new")} 
+              className="bg-blue-600 hover:bg-blue-700 h-7 text-xs px-2 py-0.5"
+            >
+              <PlusCircle className="h-3 w-3 mr-1" />
+              Crear Cliente
+            </Button>
+          )}
+        </div>
       </div>
       
-      {/* Tabs de navegación - versión compacta */}
+      {/* Tabs de navegación - formato exacto como rutas */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : activeTab === "details" ? 'grid-cols-3' : 'grid-cols-3'} mb-2 h-8`}>
-          <TabsTrigger value="list" className="flex items-center gap-1 text-xs">
-            <Users className="h-3.5 w-3.5" />
-            <span>Clientes</span>
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : activeTab === "details" ? 'grid-cols-3' : 'grid-cols-3'} mb-2 h-7`}>
+          <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2 py-0">
+            <Users className="h-3 w-3" />
+            <span>Lista</span>
           </TabsTrigger>
-          <TabsTrigger value="new" className="flex items-center gap-1 text-xs">
-            <PlusCircle className="h-3.5 w-3.5" />
+          <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2 py-0">
+            <PlusCircle className="h-3 w-3" />
             <span>Nuevo</span>
           </TabsTrigger>
           {!isMobile && (
-            <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-1 text-xs">
-              <FileText className="h-3.5 w-3.5" />
+            <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-1 text-xs px-2 py-0">
+              <FileText className="h-3 w-3" />
               <span>{isEditing ? "Editar" : "Detalles"}</span>
             </TabsTrigger>
           )}
