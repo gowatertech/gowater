@@ -437,7 +437,7 @@ export const insertInvoiceSchema = z.object({
   status: z.enum(["pending", "paid", "cancelled"]),
   paymentMethod: z.enum(["cash", "credit", "card"]),
   notes: z.string().max(200).optional(),
-  date: z.date(),
+  date: z.string().transform((val) => new Date(val)),
 });
 
 export const insertInvoiceItemSchema = z.object({
