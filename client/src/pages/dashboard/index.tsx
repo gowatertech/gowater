@@ -114,180 +114,184 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t("Panel de Control")}</h1>
+    <div className="space-y-3">
+      <h1 className="text-xl font-bold">{t("Panel de Control")}</h1>
 
       {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        <Card className="col-span-2 sm:col-span-1">
-          <CardHeader className="space-y-0 p-3">
-            <CardTitle className="text-sm font-medium">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500">
               {t("Total Ventas")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-lg font-bold text-blue-600">
+            </div>
+            <div className="mt-1 text-base font-semibold text-blue-600">
               {formatCurrency(stats?.totalSales || 0)}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="col-span-2 sm:col-span-1">
-          <CardHeader className="space-y-0 p-3">
-            <CardTitle className="text-sm font-medium">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500">
               {t("Cuentas por Cobrar")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-lg font-bold text-emerald-600">
+            </div>
+            <div className="mt-1 text-base font-semibold text-green-600">
               {formatCurrency(stats?.pendingPayments || 0)}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="space-y-0 p-3">
-            <CardTitle className="text-sm font-medium">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500">
               {t("Pedidos Pendientes")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-lg font-bold text-yellow-600">
+            </div>
+            <div className="mt-1 text-base font-semibold text-yellow-600">
               {stats?.pendingOrders || 0}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="space-y-0 p-3">
-            <CardTitle className="text-sm font-medium">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-orange-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500">
               {t("Entregados (Mes)")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-lg font-bold text-orange-600">
+            </div>
+            <div className="mt-1 text-base font-semibold text-orange-600">
               {stats?.deliveredOrders || 0}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="space-y-0 p-3">
-            <CardTitle className="text-sm font-medium">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500">
               {t("Cancelados (Mes)")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3">
-            <div className="text-lg font-bold text-red-600">
+            </div>
+            <div className="mt-1 text-base font-semibold text-red-600">
               {stats?.cancelledOrders || 0}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Gráficos circulares */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="p-4">
-            <CardTitle className="text-sm">{t("Distribución de Ventas")}</CardTitle>
-            <div className="mt-2 space-y-1">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500 mb-1">
+              {t("Distribución de Ventas")}
+            </div>
+            <div className="space-y-1 mb-1">
               {salesData.map((entry, index) => (
                 <div key={`legend-${index}`} className="flex items-center">
-                  <div className="h-3 w-3 mr-2" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm">{entry.name}: {formatCurrency(entry.value)}</span>
+                  <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
+                  <span className="text-xs">{entry.name}: {formatCurrency(entry.value)}</span>
                 </div>
               ))}
             </div>
-          </CardHeader>
-          <CardContent className="h-[200px] p-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={salesData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={35}
-                  outerRadius={50}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {salesData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+            <div className="h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={salesData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={30}
+                    outerRadius={45}
+                    fill="#8884d8"
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {salesData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="p-4">
-            <CardTitle className="text-sm">{t("Estado de Pedidos")}</CardTitle>
-            <div className="mt-2 space-y-1">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-orange-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500 mb-1">
+              {t("Estado de Pedidos")}
+            </div>
+            <div className="space-y-1 mb-1">
               {ordersData.map((entry, index) => (
                 <div key={`legend-${index}`} className="flex items-center">
-                  <div className="h-3 w-3 mr-2" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm">{entry.name}: {entry.value}</span>
+                  <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
+                  <span className="text-xs">{entry.name}: {entry.value}</span>
                 </div>
               ))}
             </div>
-          </CardHeader>
-          <CardContent className="h-[200px] p-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={ordersData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={35}
-                  outerRadius={50}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {ordersData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+            <div className="h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={ordersData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={30}
+                    outerRadius={45}
+                    fill="#8884d8"
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {ordersData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="p-4">
-            <CardTitle className="text-sm">{t("Pagos Realizados")}</CardTitle>
-            <div className="mt-2 space-y-1">
+        <div className="relative overflow-hidden rounded-md border shadow-sm">
+          <div className="absolute left-0 top-0 h-full w-1 bg-purple-500"></div>
+          <div className="p-2 pl-2.5">
+            <div className="text-xs font-normal text-gray-500 mb-1">
+              {t("Pagos Realizados")}
+            </div>
+            <div className="space-y-1 mb-1">
               {paymentsData.map((entry, index) => (
                 <div key={`legend-${index}`} className="flex items-center">
-                  <div className="h-3 w-3 mr-2" style={{ backgroundColor: entry.color }} />
-                  <span className="text-sm">{entry.name}: {formatCurrency(entry.value)}</span>
+                  <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
+                  <span className="text-xs">{entry.name}: {formatCurrency(entry.value)}</span>
                 </div>
               ))}
             </div>
-          </CardHeader>
-          <CardContent className="h-[200px] p-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={paymentsData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={35}
-                  outerRadius={50}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {paymentsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+            <div className="h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={paymentsData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={30}
+                    outerRadius={45}
+                    fill="#8884d8"
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {paymentsData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
