@@ -220,6 +220,7 @@ export default function Billing() {
         status: "pending" as const,
         paymentMethod,
         notes,
+        date: new Date(),
       };
 
       const invoiceResponse = await apiRequest("POST", "/api/invoices", invoiceData);
