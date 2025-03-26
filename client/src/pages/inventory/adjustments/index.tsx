@@ -1,26 +1,70 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Product, InventoryAdjustment } from "@shared/schema";
+import { type Product, InventoryAdjustment, insertInventoryAdjustmentSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Package, Check, Timer, X, RotateCw, ClipboardList, FilePlus, PlusCircle, FileCheck, FileX, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { 
+  Package, 
+  Check, 
+  Timer, 
+  X, 
+  RotateCw, 
+  ClipboardList, 
+  FilePlus, 
+  PlusCircle, 
+  FileCheck, 
+  FileX, 
+  ArrowDownToLine, 
+  ArrowUpFromLine,
+  Trash2,
+  Calendar
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 
-// Tipos de ajustes de inventario simplificados
+// Tipos de ajustes de inventario
 const adjustmentTypes = {
-  "entrada": { label: "Entrada", icon: <ArrowDownToLine className="h-4 w-4 text-green-500" /> },
-  "salida": { label: "Salida", icon: <ArrowUpFromLine className="h-4 w-4 text-red-500" /> },
-  "transferencia": { label: "Transferencia", icon: <ArrowDownToLine className="h-4 w-4 text-blue-500" /> },
-  "conteo_fisico": { label: "Conteo Físico", icon: <ClipboardList className="h-4 w-4 text-purple-500" /> },
-  "produccion": { label: "Producción", icon: <Package className="h-4 w-4 text-teal-500" /> },
-  "ajuste": { label: "Ajuste", icon: <Package className="h-4 w-4 text-orange-500" /> }
+  "entrada": { 
+    label: "Entrada de Inventario", 
+    description: "Registrar producto que entra al almacén",
+    icon: <ArrowDownToLine className="h-4 w-4 text-green-500" /> 
+  },
+  "salida": { 
+    label: "Salida de Inventario", 
+    description: "Registrar producto que sale del almacén",
+    icon: <ArrowUpFromLine className="h-4 w-4 text-red-500" /> 
+  },
+  "transferencia": { 
+    label: "Transferencia", 
+    description: "Mover productos entre almacenes",
+    icon: <ArrowDownToLine className="h-4 w-4 text-blue-500" /> 
+  },
+  "conteo_fisico": { 
+    label: "Conteo Físico", 
+    description: "Ajustar inventario según conteo físico",
+    icon: <ClipboardList className="h-4 w-4 text-purple-500" /> 
+  },
+  "produccion": { 
+    label: "Producción", 
+    description: "Registrar producción interna",
+    icon: <Package className="h-4 w-4 text-teal-500" /> 
+  },
+  "ajuste": { 
+    label: "Ajuste General", 
+    description: "Otros ajustes de inventario",
+    icon: <Package className="h-4 w-4 text-orange-500" /> 
+  }
 };
 
-// Estados simplificados
+// Estados
 const statusMap = {
   "pendiente": { label: "Pendiente", icon: <Timer className="h-3 w-3" />, color: "bg-yellow-100 text-yellow-800" },
   "aprobado": { label: "Aprobado", icon: <Check className="h-3 w-3" />, color: "bg-green-100 text-green-800" },
@@ -38,6 +82,7 @@ export default function InventoryAdjustments() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("list");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   
   // Consulta para obtener ajustes de inventario
   const { data: adjustments = [], isLoading } = useQuery<InventoryAdjustment[]>({
@@ -54,6 +99,22 @@ export default function InventoryAdjustments() {
     queryKey: ["/api/warehouses"],
   });
   
+  // Filtrado de ajustes
+  const filteredAdjustments = useMemo(() => {
+    if (!adjustments) return [];
+    
+    return adjustments
+      .filter(adjustment => {
+        const matchesTerm = searchTerm === "" || 
+                adjustment.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                adjustment.documentNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                adjustment.id.toString().includes(searchTerm);
+        
+        return matchesTerm;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // Más recientes primero
+  }, [adjustments, searchTerm]);
+  
   // Estadísticas de ajustes
   const adjustmentsStats = useMemo(() => {
     if (!adjustments || adjustments.length === 0) {
@@ -66,6 +127,62 @@ export default function InventoryAdjustments() {
     
     return { total, pending, approved };
   }, [adjustments]);
+
+  // Obtener la fecha actual en formato ISO (YYYY-MM-DD)
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Configuración del formulario para crear ajuste
+  const form = useForm({
+    resolver: zodResolver(insertInventoryAdjustmentSchema),
+    defaultValues: {
+      date: today,
+      adjustmentType: "entrada",
+      notes: "",
+      reference: "",
+      warehouseId: 1, // Valor por defecto
+      targetWarehouseId: undefined,
+      createdBy: 1, // Valor temporal, idealmente debería venir del usuario logueado
+      status: "pendiente",
+      documentNumber: "",
+      items: [{ // Al menos un ítem inicial
+        productId: 0,
+        quantity: 1,
+        currentStock: 0,
+        newStock: 0,
+        reason: "",
+        cost: "0.00",
+        value: "0.00"
+      }]
+    },
+  });
+  
+  // Observar cambios en el tipo de ajuste
+  const adjustmentType = form.watch("adjustmentType");
+  
+  // Mutación para crear ajuste
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/inventory/adjustments", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory/adjustments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] }); // Actualizar productos también
+      toast({
+        title: "Éxito",
+        description: "Ajuste de inventario creado exitosamente",
+      });
+      form.reset();
+      setActiveTab("list");
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Ocurrió un error al crear el ajuste",
+      });
+    },
+  });
 
   // Mutación para cambiar estado
   const updateStatusMutation = useMutation({
@@ -81,14 +198,105 @@ export default function InventoryAdjustments() {
         description: "Estado del ajuste actualizado correctamente",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "Ocurrió un error al actualizar el estado",
       });
     },
   });
+
+  // Manejar envío del formulario
+  const onSubmit = (data: any) => {
+    // Asegurarse de que hay al menos un ítem
+    if (!data.items || data.items.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debe agregar al menos un producto al ajuste",
+      });
+      return;
+    }
+    
+    // Validar items
+    for (const item of data.items) {
+      if (!item.productId || item.productId === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Debe seleccionar un producto para cada ítem",
+        });
+        return;
+      }
+      
+      if (item.quantity <= 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La cantidad debe ser mayor a cero",
+        });
+        return;
+      }
+    }
+    
+    // Para transferencias, validar que se hayan seleccionado almacenes diferentes
+    if (data.adjustmentType === "transferencia") {
+      if (!data.warehouseId || !data.targetWarehouseId) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Debe seleccionar almacén origen y destino para una transferencia",
+        });
+        return;
+      }
+      
+      if (data.warehouseId === data.targetWarehouseId) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "El almacén origen y destino no pueden ser el mismo",
+        });
+        return;
+      }
+    }
+    
+    // Procesar los ítems para asegurarse que tienen los valores correctos
+    const processedItems = data.items.map((item: any) => {
+      const product = products.find(p => p.id === Number(item.productId));
+      const currentStock = product ? product.stock : 0;
+      
+      let newStock = currentStock;
+      
+      // Calcular nuevo stock según tipo de ajuste
+      if (data.adjustmentType === "entrada" || data.adjustmentType === "produccion") {
+        newStock = currentStock + Number(item.quantity);
+      } else if (data.adjustmentType === "salida") {
+        newStock = currentStock - Number(item.quantity);
+      }
+      
+      return {
+        ...item,
+        productId: Number(item.productId),
+        quantity: Number(item.quantity),
+        currentStock,
+        newStock,
+        cost: item.cost || "0.00",
+        value: item.value || "0.00"
+      };
+    });
+    
+    // Preparar datos para envío
+    const submitData = {
+      ...data,
+      items: processedItems,
+      warehouseId: data.warehouseId ? Number(data.warehouseId) : undefined,
+      targetWarehouseId: data.targetWarehouseId ? Number(data.targetWarehouseId) : undefined,
+    };
+    
+    // Enviar los datos
+    createMutation.mutate(submitData);
+  };
 
   // Función para aprobar un ajuste
   const handleApprove = (id: number) => {
@@ -104,6 +312,31 @@ export default function InventoryAdjustments() {
   const handleCancel = (id: number) => {
     updateStatusMutation.mutate({ id, status: "anulado" });
   };
+  
+  // Función para agregar un nuevo ítem al formulario
+  const addItem = () => {
+    const items = form.getValues("items") || [];
+    form.setValue("items", [
+      ...items, 
+      {
+        productId: 0,
+        quantity: 1,
+        currentStock: 0,
+        newStock: 0,
+        reason: "",
+        cost: "0.00",
+        value: "0.00"
+      }
+    ]);
+  };
+
+  // Función para eliminar un ítem del formulario
+  const removeItem = (index: number) => {
+    const items = form.getValues("items") || [];
+    if (items.length > 1) { // Siempre dejar al menos un ítem
+      form.setValue("items", items.filter((_, i) => i !== index));
+    }
+  };
 
   return (
     <div className="container mx-auto py-4">
@@ -113,7 +346,7 @@ export default function InventoryAdjustments() {
           Ajustes de Inventario
         </h1>
 
-        {/* Estadísticas simplificadas */}
+        {/* Estadísticas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center justify-between">
@@ -146,14 +379,14 @@ export default function InventoryAdjustments() {
           </Card>
         </div>
 
-        {/* Pestañas simplificadas */}
+        {/* Pestañas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="list">Lista de Ajustes</TabsTrigger>
             <TabsTrigger value="form">Nuevo Ajuste</TabsTrigger>
           </TabsList>
 
-          {/* Pestaña de Lista simplificada */}
+          {/* Pestaña de Lista */}
           <TabsContent value="list">
             <Card>
               <CardHeader>
@@ -161,17 +394,22 @@ export default function InventoryAdjustments() {
                   <ClipboardList className="h-5 w-5 text-primary" />
                   Lista de Ajustes de Inventario
                 </CardTitle>
+                <CardDescription>
+                  Registros de ajustes de inventario realizados
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Buscador simple */}
+                {/* Buscador */}
                 <div className="mb-4">
                   <Input
-                    placeholder="Buscar ajustes..."
+                    placeholder="Buscar por referencia, documento o ID..."
                     className="max-w-sm"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
                 
-                {/* Tabla de Ajustes simplificada */}
+                {/* Tabla de Ajustes */}
                 <div className="rounded-md border overflow-hidden">
                   <Table>
                     <TableHeader>
@@ -180,6 +418,7 @@ export default function InventoryAdjustments() {
                         <TableHead>Fecha</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Referencia</TableHead>
+                        <TableHead>Almacén</TableHead>
                         <TableHead>Estado</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
@@ -187,21 +426,21 @@ export default function InventoryAdjustments() {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-4">
+                          <TableCell colSpan={7} className="text-center py-4">
                             <div className="flex justify-center items-center space-x-2">
                               <RotateCw className="h-4 w-4 animate-spin" />
                               <span>Cargando ajustes...</span>
                             </div>
                           </TableCell>
                         </TableRow>
-                      ) : adjustments.length === 0 ? (
+                      ) : filteredAdjustments.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-4">
-                            No hay ajustes de inventario registrados
+                          <TableCell colSpan={7} className="text-center py-4">
+                            No hay ajustes de inventario que coincidan con la búsqueda
                           </TableCell>
                         </TableRow>
                       ) : (
-                        adjustments.map(adjustment => (
+                        filteredAdjustments.map(adjustment => (
                           <TableRow key={adjustment.id}>
                             <TableCell className="font-medium">#{adjustment.id}</TableCell>
                             <TableCell>{formatDate(adjustment.date)}</TableCell>
@@ -213,7 +452,17 @@ export default function InventoryAdjustments() {
                                 </span>
                               </div>
                             </TableCell>
-                            <TableCell>{adjustment.reference || "-"}</TableCell>
+                            <TableCell>
+                              {adjustment.reference || "-"}
+                              {adjustment.documentNumber && (
+                                <div className="text-xs text-muted-foreground">
+                                  Doc: {adjustment.documentNumber}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {warehouses.find(w => w.id === adjustment.warehouseId)?.name || `Almacén ${adjustment.warehouseId}`}
+                            </TableCell>
                             <TableCell>
                               {adjustment.status && statusMap[adjustment.status as keyof typeof statusMap] ? (
                                 <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${statusMap[adjustment.status as keyof typeof statusMap].color}`}>
@@ -268,7 +517,7 @@ export default function InventoryAdjustments() {
             </Card>
           </TabsContent>
 
-          {/* Pestaña de Formulario simplificada */}
+          {/* Pestaña de Formulario */}
           <TabsContent value="form">
             <Card>
               <CardHeader>
@@ -276,20 +525,318 @@ export default function InventoryAdjustments() {
                   <FilePlus className="h-5 w-5 text-primary" />
                   Nuevo Ajuste de Inventario
                 </CardTitle>
+                <CardDescription>
+                  Registra un nuevo ajuste para modificar el inventario
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12">
-                  <Button 
-                    onClick={() => setActiveTab("list")}
-                    className="gap-2"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Crear un nuevo ajuste de inventario
-                  </Button>
-                  <p className="mt-4 text-muted-foreground">
-                    Para crear un ajuste completo, usa la API o ve a la versión completa.
-                  </p>
-                </div>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
+                        {/* Tipo de Ajuste */}
+                        <FormField
+                          control={form.control}
+                          name="adjustmentType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tipo de Ajuste</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona el tipo de ajuste" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Object.entries(adjustmentTypes).map(([key, value]) => (
+                                    <SelectItem key={key} value={key}>
+                                      <div className="flex items-center gap-2">
+                                        {value.icon}
+                                        <div>
+                                          <div>{value.label}</div>
+                                          <div className="text-xs text-muted-foreground">{value.description}</div>
+                                        </div>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Fecha */}
+                        <FormField
+                          control={form.control}
+                          name="date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Fecha</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    type="date"
+                                    className="pl-8"
+                                    {...field}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Almacén Origen */}
+                        <FormField
+                          control={form.control}
+                          name="warehouseId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Almacén</FormLabel>
+                              <Select
+                                onValueChange={(value) => field.onChange(parseInt(value))}
+                                defaultValue={field.value?.toString()}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Selecciona el almacén" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {warehouses.map(warehouse => (
+                                    <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
+                                      {warehouse.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Almacén Destino (solo para transferencias) */}
+                        {adjustmentType === "transferencia" && (
+                          <FormField
+                            control={form.control}
+                            name="targetWarehouseId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Almacén Destino</FormLabel>
+                                <Select
+                                  onValueChange={(value) => field.onChange(parseInt(value))}
+                                  defaultValue={field.value?.toString()}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecciona el almacén destino" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {warehouses
+                                      .filter(w => w.id !== form.getValues("warehouseId"))
+                                      .map(warehouse => (
+                                        <SelectItem key={warehouse.id} value={warehouse.id.toString()}>
+                                          {warehouse.name}
+                                        </SelectItem>
+                                      ))
+                                    }
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Referencia */}
+                        <FormField
+                          control={form.control}
+                          name="reference"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Referencia</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Número de orden, factura, etc."
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Documento */}
+                        <FormField
+                          control={form.control}
+                          name="documentNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Número de Documento</FormLabel>
+                              <FormControl>
+                                <Input
+                                  placeholder="Documento relacionado"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Notas */}
+                        <FormField
+                          control={form.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Notas</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  placeholder="Detalles adicionales sobre el ajuste"
+                                  className="resize-none"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sección de Productos */}
+                    <div className="border rounded-md p-4 space-y-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-base font-medium">Productos a ajustar</h3>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addItem}
+                        >
+                          <PlusCircle className="h-4 w-4 mr-2" /> 
+                          Agregar Producto
+                        </Button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {form.watch("items")?.map((_, index) => (
+                          <div key={index} className="border p-3 rounded-md">
+                            <div className="flex justify-between items-center mb-2">
+                              <h4 className="font-medium">Producto #{index + 1}</h4>
+                              {index > 0 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeItem(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1 text-red-500" />
+                                  Eliminar
+                                </Button>
+                              )}
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.productId`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Producto</FormLabel>
+                                    <Select
+                                      onValueChange={(value) => field.onChange(parseInt(value))}
+                                      defaultValue={field.value ? field.value.toString() : undefined}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Selecciona el producto" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {products.map(product => (
+                                          <SelectItem key={product.id} value={product.id.toString()}>
+                                            {product.name} ({product.stock} en stock)
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.quantity`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Cantidad</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.reason`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Motivo</FormLabel>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Motivo específico"
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end space-x-2 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setActiveTab("list")}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        disabled={createMutation.isPending}
+                      >
+                        {createMutation.isPending ? (
+                          <RotateCw className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <FilePlus className="h-4 w-4 mr-2" />
+                        )}
+                        Crear Ajuste
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </CardContent>
             </Card>
           </TabsContent>
