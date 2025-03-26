@@ -25,6 +25,9 @@ export async function registerRoutes(app: Express) {
   // Configurar express primero
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  
+  // Map para almacenar las conexiones de los conductores
+  const driverConnections = new Map<number, WebSocket>();
 
   // Registrar las rutas de carga de vehículo, cuadre y pedidos recurrentes
   await registerVehicleLoadingRoutes(app);
@@ -2032,6 +2035,102 @@ export async function registerRoutes(app: Express) {
       res.json(allTrucks);
     } catch (error) {
       console.error("Error al obtener camiones:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoints para Ajustes de Inventario
+  app.get("/api/inventory/adjustments", async (req, res) => {
+    try {
+      const adjustments = await storage.listInventoryAdjustments();
+      res.json(adjustments);
+    } catch (error) {
+      console.error("Error al obtener ajustes de inventario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.get("/api/inventory/adjustments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "ID de ajuste inválido" });
+      }
+
+      const adjustment = await storage.getInventoryAdjustment(id);
+      if (!adjustment) {
+        return res.status(404).json({ error: "Ajuste de inventario no encontrado" });
+      }
+
+      // Obtener los items del ajuste
+      const items = await storage.getInventoryAdjustmentItems(id);
+
+      // Incluir información adicional útil
+      const result = {
+        ...adjustment,
+        items
+      };
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error al obtener ajuste de inventario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.post("/api/inventory/adjustments", async (req, res) => {
+    try {
+      const result = insertInventoryAdjustmentSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Error de validación", 
+          details: result.error.format() 
+        });
+      }
+
+      // Validaciones adicionales según el tipo de ajuste
+      const { adjustmentType, items, warehouseId, targetWarehouseId } = result.data;
+      
+      // Para transferencias, se requiere almacén origen y destino
+      if (adjustmentType === "transferencia" && (!warehouseId || !targetWarehouseId)) {
+        return res.status(400).json({ 
+          error: "Para transferencias se requiere especificar almacén origen y destino" 
+        });
+      }
+
+      // Validar que todos los items tengan datos correctos
+      for (const item of items) {
+        if (item.quantity <= 0) {
+          return res.status(400).json({ 
+            error: "La cantidad debe ser mayor a cero" 
+          });
+        }
+      }
+
+      const adjustment = await storage.createInventoryAdjustment(result.data);
+      res.status(201).json(adjustment);
+    } catch (error) {
+      console.error("Error al crear ajuste de inventario:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  app.patch("/api/inventory/adjustments/:id/status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "ID de ajuste inválido" });
+      }
+
+      const { status } = req.body;
+      if (!status || !["pendiente", "aprobado", "rechazado", "anulado"].includes(status)) {
+        return res.status(400).json({ error: "Estado de ajuste inválido" });
+      }
+
+      const adjustment = await storage.updateInventoryAdjustmentStatus(id, status as "pendiente" | "aprobado" | "rechazado" | "anulado");
+      res.json(adjustment);
+    } catch (error) {
+      console.error("Error al actualizar estado de ajuste de inventario:", error);
       res.status(500).json({ error: String(error) });
     }
   });
