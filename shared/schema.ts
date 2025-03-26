@@ -40,7 +40,6 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").notNull().default(0),
-  minStock: integer("min_stock").default(0),
   icon: text("icon"),
   isReturnable: boolean("is_returnable").notNull().default(false),
   depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).default("0.00"),
@@ -50,7 +49,6 @@ export const insertProductSchema = z.object({
   name: z.string().min(1, "El nombre del producto es requerido"),
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
   stock: z.number().default(0),
-  minStock: z.number().default(0),
   icon: z.string().optional(),
   isReturnable: z.boolean().default(false),
   depositAmount: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
@@ -894,105 +892,3 @@ export type InsertRouteSettlement = {
   }>;
   cashDifference?: string;
 };
-
-// Mejoras sistema de inventario
-
-// 1. Tabla para registro de movimientos de inventario
-export const inventoryMovements = pgTable("inventory_movements", {
-  id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull().references(() => products.id),
-  quantity: integer("quantity").notNull(), // Positivo para entradas, negativo para salidas
-  previousStock: integer("previous_stock").notNull(),
-  newStock: integer("new_stock").notNull(),
-  movementType: text("movement_type", { 
-    enum: ["purchase", "sale", "adjustment", "return", "production", "transfer"] 
-  }).notNull(),
-  referenceId: integer("reference_id"), // ID de orden, ajuste, etc.
-  referenceType: text("reference_type", { 
-    enum: ["order", "adjustment", "production", "vehicle_loading", "transfer"] 
-  }),
-  notes: text("notes"),
-  createdBy: integer("created_by").references(() => users.id),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertInventoryMovementSchema = z.object({
-  productId: z.number(),
-  quantity: z.number(),
-  previousStock: z.number(),
-  newStock: z.number(),
-  movementType: z.enum(["purchase", "sale", "adjustment", "return", "production", "transfer"]),
-  referenceId: z.number().optional(),
-  referenceType: z.enum(["order", "adjustment", "production", "vehicle_loading", "transfer"]).optional(),
-  notes: z.string().optional(),
-  createdBy: z.number().optional(),
-});
-
-// 2. Tabla para ajustes de inventario
-export const inventoryAdjustments = pgTable("inventory_adjustments", {
-  id: serial("id").primaryKey(),
-  reason: text("reason", { 
-    enum: ["damage", "loss", "count", "expiration", "error", "other"] 
-  }).notNull(),
-  notes: text("notes"),
-  status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
-  approvedBy: integer("approved_by").references(() => users.id),
-  approvedAt: timestamp("approved_at"),
-  createdBy: integer("created_by").references(() => users.id),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const inventoryAdjustmentItems = pgTable("inventory_adjustment_items", {
-  id: serial("id").primaryKey(),
-  adjustmentId: integer("adjustment_id").notNull().references(() => inventoryAdjustments.id, { onDelete: "cascade" }),
-  productId: integer("product_id").notNull().references(() => products.id),
-  previousQuantity: integer("previous_quantity").notNull(),
-  newQuantity: integer("new_quantity").notNull(),
-  difference: integer("difference").notNull(),
-  notes: text("notes"),
-});
-
-export const insertInventoryAdjustmentSchema = z.object({
-  reason: z.enum(["damage", "loss", "count", "expiration", "error", "other"]),
-  notes: z.string().optional(),
-  status: z.enum(["pending", "approved", "rejected"]).default("pending"),
-  items: z.array(z.object({
-    productId: z.number(),
-    previousQuantity: z.number(),
-    newQuantity: z.number(),
-    difference: z.number(),
-    notes: z.string().optional(),
-  })),
-});
-
-// 3. Tabla para alertas de stock bajo
-export const stockAlerts = pgTable("stock_alerts", {
-  id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull().references(() => products.id),
-  currentStock: integer("current_stock").notNull(),
-  minStock: integer("min_stock").notNull(),
-  status: text("status", { enum: ["active", "resolved", "ignored"] }).notNull().default("active"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  resolvedAt: timestamp("resolved_at"),
-  resolvedBy: integer("resolved_by").references(() => users.id),
-  notes: text("notes"),
-});
-
-export const insertStockAlertSchema = z.object({
-  productId: z.number(),
-  currentStock: z.number(),
-  minStock: z.number(),
-  status: z.enum(["active", "resolved", "ignored"]).default("active"),
-  notes: z.string().optional(),
-});
-
-// Tipos para las nuevas tablas
-export type InventoryMovement = typeof inventoryMovements.$inferSelect;
-export type InsertInventoryMovement = z.infer<typeof insertInventoryMovementSchema>;
-
-export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
-export type InventoryAdjustmentItem = typeof inventoryAdjustmentItems.$inferSelect;
-export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
-
-export type StockAlert = typeof stockAlerts.$inferSelect;
-export type InsertStockAlert = z.infer<typeof insertStockAlertSchema>;

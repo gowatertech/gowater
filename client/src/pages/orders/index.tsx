@@ -113,18 +113,6 @@ export default function Orders() {
     }))
   );
 
-  // Obtener clientes primero para evitar el error de variable no inicializada
-  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/customers");
-      if (!response.ok) {
-        throw new Error('Error al cargar los clientes');
-      }
-      return response.json();
-    }
-  });
-  
   // Consultas para obtener datos
   const { data: orders = [] } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
@@ -143,6 +131,18 @@ export default function Orders() {
     const statusMatch = statusFilter === "all" || order.status === statusFilter;
     
     return searchMatch && statusMatch;
+  });
+
+  // Obtener clientes
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
+    queryKey: ["/api/customers"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/customers");
+      if (!response.ok) {
+        throw new Error('Error al cargar los clientes');
+      }
+      return response.json();
+    }
   });
 
   // Obtener productos

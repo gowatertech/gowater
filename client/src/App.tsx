@@ -6,7 +6,7 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import NotFound from "@/pages/not-found";
 import Settings from "@/pages/settings";
 import Customers from "@/pages/customers";
-import OrdersPage from "@/pages/orders/OrdersPage";
+import Orders from "@/pages/orders/OrdersPage";
 import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
@@ -23,7 +23,6 @@ import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
 import ProductionRegistration from "@/pages/inventory/production";
-import InventoryAdjustments from "@/pages/inventory/adjustments";
 import DriverView from "@/pages/drivers/DriverView";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
@@ -45,11 +44,10 @@ function Router() {
         {/* Inventory Routes - Specific routes first */}
         <Route path="/inventory/warehouses" component={WarehousesPage} />
         <Route path="/inventory/production" component={ProductionRegistration} />
-        <Route path="/inventory/adjustments" component={InventoryAdjustments} />
         <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory" component={InventoryPage} />
 
-        <Route path="/orders" component={OrdersPage} />
+        <Route path="/orders" component={Orders} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/recurring-orders" component={RecurringOrders} />

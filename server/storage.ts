@@ -1,7 +1,6 @@
 import {
   users, customers, products, routes, orders, orderItems,
   settings as settingsTable, trucks,
-  inventoryMovements, inventoryAdjustments, inventoryAdjustmentItems, stockAlerts,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -10,15 +9,12 @@ import {
   type OrderItem, type InsertOrderItem,
   type Settings, type InsertSettings,
   type Truck, type InsertTruck,
-  type InventoryMovement, type InsertInventoryMovement,
-  type InventoryAdjustment, type InventoryAdjustmentItem, type InsertInventoryAdjustment,
-  type StockAlert, type InsertStockAlert,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
   bottleReturns,
   type BottleReturn, type InsertBottleReturn
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, inArray, desc, gte, lte, isNotNull, lt, and } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export interface DriverLocation {
   latitude: number;
@@ -90,23 +86,6 @@ export interface IStorage {
   listTrucks(): Promise<Truck[]>;
   updateTruck(id: number, truck: Partial<InsertTruck>): Promise<Truck>;
   updateTruckStatus(id: number, status: "disponible" | "en_reparacion" | "en_ruta"): Promise<Truck>;
-  
-  // Gestión de inventario
-  createInventoryMovement(movement: InsertInventoryMovement): Promise<InventoryMovement>;
-  listInventoryMovements(productId?: number, movementType?: string, startDate?: Date, endDate?: Date): Promise<InventoryMovement[]>;
-  getProductInventoryHistory(productId: number): Promise<InventoryMovement[]>;
-  
-  // Ajustes de inventario
-  createInventoryAdjustment(adjustment: InsertInventoryAdjustment): Promise<InventoryAdjustment>;
-  getInventoryAdjustment(id: number): Promise<InventoryAdjustment | undefined>;
-  listInventoryAdjustments(): Promise<InventoryAdjustment[]>;
-  updateInventoryAdjustmentStatus(id: number, status: "pending" | "approved" | "rejected", approvedBy?: number): Promise<InventoryAdjustment>;
-  
-  // Alertas de stock bajo
-  createStockAlert(alert: InsertStockAlert): Promise<StockAlert>;
-  listStockAlerts(status?: "active" | "resolved" | "ignored"): Promise<StockAlert[]>;
-  updateStockAlertStatus(id: number, status: "active" | "resolved" | "ignored", resolvedBy?: number): Promise<StockAlert>;
-  checkAndCreateLowStockAlerts(): Promise<StockAlert[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -631,260 +610,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(trucks.id, id))
       .returning();
     return updatedTruck;
-  }
-
-  // Implementación de los métodos de gestión de inventario
-  async createInventoryMovement(movement: InsertInventoryMovement): Promise<InventoryMovement> {
-    const [newMovement] = await db.insert(inventoryMovements).values(movement).returning();
-    return newMovement;
-  }
-
-  async listInventoryMovements(
-    productId?: number, 
-    movementType?: string, 
-    startDate?: Date, 
-    endDate?: Date
-  ): Promise<InventoryMovement[]> {
-    let query = db.select().from(inventoryMovements);
-    
-    if (productId) {
-      query = query.where(eq(inventoryMovements.productId, productId));
-    }
-    
-    if (movementType) {
-      query = query.where(eq(inventoryMovements.movementType, movementType as any));
-    }
-    
-    if (startDate) {
-      query = query.where(gte(inventoryMovements.createdAt, startDate));
-    }
-    
-    if (endDate) {
-      query = query.where(lte(inventoryMovements.createdAt, endDate));
-    }
-    
-    return query.orderBy(desc(inventoryMovements.createdAt));
-  }
-
-  async getProductInventoryHistory(productId: number): Promise<InventoryMovement[]> {
-    return db
-      .select()
-      .from(inventoryMovements)
-      .where(eq(inventoryMovements.productId, productId))
-      .orderBy(desc(inventoryMovements.createdAt));
-  }
-
-  // Métodos para ajustes de inventario
-  async createInventoryAdjustment(adjustment: InsertInventoryAdjustment): Promise<InventoryAdjustment> {
-    // Transacción para crear ajuste y sus items
-    return db.transaction(async (tx) => {
-      // 1. Insertar el ajuste principal
-      const [newAdjustment] = await tx
-        .insert(inventoryAdjustments)
-        .values({
-          reason: adjustment.reason,
-          notes: adjustment.notes,
-          status: adjustment.status,
-          createdBy: adjustment.createdBy || null,
-          createdAt: new Date()
-        })
-        .returning();
-
-      // 2. Insertar los items del ajuste
-      for (const item of adjustment.items) {
-        await tx.insert(inventoryAdjustmentItems).values({
-          adjustmentId: newAdjustment.id,
-          productId: item.productId,
-          previousQuantity: item.previousQuantity,
-          newQuantity: item.newQuantity,
-          difference: item.difference,
-          notes: item.notes || null
-        });
-
-        // 3. Si el ajuste es aprobado, actualizar el stock del producto y registrar el movimiento
-        if (adjustment.status === "approved") {
-          const [product] = await tx
-            .select()
-            .from(products)
-            .where(eq(products.id, item.productId));
-
-          if (product) {
-            // Actualizar el stock
-            await tx
-              .update(products)
-              .set({ stock: item.newQuantity })
-              .where(eq(products.id, item.productId));
-
-            // Registrar el movimiento
-            await tx.insert(inventoryMovements).values({
-              productId: item.productId,
-              quantity: item.difference,
-              previousStock: item.previousQuantity,
-              newStock: item.newQuantity,
-              movementType: "adjustment",
-              referenceId: newAdjustment.id,
-              referenceType: "adjustment",
-              notes: item.notes || adjustment.notes || null,
-              createdBy: adjustment.createdBy || null
-            });
-          }
-        }
-      }
-
-      return newAdjustment;
-    });
-  }
-
-  async getInventoryAdjustment(id: number): Promise<InventoryAdjustment | undefined> {
-    const [adjustment] = await db
-      .select()
-      .from(inventoryAdjustments)
-      .where(eq(inventoryAdjustments.id, id));
-
-    return adjustment;
-  }
-
-  async listInventoryAdjustments(): Promise<InventoryAdjustment[]> {
-    return db
-      .select()
-      .from(inventoryAdjustments)
-      .orderBy(desc(inventoryAdjustments.createdAt));
-  }
-
-  async updateInventoryAdjustmentStatus(
-    id: number, 
-    status: "pending" | "approved" | "rejected", 
-    approvedBy?: number
-  ): Promise<InventoryAdjustment> {
-    return db.transaction(async (tx) => {
-      // 1. Actualizar el estado del ajuste
-      const [adjustment] = await tx
-        .update(inventoryAdjustments)
-        .set({ 
-          status, 
-          approvedBy: approvedBy || null,
-          approvedAt: status === "approved" ? new Date() : null
-        })
-        .where(eq(inventoryAdjustments.id, id))
-        .returning();
-
-      // 2. Si el estado es "approved", aplicar los cambios al inventario
-      if (status === "approved") {
-        const items = await tx
-          .select()
-          .from(inventoryAdjustmentItems)
-          .where(eq(inventoryAdjustmentItems.adjustmentId, id));
-
-        for (const item of items) {
-          // Actualizar stock del producto
-          await tx
-            .update(products)
-            .set({ stock: item.newQuantity })
-            .where(eq(products.id, item.productId));
-
-          // Registrar el movimiento
-          await tx.insert(inventoryMovements).values({
-            productId: item.productId,
-            quantity: item.difference,
-            previousStock: item.previousQuantity,
-            newStock: item.newQuantity,
-            movementType: "adjustment",
-            referenceId: id,
-            referenceType: "adjustment",
-            notes: item.notes || adjustment.notes || null,
-            createdBy: approvedBy || null
-          });
-        }
-      }
-
-      return adjustment;
-    });
-  }
-
-  // Métodos para alertas de stock bajo
-  async createStockAlert(alert: InsertStockAlert): Promise<StockAlert> {
-    const [newAlert] = await db.insert(stockAlerts).values(alert).returning();
-    return newAlert;
-  }
-
-  async listStockAlerts(status?: "active" | "resolved" | "ignored"): Promise<StockAlert[]> {
-    let query = db.select().from(stockAlerts);
-    
-    if (status) {
-      query = query.where(eq(stockAlerts.status, status));
-    }
-    
-    return query.orderBy(desc(stockAlerts.createdAt));
-  }
-
-  async updateStockAlertStatus(
-    id: number, 
-    status: "active" | "resolved" | "ignored", 
-    resolvedBy?: number
-  ): Promise<StockAlert> {
-    const updates: Partial<StockAlert> = { 
-      status,
-      resolvedBy: resolvedBy || null
-    };
-    
-    if (status === "resolved" || status === "ignored") {
-      updates.resolvedAt = new Date();
-    }
-    
-    const [updatedAlert] = await db
-      .update(stockAlerts)
-      .set(updates)
-      .where(eq(stockAlerts.id, id))
-      .returning();
-      
-    return updatedAlert;
-  }
-
-  async checkAndCreateLowStockAlerts(): Promise<StockAlert[]> {
-    // 1. Obtener todos los productos con stock por debajo del mínimo
-    const lowStockProducts = await db
-      .select()
-      .from(products)
-      .where(
-        and(
-          isNotNull(products.minStock),
-          lt(products.stock, products.minStock)
-        )
-      );
-    
-    // 2. Verificar alertas existentes activas
-    const newAlerts: StockAlert[] = [];
-    
-    for (const product of lowStockProducts) {
-      // Buscar si ya existe una alerta activa para este producto
-      const [existingAlert] = await db
-        .select()
-        .from(stockAlerts)
-        .where(
-          and(
-            eq(stockAlerts.productId, product.id),
-            eq(stockAlerts.status, "active")
-          )
-        );
-      
-      // Si no hay alerta activa, crear una nueva
-      if (!existingAlert) {
-        const [newAlert] = await db
-          .insert(stockAlerts)
-          .values({
-            productId: product.id,
-            currentStock: product.stock,
-            minStock: product.minStock!,
-            status: "active",
-            createdAt: new Date()
-          })
-          .returning();
-          
-        newAlerts.push(newAlert);
-      }
-    }
-    
-    return newAlerts;
   }
 }
 

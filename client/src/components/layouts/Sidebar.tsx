@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import useMediaQuery from "@/hooks/use-media-query";
 import {
   Users,
   Route,
@@ -86,7 +85,6 @@ const sidebarItems = [
     subItems: [
       { icon: Warehouse, label: "Almacén", href: "/inventory/warehouses" },
       { icon: Package, label: "Productos", href: "/inventory/products" },
-      { icon: Box, label: "Ajustes de Inventario", href: "/inventory/adjustments" },
       { icon: Factory, label: "Registrar Producción", href: "/inventory/production" },
     ],
   },
@@ -181,39 +179,16 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const [location] = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
-  const isMobile = useMediaQuery('(max-width: 768px)');
 
-  // Manejador para abrir menús automáticamente al hacer hover
-  const handleItemHover = (label: string) => {
-    // Si había un menú abierto por un clic, lo mantenemos y agregamos este
-    if (activeItems.length > 0 && !activeItems.includes(label)) {
-      // Si ya hay un menú abierto por clic, mostramos este pero no cerramos el otro
-      const menuOpenedByClick = activeItems.filter(item => {
-        // Verificar que este ítem no se abrió automáticamente
-        const menuItem = sidebarItems.find(i => i.label === item);
-        return menuItem && !menuItem.subItems?.some(sub => location === sub.href);
-      });
-      
-      if (menuOpenedByClick.length > 0) {
-        setActiveItems([...menuOpenedByClick, label]);
-        return;
-      }
-    }
-    
-    // Si no hay menús abiertos por clic, simplemente mostramos este
-    setActiveItems([label]);
-  };
-  
-  // Manejador para clics, tanto para móvil como para escritorio
+  // Manejador para abrir y cerrar menús al hacer clic
   const handleItemClick = (label: string) => {
-    // Para ambos mobile y desktop, hacemos toggle del menú al hacer clic
+    // Si el elemento ya está en activeItems, lo removemos (cerramos el submenú)
     if (activeItems.includes(label)) {
       setActiveItems([]);
     } else {
+      // Si no está, lo agregamos (y quitamos todos los demás para cerrar otros submenús)
       setActiveItems([label]);
     }
-    // Cancelar cualquier cierre programado al hacer clic explícitamente
-    clearCloseTimeout();
   };
 
   // Al cambiar de ubicación, actualizar el ítem activo automáticamente
@@ -237,43 +212,23 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     }
   }, [location]);
   
-  // Manejo de timeouts para cerrar menús al salir de la hover area
-  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
-  const clearCloseTimeout = () => {
-    if (closeTimeoutRef.current) {
-      clearTimeout(closeTimeoutRef.current);
-      closeTimeoutRef.current = null;
-    }
-  };
-  
-  const handleMouseLeave = () => {
-    // Establecer un timeout para cerrar el menú después de un breve período
-    clearCloseTimeout();
-    closeTimeoutRef.current = setTimeout(() => {
-      // Solo cerramos si no hay un item activo (seleccionado por clic o por ser la ruta actual)
-      const currentRoute = sidebarItems.find(item => 
-        location === item.href || (item.subItems?.some(sub => location === sub.href))
-      );
-      
-      if (!currentRoute || !currentRoute.subItems) {
-        setActiveItems([]);
-      } else if (currentRoute.subItems) {
-        // Si estamos en una ruta con subitems, mantenemos abierto solo ese item
-        setActiveItems([currentRoute.label]);
-      }
-    }, 600); // 600ms para darle tiempo al usuario de moverse al submenú pero ser más responsivo
-  };
-  
-  const handleMouseEnterSubMenu = () => {
-    // Cancelar el cierre programado si el mouse entra al submenú
-    clearCloseTimeout();
-  };
-  
-  // Limpiar timeout al desmontar
+  // Elimina el hover effect para desktop - solo queremos interacción con clic
   useEffect(() => {
-    return () => clearCloseTimeout();
-  }, []);
+    const handleMouseMove = () => {
+      if (hoveredItem) {
+        setHoveredItem(null);
+      }
+    };
+    
+    // Solo añadir listener si hay un elemento hover
+    if (hoveredItem) {
+      document.addEventListener("mousemove", handleMouseMove);
+    }
+    
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [hoveredItem]);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-background">
@@ -309,22 +264,15 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
           return (
             <UISidebarMenuItem
               key={item.href}
-              onMouseEnter={() => {
-                setHoveredItem(item.label);
-                if (item.subItems) handleItemHover(item.label);
-                clearCloseTimeout(); // Cancelar cualquier cierre programado
-              }}
-              onMouseLeave={() => {
-                setHoveredItem(null);
-                if (item.subItems) handleMouseLeave();
-              }}
+              onMouseEnter={() => setHoveredItem(item.label)}
+              onMouseLeave={() => setHoveredItem(null)}
               className="relative group mb-1.5"
             >
               {!item.subItems ? (
                 <Link href={item.href}>
                   <UISidebarMenuButton
                     isActive={isActive}
-                    tooltip={isMobile ? undefined : t(item.label)}
+                    tooltip={t(item.label)}
                     className={cn(
                       "w-full justify-start gap-4 rounded-lg hover:bg-primary/5 transition-all duration-200",
                       isActive && "bg-primary/10 shadow-sm font-medium text-primary"
@@ -356,7 +304,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 <>
                   <UISidebarMenuButton
                     isActive={isActive}
-                    tooltip={isMobile ? undefined : t(item.label)}
+                    tooltip={t(item.label)}
                     className={cn(
                       "w-full justify-start gap-4 pr-8 rounded-lg transition-all duration-200",
                       isExpanded ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-primary/5",
@@ -396,7 +344,6 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                       "overflow-hidden transition-all duration-300 ease-in-out px-2",
                       isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
                     )}
-                    onMouseEnter={handleMouseEnterSubMenu}
                   >
                     <div className="py-1 space-y-1 ml-4 pl-2 border-l border-muted">
                       {item.subItems.map((subItem) => {
@@ -423,11 +370,9 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                                     )}
                                   </button>
                                 </TooltipTrigger>
-                                {!isMobile && (
-                                  <TooltipContent side="right">
-                                    {t(subItem.label)}
-                                  </TooltipContent>
-                                )}
+                                <TooltipContent side="right">
+                                  {t(subItem.label)}
+                                </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </Link>
