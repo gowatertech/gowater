@@ -11,10 +11,7 @@ import {
   type Truck, type InsertTruck,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
   bottleReturns,
-  type BottleReturn, type InsertBottleReturn,
-  inventoryAdjustments, inventoryAdjustmentItems,
-  type InventoryAdjustment, type InsertInventoryAdjustment,
-  type InventoryAdjustmentItem
+  type BottleReturn, type InsertBottleReturn
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, inArray } from "drizzle-orm";
@@ -89,13 +86,6 @@ export interface IStorage {
   listTrucks(): Promise<Truck[]>;
   updateTruck(id: number, truck: Partial<InsertTruck>): Promise<Truck>;
   updateTruckStatus(id: number, status: "disponible" | "en_reparacion" | "en_ruta"): Promise<Truck>;
-  
-  // Inventory Adjustments
-  getInventoryAdjustment(id: number): Promise<InventoryAdjustment | undefined>;
-  createInventoryAdjustment(adjustment: InsertInventoryAdjustment): Promise<InventoryAdjustment>;
-  listInventoryAdjustments(): Promise<InventoryAdjustment[]>;
-  updateInventoryAdjustmentStatus(id: number, status: "pendiente" | "aprobado" | "rechazado" | "anulado"): Promise<InventoryAdjustment>;
-  getInventoryAdjustmentItems(adjustmentId: number): Promise<InventoryAdjustmentItem[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -620,166 +610,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(trucks.id, id))
       .returning();
     return updatedTruck;
-  }
-
-  // Inventory Adjustments
-  async getInventoryAdjustment(id: number): Promise<InventoryAdjustment | undefined> {
-    const [adjustment] = await db
-      .select()
-      .from(inventoryAdjustments)
-      .where(eq(inventoryAdjustments.id, id));
-    return adjustment;
-  }
-
-  async createInventoryAdjustment(adjustment: InsertInventoryAdjustment): Promise<InventoryAdjustment> {
-    try {
-      // Iniciar transacción para asegurar consistencia
-      return await db.transaction(async (tx) => {
-        // Crear el ajuste principal
-        const adjustmentData = {
-          ...adjustment,
-          date: adjustment.date ? new Date(adjustment.date) : new Date(),
-        };
-        
-        // Eliminar items del objeto principal
-        const { items, ...mainAdjustment } = adjustmentData;
-        
-        // Insertar ajuste principal
-        const [newAdjustment] = await tx
-          .insert(inventoryAdjustments)
-          .values(mainAdjustment)
-          .returning();
-        
-        // Procesar cada item del ajuste
-        for (const item of items) {
-          // Obtener el stock actual del producto
-          const [product] = await tx
-            .select()
-            .from(products)
-            .where(eq(products.id, item.productId));
-          
-          if (!product) {
-            throw new Error(`Producto con ID ${item.productId} no encontrado`);
-          }
-          
-          // Calcular el nuevo stock según el tipo de ajuste
-          let newStock = product.stock;
-          
-          if (adjustment.adjustmentType === 'entrada' || adjustment.adjustmentType === 'produccion') {
-            newStock += item.quantity;
-          } else if (adjustment.adjustmentType === 'salida' || adjustment.adjustmentType === 'venta') {
-            newStock -= item.quantity;
-            if (newStock < 0) {
-              throw new Error(`Stock insuficiente para el producto ${product.name}`);
-            }
-          } else if (adjustment.adjustmentType === 'conteo_fisico') {
-            newStock = item.newStock; // El nuevo stock viene directamente del conteo físico
-          } else if (adjustment.adjustmentType === 'ajuste') {
-            newStock = item.newStock; // El nuevo stock se calcula externamente
-          }
-          
-          // Insertar item del ajuste
-          await tx
-            .insert(inventoryAdjustmentItems)
-            .values({
-              adjustmentId: newAdjustment.id,
-              productId: item.productId,
-              quantity: item.quantity,
-              currentStock: product.stock,
-              newStock: newStock,
-              reason: item.reason || '',
-              cost: item.cost || "0.00",
-              value: item.value || "0.00"
-            });
-          
-          // Si el ajuste está aprobado, actualizar el stock del producto
-          if (adjustment.status === 'aprobado') {
-            await tx
-              .update(products)
-              .set({ stock: newStock })
-              .where(eq(products.id, item.productId));
-          }
-        }
-        
-        return newAdjustment;
-      });
-    } catch (error) {
-      console.error('Error al crear ajuste de inventario:', error);
-      throw error;
-    }
-  }
-
-  async listInventoryAdjustments(): Promise<InventoryAdjustment[]> {
-    return db.select().from(inventoryAdjustments);
-  }
-
-  async updateInventoryAdjustmentStatus(id: number, status: "pendiente" | "aprobado" | "rechazado" | "anulado"): Promise<InventoryAdjustment> {
-    try {
-      return await db.transaction(async (tx) => {
-        // Obtener el ajuste
-        const [adjustment] = await tx
-          .select()
-          .from(inventoryAdjustments)
-          .where(eq(inventoryAdjustments.id, id));
-        
-        if (!adjustment) {
-          throw new Error(`Ajuste de inventario con ID ${id} no encontrado`);
-        }
-        
-        // Si el ajuste ya estaba en el mismo estado, no hacer nada
-        if (adjustment.status === status) {
-          return adjustment;
-        }
-        
-        // Obtener los items del ajuste
-        const items = await tx
-          .select()
-          .from(inventoryAdjustmentItems)
-          .where(eq(inventoryAdjustmentItems.adjustmentId, id));
-        
-        // Si el ajuste pasa a ser aprobado, actualizar los stocks
-        if (status === 'aprobado') {
-          for (const item of items) {
-            await tx
-              .update(products)
-              .set({ stock: item.newStock })
-              .where(eq(products.id, item.productId));
-          }
-        }
-        
-        // Si el ajuste estaba aprobado y ahora se anula, revertir los cambios
-        if (adjustment.status === 'aprobado' && (status === 'anulado' || status === 'rechazado')) {
-          for (const item of items) {
-            await tx
-              .update(products)
-              .set({ stock: item.currentStock })
-              .where(eq(products.id, item.productId));
-          }
-        }
-        
-        // Actualizar el estado del ajuste
-        const [updatedAdjustment] = await tx
-          .update(inventoryAdjustments)
-          .set({ 
-            status,
-            approvedBy: status === 'aprobado' ? adjustment.createdBy : null // Por simplicidad, el aprobador es el mismo creador
-          })
-          .where(eq(inventoryAdjustments.id, id))
-          .returning();
-        
-        return updatedAdjustment;
-      });
-    } catch (error) {
-      console.error('Error al actualizar estado de ajuste de inventario:', error);
-      throw error;
-    }
-  }
-
-  async getInventoryAdjustmentItems(adjustmentId: number): Promise<InventoryAdjustmentItem[]> {
-    return db
-      .select()
-      .from(inventoryAdjustmentItems)
-      .where(eq(inventoryAdjustmentItems.adjustmentId, adjustmentId));
   }
 }
 

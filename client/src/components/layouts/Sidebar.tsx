@@ -86,7 +86,6 @@ const sidebarItems = [
       { icon: Warehouse, label: "Almacén", href: "/inventory/warehouses" },
       { icon: Package, label: "Productos", href: "/inventory/products" },
       { icon: Factory, label: "Registrar Producción", href: "/inventory/production" },
-      { icon: ClipboardList, label: "Ajustes de Inventario", href: "/inventory/adjustments" },
     ],
   },
   {
