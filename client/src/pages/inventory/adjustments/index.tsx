@@ -128,8 +128,8 @@ export default function InventoryAdjustments() {
     return { total, pending, approved };
   }, [adjustments]);
 
-  // Obtener la fecha actual en formato ISO completo (YYYY-MM-DDThh:mm) para datetime-local
-  const today = new Date().toISOString().slice(0, 16);
+  // Obtener la fecha actual en formato ISO completo con zona horaria Z (UTC)
+  const today = new Date().toISOString();
   
   // Configuración del formulario para crear ajuste
   const form = useForm({
@@ -286,13 +286,24 @@ export default function InventoryAdjustments() {
       };
     });
     
+    // Formatear la fecha según lo que espera el esquema Zod
+    // La fecha debe ser en formato ISO-8601 con información de zona horaria
+    let formattedDate = data.date;
+    if (formattedDate && !formattedDate.endsWith('Z')) {
+      // Asegurémonos de que la fecha tiene formato ISO correcto con 'Z' al final
+      formattedDate = new Date(formattedDate).toISOString();
+    }
+    
     // Preparar datos para envío
     const submitData = {
       ...data,
+      date: formattedDate,
       items: processedItems,
       warehouseId: data.warehouseId ? Number(data.warehouseId) : undefined,
       targetWarehouseId: data.targetWarehouseId ? Number(data.targetWarehouseId) : undefined,
     };
+    
+    console.log("Enviando datos:", JSON.stringify(submitData, null, 2));
     
     // Enviar los datos
     createMutation.mutate(submitData);
@@ -582,10 +593,18 @@ export default function InventoryAdjustments() {
                                   <Input
                                     type="datetime-local"
                                     className="pl-8"
-                                    {...field}
+                                    value={field.value?.slice(0, 16) || ""}
+                                    onChange={(e) => {
+                                      // Convertir la fecha a formato ISO
+                                      const date = new Date(e.target.value);
+                                      field.onChange(date.toISOString());
+                                    }}
                                   />
                                 </div>
                               </FormControl>
+                              <FormDescription className="text-xs text-muted-foreground">
+                                Formato ISO: {field.value}
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
