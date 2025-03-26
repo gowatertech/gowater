@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
 import { 
   PlusCircle, 
   Pencil, 
@@ -16,7 +17,10 @@ import {
   Box, 
   CircleDollarSign, 
   PackageCheck, 
-  PackageX 
+  PackageX,
+  ClipboardList,
+  ArrowUpFromLine,
+  ArrowDownToLine
 } from "lucide-react";
 import { useState, useMemo } from "react";
 
