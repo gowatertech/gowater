@@ -109,7 +109,8 @@ export default function Inventory() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<string>("list");
+  // Cambiar el tab por defecto a "adjustments" para verificar si funciona
+  const [activeTab, setActiveTab] = useState<string>("adjustments");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
