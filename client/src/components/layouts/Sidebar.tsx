@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Users,
   Route,
@@ -179,9 +178,9 @@ const AnimatedIcon = ({ icon: Icon, color, isActive, className, ...props }: {
 export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
   const [location] = useLocation();
-  const isMobile = useIsMobile();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
+  const isMobile = false; // Valor fijo temporalmente para evitar problemas
 
   // Manejador para abrir menús automáticamente al hacer hover
   const handleItemHover = (label: string) => {
@@ -403,50 +402,33 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                         const isSubActive = location === subItem.href;
                         return (
                           <Link key={subItem.href} href={subItem.href}>
-                            {isMobile ? (
-                              <button
-                                onClick={() => setOpenMobile(false)}
-                                className={cn(
-                                  "w-full py-2 px-3 text-left text-sm rounded-md flex items-center gap-2.5 font-normal",
-                                  "hover:bg-primary/5 transition-colors duration-200",
-                                  isSubActive ? "bg-primary/5 text-primary" : "text-muted-foreground"
-                                )}
-                              >
-                                {subItem.icon && <subItem.icon className="h-3.5 w-3.5" />}
-                                <span>{t(subItem.label)}</span>
-                                {isSubActive && (
-                                  <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1 h-auto">
-                                    Actual
-                                  </Badge>
-                                )}
-                              </button>
-                            ) : (
-                              <TooltipProvider delayDuration={300}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      onClick={() => setOpenMobile(false)}
-                                      className={cn(
-                                        "w-full py-2 px-3 text-left text-sm rounded-md flex items-center gap-2.5 font-normal",
-                                        "hover:bg-primary/5 transition-colors duration-200",
-                                        isSubActive ? "bg-primary/5 text-primary" : "text-muted-foreground"
-                                      )}
-                                    >
-                                      {subItem.icon && <subItem.icon className="h-3.5 w-3.5" />}
-                                      <span>{t(subItem.label)}</span>
-                                      {isSubActive && (
-                                        <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1 h-auto">
-                                          Actual
-                                        </Badge>
-                                      )}
-                                    </button>
-                                  </TooltipTrigger>
+                            <TooltipProvider delayDuration={300}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={() => setOpenMobile(false)}
+                                    className={cn(
+                                      "w-full py-2 px-3 text-left text-sm rounded-md flex items-center gap-2.5 font-normal",
+                                      "hover:bg-primary/5 transition-colors duration-200",
+                                      isSubActive ? "bg-primary/5 text-primary" : "text-muted-foreground"
+                                    )}
+                                  >
+                                    {subItem.icon && <subItem.icon className="h-3.5 w-3.5" />}
+                                    <span>{t(subItem.label)}</span>
+                                    {isSubActive && (
+                                      <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1 h-auto">
+                                        Actual
+                                      </Badge>
+                                    )}
+                                  </button>
+                                </TooltipTrigger>
+                                {!isMobile && (
                                   <TooltipContent side="right">
                                     {t(subItem.label)}
                                   </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
                           </Link>
                         );
                       })}
