@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Users,
   Route,
@@ -178,25 +179,41 @@ const AnimatedIcon = ({ icon: Icon, color, isActive, className, ...props }: {
 export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
   const [location] = useLocation();
+  const isMobile = useIsMobile();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
 
   // Manejador para abrir menús automáticamente al hacer hover
   const handleItemHover = (label: string) => {
-    // Siempre expandir el menú al hacer hover
+    // Si había un menú abierto por un clic, lo mantenemos y agregamos este
+    if (activeItems.length > 0 && !activeItems.includes(label)) {
+      // Si ya hay un menú abierto por clic, mostramos este pero no cerramos el otro
+      const menuOpenedByClick = activeItems.filter(item => {
+        // Verificar que este ítem no se abrió automáticamente
+        const menuItem = sidebarItems.find(i => i.label === item);
+        return menuItem && !menuItem.subItems?.some(sub => location === sub.href);
+      });
+      
+      if (menuOpenedByClick.length > 0) {
+        setActiveItems([...menuOpenedByClick, label]);
+        return;
+      }
+    }
+    
+    // Si no hay menús abiertos por clic, simplemente mostramos este
     setActiveItems([label]);
   };
   
-  // Manejador para clics, ahora solo se usa para móviles
+  // Manejador para clics, tanto para móvil como para escritorio
   const handleItemClick = (label: string) => {
-    // En mobile, toggle el menú al hacer clic
-    if (window.innerWidth < 768) {
-      if (activeItems.includes(label)) {
-        setActiveItems([]);
-      } else {
-        setActiveItems([label]);
-      }
+    // Para ambos mobile y desktop, hacemos toggle del menú al hacer clic
+    if (activeItems.includes(label)) {
+      setActiveItems([]);
+    } else {
+      setActiveItems([label]);
     }
+    // Cancelar cualquier cierre programado al hacer clic explícitamente
+    clearCloseTimeout();
   };
 
   // Al cambiar de ubicación, actualizar el ítem activo automáticamente
@@ -234,8 +251,18 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     // Establecer un timeout para cerrar el menú después de un breve período
     clearCloseTimeout();
     closeTimeoutRef.current = setTimeout(() => {
-      setActiveItems([]);
-    }, 800); // 800ms para darle tiempo al usuario de moverse al submenú
+      // Solo cerramos si no hay un item activo (seleccionado por clic o por ser la ruta actual)
+      const currentRoute = sidebarItems.find(item => 
+        location === item.href || (item.subItems?.some(sub => location === sub.href))
+      );
+      
+      if (!currentRoute || !currentRoute.subItems) {
+        setActiveItems([]);
+      } else if (currentRoute.subItems) {
+        // Si estamos en una ruta con subitems, mantenemos abierto solo ese item
+        setActiveItems([currentRoute.label]);
+      }
+    }, 600); // 600ms para darle tiempo al usuario de moverse al submenú pero ser más responsivo
   };
   
   const handleMouseEnterSubMenu = () => {
@@ -297,7 +324,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 <Link href={item.href}>
                   <UISidebarMenuButton
                     isActive={isActive}
-                    tooltip={t(item.label)}
+                    tooltip={isMobile ? undefined : t(item.label)}
                     className={cn(
                       "w-full justify-start gap-4 rounded-lg hover:bg-primary/5 transition-all duration-200",
                       isActive && "bg-primary/10 shadow-sm font-medium text-primary"
@@ -329,7 +356,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                 <>
                   <UISidebarMenuButton
                     isActive={isActive}
-                    tooltip={t(item.label)}
+                    tooltip={isMobile ? undefined : t(item.label)}
                     className={cn(
                       "w-full justify-start gap-4 pr-8 rounded-lg transition-all duration-200",
                       isExpanded ? "bg-primary/10 hover:bg-primary/15" : "hover:bg-primary/5",
@@ -376,31 +403,50 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                         const isSubActive = location === subItem.href;
                         return (
                           <Link key={subItem.href} href={subItem.href}>
-                            <TooltipProvider delayDuration={300}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => setOpenMobile(false)}
-                                    className={cn(
-                                      "w-full py-2 px-3 text-left text-sm rounded-md flex items-center gap-2.5 font-normal",
-                                      "hover:bg-primary/5 transition-colors duration-200",
-                                      isSubActive ? "bg-primary/5 text-primary" : "text-muted-foreground"
-                                    )}
-                                  >
-                                    {subItem.icon && <subItem.icon className="h-3.5 w-3.5" />}
-                                    <span>{t(subItem.label)}</span>
-                                    {isSubActive && (
-                                      <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1 h-auto">
-                                        Actual
-                                      </Badge>
-                                    )}
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                  {t(subItem.label)}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            {isMobile ? (
+                              <button
+                                onClick={() => setOpenMobile(false)}
+                                className={cn(
+                                  "w-full py-2 px-3 text-left text-sm rounded-md flex items-center gap-2.5 font-normal",
+                                  "hover:bg-primary/5 transition-colors duration-200",
+                                  isSubActive ? "bg-primary/5 text-primary" : "text-muted-foreground"
+                                )}
+                              >
+                                {subItem.icon && <subItem.icon className="h-3.5 w-3.5" />}
+                                <span>{t(subItem.label)}</span>
+                                {isSubActive && (
+                                  <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1 h-auto">
+                                    Actual
+                                  </Badge>
+                                )}
+                              </button>
+                            ) : (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      onClick={() => setOpenMobile(false)}
+                                      className={cn(
+                                        "w-full py-2 px-3 text-left text-sm rounded-md flex items-center gap-2.5 font-normal",
+                                        "hover:bg-primary/5 transition-colors duration-200",
+                                        isSubActive ? "bg-primary/5 text-primary" : "text-muted-foreground"
+                                      )}
+                                    >
+                                      {subItem.icon && <subItem.icon className="h-3.5 w-3.5" />}
+                                      <span>{t(subItem.label)}</span>
+                                      {isSubActive && (
+                                        <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1 h-auto">
+                                          Actual
+                                        </Badge>
+                                      )}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="right">
+                                    {t(subItem.label)}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
                           </Link>
                         );
                       })}
