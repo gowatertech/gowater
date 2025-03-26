@@ -128,8 +128,8 @@ export default function InventoryAdjustments() {
     return { total, pending, approved };
   }, [adjustments]);
 
-  // Obtener la fecha actual en formato ISO (YYYY-MM-DD)
-  const today = new Date().toISOString().split('T')[0];
+  // Obtener la fecha actual en formato ISO completo (YYYY-MM-DDThh:mm) para datetime-local
+  const today = new Date().toISOString().slice(0, 16);
   
   // Configuración del formulario para crear ajuste
   const form = useForm({
@@ -580,7 +580,7 @@ export default function InventoryAdjustments() {
                                 <div className="relative">
                                   <Calendar className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                   <Input
-                                    type="date"
+                                    type="datetime-local"
                                     className="pl-8"
                                     {...field}
                                   />
@@ -600,7 +600,7 @@ export default function InventoryAdjustments() {
                               <FormLabel>Almacén</FormLabel>
                               <Select
                                 onValueChange={(value) => field.onChange(parseInt(value))}
-                                defaultValue={field.value?.toString()}
+                                defaultValue={field.value ? field.value.toString() : "1"}
                               >
                                 <FormControl>
                                   <SelectTrigger>
@@ -630,7 +630,7 @@ export default function InventoryAdjustments() {
                                 <FormLabel>Almacén Destino</FormLabel>
                                 <Select
                                   onValueChange={(value) => field.onChange(parseInt(value))}
-                                  defaultValue={field.value?.toString()}
+                                  defaultValue={field.value ? field.value.toString() : undefined}
                                 >
                                   <FormControl>
                                     <SelectTrigger>
