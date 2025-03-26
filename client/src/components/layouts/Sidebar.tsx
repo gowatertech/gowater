@@ -85,6 +85,7 @@ const sidebarItems = [
     subItems: [
       { icon: Warehouse, label: "Almacén", href: "/inventory/warehouses" },
       { icon: Package, label: "Productos", href: "/inventory/products" },
+      { icon: Box, label: "Ajustes de Inventario", href: "/inventory/adjustments" },
       { icon: Factory, label: "Registrar Producción", href: "/inventory/production" },
     ],
   },
