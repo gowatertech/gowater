@@ -401,13 +401,31 @@ export default function Inventory() {
         {/* Pestañas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-2">
-            <TabsTrigger value="list" className="text-xs">Lista de Productos</TabsTrigger>
-            <TabsTrigger value="form" className="text-xs">
-              {editingProduct ? "Editar Producto" : "Nuevo Producto"}
+            <TabsTrigger value="list" className="text-xs font-medium">
+              <Button variant="ghost" className="px-2 py-1 h-auto" onClick={() => setActiveTab("list")}>
+                Lista de Productos
+              </Button>
             </TabsTrigger>
-            <TabsTrigger value="movements" className="text-xs">Movimientos</TabsTrigger>
-            <TabsTrigger value="adjustments" className="text-xs">Ajustes</TabsTrigger>
-            <TabsTrigger value="alerts" className="text-xs">Alertas</TabsTrigger>
+            <TabsTrigger value="form" className="text-xs font-medium">
+              <Button variant="ghost" className="px-2 py-1 h-auto" onClick={() => setActiveTab("form")}>
+                {editingProduct ? "Editar Producto" : "Nuevo Producto"}
+              </Button>
+            </TabsTrigger>
+            <TabsTrigger value="movements" className="text-xs font-medium">
+              <Button variant="ghost" className="px-2 py-1 h-auto" onClick={() => setActiveTab("movements")}>
+                Movimientos
+              </Button>
+            </TabsTrigger>
+            <TabsTrigger value="adjustments" className="text-xs font-medium">
+              <Button variant="ghost" className="px-2 py-1 h-auto" onClick={() => setActiveTab("adjustments")}>
+                Ajustes
+              </Button>
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="text-xs font-medium">
+              <Button variant="ghost" className="px-2 py-1 h-auto" onClick={() => setActiveTab("alerts")}>
+                Alertas
+              </Button>
+            </TabsTrigger>
           </TabsList>
           
           {/* Pestaña de Movimientos */}
