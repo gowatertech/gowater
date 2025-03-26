@@ -16,9 +16,20 @@ import {
   Box, 
   CircleDollarSign, 
   PackageCheck, 
-  PackageX 
+  PackageX,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Calendar,
+  AlertTriangle
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import type { 
+  InsertInventoryMovement, 
+  InventoryMovement, 
+  StockAlert, 
+  InventoryAdjustment 
+} from "@shared/schema";
 
 import {
   Table,
@@ -105,6 +116,16 @@ export default function Inventory() {
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+  
+  const { data: movements = [], isLoading: isLoadingMovements } = useQuery<InventoryMovement[]>({
+    queryKey: ["/api/inventory/movements"],
+    enabled: activeTab === "movements"
+  });
+  
+  const { data: stockAlerts = [], isLoading: isLoadingAlerts } = useQuery<StockAlert[]>({
+    queryKey: ["/api/inventory/stock-alerts"],
+    enabled: activeTab === "alerts"
   });
   
   // Filtrar productos por término de búsqueda
@@ -377,7 +398,195 @@ export default function Inventory() {
             <TabsTrigger value="form" className="text-xs">
               {editingProduct ? "Editar Producto" : "Nuevo Producto"}
             </TabsTrigger>
+            <TabsTrigger value="movements" className="text-xs">Movimientos</TabsTrigger>
+            <TabsTrigger value="adjustments" className="text-xs">Ajustes</TabsTrigger>
+            <TabsTrigger value="alerts" className="text-xs">Alertas</TabsTrigger>
           </TabsList>
+          
+          {/* Pestaña de Movimientos */}
+          <TabsContent value="movements" className="space-y-2">
+            <Card>
+              <CardHeader className="p-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-1">
+                    <ArrowUpDown className="h-4 w-4 text-primary" />
+                    Movimientos de Inventario
+                  </CardTitle>
+                  <Button 
+                    size="sm" 
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      // Implementar funcionalidad para agregar nuevo movimiento
+                      toast({
+                        title: "Información",
+                        description: "Funcionalidad en desarrollo"
+                      });
+                    }}
+                  >
+                    Nuevo Movimiento
+                  </Button>
+                </div>
+                <CardDescription className="text-xs">
+                  Historial de entradas y salidas de los productos
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow className="text-[10px]">
+                        <TableHead className="py-1">Producto</TableHead>
+                        <TableHead className="py-1 w-[100px]">Tipo</TableHead>
+                        <TableHead className="py-1 w-[80px] text-center">Cantidad</TableHead>
+                        <TableHead className="py-1 w-[160px]">Referencia</TableHead>
+                        <TableHead className="py-1 w-[120px]">Fecha</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingMovements ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            Cargando movimientos...
+                          </TableCell>
+                        </TableRow>
+                      ) : movements.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            No se encontraron movimientos de inventario
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        movements.map((movement) => {
+                          const product = products.find(p => p.id === movement.productId);
+                          return (
+                            <TableRow key={movement.id} className="text-xs">
+                              <TableCell className="py-2 font-medium">{product?.name || "Producto desconocido"}</TableCell>
+                              <TableCell className="py-2">
+                                <Badge 
+                                  variant={movement.type === "entrada" ? "default" : "destructive"}
+                                  className="whitespace-nowrap"
+                                >
+                                  {movement.type === "entrada" ? (
+                                    <span className="flex items-center gap-1">
+                                      <ArrowDown className="h-3 w-3" />
+                                      Entrada
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      <ArrowUp className="h-3 w-3" />
+                                      Salida
+                                    </span>
+                                  )}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2 text-center">{movement.quantity}</TableCell>
+                              <TableCell className="py-2">{movement.reference}</TableCell>
+                              <TableCell className="py-2">
+                                {new Date(movement.createdAt).toLocaleDateString('es-ES', { 
+                                  day: '2-digit', 
+                                  month: '2-digit', 
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {/* Pestaña de Alertas */}
+          <TabsContent value="alerts" className="space-y-2">
+            <Card>
+              <CardHeader className="p-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4 text-primary" />
+                    Alertas de Stock
+                  </CardTitle>
+                  <Button 
+                    size="sm" 
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      // Verificar stock bajo
+                      toast({
+                        title: "Verificando",
+                        description: "Verificando productos con stock bajo"
+                      });
+                    }}
+                  >
+                    Verificar Stock Bajo
+                  </Button>
+                </div>
+                <CardDescription className="text-xs">
+                  Alertas de productos con bajo nivel de existencia
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow className="text-[10px]">
+                        <TableHead className="py-1">Producto</TableHead>
+                        <TableHead className="py-1 w-[80px] text-center">Stock Actual</TableHead>
+                        <TableHead className="py-1 w-[100px] text-center">Nivel Mínimo</TableHead>
+                        <TableHead className="py-1 w-[100px]">Estado</TableHead>
+                        <TableHead className="py-1 w-[120px]">Fecha</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingAlerts ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            Cargando alertas...
+                          </TableCell>
+                        </TableRow>
+                      ) : stockAlerts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            No hay alertas de stock bajo
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        stockAlerts.map((alert) => {
+                          const product = products.find(p => p.id === alert.productId);
+                          return (
+                            <TableRow key={alert.id} className="text-xs">
+                              <TableCell className="py-2 font-medium">{product?.name || "Producto desconocido"}</TableCell>
+                              <TableCell className="py-2 text-center">{product?.stock || 0}</TableCell>
+                              <TableCell className="py-2 text-center">{alert.minimumLevel}</TableCell>
+                              <TableCell className="py-2">
+                                <Badge 
+                                  variant={alert.status === "active" ? "destructive" : 
+                                          alert.status === "resolved" ? "default" : "secondary"}
+                                >
+                                  {alert.status === "active" ? "Activa" : 
+                                   alert.status === "resolved" ? "Resuelta" : "Ignorada"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                {new Date(alert.createdAt).toLocaleDateString('es-ES', { 
+                                  day: '2-digit', 
+                                  month: '2-digit', 
+                                  year: 'numeric' 
+                                })}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Pestaña de Lista */}
           <TabsContent value="list" className="space-y-2">
