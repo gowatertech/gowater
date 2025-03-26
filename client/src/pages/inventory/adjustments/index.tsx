@@ -158,7 +158,7 @@ export default function InventoryAdjustments() {
   });
 
   // Consulta para obtener almacenes
-  const { data: warehouses = [] } = useQuery({
+  const { data: warehouses = [] } = useQuery<any[]>({
     queryKey: ["/api/warehouses"],
   });
   
@@ -214,11 +214,14 @@ export default function InventoryAdjustments() {
     };
   }, [adjustments]);
 
+  // Obtener la fecha actual en formato ISO (YYYY-MM-DD)
+  const today = new Date().toISOString().split('T')[0];
+  
   // Configuración del formulario para crear ajuste
   const form = useForm({
     resolver: zodResolver(insertInventoryAdjustmentSchema),
     defaultValues: {
-      date: new Date().toISOString().split('T')[0],
+      date: today,
       adjustmentType: "entrada",
       notes: "",
       reference: "",
@@ -766,8 +769,8 @@ export default function InventoryAdjustments() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {warehouses.map(warehouse => (
-                                    <SelectItem key={warehouse.id} value={warehouse.id.toString()} className="text-xs">
+                                  {warehouses.map((warehouse: any) => (
+                                    <SelectItem key={warehouse.id} value={String(warehouse.id)} className="text-xs">
                                       {warehouse.name}
                                     </SelectItem>
                                   ))}
@@ -797,8 +800,8 @@ export default function InventoryAdjustments() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {warehouses.map(warehouse => (
-                                      <SelectItem key={warehouse.id} value={warehouse.id.toString()} className="text-xs">
+                                    {warehouses.map((warehouse: any) => (
+                                      <SelectItem key={warehouse.id} value={String(warehouse.id)} className="text-xs">
                                         {warehouse.name}
                                       </SelectItem>
                                     ))}
@@ -927,8 +930,8 @@ export default function InventoryAdjustments() {
                                         </SelectTrigger>
                                       </FormControl>
                                       <SelectContent className="max-h-52">
-                                        {products.map(product => (
-                                          <SelectItem key={product.id} value={product.id.toString()} className="text-xs">
+                                        {products.map((product: any) => (
+                                          <SelectItem key={product.id} value={String(product.id)} className="text-xs">
                                             {product.name} - Stock: {product.stock}
                                           </SelectItem>
                                         ))}

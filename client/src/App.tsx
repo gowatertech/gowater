@@ -23,6 +23,7 @@ import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
 import ProductionRegistration from "@/pages/inventory/production";
+import InventoryAdjustments from "@/pages/inventory/adjustments";
 import DriverView from "@/pages/drivers/DriverView";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
@@ -44,6 +45,7 @@ function Router() {
         {/* Inventory Routes - Specific routes first */}
         <Route path="/inventory/warehouses" component={WarehousesPage} />
         <Route path="/inventory/production" component={ProductionRegistration} />
+        <Route path="/inventory/adjustments" component={InventoryAdjustments} />
         <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory" component={InventoryPage} />
 

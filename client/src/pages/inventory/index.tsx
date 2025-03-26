@@ -319,6 +319,41 @@ export default function Inventory() {
             <Box className="h-5 w-5 text-primary" />
             Gestión de Productos
           </h1>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="h-8 text-xs"
+              asChild
+            >
+              <Link to="/inventory/warehouses">
+                <Package className="h-3 w-3 mr-1" />
+                Almacenes
+              </Link>
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="h-8 text-xs"
+              asChild
+            >
+              <Link to="/inventory/production">
+                <PackageCheck className="h-3 w-3 mr-1" />
+                Producción
+              </Link>
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="h-8 text-xs"
+              asChild
+            >
+              <Link to="/inventory/adjustments">
+                <ClipboardList className="h-3 w-3 mr-1" />
+                Ajustes
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Estadísticas */}
