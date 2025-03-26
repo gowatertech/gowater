@@ -115,7 +115,7 @@ const statusMap = {
 };
 
 // Formato para fecha local
-function formatDate(dateString: string) {
+function formatDate(dateString: string | Date) {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('es-DO', {
     year: 'numeric', 
@@ -791,7 +791,7 @@ export default function InventoryAdjustments() {
                               <FormItem>
                                 <FormLabel className="text-xs">Almacén Destino</FormLabel>
                                 <Select
-                                  value={field.value?.toString() || ""}
+                                  value={field.value ? String(field.value) : ""}
                                   onValueChange={(val) => field.onChange(val ? Number(val) : undefined)}
                                 >
                                   <FormControl>
@@ -921,7 +921,7 @@ export default function InventoryAdjustments() {
                                   <FormItem>
                                     <FormLabel className="text-xs">Producto</FormLabel>
                                     <Select
-                                      value={field.value?.toString() || "0"}
+                                      value={field.value ? String(field.value) : "0"}
                                       onValueChange={(val) => field.onChange(Number(val))}
                                     >
                                       <FormControl>
