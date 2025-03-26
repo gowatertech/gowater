@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -181,14 +181,21 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
 
-  // Manejador para abrir y cerrar menús al hacer clic
+  // Manejador para abrir menús automáticamente al hacer hover
+  const handleItemHover = (label: string) => {
+    // Siempre expandir el menú al hacer hover
+    setActiveItems([label]);
+  };
+  
+  // Manejador para clics, ahora solo se usa para móviles
   const handleItemClick = (label: string) => {
-    // Si el elemento ya está en activeItems, lo removemos (cerramos el submenú)
-    if (activeItems.includes(label)) {
-      setActiveItems([]);
-    } else {
-      // Si no está, lo agregamos (y quitamos todos los demás para cerrar otros submenús)
-      setActiveItems([label]);
+    // En mobile, toggle el menú al hacer clic
+    if (window.innerWidth < 768) {
+      if (activeItems.includes(label)) {
+        setActiveItems([]);
+      } else {
+        setActiveItems([label]);
+      }
     }
   };
 
@@ -213,23 +220,33 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     }
   }, [location]);
   
-  // Elimina el hover effect para desktop - solo queremos interacción con clic
-  useEffect(() => {
-    const handleMouseMove = () => {
-      if (hoveredItem) {
-        setHoveredItem(null);
-      }
-    };
-    
-    // Solo añadir listener si hay un elemento hover
-    if (hoveredItem) {
-      document.addEventListener("mousemove", handleMouseMove);
+  // Manejo de timeouts para cerrar menús al salir de la hover area
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
     }
-    
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, [hoveredItem]);
+  };
+  
+  const handleMouseLeave = () => {
+    // Establecer un timeout para cerrar el menú después de un breve período
+    clearCloseTimeout();
+    closeTimeoutRef.current = setTimeout(() => {
+      setActiveItems([]);
+    }, 800); // 800ms para darle tiempo al usuario de moverse al submenú
+  };
+  
+  const handleMouseEnterSubMenu = () => {
+    // Cancelar el cierre programado si el mouse entra al submenú
+    clearCloseTimeout();
+  };
+  
+  // Limpiar timeout al desmontar
+  useEffect(() => {
+    return () => clearCloseTimeout();
+  }, []);
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-background">
@@ -265,8 +282,15 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
           return (
             <UISidebarMenuItem
               key={item.href}
-              onMouseEnter={() => setHoveredItem(item.label)}
-              onMouseLeave={() => setHoveredItem(null)}
+              onMouseEnter={() => {
+                setHoveredItem(item.label);
+                if (item.subItems) handleItemHover(item.label);
+                clearCloseTimeout(); // Cancelar cualquier cierre programado
+              }}
+              onMouseLeave={() => {
+                setHoveredItem(null);
+                if (item.subItems) handleMouseLeave();
+              }}
               className="relative group mb-1.5"
             >
               {!item.subItems ? (
@@ -345,6 +369,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
                       "overflow-hidden transition-all duration-300 ease-in-out px-2",
                       isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
                     )}
+                    onMouseEnter={handleMouseEnterSubMenu}
                   >
                     <div className="py-1 space-y-1 ml-4 pl-2 border-l border-muted">
                       {item.subItems.map((subItem) => {
