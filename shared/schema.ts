@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 // Users (drivers, admins, etc.)
 export const users = pgTable("users", {
@@ -892,3 +893,91 @@ export type InsertRouteSettlement = {
   }>;
   cashDifference?: string;
 };
+
+// Inventory Adjustments
+export const inventoryAdjustments = pgTable("inventory_adjustments", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").notNull().defaultNow(),
+  adjustmentType: text("adjustment_type", { 
+    enum: ["entrada", "salida", "transferencia", "conteo_fisico", "produccion", "ajuste", "venta", "devolucion"] 
+  }).notNull(),
+  notes: text("notes"),
+  reference: text("reference"),
+  warehouseId: integer("warehouse_id").references(() => warehouses.id),
+  targetWarehouseId: integer("target_warehouse_id").references(() => warehouses.id),
+  createdBy: integer("created_by").notNull().references(() => users.id),
+  approvedBy: integer("approved_by").references(() => users.id),
+  status: text("status", { 
+    enum: ["pendiente", "aprobado", "rechazado", "anulado"] 
+  }).notNull().default("pendiente"),
+  documentNumber: text("document_number"),
+});
+
+export const inventoryAdjustmentItems = pgTable("inventory_adjustment_items", {
+  id: serial("id").primaryKey(),
+  adjustmentId: integer("adjustment_id").notNull().references(() => inventoryAdjustments.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  currentStock: integer("current_stock").notNull(),
+  newStock: integer("new_stock").notNull(),
+  reason: text("reason"),
+  cost: decimal("cost", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  value: decimal("value", { precision: 10, scale: 2 }).notNull().default("0.00"),
+});
+
+export const insertInventoryAdjustmentSchema = z.object({
+  date: z.string().datetime().optional(),
+  adjustmentType: z.enum(["entrada", "salida", "transferencia", "conteo_fisico", "produccion", "ajuste", "venta", "devolucion"]),
+  notes: z.string().optional(),
+  reference: z.string().optional(),
+  warehouseId: z.number().optional(),
+  targetWarehouseId: z.number().optional(),
+  createdBy: z.number(),
+  approvedBy: z.number().optional(),
+  status: z.enum(["pendiente", "aprobado", "rechazado", "anulado"]).default("pendiente"),
+  documentNumber: z.string().optional(),
+  items: z.array(z.object({
+    productId: z.number(),
+    quantity: z.number().int(),
+    currentStock: z.number().int(),
+    newStock: z.number().int(),
+    reason: z.string().optional(),
+    cost: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+    value: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  })),
+});
+
+export const inventoryAdjustmentRelations = relations(inventoryAdjustments, ({ one, many }) => ({
+  createdByUser: one(users, {
+    fields: [inventoryAdjustments.createdBy],
+    references: [users.id],
+  }),
+  approvedByUser: one(users, {
+    fields: [inventoryAdjustments.approvedBy],
+    references: [users.id],
+  }),
+  warehouse: one(warehouses, {
+    fields: [inventoryAdjustments.warehouseId],
+    references: [warehouses.id],
+  }),
+  targetWarehouse: one(warehouses, {
+    fields: [inventoryAdjustments.targetWarehouseId],
+    references: [warehouses.id],
+  }),
+  items: many(inventoryAdjustmentItems),
+}));
+
+export const inventoryAdjustmentItemsRelations = relations(inventoryAdjustmentItems, ({ one }) => ({
+  adjustment: one(inventoryAdjustments, {
+    fields: [inventoryAdjustmentItems.adjustmentId],
+    references: [inventoryAdjustments.id],
+  }),
+  product: one(products, {
+    fields: [inventoryAdjustmentItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
+export type InventoryAdjustmentItem = typeof inventoryAdjustmentItems.$inferSelect;
+export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
