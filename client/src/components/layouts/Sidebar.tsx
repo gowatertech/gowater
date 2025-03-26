@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import useMediaQuery from "@/hooks/use-media-query";
 import {
   Users,
   Route,
@@ -180,7 +181,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const [location] = useLocation();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
-  const isMobile = false; // Valor fijo temporalmente para evitar problemas
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Manejador para abrir menús automáticamente al hacer hover
   const handleItemHover = (label: string) => {
