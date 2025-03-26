@@ -21,7 +21,8 @@ import {
   ArrowUp,
   ArrowDown,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  Check
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import type { 
@@ -126,6 +127,11 @@ export default function Inventory() {
   const { data: stockAlerts = [], isLoading: isLoadingAlerts } = useQuery<StockAlert[]>({
     queryKey: ["/api/inventory/stock-alerts"],
     enabled: activeTab === "alerts"
+  });
+  
+  const { data: adjustments = [], isLoading: isLoadingAdjustments } = useQuery<InventoryAdjustment[]>({
+    queryKey: ["/api/inventory/adjustments"],
+    enabled: activeTab === "adjustments"
   });
   
   // Filtrar productos por término de búsqueda
@@ -463,10 +469,10 @@ export default function Inventory() {
                               <TableCell className="py-2 font-medium">{product?.name || "Producto desconocido"}</TableCell>
                               <TableCell className="py-2">
                                 <Badge 
-                                  variant={movement.type === "entrada" ? "default" : "destructive"}
+                                  variant={movement.movementType === "purchase" || movement.movementType === "production" || movement.movementType === "return" ? "default" : "destructive"}
                                   className="whitespace-nowrap"
                                 >
-                                  {movement.type === "entrada" ? (
+                                  {movement.movementType === "purchase" || movement.movementType === "production" || movement.movementType === "return" ? (
                                     <span className="flex items-center gap-1">
                                       <ArrowDown className="h-3 w-3" />
                                       Entrada
@@ -480,7 +486,11 @@ export default function Inventory() {
                                 </Badge>
                               </TableCell>
                               <TableCell className="py-2 text-center">{movement.quantity}</TableCell>
-                              <TableCell className="py-2">{movement.reference}</TableCell>
+                              <TableCell className="py-2">
+                                {movement.referenceType && movement.referenceId ? 
+                                 `${movement.referenceType.charAt(0).toUpperCase() + movement.referenceType.slice(1)} #${movement.referenceId}` :
+                                 movement.notes || "Sin referencia"}
+                              </TableCell>
                               <TableCell className="py-2">
                                 {new Date(movement.createdAt).toLocaleDateString('es-ES', { 
                                   day: '2-digit', 
@@ -501,6 +511,143 @@ export default function Inventory() {
             </Card>
           </TabsContent>
           
+          {/* Pestaña de Ajustes */}
+          <TabsContent value="adjustments" className="space-y-2">
+            <Card>
+              <CardHeader className="p-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-1">
+                    <PackageCheck className="h-4 w-4 text-primary" />
+                    Ajustes de Inventario
+                  </CardTitle>
+                  <Button 
+                    size="sm" 
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      // Implementar formulario para nuevo ajuste
+                      toast({
+                        title: "Información",
+                        description: "Funcionalidad en desarrollo"
+                      });
+                    }}
+                  >
+                    Nuevo Ajuste
+                  </Button>
+                </div>
+                <CardDescription className="text-xs">
+                  Gestión de ajustes de inventario
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-muted/50">
+                      <TableRow className="text-[10px]">
+                        <TableHead className="py-1 w-[80px]">ID</TableHead>
+                        <TableHead className="py-1">Razón</TableHead>
+                        <TableHead className="py-1 w-[100px]">Estado</TableHead>
+                        <TableHead className="py-1 w-[120px]">Fecha</TableHead>
+                        <TableHead className="py-1 w-[100px] text-center">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoadingAdjustments ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            Cargando ajustes...
+                          </TableCell>
+                        </TableRow>
+                      ) : adjustments.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                            No se encontraron ajustes de inventario
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        adjustments.map((adjustment) => {
+                          return (
+                            <TableRow key={adjustment.id} className="text-xs">
+                              <TableCell className="py-2 font-medium">{adjustment.id}</TableCell>
+                              <TableCell className="py-2 capitalize">
+                                {adjustment.reason === "damage" ? "Daño" : 
+                                 adjustment.reason === "expiration" ? "Vencimiento" : 
+                                 adjustment.reason === "count" ? "Conteo de inventario" : 
+                                 adjustment.reason === "loss" ? "Robo/Pérdida" : "Otro"}
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <Badge 
+                                  variant={adjustment.status === "pending" ? "secondary" : 
+                                          adjustment.status === "approved" ? "default" : "destructive"}
+                                >
+                                  {adjustment.status === "pending" ? "Pendiente" : 
+                                   adjustment.status === "approved" ? "Aprobado" : "Rechazado"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="py-2">
+                                {new Date(adjustment.createdAt).toLocaleDateString('es-ES', { 
+                                  day: '2-digit', 
+                                  month: '2-digit', 
+                                  year: 'numeric' 
+                                })}
+                              </TableCell>
+                              <TableCell className="py-2">
+                                <div className="flex justify-center space-x-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      toast({
+                                        title: "Ver detalle",
+                                        description: `Detalle del ajuste #${adjustment.id}`
+                                      });
+                                    }}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Search className="h-3 w-3" />
+                                  </Button>
+                                  {adjustment.status === "pending" && (
+                                    <>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          toast({
+                                            title: "Aprobar ajuste",
+                                            description: `Ajuste #${adjustment.id} aprobado`
+                                          });
+                                        }}
+                                        className="h-6 w-6 p-0 text-green-500"
+                                      >
+                                        <Check className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          toast({
+                                            title: "Rechazar ajuste",
+                                            description: `Ajuste #${adjustment.id} rechazado`
+                                          });
+                                        }}
+                                        className="h-6 w-6 p-0 text-destructive"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Pestaña de Alertas */}
           <TabsContent value="alerts" className="space-y-2">
             <Card>
@@ -560,7 +707,7 @@ export default function Inventory() {
                             <TableRow key={alert.id} className="text-xs">
                               <TableCell className="py-2 font-medium">{product?.name || "Producto desconocido"}</TableCell>
                               <TableCell className="py-2 text-center">{product?.stock || 0}</TableCell>
-                              <TableCell className="py-2 text-center">{alert.minimumLevel}</TableCell>
+                              <TableCell className="py-2 text-center">{alert.minStock}</TableCell>
                               <TableCell className="py-2">
                                 <Badge 
                                   variant={alert.status === "active" ? "destructive" : 
