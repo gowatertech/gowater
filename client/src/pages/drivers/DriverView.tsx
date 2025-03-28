@@ -17,6 +17,15 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
+  Select, 
+  SelectValue, 
+  SelectTrigger, 
+  SelectContent, 
+  SelectGroup,
+  SelectLabel,
+  SelectItem 
+} from '@/components/ui/select';
+import { 
   Form, 
   FormField, 
   FormItem, 
@@ -73,6 +82,16 @@ interface Delivery {
     returned: number;
     balance: number;
   };
+  routeId?: number; // ID de la ruta a la que pertenece la entrega
+}
+
+interface Route {
+  id: number;
+  name: string;
+  date: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  driverId: number;
+  vehicleId: number;
 }
 
 interface CashBalance {
@@ -120,31 +139,24 @@ function MapBoundsAdjuster({ deliveries }: { deliveries: Delivery[] }) {
 }
 
 function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null);
+  // Usar la ubicación de la empresa desde la configuración
+  const defaultPosition: [number, number] = [19.075380, -70.128822]; // Ubicación del almacén
+  const [position, setPosition] = useState<[number, number]>(defaultPosition);
   const map = useMap();
 
-  const handleLocationFound = useCallback((e: any) => {
-    setPosition([e.latlng.lat, e.latlng.lng]);
-    onPositionChange([e.latlng.lat, e.latlng.lng]);
-  }, [onPositionChange]);
-
+  // Establecer la posición predeterminada
   useEffect(() => {
-    map.locate({ setView: false });
-    map.on('locationfound', handleLocationFound);
-    return () => {
-      map.off('locationfound', handleLocationFound);
-    };
-  }, [map, handleLocationFound]);
+    setPosition(defaultPosition);
+    onPositionChange(defaultPosition);
+  }, [onPositionChange]);
 
   return position === null ? null : (
     <Marker 
       position={position}
       icon={L.divIcon({
         className: 'custom-div-icon',
-        html: `<div class="marker-pin bg-blue-700 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+        html: `<div class="marker-pin bg-green-600 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
+                <span class="text-white font-bold">0</span>
               </div>`,
         iconSize: [30, 30],
         iconAnchor: [15, 15]
@@ -152,7 +164,7 @@ function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number,
     >
       <Popup>
         <div className="p-1">
-          <p className="font-semibold">Tu ubicación actual</p>
+          <p className="font-semibold">Almacén (punto 0)</p>
         </div>
       </Popup>
     </Marker>
@@ -193,44 +205,66 @@ export default function DriverView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('entregas');
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   
-  // Fetching data
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['/api/driver/deliveries/today'],
-    onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: `No se pudieron cargar las entregas: ${error.message}`,
-        variant: 'destructive',
-      });
-    }
+  // Valores por defecto
+  const defaultCashBalance: CashBalance = {
+    initialBalance: '0.00',
+    cashIn: '0.00',
+    cashOut: '0.00',
+    finalBalance: '0.00'
+  };
+  
+  const defaultPerformance: Performance = {
+    deliveredOrders: 0,
+    totalOrders: 0,
+    onTimeDeliveries: 0,
+    averageDeliveryTime: 0
+  };
+  
+  // Obtener rutas disponibles
+  const routesQuery = useQuery<Route[]>({
+    queryKey: ['/api/driver/routes']
   });
   
-  const mockCashBalance: CashBalance = {
-    initialBalance: '1,500.00',
-    cashIn: '3,850.00',
-    cashOut: '450.00',
-    finalBalance: '4,900.00',
-  };
+  // Fetching deliveries
+  const deliveriesQuery = useQuery<Delivery[]>({
+    queryKey: ['/api/driver/deliveries/today']
+  });
   
-  const mockPerformance: Performance = {
-    deliveredOrders: 18,
-    totalOrders: 25,
-    onTimeDeliveries: 15,
-    averageDeliveryTime: 25,
-  };
+  // Obtener balance de efectivo
+  const cashBalanceQuery = useQuery<CashBalance>({
+    queryKey: ['/api/driver/cash-balance']
+  });
+  
+  // Obtener datos de rendimiento
+  const performanceQuery = useQuery<Performance>({
+    queryKey: ['/api/driver/performance']
+  });
+  
+  // Extraer datos con valores por defecto
+  const data = deliveriesQuery.data;
+  const isLoading = deliveriesQuery.isLoading;
+  const refetch = deliveriesQuery.refetch;
+  const cashBalance = cashBalanceQuery.data || defaultCashBalance;
+  const performance = performanceQuery.data || defaultPerformance;
   
   // Derived data
   const todayDeliveries: Delivery[] = data || [];
   
+  const deliveriesByRoute = useMemo(() => {
+    if (!selectedRouteId) return todayDeliveries;
+    return todayDeliveries.filter(delivery => delivery.routeId === selectedRouteId);
+  }, [todayDeliveries, selectedRouteId]);
+  
   const filteredDeliveries = useMemo(() => {
-    if (!searchTerm) return todayDeliveries;
+    if (!searchTerm) return deliveriesByRoute;
     
-    return todayDeliveries.filter(delivery => 
+    return deliveriesByRoute.filter(delivery => 
       delivery.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
       delivery.customerAddress.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [todayDeliveries, searchTerm]);
+  }, [deliveriesByRoute, searchTerm]);
   
   const nextDelivery = useMemo(() => {
     const pending = filteredDeliveries.filter(d => d.status === 'pending');
@@ -250,9 +284,7 @@ export default function DriverView() {
   // Actions
   const completeDeliveryMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/driver/deliveries/${id}/complete`, {
-        method: 'POST'
-      });
+      return apiRequest("POST", `/api/driver/deliveries/${id}/complete`, {});
     },
     onSuccess: () => {
       toast({
@@ -358,6 +390,20 @@ export default function DriverView() {
               )}
             </div>
             
+            <Select value={selectedRouteId?.toString() || ''} onValueChange={(value) => setSelectedRouteId(value ? parseInt(value) : null)}>
+              <SelectTrigger className="h-8 mb-2">
+                <SelectValue placeholder="Todas las rutas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todas las rutas</SelectItem>
+                {routesQuery.data?.map(route => (
+                  <SelectItem key={route.id} value={route.id.toString()}>
+                    {route.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
             <div className="grid grid-cols-2 gap-1.5 mb-2">
               <div className="relative overflow-hidden rounded-md border shadow-sm">
                 <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
@@ -440,7 +486,7 @@ export default function DriverView() {
                       <div className="border rounded p-1 text-center">
                         <div className="text-gray-500">Envases</div>
                         <div className="font-medium">
-                          {delivery.containers.delivered}
+                          {delivery.containers.delivered}/{delivery.containers.returned}
                         </div>
                       </div>
                     </div>
@@ -448,8 +494,9 @@ export default function DriverView() {
                     <div className="flex gap-1 mt-2">
                       <Button 
                         size="sm" 
+                        variant="outline"
+                        className="text-xs h-7 flex-1"
                         onClick={() => startNavigation(delivery)}
-                        className="text-xs h-7 bg-blue-600 hover:bg-blue-700 text-white flex-1"
                       >
                         <Navigation2 className="h-3 w-3 mr-1" />
                         Navegar
@@ -471,183 +518,124 @@ export default function DriverView() {
             </div>
           </TabsContent>
           
-          <TabsContent value="mapa">
-            <ResponsiveMapContainer minHeight="70vh">
-              <MapContainer
-                center={[18.4700, -69.9100]} // Santo Domingo
-                zoom={13}
-                style={{ height: "100%", width: "100%" }}
+          <TabsContent value="mapa" className="h-[calc(100vh-10rem)]">
+            <div className="mb-2">
+              <Select value={selectedRouteId?.toString() || ''} onValueChange={(value) => setSelectedRouteId(value ? parseInt(value) : null)}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Todas las rutas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas las rutas</SelectItem>
+                  {routesQuery.data?.map(route => (
+                    <SelectItem key={route.id} value={route.id.toString()}>
+                      {route.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <ResponsiveMapContainer className="h-full rounded-md border">
+              <MapContainer 
+                center={[19.075380, -70.128822]} 
+                zoom={12} 
+                style={{ height: '100%', width: '100%' }}
+                zoomControl={false}
               >
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 <LocationMarker onPositionChange={setCurrentPosition} />
-                <RouteLines deliveries={todayDeliveries} currentPosition={currentPosition} />
-                
-                {todayDeliveries.map((delivery) => (
+                {filteredDeliveries.map((delivery, index) => (
                   <Marker 
                     key={delivery.id}
-                    position={delivery.coordinates as LatLngExpression}
+                    position={delivery.coordinates}
                     icon={L.divIcon({
                       className: 'custom-div-icon',
-                      html: `<div class="marker-pin ${
-                        delivery.status === 'delivered' ? 'bg-green-500' : 
-                        delivery.status === 'pending' ? 'bg-yellow-500' : 
-                        'bg-blue-500'
-                      } flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md">${delivery.id}</div>`,
+                      html: `<div class="marker-pin ${delivery.status === 'delivered' ? 'bg-green-600' : delivery.status === 'pending' ? 'bg-yellow-600' : 'bg-red-600'} flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
+                              <span class="text-white font-bold">${index + 1}</span>
+                            </div>`,
                       iconSize: [30, 30],
                       iconAnchor: [15, 15]
                     })}
                   >
                     <Popup>
-                      <div className="p-2 w-[250px]">
-                        <h3 className="font-medium text-lg">{delivery.customerName}</h3>
-                        <p className="text-sm">{delivery.customerAddress}</p>
-                        <div className="my-2">
-                          <Badge variant="outline" className={getStatusColor(delivery.status)}>
-                            {delivery.status === 'pending' ? 'Pendiente' : 
-                             delivery.status === 'in_progress' ? 'En progreso' : 
-                             delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm mt-1">{delivery.orderDetails}</p>
-                        <div className="mt-3 flex gap-2">
+                      <div className="p-1">
+                        <p className="font-semibold">{delivery.customerName}</p>
+                        <p className="text-xs">{delivery.customerAddress}</p>
+                        <p className="text-xs mt-1">Hora: {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        <div className="flex gap-1 mt-2">
                           <Button 
                             size="sm" 
+                            variant="outline"
+                            className="text-xs h-7"
                             onClick={() => startNavigation(delivery)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
                           >
-                            <Navigation2 className="h-3 w-3 mr-2" />
+                            <Navigation2 className="h-3 w-3 mr-1" />
                             Navegar
                           </Button>
-                          {delivery.status === 'pending' && (
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleCompleteDelivery(delivery.id)}
-                              className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-2" />
-                              Completar
-                            </Button>
-                          )}
                         </div>
                       </div>
                     </Popup>
                   </Marker>
                 ))}
+                <RouteLines deliveries={filteredDeliveries} currentPosition={currentPosition} />
+                <MapBoundsAdjuster deliveries={filteredDeliveries} />
               </MapContainer>
             </ResponsiveMapContainer>
           </TabsContent>
           
-          <TabsContent value="stats">
-            <Card className="p-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <h2 className="font-semibold text-sm">Balance de Efectivo</h2>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex items-center justify-between mb-1 text-sm">
-                  <span className="text-gray-600">Saldo Inicial:</span>
-                  <span className="font-semibold">RD$ {mockCashBalance.initialBalance}</span>
+          <TabsContent value="stats" className="space-y-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Resumen del Día</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div className="border rounded p-2 text-center">
+                    <div className="text-sm font-medium">Entregas</div>
+                    <div className="text-2xl font-bold text-primary mt-1">{performance.deliveredOrders}/{performance.totalOrders}</div>
+                    <div className="text-xs text-gray-500">completadas</div>
+                  </div>
+                  <div className="border rounded p-2 text-center">
+                    <div className="text-sm font-medium">A Tiempo</div>
+                    <div className="text-2xl font-bold text-green-600 mt-1">{performance.onTimeDeliveries}</div>
+                    <div className="text-xs text-gray-500">entregas</div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between mb-1 text-sm">
-                  <span className="text-gray-600">Cobros en Efectivo:</span>
-                  <span className="font-semibold text-green-600">+ RD$ {mockCashBalance.cashIn}</span>
+                <div className="border rounded p-2 text-center">
+                  <div className="text-sm font-medium">Tiempo Promedio</div>
+                  <div className="text-2xl font-bold text-blue-600 mt-1">{performance.averageDeliveryTime} min</div>
+                  <div className="text-xs text-gray-500">por entrega</div>
                 </div>
-                <div className="flex items-center justify-between mb-1 text-sm">
-                  <span className="text-gray-600">Gastos:</span>
-                  <span className="font-semibold text-red-600">- RD$ {mockCashBalance.cashOut}</span>
-                </div>
-                <div className="flex items-center justify-between pt-1.5 border-t text-sm">
-                  <span className="font-medium">Balance Final:</span>
-                  <span className="font-bold">RD$ {mockCashBalance.finalBalance}</span>
-                </div>
-              </div>
+              </CardContent>
             </Card>
             
-            <Card className="p-3 mt-2">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp className="h-4 w-4 text-purple-600" />
-                <h2 className="font-semibold text-sm">Estadísticas del Día</h2>
-              </div>
-              
-              <div className="space-y-1.5">
-                <div>
-                  <div className="flex justify-between items-center mb-0.5">
-                    <p className="text-xs text-gray-600">Entregas Completadas</p>
-                    <p className="text-xs font-medium">{performance.deliveredOrders}/{performance.totalOrders}</p>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Balance de Efectivo</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Balance Inicial:</span>
+                    <span className="font-medium">${cashBalance.initialBalance}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-purple-600 h-2 rounded-full" 
-                      style={{ width: `${(performance.deliveredOrders / (performance.totalOrders || 1)) * 100}%` }}
-                    ></div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Ingresos:</span>
+                    <span className="font-medium text-green-600">+${cashBalance.cashIn}</span>
                   </div>
-                </div>
-                
-                <div>
-                  <div className="flex justify-between items-center mb-0.5">
-                    <p className="text-xs text-gray-600">Entregas a Tiempo</p>
-                    <p className="text-xs font-medium">{performance.onTimeDeliveries}/{performance.deliveredOrders}</p>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Gastos:</span>
+                    <span className="font-medium text-red-600">-${cashBalance.cashOut}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full" 
-                      style={{ width: `${(performance.onTimeDeliveries / (performance.deliveredOrders || 1)) * 100}%` }}
-                    ></div>
+                  <div className="border-t pt-2 flex justify-between">
+                    <span className="text-sm font-bold">Balance Final:</span>
+                    <span className="font-bold">${cashBalance.finalBalance}</span>
                   </div>
                 </div>
-                
-                <div>
-                  <div className="flex justify-between items-center mb-0.5">
-                    <p className="text-xs text-gray-600">Tiempo Promedio de Entrega</p>
-                    <p className="text-xs font-medium">{performance.averageDeliveryTime} min</p>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${(performance.averageDeliveryTime / 60) * 100}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </Card>
-            
-            <Card className="p-3 mt-2">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Calendar className="h-4 w-4 text-indigo-600" />
-                <h2 className="font-semibold text-sm">Programación de Hoy</h2>
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span>Inicio de Ruta:</span>
-                  <span className="font-medium">8:00 AM</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span>Descanso Programado:</span>
-                  <span className="font-medium">12:00 PM - 1:00 PM</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span>Fin de Ruta Estimado:</span>
-                  <span className="font-medium">4:00 PM</span>
-                </div>
-              </div>
-              
-              <div className="mt-3 pt-2 border-t">
-                <div className="flex gap-1.5">
-                  <Button variant="outline" className="flex-1 h-8 text-xs">
-                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
-                    Reportar Problema
-                  </Button>
-                  <Button variant="outline" className="flex-1 h-8 text-xs">
-                    <Phone className="h-3.5 w-3.5 mr-1.5" />
-                    Llamar Oficina
-                  </Button>
-                </div>
-              </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
@@ -671,288 +659,345 @@ export default function DriverView() {
             </div>
           </div>
           
-          <div className="grid grid-cols-4 gap-2">
-            <div className="relative overflow-hidden rounded-md border shadow-sm">
-              <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
-              <div className="p-2 pl-2.5">
-                <div className="flex justify-between items-center">
-                  <div className="text-xs font-normal text-gray-500">
-                    Total Entregas
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-1 space-y-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Entregas de Hoy</CardTitle>
+                  <div className="flex gap-2 mt-2">
+                    <Select value={selectedRouteId?.toString() || ''} onValueChange={(value) => setSelectedRouteId(value ? parseInt(value) : null)}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Todas las rutas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todas las rutas</SelectItem>
+                        {routesQuery.data?.map(route => (
+                          <SelectItem key={route.id} value={route.id.toString()}>
+                            {route.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
-                </div>
-                <div className="mt-1 text-base font-semibold text-blue-600">
-                  {totalCount}
-                </div>
-              </div>
-            </div>
-            
-            <div className="relative overflow-hidden rounded-md border shadow-sm">
-              <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
-              <div className="p-2 pl-2.5">
-                <div className="flex justify-between items-center">
-                  <div className="text-xs font-normal text-gray-500">
-                    Completadas
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="relative overflow-hidden rounded-md border shadow-sm">
+                      <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+                      <div className="p-3 pl-4">
+                        <div className="text-sm font-normal text-gray-500">
+                          Total Entregas
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-blue-600">
+                          {totalCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative overflow-hidden rounded-md border shadow-sm">
+                      <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+                      <div className="p-3 pl-4">
+                        <div className="text-sm font-normal text-gray-500">
+                          Completadas
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-green-600">
+                          {deliveredCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative overflow-hidden rounded-md border shadow-sm">
+                      <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
+                      <div className="p-3 pl-4">
+                        <div className="text-sm font-normal text-gray-500">
+                          Pendientes
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-yellow-600">
+                          {pendingCount}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="relative overflow-hidden rounded-md border shadow-sm">
+                      <div className="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
+                      <div className="p-3 pl-4">
+                        <div className="text-sm font-normal text-gray-500">
+                          Canceladas
+                        </div>
+                        <div className="mt-1 text-xl font-semibold text-red-600">
+                          {cancelledCount}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
-                </div>
-                <div className="mt-1 text-base font-semibold text-green-600">
-                  {deliveredCount}
-                </div>
-              </div>
-            </div>
-            
-            <div className="relative overflow-hidden rounded-md border shadow-sm">
-              <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
-              <div className="p-2 pl-2.5">
-                <div className="flex justify-between items-center">
-                  <div className="text-xs font-normal text-gray-500">
-                    Pendientes
-                  </div>
-                  <Clock className="h-3.5 w-3.5 text-yellow-500" />
-                </div>
-                <div className="mt-1 text-base font-semibold text-yellow-600">
-                  {pendingCount}
-                </div>
-              </div>
-            </div>
-            
-            <div className="relative overflow-hidden rounded-md border shadow-sm">
-              <div className="absolute left-0 top-0 h-full w-1 bg-purple-500"></div>
-              <div className="p-2 pl-2.5">
-                <div className="flex justify-between items-center">
-                  <div className="text-xs font-normal text-gray-500">
-                    Tiempo Promedio
-                  </div>
-                  <TrendingUp className="h-3.5 w-3.5 text-purple-500" />
-                </div>
-                <div className="mt-1 text-base font-semibold text-purple-600">
-                  {performance.averageDeliveryTime} min
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-12 gap-3">
-            {/* Mapa */}
-            <Card className="col-span-7 p-0 overflow-hidden">
-              <ResponsiveMapContainer minHeight="70vh">
-                <MapContainer
-                  center={[18.4700, -69.9100]} // Santo Domingo
-                  zoom={13}
-                  style={{ height: "100%", width: "100%" }}
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  />
-                  <LocationMarker onPositionChange={setCurrentPosition} />
-                  <RouteLines deliveries={todayDeliveries} currentPosition={currentPosition} />
                   
-                  {todayDeliveries.map((delivery) => (
-                    <Marker 
-                      key={delivery.id}
-                      position={delivery.coordinates as LatLngExpression}
-                      icon={L.divIcon({
-                        className: 'custom-div-icon',
-                        html: `<div class="marker-pin ${
-                          delivery.status === 'delivered' ? 'bg-green-500' : 
-                          delivery.status === 'pending' ? 'bg-yellow-500' : 
-                          'bg-blue-500'
-                        } flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md">${delivery.id}</div>`,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15]
-                      })}
-                    >
-                      <Popup>
-                        <div className="p-2 w-[250px]">
-                          <h3 className="font-medium text-lg">{delivery.customerName}</h3>
-                          <p className="text-sm">{delivery.customerAddress}</p>
-                          <div className="my-2">
-                            <Badge variant="outline" className={getStatusColor(delivery.status)}>
-                              {delivery.status === 'pending' ? 'Pendiente' : 
-                               delivery.status === 'in_progress' ? 'En progreso' : 
-                               delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input 
+                      placeholder="Buscar cliente o dirección..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9"
+                    />
+                    {searchTerm && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0"
+                        onClick={() => setSearchTerm('')}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2 max-h-[calc(100vh-22rem)] overflow-y-auto pr-1">
+                    {nextDelivery && (
+                      <div className="mb-2">
+                        <p className="text-sm font-medium text-gray-500 mb-1">Siguiente entrega:</p>
+                        <Card className="border-l-4 border-l-blue-500 bg-blue-50">
+                          <CardContent className="p-3">
+                            <div className="flex justify-between items-start mb-1">
+                              <div>
+                                <p className="font-medium text-sm">{nextDelivery.customerName}</p>
+                                <p className="text-xs text-gray-600">{nextDelivery.customerAddress}</p>
+                              </div>
+                              <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300 flex items-center gap-1 text-xs">
+                                <ArrowRightCircle className="h-3 w-3" />
+                                <span>Siguiente</span>
+                              </Badge>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-2 my-2 text-xs">
+                              <div className="border rounded p-1 text-center">
+                                <div className="text-gray-500">Hora</div>
+                                <div className="font-medium">
+                                  {new Date(nextDelivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </div>
+                              </div>
+                              <div className="border rounded p-1 text-center">
+                                <div className="text-gray-500">Valor</div>
+                                <div className="font-medium">
+                                  {nextDelivery.orderValue}
+                                </div>
+                              </div>
+                              <div className="border rounded p-1 text-center">
+                                <div className="text-gray-500">Envases</div>
+                                <div className="font-medium">
+                                  {nextDelivery.containers.delivered}/{nextDelivery.containers.returned}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2 mt-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                className="text-xs h-8 flex-1"
+                                onClick={() => startNavigation(nextDelivery)}
+                              >
+                                <Navigation2 className="h-3 w-3 mr-1" />
+                                Navegar
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleCompleteDelivery(nextDelivery.id)}
+                                className="text-xs h-8 bg-green-600 hover:bg-green-700 text-white flex-1"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Completar
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+                    
+                    {filteredDeliveries.filter(d => d.id !== nextDelivery?.id).map((delivery) => (
+                      <Card key={delivery.id} className={`border-l-4 ${delivery.status === 'delivered' ? 'border-l-green-500' : delivery.status === 'pending' ? 'border-l-yellow-500' : 'border-l-red-500'}`}>
+                        <CardContent className="p-3">
+                          <div className="flex justify-between items-start mb-1">
+                            <div>
+                              <p className="font-medium text-sm">{delivery.customerName}</p>
+                              <p className="text-xs text-gray-600">{delivery.customerAddress}</p>
+                            </div>
+                            <Badge variant="outline" className={`${getStatusColor(delivery.status)} flex items-center gap-1 text-xs`}>
+                              {getStatusIcon(delivery.status)}
+                              <span>
+                                {delivery.status === 'pending' ? 'Pendiente' : 
+                                delivery.status === 'in_progress' ? 'En progreso' : 
+                                delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                              </span>
                             </Badge>
                           </div>
-                          <p className="text-sm mt-1">{delivery.orderDetails}</p>
-                          <div className="mt-3 flex gap-2">
+                          
+                          <div className="grid grid-cols-3 gap-2 my-2 text-xs">
+                            <div className="border rounded p-1 text-center">
+                              <div className="text-gray-500">Hora</div>
+                              <div className="font-medium">
+                                {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              </div>
+                            </div>
+                            <div className="border rounded p-1 text-center">
+                              <div className="text-gray-500">Valor</div>
+                              <div className="font-medium">
+                                {delivery.orderValue}
+                              </div>
+                            </div>
+                            <div className="border rounded p-1 text-center">
+                              <div className="text-gray-500">Envases</div>
+                              <div className="font-medium">
+                                {delivery.containers.delivered}/{delivery.containers.returned}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2 mt-2">
                             <Button 
                               size="sm" 
+                              variant="outline"
+                              className="text-xs h-8 flex-1"
                               onClick={() => startNavigation(delivery)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
                             >
-                              <Navigation2 className="h-3 w-3 mr-2" />
+                              <Navigation2 className="h-3 w-3 mr-1" />
                               Navegar
                             </Button>
                             {delivery.status === 'pending' && (
                               <Button 
                                 size="sm" 
                                 onClick={() => handleCompleteDelivery(delivery.id)}
-                                className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                                className="text-xs h-8 bg-green-600 hover:bg-green-700 text-white flex-1"
                               >
-                                <CheckCircle className="h-3 w-3 mr-2" />
+                                <CheckCircle className="h-3 w-3 mr-1" />
                                 Completar
                               </Button>
                             )}
                           </div>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-                </MapContainer>
-              </ResponsiveMapContainer>
-            </Card>
-          
-            {/* Sidebar derecho */}
-            <div className="col-span-5 space-y-2">
-              {/* Buscador */}
-              <Card className="p-3">
-                <div className="relative">
-                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input 
-                    placeholder="Buscar cliente o dirección..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                  {searchTerm && (
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                      onClick={() => setSearchTerm('')}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <div className="md:col-span-2 space-y-4">
+              <Card className="h-[calc(100vh-12rem)]">
+                <CardHeader className="pb-0">
+                  <CardTitle className="text-lg">Mapa de Ruta</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-2 h-full">
+                  <div className="h-[calc(100%-2rem)]">
+                    <ResponsiveMapContainer className="h-full rounded-md border">
+                      <MapContainer 
+                        center={[19.075380, -70.128822]} 
+                        zoom={12} 
+                        style={{ height: '100%', width: '100%' }}
+                      >
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        <LocationMarker onPositionChange={setCurrentPosition} />
+                        {filteredDeliveries.map((delivery, index) => (
+                          <Marker 
+                            key={delivery.id}
+                            position={delivery.coordinates}
+                            icon={L.divIcon({
+                              className: 'custom-div-icon',
+                              html: `<div class="marker-pin ${delivery.status === 'delivered' ? 'bg-green-600' : delivery.status === 'pending' ? 'bg-yellow-600' : 'bg-red-600'} flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
+                                      <span class="text-white font-bold">${index + 1}</span>
+                                    </div>`,
+                              iconSize: [30, 30],
+                              iconAnchor: [15, 15]
+                            })}
+                          >
+                            <Popup>
+                              <div className="p-2">
+                                <p className="font-semibold">{delivery.customerName}</p>
+                                <p className="text-xs">{delivery.customerAddress}</p>
+                                <p className="text-xs mt-1">Hora: {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                                <div className="flex gap-2 mt-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    className="text-xs"
+                                    onClick={() => startNavigation(delivery)}
+                                  >
+                                    <Navigation2 className="h-3 w-3 mr-1" />
+                                    Navegar
+                                  </Button>
+                                  {delivery.status === 'pending' && (
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => handleCompleteDelivery(delivery.id)}
+                                      className="text-xs bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Completar
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </Popup>
+                          </Marker>
+                        ))}
+                        <RouteLines deliveries={filteredDeliveries} currentPosition={currentPosition} />
+                        <MapBoundsAdjuster deliveries={filteredDeliveries} />
+                      </MapContainer>
+                    </ResponsiveMapContainer>
+                  </div>
+                </CardContent>
               </Card>
               
-              {/* Próxima entrega */}
-              {nextDelivery && (
-                <Card className="p-3 border-l-4 border-l-blue-500">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <ArrowRightCircle className="h-4 w-4 text-blue-600" />
-                      <h2 className="font-semibold text-sm">Próxima Entrega</h2>
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Resumen del Día</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div className="border rounded p-2 text-center">
+                        <div className="text-sm font-medium">Entregas</div>
+                        <div className="text-2xl font-bold text-primary mt-1">{performance.deliveredOrders}/{performance.totalOrders}</div>
+                        <div className="text-xs text-gray-500">completadas</div>
+                      </div>
+                      <div className="border rounded p-2 text-center">
+                        <div className="text-sm font-medium">A Tiempo</div>
+                        <div className="text-2xl font-bold text-green-600 mt-1">{performance.onTimeDeliveries}</div>
+                        <div className="text-xs text-gray-500">entregas</div>
+                      </div>
                     </div>
-                    <Badge variant="outline" className={`${getStatusColor(nextDelivery.status)} flex items-center gap-1 text-xs`}>
-                      {getStatusIcon(nextDelivery.status)}
-                      <span>
-                        {nextDelivery.status === 'pending' ? 'Pendiente' : 
-                         nextDelivery.status === 'in_progress' ? 'En progreso' : 
-                         nextDelivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
-                      </span>
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-1.5">
-                    <h3 className="text-base font-medium">{nextDelivery.customerName}</h3>
-                    <p className="text-xs text-gray-600">{nextDelivery.customerAddress}</p>
-                    <div className="flex gap-4 text-xs my-1">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-blue-600" /> 
-                        {new Date(nextDelivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-3.5 w-3.5 text-green-600" /> 
-                        {nextDelivery.orderValue}
-                      </span>
+                    <div className="border rounded p-2 text-center">
+                      <div className="text-sm font-medium">Tiempo Promedio</div>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">{performance.averageDeliveryTime} min</div>
+                      <div className="text-xs text-gray-500">por entrega</div>
                     </div>
-                    <div className="flex gap-1.5 mt-2">
-                      <Button 
-                        size="sm" 
-                        onClick={() => startNavigation(nextDelivery)}
-                        className="text-xs h-7 flex-1 bg-blue-600 hover:bg-blue-700"
-                      >
-                        <Navigation2 className="h-3 w-3 mr-1.5" />
-                        Navegar
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleCompleteDelivery(nextDelivery.id)}
-                        className="text-xs h-7 flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        <CheckCircle className="h-3 w-3 mr-1.5" />
-                        Completar
-                      </Button>
-                    </div>
-                  </div>
+                  </CardContent>
                 </Card>
-              )}
-              
-              {/* Lista de entregas */}
-              <div className="space-y-1.5">
-                <h2 className="font-semibold text-sm flex items-center gap-1.5 px-1">
-                  <ClipboardList className="h-4 w-4 text-primary" />
-                  Listado de Entregas
-                </h2>
                 
-                <div className="space-y-1.5 overflow-auto max-h-[60vh] pr-1">
-                  {filteredDeliveries.map((delivery) => (
-                    <Card key={delivery.id} className={`border-l-4 ${delivery.status === 'delivered' ? 'border-l-green-500' : delivery.status === 'pending' ? 'border-l-yellow-500' : 'border-l-red-500'}`}>
-                      <CardContent className="p-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium text-sm">{delivery.customerName}</p>
-                            <p className="text-xs text-gray-600 line-clamp-1">{delivery.customerAddress}</p>
-                          </div>
-                          <Badge variant="outline" className={`${getStatusColor(delivery.status)} flex items-center gap-1 text-xs`}>
-                            {getStatusIcon(delivery.status)}
-                            <span>
-                              {delivery.status === 'pending' ? 'Pendiente' : 
-                               delivery.status === 'in_progress' ? 'En progreso' : 
-                               delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
-                            </span>
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-3 gap-1 my-1.5 text-xs">
-                          <div className="border rounded p-1 text-center">
-                            <div className="text-gray-500">Hora</div>
-                            <div className="font-medium">
-                              {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                            </div>
-                          </div>
-                          <div className="border rounded p-1 text-center">
-                            <div className="text-gray-500">Valor</div>
-                            <div className="font-medium">
-                              {delivery.orderValue}
-                            </div>
-                          </div>
-                          <div className="border rounded p-1 text-center">
-                            <div className="text-gray-500">Envases</div>
-                            <div className="font-medium">
-                              {delivery.containers.delivered}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex gap-1 mt-1.5">
-                          <Button 
-                            size="sm" 
-                            onClick={() => startNavigation(delivery)}
-                            className="text-xs h-7 bg-blue-600 hover:bg-blue-700 text-white flex-1"
-                          >
-                            <Navigation2 className="h-3 w-3 mr-1" />
-                            Navegar
-                          </Button>
-                          {delivery.status === 'pending' && (
-                            <Button 
-                              size="sm" 
-                              onClick={() => handleCompleteDelivery(delivery.id)}
-                              className="text-xs h-7 bg-green-600 hover:bg-green-700 text-white flex-1"
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Completar
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Balance de Efectivo</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Balance Inicial:</span>
+                        <span className="font-medium">${cashBalance.initialBalance}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Ingresos:</span>
+                        <span className="font-medium text-green-600">+${cashBalance.cashIn}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Gastos:</span>
+                        <span className="font-medium text-red-600">-${cashBalance.cashOut}</span>
+                      </div>
+                      <div className="border-t pt-2 flex justify-between">
+                        <span className="text-sm font-bold">Balance Final:</span>
+                        <span className="font-bold">${cashBalance.finalBalance}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
