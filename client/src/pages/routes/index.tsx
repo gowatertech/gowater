@@ -417,16 +417,50 @@ export default function Routes() {
                       </div>
                     </div>
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="h-8 ml-2"
-                    >
-                      <Link href={`/routes/${route.id}`}>
-                        <ArrowRight className="h-4 w-4" />
-                      </Link>
-                    </Button>
+                    <div className="flex">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="h-8"
+                      >
+                        <Link href={`/routes/${route.id}`}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          if (confirm(t("confirmDeleteRoute"))) {
+                            fetch(`/api/routes/${route.id}`, {
+                              method: 'DELETE',
+                            })
+                            .then(response => {
+                              if (response.ok) {
+                                queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+                                toast({
+                                  description: t("routeDeletedSuccessfully"),
+                                });
+                              } else {
+                                throw new Error(t("errorDeletingRoute"));
+                              }
+                            })
+                            .catch(error => {
+                              toast({
+                                variant: "destructive",
+                                title: t("error"),
+                                description: error.message
+                              });
+                            });
+                          }
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               ))}

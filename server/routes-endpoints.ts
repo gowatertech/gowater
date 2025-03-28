@@ -158,6 +158,34 @@ export function registerRoutesEndpoints(app: Express) {
     }
   });
 
+  // Endpoint para borrar una ruta
+  app.delete("/api/routes/:id", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      
+      if (isNaN(routeId)) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+      
+      // Primero, liberamos las órdenes asociadas a esta ruta
+      await db.update(orders)
+        .set({ routeId: null })
+        .where(eq(orders.routeId, routeId));
+      
+      // Luego, eliminamos la ruta
+      await db.delete(routes)
+        .where(eq(routes.id, routeId));
+        
+      res.json({ 
+        success: true,
+        message: "Ruta eliminada correctamente"
+      });
+    } catch (error) {
+      console.error("Error borrando ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Endpoint para obtener pedidos pendientes para una zona específica
   app.get("/api/zones/:zoneId/pending-orders", async (req, res) => {
     try {
@@ -194,7 +222,7 @@ export function registerRoutesEndpoints(app: Express) {
           .execute(sql`
             SELECT COUNT(*) 
             FROM orders 
-            WHERE customer_id IN (${sql.join(customerIds)}) 
+            WHERE customer_id IN (${customerIds.join(',')}) 
             AND status = 'pending'
           `);
         
@@ -219,7 +247,7 @@ export function registerRoutesEndpoints(app: Express) {
           o.route_id AS "routeId"
         FROM orders o
         LEFT JOIN customers c ON o.customer_id = c.id
-        WHERE o.customer_id IN (${sql.join(customerIds)}) 
+        WHERE o.customer_id IN (${customerIds.join(',')}) 
         AND o.status = 'pending' 
         AND o.route_id IS NULL
       `);
