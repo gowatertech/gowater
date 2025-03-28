@@ -192,41 +192,43 @@ export default function Routes() {
   if (isCreatingRoute) {
     return (
       <div className="container py-6">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-2 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight mb-2">
+            <h1 className="text-lg font-bold tracking-tight mb-1">
               {t("createRoute")}
             </h1>
-            <div className="flex space-x-2">
+            <div className="flex space-x-1">
               <Button 
                 variant={routeCreationMode === "customers" ? "default" : "outline"} 
                 size="sm"
+                className="h-7 text-xs px-2"
                 onClick={() => setRouteCreationMode("customers")}
               >
-                <User className="h-4 w-4 mr-1" />
+                <User className="h-3 w-3 mr-1" />
                 Por Clientes
               </Button>
               <Button 
                 variant={routeCreationMode === "orders" ? "default" : "outline"} 
                 size="sm"
+                className="h-7 text-xs px-2"
                 onClick={() => setRouteCreationMode("orders")}
               >
-                <Package className="h-4 w-4 mr-1" />
+                <Package className="h-3 w-3 mr-1" />
                 Por Pedidos Pendientes
               </Button>
             </div>
           </div>
-          <Button variant="outline" onClick={handleCancelCreate}>
+          <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={handleCancelCreate}>
             {t("cancel")}
           </Button>
         </div>
-        <Card>
-          <CardContent className="p-6">
+        <Card className="shadow-sm">
+          <CardContent className="p-0">
             {/* Mostramos el formulario según el modo seleccionado */}
             {routeCreationMode === "customers" ? (
               <ZoneBasedRouteForm 
                 onRouteCreated={handleRouteCreated} 
-                compact={hasActiveRoutes}
+                compact={true}
               />
             ) : (
               <PendingOrdersRouteForm onRouteCreated={handleRouteCreated} />

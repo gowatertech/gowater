@@ -612,53 +612,53 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   return (
     <div className="p-1 md:p-2 space-y-2">
       {/* Tarjetas de estadísticas en filas compactas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-1 mb-2">
         <Card className="border-l-4 border-l-blue-500 shadow-sm">
-          <CardContent className="p-3 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
               <p className="text-xs text-muted-foreground">Clientes</p>
-              <p className="text-lg font-bold">{selectedCustomers.length}</p>
+              <p className="text-sm font-bold">{selectedCustomers.length}</p>
             </div>
-            <Users className="h-5 w-5 text-blue-500" />
+            <Users className="h-3.5 w-3.5 text-blue-500" />
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-yellow-500 shadow-sm">
-          <CardContent className="p-3 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
               <p className="text-xs text-muted-foreground">Distancia</p>
-              <p className="text-lg font-bold">{routeStats.totalDistance} km</p>
+              <p className="text-sm font-bold">{routeStats.totalDistance} km</p>
             </div>
-            <Route className="h-5 w-5 text-yellow-500" />
+            <Route className="h-3.5 w-3.5 text-yellow-500" />
           </CardContent>
         </Card>
 
         <Card className="border-l-4 border-l-green-500 shadow-sm">
-          <CardContent className="p-3 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
               <p className="text-xs text-muted-foreground">Duración</p>
-              <p className="text-lg font-bold">{routeStats.estimatedDuration} min</p>
+              <p className="text-sm font-bold">{routeStats.estimatedDuration} min</p>
             </div>
-            <Clock className="h-5 w-5 text-green-500" />
+            <Clock className="h-3.5 w-3.5 text-green-500" />
           </CardContent>
         </Card>
         
         <Card className="border-l-4 border-l-purple-500 shadow-sm">
-          <CardContent className="p-3 flex justify-between items-center">
+          <CardContent className="p-2 flex justify-between items-center">
             <div>
               <p className="text-xs text-muted-foreground">Zona</p>
-              <p className="text-lg font-bold">{selectedZone ? '1' : '0'}</p>
+              <p className="text-sm font-bold">{selectedZone ? '1' : '0'}</p>
             </div>
-            <MapPin className="h-5 w-5 text-purple-500" />
+            <MapPin className="h-3.5 w-3.5 text-purple-500" />
           </CardContent>
         </Card>
       </div>
 
       {/* Contenido principal con pestañas */}
       <Card className="shadow-sm">
-        <CardHeader className="border-b bg-muted/50 px-4 py-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Truck className="h-4 w-4 text-primary" />
+        <CardHeader className="border-b bg-muted/50 px-3 py-1.5">
+          <CardTitle className="flex items-center gap-1 text-sm">
+            <Truck className="h-3 w-3 text-primary" />
             Planificación de Rutas
           </CardTitle>
         </CardHeader>
@@ -703,15 +703,15 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
               </TabsTrigger>
             </TabsList>
 
-        <TabsContent value="zone" className="mt-4">
+        <TabsContent value="zone" className="mt-2">
           <Form {...form}>
-            <form className="space-y-4">
+            <form className="space-y-2">
               <FormField
                 control={form.control}
                 name="zoneId"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Zona de Entrega</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Zona de Entrega</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(Number(value));
@@ -732,26 +732,26 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                       value={field.value ? String(field.value) : ""}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="h-7 text-xs">
                           <SelectValue placeholder="Seleccionar una zona" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {isLoadingZones ? (
-                          <div className="p-2">
-                            <Skeleton className="h-5 w-full" />
-                            <Skeleton className="h-5 w-full mt-2" />
+                          <div className="p-1">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full mt-1" />
                           </div>
                         ) : (
                           zones && Array.isArray(zones) && zones.map((zone: any) => (
-                            <SelectItem key={zone.id} value={zone.id.toString()}>
+                            <SelectItem key={zone.id} value={zone.id.toString()} className="text-xs">
                               {zone.name}
                             </SelectItem>
                           ))
                         )}
                       </SelectContent>
                     </Select>
-                    <FormMessage />
+                    <FormMessage className="text-[10px]" />
                   </FormItem>
                 )}
               />
@@ -761,14 +761,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
           </Form>
 
           {selectedZone && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1">
-                  <MapIcon className="h-4 w-4 text-primary" />
-                  <h3 className="text-sm font-medium">Mapa de la Zona</h3>
+                  <MapIcon className="h-3 w-3 text-primary" />
+                  <h3 className="text-xs font-medium">Mapa de la Zona</h3>
                 </div>
                 {zones && Array.isArray(zones) && zones.find((z: any) => z.id === selectedZone) && (
-                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 border-blue-200">
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-600 border-blue-200 h-4">
                     {zones.find((z: any) => z.id === selectedZone)?.name || ""}
                   </Badge>
                 )}
@@ -777,7 +777,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 <CardContent className="p-0">
                   <ResponsiveMapContainer 
                     fixedHeight 
-                    minHeight="300px"
+                    minHeight="200px"
                     className="map-container"
                   >
                     {typeof window !== "undefined" && (
@@ -814,32 +814,32 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
           )}
         </TabsContent>
 
-        <TabsContent value="customers" className="mt-4">
-          <div className="space-y-4">
+        <TabsContent value="customers" className="mt-2">
+          <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Clientes en la Zona</h3>
-              <Badge variant="outline">
+              <h3 className="text-sm font-medium">Clientes en la Zona</h3>
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                 {selectedCustomers.length} seleccionados
               </Badge>
             </div>
 
             {isLoadingCustomers ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <Card key={i}>
-                    <CardContent className="p-4">
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-1/2 mt-2" />
+                    <CardContent className="p-2">
+                      <Skeleton className="h-3 w-3/4" />
+                      <Skeleton className="h-2 w-1/2 mt-1" />
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : filteredZoneCustomers.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-4 text-muted-foreground text-xs">
                 No hay clientes registrados en esta zona
               </div>
             ) : (
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
                 {filteredZoneCustomers.map((customer: Customer) => (
                   <Card 
                     key={customer.id} 
@@ -850,17 +850,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     }`}
                     onClick={() => toggleCustomerSelection(customer)}
                   >
-                    <CardContent className="p-4 flex justify-between items-center">
+                    <CardContent className="p-2 flex justify-between items-center">
                       <div>
-                        <div className="font-medium">{customer.businessname}</div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className="font-medium text-xs">{customer.businessname}</div>
+                        <div className="text-[10px] text-muted-foreground">
                           {customer.street} {customer.streetnumber}, {customer.municipalityName}
                         </div>
-                        <div className="text-sm">{customer.phone}</div>
+                        <div className="text-[10px]">{customer.phone}</div>
                       </div>
                       <div>
                         {selectedCustomers.some(c => c.id === customer.id) && (
-                          <Check className="h-5 w-5 text-primary" />
+                          <Check className="h-4 w-4 text-primary" />
                         )}
                       </div>
                     </CardContent>
@@ -869,23 +869,25 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
               </div>
             )}
 
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => setSelectedTab("zone")}
+                className="h-7 text-xs px-2"
               >
                 Atrás
               </Button>
               
-              <div className="space-x-2">
+              <div className="space-x-1">
                 {optimizedRoute.length > 0 && (
                   <Button 
                     type="button"
                     variant="secondary"
                     onClick={() => setSelectedTab("review")}
+                    className="h-7 text-xs px-2"
                   >
-                    Revisar y Guardar Ruta
+                    Revisar Ruta
                   </Button>
                 )}
                 
@@ -893,10 +895,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   type="button"
                   onClick={optimizeRoute}
                   disabled={selectedCustomers.length < 2 || isOptimizing}
+                  className="h-7 text-xs px-2"
                 >
                   {isOptimizing ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                       Optimizando...
                     </>
                   ) : (
@@ -908,48 +911,48 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
           </div>
         </TabsContent>
 
-        <TabsContent value="pending_orders" className="mt-4">
-          <div className="space-y-4">
+        <TabsContent value="pending_orders" className="mt-2">
+          <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-medium">Pedidos Pendientes en la Zona</h3>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+              <h3 className="text-sm font-medium">Pedidos Pendientes</h3>
+              <Badge variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-50 text-[10px] py-0 px-1.5 h-4">
                 {pendingOrders.length} pedidos sin asignar
               </Badge>
             </div>
 
             {isLoadingPendingOrders ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {[1, 2, 3].map((i) => (
                   <Card key={i}>
-                    <CardContent className="p-4">
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-1/2 mt-2" />
-                      <Skeleton className="h-4 w-1/4 mt-1" />
+                    <CardContent className="p-2">
+                      <Skeleton className="h-3 w-3/4" />
+                      <Skeleton className="h-2 w-1/2 mt-1" />
+                      <Skeleton className="h-2 w-1/4 mt-1" />
                     </CardContent>
                   </Card>
                 ))}
               </div>
             ) : pendingOrders.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-4 text-muted-foreground text-xs">
                 No hay pedidos pendientes sin asignar en esta zona
               </div>
             ) : (
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
                 {pendingOrders.map((order: PendingOrder) => (
                   <Card key={order.id} className="overflow-hidden">
-                    <CardHeader className="p-4 pb-2 bg-gray-50">
+                    <CardHeader className="p-2 pb-1 bg-gray-50">
                       <div className="flex justify-between items-start">
                         <div>
-                          <div className="font-medium flex items-center">
-                            <User className="h-4 w-4 mr-1 text-primary" />
+                          <div className="font-medium flex items-center text-xs">
+                            <User className="h-3 w-3 mr-1 text-primary" />
                             {order.customerName}
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center mt-1">
-                            <MapPin className="h-3 w-3 mr-1 text-gray-400" />
+                          <div className="text-[10px] text-muted-foreground flex items-center mt-0.5">
+                            <MapPin className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
                             {order.customerAddress}
                           </div>
-                          <div className="text-xs text-muted-foreground flex items-center mt-1">
-                            <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          <div className="text-[10px] text-muted-foreground flex items-center mt-0.5">
+                            <Calendar className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
                             {new Date(order.createdAt).toLocaleDateString("es-ES", {
                               day: '2-digit',
                               month: '2-digit',
@@ -958,29 +961,29 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                           </div>
                         </div>
                         <div className="text-right">
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-                            <DollarSign className="h-3 w-3 mr-1" />
+                          <Badge className="bg-green-50 text-green-600 hover:bg-green-50 text-[10px] py-0 px-1.5 h-4">
+                            <DollarSign className="h-2.5 w-2.5 mr-0.5" />
                             ${typeof order.total === 'string' ? parseFloat(order.total).toFixed(2) : order.total.toFixed(2)}
                           </Badge>
-                          <div className="text-xs mt-1 text-muted-foreground">
+                          <div className="text-[9px] mt-0.5 text-muted-foreground">
                             {order.products.reduce((acc, p) => acc + p.quantity, 0)} productos
                           </div>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="p-3 pt-0">
-                        <div className="text-xs font-medium text-muted-foreground mb-1">Productos:</div>
-                        <ScrollArea className="h-[80px] w-full rounded-md border p-2">
-                          <div className="space-y-1">
+                      <div className="p-2 pt-0">
+                        <div className="text-[10px] font-medium text-muted-foreground mb-1">Productos:</div>
+                        <ScrollArea className="h-[60px] w-full rounded-md border p-1">
+                          <div className="space-y-0.5">
                             {order.products.map((product, idx) => (
-                              <div key={idx} className="flex justify-between text-xs">
+                              <div key={idx} className="flex justify-between text-[10px]">
                                 <div className="flex items-center">
-                                  <Package className="h-3 w-3 mr-1 text-primary" />
+                                  <Package className="h-2.5 w-2.5 mr-0.5 text-primary" />
                                   {product.name}
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="outline" className="h-5 px-1 text-[10px]">
+                                <div className="flex items-center space-x-1">
+                                  <Badge variant="outline" className="h-4 px-1 text-[9px]">
                                     {product.quantity} unid.
                                   </Badge>
                                   <span className="text-gray-600">${typeof product.price === 'string' ? parseFloat(product.price).toFixed(2) : product.price.toFixed(2)}</span>
@@ -996,11 +999,12 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
               </div>
             )}
 
-            <div className="flex justify-between pt-4">
+            <div className="flex justify-between pt-2">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => setSelectedTab("zone")}
+                className="h-7 text-xs px-2"
               >
                 Atrás
               </Button>
@@ -1009,61 +1013,62 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 type="button"
                 variant="secondary"
                 onClick={() => setSelectedTab("customers")}
+                className="h-7 text-xs px-2"
               >
-                Ir a Selección de Clientes
+                Seleccionar Clientes
               </Button>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="review" className="mt-4">
+        <TabsContent value="review" className="mt-2">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre de Ruta</FormLabel>
+                  <FormItem className="space-y-1">
+                    <FormLabel className="text-xs">Nombre de Ruta</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} className="h-7 text-xs" />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-[10px]" />
                   </FormItem>
                 )}
               />
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-2">
                 <FormField
                   control={form.control}
                   name="driverId"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Conductor</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Conductor</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value ? String(field.value) : ""}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-7 text-xs">
                             <SelectValue placeholder="Seleccionar conductor" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           {isLoadingDrivers ? (
-                            <div className="p-2">
-                              <Skeleton className="h-5 w-full" />
+                            <div className="p-1">
+                              <Skeleton className="h-4 w-full" />
                             </div>
                           ) : (
                             drivers && Array.isArray(drivers) && drivers.map((driver: any) => (
-                              <SelectItem key={driver.id} value={driver.id.toString()}>
+                              <SelectItem key={driver.id} value={driver.id.toString()} className="text-xs">
                                 {driver.name}
                               </SelectItem>
                             ))
                           )}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      <FormMessage className="text-[10px]" />
                     </FormItem>
                   )}
                 />
@@ -1072,14 +1077,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   control={form.control}
                   name="date"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de Entrega</FormLabel>
+                    <FormItem className="flex flex-col space-y-1">
+                      <FormLabel className="text-xs">Fecha de Entrega</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
                               variant="outline"
-                              className={`w-full pl-3 text-left font-normal flex justify-between items-center ${
+                              className={`w-full h-7 px-2 text-xs text-left font-normal flex justify-between items-center ${
                                 !field.value ? "text-muted-foreground" : ""
                               }`}
                             >
@@ -1088,7 +1093,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                               ) : (
                                 <span>Seleccionar fecha</span>
                               )}
-                              <Calendar className="h-4 w-4 opacity-50" />
+                              <Calendar className="h-3 w-3 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -1107,7 +1112,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                           />
                         </PopoverContent>
                       </Popover>
-                      <FormMessage />
+                      <FormMessage className="text-[10px]" />
                     </FormItem>
                   )}
                 />
@@ -1115,22 +1120,22 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
               {optimizedRoute.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Secuencia de Paradas ({optimizedRoute.length})</h3>
-                  <div className="border rounded-md p-4 space-y-3 max-h-[300px] overflow-y-auto">
+                  <h3 className="text-xs font-medium mb-1">Secuencia de Paradas ({optimizedRoute.length})</h3>
+                  <div className="border rounded-md p-2 space-y-2 max-h-[250px] overflow-y-auto">
                     {optimizedRoute.map((customer, index) => (
                       <div key={customer.id} className="flex items-center">
                         <Badge 
                           variant={index === 0 ? "secondary" : "outline"} 
-                          className={`mr-3 h-6 w-6 rounded-full ${index === 0 ? "bg-primary text-white" : ""}`}
+                          className={`mr-2 h-5 w-5 rounded-full ${index === 0 ? "bg-primary text-white" : ""} text-[10px]`}
                         >
                           {index}
                         </Badge>
                         <div>
-                          <div className="font-medium">
+                          <div className="font-medium text-xs">
                             {customer.businessname}
-                            {index === 0 && <span className="ml-2 text-xs bg-primary text-white px-2 py-0.5 rounded-full">Inicio</span>}
+                            {index === 0 && <span className="ml-2 text-[10px] bg-primary text-white px-1.5 py-0 rounded-full">Inicio</span>}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-[10px] text-muted-foreground">
                             {customer.street} {customer.streetnumber}{customer.municipalityName ? `, ${customer.municipalityName}` : ''}
                           </div>
                         </div>
@@ -1141,13 +1146,13 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
               )}
 
               {optimizedRoute.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-medium">Mapa de Ruta Optimizada</h3>
+                      <MapPin className="h-3 w-3 text-primary" />
+                      <h3 className="text-xs font-medium">Mapa de Ruta Optimizada</h3>
                     </div>
-                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-green-50 text-green-600 border-green-200">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-600 border-green-200 h-4">
                       {optimizedRoute.length} paradas
                     </Badge>
                   </div>
@@ -1155,7 +1160,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     <CardContent className="p-0">
                       <ResponsiveMapContainer 
                         fixedHeight 
-                        minHeight="300px"
+                        minHeight="200px"
                         className="map-container"
                       >
                         {typeof window !== "undefined" && (
@@ -1237,11 +1242,12 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 </div>
               )}
 
-              <div className="flex justify-between pt-4">
+              <div className="flex justify-between pt-2">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => setSelectedTab("customers")}
+                  className="h-7 text-xs px-2"
                 >
                   Atrás
                 </Button>
@@ -1249,10 +1255,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 <Button 
                   type="submit"
                   disabled={createRouteMutation.isPending || !form.watch("driverId")}
+                  className="h-7 text-xs px-2"
                 >
                   {createRouteMutation.isPending ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                       Creando ruta...
                     </>
                   ) : (
