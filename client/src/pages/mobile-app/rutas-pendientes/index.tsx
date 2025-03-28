@@ -1,270 +1,267 @@
 import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { 
-  Navigation, 
-  Calendar,
-  Clock,
-  MapPin,
-  Truck,
-  TrendingUp,
-  Play
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { useCurrentUser } from "@/hooks/use-current-user";
+import { Calendar, CalendarIcon, MapPin, TruckIcon, DollarSign, Clock, UserRound } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
-import { apiRequest } from "@/lib/api";
+import { InstallPrompt } from "../components/InstallPrompt";
+import { useMobile } from "@/hooks/use-mobile";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
-// Interface para las rutas pendientes
+// Tipo para el usuario
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+// Tipo para las rutas
 interface Route {
   id: number;
   name: string;
+  driverId: number;
+  status: string;
   date: string;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
-  totalStops: number;
-  totalDistance: number;
-  estimatedDuration: number;
-  totalValue: number;
-  vehicle: string;
+  totalDistance: string | null;
+  totalRevenue: number | null;
+  deliverySequence: string[];
+  stops: string[];
 }
 
-export default function PendingRoutes() {
+// Tipo para los pedidos
+interface Order {
+  id: number;
+  routeId: number;
+  customerId: number;
+  status: string;
+  totalAmount: number;
+  customerName: string;
+  customerAddress: string;
+  products: Array<{
+    productId: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+}
+
+export default function MobilePendingRoutes() {
+  const { isDarkMode } = useMobile();
   const [, setLocation] = useLocation();
-  const { toast } = useToast();
-  const { user } = useCurrentUser();
-  const [darkMode, setDarkMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [routes, setRoutes] = useState<Route[]>([]);
+  const { user, isLoading: isLoadingUser } = useCurrentUser();
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [ordersByRoute, setOrdersByRoute] = useState<Record<number, Order[]>>({});
+
+  // Consultar rutas pendientes, filtradas por el conductor actual
+  const { data: routes = [], isLoading, error } = useQuery<Route[]>({
+    queryKey: ["/api/routes"],
+    retry: 3
+  });
+
+  // Filtrar las rutas por el conductor actual y estado "pending"
+  const pendingRoutes = Array.isArray(routes) ? routes.filter((route: Route) => 
+    route.status === "pending" && 
+    (user?.id === route.driverId || !route.driverId)
+  ) : [];
   
-  // Alternar modo oscuro
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', darkMode ? 'light' : 'dark');
-  };
-
-  // Sincronizar datos
-  const syncData = () => {
-    toast({
-      title: "Sincronizando rutas",
-      description: "Actualizando información..."
-    });
-    
-    loadRoutes();
-  };
-
-  // Cargar rutas pendientes
-  const loadRoutes = async () => {
-    setIsLoading(true);
-    
-    try {
-      const response = await apiRequest('GET', '/api/driver/routes');
-      if (response.ok) {
-        const data = await response.json();
-        // Filtrar solo rutas pendientes
-        const pendingRoutes = data.filter((r: any) => r.status === 'pending');
-        setRoutes(pendingRoutes);
-      } else {
-        throw new Error('Error al cargar rutas');
-      }
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error al cargar rutas:", error);
-      toast({
-        title: "Error al cargar rutas",
-        description: "No se pudieron obtener las rutas pendientes",
-        variant: "destructive"
-      });
-      
-      // Cargar rutas reales de la base de datos si hay un error
-      // Esta es una solución de respaldo temporal
-      try {
-        const response = await apiRequest('GET', '/api/routes');
-        if (response.ok) {
-          const data = await response.json();
-          // Filtrar solo rutas pendientes
-          const pendingRoutes = data
-            .filter((r: any) => r.status === 'pending')
-            .map((route: any) => ({
-              id: route.id,
-              name: route.name || `Ruta #${route.id}`,
-              date: route.date || new Date().toISOString().split('T')[0],
-              status: route.status || "pending",
-              totalStops: route.orders?.length || 0,
-              totalDistance: route.totalDistance || 0,
-              estimatedDuration: route.estimatedDuration || 0,
-              totalValue: route.totalValue || 0,
-              vehicle: route.vehicle?.name || "Sin asignar"
-            }));
-          setRoutes(pendingRoutes);
-        }
-      } catch (e) {
-        console.error("Error en fallback:", e);
-      }
-      
-      setIsLoading(false);
-    }
-  };
-
-  // Iniciar una ruta
-  const startRoute = (routeId: number) => {
-    toast({
-      title: "Cargando ruta",
-      description: "Preparando los datos de la ruta..."
-    });
-    
-    // Redirigir a la vista de ruta
-    setLocation(`/mobile-app/ruta?id=${routeId}`);
-  };
-
-  // Cargar datos al montar el componente
+  // Calcular el valor total de la ruta basado en los pedidos
   useEffect(() => {
-    loadRoutes();
+    const fetchOrdersForRoutes = async () => {
+      try {
+        const orderResults: Record<number, Order[]> = {};
+        
+        for (const route of pendingRoutes) {
+          try {
+            const response = await fetch(`/api/routes/${route.id}/orders`);
+            if (response.ok) {
+              const orders = await response.json();
+              orderResults[route.id] = orders;
+            }
+          } catch (err) {
+            console.error(`Error al cargar pedidos para ruta ${route.id}:`, err);
+          }
+        }
+        
+        setOrdersByRoute(orderResults);
+      } catch (err) {
+        console.error("Error al cargar pedidos para rutas:", err);
+      }
+    };
     
-    // Verificar el tema actual
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setDarkMode(true);
-      document.documentElement.classList.add('dark');
+    if (pendingRoutes.length > 0) {
+      fetchOrdersForRoutes();
+    }
+  }, [pendingRoutes]);
+
+  // Calcular el valor total de una ruta
+  const calculateTotalRevenue = (routeId: number) => {
+    const orders = ordersByRoute[routeId] || [];
+    return orders.reduce((total, order) => total + (order.totalAmount || 0), 0);
+  };
+
+  // Contar el número de paradas por ruta (excluyendo el almacén)
+  const countStops = (route: Route) => {
+    return route.deliverySequence.length > 0 ? route.deliverySequence.length - 1 : 0;
+  };
+
+  // Efecto para mostrar prompt de instalación
+  useEffect(() => {
+    // Lógica para detectar si es instalable como PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (!isStandalone) {
+      const hasPromptBeenShown = localStorage.getItem('pwaPromptShown');
+      if (!hasPromptBeenShown) {
+        setShowInstallPrompt(true);
+      }
     }
   }, []);
 
-  // Si está cargando, mostrar spinner
-  if (isLoading) {
+  const handleStartRoute = (routeId: number) => {
+    // Actualizar el estado de la ruta a "in_progress"
+    fetch(`/api/routes/${routeId}/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if (response.ok) {
+        // Navegar a la página de ruta activa
+        setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+      }
+    })
+    .catch(err => {
+      console.error("Error al iniciar la ruta:", err);
+      // Navegar de todos modos para probar
+      setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+    });
+  };
+
+  if (isLoadingUser) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
-        <MobileHeader 
-          user={user} 
-          darkMode={darkMode} 
-          onToggleDarkMode={toggleDarkMode} 
-          onSyncData={syncData}
-        />
-        <div className="h-[calc(100vh-132px)] flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <h3 className="font-medium text-primary">Cargando rutas...</h3>
-          </div>
+      <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
+        <MobileHeader title="Rutas Pendientes" darkMode={isDarkMode} />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
         </div>
-        <MobileFooter darkMode={darkMode} />
+        <MobileFooter darkMode={isDarkMode} />
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
-      <MobileHeader 
-        user={user} 
-        darkMode={darkMode} 
-        onToggleDarkMode={toggleDarkMode} 
-        onSyncData={syncData}
-      />
+    <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
+      <MobileHeader title="Rutas Pendientes" darkMode={isDarkMode} />
       
-      <main className="container max-w-md mx-auto px-4 pb-6 pt-4">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Rutas Pendientes</h1>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={syncData}
-            className="flex items-center gap-1"
-          >
-            <TrendingUp className="h-4 w-4" />
-            Actualizar
-          </Button>
-        </div>
-        
-        <div className="space-y-4">
-          {routes.length === 0 ? (
-            <Card className={`${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-              <CardContent className="p-6 text-center">
-                <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                <h3 className="text-lg font-medium mb-2">No hay rutas pendientes</h3>
-                <p className="text-sm text-muted-foreground">
-                  Cuando se te asignen rutas, aparecerán aquí.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            routes.map(route => (
-              <Card 
-                key={route.id} 
-                className={`${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 className="font-medium text-lg">{route.name}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(route.date).toLocaleDateString('es-DO', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long'
-                        })}
-                      </p>
-                    </div>
-                    <Badge>
-                      {route.status === "pending" && "Pendiente"}
-                      {route.status === "in_progress" && "En progreso"}
-                      {route.status === "completed" && "Completada"}
-                      {route.status === "cancelled" && "Cancelada"}
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-3 mt-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Paradas</p>
-                        <p className="font-medium">{route.totalStops}</p>
+      {showInstallPrompt && (
+        <InstallPrompt onClose={() => {
+          setShowInstallPrompt(false);
+          localStorage.setItem('pwaPromptShown', 'true');
+        }} />
+      )}
+      
+      <div className="flex-1 px-3 py-4 mb-16">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : error ? (
+          <div className="text-red-500 p-4 text-center">
+            Error al cargar las rutas. Por favor, intenta nuevamente.
+          </div>
+        ) : pendingRoutes.length === 0 ? (
+          <div className="text-center py-8">
+            <TruckIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold">No hay rutas pendientes</h3>
+            <p className="text-muted-foreground mt-2">
+              Actualmente no tienes rutas asignadas o pendientes.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pendingRoutes.map((route) => {
+              const totalValue = calculateTotalRevenue(route.id);
+              const stopCount = countStops(route);
+              const routeDate = new Date(route.date);
+              
+              return (
+                <div 
+                  key={route.id} 
+                  className={`border rounded-lg overflow-hidden shadow-sm ${
+                    isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'
+                  }`}
+                >
+                  <div className="p-4">
+                    <h3 className="font-semibold text-sm mb-2">{route.name}</h3>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                      <div className="flex items-center text-muted-foreground">
+                        <CalendarIcon className="h-3 w-3 mr-1" />
+                        <span>
+                          {format(routeDate, 'PPP', { locale: es })}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        <span>{stopCount} paradas</span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        <span>${totalValue.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center text-muted-foreground">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span>{route.totalDistance ? `${route.totalDistance} km` : 'Dist. no disp.'}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Navigation className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Distancia</p>
-                        <p className="font-medium">{route.totalDistance} km</p>
+                    
+                    {/* Mostrar los pedidos de la ruta */}
+                    {ordersByRoute[route.id] && ordersByRoute[route.id].length > 0 ? (
+                      <div className={`text-xs p-2 rounded mb-3 ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                      }`}>
+                        <div className="font-medium mb-1">Clientes en esta ruta:</div>
+                        <ul className="space-y-1">
+                          {ordersByRoute[route.id].map((order, index) => (
+                            <li key={order.id} className="flex justify-between">
+                              <span className="flex items-center">
+                                <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
+                                {order.customerName}
+                              </span>
+                              <span className="text-primary">${order.totalAmount.toFixed(2)}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Duración Est.</p>
-                        <p className="font-medium">{Math.floor(route.estimatedDuration / 60)}h {route.estimatedDuration % 60}m</p>
+                    ) : (
+                      <div className={`text-xs p-2 rounded mb-3 ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                      }`}>
+                        <div className="font-medium">Cargando detalles de pedidos...</div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-xs text-muted-foreground">Vehículo</p>
-                        <p className="font-medium text-xs">{route.vehicle}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-3 border-t">
-                    <div>
-                      <p className="text-xs text-muted-foreground">Valor Total</p>
-                      <p className="font-bold text-primary">${route.totalValue.toFixed(2)}</p>
-                    </div>
-                    <Button 
-                      onClick={() => startRoute(route.id)}
-                      className="flex items-center gap-1"
+                    )}
+                    
+                    <button 
+                      onClick={() => handleStartRoute(route.id)}
+                      className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center"
                     >
-                      <Play className="h-4 w-4" />
+                      <TruckIcon className="h-3 w-3 mr-1" />
                       Iniciar Ruta
-                    </Button>
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      </main>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
       
-      <MobileFooter darkMode={darkMode} />
+      <MobileFooter darkMode={isDarkMode} />
     </div>
   );
 }

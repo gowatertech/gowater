@@ -25,13 +25,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface MobileHeaderProps {
-  user: any;
+  title?: string;
+  user?: any;
   darkMode: boolean;
-  onToggleDarkMode: () => void;
-  onSyncData: () => void;
+  onToggleDarkMode?: () => void;
+  onSyncData?: () => void;
 }
 
-export function MobileHeader({ user, darkMode, onToggleDarkMode, onSyncData }: MobileHeaderProps) {
+export function MobileHeader({ title = "GoWater Driver", user, darkMode, onToggleDarkMode, onSyncData }: MobileHeaderProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -57,7 +58,7 @@ export function MobileHeader({ user, darkMode, onToggleDarkMode, onSyncData }: M
           <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary/10">
             <Droplet className="h-5 w-5 text-primary" />
           </div>
-          <h1 className="font-bold text-lg">GoWater Driver</h1>
+          <h1 className="font-bold text-lg">{title}</h1>
         </div>
         
         {/* Acciones rápidas */}

@@ -4,6 +4,35 @@ import { useState, useEffect } from 'react';
 // Definición de breakpoints
 export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl";
 
+/**
+ * Hook para las características de dispositivo móvil
+ */
+export function useMobile() {
+  const isMobile = useIsMobile();
+  const [isDarkMode, setIsDarkMode] = useState(
+    typeof window !== 'undefined' 
+      ? localStorage.getItem('darkMode') === 'true'
+      : false
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Guardar preferencia en localStorage
+    localStorage.setItem('darkMode', isDarkMode.toString());
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => !prev);
+  };
+
+  return {
+    isMobile,
+    isDarkMode,
+    toggleDarkMode
+  };
+}
+
 const breakpoints = {
   xs: 480,  // Extra small devices (phones)
   sm: 640,  // Small devices (large phones, small tablets)
