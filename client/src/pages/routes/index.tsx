@@ -65,7 +65,7 @@ import {
 } from "@/components/ui/select";
 
 // Vista del chofer
-import DriverView from "./DriverView";
+import DriverView from "../drivers/DriverView";
 import DeliveryTracking from "./DeliveryTracking";
 import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 

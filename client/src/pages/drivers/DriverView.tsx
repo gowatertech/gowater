@@ -1,20 +1,63 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { 
   Card, 
   CardHeader, 
   CardContent, 
-  CardTitle
+  CardFooter,
+  CardTitle,
+  CardDescription 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Truck } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Form, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormControl,
+  FormMessage,
+  FormDescription
+} from '@/components/ui/form';
 import { ResponsiveMapContainer } from '@/components/ui/responsive-map-container';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  Check, 
+  CheckCircle, 
+  Clock, 
+  ClipboardList, 
+  ArrowRightCircle,
+  ArrowRight,
+  Truck, 
+  User, 
+  BadgeCheck, 
+  Ban, 
+  Calendar, 
+  DollarSign, 
+  TrendingUp, 
+  Navigation2,
+  Search,
+  X,
+  Briefcase,
+  Package,
+  RefreshCcw,
+  MessageSquare,
+  Phone
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline } from 'react-leaflet';
+import L, { LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { apiRequest } from '@/lib/queryClient';
 
-// Interfaces simplificadas
+// Interfaces
 interface Delivery {
   id: number;
   customerName: string;
@@ -22,9 +65,45 @@ interface Delivery {
   coordinates: [number, number];
   estimatedTime: string;
   status: 'pending' | 'in_progress' | 'delivered' | 'cancelled';
+  priority: 'normal' | 'high' | 'low';
+  orderDetails: string;
+  orderValue: string;
+  containers: {
+    delivered: number;
+    returned: number;
+    balance: number;
+  };
 }
 
-// Componente para ajustar mapa
+interface CashBalance {
+  initialBalance: string;
+  cashIn: string;
+  cashOut: string;
+  finalBalance: string;
+}
+
+interface Performance {
+  deliveredOrders: number;
+  totalOrders: number;
+  onTimeDeliveries: number;
+  averageDeliveryTime: number; // en minutos
+}
+
+// Utility functions
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radio de la Tierra en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const d = R * c; // Distancia en km
+  return d;
+}
+
+// Map Components
 function MapBoundsAdjuster({ deliveries }: { deliveries: Delivery[] }) {
   const map = useMap();
   
@@ -40,24 +119,198 @@ function MapBoundsAdjuster({ deliveries }: { deliveries: Delivery[] }) {
   return null;
 }
 
-// Componente principal
-export default function DriverView() {
-  const [currentPosition, setCurrentPosition] = useState<[number, number]>([19.075380, -70.128822]);
+function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
+  const [position, setPosition] = useState<[number, number] | null>(null);
+  const map = useMap();
+
+  const handleLocationFound = useCallback((e: any) => {
+    setPosition([e.latlng.lat, e.latlng.lng]);
+    onPositionChange([e.latlng.lat, e.latlng.lng]);
+  }, [onPositionChange]);
+
+  useEffect(() => {
+    map.locate({ setView: false });
+    map.on('locationfound', handleLocationFound);
+    return () => {
+      map.off('locationfound', handleLocationFound);
+    };
+  }, [map, handleLocationFound]);
+
+  return position === null ? null : (
+    <Marker 
+      position={position}
+      icon={L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div class="marker-pin bg-blue-700 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                </svg>
+              </div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      })}
+    >
+      <Popup>
+        <div className="p-1">
+          <p className="font-semibold">Tu ubicación actual</p>
+        </div>
+      </Popup>
+    </Marker>
+  );
+}
+
+function RouteLines({ deliveries, currentPosition }: { 
+  deliveries: Delivery[],
+  currentPosition: [number, number] | null
+}) {
+  if (!currentPosition || deliveries.length === 0) return null;
   
-  // Fetching deliveries
-  const deliveriesQuery = useQuery<Delivery[]>({
-    queryKey: ['/api/driver/deliveries/today']
+  // Sort deliveries by estimated time
+  const sortedDeliveries = [...deliveries].sort((a, b) => 
+    new Date(a.estimatedTime).getTime() - new Date(b.estimatedTime).getTime()
+  );
+  
+  const positions: LatLngExpression[] = [
+    currentPosition,
+    ...sortedDeliveries.map(d => d.coordinates as LatLngExpression)
+  ];
+  
+  return (
+    <Polyline 
+      positions={positions}
+      color="#4F46E5"
+      weight={4}
+      opacity={0.7}
+      dashArray="8,8"
+    />
+  );
+}
+
+// Main Component
+export default function DriverView() {
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState('entregas');
+  const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
+  
+  // Fetching data
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['/api/driver/deliveries/today'],
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: `No se pudieron cargar las entregas: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
   });
   
-  // Estado de carga
-  const isLoading = deliveriesQuery.isLoading;
-  const deliveries = deliveriesQuery.data || [];
+  const mockCashBalance: CashBalance = {
+    initialBalance: '1,500.00',
+    cashIn: '3,850.00',
+    cashOut: '450.00',
+    finalBalance: '4,900.00',
+  };
+  
+  const mockPerformance: Performance = {
+    deliveredOrders: 18,
+    totalOrders: 25,
+    onTimeDeliveries: 15,
+    averageDeliveryTime: 25,
+  };
+  
+  // Derived data
+  const todayDeliveries: Delivery[] = data || [];
+  
+  const filteredDeliveries = useMemo(() => {
+    if (!searchTerm) return todayDeliveries;
+    
+    return todayDeliveries.filter(delivery => 
+      delivery.customerName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      delivery.customerAddress.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [todayDeliveries, searchTerm]);
+  
+  const nextDelivery = useMemo(() => {
+    const pending = filteredDeliveries.filter(d => d.status === 'pending');
+    if (pending.length === 0) return null;
+    
+    return pending.sort((a, b) => 
+      new Date(a.estimatedTime).getTime() - new Date(b.estimatedTime).getTime()
+    )[0];
+  }, [filteredDeliveries]);
+  
+  // Stats
+  const totalCount = todayDeliveries.length;
+  const deliveredCount = todayDeliveries.filter(d => d.status === 'delivered').length;
+  const pendingCount = todayDeliveries.filter(d => d.status === 'pending').length;
+  const cancelledCount = todayDeliveries.filter(d => d.status === 'cancelled').length;
+  
+  // Actions
+  const completeDeliveryMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/driver/deliveries/${id}/complete`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Entrega completada',
+        description: 'La entrega ha sido marcada como completada.',
+      });
+      refetch();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: `No se pudo completar la entrega: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  const handleCompleteDelivery = (id: number) => {
+    completeDeliveryMutation.mutate(id);
+  };
+  
+  const startNavigation = (delivery: Delivery) => {
+    // Esta función abriría la navegación en Google Maps o similar
+    const [lat, lng] = delivery.coordinates;
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+  };
+  
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'delivered': return 'text-green-600 border-green-500';
+      case 'pending': return 'text-yellow-600 border-yellow-500';
+      case 'in_progress': return 'text-blue-600 border-blue-500';
+      case 'cancelled': return 'text-red-600 border-red-500';
+      default: return '';
+    }
+  };
+  
+  const getStatusIcon = (status: string) => {
+    switch(status) {
+      case 'delivered': return <Check className="h-3 w-3" />;
+      case 'pending': return <Clock className="h-3 w-3" />;
+      case 'in_progress': return <ArrowRight className="h-3 w-3" />;
+      case 'cancelled': return <Ban className="h-3 w-3" />;
+      default: return null;
+    }
+  };
   
   if (isLoading) {
     return (
       <div className="container mx-auto p-4">
         <div className="space-y-2">
           <Skeleton className="h-8 w-1/3" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+            <Skeleton className="h-20" />
+          </div>
           <Skeleton className="h-[60vh]" />
         </div>
       </div>
@@ -65,110 +318,646 @@ export default function DriverView() {
   }
   
   return (
-    <div className="container mx-auto p-4">
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Truck className="h-6 w-6 text-primary" />
-          Panel del Conductor
-        </h1>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Mapa de Ruta</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveMapContainer fixedHeight>
-              <MapContainer 
-                center={currentPosition} 
-                zoom={12} 
-                style={{ height: '100%', width: '100%' }}
+    <div className="container mx-auto p-2 md:p-4">
+      {isMobile ? (
+        // Diseño mobile
+        <Tabs defaultValue="entregas" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-3 mb-2">
+            <TabsTrigger value="entregas">
+              <Package className="h-3.5 w-3.5 mr-1.5" />
+              Entregas
+            </TabsTrigger>
+            <TabsTrigger value="mapa">
+              <Navigation2 className="h-3.5 w-3.5 mr-1.5" />
+              Mapa
+            </TabsTrigger>
+            <TabsTrigger value="stats">
+              <TrendingUp className="h-3.5 w-3.5 mr-1.5" />
+              Stats
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="entregas" className="space-y-2">
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input 
+                placeholder="Buscar cliente o dirección..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+              {searchTerm && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-2 gap-1.5 mb-2">
+              <div className="relative overflow-hidden rounded-md border shadow-sm">
+                <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+                <div className="p-2 pl-2.5">
+                  <div className="text-xs font-normal text-gray-500">
+                    Total Entregas
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-blue-600">
+                    {totalCount}
+                  </div>
+                </div>
+              </div>
+              <div className="relative overflow-hidden rounded-md border shadow-sm">
+                <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+                <div className="p-2 pl-2.5">
+                  <div className="text-xs font-normal text-gray-500">
+                    Completadas
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-green-600">
+                    {deliveredCount}
+                  </div>
+                </div>
+              </div>
+              <div className="relative overflow-hidden rounded-md border shadow-sm">
+                <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
+                <div className="p-2 pl-2.5">
+                  <div className="text-xs font-normal text-gray-500">
+                    Pendientes
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-yellow-600">
+                    {pendingCount}
+                  </div>
+                </div>
+              </div>
+              <div className="relative overflow-hidden rounded-md border shadow-sm">
+                <div className="absolute left-0 top-0 h-full w-1 bg-red-500"></div>
+                <div className="p-2 pl-2.5">
+                  <div className="text-xs font-normal text-gray-500">
+                    Canceladas
+                  </div>
+                  <div className="mt-1 text-base font-semibold text-red-600">
+                    {cancelledCount}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-1.5">
+              {filteredDeliveries.map((delivery) => (
+                <Card key={delivery.id} className={`border-l-4 ${delivery.status === 'delivered' ? 'border-l-green-500' : delivery.status === 'pending' ? 'border-l-yellow-500' : 'border-l-red-500'}`}>
+                  <CardContent className="p-3">
+                    <div className="flex justify-between items-start mb-1">
+                      <div>
+                        <p className="font-medium text-sm">{delivery.customerName}</p>
+                        <p className="text-xs text-gray-600">{delivery.customerAddress}</p>
+                      </div>
+                      <Badge variant="outline" className={`${getStatusColor(delivery.status)} flex items-center gap-1 text-xs`}>
+                        {getStatusIcon(delivery.status)}
+                        <span>
+                          {delivery.status === 'pending' ? 'Pendiente' : 
+                           delivery.status === 'in_progress' ? 'En progreso' : 
+                           delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                        </span>
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-1 my-1.5 text-xs">
+                      <div className="border rounded p-1 text-center">
+                        <div className="text-gray-500">Hora</div>
+                        <div className="font-medium">
+                          {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                      </div>
+                      <div className="border rounded p-1 text-center">
+                        <div className="text-gray-500">Valor</div>
+                        <div className="font-medium">
+                          {delivery.orderValue}
+                        </div>
+                      </div>
+                      <div className="border rounded p-1 text-center">
+                        <div className="text-gray-500">Envases</div>
+                        <div className="font-medium">
+                          {delivery.containers.delivered}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-1 mt-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => startNavigation(delivery)}
+                        className="text-xs h-7 bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                      >
+                        <Navigation2 className="h-3 w-3 mr-1" />
+                        Navegar
+                      </Button>
+                      {delivery.status === 'pending' && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleCompleteDelivery(delivery.id)}
+                          className="text-xs h-7 bg-green-600 hover:bg-green-700 text-white flex-1"
+                        >
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Completar
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="mapa">
+            <ResponsiveMapContainer minHeight="70vh">
+              <MapContainer
+                center={[18.4700, -69.9100]} // Santo Domingo
+                zoom={13}
+                style={{ height: "100%", width: "100%" }}
               >
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 />
+                <LocationMarker onPositionChange={setCurrentPosition} />
+                <RouteLines deliveries={todayDeliveries} currentPosition={currentPosition} />
                 
-                {/* Marcador para la posición actual (almacén) */}
-                <Marker 
-                  position={currentPosition}
-                  icon={L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div class="bg-green-600 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
-                            <span class="text-white font-bold">0</span>
-                          </div>`,
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15]
-                  })}
-                >
-                  <Popup>
-                    <div className="p-1">
-                      <p className="font-semibold">Almacén (punto 0)</p>
-                    </div>
-                  </Popup>
-                </Marker>
-                
-                {/* Marcadores para entregas */}
-                {deliveries.map((delivery, index) => (
+                {todayDeliveries.map((delivery) => (
                   <Marker 
                     key={delivery.id}
-                    position={delivery.coordinates}
+                    position={delivery.coordinates as LatLngExpression}
                     icon={L.divIcon({
                       className: 'custom-div-icon',
-                      html: `<div class="marker-pin ${delivery.status === 'delivered' ? 'bg-green-600' : delivery.status === 'pending' ? 'bg-yellow-600' : 'bg-red-600'} flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
-                              <span class="text-white font-bold">${index + 1}</span>
-                            </div>`,
+                      html: `<div class="marker-pin ${
+                        delivery.status === 'delivered' ? 'bg-green-500' : 
+                        delivery.status === 'pending' ? 'bg-yellow-500' : 
+                        'bg-blue-500'
+                      } flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md">${delivery.id}</div>`,
                       iconSize: [30, 30],
                       iconAnchor: [15, 15]
                     })}
                   >
                     <Popup>
-                      <div className="p-1">
-                        <p className="font-semibold">{delivery.customerName}</p>
-                        <p className="text-xs">{delivery.customerAddress}</p>
-                        <p className="text-xs mt-1">Hora: {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                      <div className="p-2 w-[250px]">
+                        <h3 className="font-medium text-lg">{delivery.customerName}</h3>
+                        <p className="text-sm">{delivery.customerAddress}</p>
+                        <div className="my-2">
+                          <Badge variant="outline" className={getStatusColor(delivery.status)}>
+                            {delivery.status === 'pending' ? 'Pendiente' : 
+                             delivery.status === 'in_progress' ? 'En progreso' : 
+                             delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                          </Badge>
+                        </div>
+                        <p className="text-sm mt-1">{delivery.orderDetails}</p>
+                        <div className="mt-3 flex gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => startNavigation(delivery)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                          >
+                            <Navigation2 className="h-3 w-3 mr-2" />
+                            Navegar
+                          </Button>
+                          {delivery.status === 'pending' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleCompleteDelivery(delivery.id)}
+                              className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-2" />
+                              Completar
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </Popup>
                   </Marker>
                 ))}
-                
-                <MapBoundsAdjuster deliveries={deliveries} />
               </MapContainer>
             </ResponsiveMapContainer>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Entregas de Hoy ({deliveries.length})</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {deliveries.map((delivery) => (
-                <div key={delivery.id} className="border p-3 rounded-md">
-                  <div className="font-medium">{delivery.customerName}</div>
-                  <div className="text-sm text-gray-500">{delivery.customerAddress}</div>
-                  <div className="mt-1 text-sm">
-                    Estado: <span className={`font-medium ${delivery.status === 'delivered' ? 'text-green-600' : delivery.status === 'pending' ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {delivery.status === 'delivered' ? 'Entregado' : 
-                       delivery.status === 'pending' ? 'Pendiente' : 
-                       delivery.status === 'in_progress' ? 'En progreso' : 'Cancelado'}
-                    </span>
-                  </div>
-                  <div className="mt-2">
-                    <Button size="sm">Ver detalles</Button>
-                  </div>
-                </div>
-              ))}
+          </TabsContent>
+          
+          <TabsContent value="stats">
+            <Card className="p-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <h2 className="font-semibold text-sm">Balance de Efectivo</h2>
+              </div>
               
-              {deliveries.length === 0 && (
-                <div className="text-center py-4 text-gray-500">
-                  No hay entregas programadas para hoy
+              <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1 text-sm">
+                  <span className="text-gray-600">Saldo Inicial:</span>
+                  <span className="font-semibold">RD$ {mockCashBalance.initialBalance}</span>
                 </div>
-              )}
+                <div className="flex items-center justify-between mb-1 text-sm">
+                  <span className="text-gray-600">Cobros en Efectivo:</span>
+                  <span className="font-semibold text-green-600">+ RD$ {mockCashBalance.cashIn}</span>
+                </div>
+                <div className="flex items-center justify-between mb-1 text-sm">
+                  <span className="text-gray-600">Gastos:</span>
+                  <span className="font-semibold text-red-600">- RD$ {mockCashBalance.cashOut}</span>
+                </div>
+                <div className="flex items-center justify-between pt-1.5 border-t text-sm">
+                  <span className="font-medium">Balance Final:</span>
+                  <span className="font-bold">RD$ {mockCashBalance.finalBalance}</span>
+                </div>
+              </div>
+            </Card>
+            
+            <Card className="p-3 mt-2">
+              <div className="flex items-center gap-1.5 mb-2">
+                <TrendingUp className="h-4 w-4 text-purple-600" />
+                <h2 className="font-semibold text-sm">Estadísticas del Día</h2>
+              </div>
+              
+              <div className="space-y-1.5">
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <p className="text-xs text-gray-600">Entregas Completadas</p>
+                    <p className="text-xs font-medium">{performance.deliveredOrders}/{performance.totalOrders}</p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-purple-600 h-2 rounded-full" 
+                      style={{ width: `${(performance.deliveredOrders / (performance.totalOrders || 1)) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <p className="text-xs text-gray-600">Entregas a Tiempo</p>
+                    <p className="text-xs font-medium">{performance.onTimeDeliveries}/{performance.deliveredOrders}</p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-green-600 h-2 rounded-full" 
+                      style={{ width: `${(performance.onTimeDeliveries / (performance.deliveredOrders || 1)) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <p className="text-xs text-gray-600">Tiempo Promedio de Entrega</p>
+                    <p className="text-xs font-medium">{performance.averageDeliveryTime} min</p>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full" 
+                      style={{ width: `${(performance.averageDeliveryTime / 60) * 100}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+            
+            <Card className="p-3 mt-2">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Calendar className="h-4 w-4 text-indigo-600" />
+                <h2 className="font-semibold text-sm">Programación de Hoy</h2>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span>Inicio de Ruta:</span>
+                  <span className="font-medium">8:00 AM</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span>Descanso Programado:</span>
+                  <span className="font-medium">12:00 PM - 1:00 PM</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span>Fin de Ruta Estimado:</span>
+                  <span className="font-medium">4:00 PM</span>
+                </div>
+              </div>
+              
+              <div className="mt-3 pt-2 border-t">
+                <div className="flex gap-1.5">
+                  <Button variant="outline" className="flex-1 h-8 text-xs">
+                    <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                    Reportar Problema
+                  </Button>
+                  <Button variant="outline" className="flex-1 h-8 text-xs">
+                    <Phone className="h-3.5 w-3.5 mr-1.5" />
+                    Llamar Oficina
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      ) : (
+        // Diseño desktop
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <Truck className="h-6 w-6 text-primary" />
+              Panel del Conductor
+            </h1>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Actualizar Datos
+              </Button>
+              <Button>
+                <Phone className="h-4 w-4 mr-2" />
+                Contactar Centro
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-2">
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-blue-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Total Entregas
+                  </div>
+                  <ClipboardList className="h-3.5 w-3.5 text-blue-500" />
+                </div>
+                <div className="mt-1 text-base font-semibold text-blue-600">
+                  {totalCount}
+                </div>
+              </div>
+            </div>
+            
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-green-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Completadas
+                  </div>
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                </div>
+                <div className="mt-1 text-base font-semibold text-green-600">
+                  {deliveredCount}
+                </div>
+              </div>
+            </div>
+            
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-yellow-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Pendientes
+                  </div>
+                  <Clock className="h-3.5 w-3.5 text-yellow-500" />
+                </div>
+                <div className="mt-1 text-base font-semibold text-yellow-600">
+                  {pendingCount}
+                </div>
+              </div>
+            </div>
+            
+            <div className="relative overflow-hidden rounded-md border shadow-sm">
+              <div className="absolute left-0 top-0 h-full w-1 bg-purple-500"></div>
+              <div className="p-2 pl-2.5">
+                <div className="flex justify-between items-center">
+                  <div className="text-xs font-normal text-gray-500">
+                    Tiempo Promedio
+                  </div>
+                  <TrendingUp className="h-3.5 w-3.5 text-purple-500" />
+                </div>
+                <div className="mt-1 text-base font-semibold text-purple-600">
+                  {performance.averageDeliveryTime} min
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-12 gap-3">
+            {/* Mapa */}
+            <Card className="col-span-7 p-0 overflow-hidden">
+              <ResponsiveMapContainer minHeight="70vh">
+                <MapContainer
+                  center={[18.4700, -69.9100]} // Santo Domingo
+                  zoom={13}
+                  style={{ height: "100%", width: "100%" }}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  />
+                  <LocationMarker onPositionChange={setCurrentPosition} />
+                  <RouteLines deliveries={todayDeliveries} currentPosition={currentPosition} />
+                  
+                  {todayDeliveries.map((delivery) => (
+                    <Marker 
+                      key={delivery.id}
+                      position={delivery.coordinates as LatLngExpression}
+                      icon={L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div class="marker-pin ${
+                          delivery.status === 'delivered' ? 'bg-green-500' : 
+                          delivery.status === 'pending' ? 'bg-yellow-500' : 
+                          'bg-blue-500'
+                        } flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-md">${delivery.id}</div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                      })}
+                    >
+                      <Popup>
+                        <div className="p-2 w-[250px]">
+                          <h3 className="font-medium text-lg">{delivery.customerName}</h3>
+                          <p className="text-sm">{delivery.customerAddress}</p>
+                          <div className="my-2">
+                            <Badge variant="outline" className={getStatusColor(delivery.status)}>
+                              {delivery.status === 'pending' ? 'Pendiente' : 
+                               delivery.status === 'in_progress' ? 'En progreso' : 
+                               delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm mt-1">{delivery.orderDetails}</p>
+                          <div className="mt-3 flex gap-2">
+                            <Button 
+                              size="sm" 
+                              onClick={() => startNavigation(delivery)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                            >
+                              <Navigation2 className="h-3 w-3 mr-2" />
+                              Navegar
+                            </Button>
+                            {delivery.status === 'pending' && (
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleCompleteDelivery(delivery.id)}
+                                className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                              >
+                                <CheckCircle className="h-3 w-3 mr-2" />
+                                Completar
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                </MapContainer>
+              </ResponsiveMapContainer>
+            </Card>
+          
+            {/* Sidebar derecho */}
+            <div className="col-span-5 space-y-2">
+              {/* Buscador */}
+              <Card className="p-3">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input 
+                    placeholder="Buscar cliente o dirección..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-8"
+                  />
+                  {searchTerm && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      onClick={() => setSearchTerm('')}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </Card>
+              
+              {/* Próxima entrega */}
+              {nextDelivery && (
+                <Card className="p-3 border-l-4 border-l-blue-500">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <ArrowRightCircle className="h-4 w-4 text-blue-600" />
+                      <h2 className="font-semibold text-sm">Próxima Entrega</h2>
+                    </div>
+                    <Badge variant="outline" className={`${getStatusColor(nextDelivery.status)} flex items-center gap-1 text-xs`}>
+                      {getStatusIcon(nextDelivery.status)}
+                      <span>
+                        {nextDelivery.status === 'pending' ? 'Pendiente' : 
+                         nextDelivery.status === 'in_progress' ? 'En progreso' : 
+                         nextDelivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                      </span>
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <h3 className="text-base font-medium">{nextDelivery.customerName}</h3>
+                    <p className="text-xs text-gray-600">{nextDelivery.customerAddress}</p>
+                    <div className="flex gap-4 text-xs my-1">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 text-blue-600" /> 
+                        {new Date(nextDelivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="h-3.5 w-3.5 text-green-600" /> 
+                        {nextDelivery.orderValue}
+                      </span>
+                    </div>
+                    <div className="flex gap-1.5 mt-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => startNavigation(nextDelivery)}
+                        className="text-xs h-7 flex-1 bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Navigation2 className="h-3 w-3 mr-1.5" />
+                        Navegar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleCompleteDelivery(nextDelivery.id)}
+                        className="text-xs h-7 flex-1 bg-green-600 hover:bg-green-700"
+                      >
+                        <CheckCircle className="h-3 w-3 mr-1.5" />
+                        Completar
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              )}
+              
+              {/* Lista de entregas */}
+              <div className="space-y-1.5">
+                <h2 className="font-semibold text-sm flex items-center gap-1.5 px-1">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                  Listado de Entregas
+                </h2>
+                
+                <div className="space-y-1.5 overflow-auto max-h-[60vh] pr-1">
+                  {filteredDeliveries.map((delivery) => (
+                    <Card key={delivery.id} className={`border-l-4 ${delivery.status === 'delivered' ? 'border-l-green-500' : delivery.status === 'pending' ? 'border-l-yellow-500' : 'border-l-red-500'}`}>
+                      <CardContent className="p-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium text-sm">{delivery.customerName}</p>
+                            <p className="text-xs text-gray-600 line-clamp-1">{delivery.customerAddress}</p>
+                          </div>
+                          <Badge variant="outline" className={`${getStatusColor(delivery.status)} flex items-center gap-1 text-xs`}>
+                            {getStatusIcon(delivery.status)}
+                            <span>
+                              {delivery.status === 'pending' ? 'Pendiente' : 
+                               delivery.status === 'in_progress' ? 'En progreso' : 
+                               delivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                            </span>
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-1 my-1.5 text-xs">
+                          <div className="border rounded p-1 text-center">
+                            <div className="text-gray-500">Hora</div>
+                            <div className="font-medium">
+                              {new Date(delivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </div>
+                          </div>
+                          <div className="border rounded p-1 text-center">
+                            <div className="text-gray-500">Valor</div>
+                            <div className="font-medium">
+                              {delivery.orderValue}
+                            </div>
+                          </div>
+                          <div className="border rounded p-1 text-center">
+                            <div className="text-gray-500">Envases</div>
+                            <div className="font-medium">
+                              {delivery.containers.delivered}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-1 mt-1.5">
+                          <Button 
+                            size="sm" 
+                            onClick={() => startNavigation(delivery)}
+                            className="text-xs h-7 bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                          >
+                            <Navigation2 className="h-3 w-3 mr-1" />
+                            Navegar
+                          </Button>
+                          {delivery.status === 'pending' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleCompleteDelivery(delivery.id)}
+                              className="text-xs h-7 bg-green-600 hover:bg-green-700 text-white flex-1"
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Completar
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
