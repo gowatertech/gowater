@@ -177,7 +177,6 @@ const AnimatedIcon = ({ icon: Icon, color, isActive, className, ...props }: {
 export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
   const [location] = useLocation();
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
 
   // Manejador para abrir y cerrar menús al hacer clic
@@ -212,23 +211,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
     }
   }, [location]);
   
-  // Elimina el hover effect para desktop - solo queremos interacción con clic
-  useEffect(() => {
-    const handleMouseMove = () => {
-      if (hoveredItem) {
-        setHoveredItem(null);
-      }
-    };
-    
-    // Solo añadir listener si hay un elemento hover
-    if (hoveredItem) {
-      document.addEventListener("mousemove", handleMouseMove);
-    }
-    
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-    };
-  }, [hoveredItem]);
+
 
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-background">
@@ -257,15 +240,11 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         {sidebarItems.map((item) => {
           const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
           const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
-          // El "hover" ya no se usa para expandir el menú, solo para efectos visuales
-          const isHovered = false; // Deshabilitamos el efecto hover completamente
           const isExpanded = isActive || activeItems.includes(item.label);
           
           return (
             <UISidebarMenuItem
               key={item.href}
-              onMouseEnter={() => setHoveredItem(item.label)}
-              onMouseLeave={() => setHoveredItem(null)}
               className="relative group mb-1.5"
             >
               {!item.subItems ? (
