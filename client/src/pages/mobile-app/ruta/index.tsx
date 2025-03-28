@@ -68,21 +68,47 @@ export default function DriverRoute() {
   };
 
   // Sincronizar datos
-  const syncData = () => {
+  const syncData = async () => {
     toast({
       title: "Sincronizando datos de ruta",
       description: "Actualizando información..."
     });
     
-    // Aquí se haría la llamada a la API para sincronizar datos
-    setTimeout(() => {
-      loadRouteData();
+    try {
+      // Recargar datos de la ruta desde el servidor
+      await loadRouteData();
+      
+      // Obtener ubicación actual si está disponible
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setCurrentLocation([latitude, longitude]);
+            
+            // Si la ruta está activa, actualizar progreso
+            if (routeStatus === 'in_progress' && activeRouteId) {
+              updateRouteProgress(latitude, longitude);
+            }
+          },
+          (error) => {
+            console.error("Error al obtener la ubicación durante sincronización:", error);
+          }
+        );
+      }
+      
       toast({
         title: "Ruta actualizada",
         description: "Los datos de tu ruta han sido actualizados",
         variant: "default"
       });
-    }, 1000);
+    } catch (error) {
+      console.error("Error al sincronizar datos:", error);
+      toast({
+        title: "Error de sincronización",
+        description: "No se pudieron actualizar los datos. Inténtalo de nuevo.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Estado para la ruta activa
@@ -99,103 +125,141 @@ export default function DriverRoute() {
       // Usar el ID de la ruta de la URL
       const routeId = routeIdFromUrl ? parseInt(routeIdFromUrl) : null;
       
-      if (routeId) {
-        console.log(`Cargando datos para la ruta ID: ${routeId}`);
-        setActiveRouteId(routeId);
-        
-        // En un entorno real, obtendríamos datos de la API usando el ID de la ruta
-        // const response = await apiRequest('GET', `/api/routes/${routeId}/orders`);
-        // if (response.ok) {
-        //   const data = await response.json();
-        //   setRouteStops(data.stops);
-        //   setRouteStatus(data.status);
-        // }
+      if (!routeId) {
+        console.error("No se encontró un ID de ruta en la URL");
+        toast({
+          title: "Error al cargar la ruta",
+          description: "ID de ruta no proporcionado. Regresa al listado de rutas.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
       }
       
-      // Para fines de desarrollo, usamos datos de ejemplo
+      console.log(`Cargando datos para la ruta ID: ${routeId}`);
+      setActiveRouteId(routeId);
+      
+      // Obtener información básica sobre la ruta
+      const routeResponse = await fetch(`/api/routes/${routeId}`);
+      if (!routeResponse.ok) {
+        throw new Error(`Error al obtener la ruta: ${routeResponse.statusText}`);
+      }
+      
+      const routeData = await routeResponse.json();
+      console.log("Datos de la ruta:", routeData);
+      
+      // Obtener los pedidos asociados a esta ruta
+      const ordersResponse = await fetch(`/api/routes/${routeId}/orders`);
+      if (!ordersResponse.ok) {
+        throw new Error(`Error al obtener los pedidos: ${ordersResponse.statusText}`);
+      }
+      
+      const ordersData = await ordersResponse.json();
+      console.log("Pedidos de la ruta:", ordersData);
+      
       // Coordenadas del almacén (punto de inicio)
       const warehouseLocation: [number, number] = [19.075380, -70.128822];
       
-      // Simulamos una ruta completa con almacén como punto 0
-      const mockRouteStops: RouteStop[] = [
-        {
-          id: 0,
-          order: 0,
-          customerId: 0,
-          customerName: "Almacén GoWater",
-          address: "Av. Industrial #15, Samaná",
-          latitude: warehouseLocation[0],
-          longitude: warehouseLocation[1],
-          status: "completed",
-          estimatedArrival: "08:00 AM",
-          estimatedDuration: 0,
-          distanceFromPrevious: 0,
-          products: [],
-          totalValue: 0,
-          isWarehouse: true
-        },
-        {
-          id: 1,
-          order: 1,
-          customerId: 101,
-          customerName: "Supermercado Oriental",
-          address: "Calle Principal #45, Las Terrenas",
-          latitude: 19.079380,
-          longitude: -70.134822,
-          status: "pending",
-          estimatedArrival: "08:30 AM",
-          estimatedDuration: 8, // 8 minutos para servir al cliente
-          distanceFromPrevious: 2.4, // 2.4 km desde el almacén
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 10, price: 125.00 },
-            { id: 2, name: "Caja Agua 16oz", quantity: 5, price: 350.00 }
-          ],
-          totalValue: 3000.00
-        },
-        {
-          id: 2,
-          order: 2,
-          customerId: 102,
-          customerName: "Hotel Las Palmas",
-          address: "Avenida Duarte #22, Samaná",
-          latitude: 19.084650,
-          longitude: -70.142750,
-          status: "pending",
-          estimatedArrival: "09:15 AM",
-          estimatedDuration: 10, // 10 minutos para servir al cliente
-          distanceFromPrevious: 3.1, // 3.1 km desde la parada anterior
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 20, price: 125.00 },
-            { id: 3, name: "Agua Saborizada 16oz", quantity: 24, price: 48.00 }
-          ],
-          totalValue: 3652.00
-        },
-        {
-          id: 3,
-          order: 3,
-          customerId: 103,
-          customerName: "Restaurante El Malecón",
-          address: "Calle El Malecón #15, Las Galeras",
-          latitude: 19.091220,
-          longitude: -70.149600,
-          status: "pending",
-          estimatedArrival: "09:45 AM",
-          estimatedDuration: 9, // 9 minutos para servir al cliente
-          distanceFromPrevious: 2.7, // 2.7 km desde la parada anterior
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 8, price: 125.00 },
-            { id: 4, name: "Dispensador de Agua", quantity: 1, price: 2500.00 }
-          ],
-          totalValue: 3500.00
-        }
-      ];
+      // Crear la estructura de paradas para la ruta
+      const stops: RouteStop[] = [];
       
-      setRouteStops(mockRouteStops);
-      // Si no hay routeId de la URL, seguir usando los datos de ejemplo
-      if (!routeIdFromUrl) {
-        console.log("No se encontró un ID de ruta en la URL, usando datos de ejemplo");
-        setActiveRouteId(123); // ID de ejemplo para la ruta activa
+      // Agregar el almacén como punto de inicio (stop 0)
+      stops.push({
+        id: 0,
+        order: 0,
+        customerId: 0,
+        customerName: "Almacén GoWater",
+        address: "Av. Industrial #15, Samaná",
+        latitude: warehouseLocation[0],
+        longitude: warehouseLocation[1],
+        status: "completed",
+        estimatedArrival: "08:00 AM",
+        estimatedDuration: 0,
+        distanceFromPrevious: 0,
+        products: [],
+        totalValue: 0,
+        isWarehouse: true
+      });
+      
+      // Verificar si la ruta tiene secuencia de entrega y coordenadas definidas
+      let stopSequence = [];
+      let stopCoordinates = [];
+      
+      if (routeData.deliverySequence && routeData.deliverySequence.length > 0) {
+        stopSequence = routeData.deliverySequence;
       }
+      
+      if (routeData.stops && routeData.stops.length > 0) {
+        stopCoordinates = routeData.stops.map((stop: string) => {
+          const [lat, lng] = stop.split(',').map(coord => parseFloat(coord));
+          return { latitude: lat, longitude: lng };
+        });
+      }
+      
+      // Agregar las paradas de los clientes
+      ordersData.forEach((order: any, index: number) => {
+        // Calcular el valor total del pedido a partir de los productos
+        const totalValue = order.products.reduce(
+          (sum: number, product: any) => sum + (Number(product.price) * product.quantity), 
+          0
+        );
+        
+        // Extraer coordenadas del cliente si están disponibles en stopCoordinates
+        let latitude = 0, longitude = 0;
+        let stopOrder = index + 1; // Por defecto, orden secuencial
+        
+        // Intentar encontrar la posición correcta en la secuencia
+        if (stopSequence.length > index + 1) {
+          const sequenceIndex = parseInt(stopSequence[index + 1]);
+          stopOrder = sequenceIndex;
+          
+          // Si tenemos coordenadas para esta parada
+          if (stopCoordinates.length > sequenceIndex) {
+            latitude = stopCoordinates[sequenceIndex].latitude;
+            longitude = stopCoordinates[sequenceIndex].longitude;
+          }
+        }
+        
+        // Si no tenemos coordenadas válidas, usar valores ligeramente diferentes para visualización
+        if (latitude === 0 || longitude === 0) {
+          latitude = warehouseLocation[0] + (Math.random() * 0.02);
+          longitude = warehouseLocation[1] + (Math.random() * 0.02);
+        }
+        
+        // Calcular estimados aproximados (en una app real estos vendrían de un servicio)
+        const estimatedDuration = 5 + Math.floor(Math.random() * 10); // 5-15 minutos
+        const distanceFromPrevious = 0.5 + Math.random() * 3; // 0.5-3.5 km
+        
+        stops.push({
+          id: order.id,
+          order: stopOrder,
+          customerId: order.customerId,
+          customerName: order.customerName,
+          address: order.customerAddress || "Dirección no disponible",
+          latitude,
+          longitude,
+          status: "pending",
+          estimatedArrival: "Próximamente",
+          estimatedDuration,
+          distanceFromPrevious,
+          products: order.products.map((product: any) => ({
+            id: product.productId,
+            name: product.name,
+            quantity: product.quantity,
+            price: parseFloat(product.price)
+          })),
+          totalValue: Number(order.total) || totalValue
+        });
+      });
+      
+      // Ordenar las paradas según la secuencia si está disponible
+      if (stopSequence.length > 0) {
+        stops.sort((a, b) => a.order - b.order);
+      }
+      
+      setRouteStops(stops);
+      setRouteStatus(routeData.status === "in_progress" ? "in_progress" : "not_started");
+      
       setIsLoading(false);
     } catch (error) {
       console.error("Error al cargar datos de ruta:", error);
@@ -259,15 +323,24 @@ export default function DriverRoute() {
     if (!activeRouteId) return;
     
     try {
-      // En un entorno real, enviaríamos la ubicación a la API
-      // await apiRequest('POST', `/api/driver/routes/${activeRouteId}/progress`, {
-      //   latitude,
-      //   longitude,
-      //   timestamp: new Date().toISOString()
-      // });
+      // Enviar la ubicación actual al servidor
+      const currentLocation = `${latitude},${longitude}`;
+      console.log(`Actualizando progreso de ruta ${activeRouteId} en [${currentLocation}]`);
       
-      // Para desarrollo, solo mostramos un log
-      console.log(`Actualizando progreso de ruta ${activeRouteId} en [${latitude}, ${longitude}]`);
+      const response = await fetch(`/api/routes/${activeRouteId}/progress`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          currentLocation,
+          lastUpdate: new Date().toISOString()
+        })
+      });
+      
+      if (!response.ok) {
+        console.error(`Error al actualizar progreso: ${response.statusText}`);
+      }
     } catch (error) {
       console.error("Error al actualizar progreso:", error);
     }
@@ -280,15 +353,22 @@ export default function DriverRoute() {
     setIsLoading(true);
     
     try {
-      // En un entorno real, iniciaríamos la ruta en la API
-      // const response = await apiRequest('POST', `/api/driver/routes/${activeRouteId}/start`);
-      // if (response.ok) {
-      //   const data = await response.json();
-      //   setRouteStatus('in_progress');
-      //   setStartTime(new Date());
-      // }
+      // Llamar a la API para iniciar la ruta
+      console.log(`Iniciando ruta ID: ${activeRouteId}`);
+      const response = await fetch(`/api/routes/${activeRouteId}/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
-      // Para desarrollo, simulamos el inicio
+      if (!response.ok) {
+        throw new Error(`Error al iniciar ruta: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Respuesta al iniciar ruta:", data);
+      
       setRouteStatus('in_progress');
       setStartTime(new Date());
       
@@ -304,6 +384,10 @@ export default function DriverRoute() {
         description: "No se pudo iniciar la ruta. Inténtalo de nuevo.",
         variant: "destructive"
       });
+      
+      // Para asegurar que la UI siga funcionando, incluso si hay un error
+      setRouteStatus('in_progress');
+      setStartTime(new Date());
     } finally {
       setIsLoading(false);
     }
@@ -349,13 +433,26 @@ export default function DriverRoute() {
     setIsLoading(true);
     
     try {
-      // En un entorno real, finalizaríamos la ruta en la API
-      // const response = await apiRequest('POST', `/api/driver/routes/${activeRouteId}/complete`);
-      // if (response.ok) {
-      //   setRouteStatus('completed');
-      // }
+      // Llamar a la API para finalizar la ruta
+      console.log(`Finalizando ruta ID: ${activeRouteId}`);
+      const response = await fetch(`/api/routes/${activeRouteId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // Si existe alguna información adicional que queramos enviar al completar
+        body: JSON.stringify({
+          completedAt: new Date().toISOString()
+        })
+      });
       
-      // Para desarrollo, simulamos la finalización
+      if (!response.ok) {
+        throw new Error(`Error al finalizar ruta: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log("Respuesta al finalizar ruta:", data);
+      
       setRouteStatus('completed');
       
       toast({
@@ -363,6 +460,11 @@ export default function DriverRoute() {
         description: "¡Felicidades! Has completado todas las entregas.",
         variant: "default"
       });
+      
+      // Redireccionar al listado de rutas después de 3 segundos
+      setTimeout(() => {
+        setLocation('/mobile-app/rutas-pendientes');
+      }, 3000);
     } catch (error) {
       console.error("Error al finalizar ruta:", error);
       toast({
@@ -370,6 +472,9 @@ export default function DriverRoute() {
         description: "No se pudo finalizar la ruta. Inténtalo de nuevo.",
         variant: "destructive"
       });
+      
+      // Para asegurar que la UI refleje el cambio, incluso si hay un error
+      setRouteStatus('completed');
     } finally {
       setIsLoading(false);
     }
