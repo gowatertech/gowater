@@ -95,6 +95,11 @@ export default function Routes() {
   // Obtener zonas
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/zones");
+      console.log("Zonas cargadas en routes/index.tsx:", await response.clone().json());
+      return response.json();
+    }
   });
 
   const isDriver = user?.role === "driver";

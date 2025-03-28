@@ -116,6 +116,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   // Fetch zones
   const { data: zones = [], isLoading: isLoadingZones } = useQuery({
     queryKey: ["/api/zones"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/zones");
+      console.log("Zonas cargadas en ZoneBasedRouteForm:", await response.clone().json());
+      return response.json();
+    }
   });
 
   // Fetch customers for the selected zone
