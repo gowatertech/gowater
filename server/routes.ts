@@ -1568,12 +1568,15 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/orders", async (req, res) => {
     try {
+      console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
+
+      // Procesamiento directo sin validación Zod por ahora
       const orderData = {
         ...req.body,
-        date: new Date(),
-        status: "pending",
-        total: Number(req.body.total).toFixed(2)
+        date: new Date(req.body.date || new Date()),
       };
+
+      console.log("Datos de orden validados:", orderData);
 
       // Crear el pedido
       const [order] = await db
@@ -1588,9 +1591,9 @@ export async function registerRoutes(app: Express) {
             .insert(orderItems)
             .values({
               orderId: order.id,
-              productId: item.productId,
+              productId: parseInt(item.code || item.productId),
               quantity: item.quantity,
-              price: item.price
+              price: typeof item.price === 'string' ? item.price : item.price.toFixed(2)
             });
         }
       }

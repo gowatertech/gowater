@@ -266,6 +266,8 @@ export default function Orders() {
   // Mutación para crear pedidos
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("Creando pedido con datos:", data);
+      
       // 1. Validar items
       const validItems = orderItems.filter(item => item.quantity > 0);
       if (validItems.length === 0) {
@@ -284,24 +286,22 @@ export default function Orders() {
         status: "pending" as const,
         paymentMethod: "cash" as const,
         date: new Date().toISOString(), // Formato ISO completo
-        routeId: null as number | null
+        routeId: null as number | null,
+        notes: notes || ""
       };
 
-      // 4. Validar con Zod antes de enviar
-      const validationResult = insertOrderSchema.safeParse(orderData);
-      if (!validationResult.success) {
-        console.error('Error de validación:', validationResult.error);
-        throw new Error(validationResult.error.issues[0].message);
-      }
+      console.log("Datos del pedido a enviar:", orderData);
 
-      // 5. Crear el pedido
-      const orderResponse = await apiRequest("POST", "/api/orders", validationResult.data);
+      // 4. Crear el pedido con los datos validados
+      const orderResponse = await apiRequest("POST", "/api/orders", orderData);
+      
       if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
-        throw new Error(errorData.error?.issues?.[0]?.message || 'Error al crear el pedido');
+        console.error("Error en la respuesta:", await orderResponse.text());
+        throw new Error('Error al crear el pedido. Revise los datos enviados.');
       }
 
       const order = await orderResponse.json();
+      console.log("Pedido creado:", order);
 
       // 5. Crear los items del pedido
       for (const item of validItems) {
@@ -312,8 +312,10 @@ export default function Orders() {
           price: item.price.toFixed(2) // Formato exacto: "0.00"
         };
 
+        console.log("Agregando item al pedido:", itemData);
         const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
         if (!itemResponse.ok) {
+          console.error("Error al crear item:", await itemResponse.text());
           throw new Error('Error al crear items del pedido');
         }
       }
