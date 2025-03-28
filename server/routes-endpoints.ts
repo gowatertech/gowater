@@ -16,6 +16,68 @@ import { orderItems as orderItemsTable } from "@shared/schema";
  * Endpoints para rutas y pedidos
  */
 export function registerRoutesEndpoints(app: Express) {
+  
+  // Endpoint para crear una ruta con pedidos pendientes
+  app.post("/api/routes-with-orders", async (req, res) => {
+    try {
+      // Extraer datos del cuerpo de la solicitud
+      const routeData = req.body;
+      const orderIds = routeData.orderIds || [];
+      
+      console.log("Creando ruta con pedidos:", routeData);
+      console.log("IDs de pedidos a asignar:", orderIds);
+      
+      if (!routeData.name || !routeData.driverId || !routeData.zoneId || !orderIds.length) {
+        return res.status(400).json({ 
+          error: "Faltan datos requeridos para crear la ruta" 
+        });
+      }
+      
+      // Insertar la nueva ruta
+      const [newRoute] = await db
+        .insert(routes)
+        .values({
+          name: routeData.name,
+          driverId: routeData.driverId,
+          assistantId: routeData.assistantId || null,
+          truckId: routeData.truckId || null,
+          zoneId: routeData.zoneId,
+          date: new Date(routeData.date),
+          status: "pending",
+          isCompleted: false,
+          deliverySequence: routeData.deliverySequence || [],
+          estimatedDuration: routeData.estimatedDuration || null,
+          totalDistance: routeData.totalDistance || null,
+          stops: routeData.stops || []
+        })
+        .returning();
+        
+      console.log("Ruta creada:", newRoute);
+      
+      // Asignar los pedidos a esta ruta
+      // Actualizar cada pedido con el ID de la ruta
+      for (const orderId of orderIds) {
+        await db
+          .update(orders)
+          .set({ 
+            routeId: newRoute.id,
+            // No cambiar el estado del pedido todavía, sigue siendo "pending"
+          })
+          .where(eq(orders.id, orderId));
+          
+        console.log(`Pedido ${orderId} asignado a la ruta ${newRoute.id}`);
+      }
+      
+      res.status(201).json({ 
+        success: true, 
+        route: newRoute,
+        message: `Ruta creada con ${orderIds.length} pedidos asignados`
+      });
+    } catch (error) {
+      console.error("Error al crear ruta con pedidos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Endpoint para obtener todos los pedidos de todas las rutas pendientes en una sola llamada
   app.get("/api/routes/all/orders", async (req, res) => {
@@ -217,12 +279,12 @@ export function registerRoutesEndpoints(app: Express) {
       
       // Contar todos los pedidos pendientes de estos clientes (incluso los asignados a rutas)
       try {
-        // Simplificando la consulta para evitar errores
+        // Utilizar consulta parametrizada para evitar errores con los tipos
         const allPendingOrdersCount = await db
           .execute(sql`
             SELECT COUNT(*) 
             FROM orders 
-            WHERE customer_id IN (${customerIds.join(',')}) 
+            WHERE customer_id = ANY(${customerIds})
             AND status = 'pending'
           `);
         
@@ -232,7 +294,7 @@ export function registerRoutesEndpoints(app: Express) {
       }
       
       // Buscar pedidos pendientes de clientes en esa zona que no estén asignados a ninguna ruta
-      // Usar SQL directo para evitar problemas de tipo
+      // Usar SQL parametrizado para evitar problemas de tipo
       const pendingOrdersResult = await db.execute(sql`
         SELECT 
           o.id, 
@@ -247,7 +309,7 @@ export function registerRoutesEndpoints(app: Express) {
           o.route_id AS "routeId"
         FROM orders o
         LEFT JOIN customers c ON o.customer_id = c.id
-        WHERE o.customer_id IN (${customerIds.join(',')}) 
+        WHERE o.customer_id = ANY(${customerIds})
         AND o.status = 'pending' 
         AND o.route_id IS NULL
       `);
@@ -262,6 +324,7 @@ export function registerRoutesEndpoints(app: Express) {
       const ordersWithItems = await Promise.all(
         pendingOrders.map(async (order) => {
           // Usar SQL directo para evitar problemas con los tipos
+          const orderId = typeof order.id === 'string' ? parseInt(order.id, 10) : order.id;
           const itemsResult = await db.execute(sql`
             SELECT 
               oi.product_id AS "productId", 
@@ -270,7 +333,7 @@ export function registerRoutesEndpoints(app: Express) {
               oi.price
             FROM order_items oi
             INNER JOIN products p ON oi.product_id = p.id
-            WHERE oi.order_id = ${parseInt(order.id, 10)}
+            WHERE oi.order_id = ${orderId}
           `);
             
           return {

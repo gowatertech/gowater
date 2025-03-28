@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
-import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X, Edit, Eye, ArrowRight } from "lucide-react";
+import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X, Edit, Eye, ArrowRight, User, Package } from "lucide-react";
 import { format } from "date-fns";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
 import DriverView from "@/pages/drivers/DriverView";
 import DeliveryTracking from "./DeliveryTracking";
 import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
+import PendingOrdersRouteForm from "@/components/routes/PendingOrdersRouteForm";
 
 export default function Routes() {
   const { t } = useTranslation();
@@ -185,24 +186,51 @@ export default function Routes() {
   // Calcular si hay rutas activas
   const hasActiveRoutes = !loading && !error && routes?.some(route => !route.isCompleted);
 
+  // Estado para modo de creación de ruta
+  const [routeCreationMode, setRouteCreationMode] = useState<"customers" | "orders">("customers");
+
   if (isCreatingRoute) {
     return (
       <div className="container py-6">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t("createRoute")}
-          </h1>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight mb-2">
+              {t("createRoute")}
+            </h1>
+            <div className="flex space-x-2">
+              <Button 
+                variant={routeCreationMode === "customers" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setRouteCreationMode("customers")}
+              >
+                <User className="h-4 w-4 mr-1" />
+                Por Clientes
+              </Button>
+              <Button 
+                variant={routeCreationMode === "orders" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => setRouteCreationMode("orders")}
+              >
+                <Package className="h-4 w-4 mr-1" />
+                Por Pedidos Pendientes
+              </Button>
+            </div>
+          </div>
           <Button variant="outline" onClick={handleCancelCreate}>
             {t("cancel")}
           </Button>
         </div>
         <Card>
           <CardContent className="p-6">
-            {/* Pasamos la prop compact si hay rutas activas */}
-            <ZoneBasedRouteForm 
-              onRouteCreated={handleRouteCreated} 
-              compact={hasActiveRoutes}
-            />
+            {/* Mostramos el formulario según el modo seleccionado */}
+            {routeCreationMode === "customers" ? (
+              <ZoneBasedRouteForm 
+                onRouteCreated={handleRouteCreated} 
+                compact={hasActiveRoutes}
+              />
+            ) : (
+              <PendingOrdersRouteForm onRouteCreated={handleRouteCreated} />
+            )}
           </CardContent>
         </Card>
       </div>
