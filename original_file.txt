@@ -795,7 +795,6 @@ export default function OrdersPage() {
             </CardFooter>
           </Card>
         </TabsContent>
-
         {/* Tab de Detalles del Pedido */}
         <TabsContent value="details" className="space-y-1">
           {selectedOrder ? (
