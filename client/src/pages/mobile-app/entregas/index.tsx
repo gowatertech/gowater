@@ -1,0 +1,341 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { 
+  Package, 
+  Search, 
+  Filter, 
+  XCircle, 
+  CheckCircle, 
+  Clock, 
+  AlertTriangle 
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { MobileHeader } from "../components/MobileHeader";
+import { MobileFooter } from "../components/MobileFooter";
+
+// Tipo para una entrega
+interface Delivery {
+  id: number;
+  orderId: number;
+  customerId: number;
+  customerName: string;
+  address: string;
+  status: "pending" | "in_progress" | "delivered" | "cancelled";
+  scheduledTime: string;
+  products: { id: number; name: string; quantity: number; price: number }[];
+  total: number;
+  bottleReturns?: number;
+}
+
+export default function DriverDeliveries() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const { user } = useCurrentUser();
+  const [darkMode, setDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("pendientes");
+  
+  // Alternar modo oscuro
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', darkMode ? 'light' : 'dark');
+  };
+
+  // Sincronizar datos
+  const syncData = () => {
+    toast({
+      title: "Sincronizando entregas",
+      description: "Actualizando información..."
+    });
+    
+    // Aquí se haría la llamada a la API para sincronizar datos
+    setTimeout(() => {
+      loadDeliveries();
+      toast({
+        title: "Entregas actualizadas",
+        description: "Los datos han sido actualizados",
+        variant: "default"
+      });
+    }, 1000);
+  };
+
+  // Cargar datos de entregas
+  const loadDeliveries = () => {
+    setIsLoading(true);
+    
+    // Simular carga de datos de la API
+    setTimeout(() => {
+      // Datos de ejemplo
+      const mockDeliveries: Delivery[] = [
+        {
+          id: 1,
+          orderId: 10001,
+          customerId: 101,
+          customerName: "Supermercado Oriental",
+          address: "Calle Principal #45, Las Terrenas",
+          status: "pending",
+          scheduledTime: "10:30 AM",
+          products: [
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 10, price: 80 },
+            { id: 2, name: "Caja Agua 16oz", quantity: 5, price: 240 }
+          ],
+          total: 2000,
+          bottleReturns: 8
+        },
+        {
+          id: 2,
+          orderId: 10002,
+          customerId: 102,
+          customerName: "Hotel Las Palmas",
+          address: "Avenida Duarte #22, Samaná",
+          status: "in_progress",
+          scheduledTime: "11:15 AM",
+          products: [
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 20, price: 80 },
+            { id: 3, name: "Agua Saborizada 16oz", quantity: 24, price: 30 }
+          ],
+          total: 2320,
+          bottleReturns: 15
+        },
+        {
+          id: 3,
+          orderId: 10003,
+          customerId: 103,
+          customerName: "Restaurante El Malecón",
+          address: "Calle El Malecón #15, Las Galeras",
+          status: "pending",
+          scheduledTime: "12:00 PM",
+          products: [
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 8, price: 80 },
+            { id: 4, name: "Dispensador de Agua", quantity: 1, price: 1500 }
+          ],
+          total: 2140,
+          bottleReturns: 6
+        },
+        {
+          id: 4,
+          orderId: 10004,
+          customerId: 104,
+          customerName: "Farmacia San José",
+          address: "Av. Las Americas #78, Samaná",
+          status: "delivered",
+          scheduledTime: "09:00 AM",
+          products: [
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 5, price: 80 },
+          ],
+          total: 400,
+          bottleReturns: 5
+        },
+        {
+          id: 5,
+          orderId: 10005,
+          customerId: 105,
+          customerName: "Escuela Primaria Las Terrenas",
+          address: "Calle Duarte #112, Las Terrenas",
+          status: "cancelled",
+          scheduledTime: "08:30 AM",
+          products: [
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 15, price: 80 },
+            { id: 2, name: "Caja Agua 16oz", quantity: 10, price: 240 }
+          ],
+          total: 3600,
+          bottleReturns: 0
+        },
+      ];
+      
+      setDeliveries(mockDeliveries);
+      setIsLoading(false);
+    }, 1500);
+  };
+
+  // Filtrar entregas por estado y término de búsqueda
+  const filteredDeliveries = deliveries.filter(delivery => {
+    // Filtrar por estado según la pestaña activa
+    const statusFilter = 
+      activeTab === "pendientes" ? 
+        (delivery.status === "pending" || delivery.status === "in_progress") :
+      activeTab === "completadas" ?
+        delivery.status === "delivered" :
+      activeTab === "canceladas" ?
+        delivery.status === "cancelled" :
+        true; // "todas"
+    
+    // Filtrar por término de búsqueda (nombre de cliente, dirección)
+    const searchFilter = 
+      searchTerm === "" ||
+      delivery.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      delivery.address.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return statusFilter && searchFilter;
+  });
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    loadDeliveries();
+  }, []);
+
+  // Si está cargando, mostrar spinner
+  if (isLoading) {
+    return (
+      <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
+        <MobileHeader 
+          user={user} 
+          darkMode={darkMode} 
+          onToggleDarkMode={toggleDarkMode} 
+          onSyncData={syncData}
+        />
+        <div className="h-[calc(100vh-132px)] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <h3 className="font-medium text-primary">Cargando entregas...</h3>
+          </div>
+        </div>
+        <MobileFooter darkMode={darkMode} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
+      <MobileHeader 
+        user={user} 
+        darkMode={darkMode} 
+        onToggleDarkMode={toggleDarkMode} 
+        onSyncData={syncData}
+      />
+      
+      <main className="container max-w-md mx-auto px-4 pb-6">
+        <div className="py-4">
+          <h1 className="text-2xl font-bold mb-1">Mis Entregas</h1>
+          <p className="text-sm text-muted-foreground mb-4">
+            {new Date().toLocaleDateString('es-DO', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long'
+            })}
+          </p>
+          
+          {/* Buscador */}
+          <div className="relative mb-4">
+            <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              className={`pl-9 ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : ''}`}
+              placeholder="Buscar por cliente o dirección"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-1 right-1 h-7 w-7 p-0"
+                onClick={() => setSearchTerm("")}
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          
+          {/* Pestañas de estado */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
+            <TabsList className={`grid w-full grid-cols-4 ${darkMode ? 'bg-gray-800' : ''}`}>
+              <TabsTrigger value="pendientes">Pendientes</TabsTrigger>
+              <TabsTrigger value="completadas">Completadas</TabsTrigger>
+              <TabsTrigger value="canceladas">Canceladas</TabsTrigger>
+              <TabsTrigger value="todas">Todas</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {/* Lista de entregas */}
+          <div className="space-y-3">
+            {filteredDeliveries.length === 0 ? (
+              <div className="text-center py-6">
+                <Package className="h-10 w-10 text-muted-foreground mx-auto mb-2 opacity-30" />
+                <p className="text-muted-foreground">No hay entregas para mostrar</p>
+                {searchTerm && (
+                  <Button
+                    variant="link"
+                    className="mt-2"
+                    onClick={() => setSearchTerm("")}
+                  >
+                    Limpiar búsqueda
+                  </Button>
+                )}
+              </div>
+            ) : (
+              filteredDeliveries.map((delivery) => (
+                <Card 
+                  key={delivery.id}
+                  className={`${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}
+                  onClick={() => setLocation(`/mobile-app/entregas/${delivery.id}`)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="font-medium">{delivery.customerName}</h3>
+                        <p className="text-xs text-muted-foreground">{delivery.address}</p>
+                      </div>
+                      
+                      <Badge 
+                        variant={
+                          delivery.status === "delivered" ? "secondary" :
+                          delivery.status === "in_progress" ? "outline" :
+                          delivery.status === "cancelled" ? "destructive" :
+                          "default"
+                        }
+                        className="ml-2"
+                      >
+                        {delivery.status === "pending" && "Pendiente"}
+                        {delivery.status === "in_progress" && "En camino"}
+                        {delivery.status === "delivered" && "Entregado"}
+                        {delivery.status === "cancelled" && "Cancelado"}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm mt-3">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                        <span className="text-muted-foreground">{delivery.scheduledTime}</span>
+                      </div>
+                      
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-muted-foreground">Total:</span>
+                        <span className="font-medium">${delivery.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 pt-3 border-t flex flex-wrap gap-1">
+                      {delivery.products.map(product => (
+                        <span 
+                          key={`${delivery.id}-${product.id}`}
+                          className={`text-xs px-2 py-0.5 rounded-full ${
+                            darkMode 
+                              ? 'bg-gray-700' 
+                              : 'bg-gray-100'
+                          }`}
+                        >
+                          {product.quantity} × {product.name}
+                        </span>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      </main>
+      
+      <MobileFooter darkMode={darkMode} />
+    </div>
+  );
+}

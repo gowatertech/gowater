@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -31,8 +31,84 @@ import RouteSettlementPage from "@/pages/routes/settlements";
 import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
 import RecurringOrders from "./pages/routes/RecurringOrders";
 import TrucksPage from "./pages/routes/trucks";
+import { useEffect } from "react";
+
+// PWA Pages
+import MobileApp from "@/pages/mobile-app";
+import MobileRoute from "@/pages/mobile-app/ruta";
+import MobileDeliveries from "@/pages/mobile-app/entregas";
 
 function Router() {
+  const [location] = useLocation();
+  
+  // No envolver en DashboardLayout si estamos en la app móvil PWA
+  const isMobileApp = location.startsWith("/mobile-app");
+  
+  // Registrar el Service Worker para PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registrado con éxito:', registration);
+          })
+          .catch(error => {
+            console.error('Error al registrar el Service Worker:', error);
+          });
+      });
+    }
+  }, []);
+  
+  // Agregar el enlace al manifest.json en el head para PWA
+  useEffect(() => {
+    const manifestLink = document.createElement('link');
+    manifestLink.rel = 'manifest';
+    manifestLink.href = '/manifest.json';
+    document.head.appendChild(manifestLink);
+    
+    // Meta tags para PWA
+    const metaThemeColor = document.createElement('meta');
+    metaThemeColor.name = 'theme-color';
+    metaThemeColor.content = '#2563eb';
+    document.head.appendChild(metaThemeColor);
+    
+    const metaViewport = document.createElement('meta');
+    metaViewport.name = 'viewport';
+    metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+    document.head.appendChild(metaViewport);
+    
+    // Apple specific tags
+    const appleCapable = document.createElement('meta');
+    appleCapable.name = 'apple-mobile-web-app-capable';
+    appleCapable.content = 'yes';
+    document.head.appendChild(appleCapable);
+    
+    const appleStatusBar = document.createElement('meta');
+    appleStatusBar.name = 'apple-mobile-web-app-status-bar-style';
+    appleStatusBar.content = 'black-translucent';
+    document.head.appendChild(appleStatusBar);
+    
+    return () => {
+      document.head.removeChild(manifestLink);
+      document.head.removeChild(metaThemeColor);
+      document.head.removeChild(metaViewport);
+      document.head.removeChild(appleCapable);
+      document.head.removeChild(appleStatusBar);
+    };
+  }, []);
+
+  // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
+  if (isMobileApp) {
+    return (
+      <Switch>
+        <Route path="/mobile-app" component={MobileApp} />
+        <Route path="/mobile-app/ruta" component={MobileRoute} />
+        <Route path="/mobile-app/entregas" component={MobileDeliveries} />
+      </Switch>
+    );
+  }
+
+  // Para la aplicación web normal, usar el DashboardLayout
   return (
     <DashboardLayout>
       <Switch>
