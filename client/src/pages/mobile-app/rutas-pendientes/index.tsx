@@ -100,15 +100,8 @@ export default function MobilePendingRoutes() {
   // Calcular el valor total de una ruta
   const calculateTotalRevenue = (routeId: number) => {
     const orders = ordersByRoute[routeId] || [];
-    const calculatedTotal = orders.reduce((total, order) => total + (order.totalAmount || 0), 0);
-    
-    // Si no hay órdenes o el total es 0, mostrar un valor de ejemplo
-    if (calculatedTotal === 0) {
-      // Usar un valor aleatorio entre 1000 y 3000 para simular valores reales
-      return Math.floor(Math.random() * 2000) + 1000;
-    }
-    
-    return calculatedTotal;
+    // Usar total de la API en lugar de totalAmount para asegurar datos correctos
+    return orders.reduce((total, order) => total + Number(order.total || 0), 0);
   };
 
   // Contar el número de paradas por ruta (excluyendo el almacén)
@@ -240,7 +233,7 @@ export default function MobilePendingRoutes() {
                                 <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
                                 {order.customerName}
                               </span>
-                              <span className="text-primary">${order.totalAmount.toFixed(2)}</span>
+                              <span className="text-primary">${Number(order.total).toFixed(2)}</span>
                             </li>
                           ))}
                         </ul>
@@ -249,31 +242,10 @@ export default function MobilePendingRoutes() {
                       <div className={`text-xs p-2 rounded mb-3 ${
                         isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
                       }`}>
-                        <div className="font-medium mb-1">Clientes en esta ruta:</div>
-                        <ul className="space-y-1">
-                          {/* Mostrar clientes de ejemplo cuando no hay datos reales */}
-                          <li className="flex justify-between">
-                            <span className="flex items-center">
-                              <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
-                              {route.id % 2 === 0 ? "Hotel Las Palmas" : "Supermercado Oriental"}
-                            </span>
-                            <span className="text-primary">${(Math.floor(Math.random() * 1000) + 500).toFixed(2)}</span>
-                          </li>
-                          <li className="flex justify-between">
-                            <span className="flex items-center">
-                              <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
-                              {route.id % 2 === 0 ? "Restaurante El Malecón" : "Colmado La Esquina"}
-                            </span>
-                            <span className="text-primary">${(Math.floor(Math.random() * 800) + 300).toFixed(2)}</span>
-                          </li>
-                          <li className="flex justify-between">
-                            <span className="flex items-center">
-                              <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
-                              {route.id % 2 === 0 ? "Clínica Santa María" : "Escuela Primaria Los Pinos"}
-                            </span>
-                            <span className="text-primary">${(Math.floor(Math.random() * 600) + 200).toFixed(2)}</span>
-                          </li>
-                        </ul>
+                        <div className="flex justify-center items-center py-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary mr-2"></div>
+                          <span className="font-medium">Cargando clientes...</span>
+                        </div>
                       </div>
                     )}
                     
