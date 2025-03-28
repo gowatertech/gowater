@@ -575,67 +575,68 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
             <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
               <TabsTrigger 
                 value="zone" 
-                className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
               >
-                <MapPin className="h-4 w-4 mr-1" />
+                <MapPin className="h-3 w-3 mr-0.5" />
                 Zona
               </TabsTrigger>
               <TabsTrigger 
                 value="orders" 
-                className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
                 disabled={!selectedZone}
               >
-                <Package className="h-4 w-4 mr-1" />
-                Pedidos Pendientes
+                <Package className="h-3 w-3 mr-0.5" />
+                Pedidos
               </TabsTrigger>
               <TabsTrigger 
                 value="review" 
-                className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
                 disabled={optimizedRoute.length === 0}
               >
-                <Check className="h-4 w-4 mr-1" />
+                <Check className="h-3 w-3 mr-0.5" />
                 Revisar
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="zone">
-              <div className="p-6">
-                <h3 className="text-lg font-medium mb-4">Selecciona la zona para la ruta</h3>
+              <div className="p-3">
+                <h3 className="text-sm font-medium mb-2">Selecciona la zona para la ruta</h3>
                 <Form {...form}>
-                  <form onSubmit={e => e.preventDefault()} className="space-y-6">
+                  <form onSubmit={e => e.preventDefault()} className="space-y-3">
                     <FormField
                       control={form.control}
                       name="zoneId"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Zona</FormLabel>
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">Zona</FormLabel>
                           <Select 
                             onValueChange={(value) => {
                               field.onChange(parseInt(value));
                               setSelectedOrders([]);
                             }}
-                            defaultValue={field.value?.toString()}
+                            defaultValue={field.value ? String(field.value) : undefined}
                           >
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="h-7 text-xs">
                                 <SelectValue placeholder="Selecciona una zona" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
                               {isLoadingZones ? (
-                                <div className="p-2">
-                                  <Skeleton className="h-5 w-full" />
-                                  <Skeleton className="h-5 w-full mt-2" />
+                                <div className="p-1">
+                                  <Skeleton className="h-4 w-full" />
+                                  <Skeleton className="h-4 w-full mt-1" />
                                 </div>
                               ) : zones.length === 0 ? (
-                                <div className="p-2 text-center text-sm text-gray-500">
+                                <div className="p-1 text-center text-xs text-gray-500">
                                   No hay zonas disponibles
                                 </div>
                               ) : (
                                 zones.map((zone: any) => (
                                   <SelectItem 
                                     key={zone.id} 
-                                    value={zone.id.toString()}
+                                    value={String(zone.id)}
+                                    className="text-xs"
                                   >
                                     {zone.name}
                                   </SelectItem>
@@ -643,7 +644,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                               )}
                             </SelectContent>
                           </Select>
-                          <FormMessage />
+                          <FormMessage className="text-[10px]" />
                         </FormItem>
                       )}
                     />
@@ -652,12 +653,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       control={form.control}
                       name="name"
                       render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nombre de la ruta</FormLabel>
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">Nombre de la ruta</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} className="h-7 text-xs" />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-[10px]" />
                         </FormItem>
                       )}
                     />
@@ -666,21 +667,21 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       control={form.control}
                       name="date"
                       render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Fecha</FormLabel>
+                        <FormItem className="flex flex-col space-y-1">
+                          <FormLabel className="text-xs">Fecha</FormLabel>
                           <Popover>
                             <PopoverTrigger asChild>
                               <FormControl>
                                 <Button
                                   variant={"outline"}
-                                  className="w-full pl-3 text-left font-normal"
+                                  className="w-full h-7 px-2 text-xs text-left font-normal"
                                 >
                                   {field.value ? (
                                     format(field.value, "PPP", { locale: es })
                                   ) : (
                                     <span>Selecciona una fecha</span>
                                   )}
-                                  <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                                  <Calendar className="ml-auto h-3 w-3 opacity-50" />
                                 </Button>
                               </FormControl>
                             </PopoverTrigger>
@@ -694,16 +695,17 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                               />
                             </PopoverContent>
                           </Popover>
-                          <FormMessage />
+                          <FormMessage className="text-[10px]" />
                         </FormItem>
                       )}
                     />
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end pt-1">
                       <Button 
                         type="button" 
                         onClick={() => setSelectedTab("orders")}
                         disabled={!selectedZone}
+                        className="h-7 text-xs px-2"
                       >
                         Siguiente
                       </Button>
@@ -714,60 +716,60 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
             </TabsContent>
 
             <TabsContent value="orders">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Selecciona pedidos pendientes</h3>
-                  <div className="flex items-center space-x-2">
+              <div className="p-3">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="text-sm font-medium">Selecciona pedidos</h3>
+                  <div className="flex items-center space-x-1">
                     <div className="relative">
-                      <Search className="h-4 w-4 absolute left-2 top-2.5 text-gray-400" />
+                      <Search className="h-3 w-3 absolute left-2 top-[7px] text-gray-400" />
                       <Input
                         placeholder="Buscar pedidos..."
-                        className="pl-8 h-9"
+                        className="pl-7 h-7 text-xs"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                       {searchQuery && (
                         <button
-                          className="absolute right-2 top-2.5"
+                          className="absolute right-2 top-[7px]"
                           onClick={() => setSearchQuery("")}
                         >
-                          <XCircle className="h-4 w-4 text-gray-400" />
+                          <XCircle className="h-3 w-3 text-gray-400" />
                         </button>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <div className="flex items-center space-x-4">
-                    <Badge variant="outline" className="px-2 py-1">
-                      {selectedOrders.length} pedidos seleccionados
+                <div className="mb-2">
+                  <div className="flex items-center space-x-2 text-xs">
+                    <Badge variant="outline" className="px-1.5 py-0.5 text-xs h-5">
+                      {selectedOrders.length} pedidos
                     </Badge>
-                    <Badge variant="outline" className="px-2 py-1">
-                      Valor total: {getTotalOrdersValue()}
+                    <Badge variant="outline" className="px-1.5 py-0.5 text-xs h-5">
+                      Total: {getTotalOrdersValue()}
                     </Badge>
                   </div>
                 </div>
 
-                <ScrollArea className="h-[400px] pr-4">
+                <ScrollArea className="h-[350px] pr-2">
                   {isLoadingPendingOrders ? (
                     Array.from({ length: 3 }).map((_, i) => (
-                      <Card key={i} className="mb-3">
-                        <CardHeader className="p-4 pb-2">
-                          <Skeleton className="h-5 w-48" />
-                          <Skeleton className="h-4 w-64 mt-2" />
+                      <Card key={i} className="mb-2">
+                        <CardHeader className="p-2 pb-1">
+                          <Skeleton className="h-4 w-36" />
+                          <Skeleton className="h-3 w-48 mt-1" />
                         </CardHeader>
-                        <CardContent className="p-4 pt-2">
-                          <Skeleton className="h-4 w-24" />
+                        <CardContent className="p-2 pt-1">
+                          <Skeleton className="h-3 w-20" />
                         </CardContent>
                       </Card>
                     ))
                   ) : pendingOrders.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Package className="h-12 w-12 mx-auto text-gray-300 mb-2" />
-                      <h3 className="text-lg font-medium text-gray-700">No hay pedidos pendientes</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        No hay pedidos pendientes para asignar a esta ruta en la zona seleccionada.
+                    <div className="text-center py-4">
+                      <Package className="h-8 w-8 mx-auto text-gray-300 mb-1" />
+                      <h3 className="text-sm font-medium text-gray-700">No hay pedidos pendientes</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        No hay pedidos pendientes en la zona seleccionada.
                       </p>
                     </div>
                   ) : (
@@ -781,49 +783,49 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       .map((order) => (
                         <div 
                           key={order.id}
-                          className={`mb-3 border rounded-lg transition-all ${
+                          className={`mb-2 border rounded-md transition-all ${
                             selectedOrders.some(o => o.id === order.id) 
                               ? 'border-primary bg-primary/5' 
                               : 'border-border'
                           }`}
                         >
-                          <div className="p-4 flex items-start gap-4">
+                          <div className="p-2 flex items-start gap-2">
                             <Checkbox
                               checked={selectedOrders.some(o => o.id === order.id)}
                               onCheckedChange={() => toggleOrderSelection(order)}
-                              className="mt-1"
+                              className="mt-0.5 h-3.5 w-3.5"
                             />
                             <div className="flex-1">
                               <div className="flex justify-between">
                                 <div>
-                                  <h4 className="font-medium">Pedido #{order.id}</h4>
-                                  <div className="flex items-center text-sm text-muted-foreground">
-                                    <User className="h-3 w-3 mr-1" />
+                                  <h4 className="font-medium text-xs">Pedido #{order.id}</h4>
+                                  <div className="flex items-center text-xs text-muted-foreground">
+                                    <User className="h-2.5 w-2.5 mr-0.5" />
                                     {order.customerName}
                                   </div>
-                                  <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                    <MapPin className="h-3 w-3 mr-1" />
+                                  <div className="flex items-center text-xs text-muted-foreground mt-0.5">
+                                    <MapPin className="h-2.5 w-2.5 mr-0.5" />
                                     {order.customerAddress}
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <Badge className="ml-auto">
+                                  <Badge className="ml-auto text-xs py-0 px-1.5 h-4">
                                     {formatCurrency(Number(order.total))}
                                   </Badge>
-                                  <div className="text-xs text-muted-foreground mt-1">
+                                  <div className="text-[10px] text-muted-foreground mt-0.5">
                                     {new Date(order.date).toLocaleDateString()}
                                   </div>
                                 </div>
                               </div>
                               
-                              <div className="mt-2">
-                                <h5 className="text-xs font-medium mb-1">Productos:</h5>
-                                <div className="grid gap-1">
+                              <div className="mt-1">
+                                <h5 className="text-[10px] font-medium mb-0.5">Productos:</h5>
+                                <div className="grid gap-0.5">
                                   {order.products.map((product, idx) => (
-                                    <div key={idx} className="text-xs flex justify-between">
+                                    <div key={idx} className="text-[10px] flex justify-between">
                                       <div className="flex items-center">
-                                        <Package className="h-3 w-3 mr-1 text-gray-400" />
-                                        <span>
+                                        <Package className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
+                                        <span className="truncate max-w-[140px]">
                                           {product.quantity} x {product.name}
                                         </span>
                                       </div>
@@ -841,21 +843,23 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                   )}
                 </ScrollArea>
 
-                <div className="flex justify-between mt-6">
+                <div className="flex justify-between mt-3">
                   <Button 
                     variant="outline" 
                     onClick={() => setSelectedTab("zone")}
+                    className="h-7 text-xs px-2"
                   >
                     Atrás
                   </Button>
                   <Button 
                     onClick={prepareOrdersForRouteOptimization}
                     disabled={isOptimizing || selectedOrders.length === 0}
+                    className="h-7 text-xs px-2"
                   >
                     {isOptimizing ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Optimizando ruta...
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                        Optimizando...
                       </>
                     ) : (
                       'Generar Ruta'
@@ -866,89 +870,78 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
             </TabsContent>
 
             <TabsContent value="review">
-              <div className="p-6">
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-2">Revisar y confirmar ruta</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Revisa los detalles de la ruta y selecciona el conductor y vehículo para finalizar.
+              <div className="p-3">
+                <div className="mb-3">
+                  <h3 className="text-sm font-medium mb-1">Revisar y confirmar ruta</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Revisa los detalles y selecciona conductor y vehículo para finalizar.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        <Clock className="h-4 w-4 inline mr-1" />
-                        Duración Estimada
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {routeStats.estimatedDuration} min
-                      </div>
-                    </CardContent>
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  <Card className="p-2">
+                    <div className="flex items-center">
+                      <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                      <span className="text-xs">Duración</span>
+                    </div>
+                    <div className="text-sm font-bold mt-1">
+                      {routeStats.estimatedDuration} min
+                    </div>
                   </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        <Route className="h-4 w-4 inline mr-1" />
-                        Distancia Total
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {routeStats.totalDistance}
-                      </div>
-                    </CardContent>
+                  <Card className="p-2">
+                    <div className="flex items-center">
+                      <Route className="h-3 w-3 mr-1 text-muted-foreground" />
+                      <span className="text-xs">Distancia</span>
+                    </div>
+                    <div className="text-sm font-bold mt-1">
+                      {routeStats.totalDistance}
+                    </div>
                   </Card>
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium">
-                        <ShoppingCart className="h-4 w-4 inline mr-1" />
-                        Valor Total
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">
-                        {routeStats.totalValue}
-                      </div>
-                    </CardContent>
+                  <Card className="p-2">
+                    <div className="flex items-center">
+                      <ShoppingCart className="h-3 w-3 mr-1 text-muted-foreground" />
+                      <span className="text-xs">Valor</span>
+                    </div>
+                    <div className="text-sm font-bold mt-1">
+                      {routeStats.totalValue}
+                    </div>
                   </Card>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                   <div className="col-span-1">
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
                         <FormField
                           control={form.control}
                           name="driverId"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Conductor</FormLabel>
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-xs">Conductor</FormLabel>
                               <Select 
                                 onValueChange={field.onChange} 
-                                defaultValue={field.value?.toString()}
+                                defaultValue={field.value ? String(field.value) : undefined}
                               >
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un conductor" />
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue placeholder="Selecciona conductor" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
                                   {isLoadingDrivers ? (
-                                    <div className="p-2">
-                                      <Skeleton className="h-5 w-full" />
+                                    <div className="p-1">
+                                      <Skeleton className="h-4 w-full" />
                                     </div>
                                   ) : drivers.length === 0 ? (
-                                    <div className="p-2 text-center text-sm text-gray-500">
+                                    <div className="p-1 text-center text-xs text-gray-500">
                                       No hay conductores disponibles
                                     </div>
                                   ) : (
                                     drivers.map((driver: any) => (
                                       <SelectItem 
                                         key={driver.id} 
-                                        value={driver.id.toString()}
+                                        value={String(driver.id)}
+                                        className="text-xs"
                                       >
                                         {driver.name}
                                       </SelectItem>
@@ -956,7 +949,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                   )}
                                 </SelectContent>
                               </Select>
-                              <FormMessage />
+                              <FormMessage className="text-[10px]" />
                             </FormItem>
                           )}
                         />
@@ -965,32 +958,33 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           control={form.control}
                           name="assistantId"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Asistente (opcional)</FormLabel>
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-xs">Asistente (opcional)</FormLabel>
                               <Select 
                                 onValueChange={field.onChange} 
-                                defaultValue={field.value?.toString()}
+                                defaultValue={field.value ? String(field.value) : undefined}
                               >
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un asistente" />
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue placeholder="Selecciona asistente" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="">Ninguno</SelectItem>
+                                  <SelectItem value="" className="text-xs">Ninguno</SelectItem>
                                   {isLoadingAssistants ? (
-                                    <div className="p-2">
-                                      <Skeleton className="h-5 w-full" />
+                                    <div className="p-1">
+                                      <Skeleton className="h-4 w-full" />
                                     </div>
                                   ) : assistants.length === 0 ? (
-                                    <div className="p-2 text-center text-sm text-gray-500">
+                                    <div className="p-1 text-center text-xs text-gray-500">
                                       No hay asistentes disponibles
                                     </div>
                                   ) : (
                                     assistants.map((assistant: any) => (
                                       <SelectItem 
                                         key={assistant.id} 
-                                        value={assistant.id.toString()}
+                                        value={String(assistant.id)}
+                                        className="text-xs"
                                       >
                                         {assistant.name}
                                       </SelectItem>
@@ -998,7 +992,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                   )}
                                 </SelectContent>
                               </Select>
-                              <FormMessage />
+                              <FormMessage className="text-[10px]" />
                             </FormItem>
                           )}
                         />
@@ -1007,31 +1001,32 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           control={form.control}
                           name="truckId"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Vehículo</FormLabel>
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-xs">Vehículo</FormLabel>
                               <Select 
                                 onValueChange={field.onChange} 
-                                defaultValue={field.value?.toString()}
+                                defaultValue={field.value ? String(field.value) : undefined}
                               >
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Selecciona un vehículo" />
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue placeholder="Selecciona vehículo" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
                                   {isLoadingTrucks ? (
-                                    <div className="p-2">
-                                      <Skeleton className="h-5 w-full" />
+                                    <div className="p-1">
+                                      <Skeleton className="h-4 w-full" />
                                     </div>
                                   ) : trucks.length === 0 ? (
-                                    <div className="p-2 text-center text-sm text-gray-500">
+                                    <div className="p-1 text-center text-xs text-gray-500">
                                       No hay vehículos disponibles
                                     </div>
                                   ) : (
                                     trucks.map((truck) => (
                                       <SelectItem 
                                         key={truck.id} 
-                                        value={truck.id.toString()}
+                                        value={String(truck.id)}
+                                        className="text-xs"
                                       >
                                         {truck.brand} {truck.model} - {truck.plate}
                                       </SelectItem>
@@ -1039,21 +1034,21 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                   )}
                                 </SelectContent>
                               </Select>
-                              <FormMessage />
+                              <FormMessage className="text-[10px]" />
                             </FormItem>
                           )}
                         />
 
-                        <div className="border rounded-md p-4 mb-4">
-                          <h4 className="text-sm font-medium mb-2">Pedidos en esta ruta</h4>
-                          <ScrollArea className="h-[120px]">
+                        <div className="border rounded-md p-2 mb-2">
+                          <h4 className="text-xs font-medium mb-1">Pedidos en esta ruta</h4>
+                          <ScrollArea className="h-[100px]">
                             {selectedOrders.map(order => (
-                              <div key={order.id} className="flex items-center justify-between mb-2 text-sm">
+                              <div key={order.id} className="flex items-center justify-between mb-1 text-xs">
                                 <div className="flex items-center">
-                                  <Package className="h-3 w-3 mr-1 text-gray-400" />
-                                  Pedido #{order.id} - {order.customerName}
+                                  <Package className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
+                                  <span className="truncate max-w-[100px]">#{order.id} - {order.customerName}</span>
                                 </div>
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className="text-[10px] py-0 px-1 h-4">
                                   {formatCurrency(Number(order.total))}
                                 </Badge>
                               </div>
@@ -1061,11 +1056,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           </ScrollArea>
                         </div>
 
-                        <div className="flex justify-between pt-4">
+                        <div className="flex justify-between pt-2">
                           <Button 
                             type="button" 
                             variant="outline" 
                             onClick={() => setSelectedTab("orders")}
+                            className="h-7 text-xs px-2"
                           >
                             Atrás
                           </Button>
@@ -1073,11 +1069,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           <Button 
                             type="submit"
                             disabled={createRouteMutation.isPending || !form.watch("driverId")}
+                            className="h-7 text-xs px-2"
                           >
                             {createRouteMutation.isPending ? (
                               <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creando ruta...
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                Creando...
                               </>
                             ) : (
                               "Crear Ruta"
@@ -1089,7 +1086,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                   </div>
 
                   <div className="col-span-2">
-                    <div className="border rounded-md overflow-hidden h-[400px]">
+                    <div className="border rounded-md overflow-hidden h-[250px]">
                       <ResponsiveMapContainer>
                         <MapContainer 
                           center={getMapCenter() as [number, number]} 
@@ -1116,14 +1113,14 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                 const icon = index === 0 
                                   ? new L.Icon({
                                       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                                      iconSize: [25, 41],
-                                      iconAnchor: [12, 41],
+                                      iconSize: [20, 33], // Smaller icons
+                                      iconAnchor: [10, 33],
                                       popupAnchor: [1, -34],
                                     })
                                   : new L.Icon({
                                       iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                                      iconSize: [25, 41],
-                                      iconAnchor: [12, 41],
+                                      iconSize: [20, 33], // Smaller icons
+                                      iconAnchor: [10, 33],
                                       popupAnchor: [1, -34],
                                     });
                                 
@@ -1134,7 +1131,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                     icon={icon}
                                   >
                                     <Popup>
-                                      <div>
+                                      <div className="text-xs">
                                         <strong>{point.businessname}</strong><br />
                                         {index === 0 ? 'Inicio' : `Parada ${index}`}
                                       </div>
@@ -1154,7 +1151,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                     }) as [number, number][]
                                 }
                                 color="#0088FE"
-                                weight={3}
+                                weight={2}
                                 opacity={0.7}
                               />
                             </>
