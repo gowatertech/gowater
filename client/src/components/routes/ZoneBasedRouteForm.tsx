@@ -955,7 +955,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                         <div className="text-right">
                           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
                             <DollarSign className="h-3 w-3 mr-1" />
-                            ${order.total.toFixed(2)}
+                            ${typeof order.total === 'string' ? parseFloat(order.total).toFixed(2) : order.total.toFixed(2)}
                           </Badge>
                           <div className="text-xs mt-1 text-muted-foreground">
                             {order.products.reduce((acc, p) => acc + p.quantity, 0)} productos
@@ -978,7 +978,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                                   <Badge variant="outline" className="h-5 px-1 text-[10px]">
                                     {product.quantity} unid.
                                   </Badge>
-                                  <span className="text-gray-600">${product.price.toFixed(2)}</span>
+                                  <span className="text-gray-600">${typeof product.price === 'string' ? parseFloat(product.price).toFixed(2) : product.price.toFixed(2)}</span>
                                 </div>
                               </div>
                             ))}
