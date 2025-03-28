@@ -33,29 +33,16 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
         set({ user, isLoading: false });
       } else {
         console.error('Error al obtener usuario:', response.status);
-        // Si hay un error, crear un usuario simulado para desarrollo
         set({ 
-          user: {
-            id: 1,
-            name: 'Conductor Demo',
-            email: 'demo@gowater.com',
-            role: 'driver',
-            createdAt: new Date().toISOString()
-          }, 
-          isLoading: false 
+          user: null, 
+          isLoading: false,
+          error: new Error(`Error al obtener usuario: ${response.status}`)
         });
       }
     } catch (error) {
       console.error('Error en fetch usuario:', error);
-      // Si hay un error, crear un usuario simulado para desarrollo
       set({ 
-        user: {
-          id: 1,
-          name: 'Conductor Demo',
-          email: 'demo@gowater.com',
-          role: 'driver',
-          createdAt: new Date().toISOString()
-        }, 
+        user: null, 
         isLoading: false,
         error: error as Error 
       });

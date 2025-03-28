@@ -32,6 +32,26 @@ export async function registerRoutes(app: Express) {
   await registerRouteSettlements(app);
   await registerDriverRoutes(app);
   
+  // Endpoint para obtener el usuario actual
+  app.get("/api/me", async (req, res) => {
+    try {
+      // Solución temporal: simular un usuario con rol de administrador
+      // En un sistema real, esto usaría la información de sesión del usuario
+      const mockUser = {
+        id: 1,
+        name: "Admin",
+        email: "admin@gowater.com",
+        role: "admin",
+        createdAt: new Date().toISOString()
+      };
+      
+      res.json(mockUser);
+    } catch (error) {
+      console.error("Error al obtener usuario actual:", error);
+      res.status(500).json({ error: "Error al obtener información del usuario" });
+    }
+  });
+
   // Registrar endpoints para rutas y pedidos
   registerRoutesEndpoints(app);
   
