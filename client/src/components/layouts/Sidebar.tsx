@@ -69,6 +69,7 @@ const sidebarItems = [
     description: "Logística y distribución", 
     subItems: [
       { icon: MapPin, label: "Rutas", href: "/routes" },
+      { icon: CircleUser, label: "Vista del Chofer", href: "/drivers" },
       { icon: Truck, label: "Vehículos", href: "/routes/trucks" },
       { icon: FileStack, label: "Carga de Vehículo", href: "/routes/vehicle-loading" },
       { icon: ScrollText, label: "Cuadre de Vehículo", href: "/routes/vehicle-settlement" },
@@ -118,7 +119,6 @@ const sidebarItems = [
       { icon: Users, label: "Usuarios", href: "/users" },
       { icon: UserCircle, label: "Clientes", href: "/customers" },
       { icon: AreaChart, label: "Reportes", href: "/reports" },
-      { icon: Truck, label: "Vista del Chofer", href: "/drivers" },
     ],
   },
 
