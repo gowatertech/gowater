@@ -194,31 +194,42 @@ export default function DriverView() {
   const [activeTab, setActiveTab] = useState('entregas');
   const [currentPosition, setCurrentPosition] = useState<[number, number] | null>(null);
   
-  // Fetching data
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['/api/driver/deliveries/today'],
-    onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: `No se pudieron cargar las entregas: ${error.message}`,
-        variant: 'destructive',
-      });
-    }
+  // Valores por defecto
+  const defaultCashBalance: CashBalance = {
+    initialBalance: '0.00',
+    cashIn: '0.00',
+    cashOut: '0.00',
+    finalBalance: '0.00'
+  };
+  
+  const defaultPerformance: Performance = {
+    deliveredOrders: 0,
+    totalOrders: 0,
+    onTimeDeliveries: 0,
+    averageDeliveryTime: 0
+  };
+  
+  // Fetching deliveries
+  const deliveriesQuery = useQuery<Delivery[]>({
+    queryKey: ['/api/driver/deliveries/today']
   });
   
-  const mockCashBalance: CashBalance = {
-    initialBalance: '1,500.00',
-    cashIn: '3,850.00',
-    cashOut: '450.00',
-    finalBalance: '4,900.00',
-  };
+  // Obtener balance de efectivo
+  const cashBalanceQuery = useQuery<CashBalance>({
+    queryKey: ['/api/driver/cash-balance']
+  });
   
-  const mockPerformance: Performance = {
-    deliveredOrders: 18,
-    totalOrders: 25,
-    onTimeDeliveries: 15,
-    averageDeliveryTime: 25,
-  };
+  // Obtener datos de rendimiento
+  const performanceQuery = useQuery<Performance>({
+    queryKey: ['/api/driver/performance']
+  });
+  
+  // Extraer datos con valores por defecto
+  const data = deliveriesQuery.data;
+  const isLoading = deliveriesQuery.isLoading;
+  const refetch = deliveriesQuery.refetch;
+  const cashBalance = cashBalanceQuery.data || defaultCashBalance;
+  const performance = performanceQuery.data || defaultPerformance;
   
   // Derived data
   const todayDeliveries: Delivery[] = data || [];
@@ -250,9 +261,7 @@ export default function DriverView() {
   // Actions
   const completeDeliveryMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest(`/api/driver/deliveries/${id}/complete`, {
-        method: 'POST'
-      });
+      return apiRequest("POST", `/api/driver/deliveries/${id}/complete`);
     },
     onSuccess: () => {
       toast({
@@ -550,19 +559,19 @@ export default function DriverView() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-1 text-sm">
                   <span className="text-gray-600">Saldo Inicial:</span>
-                  <span className="font-semibold">RD$ {mockCashBalance.initialBalance}</span>
+                  <span className="font-semibold">RD$ {cashBalance.initialBalance}</span>
                 </div>
                 <div className="flex items-center justify-between mb-1 text-sm">
                   <span className="text-gray-600">Cobros en Efectivo:</span>
-                  <span className="font-semibold text-green-600">+ RD$ {mockCashBalance.cashIn}</span>
+                  <span className="font-semibold text-green-600">+ RD$ {cashBalance.cashIn}</span>
                 </div>
                 <div className="flex items-center justify-between mb-1 text-sm">
                   <span className="text-gray-600">Gastos:</span>
-                  <span className="font-semibold text-red-600">- RD$ {mockCashBalance.cashOut}</span>
+                  <span className="font-semibold text-red-600">- RD$ {cashBalance.cashOut}</span>
                 </div>
                 <div className="flex items-center justify-between pt-1.5 border-t text-sm">
                   <span className="font-medium">Balance Final:</span>
-                  <span className="font-bold">RD$ {mockCashBalance.finalBalance}</span>
+                  <span className="font-bold">RD$ {cashBalance.finalBalance}</span>
                 </div>
               </div>
             </Card>
