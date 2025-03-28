@@ -91,7 +91,7 @@ export default function OrdersPage() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  // Estado eliminado: isDetailsDialogOpen ya que ahora se muestra en una pestaña
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [activeTab, setActiveTab] = useState<string>("list");
@@ -450,7 +450,7 @@ export default function OrdersPage() {
 
       {/* Tabs de navegación */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-1 h-7`}>
+        <TabsList className={`grid w-full grid-cols-3 mb-1 h-7`}>
           <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2 h-6">
             <ClipboardList className="h-3 w-3" />
             <span>Pedidos</span>
@@ -459,12 +459,10 @@ export default function OrdersPage() {
             <Plus className="h-3 w-3" />
             <span>Nuevo</span>
           </TabsTrigger>
-          {!isMobile && (
-            <TabsTrigger value="details" disabled={!selectedOrder} className="flex items-center gap-1 text-xs px-2 h-6">
-              <FileText className="h-3 w-3" />
-              <span>Detalles</span>
-            </TabsTrigger>
-          )}
+          <TabsTrigger value="details" disabled={!selectedOrder} className="flex items-center gap-1 text-xs px-2 h-6">
+            <FileText className="h-3 w-3" />
+            <span>Detalles</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Contenido del Tab de Lista de Pedidos */}
@@ -593,10 +591,7 @@ export default function OrdersPage() {
                               className="h-5 w-5 p-0" 
                               onClick={() => {
                                 setSelectedOrder(order);
-                                setIsDetailsDialogOpen(true);
-                                if (!isMobile) {
-                                  setActiveTab("details");
-                                }
+                                setActiveTab("details");
                               }}
                             >
                               <Eye className="h-3 w-3" />
@@ -950,140 +945,7 @@ export default function OrdersPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Diálogo de detalles del pedido (versión móvil) */}
-      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-1">
-              <FileText className="h-4 w-4 text-blue-600" />
-              {selectedOrder ? (
-                <>Detalles del Pedido #{selectedOrder.id}</>
-              ) : (
-                <>Detalles</>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedOrder && (
-                <span className="text-xs">
-                  {new Date(selectedOrder.date).toLocaleDateString()} - {getStatusBadge(selectedOrder.status)}
-                </span>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedOrder && (
-            <div className="space-y-3 py-2">
-              {/* Info del cliente */}
-              <div className="mb-2">
-                <h3 className="text-xs font-semibold mb-1 flex items-center gap-1">
-                  <User className="h-3 w-3 text-blue-600" />
-                  Cliente
-                </h3>
-                
-                <div className="p-1 border rounded-md bg-gray-50">
-                  {(() => {
-                    const customer = customers?.find(c => c.id === selectedOrder.customerId);
-                    return (
-                      <div className="text-[11px] grid grid-cols-2 gap-1">
-                        <p><span className="font-medium">Nombre:</span> {customer?.businessname}</p>
-                        <p><span className="font-medium">Tel:</span> {customer?.phone}</p>
-                        <p><span className="font-medium">Dir:</span> {customer?.street} {customer?.streetnumber}</p>
-                        <p><span className="font-medium">RNC:</span> {customer?.rnc}</p>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-              
-              {/* Productos del pedido */}
-              <div className="mb-2">
-                <h3 className="text-xs font-semibold mb-1 flex items-center gap-1">
-                  <Package className="h-3 w-3 text-blue-600" />
-                  Productos
-                </h3>
-                
-                <div className="border rounded-md overflow-hidden">
-                  {isLoadingDetails ? (
-                    <div className="p-2 text-center">
-                      <p className="text-xs text-gray-500">Cargando detalles...</p>
-                    </div>
-                  ) : orderDetails.length > 0 ? (
-                    <Table className="text-xs">
-                      <TableHeader>
-                        <TableRow className="h-6">
-                          <TableHead className="px-2 py-1 h-5">Producto</TableHead>
-                          <TableHead className="px-2 py-1 h-5 w-[40px]">Cant.</TableHead>
-                          <TableHead className="px-2 py-1 h-5 w-[50px]">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {orderDetails.map((item, index) => (
-                          <TableRow key={`detail-${index}`} className="h-6">
-                            <TableCell className="p-1 font-medium">{item.description}</TableCell>
-                            <TableCell className="p-1">{item.quantity}</TableCell>
-                            <TableCell className="p-1 font-semibold">${item.total.toFixed(2)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <div className="p-2 text-center">
-                      <p className="text-xs text-gray-500">No hay productos en este pedido</p>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Resumen de totales */}
-                <div className="mt-2 flex justify-end">
-                  <div className="w-[200px] space-y-0 text-xs">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>${(parseFloat(selectedOrder.total.toString()) / 1.18).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>ITBIS (18%):</span>
-                      <span>${(parseFloat(selectedOrder.total.toString()) - (parseFloat(selectedOrder.total.toString()) / 1.18)).toFixed(2)}</span>
-                    </div>
-                    <Separator className="my-1" />
-                    <div className="flex justify-between font-bold">
-                      <span>Total:</span>
-                      <span>${parseFloat(selectedOrder.total.toString()).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Acciones */}
-              <div className="flex flex-col gap-1">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                  onClick={() => {
-                    setOrderToUpdate(selectedOrder);
-                    setNewStatus(selectedOrder.status);
-                    setIsDetailsDialogOpen(false);
-                    setIsStatusDialogOpen(true);
-                  }}
-                >
-                  <Tag className="h-3.5 w-3.5 mr-1" />
-                  Cambiar Estado
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsDetailsDialogOpen(false)}
-            >
-              Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* El diálogo de detalles ha sido eliminado y ahora se muestra en la pestaña de detalles */}
 
       {/* Diálogo para cambiar estado del pedido */}
       <Dialog open={isStatusDialogOpen} onOpenChange={setIsStatusDialogOpen}>
