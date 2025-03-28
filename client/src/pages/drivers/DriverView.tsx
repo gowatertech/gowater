@@ -120,8 +120,8 @@ function MapBoundsAdjuster({ deliveries }: { deliveries: Delivery[] }) {
 }
 
 function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
-  // Usar la ubicación de la empresa en Santo Domingo por defecto
-  const defaultPosition: [number, number] = [18.4700, -69.9100];
+  // Usar la ubicación de la empresa desde la configuración
+  const defaultPosition: [number, number] = [19.075380, -70.128822]; // Ubicación del almacén
   const [position, setPosition] = useState<[number, number]>(defaultPosition);
   const map = useMap();
 
@@ -131,31 +131,13 @@ function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number,
     onPositionChange(defaultPosition);
   }, [onPositionChange]);
 
-  // Opcionalmente, podemos seguir detectando la ubicación actual
-  const handleLocationFound = useCallback((e: any) => {
-    // Mantenemos comentado esto para usar sólo la ubicación de la empresa
-    // setPosition([e.latlng.lat, e.latlng.lng]);
-    // onPositionChange([e.latlng.lat, e.latlng.lng]);
-  }, [onPositionChange]);
-
-  useEffect(() => {
-    // Comentamos esto para no detectar la ubicación actual
-    // map.locate({ setView: false });
-    // map.on('locationfound', handleLocationFound);
-    // return () => {
-    //   map.off('locationfound', handleLocationFound);
-    // };
-  }, [map, handleLocationFound]);
-
   return position === null ? null : (
     <Marker 
       position={position}
       icon={L.divIcon({
         className: 'custom-div-icon',
-        html: `<div class="marker-pin bg-blue-700 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                </svg>
+        html: `<div class="marker-pin bg-green-600 flex items-center justify-center text-white rounded-full w-8 h-8 border-2 border-white shadow-lg">
+                <span class="text-white font-bold">0</span>
               </div>`,
         iconSize: [30, 30],
         iconAnchor: [15, 15]
@@ -163,7 +145,7 @@ function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number,
     >
       <Popup>
         <div className="p-1">
-          <p className="font-semibold">Ubicación de la empresa</p>
+          <p className="font-semibold">Almacén (punto 0)</p>
         </div>
       </Popup>
     </Marker>
@@ -494,7 +476,7 @@ export default function DriverView() {
           <TabsContent value="mapa">
             <ResponsiveMapContainer minHeight="70vh">
               <MapContainer
-                center={[18.4700, -69.9100]} // Santo Domingo
+                center={[19.075380, -70.128822]} // Ubicación del almacén
                 zoom={13}
                 style={{ height: "100%", width: "100%" }}
               >
@@ -758,7 +740,7 @@ export default function DriverView() {
             <Card className="col-span-7 p-0 overflow-hidden">
               <ResponsiveMapContainer minHeight="70vh">
                 <MapContainer
-                  center={[18.4700, -69.9100]} // Santo Domingo
+                  center={[19.075380, -70.128822]} // Ubicación del almacén
                   zoom={13}
                   style={{ height: "100%", width: "100%" }}
                 >
