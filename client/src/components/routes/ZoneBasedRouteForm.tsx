@@ -18,6 +18,10 @@ import {
   Clock, 
   Users,
   CheckCircle,
+  FileText,
+  Package,
+  ShoppingCart,
+  DollarSign,
   Map as MapIcon
 } from "lucide-react";
 import { format } from "date-fns";
@@ -79,6 +83,24 @@ interface Customer {
   provinceName?: string;
 }
 
+interface PendingOrder {
+  id: number;
+  customerId: number;
+  status: string;
+  total: number;
+  customerName: string;
+  customerAddress: string;
+  customerPhone: string;
+  coordinates?: string;
+  createdAt: string;
+  products: {
+    productId: number;
+    name: string;
+    quantity: number;
+    price: number;
+  }[];
+}
+
 interface Truck {
   id: number;
   brand: string;
@@ -137,6 +159,26 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         throw new Error("Failed to fetch customers for zone");
       }
       return response.json();
+    },
+    enabled: !!selectedZone,
+  });
+  
+  // Fetch pending orders for the selected zone
+  const {
+    data: pendingOrders = [],
+    isLoading: isLoadingPendingOrders
+  } = useQuery<PendingOrder[]>({
+    queryKey: ["/api/zones/pending-orders", selectedZone],
+    queryFn: async () => {
+      if (!selectedZone) return [];
+      console.log(`Fetching pending orders for zone ${selectedZone}`);
+      const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
+      if (!response.ok) {
+        throw new Error("Error al obtener pedidos pendientes de la zona");
+      }
+      const data = await response.json();
+      console.log("Pending orders data:", data);
+      return data;
     },
     enabled: !!selectedZone,
   });
@@ -624,14 +666,25 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 Zona
               </TabsTrigger>
               {!compact && (
-                <TabsTrigger 
-                  value="customers" 
-                  disabled={!selectedZone}
-                  className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                >
-                  <User className="h-4 w-4 mr-1" />
-                  Clientes
-                </TabsTrigger>
+                <>
+                  <TabsTrigger 
+                    value="customers" 
+                    disabled={!selectedZone}
+                    className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <User className="h-4 w-4 mr-1" />
+                    Clientes
+                  </TabsTrigger>
+                  
+                  <TabsTrigger 
+                    value="pending_orders" 
+                    disabled={!selectedZone}
+                    className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <FileText className="h-4 w-4 mr-1" />
+                    Pedidos Pendientes
+                  </TabsTrigger>
+                </>
               )}
               <TabsTrigger 
                 value="review" 
@@ -844,6 +897,114 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   )}
                 </Button>
               </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="pending_orders" className="mt-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Pedidos Pendientes en la Zona</h3>
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                {pendingOrders.length} pedidos sin asignar
+              </Badge>
+            </div>
+
+            {isLoadingPendingOrders ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2 mt-2" />
+                      <Skeleton className="h-4 w-1/4 mt-1" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : pendingOrders.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay pedidos pendientes sin asignar en esta zona
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                {pendingOrders.map((order: PendingOrder) => (
+                  <Card key={order.id} className="overflow-hidden">
+                    <CardHeader className="p-4 pb-2 bg-gray-50">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium flex items-center">
+                            <User className="h-4 w-4 mr-1 text-primary" />
+                            {order.customerName}
+                          </div>
+                          <div className="text-sm text-muted-foreground flex items-center mt-1">
+                            <MapPin className="h-3 w-3 mr-1 text-gray-400" />
+                            {order.customerAddress}
+                          </div>
+                          <div className="text-xs text-muted-foreground flex items-center mt-1">
+                            <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                            {new Date(order.createdAt).toLocaleDateString("es-ES", {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            ${order.total.toFixed(2)}
+                          </Badge>
+                          <div className="text-xs mt-1 text-muted-foreground">
+                            {order.products.reduce((acc, p) => acc + p.quantity, 0)} productos
+                          </div>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="p-3 pt-0">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Productos:</div>
+                        <ScrollArea className="h-[80px] w-full rounded-md border p-2">
+                          <div className="space-y-1">
+                            {order.products.map((product, idx) => (
+                              <div key={idx} className="flex justify-between text-xs">
+                                <div className="flex items-center">
+                                  <Package className="h-3 w-3 mr-1 text-primary" />
+                                  {product.name}
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant="outline" className="h-5 px-1 text-[10px]">
+                                    {product.quantity} unid.
+                                  </Badge>
+                                  <span className="text-gray-600">${product.price.toFixed(2)}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div className="flex justify-between pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setSelectedTab("zone")}
+              >
+                Atrás
+              </Button>
+              
+              <Button 
+                type="button"
+                variant="secondary"
+                onClick={() => setSelectedTab("customers")}
+              >
+                Ir a Selección de Clientes
+              </Button>
             </div>
           </div>
         </TabsContent>

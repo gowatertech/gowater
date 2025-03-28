@@ -4,9 +4,10 @@ import {
   customers,
   orders,
   products,
-  routes
+  routes,
+  zones
 } from "@shared/schema";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql, isNull, ne } from "drizzle-orm";
 
 // Importación con alias para evitar la colisión de nombres
 import { orderItems as orderItemsTable } from "@shared/schema";
@@ -153,6 +154,79 @@ export function registerRoutesEndpoints(app: Express) {
       res.json(updatedRoute);
     } catch (error) {
       console.error("Error al iniciar ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para obtener pedidos pendientes para una zona específica
+  app.get("/api/zones/:zoneId/pending-orders", async (req, res) => {
+    try {
+      const zoneId = parseInt(req.params.zoneId);
+      
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
+
+      // Buscar clientes de la zona especificada
+      const customersInZone = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(eq(customers.zoneid, zoneId));
+      
+      if (!customersInZone.length) {
+        return res.json([]);
+      }
+
+      // Obtener IDs de clientes en la zona
+      const customerIds = customersInZone.map(c => c.id);
+      
+      // Buscar pedidos pendientes de clientes en esa zona que no estén asignados a ninguna ruta
+      const pendingOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          status: orders.status,
+          total: orders.total,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+          customerPhone: customers.phone,
+          coordinates: customers.coordinates,
+          createdAt: orders.createdAt
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(
+          and(
+            inArray(orders.customerId, customerIds),
+            eq(orders.status, "pending"),
+            isNull(orders.routeId)
+          )
+        );
+      
+      // Para cada pedido, obtener los items
+      const ordersWithItems = await Promise.all(
+        pendingOrders.map(async (order) => {
+          const items = await db
+            .select({
+              productId: orderItemsTable.productId,
+              name: products.name,
+              quantity: orderItemsTable.quantity,
+              price: orderItemsTable.price,
+            })
+            .from(orderItemsTable)
+            .innerJoin(products, eq(orderItemsTable.productId, products.id))
+            .where(eq(orderItemsTable.orderId, order.id));
+            
+          return {
+            ...order,
+            products: items,
+          };
+        })
+      );
+        
+      res.json(ordersWithItems);
+    } catch (error) {
+      console.error("Error al obtener pedidos pendientes por zona:", error);
       res.status(500).json({ error: String(error) });
     }
   });
