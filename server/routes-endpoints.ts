@@ -197,6 +197,56 @@ export function registerRoutesEndpoints(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para obtener todos los pedidos con información enriquecida
+  app.get("/api/orders", async (req, res) => {
+    try {
+      // Buscar todos los pedidos con información de clientes
+      const allOrders = await db
+        .select({
+          id: orders.id,
+          routeId: orders.routeId,
+          customerId: orders.customerId,
+          status: orders.status,
+          total: orders.total,
+          date: orders.date,
+          paymentMethod: orders.paymentMethod,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+          streetnumber: customers.streetnumber,
+          coordinates: customers.coordinates,
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id));
+        
+      // Para cada orden, buscar los productos
+      const ordersWithProducts = await Promise.all(
+        allOrders.map(async (order) => {
+          const items = await db
+            .select({
+              productId: orderItemsTable.productId,
+              name: products.name,
+              quantity: orderItemsTable.quantity,
+              price: orderItemsTable.price,
+            })
+            .from(orderItemsTable)
+            .innerJoin(products, eq(orderItemsTable.productId, products.id))
+            .where(eq(orderItemsTable.orderId, order.id));
+            
+          return {
+            ...order,
+            products: items,
+            customerAddress: `${order.customerAddress} ${order.streetnumber}`,
+          };
+        })
+      );
+        
+      res.json(ordersWithProducts);
+    } catch (error) {
+      console.error("Error al obtener todos los pedidos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Endpoint para iniciar una ruta
   app.post("/api/routes/:id/start", async (req, res) => {
