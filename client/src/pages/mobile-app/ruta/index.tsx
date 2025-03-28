@@ -47,7 +47,7 @@ interface RouteStop {
 }
 
 export default function DriverRoute() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useCurrentUser();
   const [darkMode, setDarkMode] = useState(false);
@@ -55,6 +55,10 @@ export default function DriverRoute() {
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
   const [currentLocation, setCurrentLocation] = useState<[number, number]>([19.075380, -70.128822]); // Ubicación por defecto
   const [watchId, setWatchId] = useState<number | null>(null);
+  
+  // Obtener el ID de la ruta desde la URL
+  const urlParams = new URLSearchParams(location.split('?')[1]);
+  const routeIdFromUrl = urlParams.get('routeId');
   
   // Alternar modo oscuro
   const toggleDarkMode = () => {
@@ -92,14 +96,21 @@ export default function DriverRoute() {
     setIsLoading(true);
     
     try {
-      // En un entorno real, obtendríamos datos de la API
-      // const response = await apiRequest('GET', '/api/driver/routes/active');
-      // if (response.ok) {
-      //   const data = await response.json();
-      //   setRouteStops(data.stops);
-      //   setActiveRouteId(data.id);
-      //   setRouteStatus(data.status);
-      // }
+      // Usar el ID de la ruta de la URL
+      const routeId = routeIdFromUrl ? parseInt(routeIdFromUrl) : null;
+      
+      if (routeId) {
+        console.log(`Cargando datos para la ruta ID: ${routeId}`);
+        setActiveRouteId(routeId);
+        
+        // En un entorno real, obtendríamos datos de la API usando el ID de la ruta
+        // const response = await apiRequest('GET', `/api/routes/${routeId}/orders`);
+        // if (response.ok) {
+        //   const data = await response.json();
+        //   setRouteStops(data.stops);
+        //   setRouteStatus(data.status);
+        // }
+      }
       
       // Para fines de desarrollo, usamos datos de ejemplo
       // Coordenadas del almacén (punto de inicio)
@@ -180,7 +191,11 @@ export default function DriverRoute() {
       ];
       
       setRouteStops(mockRouteStops);
-      setActiveRouteId(123); // ID de ejemplo para la ruta activa
+      // Si no hay routeId de la URL, seguir usando los datos de ejemplo
+      if (!routeIdFromUrl) {
+        console.log("No se encontró un ID de ruta en la URL, usando datos de ejemplo");
+        setActiveRouteId(123); // ID de ejemplo para la ruta activa
+      }
       setIsLoading(false);
     } catch (error) {
       console.error("Error al cargar datos de ruta:", error);
@@ -367,7 +382,7 @@ export default function DriverRoute() {
     window.open(googleMapsUrl, '_blank');
   };
 
-  // Cargar datos de ruta al montar el componente
+  // Cargar datos de ruta al montar el componente o cuando cambie el ID de la URL
   useEffect(() => {
     loadRouteData();
     startLocationTracking();
@@ -378,7 +393,7 @@ export default function DriverRoute() {
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, []);
+  }, [routeIdFromUrl]); // Dependencia en routeIdFromUrl para recargar si cambia
 
   // Si está cargando, mostrar spinner
   if (isLoading) {

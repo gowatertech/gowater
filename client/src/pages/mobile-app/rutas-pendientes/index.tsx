@@ -63,10 +63,9 @@ export default function MobilePendingRoutes() {
     retry: 3
   });
 
-  // Filtrar las rutas por el conductor actual y estado "pending"
+  // Mostrar todas las rutas pendientes, sin filtrar por conductor
   const pendingRoutes = Array.isArray(routes) ? routes.filter((route: Route) => 
-    route.status === "pending" && 
-    (user?.id === route.driverId || !route.driverId)
+    route.status === "pending"
   ) : [];
   
   // Calcular el valor total de la ruta basado en los pedidos
@@ -179,7 +178,7 @@ export default function MobilePendingRoutes() {
             <TruckIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
             <h3 className="text-lg font-semibold">No hay rutas pendientes</h3>
             <p className="text-muted-foreground mt-2">
-              Actualmente no tienes rutas asignadas o pendientes.
+              Actualmente no hay rutas pendientes en el sistema.
             </p>
           </div>
         ) : (
