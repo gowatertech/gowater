@@ -57,7 +57,7 @@ function Router() {
         <Route path="/routes" component={Routes} />
         <Route path="/users" component={Users} />
         <Route path="/entregas" component={Entregas} />
-        <Route path="/drivers/view" component={DriverView} />
+        <Route path="/drivers" component={DriverView} />
         <Route path="/tutorial" component={TutorialPage} />
         <Route path="/settings" component={Settings} />
         <Route path="/reports" component={Reports} />
