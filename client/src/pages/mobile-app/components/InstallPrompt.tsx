@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -8,7 +9,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Download, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 
 interface InstallPromptProps {
   onClose: () => void;

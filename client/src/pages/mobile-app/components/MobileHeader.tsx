@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import {
   Moon,
@@ -131,7 +131,7 @@ export function MobileHeader({ user, darkMode, onToggleDarkMode, onSyncData }: M
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className={`${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-              <DropdownMenuLabel>{user.username}</DropdownMenuLabel>
+              <DropdownMenuLabel>{user.name}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setLocation("/mobile-app")}>
                 <Home className="h-4 w-4 mr-2" />
