@@ -122,6 +122,12 @@ const sidebarItems = [
     ],
   },
   { 
+    icon: Truck, 
+    label: "GoWater Driver", 
+    href: "/drivers",
+    description: "Aplicación para conductores"
+  },
+  { 
     icon: Settings, 
     label: "Configuración", 
     href: "/settings",
