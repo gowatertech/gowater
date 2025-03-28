@@ -596,13 +596,18 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       : 0
   };
   
-  // Filtrar clientes de la zona por búsqueda
+  // Filtrar clientes de la zona que tienen pedidos pendientes
+  const customersWithPendingOrders = zoneCustomers.filter((customer: Customer) => 
+    pendingOrders.some(order => order.customerId === customer.id)
+  );
+  
+  // Filtrar clientes por búsqueda (solo entre los que tienen pedidos pendientes)
   const filteredZoneCustomers = searchQuery 
-    ? zoneCustomers.filter((customer: Customer) => 
+    ? customersWithPendingOrders.filter((customer: Customer) => 
         customer.businessname.toLowerCase().includes(searchQuery.toLowerCase()) || 
         customer.phone.includes(searchQuery)
       )
-    : zoneCustomers;
+    : customersWithPendingOrders;
 
   return (
     <div className="p-1 md:p-2 space-y-2">
