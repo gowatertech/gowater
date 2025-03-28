@@ -119,14 +119,10 @@ const sidebarItems = [
       { icon: Users, label: "Usuarios", href: "/users" },
       { icon: UserCircle, label: "Clientes", href: "/customers" },
       { icon: AreaChart, label: "Reportes", href: "/reports" },
+      { icon: Truck, label: "GoWater Driver", href: "/drivers" },
     ],
   },
-  { 
-    icon: Truck, 
-    label: "GoWater Driver", 
-    href: "/drivers",
-    description: "Aplicación para conductores"
-  },
+
   { 
     icon: Settings, 
     label: "Configuración", 

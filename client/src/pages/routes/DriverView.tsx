@@ -1,15 +1,7 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { LatLngExpression } from 'leaflet';
-import { Check, Navigation2, RefreshCcw, Printer } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useQuery } from "@tanstack/react-query";
-import type { DriverDelivery } from "@shared/schema";
+/* 
+ * Este archivo es un componente de redirección para mantener la compatibilidad
+ * con la ruta existente /routes/driver-view. El componente real está en /pages/drivers
+ */
 
 /**
  * Esta es simplemente una redirección al componente real en /pages/drivers/DriverView
