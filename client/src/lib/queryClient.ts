@@ -51,6 +51,7 @@ export const getQueryFn: <T>(options: {
     const fullUrl = `${getBaseUrl()}${apiUrl}`;
 
     try {
+      console.log(`Fetching data from ${fullUrl}`);
       const res = await fetch(fullUrl, {
         credentials: "include",
         headers: {
@@ -59,11 +60,14 @@ export const getQueryFn: <T>(options: {
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.log(`Unauthorized access to ${fullUrl}, returning null`);
         return null;
       }
 
       await throwIfResNotOk(res);
-      return await res.json();
+      const data = await res.json();
+      console.log(`Data received from ${fullUrl}:`, data);
+      return data;
     } catch (error) {
       console.error(`Query Error (${fullUrl}):`, error);
       throw error;
