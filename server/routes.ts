@@ -10,6 +10,7 @@ import express from 'express';
 import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
 import { registerRouteSettlements } from "./routes/routeSettlements";
 import { registerDriverRoutes } from "./routes/driver";
+import { registerRoutesEndpoints } from "./routes-endpoints";
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
 
@@ -30,6 +31,9 @@ export async function registerRoutes(app: Express) {
   await registerVehicleLoadingRoutes(app);
   await registerRouteSettlements(app);
   await registerDriverRoutes(app);
+  
+  // Registrar endpoints para rutas y pedidos
+  registerRoutesEndpoints(app);
   
   // Ruta para pedidos recurrentes
   app.get("/api/recurring-orders", async (req, res) => {
