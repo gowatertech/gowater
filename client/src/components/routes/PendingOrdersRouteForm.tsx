@@ -614,7 +614,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                               field.onChange(parseInt(value));
                               setSelectedOrders([]);
                             }}
-                            defaultValue={field.value ? String(field.value) : undefined}
+                            defaultValue={field.value !== undefined ? String(field.value) : undefined}
                           >
                             <FormControl>
                               <SelectTrigger className="h-7 text-xs">
@@ -920,7 +920,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                               <FormLabel className="text-xs">Conductor</FormLabel>
                               <Select 
                                 onValueChange={field.onChange} 
-                                defaultValue={field.value ? String(field.value) : undefined}
+                                defaultValue={field.value !== undefined ? String(field.value) : undefined}
                               >
                                 <FormControl>
                                   <SelectTrigger className="h-7 text-xs">
@@ -962,7 +962,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                               <FormLabel className="text-xs">Asistente (opcional)</FormLabel>
                               <Select 
                                 onValueChange={field.onChange} 
-                                defaultValue={field.value ? String(field.value) : undefined}
+                                defaultValue={field.value !== undefined ? String(field.value) : undefined}
                               >
                                 <FormControl>
                                   <SelectTrigger className="h-7 text-xs">
@@ -1005,7 +1005,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                               <FormLabel className="text-xs">Vehículo</FormLabel>
                               <Select 
                                 onValueChange={field.onChange} 
-                                defaultValue={field.value ? String(field.value) : undefined}
+                                defaultValue={field.value !== undefined ? String(field.value) : undefined}
                               >
                                 <FormControl>
                                   <SelectTrigger className="h-7 text-xs">
