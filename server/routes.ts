@@ -1088,7 +1088,7 @@ export async function registerRoutes(app: Express) {
         .from(orders)
         .where(
           and(
-            eq(orders.status, "completed"),
+            eq(orders.status, "delivered"),
             sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
             sql`EXTRACT(MONTH FROM date) = ${currentMonth}`
           )
@@ -1219,14 +1219,15 @@ export async function registerRoutes(app: Express) {
       // Formatear datos para el gráfico de pie
       const statusColors = {
         pending: "#FFBB28",
-        processing: "#0088FE",
-        completed: "#00C49F",
+        in_transit: "#0088FE",
+        delivered: "#00C49F",
         cancelled: "#FF8042"
       };
 
-      const statusNames = {        pending: "Pendiente",
-        processing: "En Proceso",
-        completed: "Completado",
+      const statusNames = {
+        pending: "Pendiente",
+        in_transit: "En Tránsito",
+        delivered: "Entregado",
         cancelled: "Cancelado"
       };
 
