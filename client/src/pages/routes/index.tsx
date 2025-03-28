@@ -73,6 +73,22 @@ export default function Routes() {
   const { t } = useTranslation();
   const [location, setLocation] = useLocation();
   const { user } = useCurrentUser();
+  
+  // Check roles early to avoid hooks ordering issues
+  const isDriver = user?.role === "driver";
+  const isAssistant = user?.role === "assistant";
+
+  // The driver interface shows current status and upcoming deliveries
+  if (isDriver) {
+    return <DriverView />;
+  }
+
+  // Delivery assistants see order tracking
+  if (isAssistant) {
+    return <DeliveryTracking />;
+  }
+  
+  // Continue with admin/supervisor UI - Only use hooks here after early returns
   const { routes, loading, error } = useRoutes();
   const [selectedTab, setSelectedTab] = useState("active");
   const [mainTab, setMainTab] = useState("list");
@@ -96,24 +112,21 @@ export default function Routes() {
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/zones");
-      console.log("Zonas cargadas en routes/index.tsx:", await response.clone().json());
-      return response.json();
+      try {
+        const response = await apiRequest("GET", "/api/zones");
+        console.log("Zonas cargadas en routes/index.tsx:", await response.clone().json());
+        return response.json();
+      } catch (error) {
+        console.error("Error cargando zonas:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudieron cargar las zonas"
+        });
+        return [];
+      }
     }
   });
-
-  const isDriver = user?.role === "driver";
-  const isAssistant = user?.role === "assistant";
-
-  // The driver interface shows current status and upcoming deliveries
-  if (isDriver) {
-    return <DriverView />;
-  }
-
-  // Delivery assistants see order tracking
-  if (isAssistant) {
-    return <DeliveryTracking />;
-  }
 
   // When a zone is created successfully
   const handleZoneCreated = () => {
