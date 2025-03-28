@@ -163,7 +163,10 @@ export function registerRoutesEndpoints(app: Express) {
     try {
       const zoneId = parseInt(req.params.zoneId);
       
+      console.log(`[DEBUG] Buscando pedidos pendientes para zona ID: ${zoneId}`);
+      
       if (isNaN(zoneId)) {
+        console.log("[DEBUG] ID de zona inválido");
         return res.status(400).json({ error: "ID de zona inválido" });
       }
 
@@ -173,57 +176,83 @@ export function registerRoutesEndpoints(app: Express) {
         .from(customers)
         .where(eq(customers.zoneid, zoneId));
       
+      console.log(`[DEBUG] Encontrados ${customersInZone.length} clientes en zona ${zoneId}`);
+      
       if (!customersInZone.length) {
+        console.log("[DEBUG] No hay clientes en esta zona");
         return res.json([]);
       }
 
       // Obtener IDs de clientes en la zona
       const customerIds = customersInZone.map(c => c.id);
+      console.log(`[DEBUG] IDs de clientes en zona: ${customerIds.join(", ")}`);
+      
+      // Contar todos los pedidos pendientes de estos clientes (incluso los asignados a rutas)
+      try {
+        // Simplificando la consulta para evitar errores
+        const allPendingOrdersCount = await db
+          .execute(sql`
+            SELECT COUNT(*) 
+            FROM orders 
+            WHERE customer_id IN (${sql.join(customerIds)}) 
+            AND status = 'pending'
+          `);
+        
+        console.log(`[DEBUG] Total de pedidos pendientes (incluso asignados): ${allPendingOrdersCount.rows[0]?.count || 0}`);
+      } catch (error) {
+        console.error("Error contando pedidos pendientes:", error);
+      }
       
       // Buscar pedidos pendientes de clientes en esa zona que no estén asignados a ninguna ruta
-      const pendingOrders = await db
-        .select({
-          id: orders.id,
-          customerId: orders.customerId,
-          status: orders.status,
-          total: orders.total,
-          customerName: customers.businessname,
-          customerAddress: customers.street,
-          customerPhone: customers.phone,
-          coordinates: customers.coordinates,
-          createdAt: orders.createdAt
-        })
-        .from(orders)
-        .leftJoin(customers, eq(orders.customerId, customers.id))
-        .where(
-          and(
-            inArray(orders.customerId, customerIds),
-            eq(orders.status, "pending"),
-            isNull(orders.routeId)
-          )
-        );
+      // Usar SQL directo para evitar problemas de tipo
+      const pendingOrdersResult = await db.execute(sql`
+        SELECT 
+          o.id, 
+          o.customer_id AS "customerId", 
+          o.status, 
+          o.total, 
+          c.businessname AS "customerName", 
+          c.street AS "customerAddress", 
+          c.phone AS "customerPhone", 
+          c.coordinates, 
+          o.date, 
+          o.route_id AS "routeId"
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        WHERE o.customer_id IN (${sql.join(customerIds)}) 
+        AND o.status = 'pending' 
+        AND o.route_id IS NULL
+      `);
       
-      // Para cada pedido, obtener los items
+      // Convertir el resultado a un formato que podamos usar
+      const pendingOrders = pendingOrdersResult.rows;
+      
+      console.log(`[DEBUG] Pedidos pendientes sin asignar encontrados: ${pendingOrders.length}`);
+      console.log("[DEBUG] IDs de pedidos pendientes:", pendingOrders.map(o => o.id).join(", "));
+      
+      // Para cada pedido, obtener los items usando SQL directo
       const ordersWithItems = await Promise.all(
         pendingOrders.map(async (order) => {
-          const items = await db
-            .select({
-              productId: orderItemsTable.productId,
-              name: products.name,
-              quantity: orderItemsTable.quantity,
-              price: orderItemsTable.price,
-            })
-            .from(orderItemsTable)
-            .innerJoin(products, eq(orderItemsTable.productId, products.id))
-            .where(eq(orderItemsTable.orderId, order.id));
+          // Usar SQL directo para evitar problemas con los tipos
+          const itemsResult = await db.execute(sql`
+            SELECT 
+              oi.product_id AS "productId", 
+              p.name, 
+              oi.quantity, 
+              oi.price
+            FROM order_items oi
+            INNER JOIN products p ON oi.product_id = p.id
+            WHERE oi.order_id = ${parseInt(order.id, 10)}
+          `);
             
           return {
             ...order,
-            products: items,
+            products: itemsResult.rows,
           };
         })
       );
-        
+      
+      console.log(`[DEBUG] Respuesta final: ${ordersWithItems.length} pedidos con items`);
       res.json(ordersWithItems);
     } catch (error) {
       console.error("Error al obtener pedidos pendientes por zona:", error);
