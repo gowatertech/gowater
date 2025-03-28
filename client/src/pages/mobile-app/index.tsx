@@ -35,10 +35,11 @@ export default function GoWaterDriverApp() {
   
   // Verificar si el usuario es un chofer
   useEffect(() => {
-    if (!isLoading && user && user.role !== "driver") {
+    // Solo verificar rol cuando user está disponible y ya cargó
+    if (!isLoading && user && user.role !== "driver" && user.role !== "admin") {
       toast({
         title: "Acceso denegado",
-        description: "Sólo los choferes pueden acceder a esta aplicación",
+        description: "Sólo los choferes y administradores pueden acceder a esta aplicación",
         variant: "destructive"
       });
       setLocation("/dashboard");
