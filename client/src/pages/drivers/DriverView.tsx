@@ -120,20 +120,31 @@ function MapBoundsAdjuster({ deliveries }: { deliveries: Delivery[] }) {
 }
 
 function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number, number]) => void }) {
-  const [position, setPosition] = useState<[number, number] | null>(null);
+  // Usar la ubicación de la empresa en Santo Domingo por defecto
+  const defaultPosition: [number, number] = [18.4700, -69.9100];
+  const [position, setPosition] = useState<[number, number]>(defaultPosition);
   const map = useMap();
 
+  // Establecer la posición predeterminada
+  useEffect(() => {
+    setPosition(defaultPosition);
+    onPositionChange(defaultPosition);
+  }, [onPositionChange]);
+
+  // Opcionalmente, podemos seguir detectando la ubicación actual
   const handleLocationFound = useCallback((e: any) => {
-    setPosition([e.latlng.lat, e.latlng.lng]);
-    onPositionChange([e.latlng.lat, e.latlng.lng]);
+    // Mantenemos comentado esto para usar sólo la ubicación de la empresa
+    // setPosition([e.latlng.lat, e.latlng.lng]);
+    // onPositionChange([e.latlng.lat, e.latlng.lng]);
   }, [onPositionChange]);
 
   useEffect(() => {
-    map.locate({ setView: false });
-    map.on('locationfound', handleLocationFound);
-    return () => {
-      map.off('locationfound', handleLocationFound);
-    };
+    // Comentamos esto para no detectar la ubicación actual
+    // map.locate({ setView: false });
+    // map.on('locationfound', handleLocationFound);
+    // return () => {
+    //   map.off('locationfound', handleLocationFound);
+    // };
   }, [map, handleLocationFound]);
 
   return position === null ? null : (
@@ -152,7 +163,7 @@ function LocationMarker({ onPositionChange }: { onPositionChange: (pos: [number,
     >
       <Popup>
         <div className="p-1">
-          <p className="font-semibold">Tu ubicación actual</p>
+          <p className="font-semibold">Ubicación de la empresa</p>
         </div>
       </Popup>
     </Marker>
@@ -261,7 +272,7 @@ export default function DriverView() {
   // Actions
   const completeDeliveryMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("POST", `/api/driver/deliveries/${id}/complete`);
+      return apiRequest("POST", `/api/driver/deliveries/${id}/complete`, {});
     },
     onSuccess: () => {
       toast({
