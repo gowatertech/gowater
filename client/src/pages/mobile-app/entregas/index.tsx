@@ -19,6 +19,23 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 
+// Tipo para un retorno de envase
+interface BottleReturn {
+  id: number;
+  orderId: number;
+  productId: number;
+  productName: string;
+  expectedQuantity: number;
+  returnedQuantity: number;
+  pendingQuantity: number;
+  returnDate: string;
+  status: "pending" | "complete" | "incomplete";
+  amountCharged: string;
+  depositAmount: string;
+  responsibleType: "customer" | "driver" | "both" | null;
+  chargeMethod: "commission" | "cash" | null;
+}
+
 // Tipo para una entrega
 interface Delivery {
   id: number;
@@ -30,7 +47,7 @@ interface Delivery {
   scheduledTime: string;
   products: { id: number; name: string; quantity: number; price: number }[];
   total: number;
-  bottleReturns?: number;
+  bottleReturns: BottleReturn[];
 }
 
 export default function DriverDeliveries() {
@@ -69,92 +86,69 @@ export default function DriverDeliveries() {
   };
 
   // Cargar datos de entregas
-  const loadDeliveries = () => {
+  const loadDeliveries = async () => {
     setIsLoading(true);
     
-    // Simular carga de datos de la API
-    setTimeout(() => {
-      // Datos de ejemplo
-      const mockDeliveries: Delivery[] = [
-        {
-          id: 1,
-          orderId: 10001,
-          customerId: 101,
-          customerName: "Supermercado Oriental",
-          address: "Calle Principal #45, Las Terrenas",
-          status: "pending",
-          scheduledTime: "10:30 AM",
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 10, price: 80 },
-            { id: 2, name: "Caja Agua 16oz", quantity: 5, price: 240 }
-          ],
-          total: 2000,
-          bottleReturns: 8
-        },
-        {
-          id: 2,
-          orderId: 10002,
-          customerId: 102,
-          customerName: "Hotel Las Palmas",
-          address: "Avenida Duarte #22, Samaná",
-          status: "in_progress",
-          scheduledTime: "11:15 AM",
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 20, price: 80 },
-            { id: 3, name: "Agua Saborizada 16oz", quantity: 24, price: 30 }
-          ],
-          total: 2320,
-          bottleReturns: 15
-        },
-        {
-          id: 3,
-          orderId: 10003,
-          customerId: 103,
-          customerName: "Restaurante El Malecón",
-          address: "Calle El Malecón #15, Las Galeras",
-          status: "pending",
-          scheduledTime: "12:00 PM",
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 8, price: 80 },
-            { id: 4, name: "Dispensador de Agua", quantity: 1, price: 1500 }
-          ],
-          total: 2140,
-          bottleReturns: 6
-        },
-        {
-          id: 4,
-          orderId: 10004,
-          customerId: 104,
-          customerName: "Farmacia San José",
-          address: "Av. Las Americas #78, Samaná",
-          status: "delivered",
-          scheduledTime: "09:00 AM",
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 5, price: 80 },
-          ],
-          total: 400,
-          bottleReturns: 5
-        },
-        {
-          id: 5,
-          orderId: 10005,
-          customerId: 105,
-          customerName: "Escuela Primaria Las Terrenas",
-          address: "Calle Duarte #112, Las Terrenas",
-          status: "cancelled",
-          scheduledTime: "08:30 AM",
-          products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 15, price: 80 },
-            { id: 2, name: "Caja Agua 16oz", quantity: 10, price: 240 }
-          ],
-          total: 3600,
-          bottleReturns: 0
-        },
-      ];
+    try {
+      // Obtener órdenes
+      const ordersResponse = await fetch('/api/orders');
+      if (!ordersResponse.ok) {
+        throw new Error('Error al obtener órdenes');
+      }
+      const ordersData = await ordersResponse.json();
       
-      setDeliveries(mockDeliveries);
+      console.log('Datos recibidos de /api/orders:', ordersData);
+      
+      // Para cada orden, obtener sus retornos de botellas
+      const deliveriesWithBottleReturns = await Promise.all(
+        ordersData.map(async (order: any) => {
+          let bottleReturnsData: BottleReturn[] = [];
+          
+          try {
+            const bottleReturnsResponse = await fetch(`/api/orders/${order.id}/bottle-returns`);
+            if (bottleReturnsResponse.ok) {
+              bottleReturnsData = await bottleReturnsResponse.json();
+              console.log(`Retornos de botellas para orden ${order.id}:`, bottleReturnsData);
+            }
+          } catch (error) {
+            console.error(`Error al obtener retornos para orden ${order.id}:`, error);
+          }
+          
+          // Convertir los datos de la API al formato requerido por nuestra interfaz
+          return {
+            id: order.id,
+            orderId: order.id,
+            customerId: order.customerId,
+            customerName: order.customerName,
+            address: order.customerAddress,
+            status: order.status as "pending" | "in_progress" | "delivered" | "cancelled",
+            scheduledTime: new Date(order.date).toLocaleTimeString('es-DO', {
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            products: order.products.map((product: any) => ({
+              id: product.productId,
+              name: product.name,
+              quantity: product.quantity,
+              price: parseFloat(product.price)
+            })),
+            total: parseFloat(order.total),
+            bottleReturns: bottleReturnsData
+          };
+        })
+      );
+      
+      setDeliveries(deliveriesWithBottleReturns);
+    } catch (error) {
+      console.error('Error al cargar entregas:', error);
+      toast({
+        title: "Error al cargar datos",
+        description: "No se pudieron obtener las entregas",
+        variant: "destructive"
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   // Filtrar entregas por estado y término de búsqueda
@@ -327,6 +321,16 @@ export default function DriverDeliveries() {
                         </span>
                       ))}
                     </div>
+                    
+                    {/* Información de retornos de envases */}
+                    {delivery.bottleReturns && delivery.bottleReturns.length > 0 && (
+                      <div className="mt-2 pt-2 border-t">
+                        <div className="flex items-center text-xs text-muted-foreground mb-1">
+                          <AlertTriangle className="h-3 w-3 mr-1" />
+                          <span>Envases por retornar: {delivery.bottleReturns.reduce((total, br) => total + br.pendingQuantity, 0)}</span>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))

@@ -5,7 +5,8 @@ import {
   orders,
   products,
   routes,
-  zones
+  zones,
+  bottleReturns
 } from "@shared/schema";
 import { and, eq, inArray, sql, isNull, ne } from "drizzle-orm";
 
@@ -398,6 +399,106 @@ export function registerRoutesEndpoints(app: Express) {
       res.json(ordersWithItems);
     } catch (error) {
       console.error("Error al obtener pedidos pendientes por zona:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para obtener los envases retornables de una orden específica
+  app.get("/api/orders/:id/bottle-returns", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de orden inválido" });
+      }
+      
+      // Obtener los envases retornables para esta orden
+      const bottleReturnsData = await db
+        .select({
+          id: bottleReturns.id,
+          orderId: bottleReturns.orderId,
+          productId: bottleReturns.productId,
+          productName: products.name,
+          expectedQuantity: bottleReturns.expectedQuantity,
+          returnedQuantity: bottleReturns.returnedQuantity,
+          pendingQuantity: bottleReturns.pendingQuantity,
+          returnDate: bottleReturns.returnDate,
+          status: bottleReturns.status,
+          amountCharged: bottleReturns.amountCharged,
+          depositAmount: bottleReturns.depositAmount,
+          responsibleType: bottleReturns.responsibleType,
+          chargeMethod: bottleReturns.chargeMethod,
+        })
+        .from(bottleReturns)
+        .innerJoin(products, eq(bottleReturns.productId, products.id))
+        .where(eq(bottleReturns.orderId, orderId));
+      
+      res.json(bottleReturnsData);
+    } catch (error) {
+      console.error("Error al obtener los envases retornables de la orden:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para obtener los envases retornables de una ruta específica
+  app.get("/api/routes/:id/bottle-returns", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      
+      if (isNaN(routeId)) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+      
+      // Primero, obtenemos todas las órdenes de esta ruta
+      const routeOrders = await db
+        .select({ id: orders.id })
+        .from(orders)
+        .where(eq(orders.routeId, routeId));
+      
+      if (!routeOrders.length) {
+        return res.json([]);
+      }
+      
+      // Extraemos los IDs de las órdenes
+      const orderIds = routeOrders.map(order => order.id);
+      
+      // Obtenemos los envases retornables para todas estas órdenes
+      const bottleReturnsData = await db
+        .select({
+          id: bottleReturns.id,
+          orderId: bottleReturns.orderId,
+          productId: bottleReturns.productId,
+          productName: products.name,
+          expectedQuantity: bottleReturns.expectedQuantity,
+          returnedQuantity: bottleReturns.returnedQuantity,
+          pendingQuantity: bottleReturns.pendingQuantity,
+          returnDate: bottleReturns.returnDate,
+          status: bottleReturns.status,
+          amountCharged: bottleReturns.amountCharged,
+          depositAmount: bottleReturns.depositAmount,
+          responsibleType: bottleReturns.responsibleType,
+          chargeMethod: bottleReturns.chargeMethod,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+        })
+        .from(bottleReturns)
+        .innerJoin(products, eq(bottleReturns.productId, products.id))
+        .innerJoin(orders, eq(bottleReturns.orderId, orders.id))
+        .innerJoin(customers, eq(orders.customerId, customers.id))
+        .where(inArray(bottleReturns.orderId, orderIds));
+      
+      // Agrupamos por orden para una mejor organización
+      const bottleReturnsByOrder = orderIds.map(orderId => {
+        const returns = bottleReturnsData.filter(item => item.orderId === orderId);
+        return {
+          orderId,
+          returns
+        };
+      }).filter(group => group.returns.length > 0);
+      
+      res.json(bottleReturnsByOrder);
+    } catch (error) {
+      console.error("Error al obtener los envases retornables de la ruta:", error);
       res.status(500).json({ error: String(error) });
     }
   });
