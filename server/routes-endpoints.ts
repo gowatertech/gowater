@@ -279,12 +279,13 @@ export function registerRoutesEndpoints(app: Express) {
       
       // Contar todos los pedidos pendientes de estos clientes (incluso los asignados a rutas)
       try {
-        // Utilizar consulta parametrizada para evitar errores con los tipos
+        // Utilizar IN en lugar de ANY para la lista de IDs
+        const idsString = customerIds.join(',');
         const allPendingOrdersCount = await db
           .execute(sql`
             SELECT COUNT(*) 
             FROM orders 
-            WHERE customer_id = ANY(${customerIds})
+            WHERE customer_id IN (${sql.raw(idsString)})
             AND status = 'pending'
           `);
         
@@ -294,7 +295,7 @@ export function registerRoutesEndpoints(app: Express) {
       }
       
       // Buscar pedidos pendientes de clientes en esa zona que no estén asignados a ninguna ruta
-      // Usar SQL parametrizado para evitar problemas de tipo
+      // Usar IN en lugar de ANY para la lista de IDs
       const pendingOrdersResult = await db.execute(sql`
         SELECT 
           o.id, 
@@ -309,7 +310,7 @@ export function registerRoutesEndpoints(app: Express) {
           o.route_id AS "routeId"
         FROM orders o
         LEFT JOIN customers c ON o.customer_id = c.id
-        WHERE o.customer_id = ANY(${customerIds})
+        WHERE o.customer_id IN (${sql.raw(customerIds.join(','))})
         AND o.status = 'pending' 
         AND o.route_id IS NULL
       `);
