@@ -64,8 +64,8 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 
-// Vista del chofer
-import DriverView from "./DriverView";
+// Vista del chofer (GoWater Driver)
+import DriverView from "@/pages/drivers/DriverView";
 import DeliveryTracking from "./DeliveryTracking";
 import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 
