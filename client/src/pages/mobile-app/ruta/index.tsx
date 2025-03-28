@@ -41,7 +41,8 @@ interface RouteStop {
   estimatedArrival: string; // Hora estimada de llegada
   estimatedDuration: number; // Duración estimada en minutos
   distanceFromPrevious: number; // Distancia desde el punto anterior en km
-  products: { id: number; name: string; quantity: number }[];
+  products: { id: number; name: string; quantity: number; price: number }[];
+  totalValue: number; // Valor total del pedido
   isWarehouse?: boolean; // Indica si es el almacén (punto 0)
 }
 
@@ -119,6 +120,7 @@ export default function DriverRoute() {
           estimatedDuration: 0,
           distanceFromPrevious: 0,
           products: [],
+          totalValue: 0,
           isWarehouse: true
         },
         {
@@ -134,9 +136,10 @@ export default function DriverRoute() {
           estimatedDuration: 8, // 8 minutos para servir al cliente
           distanceFromPrevious: 2.4, // 2.4 km desde el almacén
           products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 10 },
-            { id: 2, name: "Caja Agua 16oz", quantity: 5 }
-          ]
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 10, price: 125.00 },
+            { id: 2, name: "Caja Agua 16oz", quantity: 5, price: 350.00 }
+          ],
+          totalValue: 3000.00
         },
         {
           id: 2,
@@ -151,9 +154,10 @@ export default function DriverRoute() {
           estimatedDuration: 10, // 10 minutos para servir al cliente
           distanceFromPrevious: 3.1, // 3.1 km desde la parada anterior
           products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 20 },
-            { id: 3, name: "Agua Saborizada 16oz", quantity: 24 }
-          ]
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 20, price: 125.00 },
+            { id: 3, name: "Agua Saborizada 16oz", quantity: 24, price: 48.00 }
+          ],
+          totalValue: 3652.00
         },
         {
           id: 3,
@@ -168,9 +172,10 @@ export default function DriverRoute() {
           estimatedDuration: 9, // 9 minutos para servir al cliente
           distanceFromPrevious: 2.7, // 2.7 km desde la parada anterior
           products: [
-            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 8 },
-            { id: 4, name: "Dispensador de Agua", quantity: 1 }
-          ]
+            { id: 1, name: "Botellón de Agua 5 Gal", quantity: 8, price: 125.00 },
+            { id: 4, name: "Dispensador de Agua", quantity: 1, price: 2500.00 }
+          ],
+          totalValue: 3500.00
         }
       ];
       
@@ -518,7 +523,7 @@ export default function DriverRoute() {
                   <Button
                     className="flex items-center justify-center gap-1"
                     onClick={startRoute}
-                    disabled={isLoading || routeStatus === 'completed'}
+                    disabled={isLoading || routeStatus === 'completed' as any}
                   >
                     <Play className="h-4 w-4" />
                     {routeStatus === 'paused' ? 'Continuar' : 'Iniciar'}
@@ -608,19 +613,35 @@ export default function DriverRoute() {
                       <div className="ml-8 text-sm">
                         <p className="text-muted-foreground text-xs mb-1">{stop.address}</p>
                         {stop.products && stop.products.length > 0 ? (
-                          <div className="flex flex-wrap gap-1 mt-1 mb-2">
-                            {stop.products.map(product => (
-                              <span 
-                                key={product.id}
-                                className={`text-xs px-2 py-0.5 rounded-full ${
-                                  darkMode 
-                                    ? 'bg-gray-700' 
-                                    : 'bg-gray-100'
-                                }`}
-                              >
-                                {product.quantity} × {product.name}
-                              </span>
-                            ))}
+                          <div className="mt-1 mb-2">
+                            <h4 className="text-xs font-bold mb-1">Productos:</h4>
+                            <div className="bg-primary/5 rounded-md p-2">
+                              <ul className="space-y-1">
+                                {stop.products.map(product => (
+                                  <li 
+                                    key={product.id}
+                                    className="text-xs flex justify-between border-b last:border-0 pb-1 last:pb-0"
+                                  >
+                                    <span className="font-medium">{product.name}</span>
+                                    <span className="font-bold">{product.quantity} × ${product.price.toFixed(2)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              <div className="border-t border-primary/20 mt-2 pt-2 space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-xs font-bold">Total productos:</span>
+                                  <span className="text-xs font-medium">
+                                    {stop.products.reduce((total, product) => total + product.quantity, 0)} unidades
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-xs font-bold">Valor del pedido:</span>
+                                  <span className="text-xs font-bold text-primary">
+                                    ${stop.totalValue.toFixed(2)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         ) : (
                           <div className="mb-2">

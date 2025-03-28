@@ -37,6 +37,7 @@ import { useEffect } from "react";
 import MobileApp from "@/pages/mobile-app";
 import MobileRoute from "@/pages/mobile-app/ruta";
 import MobileDeliveries from "@/pages/mobile-app/entregas";
+import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 
 function Router() {
   const [location] = useLocation();
@@ -102,6 +103,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/mobile-app" component={MobileApp} />
+        <Route path="/mobile-app/rutas-pendientes" component={MobilePendingRoutes} />
         <Route path="/mobile-app/ruta" component={MobileRoute} />
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
       </Switch>

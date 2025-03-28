@@ -5,7 +5,8 @@ import {
   Navigation,
   Package,
   Recycle,
-  BarChart3
+  BarChart3,
+  ListChecks
 } from "lucide-react";
 
 interface MobileFooterProps {
@@ -22,9 +23,9 @@ export function MobileFooter({ darkMode }: MobileFooterProps) {
       href: "/mobile-app"
     },
     {
-      icon: Package,
-      label: "Entregas",
-      href: "/mobile-app/entregas"
+      icon: ListChecks,
+      label: "Rutas",
+      href: "/mobile-app/rutas-pendientes"
     },
     {
       icon: Navigation,
@@ -32,14 +33,14 @@ export function MobileFooter({ darkMode }: MobileFooterProps) {
       href: "/mobile-app/ruta"
     },
     {
+      icon: Package,
+      label: "Entregas",
+      href: "/mobile-app/entregas"
+    },
+    {
       icon: Recycle,
       label: "Envases",
       href: "/mobile-app/envases"
-    },
-    {
-      icon: BarChart3,
-      label: "Reportes",
-      href: "/mobile-app/reportes"
     }
   ];
   
