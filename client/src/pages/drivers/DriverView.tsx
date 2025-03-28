@@ -17,6 +17,23 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
   Form, 
   FormField, 
   FormItem, 
@@ -28,12 +45,8 @@ import {
 import { ResponsiveMapContainer } from '@/components/ui/responsive-map-container';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  Check, 
-  CheckCircle, 
-  Clock, 
   ClipboardList, 
   ArrowRightCircle,
-  ArrowRight,
   Truck, 
   User, 
   BadgeCheck, 
@@ -48,7 +61,18 @@ import {
   Package,
   RefreshCcw,
   MessageSquare,
-  Phone
+  Phone,
+  Check,
+  Clock,
+  ArrowRight,
+  CheckCircle,
+  Info,
+  CreditCard,
+  Receipt,
+  Plus,
+  Minus,
+  FileText,
+  ShoppingCart
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -58,8 +82,17 @@ import 'leaflet/dist/leaflet.css';
 import { apiRequest } from '@/lib/queryClient';
 
 // Interfaces
+interface DeliveryProduct {
+  id: number;
+  name: string;
+  quantity: number;
+  unitPrice: string;
+  total: string;
+}
+
 interface Delivery {
   id: number;
+  customerId: number;
   customerName: string;
   customerAddress: string;
   coordinates: [number, number];
@@ -68,11 +101,18 @@ interface Delivery {
   priority: 'normal' | 'high' | 'low';
   orderDetails: string;
   orderValue: string;
+  pendingPayment: boolean;
+  paymentMethod?: 'cash' | 'transfer' | 'credit' | 'pending';
+  orderNumber?: string;
+  invoiceNumber?: string;
   containers: {
     delivered: number;
     returned: number;
     balance: number;
   };
+  products?: DeliveryProduct[];
+  notes?: string;
+  hasRecurringOrder?: boolean;
 }
 
 interface CashBalance {
@@ -276,10 +316,113 @@ export default function DriverView() {
     completeDeliveryMutation.mutate(id);
   };
   
+  // Estado para el modal de detalle de entrega
+  const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [activeDetailTab, setActiveDetailTab] = useState('info');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'credit'>('cash');
+  const [returnedContainers, setReturnedContainers] = useState(0);
+  
+  // Estado para pedido futuro
+  const [newOrderDate, setNewOrderDate] = useState<Date | undefined>(undefined);
+  const [newOrderProducts, setNewOrderProducts] = useState<{id: number, quantity: number}[]>([]);
+  const [newOrderNotes, setNewOrderNotes] = useState('');
+
   const startNavigation = (delivery: Delivery) => {
     // Esta función abriría la navegación en Google Maps o similar
     const [lat, lng] = delivery.coordinates;
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+  };
+  
+  const handleOpenDetail = (delivery: Delivery) => {
+    setSelectedDelivery(delivery);
+    setReturnedContainers(0);
+    setPaymentAmount(delivery.orderValue);
+    setPaymentMethod('cash');
+    setIsDetailOpen(true);
+  };
+  
+  const handleCloseDetail = () => {
+    setIsDetailOpen(false);
+    setSelectedDelivery(null);
+    setActiveDetailTab('info');
+  };
+  
+  const handleProcessPayment = async () => {
+    if (!selectedDelivery) return;
+    
+    try {
+      await apiRequest("POST", `/api/driver/deliveries/${selectedDelivery.id}/payment`, {
+        amount: paymentAmount,
+        method: paymentMethod,
+        returnedContainers: returnedContainers
+      });
+      
+      toast({
+        title: 'Pago procesado',
+        description: 'El pago ha sido registrado exitosamente.',
+      });
+      
+      refetch();
+      handleCompleteDelivery(selectedDelivery.id);
+      handleCloseDetail();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `No se pudo procesar el pago: ${(error as Error).message}`,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleCreateInvoice = async () => {
+    if (!selectedDelivery) return;
+    
+    try {
+      await apiRequest("POST", `/api/driver/deliveries/${selectedDelivery.id}/invoice`, {});
+      
+      toast({
+        title: 'Factura creada',
+        description: 'La factura ha sido generada exitosamente.',
+      });
+      
+      refetch();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `No se pudo crear la factura: ${(error as Error).message}`,
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleCreateFutureOrder = async () => {
+    if (!selectedDelivery || !newOrderDate) return;
+    
+    try {
+      await apiRequest("POST", `/api/driver/customers/${selectedDelivery.customerId}/future-order`, {
+        scheduledDate: newOrderDate,
+        products: newOrderProducts,
+        notes: newOrderNotes
+      });
+      
+      toast({
+        title: 'Pedido programado',
+        description: 'El pedido futuro ha sido creado exitosamente.',
+      });
+      
+      setNewOrderDate(undefined);
+      setNewOrderProducts([]);
+      setNewOrderNotes('');
+      handleCloseDetail();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `No se pudo crear el pedido: ${(error as Error).message}`,
+        variant: 'destructive',
+      });
+    }
   };
   
   const getStatusColor = (status: string) => {
@@ -451,16 +594,24 @@ export default function DriverView() {
                       <Button 
                         size="sm" 
                         onClick={() => startNavigation(delivery)}
-                        className="text-xs h-7 bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                        className="text-xs h-7 bg-blue-600 hover:bg-blue-700 text-white flex-1/3"
                       >
                         <Navigation2 className="h-3 w-3 mr-1" />
                         Navegar
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleOpenDetail(delivery)}
+                        className="text-xs h-7 bg-purple-600 hover:bg-purple-700 text-white flex-1/3"
+                      >
+                        <FileText className="h-3 w-3 mr-1" />
+                        Detalle
                       </Button>
                       {delivery.status === 'pending' && (
                         <Button 
                           size="sm" 
                           onClick={() => handleCompleteDelivery(delivery.id)}
-                          className="text-xs h-7 bg-green-600 hover:bg-green-700 text-white flex-1"
+                          className="text-xs h-7 bg-green-600 hover:bg-green-700 text-white flex-1/3"
                         >
                           <CheckCircle className="h-3 w-3 mr-1" />
                           Completar
@@ -960,6 +1111,288 @@ export default function DriverView() {
           </div>
         </div>
       )}
+
+      {/* Modal de detalle de entrega */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="sm:max-w-[600px] p-0">
+          {selectedDelivery && (
+            <>
+              <DialogHeader className="p-4 pb-0">
+                <DialogTitle>Detalle de Entrega #{selectedDelivery.id}</DialogTitle>
+                <DialogDescription>
+                  Cliente: {selectedDelivery.customerName}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <Tabs defaultValue="info" value={activeDetailTab} onValueChange={setActiveDetailTab} className="w-full">
+                <TabsList className="grid grid-cols-4 p-0 m-4">
+                  <TabsTrigger value="info" className="text-xs">
+                    <Info className="h-3.5 w-3.5 mr-1.5" />
+                    Información
+                  </TabsTrigger>
+                  <TabsTrigger value="payment" className="text-xs">
+                    <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+                    Pago
+                  </TabsTrigger>
+                  <TabsTrigger value="invoice" className="text-xs">
+                    <Receipt className="h-3.5 w-3.5 mr-1.5" />
+                    Factura
+                  </TabsTrigger>
+                  <TabsTrigger value="future" className="text-xs">
+                    <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                    Pedido
+                  </TabsTrigger>
+                </TabsList>
+                
+                {/* Tab de Información */}
+                <TabsContent value="info" className="p-4 pt-0">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Dirección</h4>
+                        <p className="text-sm text-gray-600">{selectedDelivery.customerAddress}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Hora Estimada</h4>
+                        <p className="text-sm text-gray-600">
+                          {new Date(selectedDelivery.estimatedTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Detalles del Pedido</h4>
+                      <p className="text-sm text-gray-600">{selectedDelivery.orderDetails}</p>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Estado</h4>
+                        <Badge variant="outline" className={getStatusColor(selectedDelivery.status)}>
+                          {selectedDelivery.status === 'pending' ? 'Pendiente' : 
+                           selectedDelivery.status === 'in_progress' ? 'En progreso' : 
+                           selectedDelivery.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Prioridad</h4>
+                        <Badge variant={
+                          selectedDelivery.priority === 'high' ? 'destructive' : 
+                          selectedDelivery.priority === 'normal' ? 'default' : 'secondary'
+                        }>
+                          {selectedDelivery.priority === 'high' ? 'Alta' : 
+                           selectedDelivery.priority === 'normal' ? 'Normal' : 'Baja'}
+                        </Badge>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Valor</h4>
+                        <p className="text-sm font-semibold">RD$ {selectedDelivery.orderValue}</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Envases</h4>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div className="border rounded p-2">
+                          <span className="text-gray-600 block text-xs">Entregados</span>
+                          <span className="font-semibold">{selectedDelivery.containers.delivered}</span>
+                        </div>
+                        <div className="border rounded p-2">
+                          <span className="text-gray-600 block text-xs">Devueltos</span>
+                          <span className="font-semibold">{selectedDelivery.containers.returned}</span>
+                        </div>
+                        <div className="border rounded p-2">
+                          <span className="text-gray-600 block text-xs">Balance</span>
+                          <span className="font-semibold">{selectedDelivery.containers.balance}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {selectedDelivery.products && selectedDelivery.products.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Productos</h4>
+                        <div className="border rounded-md">
+                          <table className="w-full text-xs">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="p-2 text-left">Producto</th>
+                                <th className="p-2 text-center">Cant.</th>
+                                <th className="p-2 text-right">Precio</th>
+                                <th className="p-2 text-right">Total</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedDelivery.products.map((product) => (
+                                <tr key={product.id} className="border-t">
+                                  <td className="p-2 text-left">{product.name}</td>
+                                  <td className="p-2 text-center">{product.quantity}</td>
+                                  <td className="p-2 text-right">RD$ {product.unitPrice}</td>
+                                  <td className="p-2 text-right">RD$ {product.total}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {selectedDelivery.notes && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Notas</h4>
+                        <p className="text-sm text-gray-600">{selectedDelivery.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                {/* Tab de Pago */}
+                <TabsContent value="payment" className="p-4 pt-0">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Total a Cobrar</h4>
+                        <Input 
+                          type="text" 
+                          value={paymentAmount}
+                          onChange={(e) => setPaymentAmount(e.target.value)}
+                          className="text-right"
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium mb-1">Método de Pago</h4>
+                        <Select
+                          value={paymentMethod}
+                          onValueChange={(value) => setPaymentMethod(value as 'cash' | 'transfer' | 'credit')}
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Seleccionar método" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">Efectivo</SelectItem>
+                            <SelectItem value="transfer">Transferencia</SelectItem>
+                            <SelectItem value="credit">Crédito</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Envases Devueltos</h4>
+                      <div className="flex items-center">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => setReturnedContainers(Math.max(0, returnedContainers - 1))}
+                          disabled={returnedContainers <= 0}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <div className="flex-1 text-center">
+                          <span className="text-2xl font-semibold">{returnedContainers}</span>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => setReturnedContainers(returnedContainers + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      className="w-full" 
+                      onClick={handleProcessPayment}
+                    >
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Procesar Pago
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                {/* Tab de Factura */}
+                <TabsContent value="invoice" className="p-4 pt-0">
+                  <div className="space-y-4">
+                    <div className="bg-gray-50 p-4 rounded-md text-center space-y-2">
+                      {selectedDelivery.invoiceNumber ? (
+                        <>
+                          <Receipt className="h-12 w-12 mx-auto text-green-600" />
+                          <h4 className="text-lg font-medium">Factura Generada</h4>
+                          <p className="text-sm text-gray-600">Nro. Factura: {selectedDelivery.invoiceNumber}</p>
+                        </>
+                      ) : (
+                        <>
+                          <Receipt className="h-12 w-12 mx-auto text-gray-400" />
+                          <h4 className="text-lg font-medium">Sin Factura</h4>
+                          <p className="text-sm text-gray-600">No se ha generado factura para esta entrega</p>
+                        </>
+                      )}
+                    </div>
+                    
+                    {!selectedDelivery.invoiceNumber && (
+                      <Button 
+                        className="w-full" 
+                        onClick={handleCreateInvoice}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Generar Factura
+                      </Button>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                {/* Tab de Pedido Futuro */}
+                <TabsContent value="future" className="p-4 pt-0">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Fecha del Próximo Pedido</h4>
+                      <Input 
+                        type="date" 
+                        value={newOrderDate ? newOrderDate.toISOString().split('T')[0] : ''}
+                        onChange={(e) => setNewOrderDate(e.target.value ? new Date(e.target.value) : undefined)}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Productos</h4>
+                      <div className="space-y-2">
+                        {/* Aquí iría un selector de productos que modificaría newOrderProducts */}
+                        <p className="text-xs text-gray-500">Los mismos productos serán incluidos en el nuevo pedido.</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium mb-1">Notas</h4>
+                      <Textarea 
+                        placeholder="Instrucciones especiales para el próximo pedido..." 
+                        value={newOrderNotes}
+                        onChange={(e) => setNewOrderNotes(e.target.value)}
+                        className="resize-none h-20"
+                      />
+                    </div>
+                    
+                    <Button 
+                      className="w-full" 
+                      onClick={handleCreateFutureOrder}
+                      disabled={!newOrderDate}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Crear Pedido Futuro
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+              
+              <DialogFooter className="p-4 bg-gray-50">
+                <DialogClose asChild>
+                  <Button variant="outline" onClick={handleCloseDetail}>Cerrar</Button>
+                </DialogClose>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
