@@ -356,20 +356,20 @@ export default function OrdersPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "delivered":
-        return <Badge className="bg-green-100 text-green-800 border-green-300 hover:bg-green-200 flex items-center gap-1">
-          <CheckCircle className="h-3 w-3" /> Entregado
+        return <Badge className="bg-green-100 text-green-800 border-green-300 hover:bg-green-200 flex items-center gap-0.5 px-1.5 py-0 h-4 text-[10px]">
+          <CheckCircle className="h-2 w-2" /> Entregado
         </Badge>;
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 flex items-center gap-1">
-          <Clock className="h-3 w-3" /> Pendiente
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 flex items-center gap-0.5 px-1.5 py-0 h-4 text-[10px]">
+          <Clock className="h-2 w-2" /> Pendiente
         </Badge>;
       case "cancelled":
-        return <Badge className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200 flex items-center gap-1">
-          <CircleX className="h-3 w-3" /> Cancelado
+        return <Badge className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200 flex items-center gap-0.5 px-1.5 py-0 h-4 text-[10px]">
+          <CircleX className="h-2 w-2" /> Cancelado
         </Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200 flex items-center gap-1">
-          <AlertTriangle className="h-3 w-3" /> Desconocido
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200 flex items-center gap-0.5 px-1.5 py-0 h-4 text-[10px]">
+          <AlertTriangle className="h-2 w-2" /> Otro
         </Badge>;
     }
   };
@@ -403,18 +403,18 @@ export default function OrdersPage() {
   return (
     <div className={`${isMobile ? 'p-1' : 'p-2'} max-w-6xl mx-auto`}>
       {/* Cabecera */}
-      <div className="flex justify-between items-center mb-2">
-        <h1 className={`${isMobile ? 'text-base' : 'text-lg'} font-bold flex items-center`}>
-          <ShoppingCart className="h-4 w-4 mr-1.5 text-blue-600" />
+      <div className="flex justify-between items-center mb-1">
+        <h1 className="text-sm font-bold flex items-center">
+          <ShoppingCart className="h-3.5 w-3.5 mr-1 text-blue-600" />
           Gestión de Pedidos
         </h1>
         {!isMobile && (
           <Button 
             size="sm"
             onClick={() => setActiveTab("new")} 
-            className="bg-blue-600 hover:bg-blue-700 h-7 text-xs"
+            className="bg-blue-600 hover:bg-blue-700 h-6 text-xs px-2 py-0"
           >
-            <Plus className="h-3.5 w-3.5 mr-1" />
+            <Plus className="h-3 w-3 mr-1" />
             Nuevo Pedido
           </Button>
         )}
@@ -422,44 +422,44 @@ export default function OrdersPage() {
 
       {/* Tabs de navegación */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-2 h-8`}>
-          <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2">
-            <ClipboardList className="h-3.5 w-3.5" />
+        <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} mb-1 h-7`}>
+          <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2 h-6">
+            <ClipboardList className="h-3 w-3" />
             <span>Pedidos</span>
           </TabsTrigger>
-          <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2">
-            <Plus className="h-3.5 w-3.5" />
+          <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2 h-6">
+            <Plus className="h-3 w-3" />
             <span>Nuevo</span>
           </TabsTrigger>
           {!isMobile && (
-            <TabsTrigger value="details" disabled={!selectedOrder} className="flex items-center gap-1 text-xs px-2">
-              <FileText className="h-3.5 w-3.5" />
+            <TabsTrigger value="details" disabled={!selectedOrder} className="flex items-center gap-1 text-xs px-2 h-6">
+              <FileText className="h-3 w-3" />
               <span>Detalles</span>
             </TabsTrigger>
           )}
         </TabsList>
 
         {/* Contenido del Tab de Lista de Pedidos */}
-        <TabsContent value="list" className="space-y-2">
-          <Card className="p-2">
+        <TabsContent value="list" className="space-y-1">
+          <Card className="p-1">
             {/* Buscador y filtros en una fila */}
-            <div className="flex flex-wrap gap-2 mb-2">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <div className="flex flex-wrap gap-1 mb-1">
+              <div className="relative flex-1 min-w-[160px]">
+                <Search className="absolute left-1.5 top-1/2 transform -translate-y-1/2 h-3 w-3 text-gray-400" />
                 <Input 
-                  placeholder="Buscar por cliente, pedido..." 
+                  placeholder="Buscar cliente o pedido..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-7 h-7 text-xs"
+                  className="pl-6 h-6 text-xs py-0"
                 />
                 {searchTerm && (
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-5 w-5 p-0"
+                    className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-4 w-4 p-0"
                     onClick={() => setSearchTerm('')}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-2.5 w-2.5" />
                   </Button>
                 )}
               </div>
@@ -468,27 +468,27 @@ export default function OrdersPage() {
                 value={statusFilter} 
                 onValueChange={setStatusFilter}
               >
-                <SelectTrigger className="h-7 w-[140px] flex items-center text-xs">
-                  <ListFilter className="h-3 w-3 mr-1" />
+                <SelectTrigger className="h-6 w-[110px] flex items-center text-xs">
+                  <ListFilter className="h-2.5 w-2.5 mr-1" />
                   <span>Estado</span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all" className="text-xs">Todos los estados</SelectItem>
+                  <SelectItem value="all" className="text-xs">Todos</SelectItem>
                   <SelectItem value="pending" className="text-xs">
                     <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-yellow-600" />
+                      <Clock className="h-2.5 w-2.5 text-yellow-600" />
                       <span>Pendientes</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="delivered" className="text-xs">
                     <div className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3 text-green-600" />
+                      <CheckCircle className="h-2.5 w-2.5 text-green-600" />
                       <span>Entregados</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="cancelled" className="text-xs">
                     <div className="flex items-center gap-1">
-                      <CircleX className="h-3 w-3 text-red-600" />
+                      <CircleX className="h-2.5 w-2.5 text-red-600" />
                       <span>Cancelados</span>
                     </div>
                   </SelectItem>
@@ -497,26 +497,26 @@ export default function OrdersPage() {
             </div>
 
             {/* Indicadores clave de pedidos */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
-              <Card className="p-2 flex flex-col">
-                <p className="text-xs text-gray-500">Total Pedidos</p>
-                <p className="text-lg font-bold">{stats.total}</p>
+            <div className="grid grid-cols-5 gap-1 mb-1">
+              <Card className="p-1 flex flex-col items-center border-gray-100">
+                <p className="text-[10px] text-gray-500">Total</p>
+                <p className="text-sm font-bold leading-tight">{stats.total}</p>
               </Card>
-              <Card className="p-2 flex flex-col">
-                <p className="text-xs text-gray-500">Pendientes</p>
-                <p className="text-lg font-bold text-yellow-600">{stats.pending}</p>
+              <Card className="p-1 flex flex-col items-center border-gray-100">
+                <p className="text-[10px] text-gray-500">Pendientes</p>
+                <p className="text-sm font-bold leading-tight text-yellow-600">{stats.pending}</p>
               </Card>
-              <Card className="p-2 flex flex-col">
-                <p className="text-xs text-gray-500">Entregados</p>
-                <p className="text-lg font-bold text-green-600">{stats.delivered}</p>
+              <Card className="p-1 flex flex-col items-center border-gray-100">
+                <p className="text-[10px] text-gray-500">Entregados</p>
+                <p className="text-sm font-bold leading-tight text-green-600">{stats.delivered}</p>
               </Card>
-              <Card className="p-2 flex flex-col">
-                <p className="text-xs text-gray-500">Cancelados</p>
-                <p className="text-lg font-bold text-red-600">{stats.cancelled}</p>
+              <Card className="p-1 flex flex-col items-center border-gray-100">
+                <p className="text-[10px] text-gray-500">Cancelados</p>
+                <p className="text-sm font-bold leading-tight text-red-600">{stats.cancelled}</p>
               </Card>
-              <Card className="p-2 flex flex-col">
-                <p className="text-xs text-gray-500">Ingresos</p>
-                <p className="text-lg font-bold text-blue-600">
+              <Card className="p-1 flex flex-col items-center border-gray-100">
+                <p className="text-[10px] text-gray-500">Ingresos</p>
+                <p className="text-sm font-bold leading-tight text-blue-600">
                   ${stats.totalAmount.toFixed(2)}
                 </p>
               </Card>
@@ -525,44 +525,44 @@ export default function OrdersPage() {
             {/* Listado de pedidos */}
             <div className="border rounded-md">
               {filteredOrders.length > 0 ? (
-                <Table>
+                <Table className="text-xs">
                   <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[60px]">ID</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead className="hidden md:table-cell">Fecha</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead className="w-[100px]">Estado</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                    <TableRow className="h-6">
+                      <TableHead className="px-1 py-1 h-5 w-[40px]">ID</TableHead>
+                      <TableHead className="px-1 py-1 h-5">Cliente</TableHead>
+                      <TableHead className="px-1 py-1 h-5 hidden md:table-cell w-[80px]">Fecha</TableHead>
+                      <TableHead className="px-1 py-1 h-5 w-[50px]">Total</TableHead>
+                      <TableHead className="px-1 py-1 h-5 w-[80px]">Estado</TableHead>
+                      <TableHead className="px-1 py-1 h-5 w-[70px] text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredOrders.map((order) => {
                       const customer = customers?.find(c => c.id === order.customerId);
                       return (
-                        <TableRow key={order.id} className={`border-l-4 ${getStatusColor(order.status)}`}>
-                          <TableCell className="font-medium">#{order.id}</TableCell>
-                          <TableCell className="max-w-[150px] truncate">
+                        <TableRow key={order.id} className={`border-l-2 ${getStatusColor(order.status)} h-7`}>
+                          <TableCell className="font-medium p-1">#{order.id}</TableCell>
+                          <TableCell className="max-w-[120px] truncate p-1">
                             {customer?.businessname || "Cliente"}
                           </TableCell>
-                          <TableCell className="hidden md:table-cell">
+                          <TableCell className="hidden md:table-cell p-1 text-[10px]">
                             {new Date(order.date).toLocaleDateString()}
                           </TableCell>
-                          <TableCell>${parseFloat(order.total.toString()).toFixed(2)}</TableCell>
-                          <TableCell>{getStatusBadge(order.status)}</TableCell>
-                          <TableCell className="text-right space-x-1">
+                          <TableCell className="p-1">${parseFloat(order.total.toString()).toFixed(2)}</TableCell>
+                          <TableCell className="p-1">{getStatusBadge(order.status)}</TableCell>
+                          <TableCell className="text-right p-1 whitespace-nowrap">
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-7 w-7 p-0" 
+                              className="h-5 w-5 p-0 mr-1" 
                               onClick={() => openStatusDialog(order)}
                             >
-                              <Tag className="h-3.5 w-3.5" />
+                              <Tag className="h-3 w-3" />
                             </Button>
                             <Button 
                               variant="outline" 
                               size="sm" 
-                              className="h-7 w-7 p-0" 
+                              className="h-5 w-5 p-0" 
                               onClick={() => {
                                 setSelectedOrder(order);
                                 setIsDetailsDialogOpen(true);
@@ -571,7 +571,7 @@ export default function OrdersPage() {
                                 }
                               }}
                             >
-                              <Eye className="h-3.5 w-3.5" />
+                              <Eye className="h-3 w-3" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -580,8 +580,8 @@ export default function OrdersPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="p-4 text-center">
-                  <p className="text-sm text-gray-500">No hay pedidos que coincidan con los criterios de búsqueda</p>
+                <div className="p-2 text-center">
+                  <p className="text-xs text-gray-500">No hay pedidos que coincidan con los criterios de búsqueda</p>
                 </div>
               )}
             </div>
@@ -589,21 +589,21 @@ export default function OrdersPage() {
         </TabsContent>
 
         {/* Tab para crear nuevo pedido */}
-        <TabsContent value="new" className="space-y-2">
-          <Card className="p-3">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-base flex items-center gap-1">
-                <Plus className="h-4 w-4 text-blue-600" />
+        <TabsContent value="new" className="space-y-1">
+          <Card className="p-2">
+            <CardHeader className="px-0 pt-0 pb-1">
+              <CardTitle className="text-xs font-semibold flex items-center gap-1">
+                <Plus className="h-3 w-3 text-blue-600" />
                 Crear Nuevo Pedido
               </CardTitle>
-              <CardDescription>Complete los datos para crear un nuevo pedido</CardDescription>
+              <CardDescription className="text-xs">Complete los datos para crear un nuevo pedido</CardDescription>
             </CardHeader>
             
-            <CardContent className="px-0 pb-0">
+            <CardContent className="px-0 pb-0 space-y-2">
               {/* Selector de cliente */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1">
-                  <User className="h-3.5 w-3.5 text-blue-600" />
+              <div className="mb-2">
+                <h3 className="text-xs font-semibold mb-1 flex items-center gap-1">
+                  <User className="h-3 w-3 text-blue-600" />
                   Seleccionar Cliente
                 </h3>
                 <Select
@@ -613,7 +613,7 @@ export default function OrdersPage() {
                   }}
                   value={selectedCustomer?.id.toString()}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-7 text-xs">
                     <SelectValue placeholder="Seleccionar cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -621,7 +621,7 @@ export default function OrdersPage() {
                       <SelectItem 
                         key={customer.id} 
                         value={customer.id.toString()}
-                        className="flex justify-between items-center"
+                        className="flex justify-between items-center text-xs"
                       >
                         <div>
                           <span>{customer.businessname}</span>
@@ -632,14 +632,14 @@ export default function OrdersPage() {
                 </Select>
                 
                 {selectedCustomer && (
-                  <div className="mt-2 p-2 border rounded-md bg-gray-50">
-                    <p className="text-xs">
-                      <span className="font-medium">Teléfono:</span> {selectedCustomer.phone}
+                  <div className="mt-1 p-1 border rounded-md bg-gray-50 text-[11px] grid grid-cols-3 gap-1">
+                    <p>
+                      <span className="font-medium">Tel:</span> {selectedCustomer.phone}
                     </p>
-                    <p className="text-xs">
-                      <span className="font-medium">Dirección:</span> {selectedCustomer.street} {selectedCustomer.streetnumber}
+                    <p>
+                      <span className="font-medium">Dir:</span> {selectedCustomer.street}
                     </p>
-                    <p className="text-xs">
+                    <p>
                       <span className="font-medium">Crédito:</span> ${parseFloat(selectedCustomer.creditlimit.toString()).toFixed(2)}
                     </p>
                   </div>
@@ -647,38 +647,39 @@ export default function OrdersPage() {
               </div>
               
               {/* Listado de productos */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1">
-                  <Package className="h-3.5 w-3.5 text-blue-600" />
+              <div className="mb-2">
+                <h3 className="text-xs font-semibold mb-1 flex items-center gap-1">
+                  <Package className="h-3 w-3 text-blue-600" />
                   Seleccionar Productos
                 </h3>
                 
                 <div className="border rounded-md overflow-hidden">
-                  <Table>
+                  <Table className="text-xs">
                     <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[200px]">Producto</TableHead>
-                        <TableHead className="w-[80px]">Cantidad</TableHead>
-                        <TableHead>Precio</TableHead>
-                        <TableHead>Total</TableHead>
+                      <TableRow className="h-7">
+                        <TableHead className="px-2 py-1 h-6">Producto</TableHead>
+                        <TableHead className="px-2 py-1 h-6 w-[60px]">Cant.</TableHead>
+                        <TableHead className="px-2 py-1 h-6 w-[60px]">Precio</TableHead>
+                        <TableHead className="px-2 py-1 h-6 w-[60px]">Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {orderItems.map((item, index) => (
-                        <TableRow key={`item-${index}`}>
-                          <TableCell>
+                        <TableRow key={`item-${index}`} className="h-7">
+                          <TableCell className="p-1">
                             <Select
                               value={item.code || undefined}
                               onValueChange={(value) => handleProductChange(index, value)}
                             >
-                              <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Seleccionar producto" />
+                              <SelectTrigger className="h-6 text-xs">
+                                <SelectValue placeholder="Seleccionar" />
                               </SelectTrigger>
                               <SelectContent>
                                 {products?.map((product) => (
                                   <SelectItem 
                                     key={product.id} 
                                     value={product.id.toString()}
+                                    className="text-xs"
                                   >
                                     {product.name}
                                   </SelectItem>
@@ -686,19 +687,19 @@ export default function OrdersPage() {
                               </SelectContent>
                             </Select>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="p-1">
                             <Input 
                               type="number"
                               min="0"
                               value={item.quantity}
                               onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                              className="w-full h-8"
+                              className="w-full h-6 text-xs"
                             />
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="p-1">
                             ${item.price.toFixed(2)}
                           </TableCell>
-                          <TableCell className="font-semibold">
+                          <TableCell className="p-1 font-semibold">
                             ${item.total.toFixed(2)}
                           </TableCell>
                         </TableRow>
@@ -708,17 +709,17 @@ export default function OrdersPage() {
                 </div>
                 
                 {/* Resumen de totales */}
-                <div className="mt-3 flex justify-end">
-                  <div className="w-[300px] space-y-1">
+                <div className="mt-1 flex justify-end">
+                  <div className="w-[200px] space-y-0 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-sm">Subtotal:</span>
-                      <span className="text-sm">${calculateTotal().subtotal.toFixed(2)}</span>
+                      <span>Subtotal:</span>
+                      <span>${calculateTotal().subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm">ITBIS (18%):</span>
-                      <span className="text-sm">${calculateTotal().tax.toFixed(2)}</span>
+                      <span>ITBIS (18%):</span>
+                      <span>${calculateTotal().tax.toFixed(2)}</span>
                     </div>
-                    <Separator />
+                    <Separator className="my-1" />
                     <div className="flex justify-between font-bold">
                       <span>Total:</span>
                       <span>${calculateTotal().total.toFixed(2)}</span>
@@ -728,28 +729,29 @@ export default function OrdersPage() {
               </div>
               
               {/* Notas */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold mb-2">Notas adicionales</h3>
+              <div className="mb-2">
+                <h3 className="text-xs font-semibold mb-1">Notas adicionales</h3>
                 <Textarea 
-                  placeholder="Ingrese notas o instrucciones especiales para este pedido"
+                  placeholder="Instrucciones especiales para este pedido"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
+                  rows={2}
+                  className="text-xs resize-none"
                 />
               </div>
             </CardContent>
             
-            <CardFooter className="flex justify-between px-0">
+            <CardFooter className="flex justify-between px-0 pt-1">
               <Button 
                 variant="outline" 
-                className="text-xs h-8"
+                className="text-xs h-6 px-2"
                 onClick={() => setActiveTab("list")}
               >
-                <ArrowLeft className="h-3.5 w-3.5 mr-1" />
-                Volver a la lista
+                <ArrowLeft className="h-3 w-3 mr-1" />
+                Volver
               </Button>
               <Button 
-                className="text-xs h-8 bg-blue-600 hover:bg-blue-700"
+                className="text-xs h-6 px-2 bg-blue-600 hover:bg-blue-700"
                 onClick={handleCreateOrder}
                 disabled={createMutation.isPending}
               >
@@ -757,7 +759,7 @@ export default function OrdersPage() {
                   <span>Procesando...</span>
                 ) : (
                   <>
-                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    <Plus className="h-3 w-3 mr-1" />
                     Crear Pedido
                   </>
                 )}
