@@ -69,27 +69,34 @@ export default function MobilePendingRoutes() {
     route.status === "pending"
   ) : [];
   
-  // Para cada ruta, generar una consulta separada pero solo para la que se muestra actualmente
-  const firstRouteId = pendingRoutes.length > 0 ? pendingRoutes[0].id : null;
-  
-  // Consultar solo para la primera ruta pendiente
-  const { data: firstRouteOrders = [] } = useQuery<Order[]>({
-    queryKey: [`/api/routes/${firstRouteId}/orders`],
-    enabled: !!firstRouteId,
-    staleTime: 10 * 60 * 1000, // 10 minutos - evitar múltiples solicitudes
-    retry: 1,
-    refetchOnWindowFocus: false
-  });
-  
-  // Actualizar el estado de ordersByRoute solo cuando cambien los datos de la primera ruta
+  // Generamos un efecto para cargar las órdenes de todas las rutas pendientes
   useEffect(() => {
-    if (firstRouteId && firstRouteOrders.length > 0) {
-      setOrdersByRoute(prev => ({
-        ...prev,
-        [firstRouteId]: firstRouteOrders
-      }));
+    // Si hay rutas pendientes, ejecutar consultas para cada una
+    if (pendingRoutes.length > 0) {
+      // Para cada ruta pendiente, cargar sus órdenes
+      pendingRoutes.forEach(route => {
+        // Fetch para obtener las órdenes de esta ruta
+        fetch(`/api/routes/${route.id}/orders`)
+          .then(response => response.json())
+          .then(data => {
+            console.log(`Datos de órdenes para ruta ${route.id}:`, data);
+            // Actualizar el estado de ordersByRoute
+            setOrdersByRoute(prev => ({
+              ...prev,
+              [route.id]: data
+            }));
+          })
+          .catch(err => {
+            console.error(`Error al cargar órdenes para ruta ${route.id}:`, err);
+            // En caso de error, establecer un array vacío para evitar mostrar el spinner indefinidamente
+            setOrdersByRoute(prev => ({
+              ...prev,
+              [route.id]: []
+            }));
+          });
+      });
     }
-  }, [firstRouteId, firstRouteOrders.length]);
+  }, [pendingRoutes]);
 
   // Calcular el valor total de una ruta
   const calculateTotalRevenue = (routeId: number) => {
@@ -215,33 +222,38 @@ export default function MobilePendingRoutes() {
                     </div>
                     
                     {/* Mostrar los pedidos de la ruta */}
-                    {ordersByRoute[route.id] && ordersByRoute[route.id].length > 0 ? (
-                      <div className={`text-xs p-2 rounded mb-3 ${
-                        isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-                      }`}>
-                        <div className="font-medium mb-1">Clientes en esta ruta:</div>
-                        <ul className="space-y-1">
-                          {ordersByRoute[route.id].map((order, index) => (
-                            <li key={order.id} className="flex justify-between">
-                              <span className="flex items-center">
-                                <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
-                                {order.customerName}
-                              </span>
-                              <span className="text-primary">${Number(order.total || order.totalAmount || 0).toFixed(2)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className={`text-xs p-2 rounded mb-3 ${
-                        isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-                      }`}>
+                    <div className={`text-xs p-2 rounded mb-3 ${
+                      isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                    }`}>
+                      {ordersByRoute[route.id] === undefined ? (
+                        // Estado de carga - cuando aún no hay datos
                         <div className="flex justify-center items-center py-2">
                           <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary mr-2"></div>
                           <span className="font-medium">Cargando clientes...</span>
                         </div>
-                      </div>
-                    )}
+                      ) : ordersByRoute[route.id].length > 0 ? (
+                        // Hay pedidos para mostrar
+                        <>
+                          <div className="font-medium mb-1">Clientes en esta ruta:</div>
+                          <ul className="space-y-1">
+                            {ordersByRoute[route.id].map((order, index) => (
+                              <li key={order.id} className="flex justify-between">
+                                <span className="flex items-center">
+                                  <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
+                                  {order.customerName}
+                                </span>
+                                <span className="text-primary">${Number(order.total || order.totalAmount || 0).toFixed(2)}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        // La API devolvió un array vacío
+                        <div className="text-center py-2">
+                          <span className="font-medium">No hay pedidos asignados a esta ruta</span>
+                        </div>
+                      )}
+                    </div>
                     
                     <button 
                       onClick={() => handleStartRoute(route.id)}
