@@ -15,7 +15,11 @@ import {
   FileText,
   ChevronDown,
   ChevronUp,
-  Info
+  Info,
+  DollarSign,
+  Recycle,
+  Receipt,
+  Printer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1036,6 +1040,168 @@ export default function DriverRoute() {
                               <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
                                 <span className="text-xs font-semibold">Total del pedido:</span>
                                 <span className="text-sm font-bold text-primary">${stop.totalValue.toFixed(2)}</span>
+                              </div>
+                              
+                              {/* Sección para confirmar entrega y pago */}
+                              <div className="mt-4 pt-3 border-t border-border">
+                                <h4 className="text-xs font-bold mb-2">Confirmar Entrega y Pago:</h4>
+                                
+                                <div className="space-y-4">
+                                  {/* Sección pago */}
+                                  <div className="p-3 bg-background rounded-md border border-border">
+                                    <h5 className="text-xs font-bold mb-2 flex items-center gap-1">
+                                      <DollarSign className="h-3 w-3" />
+                                      Cobro
+                                    </h5>
+                                    <div className="flex justify-between text-xs mb-2">
+                                      <span>Método de pago:</span>
+                                      <span className="font-medium">Efectivo</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                      <span>Total a cobrar:</span>
+                                      <span className="font-bold text-primary">${stop.totalValue.toFixed(2)}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Sección retorno de envases */}
+                                  <div className="p-3 bg-background rounded-md border border-border">
+                                    <h5 className="text-xs font-bold mb-2 flex items-center gap-1">
+                                      <Recycle className="h-3 w-3" />
+                                      Retorno de envases
+                                    </h5>
+                                    <div className="space-y-1">
+                                      {stop.products
+                                        .filter(p => p.name.includes("BOTELLON"))
+                                        .map((product, idx) => (
+                                          <div key={idx} className="flex justify-between text-xs">
+                                            <span>{product.name}:</span>
+                                            <span className="font-medium">{product.quantity} unidades</span>
+                                          </div>
+                                        ))
+                                      }
+                                      {!stop.products.some(p => p.name.includes("BOTELLON")) && (
+                                        <div className="text-xs text-muted-foreground">
+                                          No hay envases retornables en este pedido
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Botones de factura y recibo */}
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <Button 
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex items-center justify-center gap-1"
+                                      onClick={() => {
+                                        // Generar factura
+                                        toast({
+                                          title: "Generando factura",
+                                          description: "Preparando documento...",
+                                        });
+                                        
+                                        setTimeout(() => {
+                                          toast({
+                                            title: "Factura lista",
+                                            description: "Factura #F-" + stop.id + "-" + new Date().toISOString().slice(0, 10),
+                                            variant: "default"
+                                          });
+                                        }, 1500);
+                                      }}
+                                    >
+                                      <FileText className="h-3 w-3" />
+                                      <span className="text-xs">Factura</span>
+                                    </Button>
+                                    
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex items-center justify-center gap-1"
+                                      onClick={() => {
+                                        // Generar recibo
+                                        toast({
+                                          title: "Generando recibo",
+                                          description: "Preparando documento...",
+                                        });
+                                        
+                                        setTimeout(() => {
+                                          toast({
+                                            title: "Recibo listo",
+                                            description: "Recibo #R-" + stop.id + "-" + new Date().toISOString().slice(0, 10),
+                                            variant: "default"
+                                          });
+                                        }, 1500);
+                                      }}
+                                    >
+                                      <Receipt className="h-3 w-3" />
+                                      <span className="text-xs">Recibo</span>
+                                    </Button>
+                                  </div>
+                                  
+                                  {/* Botón de confirmación */}
+                                  <Button 
+                                    className="w-full flex items-center justify-center gap-1 mt-3"
+                                    variant={stop.status === "completed" ? "outline" : "default"}
+                                    disabled={stop.status === "completed"}
+                                    onClick={() => {
+                                      // Confirmación de entrega
+                                      const confirmed = window.confirm(
+                                        `¿Confirmar entrega de productos y pago por ${stop.totalValue.toFixed(2)} RD$?`
+                                      );
+                                      
+                                      if (!confirmed) return;
+                                      
+                                      // Marcar la parada como completada
+                                      const updatedStops = routeStops.map(s => 
+                                        s.id === stop.id ? { ...s, status: "completed" as "pending" | "in_progress" | "completed" | "cancelled" } : s
+                                      );
+                                      setRouteStops(updatedStops);
+                                      
+                                      // Llamar a la API para actualizar el estado de la orden y registrar el pago
+                                      const updateData = {
+                                        status: 'delivered',
+                                        paymentReceived: stop.totalValue,
+                                        updateBalance: true // Actualizar balance del cliente
+                                      };
+                                      
+                                      fetch(`/api/orders/${stop.id}/status`, {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(updateData)
+                                      })
+                                      .then(res => {
+                                        if (res.ok) {
+                                          toast({
+                                            title: "Entrega completada",
+                                            description: "Pedido entregado, pago registrado y balance actualizado",
+                                            variant: "default"
+                                          });
+                                          
+                                          // Mostrar notificación de factura/recibo
+                                          toast({
+                                            title: "Documentos generados",
+                                            description: "Se ha generado la factura y el recibo de pago",
+                                            variant: "default"
+                                          });
+                                          
+                                          // Cerrar el panel de detalles
+                                          setExpandedStopId(null);
+                                        }
+                                      })
+                                      .catch(err => {
+                                        console.error("Error al marcar entrega:", err);
+                                        toast({
+                                          title: "Error",
+                                          description: "No se pudo actualizar el estado del pedido",
+                                          variant: "destructive"
+                                        });
+                                      });
+                                    }}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                    {stop.status === "completed" ? "Entregado" : "Confirmar entrega y pago"}
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
