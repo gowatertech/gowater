@@ -914,28 +914,44 @@ export default function DriverRoute() {
                       
                       <div className="ml-8 text-sm">
                         <p className="text-muted-foreground text-xs mb-1">{stop.address}</p>
-                        {stop.isWarehouse ? (
-                          <div className="mb-2">
-                            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                              Punto de inicio
-                            </span>
-                          </div>
-                        ) : (
+                        {stop.products && stop.products.length > 0 ? (
                           <div className="mt-1 mb-2">
+                            <h4 className="text-xs font-bold mb-1">Productos:</h4>
                             <div className="bg-primary/5 rounded-md p-2">
-                              <div className="flex justify-between">
-                                <span className="text-xs font-bold">Total productos:</span>
-                                <span className="text-xs font-medium">
-                                  {stop.products.reduce((total, product) => total + product.quantity, 0)} unidades
-                                </span>
-                              </div>
-                              <div className="flex justify-between mt-1">
-                                <span className="text-xs font-bold">Valor del pedido:</span>
-                                <span className="text-xs font-bold text-primary">
-                                  ${stop.totalValue.toFixed(2)}
-                                </span>
+                              <ul className="space-y-1">
+                                {stop.products.map(product => (
+                                  <li 
+                                    key={product.id}
+                                    className="text-xs flex justify-between border-b last:border-0 pb-1 last:pb-0"
+                                  >
+                                    <span className="font-medium">{product.name}</span>
+                                    <span className="font-bold">{product.quantity} × ${product.price.toFixed(2)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                              <div className="border-t border-primary/20 mt-2 pt-2 space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-xs font-bold">Total productos:</span>
+                                  <span className="text-xs font-medium">
+                                    {stop.products.reduce((total, product) => total + product.quantity, 0)} unidades
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-xs font-bold">Valor del pedido:</span>
+                                  <span className="text-xs font-bold text-primary">
+                                    ${stop.totalValue.toFixed(2)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
+                          </div>
+                        ) : (
+                          <div className="mb-2">
+                            {stop.isWarehouse && (
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                Punto de inicio
+                              </span>
+                            )}
                           </div>
                         )}
 
