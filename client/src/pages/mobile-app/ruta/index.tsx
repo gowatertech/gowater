@@ -204,12 +204,22 @@ export default function DriverRoute() {
           0
         );
         
-        // Extraer coordenadas del cliente si están disponibles en stopCoordinates
+        // Extraer coordenadas del cliente directamente del orden si están disponibles
         let latitude = 0, longitude = 0;
         let stopOrder = index + 1; // Por defecto, orden secuencial
         
-        // Intentar encontrar la posición correcta en la secuencia
-        if (stopSequence.length > index + 1) {
+        // Intentar obtener coordenadas del pedido primero
+        if (order.coordinates) {
+          console.log(`Coordenadas del pedido ${order.id}:`, order.coordinates);
+          const [lat, lng] = order.coordinates.split(',').map((coord: string) => parseFloat(coord));
+          if (!isNaN(lat) && !isNaN(lng)) {
+            latitude = lat;
+            longitude = lng;
+          }
+        }
+        
+        // Intentar encontrar la posición correcta en la secuencia si no tenemos coordenadas directas
+        if ((latitude === 0 || longitude === 0) && stopSequence.length > index + 1) {
           const sequenceIndex = parseInt(stopSequence[index + 1]);
           stopOrder = sequenceIndex;
           
@@ -220,10 +230,11 @@ export default function DriverRoute() {
           }
         }
         
-        // Si no tenemos coordenadas válidas, usar valores ligeramente diferentes para visualización
+        // Si aún no tenemos coordenadas válidas, usar valores ligeramente diferentes para visualización
         if (latitude === 0 || longitude === 0) {
           latitude = warehouseLocation[0] + (Math.random() * 0.02);
           longitude = warehouseLocation[1] + (Math.random() * 0.02);
+          console.log(`Usando coordenadas aleatorias para pedido ${order.id}`);
         }
         
         // Calcular estimados aproximados (en una app real estos vendrían de un servicio)
