@@ -156,8 +156,19 @@ export function registerRoutesEndpoints(app: Express) {
     try {
       const routeId = parseInt(req.params.id);
       
+      // Primero, obtener la ruta para conocer sus detalles
+      const route = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.id, routeId))
+        .limit(1);
+      
+      if (!route || route.length === 0) {
+        return res.status(404).json({ error: "Ruta no encontrada" });
+      }
+      
       // Buscar todas las órdenes para esta ruta
-      const routeOrders = await db
+      let routeOrders = await db
         .select({
           id: orders.id,
           routeId: orders.routeId,
@@ -166,10 +177,42 @@ export function registerRoutesEndpoints(app: Express) {
           total: orders.total,
           customerName: customers.businessname,
           customerAddress: customers.street,
+          date: orders.date,
+          paymentMethod: orders.paymentMethod,
+          coordinates: customers.coordinates,
+          streetnumber: customers.streetnumber
         })
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(eq(orders.routeId, routeId));
+      
+      // Si no hay órdenes asignadas directamente a la ruta, buscar órdenes pendientes sin asignar
+      if (routeOrders.length === 0) {
+        console.log(`No hay órdenes asignadas a la ruta ${routeId}, buscando órdenes pendientes...`);
+        
+        routeOrders = await db
+          .select({
+            id: orders.id,
+            routeId: orders.routeId, 
+            customerId: orders.customerId,
+            status: orders.status,
+            total: orders.total,
+            customerName: customers.businessname,
+            customerAddress: customers.street,
+            date: orders.date,
+            paymentMethod: orders.paymentMethod,
+            coordinates: customers.coordinates,
+            streetnumber: customers.streetnumber
+          })
+          .from(orders)
+          .leftJoin(customers, eq(orders.customerId, customers.id))
+          .where(and(
+            isNull(orders.routeId),
+            eq(orders.status, "pending")
+          ));
+        
+        console.log(`Se encontraron ${routeOrders.length} órdenes pendientes sin asignar`);
+      }
         
       // Para cada orden, buscar los productos
       const ordersWithProducts = await Promise.all(
