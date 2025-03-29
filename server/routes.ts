@@ -1673,23 +1673,83 @@ export async function registerRoutes(app: Express) {
       const updatedOrder = await storage.updateOrderStatus(orderId, status);
       console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a "${status}"`, updatedOrder);
       
-      // Si se recibió un pago y debemos actualizar el balance del cliente
-      if (status === 'delivered' && paymentReceived && updateBalance && updatedOrder) {
+      // Si el estado es "delivered", debemos procesar el pago y generar la factura
+      if (status === 'delivered' && updatedOrder) {
         try {
-          // Obtener el pedido para conocer el cliente
+          // Obtener el pedido completo con detalles para generar la factura
           const order = await storage.getOrder(orderId);
           
           if (order && order.customerId) {
-            // Actualizar el balance del cliente (sumar el monto pagado)
-            const customer = await storage.updateCustomerBalance(order.customerId, Number(paymentReceived));
-            console.log(`Balance del cliente ${order.customerId} actualizado con el pago de ${paymentReceived}`);
+            // 1. Actualizar el balance del cliente si se requiere
+            if (paymentReceived && updateBalance) {
+              const customer = await storage.updateCustomerBalance(order.customerId, Number(paymentReceived));
+              console.log(`Balance del cliente ${order.customerId} actualizado con el pago de ${paymentReceived}`);
+            }
             
-            // También podríamos registrar el pago en una tabla de pagos si existiera
-            // await storage.registerPayment(orderId, Number(paymentReceived), new Date());
+            // 2. Generar una factura para este pedido entregado
+            try {
+              // Datos para la factura
+              const invoiceData = {
+                customerId: order.customerId,
+                total: order.total,
+                status: paymentReceived ? "paid" : "pending", // Si se recibió el pago, la factura está pagada
+                paymentMethod: order.paymentMethod,
+                notes: `Factura generada automáticamente para el pedido #${orderId}`,
+              };
+              
+              // Validar datos de factura
+              const validationResult = insertInvoiceSchema.safeParse(invoiceData);
+              if (validationResult.success) {
+                // Crear la factura
+                const [invoice] = await db
+                  .insert(invoices)
+                  .values({
+                    ...validationResult.data,
+                    date: new Date(), // Aseguramos que tenga una fecha actual
+                  })
+                  .returning();
+                
+                console.log(`Factura #${invoice.id} creada automáticamente para el pedido #${orderId}`);
+                
+                // Obtener los ítems del pedido
+                const orderItemsData = await db
+                  .select({
+                    orderId: orderItems.orderId,
+                    productId: orderItems.productId,
+                    quantity: orderItems.quantity,
+                    price: orderItems.price,
+                  })
+                  .from(orderItems)
+                  .where(eq(orderItems.orderId, orderId));
+                
+                // Crear los ítems de la factura basados en los ítems del pedido
+                if (orderItemsData.length > 0) {
+                  const invoiceItemsToInsert = orderItemsData.map(item => ({
+                    invoiceId: invoice.id,
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: item.price,
+                    total: Number(item.price) * item.quantity,
+                  }));
+                  
+                  // Insertar los ítems de la factura
+                  await db
+                    .insert(invoiceItems)
+                    .values(invoiceItemsToInsert);
+                  
+                  console.log(`${invoiceItemsToInsert.length} ítems añadidos a la factura #${invoice.id}`);
+                }
+              } else {
+                console.error("Error al validar datos de factura:", validationResult.error);
+              }
+            } catch (invoiceError) {
+              console.error("Error al generar factura para el pedido:", invoiceError);
+              // No fallamos la operación principal si la generación de factura falla
+            }
           }
-        } catch (balanceError) {
-          console.error("Error al actualizar el balance del cliente:", balanceError);
-          // No fallamos la operación principal si esto falla
+        } catch (processingError) {
+          console.error("Error al procesar datos para entrega completada:", processingError);
+          // No fallamos la operación principal si este procesamiento falla
         }
       }
       
