@@ -59,6 +59,9 @@ interface RouteStop {
   isWarehouse?: boolean; // Indica si es el almacén (punto 0)
 }
 
+// Coordenadas del almacén (punto de inicio) - Cotuí, Sánchez Ramírez
+const warehouseLocation: [number, number] = [19.05878, -70.15141];
+
 export default function DriverRoute() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
@@ -66,7 +69,7 @@ export default function DriverRoute() {
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
-  const [currentLocation, setCurrentLocation] = useState<[number, number]>([19.05878, -70.15141]); // Ubicación predeterminada: Cotuí, Sánchez Ramírez
+  const [currentLocation, setCurrentLocation] = useState<[number, number]>(warehouseLocation); // Ubicación predeterminada: almacén
   const [watchId, setWatchId] = useState<number | null>(null);
   
   // Obtener el ID de la ruta desde la URL
@@ -183,8 +186,7 @@ export default function DriverRoute() {
         console.log("Coordenadas del primer pedido:", ordersData[0].coordinates);
       }
       
-      // Coordenadas del almacén (punto de inicio) - Cotuí, Sánchez Ramírez
-      const warehouseLocation: [number, number] = [19.05878, -70.15141];
+      // Usamos las coordenadas del almacén definidas globalmente
       
       // Crear la estructura de paradas para la ruta
       const stops: RouteStop[] = [];
@@ -570,15 +572,15 @@ export default function DriverRoute() {
   // Función para depurar el estado actual
   const debugInfo = () => {
     return (
-      <div className="bg-yellow-100 text-yellow-800 p-3 mb-4 rounded text-xs">
-        <h3 className="font-bold mb-1">DEBUG INFO:</h3>
-        <p>Route ID: {activeRouteId}</p>
-        <p>Paradas totales: {routeStops.length}</p>
+      <div className={`bg-slate-100 text-slate-800 p-3 mb-4 rounded-lg text-xs border ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : ''}`}>
+        <h3 className="font-bold mb-1 text-primary">Información de Ruta:</h3>
+        <p>ID de Ruta: {activeRouteId}</p>
+        <p>Paradas: {routeStops.length}</p>
         <p>Primer parada: {routeStops.length > 0 ? 
-          `${routeStops[0].customerName} (ID: ${routeStops[0].id})` : 
+          `${routeStops[0].customerName}` : 
           'Ninguna'}</p>
-        <p>Estado de ruta: {routeStatus}</p>
-        <p>Ubicación actual: [{currentLocation[0].toFixed(6)}, {currentLocation[1].toFixed(6)}]</p>
+        <p>Estado: <span className="font-medium">{routeStatus}</span></p>
+        <p className="text-xs text-muted-foreground">Ubicación: [{currentLocation[0].toFixed(5)}, {currentLocation[1].toFixed(5)}]</p>
       </div>
     );
   };
@@ -598,12 +600,12 @@ export default function DriverRoute() {
       </div>
       
       <main className="container max-w-md mx-auto px-0 pb-6">
-        {/* Mapa de la ruta */}
-        <div className="h-[40vh] relative mb-4">
-          <ResponsiveMapContainer className="w-full h-full z-0">
+        {/* Mapa de la ruta (altura reducida) */}
+        <div className="h-[30vh] relative mb-4">
+          <ResponsiveMapContainer className="w-full h-full z-0" fixedHeight={true}>
             <MapContainer 
-              center={currentLocation} 
-              zoom={14} 
+              center={warehouseLocation} 
+              zoom={13} 
               className="h-full w-full z-0"
               zoomControl={false}
               attributionControl={false}
@@ -782,7 +784,7 @@ export default function DriverRoute() {
                         <div className="flex items-center gap-2">
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
                             stop.isWarehouse
-                              ? 'bg-yellow-100 text-yellow-600'
+                              ? 'bg-primary/10 text-primary'
                               : stop.status === 'completed' 
                                 ? 'bg-green-100 text-green-600' 
                                 : 'bg-primary/10 text-primary'
@@ -836,7 +838,7 @@ export default function DriverRoute() {
                         ) : (
                           <div className="mb-2">
                             {stop.isWarehouse && (
-                              <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                                 Punto de inicio
                               </span>
                             )}

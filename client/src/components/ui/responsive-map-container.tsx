@@ -81,13 +81,13 @@ export function ResponsiveMapContainer({
   }
   
   if (fixedHeight) {
-    // Fixed height for different devices
-    let height = '550px';
+    // Fixed height for different devices - reduciendo las alturas
+    let height = '400px';
     
     if (isMobile) {
-      height = '350px';
+      height = '250px';
     } else if (isTablet) {
-      height = '450px';
+      height = '300px';
     }
     
     return (
@@ -99,7 +99,7 @@ export function ResponsiveMapContainer({
         style={{
           ...style,
           height,
-          minHeight: minHeight || '300px'
+          minHeight: minHeight || '200px'
         }}
       >
         {children}
