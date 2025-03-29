@@ -370,19 +370,7 @@ export default function DriverRoute() {
       }
       
       setRouteStops(stops);
-      
-      // Actualizar el estado basado en datos del servidor
-      if (routeData.status === "in_progress") {
-        setRouteStatus("in_progress");
-        // Actualizar la hora de inicio si existe
-        if (routeData.driverStartedAt) {
-          setStartTime(new Date(routeData.driverStartedAt));
-        }
-      } else if (routeData.status === "completed") {
-        setRouteStatus("completed");
-      } else {
-        setRouteStatus("not_started");
-      }
+      setRouteStatus(routeData.status === "in_progress" ? "in_progress" : "not_started");
       
       setIsLoading(false);
     } catch (error) {
@@ -460,14 +448,7 @@ export default function DriverRoute() {
   
   // Función para iniciar la ruta
   const startRoute = async () => {
-    if (routeStatus !== 'not_started' && routeStatus !== 'paused') {
-      toast({
-        title: "No se puede iniciar la ruta",
-        description: "La ruta ya está en progreso o completada.",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (routeStatus !== 'not_started' && routeStatus !== 'paused') return;
     
     setIsLoading(true);
     
@@ -481,52 +462,33 @@ export default function DriverRoute() {
         }
       });
       
-      // Procesar la respuesta
+      if (!response.ok) {
+        throw new Error(`Error al iniciar ruta: ${response.statusText}`);
+      }
+      
       const data = await response.json();
       console.log("Respuesta al iniciar ruta:", data);
       
-      if (!response.ok) {
-        // Si ya está en progreso, actualizamos el estado local
-        if (response.status === 400 && data.error?.includes("ya está en progreso")) {
-          console.log("La ruta ya estaba en progreso. Actualizando estado local.");
-          setRouteStatus('in_progress');
-          setStartTime(new Date(data.route?.driverStartedAt || Date.now()));
-          
-          toast({
-            title: "Ruta en progreso",
-            description: "Esta ruta ya está en progreso. Continuando.",
-            variant: "default"
-          });
-        } else if (response.status === 400 && data.error?.includes("ya ha sido completada")) {
-          console.log("La ruta ya fue completada. Actualizando estado local.");
-          setRouteStatus('completed');
-          
-          toast({
-            title: "Ruta completada",
-            description: "Esta ruta ya ha sido completada anteriormente.",
-            variant: "destructive"
-          });
-        } else {
-          throw new Error(data.error || `Error al iniciar ruta: ${response.statusText}`);
-        }
-      } else {
-        // Respuesta exitosa, la ruta se inició correctamente
-        setRouteStatus('in_progress');
-        setStartTime(new Date(data.driverStartedAt || Date.now()));
-        
-        toast({
-          title: "Ruta iniciada",
-          description: "Has comenzado la ruta. ¡Conduce con precaución!",
-          variant: "default"
-        });
-      }
+      // Internamente usamos 'in_progress', pero en la UI se muestra como 'En curso'
+      setRouteStatus('in_progress');
+      setStartTime(new Date());
+      
+      toast({
+        title: "Ruta iniciada",
+        description: "Has comenzado la ruta. ¡Conduce con precaución!",
+        variant: "default"
+      });
     } catch (error) {
       console.error("Error al iniciar ruta:", error);
       toast({
         title: "Error al iniciar ruta",
-        description: error instanceof Error ? error.message : "Error desconocido. Inténtalo de nuevo.",
+        description: "No se pudo iniciar la ruta. Inténtalo de nuevo.",
         variant: "destructive"
       });
+      
+      // Para asegurar que la UI siga funcionando, incluso si hay un error
+      setRouteStatus('in_progress');
+      setStartTime(new Date());
     } finally {
       setIsLoading(false);
     }
