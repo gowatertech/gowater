@@ -134,12 +134,42 @@ export default function DeliveryDetails() {
   };
   
   // Registrar retorno de envases
-  const registerBottleReturn = (productId: number, quantity: number) => {
-    // Aquí implementarías la lógica para registrar el retorno de envases
-    toast({
-      title: "Envases retornados",
-      description: `Se registraron ${quantity} envases del producto ${productId}`,
-    });
+  const registerBottleReturn = async (bottleReturnId: number, quantity: number) => {
+    if (!deliveryId) return;
+    
+    setIsLoading(true);
+    try {
+      // Llamar al endpoint para actualizar el retorno de envases
+      const response = await fetch(`/api/bottle-returns/${bottleReturnId}/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ returnedQuantity: quantity }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al registrar el retorno de envases');
+      }
+      
+      // Recargar los datos actualizados
+      await loadDeliveryDetails();
+      
+      toast({
+        title: "Envases retornados",
+        description: `Se registraron ${quantity} envases correctamente`,
+        variant: "default"
+      });
+    } catch (error) {
+      console.error('Error al registrar retorno de envases:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo registrar el retorno de envases",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Cargar datos al montar el componente
@@ -323,7 +353,7 @@ export default function DeliveryDetails() {
                           <Button 
                             size="sm" 
                             className="w-full"
-                            onClick={() => registerBottleReturn(bottleReturn.productId, bottleReturn.pendingQuantity)}
+                            onClick={() => registerBottleReturn(bottleReturn.id, bottleReturn.pendingQuantity)}
                           >
                             Registrar Retorno
                           </Button>

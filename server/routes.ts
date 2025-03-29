@@ -11,6 +11,7 @@ import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
 import { registerRouteSettlements } from "./routes/routeSettlements";
 import { registerDriverRoutes } from "./routes/driver";
 import { registerRoutesEndpoints } from "./routes-endpoints";
+import { registerBottleReturnsEndpoints } from "./routes/bottle-returns";
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
 
@@ -31,6 +32,7 @@ export async function registerRoutes(app: Express) {
   await registerVehicleLoadingRoutes(app);
   await registerRouteSettlements(app);
   await registerDriverRoutes(app);
+  registerBottleReturnsEndpoints(app);
   
   // Endpoint para obtener el usuario actual
   app.get("/api/me", async (req, res) => {
