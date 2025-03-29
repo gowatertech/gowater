@@ -232,7 +232,10 @@ export default function DeliveryDetails() {
   // Abrir diálogo de confirmación de entrega
   const openDeliveryConfirm = () => {
     if (delivery) {
+      // Reiniciar valores para que el chofer pueda elegir
+      setPaymentMethod("cash"); // Establecer un valor inicial pero el chofer podrá cambiarlo
       setPaymentReceived(delivery.total);
+      setUpdateCustomerBalance(true);
       setShowDeliveryConfirm(true);
     }
   };
@@ -252,6 +255,9 @@ export default function DeliveryDetails() {
         paymentAmount: paymentReceived,
         updateCustomerBalance: updateCustomerBalance
       };
+
+      console.log("Procesando entrega con datos:", JSON.stringify(updateData));
+      console.log("Método de pago seleccionado:", paymentMethod);
       
       // Enviar datos al servidor
       const response = await fetch(`/api/orders/${delivery.orderId}/deliver`, {
@@ -641,7 +647,10 @@ export default function DeliveryDetails() {
               <RadioGroup 
                 id="payment-method" 
                 value={paymentMethod} 
-                onValueChange={(value) => setPaymentMethod(value as "cash" | "credit")}
+                onValueChange={(value) => {
+                  console.log("Método de pago cambiado a:", value);
+                  setPaymentMethod(value as "cash" | "credit");
+                }}
                 className="flex space-x-4"
               >
                 <div className="flex items-center space-x-2">

@@ -582,6 +582,14 @@ export function registerRoutesEndpoints(app: Express) {
         return res.status(400).json({ error: "ID de pedido inválido" });
       }
       
+      // Validar que el método de pago sea válido
+      if (!paymentMethod || !["cash", "credit"].includes(paymentMethod)) {
+        return res.status(400).json({ 
+          error: "Método de pago inválido. Debe ser 'cash' o 'credit'.",
+          receivedMethod: paymentMethod 
+        });
+      }
+      
       console.log(`Marcando pedido ${orderId} como entregado con método de pago: ${paymentMethod}`);
       
       // Verificar que el pedido existe
@@ -619,7 +627,7 @@ export function registerRoutesEndpoints(app: Express) {
       await db.update(orders)
         .set({ 
           status: "delivered",
-          paymentMethod: paymentMethod || "cash" // Por defecto, pago en efectivo
+          paymentMethod: paymentMethod // Usar el método proporcionado por el cliente (no usar valor por defecto)
         })
         .where(eq(orders.id, orderId));
       
@@ -653,7 +661,7 @@ export function registerRoutesEndpoints(app: Express) {
           customerId: order[0].customerId,
           total: order[0].total,
           status: paymentMethod === "cash" ? "paid" : "pending",
-          paymentMethod: paymentMethod || "cash",
+          paymentMethod: paymentMethod, // Usar el método proporcionado por el cliente (no usar valor por defecto)
           notes: `Pedido #${orderId} entregado`
         })
         .returning();
