@@ -42,10 +42,10 @@ let DefaultIcon = L.icon({
 
 // Icono verde para el almacén
 let WarehouseIcon = L.divIcon({
-  html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-full w-6 h-6 text-sm font-semibold">A</div>`,
-  className: 'custom-number-icon',
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
+  html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-full w-8 h-8 text-sm font-semibold shadow-lg border-2 border-white">A</div>`,
+  className: 'custom-warehouse-icon',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16]
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;

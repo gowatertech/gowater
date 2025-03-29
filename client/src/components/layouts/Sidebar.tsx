@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { ThemeThumbnail } from "@/components/theme/ThemeThumbnail";
 import {
   Users,
   Route,
@@ -217,13 +218,16 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const SidebarContent = () => (
     <div className="flex h-full flex-col bg-background">
       <UISidebarHeader className="px-6 py-4 border-b">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-md bg-blue-50">
-            <Droplet className="h-6 w-6 text-primary" />
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-blue-50">
+              <Droplet className="h-6 w-6 text-primary" />
+            </div>
+            <span className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              GoWater
+            </span>
           </div>
-          <span className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            GoWater
-          </span>
+          <ThemeThumbnail />
         </div>
       </UISidebarHeader>
 
