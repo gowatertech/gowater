@@ -19,8 +19,7 @@ import {
   DollarSign,
   Recycle,
   Receipt,
-  Printer,
-  CreditCard
+  Printer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,7 +74,6 @@ interface RouteStop {
   products: { id: number; name: string; quantity: number; price: number }[];
   totalValue: number; // Valor total del pedido
   isWarehouse?: boolean; // Indica si es el almacén (punto 0)
-  paymentMethod?: "cash" | "credit"; // Método de pago: efectivo o crédito
 }
 
 // Coordenadas del almacén (punto de inicio) - Cotuí, Sánchez Ramírez
@@ -1140,69 +1138,15 @@ export default function DriverRoute() {
                                     </Button>
                                   </div>
                                   
-                                  {/* Selección de método de pago */}
-                                  <div className="space-y-2 mt-3">
-                                    <h4 className="text-xs font-semibold">Método de Pago:</h4>
-                                    <div className="flex space-x-2">
-                                      <Button
-                                        type="button"
-                                        onClick={() => {
-                                          const selectedStop = routeStops.find(s => s.id === stop.id);
-                                          if (selectedStop) {
-                                            setRouteStops(routeStops.map(s => 
-                                              s.id === stop.id ? { ...s, paymentMethod: "cash" } : s
-                                            ));
-                                            console.log("Seleccionado método de pago: Efectivo");
-                                          }
-                                        }}
-                                        variant={stop.paymentMethod === "cash" ? "default" : "outline"}
-                                        size="sm"
-                                        className="flex-1 flex items-center justify-center h-8"
-                                      >
-                                        <DollarSign className="h-3 w-3 mr-1" />
-                                        Efectivo
-                                      </Button>
-                                      
-                                      <Button
-                                        type="button"
-                                        onClick={() => {
-                                          const selectedStop = routeStops.find(s => s.id === stop.id);
-                                          if (selectedStop) {
-                                            setRouteStops(routeStops.map(s => 
-                                              s.id === stop.id ? { ...s, paymentMethod: "credit" } : s
-                                            ));
-                                            console.log("Seleccionado método de pago: Crédito");
-                                          }
-                                        }}
-                                        variant={stop.paymentMethod === "credit" ? "default" : "outline"}
-                                        size="sm"
-                                        className="flex-1 flex items-center justify-center h-8"
-                                      >
-                                        <CreditCard className="h-3 w-3 mr-1" />
-                                        Crédito
-                                      </Button>
-                                    </div>
-                                  </div>
-
                                   {/* Botón de confirmación */}
                                   <Button 
                                     className="w-full flex items-center justify-center gap-1 mt-3"
                                     variant={stop.status === "completed" ? "outline" : "default"}
-                                    disabled={stop.status === "completed" || !stop.paymentMethod}
+                                    disabled={stop.status === "completed"}
                                     onClick={() => {
-                                      // Verificar que se haya seleccionado un método de pago
-                                      if (!stop.paymentMethod) {
-                                        toast({
-                                          title: "Error",
-                                          description: "Debes seleccionar un método de pago (Efectivo o Crédito)",
-                                          variant: "destructive"
-                                        });
-                                        return;
-                                      }
-                                      
                                       // Confirmación de entrega
                                       const confirmed = window.confirm(
-                                        `¿Confirmar entrega de productos y pago por ${stop.totalValue.toFixed(2)} RD$ (${stop.paymentMethod === "cash" ? "Efectivo" : "Crédito"})?`
+                                        `¿Confirmar entrega de productos y pago por ${stop.totalValue.toFixed(2)} RD$?`
                                       );
                                       
                                       if (!confirmed) return;
@@ -1216,12 +1160,9 @@ export default function DriverRoute() {
                                       // Llamar a la API para actualizar el estado de la orden y registrar el pago
                                       const updateData = {
                                         status: 'delivered',
-                                        paymentMethod: stop.paymentMethod, // Incluir el método de pago seleccionado
                                         paymentReceived: stop.totalValue,
                                         updateBalance: true // Actualizar balance del cliente
                                       };
-                                      
-                                      console.log("Enviando datos de entrega:", JSON.stringify(updateData));
                                       
                                       fetch(`/api/orders/${stop.id}/status`, {
                                         method: 'PATCH', // Cambiado de POST a PATCH para coincidir con el endpoint del servidor

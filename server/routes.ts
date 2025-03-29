@@ -1664,31 +1664,13 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'ID de pedido inválido' });
       }
 
-      const { status, paymentMethod, paymentReceived, updateBalance } = req.body;
+      const { status, paymentReceived, updateBalance } = req.body;
       if (!status || !['pending', 'delivered', 'cancelled'].includes(status)) {
         return res.status(400).json({ error: 'Estado inválido. Debe ser "pending", "delivered" o "cancelled"' });
-      }
-      
-      // Validar el método de pago cuando se está entregando un pedido
-      if (status === 'delivered' && (!paymentMethod || !['cash', 'credit'].includes(paymentMethod))) {
-        return res.status(400).json({ error: 'Método de pago inválido. Debe ser "cash" o "credit" para pedidos entregados' });
       }
 
       // Actualizar el estado del pedido
       const updatedOrder = await storage.updateOrderStatus(orderId, status);
-      
-      // Si se proporcionó un método de pago y el pedido se marca como entregado, actualizarlo
-      if (status === 'delivered' && paymentMethod) {
-        // Actualizar el método de pago en la base de datos
-        try {
-          await db.update(orders)
-            .set({ paymentMethod })
-            .where(eq(orders.id, orderId));
-          console.log(`PATCH /api/orders/${orderId}/status - Método de pago actualizado a "${paymentMethod}"`);
-        } catch (error) {
-          console.error(`Error al actualizar método de pago para el pedido ${orderId}:`, error);
-        }
-      }
       console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a "${status}"`, updatedOrder);
       
       // Si el estado es "delivered", debemos procesar el pago y generar la factura
