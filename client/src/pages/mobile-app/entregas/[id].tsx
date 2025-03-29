@@ -59,8 +59,17 @@ export default function DeliveryDetails() {
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
+  const [routeId, setRouteId] = useState<number | null>(null);
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
+  
+  // Obtener el ID de la ruta desde localStorage
+  useEffect(() => {
+    const savedRouteId = localStorage.getItem('activeRouteId');
+    if (savedRouteId) {
+      setRouteId(parseInt(savedRouteId));
+    }
+  }, []);
   
   // Alternar modo oscuro
   const toggleDarkMode = () => {
@@ -180,10 +189,20 @@ export default function DeliveryDetails() {
           <Package className="h-16 w-16 mx-auto text-muted-foreground opacity-30 mb-4" />
           <h2 className="text-xl font-semibold mb-2">Entrega no encontrada</h2>
           <p className="text-muted-foreground mb-6">No se pudo encontrar la información de esta entrega</p>
-          <Button onClick={() => setLocation('/mobile-app/entregas')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver a entregas
-          </Button>
+          
+          <div className="flex space-x-2 justify-center">
+            {routeId ? (
+              <Button onClick={() => setLocation(`/mobile-app/ruta?routeId=${routeId}`)}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver a ruta
+              </Button>
+            ) : (
+              <Button onClick={() => setLocation('/mobile-app/entregas')}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver a entregas
+              </Button>
+            )}
+          </div>
         </div>
         <MobileFooter darkMode={darkMode} />
       </div>
@@ -205,11 +224,17 @@ export default function DeliveryDetails() {
               variant="ghost" 
               size="sm" 
               className="mr-2 p-1" 
-              onClick={() => setLocation('/mobile-app/entregas')}
+              onClick={() => routeId ? setLocation(`/mobile-app/ruta?routeId=${routeId}`) : setLocation('/mobile-app/entregas')}
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <h1 className="text-xl font-bold">Detalles de la Entrega</h1>
+            {routeId && (
+              <Badge variant="outline" className="ml-auto">
+                <Truck className="h-3 w-3 mr-1" />
+                Ruta activa
+              </Badge>
+            )}
           </div>
           
           {/* Información de la entrega */}
@@ -352,13 +377,23 @@ export default function DeliveryDetails() {
               {delivery.status === "delivered" ? "Entregado" : "Marcar como Entregado"}
             </Button>
             
-            <Button 
-              className="flex-1" 
-              variant="outline"
-              onClick={() => setLocation('/mobile-app/entregas')}
-            >
-              Volver
-            </Button>
+            {routeId ? (
+              <Button 
+                className="flex-1" 
+                variant="outline"
+                onClick={() => setLocation(`/mobile-app/ruta?routeId=${routeId}`)}
+              >
+                Volver a Ruta
+              </Button>
+            ) : (
+              <Button 
+                className="flex-1" 
+                variant="outline"
+                onClick={() => setLocation('/mobile-app/entregas')}
+              >
+                Volver a Entregas
+              </Button>
+            )}
           </div>
         </div>
       </main>
