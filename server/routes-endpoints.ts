@@ -6,9 +6,13 @@ import {
   products,
   routes,
   zones,
-  bottleReturns
+  bottleReturns,
+  invoices,
+  invoiceItems,
+  payments
 } from "@shared/schema";
 import { and, eq, inArray, sql, isNull, ne } from "drizzle-orm";
+import { storage } from "./storage";
 
 // Importación con alias para evitar la colisión de nombres
 import { orderItems as orderItemsTable } from "@shared/schema";
@@ -564,6 +568,142 @@ export function registerRoutesEndpoints(app: Express) {
       res.json(bottleReturnsByOrder);
     } catch (error) {
       console.error("Error al obtener los envases retornables de la ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para marcar un pedido como entregado con pago
+  app.post("/api/orders/:id/deliver", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { paymentMethod, paymentAmount, updateCustomerBalance } = req.body;
+      
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de pedido inválido" });
+      }
+      
+      console.log(`Marcando pedido ${orderId} como entregado con método de pago: ${paymentMethod}`);
+      
+      // Verificar que el pedido existe
+      const order = await db.select()
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
+      
+      if (!order || order.length === 0) {
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+      
+      // Obtener información del cliente
+      const customer = await db.select()
+        .from(customers)
+        .where(eq(customers.id, order[0].customerId))
+        .limit(1);
+      
+      if (!customer || customer.length === 0) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+      
+      // Obtener los productos del pedido
+      const orderItems = await db.select({
+        productId: orderItemsTable.productId,
+        productName: products.name,
+        quantity: orderItemsTable.quantity,
+        price: orderItemsTable.price,
+      })
+      .from(orderItemsTable)
+      .innerJoin(products, eq(orderItemsTable.productId, products.id))
+      .where(eq(orderItemsTable.orderId, orderId));
+      
+      // Actualizar el estado del pedido a "entregado"
+      await db.update(orders)
+        .set({ 
+          status: "delivered",
+          paymentMethod: paymentMethod || "cash" // Por defecto, pago en efectivo
+        })
+        .where(eq(orders.id, orderId));
+      
+      console.log(`Pedido ${orderId} actualizado como entregado`);
+      
+      // Actualizar el balance del cliente si se requiere
+      if (updateCustomerBalance) {
+        // Si el método de pago es crédito, añadir al balance, si es efectivo, no afecta
+        const currentBalance = parseFloat(customer[0].balance || "0");
+        const orderTotal = parseFloat(order[0].total || "0");
+        let newBalance = currentBalance;
+        
+        if (paymentMethod === "credit") {
+          // Si es crédito, aumentamos el balance
+          newBalance = currentBalance + orderTotal;
+        } else if (paymentMethod === "cash") {
+          // En caso de efectivo, el balance no cambia
+          newBalance = currentBalance;
+        }
+        
+        await db.update(customers)
+          .set({ balance: newBalance.toFixed(2) })
+          .where(eq(customers.id, customer[0].id));
+        
+        console.log(`Balance del cliente actualizado de ${currentBalance} a ${newBalance}`);
+      }
+      
+      // Crear una factura para la orden
+      const [invoice] = await db.insert(invoices)
+        .values({
+          customerId: order[0].customerId,
+          total: order[0].total,
+          status: paymentMethod === "cash" ? "paid" : "pending",
+          paymentMethod: paymentMethod || "cash",
+          notes: `Pedido #${orderId} entregado`
+        })
+        .returning();
+      
+      console.log(`Factura generada con ID: ${invoice.id}`);
+      
+      // Insertar los detalles de la factura (items)
+      for (const item of orderItems) {
+        const itemTotal = (parseFloat(item.price) * item.quantity).toFixed(2);
+        await db.insert(invoiceItems)
+          .values({
+            invoiceId: invoice.id,
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+            total: itemTotal
+          });
+      }
+      
+      console.log("Detalles de factura agregados");
+      
+      // Registrar el pago si es en efectivo
+      if (paymentMethod === "cash" && paymentAmount > 0) {
+        try {
+          const payment = await storage.registerPayment({
+            invoiceId: invoice.id,
+            customerId: order[0].customerId,
+            amount: (Math.min(paymentAmount, parseFloat(order[0].total))).toFixed(2),
+            paymentMethod: "cash",
+            reference: `Pago de pedido #${orderId}`,
+            notes: "Pago recibido al momento de la entrega"
+          });
+          
+          console.log(`Pago registrado con ID: ${payment.id}`);
+        } catch (paymentError) {
+          console.error("Error al registrar el pago:", paymentError);
+          // Continuamos a pesar del error en el pago
+        }
+      }
+      
+      res.json({
+        success: true,
+        orderId,
+        invoiceCreated: true,
+        invoiceId: invoice.id,
+        paymentRegistered: paymentMethod === "cash" && paymentAmount > 0
+      });
+      
+    } catch (error) {
+      console.error("Error al marcar pedido como entregado:", error);
       res.status(500).json({ error: String(error) });
     }
   });

@@ -9,16 +9,42 @@ import {
   User, 
   Phone, 
   DollarSign,
-  Recycle
+  Recycle,
+  Edit,
+  Save,
+  CreditCard,
+  Check,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -60,6 +86,12 @@ export default function DeliveryDetails() {
   const [isLoading, setIsLoading] = useState(true);
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [routeId, setRouteId] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedProducts, setEditedProducts] = useState<{id: number; name: string; quantity: number; price: number}[]>([]);
+  const [showDeliveryConfirm, setShowDeliveryConfirm] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
+  const [paymentReceived, setPaymentReceived] = useState(0);
+  const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
@@ -149,6 +181,118 @@ export default function DeliveryDetails() {
       title: "Envases retornados",
       description: `Se registraron ${quantity} envases del producto ${productId}`,
     });
+  };
+
+  // Iniciar edición de productos
+  const startEditing = () => {
+    if (delivery) {
+      setEditedProducts([...delivery.products]);
+      setIsEditing(true);
+    }
+  };
+
+  // Actualizar cantidad de un producto
+  const updateProductQuantity = (id: number, quantity: number) => {
+    setEditedProducts(
+      editedProducts.map(product => 
+        product.id === id ? { ...product, quantity } : product
+      )
+    );
+  };
+
+  // Calcular el nuevo total después de la edición
+  const calculateTotal = (products: {id: number; name: string; quantity: number; price: number}[]) => {
+    return products.reduce((sum, product) => sum + (product.quantity * product.price), 0);
+  };
+
+  // Guardar cambios de productos
+  const saveProductChanges = () => {
+    if (delivery) {
+      const newTotal = calculateTotal(editedProducts);
+      setDelivery({
+        ...delivery,
+        products: editedProducts,
+        total: newTotal
+      });
+      setIsEditing(false);
+
+      toast({
+        title: "Cambios guardados",
+        description: "Los productos fueron actualizados correctamente"
+      });
+    }
+  };
+
+  // Cancelar edición
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setEditedProducts([]);
+  };
+
+  // Abrir diálogo de confirmación de entrega
+  const openDeliveryConfirm = () => {
+    if (delivery) {
+      setPaymentReceived(delivery.total);
+      setShowDeliveryConfirm(true);
+    }
+  };
+
+  // Procesar entrega y pago
+  const processDelivery = async () => {
+    if (!delivery) return;
+
+    setIsLoading(true);
+    
+    try {
+      // Preparar datos para la actualización
+      const updateData = {
+        orderId: delivery.orderId,
+        status: "delivered",
+        paymentMethod: paymentMethod,
+        paymentAmount: paymentReceived,
+        updateCustomerBalance: updateCustomerBalance
+      };
+      
+      // Enviar datos al servidor
+      const response = await fetch(`/api/orders/${delivery.orderId}/deliver`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(updateData)
+      });
+      
+      if (!response.ok) {
+        throw new Error("No se pudo procesar la entrega");
+      }
+
+      const responseData = await response.json();
+      
+      // Actualizar datos locales
+      setDelivery({
+        ...delivery,
+        status: "delivered"
+      });
+      
+      // Mostrar mensaje de éxito
+      toast({
+        title: "Entrega procesada",
+        description: `Entrega marcada como completada. ${responseData.invoiceCreated ? 'Factura generada.' : ''}`
+      });
+      
+      // Cerrar diálogo
+      setShowDeliveryConfirm(false);
+      
+    } catch (error) {
+      console.error("Error al procesar la entrega:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar la entrega",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Cargar datos al montar el componente
@@ -279,25 +423,106 @@ export default function DeliveryDetails() {
           </Card>
           
           {/* Lista de productos */}
-          <h3 className="font-medium text-lg mb-2">Productos</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-medium text-lg">Productos</h3>
+            {!isEditing && delivery.status !== "delivered" && delivery.status !== "cancelled" && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 px-2"
+                onClick={startEditing}
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+            )}
+            {isEditing && (
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2"
+                  onClick={saveProductChanges}
+                >
+                  <Save className="h-4 w-4 mr-1" />
+                  Guardar
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2"
+                  onClick={cancelEditing}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Cancelar
+                </Button>
+              </div>
+            )}
+          </div>
+          
           <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
             <CardContent className="p-4">
               <div className="space-y-3">
-                {delivery.products.map(product => (
-                  <div key={product.id} className="flex justify-between items-center">
-                    <div>
-                      <div className="font-medium">{product.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Precio unitario: ${product.price.toFixed(2)}
+                {isEditing ? (
+                  // Modo edición
+                  editedProducts.map(product => (
+                    <div key={product.id} className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Precio unitario: ${product.price.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="flex items-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 w-8 p-0 mr-2"
+                          onClick={() => updateProductQuantity(product.id, Math.max(0, product.quantity - 1))}
+                        >
+                          -
+                        </Button>
+                        <div className="w-12 text-center font-medium">
+                          {product.quantity}
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="h-8 w-8 p-0 ml-2"
+                          onClick={() => updateProductQuantity(product.id, product.quantity + 1)}
+                        >
+                          +
+                        </Button>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div>{product.quantity} unidades</div>
-                      <div className="font-medium">${(product.quantity * product.price).toFixed(2)}</div>
+                  ))
+                ) : (
+                  // Modo vista normal
+                  delivery.products.map(product => (
+                    <div key={product.id} className="flex justify-between items-center">
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Precio unitario: ${product.price.toFixed(2)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div>{product.quantity} unidades</div>
+                        <div className="font-medium">${(product.quantity * product.price).toFixed(2)}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
+              
+              {isEditing && (
+                <div className="mt-4 pt-3 border-t flex justify-between">
+                  <div className="font-medium">Nuevo total:</div>
+                  <div className="font-bold text-lg">
+                    ${calculateTotal(editedProducts).toFixed(2)}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
           
@@ -372,7 +597,8 @@ export default function DeliveryDetails() {
             <Button 
               className="flex-1" 
               variant={delivery.status === "delivered" ? "outline" : "default"}
-              disabled={delivery.status === "delivered" || delivery.status === "cancelled"}
+              disabled={delivery.status === "delivered" || delivery.status === "cancelled" || isEditing}
+              onClick={openDeliveryConfirm}
             >
               {delivery.status === "delivered" ? "Entregado" : "Marcar como Entregado"}
             </Button>
@@ -382,6 +608,7 @@ export default function DeliveryDetails() {
                 className="flex-1" 
                 variant="outline"
                 onClick={() => setLocation(`/mobile-app/ruta?routeId=${routeId}`)}
+                disabled={isEditing}
               >
                 Volver a Ruta
               </Button>
@@ -390,6 +617,7 @@ export default function DeliveryDetails() {
                 className="flex-1" 
                 variant="outline"
                 onClick={() => setLocation('/mobile-app/entregas')}
+                disabled={isEditing}
               >
                 Volver a Entregas
               </Button>
@@ -399,6 +627,99 @@ export default function DeliveryDetails() {
       </main>
       
       <MobileFooter darkMode={darkMode} />
+      
+      {/* Diálogo de confirmación de entrega */}
+      <Dialog open={showDeliveryConfirm} onOpenChange={setShowDeliveryConfirm}>
+        <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-800 text-white border-gray-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle>Confirmar Entrega</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="payment-method" className="block mb-2">Método de Pago</Label>
+              <RadioGroup 
+                id="payment-method" 
+                value={paymentMethod} 
+                onValueChange={(value) => setPaymentMethod(value as "cash" | "credit")}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="cash" id="cash" />
+                  <Label htmlFor="cash" className="cursor-pointer flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    Efectivo
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="credit" id="credit" />
+                  <Label htmlFor="credit" className="cursor-pointer flex items-center">
+                    <CreditCard className="h-4 w-4 mr-1" />
+                    Crédito
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+            
+            <div>
+              <Label htmlFor="payment-amount" className="block mb-2">
+                Monto Recibido {paymentMethod === "cash" ? "(Efectivo)" : "(A Crédito)"}
+              </Label>
+              <Input
+                id="payment-amount"
+                type="number"
+                step="0.01"
+                value={paymentReceived}
+                onChange={(e) => setPaymentReceived(parseFloat(e.target.value) || 0)}
+                className={darkMode ? 'bg-gray-700 border-gray-600' : ''}
+                disabled={paymentMethod === "credit"}
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="update-balance" 
+                checked={updateCustomerBalance} 
+                onCheckedChange={(checked) => setUpdateCustomerBalance(!!checked)}
+              />
+              <Label htmlFor="update-balance" className="cursor-pointer">
+                Actualizar balance del cliente
+              </Label>
+            </div>
+            
+            <div className="rounded-md bg-primary/10 p-3 border border-primary/20">
+              <div className="flex justify-between mb-2">
+                <span>Total del pedido:</span>
+                <span className="font-medium">${delivery.total.toFixed(2)}</span>
+              </div>
+              
+              {paymentMethod === "cash" && paymentReceived > delivery.total && (
+                <div className="flex justify-between text-sm">
+                  <span>Cambio a devolver:</span>
+                  <span className="font-medium">${(paymentReceived - delivery.total).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter className="flex space-x-2 sm:space-x-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDeliveryConfirm(false)}
+            >
+              Cancelar
+            </Button>
+            
+            <Button 
+              onClick={processDelivery}
+              disabled={paymentMethod === "cash" && paymentReceived < delivery.total}
+            >
+              Confirmar entrega
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -138,6 +138,7 @@ export const customers = pgTable("customers", {
   reference: text("reference"),
   coordinates: text("coordinates"),
   creditlimit: decimal("creditlimit", { precision: 10, scale: 2 }).notNull().default("0"),
+  balance: decimal("balance", { precision: 10, scale: 2 }).notNull().default("0"),
 });
 
 export const insertCustomerSchema = z.object({
@@ -155,6 +156,7 @@ export const insertCustomerSchema = z.object({
   reference: z.string().optional(),
   coordinates: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  balance: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
 });
 
 // Trucks (Vehículos)
@@ -682,6 +684,7 @@ export type CustomerWithDetails = {
   municipalityid: number;
   reference: string | null;
   creditlimit: string;
+  balance: string;
   municipalityName?: string;
   provinceName?: string;
 };

@@ -639,9 +639,12 @@ export class DatabaseStorage implements IStorage {
       const [newPayment] = await db
         .insert(payments)
         .values({
-          ...validationResult.data,
+          invoiceId: payment.invoiceId,
+          customerId: payment.customerId,
           amount,
-          date: new Date(),
+          paymentMethod: payment.paymentMethod,
+          reference: payment.reference,
+          notes: payment.notes
         })
         .returning();
       
