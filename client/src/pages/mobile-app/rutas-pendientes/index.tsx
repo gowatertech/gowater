@@ -72,30 +72,21 @@ export default function MobilePendingRoutes() {
   // Agrupar las órdenes por ruta con base en la secuencia de entrega
   const [ordersByRoute, setOrdersByRoute] = useState<Record<number, Order[]>>({});
 
-  // Esta función mapea órdenes a rutas basándose en la secuencia de entrega y las paradas
+  // Esta función asigna órdenes a rutas
   const assignOrdersToRoutes = () => {
     // Inicializar el objeto para almacenar las órdenes por ruta
     const routeOrders: Record<number, Order[]> = {};
 
     // Para cada ruta pendiente
     pendingRoutes.forEach(route => {
-      // Extraer las coordenadas de las paradas (excluyendo el almacén que es la primera)
-      const stopCoordinates = route.stops.slice(1) || [];
-      
-      // Filtrar órdenes que coincidan con las coordenadas de las paradas
-      const matchingOrders = allOrders.filter(order => {
-        // Si la orden ya tiene una ruta asignada, no la consideramos
-        if (order.routeId !== null) return false;
-        
-        // Verificar si las coordenadas de la orden coinciden con alguna de las paradas
-        return stopCoordinates.some(stop => {
-          // Las coordenadas de las paradas suelen estar en formato "lat,lng"
-          return order.customerAddress && stop.includes(order.customerAddress);
-        });
-      });
+      // Filtrar órdenes que no tengan ruta asignada
+      const unassignedOrders = allOrders.filter(order => 
+        order.routeId === null && order.status === "pending"
+      );
 
-      // Asignar las órdenes coincidentes a esta ruta
-      routeOrders[route.id] = matchingOrders;
+      // Las órdenes pendientes siempre se muestran en las rutas disponibles
+      // ya que aún no están asociadas a ninguna ruta específica
+      routeOrders[route.id] = unassignedOrders;
     });
 
     // Actualizar el estado con las órdenes asignadas
