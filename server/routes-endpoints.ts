@@ -508,6 +508,111 @@ export function registerRoutesEndpoints(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para obtener los detalles de entrega de una orden
+  app.get("/api/orders/:id/delivery", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de orden inválido" });
+      }
+      
+      // Obtener la orden con sus detalles
+      const order = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          status: orders.status,
+          total: orders.total,
+          date: orders.date,
+          routeId: orders.routeId
+        })
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
+        
+      if (!order || order.length === 0) {
+        return res.status(404).json({ error: "Orden no encontrada" });
+      }
+      
+      // Obtener el cliente
+      const customer = await db
+        .select({
+          id: customers.id,
+          name: customers.name,
+          address: customers.address
+        })
+        .from(customers)
+        .where(eq(customers.id, order[0].customerId))
+        .limit(1);
+        
+      if (!customer || customer.length === 0) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+      
+      // Obtener items del pedido con detalles del producto
+      const orderItemsResult = await db
+        .select({
+          productId: orderItemsTable.productId,
+          name: products.name,
+          quantity: orderItemsTable.quantity,
+          price: orderItemsTable.price
+        })
+        .from(orderItemsTable)
+        .leftJoin(products, eq(orderItemsTable.productId, products.id))
+        .where(eq(orderItemsTable.orderId, orderId));
+      
+      // Obtener retornos de envases
+      const bottleReturnsData = await db
+        .select({
+          id: bottleReturns.id,
+          orderId: bottleReturns.orderId,
+          productId: bottleReturns.productId,
+          productName: products.name,
+          expectedQuantity: bottleReturns.expectedQuantity,
+          returnedQuantity: bottleReturns.returnedQuantity,
+          pendingQuantity: bottleReturns.pendingQuantity,
+          returnDate: bottleReturns.returnDate,
+          status: bottleReturns.status,
+          amountCharged: bottleReturns.amountCharged,
+          depositAmount: bottleReturns.depositAmount,
+          responsibleType: bottleReturns.responsibleType,
+          chargeMethod: bottleReturns.chargeMethod,
+        })
+        .from(bottleReturns)
+        .leftJoin(products, eq(bottleReturns.productId, products.id))
+        .where(eq(bottleReturns.orderId, orderId));
+      
+      // Formatear la respuesta
+      const delivery = {
+        id: order[0].id,
+        orderId: order[0].id,
+        customerId: order[0].customerId,
+        customerName: customer[0].name,
+        address: customer[0].address,
+        status: order[0].status,
+        routeId: order[0].routeId,
+        scheduledTime: new Date(order[0].date).toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit'
+        }),
+        products: orderItemsResult.map(item => ({
+          id: item.productId,
+          name: item.name,
+          quantity: item.quantity,
+          price: Number(item.price)
+        })),
+        total: Number(order[0].total),
+        bottleReturns: bottleReturnsData
+      };
+      
+      res.json(delivery);
+    } catch (error) {
+      console.error("Error al obtener detalles de entrega:", error);
+      res.status(500).json({ error: "Error al procesar la solicitud", details: error.message });
+    }
+  });
 
   // Endpoint para obtener los envases retornables de una ruta específica
   app.get("/api/routes/:id/bottle-returns", async (req, res) => {
