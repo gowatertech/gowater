@@ -995,7 +995,7 @@ export default function DriverRoute() {
                           <div className="mt-4 p-3 bg-muted rounded-md animate-in fade-in-50 duration-200">
                             <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
                               <Info className="h-4 w-4" />
-                              Detalle del Pedido
+                              Productos a entregar
                             </h4>
                             
                             <div className="space-y-2 text-sm">
@@ -1011,19 +1011,31 @@ export default function DriverRoute() {
                               
                               <div>
                                 <span className="text-xs font-semibold">Productos:</span>
-                                <ul className="pl-3 mt-1 space-y-1">
-                                  {stop.products.map((product, idx) => (
-                                    <li key={idx} className="text-xs">
-                                      {product.name} - {product.quantity} unidad(es) 
-                                      <span className="font-medium">(${(product.price * product.quantity).toFixed(2)})</span>
-                                    </li>
-                                  ))}
-                                </ul>
+                                <div className="mt-1 border border-border rounded-sm overflow-hidden">
+                                  <table className="w-full text-xs">
+                                    <thead className="bg-background border-b border-border">
+                                      <tr>
+                                        <th className="px-2 py-1 text-left">Producto</th>
+                                        <th className="px-2 py-1 text-center">Cant.</th>
+                                        <th className="px-2 py-1 text-right">Precio</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {stop.products.map((product, idx) => (
+                                        <tr key={idx} className={idx % 2 === 0 ? "bg-muted/50" : ""}>
+                                          <td className="px-2 py-1">{product.name}</td>
+                                          <td className="px-2 py-1 text-center">{product.quantity}</td>
+                                          <td className="px-2 py-1 text-right">${(product.price * product.quantity).toFixed(2)}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
                               </div>
                               
-                              <div className="flex justify-between items-center pt-2 border-t border-border">
+                              <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
                                 <span className="text-xs font-semibold">Total del pedido:</span>
-                                <span className="text-xs font-bold">${stop.totalValue.toFixed(2)}</span>
+                                <span className="text-sm font-bold text-primary">${stop.totalValue.toFixed(2)}</span>
                               </div>
                             </div>
                           </div>
