@@ -232,17 +232,30 @@ export default function DeliveryDetails() {
   // Abrir diálogo de confirmación de entrega
   const openDeliveryConfirm = () => {
     if (delivery) {
-      // Reiniciar valores para que el chofer pueda elegir
-      setPaymentMethod("cash"); // Establecer un valor inicial pero el chofer podrá cambiarlo
+      // No establecer un método de pago por defecto, para forzar al usuario a elegir
+      setPaymentMethod("" as any); // Esto forzará que el usuario tenga que elegir explícitamente
       setPaymentReceived(delivery.total);
       setUpdateCustomerBalance(true);
       setShowDeliveryConfirm(true);
+      
+      // Log para depuración
+      console.log("Abriendo diálogo de confirmación, método de pago actual:", paymentMethod);
     }
   };
 
   // Procesar entrega y pago
   const processDelivery = async () => {
     if (!delivery) return;
+    
+    // Validar que se haya seleccionado un método de pago
+    if (!paymentMethod || !["cash", "credit"].includes(paymentMethod)) {
+      toast({
+        title: "Error",
+        description: "Debes seleccionar un método de pago válido (Efectivo o Crédito)",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsLoading(true);
     
@@ -643,32 +656,34 @@ export default function DeliveryDetails() {
           
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="payment-method" className="block mb-2">Método de Pago</Label>
-              <RadioGroup 
-                id="payment-method" 
-                value={paymentMethod} 
-                onValueChange={(value) => {
-                  console.log("Método de pago cambiado a:", value);
-                  setPaymentMethod(value as "cash" | "credit");
-                }}
-                className="flex space-x-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="cash" id="cash" />
-                  <Label htmlFor="cash" className="cursor-pointer flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1" />
-                    Efectivo
-                  </Label>
-                </div>
+              <Label className="block mb-2">Método de Pago</Label>
+              <div className="flex space-x-2">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    console.log("Seleccionando método de pago: cash");
+                    setPaymentMethod("cash");
+                  }}
+                  variant={paymentMethod === "cash" ? "default" : "outline"}
+                  className="flex-1 flex items-center justify-center"
+                >
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  Efectivo
+                </Button>
                 
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="credit" id="credit" />
-                  <Label htmlFor="credit" className="cursor-pointer flex items-center">
-                    <CreditCard className="h-4 w-4 mr-1" />
-                    Crédito
-                  </Label>
-                </div>
-              </RadioGroup>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    console.log("Seleccionando método de pago: credit");
+                    setPaymentMethod("credit");
+                  }}
+                  variant={paymentMethod === "credit" ? "default" : "outline"}
+                  className="flex-1 flex items-center justify-center"
+                >
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  Crédito
+                </Button>
+              </div>
             </div>
             
             <div>
@@ -722,7 +737,10 @@ export default function DeliveryDetails() {
             
             <Button 
               onClick={processDelivery}
-              disabled={paymentMethod === "cash" && paymentReceived < delivery.total}
+              disabled={
+                !paymentMethod || // Deshabilitar si no se ha seleccionado un método de pago
+                (paymentMethod === "cash" && paymentReceived < delivery.total)
+              }
             >
               Confirmar entrega
             </Button>
