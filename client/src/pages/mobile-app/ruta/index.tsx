@@ -11,7 +11,11 @@ import {
   Check,
   Clock,
   Compass,
-  RotateCw
+  RotateCw,
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -161,6 +165,9 @@ export default function DriverRoute() {
     const savedIndex = localStorage.getItem('currentStopIndex');
     return savedIndex ? parseInt(savedIndex) : 0;
   });
+  
+  // Estado para controlar qué parada tiene los detalles expandidos
+  const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
   
   // Calcular el número de paradas completadas (excluyendo el almacén)
   const calculateCompletedStops = () => {
@@ -959,9 +966,14 @@ export default function DriverRoute() {
                               <Button
                                 variant="outline" 
                                 size="sm" 
-                                className="text-xs h-8"
-                                onClick={() => setLocation(`/mobile-app/entregas/${stop.id}`)}
+                                className="text-xs h-8 flex items-center gap-1"
+                                onClick={() => setExpandedStopId(expandedStopId === stop.id ? null : stop.id)}
                               >
+                                {expandedStopId === stop.id ? (
+                                  <ChevronUp className="h-3 w-3" />
+                                ) : (
+                                  <ChevronDown className="h-3 w-3" />
+                                )}
                                 Detalles
                               </Button>
                             )}
@@ -977,6 +989,45 @@ export default function DriverRoute() {
                             </Button>
                           </div>
                         </div>
+                        
+                        {/* Panel expandible con detalles de la parada */}
+                        {expandedStopId === stop.id && !stop.isWarehouse && (
+                          <div className="mt-4 p-3 bg-muted rounded-md animate-in fade-in-50 duration-200">
+                            <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                              <Info className="h-4 w-4" />
+                              Detalle del Pedido
+                            </h4>
+                            
+                            <div className="space-y-2 text-sm">
+                              <div>
+                                <span className="text-xs font-semibold">Cliente:</span>
+                                <p className="text-xs">{stop.customerName}</p>
+                              </div>
+                              
+                              <div>
+                                <span className="text-xs font-semibold">Dirección:</span>
+                                <p className="text-xs">{stop.address}</p>
+                              </div>
+                              
+                              <div>
+                                <span className="text-xs font-semibold">Productos:</span>
+                                <ul className="pl-3 mt-1 space-y-1">
+                                  {stop.products.map((product, idx) => (
+                                    <li key={idx} className="text-xs">
+                                      {product.name} - {product.quantity} unidad(es) 
+                                      <span className="font-medium">(${(product.price * product.quantity).toFixed(2)})</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              
+                              <div className="flex justify-between items-center pt-2 border-t border-border">
+                                <span className="text-xs font-semibold">Total del pedido:</span>
+                                <span className="text-xs font-bold">${stop.totalValue.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))
