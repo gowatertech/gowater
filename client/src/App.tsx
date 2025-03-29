@@ -78,7 +78,7 @@ function Router() {
     metaViewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
     document.head.appendChild(metaViewport);
     
-    // Apple specific tags
+    // Apple specific tags para PWA en iOS
     const appleCapable = document.createElement('meta');
     appleCapable.name = 'apple-mobile-web-app-capable';
     appleCapable.content = 'yes';
@@ -89,12 +89,53 @@ function Router() {
     appleStatusBar.content = 'black-translucent';
     document.head.appendChild(appleStatusBar);
     
+    const appleTouchIcon = document.createElement('link');
+    appleTouchIcon.rel = 'apple-touch-icon';
+    appleTouchIcon.href = '/images/icons/apple-touch-icon.svg';
+    document.head.appendChild(appleTouchIcon);
+    
+    const appleTouchIcon180 = document.createElement('link');
+    appleTouchIcon180.rel = 'apple-touch-icon';
+    appleTouchIcon180.sizes = '180x180';
+    appleTouchIcon180.href = '/images/icons/apple-touch-icon.svg';
+    document.head.appendChild(appleTouchIcon180);
+    
+    const appleTouchIcon152 = document.createElement('link');
+    appleTouchIcon152.rel = 'apple-touch-icon';
+    appleTouchIcon152.sizes = '152x152';
+    appleTouchIcon152.href = '/images/icons/apple-touch-icon.svg';
+    document.head.appendChild(appleTouchIcon152);
+    
+    const appleTouchIcon120 = document.createElement('link');
+    appleTouchIcon120.rel = 'apple-touch-icon';
+    appleTouchIcon120.sizes = '120x120';
+    appleTouchIcon120.href = '/images/icons/apple-touch-icon.svg';
+    document.head.appendChild(appleTouchIcon120);
+    
+    const appleTouchIcon76 = document.createElement('link');
+    appleTouchIcon76.rel = 'apple-touch-icon';
+    appleTouchIcon76.sizes = '76x76';
+    appleTouchIcon76.href = '/images/icons/apple-touch-icon.svg';
+    document.head.appendChild(appleTouchIcon76);
+    
+    // Apple Splash Screen
+    const appleSplashScreen = document.createElement('meta');
+    appleSplashScreen.name = 'apple-mobile-web-app-title';
+    appleSplashScreen.content = 'GoWater Driver';
+    document.head.appendChild(appleSplashScreen);
+    
     return () => {
       document.head.removeChild(manifestLink);
       document.head.removeChild(metaThemeColor);
       document.head.removeChild(metaViewport);
       document.head.removeChild(appleCapable);
       document.head.removeChild(appleStatusBar);
+      document.head.removeChild(appleTouchIcon);
+      document.head.removeChild(appleTouchIcon180);
+      document.head.removeChild(appleTouchIcon152);
+      document.head.removeChild(appleTouchIcon120);
+      document.head.removeChild(appleTouchIcon76);
+      document.head.removeChild(appleSplashScreen);
     };
   }, []);
 

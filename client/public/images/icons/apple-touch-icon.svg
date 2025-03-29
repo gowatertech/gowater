@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Fondo circular -->
+  <circle cx="256" cy="256" r="256" fill="#2563eb" />
+  
+  <!-- Icono de gota de agua -->
+  <path d="M256 96c-48 96-160 128-160 208 0 88 64 112 160 112s160-24 160-112c0-80-112-112-160-208z" fill="#ffffff" />
+  
+  <!-- Detalles internos de la gota -->
+  <path d="M304 304c0 26.5-21.5 48-48 48s-48-21.5-48-48 21.5-48 48-48 48 21.5 48 48z" fill="#2563eb" />
+</svg>
