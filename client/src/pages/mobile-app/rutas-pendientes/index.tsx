@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useQuery, useQueries } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Calendar, CalendarIcon, MapPin, TruckIcon, DollarSign, Clock, UserRound } from "lucide-react";
 import { format } from "date-fns";
@@ -57,44 +57,32 @@ export default function MobilePendingRoutes() {
   const { user, isLoading: isLoadingUser } = useCurrentUser();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   
-  // Mostraremos un mensaje claro cuando no hay pedidos
-  const [ordersByRoute, setOrdersByRoute] = useState<Record<number, Order[]>>({});
-  
-  // Consultar rutas pendientes, filtradas por el conductor actual
+  // Consultar rutas pendientes
   const { data: routes = [], isLoading, error } = useQuery<Route[]>({
     queryKey: ["/api/routes"],
     retry: 3
   });
 
-  // Mostrar todas las rutas pendientes, sin filtrar por conductor
-  const pendingRoutes = Array.isArray(routes) ? routes.filter((route: Route) => 
-    route.status === "pending"
-  ) : [];
-  
-  // Cargar las órdenes de rutas solo una vez cuando se renderizan las rutas
+  // Filtrar solo rutas pendientes
+  const pendingRoutes = Array.isArray(routes) 
+    ? routes.filter(route => route.status === "pending") 
+    : [];
+
+  // Estado para almacenar un mensaje simple en lugar de intentar cargar los pedidos
+  const [routeMessages, setRouteMessages] = useState<Record<number, string>>({});
+
+  // Al cargar las rutas, establecer mensajes para todas las rutas
   useEffect(() => {
     if (pendingRoutes.length > 0) {
-      console.log("Estableciendo que no hay pedidos para esta ruta");
+      const messages: Record<number, string> = {};
       
-      // Inicializar la estructura de datos para todos los IDs de ruta
-      const emptyOrders: Record<number, Order[]> = {};
-      
-      // Para cada ruta, establecer un array vacío como sus pedidos
       pendingRoutes.forEach(route => {
-        emptyOrders[route.id] = []; // Establecer un array vacío para mostrar "No hay pedidos asignados"
+        messages[route.id] = "No hay pedidos asignados a esta ruta";
       });
       
-      // Actualizar el estado una sola vez con toda la estructura
-      setOrdersByRoute(emptyOrders);
+      setRouteMessages(messages);
     }
   }, [pendingRoutes.length]);
-
-  // Calcular el valor total de una ruta
-  const calculateTotalRevenue = (routeId: number) => {
-    const orders = ordersByRoute[routeId] || [];
-    // Usar total de la API en lugar de totalAmount para asegurar datos correctos
-    return orders.reduce((total, order) => total + Number(order.total || order.totalAmount || 0), 0);
-  };
 
   // Contar el número de paradas por ruta (excluyendo el almacén)
   const countStops = (route: Route) => {
@@ -103,7 +91,6 @@ export default function MobilePendingRoutes() {
 
   // Efecto para mostrar prompt de instalación
   useEffect(() => {
-    // Lógica para detectar si es instalable como PWA
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     if (!isStandalone) {
       const hasPromptBeenShown = localStorage.getItem('pwaPromptShown');
@@ -113,8 +100,8 @@ export default function MobilePendingRoutes() {
     }
   }, []);
 
+  // Manejar inicio de ruta
   const handleStartRoute = (routeId: number) => {
-    // Actualizar el estado de la ruta a "in_progress"
     fetch(`/api/routes/${routeId}/start`, {
       method: 'POST',
       headers: {
@@ -123,17 +110,16 @@ export default function MobilePendingRoutes() {
     })
     .then(response => {
       if (response.ok) {
-        // Navegar a la página de ruta activa
         setLocation(`/mobile-app/ruta?routeId=${routeId}`);
       }
     })
     .catch(err => {
       console.error("Error al iniciar la ruta:", err);
-      // Navegar de todos modos para probar
       setLocation(`/mobile-app/ruta?routeId=${routeId}`);
     });
   };
 
+  // Si está cargando el usuario, mostrar spinner
   if (isLoadingUser) {
     return (
       <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
@@ -177,7 +163,6 @@ export default function MobilePendingRoutes() {
         ) : (
           <div className="space-y-4">
             {pendingRoutes.map((route) => {
-              const totalValue = calculateTotalRevenue(route.id);
               const stopCount = countStops(route);
               const routeDate = new Date(route.date);
               
@@ -204,7 +189,7 @@ export default function MobilePendingRoutes() {
                       </div>
                       <div className="flex items-center text-muted-foreground">
                         <DollarSign className="h-3 w-3 mr-1" />
-                        <span>${totalValue.toFixed(2)}</span>
+                        <span>$0.00</span>
                       </div>
                       <div className="flex items-center text-muted-foreground">
                         <Clock className="h-3 w-3 mr-1" />
@@ -212,38 +197,13 @@ export default function MobilePendingRoutes() {
                       </div>
                     </div>
                     
-                    {/* Mostrar los pedidos de la ruta */}
+                    {/* Mostrar mensaje para los pedidos */}
                     <div className={`text-xs p-2 rounded mb-3 ${
                       isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
                     }`}>
-                      {ordersByRoute[route.id] === undefined ? (
-                        // Estado de carga - cuando aún no hay datos
-                        <div className="flex justify-center items-center py-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary mr-2"></div>
-                          <span className="font-medium">Cargando clientes...</span>
-                        </div>
-                      ) : ordersByRoute[route.id].length > 0 ? (
-                        // Hay pedidos para mostrar
-                        <>
-                          <div className="font-medium mb-1">Clientes en esta ruta:</div>
-                          <ul className="space-y-1">
-                            {ordersByRoute[route.id].map((order, index) => (
-                              <li key={order.id} className="flex justify-between">
-                                <span className="flex items-center">
-                                  <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
-                                  {order.customerName}
-                                </span>
-                                <span className="text-primary">${Number(order.total || order.totalAmount || 0).toFixed(2)}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </>
-                      ) : (
-                        // La API devolvió un array vacío
-                        <div className="text-center py-2">
-                          <span className="font-medium">No hay pedidos asignados a esta ruta</span>
-                        </div>
-                      )}
+                      <div className="text-center py-2">
+                        <span className="font-medium">{routeMessages[route.id] || "No hay pedidos asignados a esta ruta"}</span>
+                      </div>
                     </div>
                     
                     <button 
