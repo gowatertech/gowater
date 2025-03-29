@@ -87,7 +87,7 @@ export default function DriverRoute() {
   
   console.log("URL location:", location);
   console.log("URL search params:", window.location.search);
-  console.log("Route ID from URL:", routeIdFromUrl);
+  console.log("ID de Ruta desde URL:", routeIdFromUrl);
   
   // Alternar modo oscuro
   const toggleDarkMode = () => {
@@ -599,7 +599,7 @@ export default function DriverRoute() {
     return (
       <div className={`bg-slate-100 text-slate-800 p-3 mb-4 rounded-lg text-xs border ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : ''}`}>
         <h3 className="font-bold mb-1 text-primary">DEBUG INFO:</h3>
-        <p>Route ID: {activeRouteId}</p>
+        <p>ID de Ruta: {activeRouteId}</p>
         <p>Paradas totales: {routeStops.length}</p>
         <p>Primer parada: {routeStops.length > 0 ? 
           `${routeStops[0].customerName} (ID: ${routeStops[0].id})` : 
