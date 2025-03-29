@@ -28,6 +28,19 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+// Solución al problema de iconos en Leaflet
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
+
 // Tipo para una parada en la ruta
 interface RouteStop {
   id: number;
@@ -53,7 +66,7 @@ export default function DriverRoute() {
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
-  const [currentLocation, setCurrentLocation] = useState<[number, number]>([19.075380, -70.128822]); // Ubicación por defecto
+  const [currentLocation, setCurrentLocation] = useState<[number, number]>([19.05878, -70.15141]); // Ubicación predeterminada: Cotuí, Sánchez Ramírez
   const [watchId, setWatchId] = useState<number | null>(null);
   
   // Obtener el ID de la ruta desde la URL
@@ -170,8 +183,8 @@ export default function DriverRoute() {
         console.log("Coordenadas del primer pedido:", ordersData[0].coordinates);
       }
       
-      // Coordenadas del almacén (punto de inicio)
-      const warehouseLocation: [number, number] = [19.075380, -70.128822];
+      // Coordenadas del almacén (punto de inicio) - Cotuí, Sánchez Ramírez
+      const warehouseLocation: [number, number] = [19.05878, -70.15141];
       
       // Crear la estructura de paradas para la ruta
       const stops: RouteStop[] = [];
@@ -182,7 +195,7 @@ export default function DriverRoute() {
         order: 0,
         customerId: 0,
         customerName: "Almacén GoWater",
-        address: "Av. Industrial #15, Samaná",
+        address: "Calle Principal #23, Cotuí, Sánchez Ramírez",
         latitude: warehouseLocation[0],
         longitude: warehouseLocation[1],
         status: "completed",
