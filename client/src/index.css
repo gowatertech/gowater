@@ -5,6 +5,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Animaciones para la barra de progreso de agua */
+@keyframes floating {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-8px) scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-16px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes wave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 25%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Clases de utilidad para animaciones */
+.animate-floating {
+  animation: floating 2s ease-in-out infinite;
+}
+
+.animate-wave {
+  animation: wave 3s ease-in-out infinite;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' style='fill: rgba(255, 255, 255, 0.4);'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+
+/* Retrasos para las animaciones */
+.animation-delay-0 { animation-delay: 0ms; }
+.animation-delay-1 { animation-delay: 200ms; }
+.animation-delay-2 { animation-delay: 400ms; }
+.animation-delay-3 { animation-delay: 600ms; }
+.animation-delay-4 { animation-delay: 800ms; }
+
 /* Remover flechas (spinners) de los inputs numéricos */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {

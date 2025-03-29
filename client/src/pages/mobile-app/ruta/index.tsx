@@ -24,6 +24,7 @@ import { apiRequest } from "@/lib/api";
 
 // Importamos el componente de mapa responsivo
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
+import { WaterProgressBar } from "@/components/ui/water-progress-bar";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -60,7 +61,7 @@ interface RouteStop {
 }
 
 // Coordenadas del almacén (punto de inicio) - Cotuí, Sánchez Ramírez
-const warehouseLocation: [number, number] = [19.05878, -70.15141];
+const warehouseLocation: [number, number] = [19.05878, -70.15141]; // República Dominicana
 
 export default function DriverRoute() {
   const [location, setLocation] = useLocation();
@@ -136,6 +137,33 @@ export default function DriverRoute() {
   const [routeStatus, setRouteStatus] = useState<'not_started' | 'in_progress' | 'paused' | 'completed'>('not_started');
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [currentStopIndex, setCurrentStopIndex] = useState<number>(0);
+  
+  // Calcular el número de paradas completadas (excluyendo el almacén)
+  const calculateCompletedStops = () => {
+    // Filtramos paradas completadas que no sean el almacén (order > 0)
+    return routeStops.filter(stop => stop.status === 'completed' && !stop.isWarehouse).length;
+  };
+
+  // Calcular el porcentaje de progreso de la ruta
+  const calculateRouteProgress = () => {
+    // Si no hay paradas o solo está el almacén, devolvemos 0%
+    if (routeStops.length <= 1) return 0;
+    
+    // Calculamos el total de paradas excluyendo el almacén
+    const totalStops = routeStops.length - 1; 
+    
+    // Calculamos el número de paradas completadas
+    const completedStops = calculateCompletedStops();
+    
+    // Si la ruta está en curso pero no hay paradas completadas, mostramos 5% para indicar progreso
+    if (routeStatus === 'in_progress' && completedStops === 0) return 5;
+    
+    // Si la ruta está completada, retornamos 100%
+    if (routeStatus === 'completed') return 100;
+    
+    // Calculamos el porcentaje: (completadas / total) * 100
+    return (completedStops / totalStops) * 100;
+  };
 
   // Cargar datos de la ruta
   const loadRouteData = async () => {
@@ -322,47 +350,35 @@ export default function DriverRoute() {
 
   // Iniciar seguimiento de ubicación
   const startLocationTracking = () => {
-    if (!navigator.geolocation) {
-      toast({
-        title: "Error de ubicación",
-        description: "Tu dispositivo no soporta geolocalización",
-        variant: "destructive"
-      });
-      return;
-    }
-
+    // Usamos siempre la ubicación del almacén en República Dominicana en lugar de la geolocalización real
+    // para evitar problemas durante las demostraciones
+    setCurrentLocation(warehouseLocation);
+    
     try {
-      const id = navigator.geolocation.watchPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setCurrentLocation([latitude, longitude]);
-          
-          // Aquí se enviaría la ubicación al servidor
-          console.log("Nueva ubicación:", latitude, longitude);
-          
-          // Si la ruta está activa, también actualizamos el progreso de la ruta
-          if (routeStatus === 'in_progress' && activeRouteId) {
-            updateRouteProgress(latitude, longitude);
-          }
-        },
-        (error) => {
-          console.error("Error de geolocalización:", error);
-          toast({
-            title: "Error de ubicación",
-            description: "No se pudo obtener tu ubicación actual",
-            variant: "destructive"
-          });
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 30000,
-          timeout: 27000
+      toast({
+        title: "Información",
+        description: "Usando ubicación predeterminada de Cotuí, República Dominicana",
+        variant: "default"
+      });
+      
+      // Simulamos actualizaciones de ubicación cada 30 segundos
+      const id = window.setInterval(() => {
+        // Simular pequeños movimientos alrededor del almacén
+        const randomLat = warehouseLocation[0] + (Math.random() * 0.001 - 0.0005);
+        const randomLng = warehouseLocation[1] + (Math.random() * 0.001 - 0.0005);
+        
+        console.log("Ubicación actual (simulada):", randomLat, randomLng);
+        setCurrentLocation([randomLat, randomLng]);
+        
+        // Si la ruta está activa, actualizar progreso con la ubicación simulada
+        if (routeStatus === 'in_progress' && activeRouteId) {
+          updateRouteProgress(randomLat, randomLng);
         }
-      );
+      }, 30000) as unknown as number;
       
       setWatchId(id);
     } catch (error) {
-      console.error("Error al iniciar el seguimiento:", error);
+      console.error("Error al iniciar la simulación de ubicación:", error);
     }
   };
   
@@ -417,6 +433,7 @@ export default function DriverRoute() {
       const data = await response.json();
       console.log("Respuesta al iniciar ruta:", data);
       
+      // Internamente usamos 'in_progress', pero en la UI se muestra como 'En curso'
       setRouteStatus('in_progress');
       setStartTime(new Date());
       
@@ -540,10 +557,10 @@ export default function DriverRoute() {
     loadRouteData();
     startLocationTracking();
     
-    // Limpiar el watchPosition al desmontar
+    // Limpiar el intervalo al desmontar
     return () => {
       if (watchId !== null) {
-        navigator.geolocation.clearWatch(watchId);
+        window.clearInterval(watchId);
       }
     };
   }, [routeIdFromUrl]); // Dependencia en routeIdFromUrl para recargar si cambia
@@ -573,14 +590,19 @@ export default function DriverRoute() {
   const debugInfo = () => {
     return (
       <div className={`bg-slate-100 text-slate-800 p-3 mb-4 rounded-lg text-xs border ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : ''}`}>
-        <h3 className="font-bold mb-1 text-primary">Información de Ruta:</h3>
-        <p>ID de Ruta: {activeRouteId}</p>
-        <p>Paradas: {routeStops.length}</p>
+        <h3 className="font-bold mb-1 text-primary">DEBUG INFO:</h3>
+        <p>Route ID: {activeRouteId}</p>
+        <p>Paradas totales: {routeStops.length}</p>
         <p>Primer parada: {routeStops.length > 0 ? 
-          `${routeStops[0].customerName}` : 
+          `${routeStops[0].customerName} (ID: ${routeStops[0].id})` : 
           'Ninguna'}</p>
-        <p>Estado: <span className="font-medium">{routeStatus}</span></p>
-        <p className="text-xs text-muted-foreground">Ubicación: [{currentLocation[0].toFixed(5)}, {currentLocation[1].toFixed(5)}]</p>
+        <p>Estado de ruta: {
+          routeStatus === 'in_progress' ? 'in_progress' : 
+          routeStatus === 'not_started' ? 'not_started' :
+          routeStatus === 'paused' ? 'paused' :
+          routeStatus === 'completed' ? 'completed' : 'desconocido'
+        }</p>
+        <p className="text-xs text-muted-foreground">Ubicación actual: [{currentLocation[0].toFixed(6)}, {currentLocation[1].toFixed(6)}]</p>
       </div>
     );
   };
@@ -599,10 +621,10 @@ export default function DriverRoute() {
         {debugInfo()}
       </div>
       
-      <main className="container max-w-md mx-auto px-0 pb-6">
-        {/* Mapa de la ruta (altura reducida) */}
-        <div className="h-[30vh] relative mb-4">
-          <ResponsiveMapContainer className="w-full h-full z-0" fixedHeight={true}>
+      <main className="container max-w-md mx-auto pb-6">
+        {/* Mapa de la ruta (altura reducida, mismo ancho que paradas) */}
+        <div className="h-[28vh] relative mb-4 px-4">
+          <ResponsiveMapContainer className="w-full h-full z-0 rounded-xl overflow-hidden" fixedHeight={true}>
             <MapContainer 
               center={warehouseLocation} 
               zoom={13} 
@@ -649,27 +671,19 @@ export default function DriverRoute() {
             </MapContainer>
           </ResponsiveMapContainer>
           
-          {/* Botón para centrar mapa en ubicación actual */}
+          {/* Botón para centrar mapa en ubicación del almacén */}
           <Button 
             variant="default" 
             size="icon" 
             className="absolute bottom-4 right-4 z-10 h-10 w-10 shadow-md"
             onClick={() => {
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                  (position) => {
-                    setCurrentLocation([position.coords.latitude, position.coords.longitude]);
-                  },
-                  (error) => {
-                    console.error("Error al obtener ubicación:", error);
-                    toast({
-                      title: "Error de ubicación",
-                      description: "No se pudo acceder a tu ubicación",
-                      variant: "destructive"
-                    });
-                  }
-                );
-              }
+              // Centrar en la ubicación del almacén
+              setCurrentLocation(warehouseLocation);
+              toast({
+                title: "Mapa centrado",
+                description: "Vista centrada en almacén principal",
+                variant: "default"
+              });
             }}
           >
             <Navigation className="h-5 w-5" />
@@ -692,7 +706,7 @@ export default function DriverRoute() {
                   }
                 >
                   {routeStatus === 'not_started' && "No iniciada"}
-                  {routeStatus === 'in_progress' && "En progreso"}
+                  {routeStatus === 'in_progress' && "En curso"}
                   {routeStatus === 'paused' && "Pausada"}
                   {routeStatus === 'completed' && "Completada"}
                 </Badge>
@@ -748,6 +762,30 @@ export default function DriverRoute() {
                   <RotateCw className="h-4 w-4" />
                   Actualizar
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Barra de progreso con animación de gotas de agua */}
+          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
+            <CardContent className="p-4">
+              <h2 className="text-lg font-bold mb-2">Progreso de Entrega</h2>
+              
+              {/* Barra de progreso animada con efecto de agua */}
+              <WaterProgressBar 
+                progress={calculateRouteProgress()}
+                total={routeStops.length > 0 ? routeStops.length - 1 : 0} 
+                completed={calculateCompletedStops()}
+                label="Entregas completadas"
+                darkMode={darkMode}
+                size="lg"
+              />
+              
+              <div className="mt-3 text-xs text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>Almacén</span>
+                  <span>Destino final</span>
+                </div>
               </div>
             </CardContent>
           </Card>

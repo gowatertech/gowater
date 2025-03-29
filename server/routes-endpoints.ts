@@ -319,11 +319,11 @@ export function registerRoutesEndpoints(app: Express) {
     try {
       const routeId = parseInt(req.params.id);
       
-      // Actualizar el estado de la ruta a "in_progress"
+      // Actualizar el estado de la ruta a "en_curso" (internamente "in_progress")
       const [updatedRoute] = await db
         .update(routes)
         .set({
-          status: "in_progress",
+          status: "in_progress", // Valor en base de datos se mantiene "in_progress"
           driverStartedAt: new Date()
         })
         .where(eq(routes.id, routeId))
