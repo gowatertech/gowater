@@ -141,10 +141,26 @@ export default function DriverRoute() {
   };
 
   // Estado para la ruta activa
-  const [activeRouteId, setActiveRouteId] = useState<number | null>(null);
-  const [routeStatus, setRouteStatus] = useState<'not_started' | 'in_progress' | 'paused' | 'completed'>('not_started');
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [currentStopIndex, setCurrentStopIndex] = useState<number>(0);
+  // Inicializamos el estado con los valores almacenados en localStorage si existen
+  const [activeRouteId, setActiveRouteId] = useState<number | null>(() => {
+    const savedId = localStorage.getItem('activeRouteId');
+    return savedId ? parseInt(savedId) : null;
+  });
+  
+  const [routeStatus, setRouteStatus] = useState<'not_started' | 'in_progress' | 'paused' | 'completed'>(() => {
+    const savedStatus = localStorage.getItem('routeStatus') as 'not_started' | 'in_progress' | 'paused' | 'completed';
+    return savedStatus || 'not_started';
+  });
+  
+  const [startTime, setStartTime] = useState<Date | null>(() => {
+    const savedTime = localStorage.getItem('startTime');
+    return savedTime ? new Date(savedTime) : null;
+  });
+  
+  const [currentStopIndex, setCurrentStopIndex] = useState<number>(() => {
+    const savedIndex = localStorage.getItem('currentStopIndex');
+    return savedIndex ? parseInt(savedIndex) : 0;
+  });
   
   // Calcular el número de paradas completadas (excluyendo el almacén)
   const calculateCompletedStops = () => {
@@ -534,6 +550,12 @@ export default function DriverRoute() {
         variant: "default"
       });
       
+      // Borrar los datos guardados en localStorage para esta ruta
+      localStorage.removeItem('activeRouteId');
+      localStorage.removeItem('routeStatus');
+      localStorage.removeItem('startTime');
+      localStorage.removeItem('currentStopIndex');
+      
       // Redireccionar al listado de rutas después de 3 segundos
       setTimeout(() => {
         setLocation('/mobile-app/rutas-pendientes');
@@ -572,6 +594,32 @@ export default function DriverRoute() {
       }
     };
   }, [routeIdFromUrl]); // Dependencia en routeIdFromUrl para recargar si cambia
+  
+  // Guardar cambios del estado de la ruta en localStorage cuando cambien
+  useEffect(() => {
+    // Solo guardar en localStorage si tenemos valores válidos
+    if (activeRouteId) {
+      localStorage.setItem('activeRouteId', activeRouteId.toString());
+    }
+    
+    // Guardar el estado de la ruta
+    localStorage.setItem('routeStatus', routeStatus);
+    
+    // Guardar la hora de inicio si existe
+    if (startTime) {
+      localStorage.setItem('startTime', startTime.toISOString());
+    }
+    
+    // Guardar el índice de parada actual
+    localStorage.setItem('currentStopIndex', currentStopIndex.toString());
+    
+    console.log('Estado de ruta guardado en localStorage:', {
+      activeRouteId,
+      routeStatus,
+      startTime: startTime?.toISOString(),
+      currentStopIndex
+    });
+  }, [activeRouteId, routeStatus, startTime, currentStopIndex]);
 
   // Si está cargando, mostrar spinner
   if (isLoading) {
