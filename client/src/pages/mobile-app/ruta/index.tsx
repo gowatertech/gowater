@@ -57,8 +57,12 @@ export default function DriverRoute() {
   const [watchId, setWatchId] = useState<number | null>(null);
   
   // Obtener el ID de la ruta desde la URL
-  const urlParams = new URLSearchParams(location.split('?')[1]);
+  const urlParams = new URLSearchParams(window.location.search);
   const routeIdFromUrl = urlParams.get('routeId');
+  
+  console.log("URL location:", location);
+  console.log("URL search params:", window.location.search);
+  console.log("Route ID from URL:", routeIdFromUrl);
   
   // Alternar modo oscuro
   const toggleDarkMode = () => {
