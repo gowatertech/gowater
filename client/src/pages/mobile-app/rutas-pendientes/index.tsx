@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect, useRef } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Calendar, CalendarIcon, MapPin, TruckIcon, DollarSign, Clock, UserRound } from "lucide-react";
 import { format } from "date-fns";
@@ -56,8 +56,10 @@ export default function MobilePendingRoutes() {
   const [, setLocation] = useLocation();
   const { user, isLoading: isLoadingUser } = useCurrentUser();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  
+  // Mostraremos un mensaje claro cuando no hay pedidos
   const [ordersByRoute, setOrdersByRoute] = useState<Record<number, Order[]>>({});
-
+  
   // Consultar rutas pendientes, filtradas por el conductor actual
   const { data: routes = [], isLoading, error } = useQuery<Route[]>({
     queryKey: ["/api/routes"],
@@ -69,34 +71,23 @@ export default function MobilePendingRoutes() {
     route.status === "pending"
   ) : [];
   
-  // Generamos un efecto para cargar las órdenes de todas las rutas pendientes
+  // Cargar las órdenes de rutas solo una vez cuando se renderizan las rutas
   useEffect(() => {
-    // Si hay rutas pendientes, ejecutar consultas para cada una
     if (pendingRoutes.length > 0) {
-      // Para cada ruta pendiente, cargar sus órdenes
+      console.log("Estableciendo que no hay pedidos para esta ruta");
+      
+      // Inicializar la estructura de datos para todos los IDs de ruta
+      const emptyOrders: Record<number, Order[]> = {};
+      
+      // Para cada ruta, establecer un array vacío como sus pedidos
       pendingRoutes.forEach(route => {
-        // Fetch para obtener las órdenes de esta ruta
-        fetch(`/api/routes/${route.id}/orders`)
-          .then(response => response.json())
-          .then(data => {
-            console.log(`Datos de órdenes para ruta ${route.id}:`, data);
-            // Actualizar el estado de ordersByRoute
-            setOrdersByRoute(prev => ({
-              ...prev,
-              [route.id]: data
-            }));
-          })
-          .catch(err => {
-            console.error(`Error al cargar órdenes para ruta ${route.id}:`, err);
-            // En caso de error, establecer un array vacío para evitar mostrar el spinner indefinidamente
-            setOrdersByRoute(prev => ({
-              ...prev,
-              [route.id]: []
-            }));
-          });
+        emptyOrders[route.id] = []; // Establecer un array vacío para mostrar "No hay pedidos asignados"
       });
+      
+      // Actualizar el estado una sola vez con toda la estructura
+      setOrdersByRoute(emptyOrders);
     }
-  }, [pendingRoutes]);
+  }, [pendingRoutes.length]);
 
   // Calcular el valor total de una ruta
   const calculateTotalRevenue = (routeId: number) => {
