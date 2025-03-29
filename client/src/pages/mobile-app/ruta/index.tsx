@@ -156,6 +156,15 @@ export default function DriverRoute() {
       
       const ordersData = await ordersResponse.json();
       console.log("Pedidos de la ruta:", ordersData);
+      console.log("Número de pedidos encontrados:", ordersData.length);
+      
+      // Si no hay órdenes, mostramos un mensaje de diagnóstico
+      if (ordersData.length === 0) {
+        console.warn("No se encontraron pedidos para esta ruta");
+      } else {
+        console.log("Primer pedido:", ordersData[0]);
+        console.log("Coordenadas del primer pedido:", ordersData[0].coordinates);
+      }
       
       // Coordenadas del almacén (punto de inicio)
       const warehouseLocation: [number, number] = [19.075380, -70.128822];
@@ -197,12 +206,16 @@ export default function DriverRoute() {
       }
       
       // Agregar las paradas de los clientes
+      console.log("Procesando ordersData:", ordersData);
       ordersData.forEach((order: any, index: number) => {
+        console.log(`Procesando orden ${index + 1}/${ordersData.length}:`, order.id);
+        
         // Calcular el valor total del pedido a partir de los productos
         const totalValue = order.products.reduce(
           (sum: number, product: any) => sum + (Number(product.price) * product.quantity), 
           0
         );
+        console.log(`Valor total calculado para pedido ${order.id}: $${totalValue}`);
         
         // Extraer coordenadas del cliente directamente del orden si están disponibles
         let latitude = 0, longitude = 0;
@@ -215,7 +228,12 @@ export default function DriverRoute() {
           if (!isNaN(lat) && !isNaN(lng)) {
             latitude = lat;
             longitude = lng;
+            console.log(`Coordenadas procesadas correctamente: [${latitude}, ${longitude}]`);
+          } else {
+            console.warn(`Error al analizar coordenadas para pedido ${order.id}: ${order.coordinates}`);
           }
+        } else {
+          console.warn(`Pedido ${order.id} no tiene coordenadas definidas`);
         }
         
         // Intentar encontrar la posición correcta en la secuencia si no tenemos coordenadas directas
@@ -532,6 +550,22 @@ export default function DriverRoute() {
     );
   }
 
+  // Función para depurar el estado actual
+  const debugInfo = () => {
+    return (
+      <div className="bg-yellow-100 text-yellow-800 p-3 mb-4 rounded text-xs">
+        <h3 className="font-bold mb-1">DEBUG INFO:</h3>
+        <p>Route ID: {activeRouteId}</p>
+        <p>Paradas totales: {routeStops.length}</p>
+        <p>Primer parada: {routeStops.length > 0 ? 
+          `${routeStops[0].customerName} (ID: ${routeStops[0].id})` : 
+          'Ninguna'}</p>
+        <p>Estado de ruta: {routeStatus}</p>
+        <p>Ubicación actual: [{currentLocation[0].toFixed(6)}, {currentLocation[1].toFixed(6)}]</p>
+      </div>
+    );
+  };
+
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
       <MobileHeader 
@@ -540,6 +574,11 @@ export default function DriverRoute() {
         onToggleDarkMode={toggleDarkMode} 
         onSyncData={syncData}
       />
+      
+      {/* Debug info - remover en producción */}
+      <div className="container max-w-md mx-auto px-4">
+        {debugInfo()}
+      </div>
       
       <main className="container max-w-md mx-auto px-0 pb-6">
         {/* Mapa de la ruta */}
@@ -708,10 +747,13 @@ export default function DriverRoute() {
               </p>
               
               <div className="space-y-3">
-                {routeStops.length === 0 ? (
+                {routeStops.length <= 1 ? (
                   <div className="text-center py-8">
                     <AlertTriangle className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
                     <p className="text-muted-foreground">No hay paradas asignadas para hoy</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Debug: Encontradas {routeStops.length} paradas, {routeStops.length > 0 ? 'incluye almacén' : 'sin paradas'}
+                    </p>
                   </div>
                 ) : (
                   routeStops.map((stop, index) => (

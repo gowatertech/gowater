@@ -190,6 +190,18 @@ export function registerRoutesEndpoints(app: Express) {
       if (routeOrders.length === 0) {
         console.log(`No hay órdenes asignadas a la ruta ${routeId}, buscando órdenes pendientes...`);
         
+        // Obtener detalles de la ruta para usar sus coordenadas
+        const routeDetails = route[0];
+        console.log("Detalles de la ruta:", routeDetails);
+        
+        // Si la ruta tiene stops definidos, los usamos para buscar órdenes cercanas
+        if (routeDetails.stops && routeDetails.stops.length > 0) {
+          console.log("La ruta tiene coordenadas definidas:", routeDetails.stops);
+          
+          // Para simplicidad, asignamos todas las órdenes pendientes a esta ruta
+          // En un sistema real, haríamos una búsqueda basada en cercanía
+        }
+        
         routeOrders = await db
           .select({
             id: orders.id,
@@ -212,6 +224,16 @@ export function registerRoutesEndpoints(app: Express) {
           ));
         
         console.log(`Se encontraron ${routeOrders.length} órdenes pendientes sin asignar`);
+        
+        // Si encontramos órdenes pendientes, las asignamos temporalmente a esta ruta
+        // (solo en memoria, no en la base de datos)
+        if (routeOrders.length > 0) {
+          console.log(`Asignando temporalmente ${routeOrders.length} órdenes pendientes a la ruta ${routeId}`);
+          routeOrders = routeOrders.map(order => ({
+            ...order,
+            routeId: routeId // Asignar el ID de la ruta para la respuesta
+          }));
+        }
       }
         
       // Para cada orden, buscar los productos
