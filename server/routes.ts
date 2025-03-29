@@ -1738,6 +1738,28 @@ export async function registerRoutes(app: Express) {
                     .values(invoiceItemsToInsert);
                   
                   console.log(`${invoiceItemsToInsert.length} ítems añadidos a la factura #${invoice.id}`);
+                  
+                  // Si se recibió un pago, registrarlo en la tabla de pagos
+                  if (paymentReceived) {
+                    try {
+                      // Datos para el pago
+                      const paymentData = {
+                        invoiceId: invoice.id,
+                        customerId: order.customerId,
+                        amount: order.total,
+                        paymentMethod: order.paymentMethod || "cash",
+                        reference: `Pago recibido en entrega del pedido #${orderId}`,
+                        notes: `Pago registrado automáticamente para la factura #${invoice.id}`,
+                      };
+                      
+                      // Registrar el pago
+                      await storage.registerPayment(paymentData);
+                      console.log(`Pago registrado para factura #${invoice.id}`);
+                    } catch (paymentError) {
+                      console.error("Error al registrar pago:", paymentError);
+                      // No fallamos la operación principal si el registro del pago falla
+                    }
+                  }
                 }
               } else {
                 console.error("Error al validar datos de factura:", validationResult.error);

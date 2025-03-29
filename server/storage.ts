@@ -1,6 +1,6 @@
 import {
   users, customers, products, routes, orders, orderItems,
-  settings as settingsTable, trucks,
+  settings as settingsTable, trucks, invoices, payments,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -11,7 +11,8 @@ import {
   type Truck, type InsertTruck,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
   bottleReturns,
-  type BottleReturn, type InsertBottleReturn
+  type BottleReturn, type InsertBottleReturn,
+  type Payment, type InsertPayment, insertPaymentSchema
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, inArray } from "drizzle-orm";
@@ -86,6 +87,10 @@ export interface IStorage {
   listTrucks(): Promise<Truck[]>;
   updateTruck(id: number, truck: Partial<InsertTruck>): Promise<Truck>;
   updateTruckStatus(id: number, status: "disponible" | "en_reparacion" | "en_ruta"): Promise<Truck>;
+  
+  // Payments
+  registerPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentsByInvoice(invoiceId: number): Promise<Payment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -610,6 +615,65 @@ export class DatabaseStorage implements IStorage {
       .where(eq(trucks.id, id))
       .returning();
     return updatedTruck;
+  }
+  
+  // Payment methods
+  async registerPayment(payment: InsertPayment): Promise<Payment> {
+    try {
+      console.log("Storage - registerPayment: Registrando pago:", payment);
+      
+      // Validar datos del pago
+      const validationResult = insertPaymentSchema.safeParse(payment);
+      if (!validationResult.success) {
+        console.error("Storage - registerPayment: Error de validación:", validationResult.error);
+        throw new Error(`Error de validación: ${validationResult.error}`);
+      }
+      
+      // Convertir el amount a string con 2 decimales si es necesario
+      let amount = payment.amount;
+      if (typeof amount === 'number') {
+        amount = amount.toFixed(2);
+      }
+      
+      // Registrar el pago
+      const [newPayment] = await db
+        .insert(payments)
+        .values({
+          ...validationResult.data,
+          amount,
+          date: new Date(),
+        })
+        .returning();
+      
+      // Actualizar el estado de la factura a "paid"
+      await db
+        .update(invoices)
+        .set({ status: "paid" })
+        .where(eq(invoices.id, payment.invoiceId));
+      
+      console.log("Storage - registerPayment: Pago registrado con ID:", newPayment.id);
+      return newPayment;
+    } catch (error) {
+      console.error("Storage - registerPayment: Error al registrar pago:", error);
+      throw error;
+    }
+  }
+  
+  async getPaymentsByInvoice(invoiceId: number): Promise<Payment[]> {
+    try {
+      console.log("Storage - getPaymentsByInvoice: Consultando pagos para factura:", invoiceId);
+      
+      const result = await db
+        .select()
+        .from(payments)
+        .where(eq(payments.invoiceId, invoiceId));
+      
+      console.log(`Storage - getPaymentsByInvoice: ${result.length} pagos encontrados`);
+      return result;
+    } catch (error) {
+      console.error("Storage - getPaymentsByInvoice: Error al consultar pagos:", error);
+      throw error;
+    }
   }
 }
 
