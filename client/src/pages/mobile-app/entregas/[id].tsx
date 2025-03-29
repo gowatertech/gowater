@@ -206,20 +206,61 @@ export default function DeliveryDetails() {
   };
 
   // Guardar cambios de productos
-  const saveProductChanges = () => {
-    if (delivery) {
+  const saveProductChanges = async () => {
+    if (!delivery) return;
+
+    try {
+      setIsLoading(true);
+      
+      // Calcular el nuevo total
       const newTotal = calculateTotal(editedProducts);
+      
+      // Preparar datos para enviar al servidor
+      const productsData = editedProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        quantity: product.quantity,
+        price: product.price.toString()
+      }));
+      
+      // Enviar la actualización al servidor
+      const response = await fetch(`/api/orders/${delivery.orderId}/products`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ products: productsData })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar los productos');
+      }
+      
+      const result = await response.json();
+      
+      // Actualizar el estado local con la respuesta del servidor
       setDelivery({
         ...delivery,
         products: editedProducts,
         total: newTotal
       });
+      
       setIsEditing(false);
-
+      
       toast({
         title: "Cambios guardados",
-        description: "Los productos fueron actualizados correctamente"
+        description: "Los productos fueron actualizados correctamente y se generó una nueva factura"
       });
+    } catch (error) {
+      console.error('Error al guardar cambios de productos:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudieron guardar los cambios",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -232,14 +273,14 @@ export default function DeliveryDetails() {
   // Abrir diálogo de confirmación de entrega
   const openDeliveryConfirm = () => {
     if (delivery) {
-      // No establecer un método de pago por defecto, para forzar al usuario a elegir
-      setPaymentMethod("" as any); // Esto forzará que el usuario tenga que elegir explícitamente
+      // Establecer el método de pago en efectivo por defecto
+      setPaymentMethod("cash");
       setPaymentReceived(delivery.total);
       setUpdateCustomerBalance(true);
       setShowDeliveryConfirm(true);
       
       // Log para depuración
-      console.log("Abriendo diálogo de confirmación, método de pago actual:", paymentMethod);
+      console.log("Abriendo diálogo de confirmación, total a cobrar:", delivery.total);
     }
   };
 

@@ -573,6 +573,98 @@ export function registerRoutesEndpoints(app: Express) {
   });
 
   // Endpoint para marcar un pedido como entregado con pago
+  // Endpoint para actualizar los productos de un pedido
+  app.patch("/api/orders/:id/products", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { products } = req.body;
+      
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de pedido inválido" });
+      }
+      
+      // Validar que se proporcionaron productos
+      if (!products || !Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ error: "Se requiere una lista válida de productos" });
+      }
+      
+      console.log(`Actualizando productos para el pedido ${orderId}`, products);
+      
+      // Verificar que el pedido existe
+      const order = await db.select()
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
+        
+      if (!order || order.length === 0) {
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+      
+      // Verificar que el pedido no está entregado o cancelado
+      if (order[0].status === "delivered" || order[0].status === "cancelled") {
+        return res.status(400).json({ 
+          error: `No se puede modificar un pedido con estado ${order[0].status}` 
+        });
+      }
+      
+      // Eliminar los items actuales del pedido
+      await db.delete(orderItemsTable)
+        .where(eq(orderItemsTable.orderId, orderId));
+        
+      // Insertar los nuevos productos
+      const newItems = [];
+      let total = 0;
+      
+      for (const product of products) {
+        // Validar que el producto tenga los campos requeridos
+        if (!product.id || !product.quantity || !product.price) {
+          continue; // Saltamos productos inválidos
+        }
+        
+        const productTotal = product.quantity * parseFloat(product.price);
+        total += productTotal;
+        
+        const [item] = await db.insert(orderItemsTable)
+          .values({
+            orderId,
+            productId: product.id,
+            quantity: product.quantity,
+            price: product.price
+          })
+          .returning();
+          
+        newItems.push({
+          ...item,
+          name: product.name
+        });
+      }
+      
+      // Actualizar el total del pedido
+      await db.update(orders)
+        .set({ 
+          total: total.toFixed(2)
+        })
+        .where(eq(orders.id, orderId));
+        
+      // Obtener el pedido actualizado
+      const [updatedOrder] = await db.select()
+        .from(orders)
+        .where(eq(orders.id, orderId))
+        .limit(1);
+        
+      res.json({
+        success: true,
+        order: updatedOrder,
+        items: newItems,
+        total: total.toFixed(2)
+      });
+      
+    } catch (error) {
+      console.error("Error al actualizar productos del pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.post("/api/orders/:id/deliver", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);

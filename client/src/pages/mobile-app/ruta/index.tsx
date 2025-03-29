@@ -19,7 +19,8 @@ import {
   DollarSign,
   Recycle,
   Receipt,
-  Printer
+  Printer,
+  Edit // Añadido para editar pedidos
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1138,69 +1139,86 @@ export default function DriverRoute() {
                                     </Button>
                                   </div>
                                   
-                                  {/* Botón de confirmación */}
-                                  <Button 
-                                    className="w-full flex items-center justify-center gap-1 mt-3"
-                                    variant={stop.status === "completed" ? "outline" : "default"}
-                                    disabled={stop.status === "completed"}
-                                    onClick={() => {
-                                      // Confirmación de entrega
-                                      const confirmed = window.confirm(
-                                        `¿Confirmar entrega de productos y pago por ${stop.totalValue.toFixed(2)} RD$?`
-                                      );
-                                      
-                                      if (!confirmed) return;
-                                      
-                                      // Marcar la parada como completada
-                                      const updatedStops = routeStops.map(s => 
-                                        s.id === stop.id ? { ...s, status: "completed" as "pending" | "in_progress" | "completed" | "cancelled" } : s
-                                      );
-                                      setRouteStops(updatedStops);
-                                      
-                                      // Llamar a la API para actualizar el estado de la orden y registrar el pago
-                                      const updateData = {
-                                        status: 'delivered',
-                                        paymentReceived: stop.totalValue,
-                                        updateBalance: true // Actualizar balance del cliente
-                                      };
-                                      
-                                      fetch(`/api/orders/${stop.id}/status`, {
-                                        method: 'PATCH', // Cambiado de POST a PATCH para coincidir con el endpoint del servidor
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify(updateData)
-                                      })
-                                      .then(res => {
-                                        if (res.ok) {
+                                  {/* Botones de acción */}
+                                  <div className="grid grid-cols-2 gap-2 mt-3">
+                                    {/* Botón para ir a la página de detalle de entrega */}
+                                    <Button 
+                                      className="flex items-center justify-center gap-1"
+                                      variant="outline"
+                                      disabled={stop.status === "completed"}
+                                      onClick={() => {
+                                        // Navegar a la página de detalle de entrega donde se pueden editar productos
+                                        setLocation(`/mobile-app/entregas/${stop.id}`);
+                                      }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                      Modificar pedido
+                                    </Button>
+                                    
+                                    {/* Botón de confirmación */}
+                                    <Button 
+                                      className="flex items-center justify-center gap-1"
+                                      variant={stop.status === "completed" ? "outline" : "default"}
+                                      disabled={stop.status === "completed"}
+                                      onClick={() => {
+                                        // Confirmación de entrega
+                                        const confirmed = window.confirm(
+                                          `¿Confirmar entrega de productos y pago por ${stop.totalValue.toFixed(2)} RD$?`
+                                        );
+                                        
+                                        if (!confirmed) return;
+                                        
+                                        // Marcar la parada como completada
+                                        const updatedStops = routeStops.map(s => 
+                                          s.id === stop.id ? { ...s, status: "completed" as "pending" | "in_progress" | "completed" | "cancelled" } : s
+                                        );
+                                        setRouteStops(updatedStops);
+                                        
+                                        // Llamar a la API para actualizar el estado de la orden y registrar el pago
+                                        const updateData = {
+                                          status: 'delivered',
+                                          paymentReceived: stop.totalValue,
+                                          updateBalance: true // Actualizar balance del cliente
+                                        };
+                                        
+                                        fetch(`/api/orders/${stop.id}/status`, {
+                                          method: 'PATCH', // Cambiado de POST a PATCH para coincidir con el endpoint del servidor
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify(updateData)
+                                        })
+                                        .then(res => {
+                                          if (res.ok) {
+                                            toast({
+                                              title: "Entrega completada",
+                                              description: "Pedido entregado, pago registrado y balance actualizado",
+                                              variant: "default"
+                                            });
+                                            
+                                            // Mostrar notificación de factura/recibo
+                                            toast({
+                                              title: "Documentos generados",
+                                              description: "Se ha generado la factura y el recibo de pago",
+                                              variant: "default"
+                                            });
+                                            
+                                            // Cerrar el panel de detalles
+                                            setExpandedStopId(null);
+                                          }
+                                        })
+                                        .catch(err => {
+                                          console.error("Error al marcar entrega:", err);
                                           toast({
-                                            title: "Entrega completada",
-                                            description: "Pedido entregado, pago registrado y balance actualizado",
-                                            variant: "default"
+                                            title: "Error",
+                                            description: "No se pudo actualizar el estado del pedido",
+                                            variant: "destructive"
                                           });
-                                          
-                                          // Mostrar notificación de factura/recibo
-                                          toast({
-                                            title: "Documentos generados",
-                                            description: "Se ha generado la factura y el recibo de pago",
-                                            variant: "default"
-                                          });
-                                          
-                                          // Cerrar el panel de detalles
-                                          setExpandedStopId(null);
-                                        }
-                                      })
-                                      .catch(err => {
-                                        console.error("Error al marcar entrega:", err);
-                                        toast({
-                                          title: "Error",
-                                          description: "No se pudo actualizar el estado del pedido",
-                                          variant: "destructive"
                                         });
-                                      });
-                                    }}
-                                  >
-                                    <Check className="h-4 w-4" />
-                                    {stop.status === "completed" ? "Entregado" : "Confirmar entrega y pago"}
-                                  </Button>
+                                      }}
+                                    >
+                                      <Check className="h-4 w-4" />
+                                      {stop.status === "completed" ? "Entregado" : "Confirmar entrega"}
+                                    </Button>
+                                  </div>
                                 </div>
                               </div>
                             </div>
