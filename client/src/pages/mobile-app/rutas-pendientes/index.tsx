@@ -40,6 +40,7 @@ interface Order {
   customerId: number;
   status: string;
   totalAmount: number;
+  total?: number; // Para compatibilidad con la API
   customerName: string;
   customerAddress: string;
   products: Array<{
@@ -68,40 +69,33 @@ export default function MobilePendingRoutes() {
     route.status === "pending"
   ) : [];
   
-  // Calcular el valor total de la ruta basado en los pedidos
+  // Para cada ruta, generar una consulta separada pero solo para la que se muestra actualmente
+  const firstRouteId = pendingRoutes.length > 0 ? pendingRoutes[0].id : null;
+  
+  // Consultar solo para la primera ruta pendiente
+  const { data: firstRouteOrders = [] } = useQuery<Order[]>({
+    queryKey: [`/api/routes/${firstRouteId}/orders`],
+    enabled: !!firstRouteId,
+    staleTime: 10 * 60 * 1000, // 10 minutos - evitar múltiples solicitudes
+    retry: 1,
+    refetchOnWindowFocus: false
+  });
+  
+  // Actualizar el estado de ordersByRoute solo cuando cambien los datos de la primera ruta
   useEffect(() => {
-    const fetchOrdersForRoutes = async () => {
-      try {
-        const orderResults: Record<number, Order[]> = {};
-        
-        for (const route of pendingRoutes) {
-          try {
-            const response = await fetch(`/api/routes/${route.id}/orders`);
-            if (response.ok) {
-              const orders = await response.json();
-              orderResults[route.id] = orders;
-            }
-          } catch (err) {
-            console.error(`Error al cargar pedidos para ruta ${route.id}:`, err);
-          }
-        }
-        
-        setOrdersByRoute(orderResults);
-      } catch (err) {
-        console.error("Error al cargar pedidos para rutas:", err);
-      }
-    };
-    
-    if (pendingRoutes.length > 0) {
-      fetchOrdersForRoutes();
+    if (firstRouteId && firstRouteOrders.length > 0) {
+      setOrdersByRoute(prev => ({
+        ...prev,
+        [firstRouteId]: firstRouteOrders
+      }));
     }
-  }, [pendingRoutes]);
+  }, [firstRouteId, firstRouteOrders.length]);
 
   // Calcular el valor total de una ruta
   const calculateTotalRevenue = (routeId: number) => {
     const orders = ordersByRoute[routeId] || [];
     // Usar total de la API en lugar de totalAmount para asegurar datos correctos
-    return orders.reduce((total, order) => total + Number(order.total || 0), 0);
+    return orders.reduce((total, order) => total + Number(order.total || order.totalAmount || 0), 0);
   };
 
   // Contar el número de paradas por ruta (excluyendo el almacén)
@@ -233,7 +227,7 @@ export default function MobilePendingRoutes() {
                                 <UserRound className="h-3 w-3 mr-1 text-muted-foreground" />
                                 {order.customerName}
                               </span>
-                              <span className="text-primary">${Number(order.total).toFixed(2)}</span>
+                              <span className="text-primary">${Number(order.total || order.totalAmount || 0).toFixed(2)}</span>
                             </li>
                           ))}
                         </ul>
