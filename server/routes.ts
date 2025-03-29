@@ -1664,13 +1664,34 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'ID de pedido inválido' });
       }
 
-      const { status } = req.body;
+      const { status, paymentReceived, updateBalance } = req.body;
       if (!status || !['pending', 'delivered', 'cancelled'].includes(status)) {
         return res.status(400).json({ error: 'Estado inválido. Debe ser "pending", "delivered" o "cancelled"' });
       }
 
+      // Actualizar el estado del pedido
       const updatedOrder = await storage.updateOrderStatus(orderId, status);
       console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a "${status}"`, updatedOrder);
+      
+      // Si se recibió un pago y debemos actualizar el balance del cliente
+      if (status === 'delivered' && paymentReceived && updateBalance && updatedOrder) {
+        try {
+          // Obtener el pedido para conocer el cliente
+          const order = await storage.getOrder(orderId);
+          
+          if (order && order.customerId) {
+            // Actualizar el balance del cliente (sumar el monto pagado)
+            const customer = await storage.updateCustomerBalance(order.customerId, Number(paymentReceived));
+            console.log(`Balance del cliente ${order.customerId} actualizado con el pago de ${paymentReceived}`);
+            
+            // También podríamos registrar el pago en una tabla de pagos si existiera
+            // await storage.registerPayment(orderId, Number(paymentReceived), new Date());
+          }
+        } catch (balanceError) {
+          console.error("Error al actualizar el balance del cliente:", balanceError);
+          // No fallamos la operación principal si esto falla
+        }
+      }
       
       res.json(updatedOrder);
     } catch (error) {

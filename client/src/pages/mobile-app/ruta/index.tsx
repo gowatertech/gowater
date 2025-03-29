@@ -1165,7 +1165,7 @@ export default function DriverRoute() {
                                       };
                                       
                                       fetch(`/api/orders/${stop.id}/status`, {
-                                        method: 'POST',
+                                        method: 'PATCH', // Cambiado de POST a PATCH para coincidir con el endpoint del servidor
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify(updateData)
                                       })
