@@ -323,6 +323,31 @@ export function registerRoutesEndpoints(app: Express) {
     try {
       const routeId = parseInt(req.params.id);
       
+      // Verificar primero si la ruta ya está en progreso
+      const routeCheck = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.id, routeId))
+        .limit(1);
+        
+      if (routeCheck.length === 0) {
+        return res.status(404).json({ error: "Ruta no encontrada" });
+      }
+      
+      if (routeCheck[0].status === "in_progress") {
+        return res.status(400).json({ 
+          error: "Esta ruta ya está en progreso",
+          route: routeCheck[0]
+        });
+      }
+      
+      if (routeCheck[0].status === "completed") {
+        return res.status(400).json({ 
+          error: "Esta ruta ya ha sido completada",
+          route: routeCheck[0]
+        });
+      }
+      
       // Actualizar el estado de la ruta a "en_curso" (internamente "in_progress")
       const [updatedRoute] = await db
         .update(routes)
