@@ -40,6 +40,14 @@ let DefaultIcon = L.icon({
   iconAnchor: [12, 41]
 });
 
+// Icono verde para el almacén
+let WarehouseIcon = L.divIcon({
+  html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-full w-6 h-6 text-sm font-semibold">A</div>`,
+  className: 'custom-number-icon',
+  iconSize: [24, 24],
+  iconAnchor: [12, 12]
+});
+
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // Tipo para una parada en la ruta
@@ -637,8 +645,16 @@ export default function DriverRoute() {
               />
               
               {/* Marcador para la ubicación actual */}
-              <Marker position={currentLocation}>
-                <Popup>Tu ubicación actual</Popup>
+              <Marker 
+                position={currentLocation}
+                icon={WarehouseIcon}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <p className="font-bold">Almacén GoWater</p>
+                    <p className="text-xs">Punto de inicio</p>
+                  </div>
+                </Popup>
               </Marker>
               
               {/* Marcadores para cada parada en la ruta */}
@@ -646,6 +662,7 @@ export default function DriverRoute() {
                 <Marker 
                   key={stop.id} 
                   position={[stop.latitude, stop.longitude]}
+                  icon={stop.isWarehouse ? WarehouseIcon : DefaultIcon}
                 >
                   <Popup>
                     <div className="text-sm">
