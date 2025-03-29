@@ -64,9 +64,9 @@ export default function MobilePendingRoutes() {
     retry: 3
   });
 
-  // Filtrar solo rutas pendientes
+  // Filtrar rutas pendientes y en progreso
   const pendingRoutes = Array.isArray(routes) 
-    ? routes.filter(route => route.status === "pending") 
+    ? routes.filter(route => route.status === "pending" || route.status === "in_progress") 
     : [];
 
   // Agrupar las órdenes por ruta con base en la secuencia de entrega
