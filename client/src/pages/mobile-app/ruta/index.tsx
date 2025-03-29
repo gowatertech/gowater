@@ -722,7 +722,7 @@ export default function DriverRoute() {
                   <Popup>
                     <div className="text-sm">
                       <p className="font-bold">{stop.customerName}</p>
-                      <p className="text-xs">{stop.address}</p>
+                      <p className="text-xs">{stop.address}, {stop.isWarehouse ? "" : "Cotuí, Sánchez Ramírez"}</p>
                     </div>
                   </Popup>
                 </Marker>
@@ -913,7 +913,7 @@ export default function DriverRoute() {
                       </div>
                       
                       <div className="ml-8 text-sm">
-                        <p className="text-muted-foreground text-xs mb-1">{stop.address}</p>
+                        <p className="text-muted-foreground text-xs mb-1">{stop.address}{!stop.isWarehouse ? ", Cotuí, Sánchez Ramírez" : ""}</p>
                         {stop.products && stop.products.length > 0 ? (
                           <div className="mt-1 mb-2">
                             <h4 className="text-xs font-bold mb-1">Productos:</h4>
@@ -1005,8 +1005,8 @@ export default function DriverRoute() {
                               </div>
                               
                               <div>
-                                <span className="text-xs font-semibold">Dirección:</span>
-                                <p className="text-xs">{stop.address}</p>
+                                <span className="text-xs font-semibold">Dirección completa:</span>
+                                <p className="text-xs">{stop.address}, Cotuí, Sánchez Ramírez, Rep. Dominicana</p>
                               </div>
                               
                               <div>
