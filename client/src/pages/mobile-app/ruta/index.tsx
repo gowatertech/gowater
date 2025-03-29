@@ -1,53 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { 
-  ArrowLeft, 
-  Navigation, 
-  MapPin, 
-  AlertTriangle,
-  Play,
-  Square, // Reemplazamos Stop por Square
-  Pause,
-  Check,
-  Clock,
-  Compass,
-  RotateCw,
-  FileText,
-  ChevronDown,
-  ChevronUp,
-  Info
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { MobileHeader } from "../components/MobileHeader";
-import { MobileFooter } from "../components/MobileFooter";
-import { apiRequest } from "@/lib/api";
+// Importaciones necesarias
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation } from 'wouter';
+import { ChevronDown, ChevronUp, MapPin, Clock, Navigation, RefreshCw, CheckSquare, X, Moon, Sun, Truck, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { useCurrentUser } from '@/hooks/use-current-user';
+import { apiRequest } from '@/lib/queryClient';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
-// Importamos el componente de mapa responsivo
-import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
-import { WaterProgressBar } from "@/components/ui/water-progress-bar";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
-// Solución al problema de iconos en Leaflet
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-
-// Icono verde para el almacén
-let WarehouseIcon = L.divIcon({
-  html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-full w-8 h-8 text-sm font-semibold shadow-lg border-2 border-white">A</div>`,
-  className: 'custom-warehouse-icon',
+// Configuración del icono predeterminado para los marcadores del mapa
+const DefaultIcon = L.icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
   iconSize: [32, 32],
   iconAnchor: [16, 16]
 });
@@ -84,6 +53,7 @@ export default function DriverRoute() {
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
   const [currentLocation, setCurrentLocation] = useState<[number, number]>(warehouseLocation); // Ubicación predeterminada: almacén
   const [watchId, setWatchId] = useState<number | null>(null);
+  const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
   
   // Obtener el ID de la ruta desde la URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -156,787 +126,651 @@ export default function DriverRoute() {
     return savedStatus || 'not_started';
   });
   
-  const [startTime, setStartTime] = useState<Date | null>(() => {
-    const savedTime = localStorage.getItem('startTime');
-    return savedTime ? new Date(savedTime) : null;
-  });
+  // Guardar estado en localStorage cuando cambie
+  useEffect(() => {
+    if (activeRouteId) {
+      localStorage.setItem('activeRouteId', activeRouteId.toString());
+    } else {
+      localStorage.removeItem('activeRouteId');
+    }
+  }, [activeRouteId]);
   
-  const [currentStopIndex, setCurrentStopIndex] = useState<number>(() => {
-    const savedIndex = localStorage.getItem('currentStopIndex');
-    return savedIndex ? parseInt(savedIndex) : 0;
-  });
-  
-  // Estado para controlar qué parada tiene los detalles expandidos
-  const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
-  
-  // Calcular el número de paradas completadas (excluyendo el almacén)
-  const calculateCompletedStops = () => {
-    // Filtramos paradas completadas que no sean el almacén (order > 0)
-    return routeStops.filter(stop => stop.status === 'completed' && !stop.isWarehouse).length;
-  };
-
-  // Calcular el porcentaje de progreso de la ruta
-  const calculateRouteProgress = () => {
-    // Si no hay paradas o solo está el almacén, devolvemos 0%
-    if (routeStops.length <= 1) return 0;
-    
-    // Calculamos el total de paradas excluyendo el almacén
-    const totalStops = routeStops.length - 1; 
-    
-    // Calculamos el número de paradas completadas
-    const completedStops = calculateCompletedStops();
-    
-    // Si la ruta está en curso pero no hay paradas completadas, mostramos 5% para indicar progreso
-    if (routeStatus === 'in_progress' && completedStops === 0) return 5;
-    
-    // Si la ruta está completada, retornamos 100%
-    if (routeStatus === 'completed') return 100;
-    
-    // Calculamos el porcentaje: (completadas / total) * 100
-    return (completedStops / totalStops) * 100;
-  };
+  useEffect(() => {
+    if (routeStatus) {
+      localStorage.setItem('routeStatus', routeStatus);
+    } else {
+      localStorage.removeItem('routeStatus');
+    }
+  }, [routeStatus]);
 
   // Cargar datos de la ruta
   const loadRouteData = async () => {
     setIsLoading(true);
-    
     try {
-      // Usar el ID de la ruta de la URL
-      const routeId = routeIdFromUrl ? parseInt(routeIdFromUrl) : null;
+      // Utilizamos el ID de la URL o el ID almacenado en el estado
+      const routeId = routeIdFromUrl || (activeRouteId ? activeRouteId.toString() : null);
       
       if (!routeId) {
-        console.error("No se encontró un ID de ruta en la URL");
+        console.error("No hay ID de ruta disponible");
         toast({
-          title: "Error al cargar la ruta",
-          description: "ID de ruta no proporcionado. Regresa al listado de rutas.",
+          title: "Error",
+          description: "No se encontró el ID de la ruta",
           variant: "destructive"
         });
-        setIsLoading(false);
         return;
       }
       
-      console.log(`Cargando datos para la ruta ID: ${routeId}`);
-      setActiveRouteId(routeId);
+      console.log("Cargando ruta con ID:", routeId);
       
-      // Obtener información básica sobre la ruta
-      const routeResponse = await fetch(`/api/routes/${routeId}`);
-      if (!routeResponse.ok) {
-        throw new Error(`Error al obtener la ruta: ${routeResponse.statusText}`);
+      // Simular carga de datos de la API
+      // En una implementación real, esto vendría de una API
+      // const response = await apiRequest(`/api/routes/${routeId}`);
+      // const routeData = await response.json();
+      
+      // Datos simulados para propósitos de demostración
+      const mockRoute = {
+        id: parseInt(routeId),
+        status: "pending",
+        driverId: 1,
+        truckId: 1,
+        startLocation: JSON.stringify(warehouseLocation),
+        currentLocation: null,
+        totalDistance: 25.5,
+        estimatedDuration: 120,
+        actualDuration: null,
+        startTime: null,
+        endTime: null,
+        stops: [
+          {
+            id: 0,
+            order: 0,
+            customerId: 0,
+            customerName: "Almacén GoWater",
+            address: "Calle Principal #23, Cotuí, Sánchez Ramírez",
+            latitude: warehouseLocation[0],
+            longitude: warehouseLocation[1],
+            status: "pending",
+            estimatedArrival: "08:00 AM",
+            estimatedDuration: 0,
+            distanceFromPrevious: 0,
+            products: [],
+            totalValue: 0,
+            isWarehouse: true
+          },
+          {
+            id: 1,
+            order: 1,
+            customerId: 101,
+            customerName: "COLMADO LA SOMBRITA",
+            address: "CALLE ALTAGRACIA",
+            latitude: 19.05178,
+            longitude: -70.14541,
+            status: "pending",
+            estimatedArrival: "08:15 AM",
+            estimatedDuration: 9,
+            distanceFromPrevious: 0.8,
+            products: [
+              { id: 1, name: "FALDO BOTELLA 20 UND 16OZ", quantity: 2, price: 120.00 },
+              { id: 2, name: "BOTELLON 5L", quantity: 4, price: 40.00 }
+            ],
+            totalValue: 389.40
+          },
+          {
+            id: 2,
+            order: 2,
+            customerId: 102,
+            customerName: "SUPERMERCADO DON PEDRO",
+            address: "AV. CONSTITUCIÓN #45",
+            latitude: 19.04678,
+            longitude: -70.16041,
+            status: "pending",
+            estimatedArrival: "08:30 AM",
+            estimatedDuration: 12,
+            distanceFromPrevious: 1.5,
+            products: [
+              { id: 1, name: "FALDO BOTELLA 20 UND 16OZ", quantity: 5, price: 120.00 },
+              { id: 3, name: "AGUA PURIFICADA 1 GALÓN", quantity: 10, price: 30.00 },
+              { id: 4, name: "BOTELLITA 350ML CAJA 24 UND", quantity: 2, price: 72.00 }
+            ],
+            totalValue: 1092.00
+          },
+          {
+            id: 3,
+            order: 3,
+            customerId: 103,
+            customerName: "CAFETERÍA DOÑA ANA",
+            address: "CALLE DUARTE #12",
+            latitude: 19.06178,
+            longitude: -70.14841,
+            status: "pending",
+            estimatedArrival: "08:45 AM",
+            estimatedDuration: 8,
+            distanceFromPrevious: 1.2,
+            products: [
+              { id: 4, name: "BOTELLITA 350ML CAJA 24 UND", quantity: 3, price: 72.00 },
+              { id: 5, name: "DISPENSADOR DE AGUA", quantity: 1, price: 450.00 }
+            ],
+            totalValue: 666.00
+          }
+        ]
+      };
+      
+      // Inicializar estado de ruta activa si no está ya establecido
+      if (!activeRouteId) {
+        setActiveRouteId(parseInt(routeId));
       }
       
-      const routeData = await routeResponse.json();
-      console.log("Datos de la ruta:", routeData);
+      // Establecer paradas de la ruta en el estado
+      setRouteStops(mockRoute.stops);
       
-      // Obtener los pedidos asociados a esta ruta
-      const ordersResponse = await fetch(`/api/routes/${routeId}/orders`);
-      if (!ordersResponse.ok) {
-        throw new Error(`Error al obtener los pedidos: ${ordersResponse.statusText}`);
-      }
-      
-      const ordersData = await ordersResponse.json();
-      console.log("Pedidos de la ruta:", ordersData);
-      console.log("Número de pedidos encontrados:", ordersData.length);
-      
-      // Si no hay órdenes, mostramos un mensaje de diagnóstico
-      if (ordersData.length === 0) {
-        console.warn("No se encontraron pedidos para esta ruta");
-      } else {
-        console.log("Primer pedido:", ordersData[0]);
-        console.log("Coordenadas del primer pedido:", ordersData[0].coordinates);
-      }
-      
-      // Usamos las coordenadas del almacén definidas globalmente
-      
-      // Crear la estructura de paradas para la ruta
-      const stops: RouteStop[] = [];
-      
-      // Agregar el almacén como punto de inicio (stop 0)
-      stops.push({
-        id: 0,
-        order: 0,
-        customerId: 0,
-        customerName: "Almacén GoWater",
-        address: "Calle Principal #23, Cotuí, Sánchez Ramírez",
-        latitude: warehouseLocation[0],
-        longitude: warehouseLocation[1],
-        status: "completed",
-        estimatedArrival: "08:00 AM",
-        estimatedDuration: 0,
-        distanceFromPrevious: 0,
-        products: [],
-        totalValue: 0,
-        isWarehouse: true
-      });
-      
-      // Verificar si la ruta tiene secuencia de entrega y coordenadas definidas
-      let stopSequence = [];
-      let stopCoordinates = [];
-      
-      if (routeData.deliverySequence && routeData.deliverySequence.length > 0) {
-        stopSequence = routeData.deliverySequence;
-      }
-      
-      if (routeData.stops && routeData.stops.length > 0) {
-        stopCoordinates = routeData.stops.map((stop: string) => {
-          const [lat, lng] = stop.split(',').map(coord => parseFloat(coord));
-          return { latitude: lat, longitude: lng };
-        });
-      }
-      
-      // Agregar las paradas de los clientes
-      console.log("Procesando ordersData:", ordersData);
-      ordersData.forEach((order: any, index: number) => {
-        console.log(`Procesando orden ${index + 1}/${ordersData.length}:`, order.id);
+      // Si hay datos de progreso almacenados, restaurarlos
+      const savedRouteProgress = localStorage.getItem(`routeProgress_${routeId}`);
+      if (savedRouteProgress) {
+        const progressData = JSON.parse(savedRouteProgress);
         
-        // Calcular el valor total del pedido a partir de los productos
-        const totalValue = order.products.reduce(
-          (sum: number, product: any) => sum + (Number(product.price) * product.quantity), 
-          0
+        // Actualizar el estado de las paradas con el progreso guardado
+        setRouteStops(currentStops => 
+          currentStops.map(stop => {
+            const savedStop = progressData.stops.find((s: any) => s.id === stop.id);
+            return savedStop ? { ...stop, status: savedStop.status } : stop;
+          })
         );
-        console.log(`Valor total calculado para pedido ${order.id}: $${totalValue}`);
-        
-        // Extraer coordenadas del cliente directamente del orden si están disponibles
-        let latitude = 0, longitude = 0;
-        let stopOrder = index + 1; // Por defecto, orden secuencial
-        
-        // Intentar obtener coordenadas del pedido primero
-        if (order.coordinates) {
-          console.log(`Coordenadas del pedido ${order.id}:`, order.coordinates);
-          const [lat, lng] = order.coordinates.split(',').map((coord: string) => parseFloat(coord));
-          if (!isNaN(lat) && !isNaN(lng)) {
-            latitude = lat;
-            longitude = lng;
-            console.log(`Coordenadas procesadas correctamente: [${latitude}, ${longitude}]`);
-          } else {
-            console.warn(`Error al analizar coordenadas para pedido ${order.id}: ${order.coordinates}`);
-          }
-        } else {
-          console.warn(`Pedido ${order.id} no tiene coordenadas definidas`);
-        }
-        
-        // Intentar encontrar la posición correcta en la secuencia si no tenemos coordenadas directas
-        if ((latitude === 0 || longitude === 0) && stopSequence.length > index + 1) {
-          const sequenceIndex = parseInt(stopSequence[index + 1]);
-          stopOrder = sequenceIndex;
-          
-          // Si tenemos coordenadas para esta parada
-          if (stopCoordinates.length > sequenceIndex) {
-            latitude = stopCoordinates[sequenceIndex].latitude;
-            longitude = stopCoordinates[sequenceIndex].longitude;
-          }
-        }
-        
-        // Si aún no tenemos coordenadas válidas, usar valores ligeramente diferentes para visualización
-        if (latitude === 0 || longitude === 0) {
-          latitude = warehouseLocation[0] + (Math.random() * 0.02);
-          longitude = warehouseLocation[1] + (Math.random() * 0.02);
-          console.log(`Usando coordenadas aleatorias para pedido ${order.id}`);
-        }
-        
-        // Calcular estimados aproximados (en una app real estos vendrían de un servicio)
-        const estimatedDuration = 5 + Math.floor(Math.random() * 10); // 5-15 minutos
-        const distanceFromPrevious = 0.5 + Math.random() * 3; // 0.5-3.5 km
-        
-        stops.push({
-          id: order.id,
-          order: stopOrder,
-          customerId: order.customerId,
-          customerName: order.customerName,
-          address: order.customerAddress || "Dirección no disponible",
-          latitude,
-          longitude,
-          status: "pending",
-          estimatedArrival: "Próximamente",
-          estimatedDuration,
-          distanceFromPrevious,
-          products: order.products.map((product: any) => ({
-            id: product.productId,
-            name: product.name,
-            quantity: product.quantity,
-            price: parseFloat(product.price)
-          })),
-          totalValue: Number(order.total) || totalValue
-        });
-      });
-      
-      // Ordenar las paradas según la secuencia si está disponible
-      if (stopSequence.length > 0) {
-        stops.sort((a, b) => a.order - b.order);
       }
       
-      setRouteStops(stops);
-      setRouteStatus(routeData.status === "in_progress" ? "in_progress" : "not_started");
-      
-      setIsLoading(false);
     } catch (error) {
-      console.error("Error al cargar datos de ruta:", error);
+      console.error("Error al cargar datos de la ruta:", error);
       toast({
-        title: "Error al cargar la ruta",
-        description: "No se pudieron obtener los datos de tu ruta asignada",
+        title: "Error de carga",
+        description: "No se pudieron cargar los datos de la ruta",
         variant: "destructive"
       });
+    } finally {
       setIsLoading(false);
     }
   };
 
-  // Iniciar seguimiento de ubicación
-  const startLocationTracking = () => {
-    // Usamos siempre la ubicación del almacén en República Dominicana en lugar de la geolocalización real
-    // para evitar problemas durante las demostraciones
-    setCurrentLocation(warehouseLocation);
-    
-    try {
-      toast({
-        title: "Información",
-        description: "Usando ubicación predeterminada de Cotuí, República Dominicana",
-        variant: "default"
-      });
-      
-      // Simulamos actualizaciones de ubicación cada 30 segundos
-      const id = window.setInterval(() => {
-        // Simular pequeños movimientos alrededor del almacén
-        const randomLat = warehouseLocation[0] + (Math.random() * 0.001 - 0.0005);
-        const randomLng = warehouseLocation[1] + (Math.random() * 0.001 - 0.0005);
-        
-        console.log("Ubicación actual (simulada):", randomLat, randomLng);
-        setCurrentLocation([randomLat, randomLng]);
-        
-        // Si la ruta está activa, actualizar progreso con la ubicación simulada
-        if (routeStatus === 'in_progress' && activeRouteId) {
-          updateRouteProgress(randomLat, randomLng);
-        }
-      }, 30000) as unknown as number;
-      
-      setWatchId(id);
-    } catch (error) {
-      console.error("Error al iniciar la simulación de ubicación:", error);
-    }
-  };
-  
-  // Actualizar el progreso de la ruta en el servidor
-  const updateRouteProgress = async (latitude: number, longitude: number) => {
-    if (!activeRouteId) return;
-    
-    try {
-      // Enviar la ubicación actual al servidor
-      const currentLocation = `${latitude},${longitude}`;
-      console.log(`Actualizando progreso de ruta ${activeRouteId} en [${currentLocation}]`);
-      
-      const response = await fetch(`/api/routes/${activeRouteId}/progress`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          currentLocation,
-          lastUpdate: new Date().toISOString()
-        })
-      });
-      
-      if (!response.ok) {
-        console.error(`Error al actualizar progreso: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.error("Error al actualizar progreso:", error);
-    }
-  };
-  
-  // Función para iniciar la ruta
+  // Iniciar ruta
   const startRoute = async () => {
-    if (routeStatus !== 'not_started' && routeStatus !== 'paused') return;
-    
-    setIsLoading(true);
-    
     try {
-      // Llamar a la API para iniciar la ruta
-      console.log(`Iniciando ruta ID: ${activeRouteId}`);
-      const response = await fetch(`/api/routes/${activeRouteId}/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      // En una implementación real, enviar solicitud a la API
+      // await apiRequest(`/api/routes/${activeRouteId}/start`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ startLocation: currentLocation })
+      // });
       
-      if (!response.ok) {
-        throw new Error(`Error al iniciar ruta: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log("Respuesta al iniciar ruta:", data);
-      
-      // Internamente usamos 'in_progress', pero en la UI se muestra como 'En curso'
       setRouteStatus('in_progress');
-      setStartTime(new Date());
+      
+      // Actualizar estado de la primera parada a "in_progress"
+      setRouteStops(currentStops => 
+        currentStops.map(stop => 
+          stop.order === 0 ? { ...stop, status: "in_progress" as const } : stop
+        )
+      );
+      
+      // Iniciar seguimiento de ubicación
+      startLocationTracking();
       
       toast({
         title: "Ruta iniciada",
-        description: "Has comenzado la ruta. ¡Conduce con precaución!",
+        description: "Has comenzado la ruta exitosamente",
         variant: "default"
       });
     } catch (error) {
       console.error("Error al iniciar ruta:", error);
       toast({
-        title: "Error al iniciar ruta",
-        description: "No se pudo iniciar la ruta. Inténtalo de nuevo.",
+        title: "Error",
+        description: "No se pudo iniciar la ruta",
         variant: "destructive"
       });
-      
-      // Para asegurar que la UI siga funcionando, incluso si hay un error
-      setRouteStatus('in_progress');
-      setStartTime(new Date());
-    } finally {
-      setIsLoading(false);
     }
   };
-  
-  // Función para pausar la ruta
+
+  // Pausar ruta
   const pauseRoute = async () => {
-    if (routeStatus !== 'in_progress') return;
-    
-    setIsLoading(true);
-    
     try {
-      // En un entorno real, pausaríamos la ruta en la API
-      // const response = await apiRequest('POST', `/api/driver/routes/${activeRouteId}/pause`);
-      // if (response.ok) {
-      //   setRouteStatus('paused');
-      // }
+      // En una implementación real, enviar solicitud a la API
+      // await apiRequest(`/api/routes/${activeRouteId}/pause`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ currentLocation })
+      // });
       
-      // Para desarrollo, simulamos la pausa
       setRouteStatus('paused');
+      
+      // Detener seguimiento de ubicación
+      stopLocationTracking();
       
       toast({
         title: "Ruta pausada",
-        description: "Has pausado la ruta. Puedes reanudarla cuando estés listo.",
+        description: "Has pausado la ruta temporalmente",
         variant: "default"
       });
     } catch (error) {
       console.error("Error al pausar ruta:", error);
       toast({
-        title: "Error al pausar ruta",
-        description: "No se pudo pausar la ruta. Inténtalo de nuevo.",
+        title: "Error",
+        description: "No se pudo pausar la ruta",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
-  
-  // Función para finalizar la ruta
-  const finishRoute = async () => {
-    if (routeStatus === 'completed') return;
-    
-    setIsLoading(true);
-    
+
+  // Reanudar ruta
+  const resumeRoute = async () => {
     try {
-      // Llamar a la API para finalizar la ruta
-      console.log(`Finalizando ruta ID: ${activeRouteId}`);
-      const response = await fetch(`/api/routes/${activeRouteId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // Si existe alguna información adicional que queramos enviar al completar
-        body: JSON.stringify({
-          completedAt: new Date().toISOString()
-        })
+      // En una implementación real, enviar solicitud a la API
+      // await apiRequest(`/api/routes/${activeRouteId}/resume`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ currentLocation })
+      // });
+      
+      setRouteStatus('in_progress');
+      
+      // Reiniciar seguimiento de ubicación
+      startLocationTracking();
+      
+      toast({
+        title: "Ruta reanudada",
+        description: "Continuando con la ruta",
+        variant: "default"
       });
-      
-      if (!response.ok) {
-        throw new Error(`Error al finalizar ruta: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log("Respuesta al finalizar ruta:", data);
+    } catch (error) {
+      console.error("Error al reanudar ruta:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo reanudar la ruta",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Finalizar ruta
+  const completeRoute = async () => {
+    try {
+      // En una implementación real, enviar solicitud a la API
+      // await apiRequest(`/api/routes/${activeRouteId}/complete`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({ currentLocation })
+      // });
       
       setRouteStatus('completed');
+      
+      // Detener seguimiento de ubicación
+      stopLocationTracking();
+      
+      // Actualizar todas las paradas a "completed"
+      setRouteStops(currentStops => 
+        currentStops.map(stop => ({ ...stop, status: "completed" as const }))
+      );
+      
+      // Limpiar datos de la ruta del almacenamiento local
+      localStorage.removeItem(`routeProgress_${activeRouteId}`);
+      localStorage.removeItem('activeRouteId');
+      localStorage.removeItem('routeStatus');
+      
+      // Reiniciar estado
+      setActiveRouteId(null);
       
       toast({
         title: "Ruta completada",
-        description: "¡Felicidades! Has completado todas las entregas.",
+        description: "Has finalizado la ruta exitosamente",
         variant: "default"
       });
       
-      // Borrar los datos guardados en localStorage para esta ruta
-      localStorage.removeItem('activeRouteId');
-      localStorage.removeItem('routeStatus');
-      localStorage.removeItem('startTime');
-      localStorage.removeItem('currentStopIndex');
-      
-      // Redireccionar al listado de rutas después de 3 segundos
+      // Redirigir a la página de rutas pendientes después de un breve retraso
       setTimeout(() => {
         setLocation('/mobile-app/rutas-pendientes');
-      }, 3000);
+      }, 2000);
     } catch (error) {
-      console.error("Error al finalizar ruta:", error);
+      console.error("Error al completar ruta:", error);
       toast({
-        title: "Error al finalizar ruta",
-        description: "No se pudo finalizar la ruta. Inténtalo de nuevo.",
+        title: "Error",
+        description: "No se pudo completar la ruta",
         variant: "destructive"
       });
-      
-      // Para asegurar que la UI refleje el cambio, incluso si hay un error
-      setRouteStatus('completed');
-    } finally {
-      setIsLoading(false);
     }
   };
-  
-  // Función para abrir la navegación a una ubicación
-  const navigateToLocation = (latitude: number, longitude: number) => {
-    // Usamos Google Maps para la navegación
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
-    window.open(googleMapsUrl, '_blank');
+
+  // Actualizar progreso de la ruta
+  const updateRouteProgress = async (latitude: number, longitude: number) => {
+    try {
+      // En una implementación real, enviar solicitud a la API
+      // await apiRequest(`/api/routes/${activeRouteId}/progress`, {
+      //   method: 'POST',
+      //   body: JSON.stringify({
+      //     latitude,
+      //     longitude,
+      //     timestamp: new Date().toISOString()
+      //   })
+      // });
+      
+      console.log("Progreso de ruta actualizado:", { latitude, longitude });
+      
+      // Guardar progreso en localStorage
+      if (activeRouteId) {
+        const progressData = {
+          lastUpdated: new Date().toISOString(),
+          location: [latitude, longitude],
+          routeStatus,
+          stops: routeStops.map(stop => ({
+            id: stop.id,
+            status: stop.status
+          }))
+        };
+        
+        localStorage.setItem(`routeProgress_${activeRouteId}`, JSON.stringify(progressData));
+      }
+    } catch (error) {
+      console.error("Error al actualizar progreso de ruta:", error);
+    }
   };
 
-  // Cargar datos de ruta al montar el componente o cuando cambie el ID de la URL
+  // Iniciar seguimiento de ubicación
+  const startLocationTracking = () => {
+    if (navigator.geolocation) {
+      const id = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setCurrentLocation([latitude, longitude]);
+          updateRouteProgress(latitude, longitude);
+        },
+        (error) => {
+          console.error("Error al rastrear ubicación:", error);
+          toast({
+            title: "Error de ubicación",
+            description: "No se pudo obtener tu ubicación actual",
+            variant: "destructive"
+          });
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+      );
+      
+      setWatchId(id);
+    } else {
+      toast({
+        title: "Geolocalización no soportada",
+        description: "Tu dispositivo no soporta geolocalización",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Detener seguimiento de ubicación
+  const stopLocationTracking = () => {
+    if (watchId !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
+    }
+  };
+
+  // Efecto para cargar datos de la ruta al montar el componente
   useEffect(() => {
     loadRouteData();
-    startLocationTracking();
     
-    // Limpiar el intervalo al desmontar
+    // Verificar y establecer el tema oscuro/claro
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || 
+        (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      setDarkMode(true);
+    }
+    
     return () => {
-      if (watchId !== null) {
-        window.clearInterval(watchId);
+      // Limpiar observador de ubicación al desmontar
+      if (watchId !== null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [routeIdFromUrl]); // Dependencia en routeIdFromUrl para recargar si cambia
+  }, []);
+
+  // Inicializar mapa cuando routeStops se carga y el componente está montado
+  const mapRef = useRef<L.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   
-  // Guardar cambios del estado de la ruta en localStorage cuando cambien
   useEffect(() => {
-    // Solo guardar en localStorage si tenemos valores válidos
-    if (activeRouteId) {
-      localStorage.setItem('activeRouteId', activeRouteId.toString());
+    if (routeStops.length === 0 || !mapContainerRef.current) return;
+    
+    // Si el mapa ya existe, eliminarlo antes de crear uno nuevo
+    if (mapRef.current) {
+      mapRef.current.remove();
     }
     
-    // Guardar el estado de la ruta
-    localStorage.setItem('routeStatus', routeStatus);
+    // Crear un nuevo mapa
+    const map = L.map(mapContainerRef.current).setView(currentLocation, 15);
+    mapRef.current = map;
     
-    // Guardar la hora de inicio si existe
-    if (startTime) {
-      localStorage.setItem('startTime', startTime.toISOString());
-    }
+    // Añadir capa de mapa base
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
     
-    // Guardar el índice de parada actual
-    localStorage.setItem('currentStopIndex', currentStopIndex.toString());
-    
-    console.log('Estado de ruta guardado en localStorage:', {
-      activeRouteId,
-      routeStatus,
-      startTime: startTime?.toISOString(),
-      currentStopIndex
+    // Añadir marcadores para cada parada
+    routeStops.forEach(stop => {
+      const markerColor = stop.isWarehouse ? 'blue' : (
+        stop.status === 'completed' ? 'green' : 
+        stop.status === 'in_progress' ? 'orange' : 'red'
+      );
+      
+      // Crear icono personalizado basado en el estado
+      const customIcon = L.divIcon({
+        className: 'custom-div-icon',
+        html: `<div style="background-color: ${markerColor}; width: 10px; height: 10px; border-radius: 50%; border: 2px solid white;"></div>`,
+        iconSize: [15, 15],
+        iconAnchor: [7, 7]
+      });
+      
+      const marker = L.marker([stop.latitude, stop.longitude], { icon: customIcon })
+        .addTo(map)
+        .bindPopup(`
+          <b>${stop.customerName}</b><br>
+          ${stop.address}<br>
+          <small>Llegada est.: ${stop.estimatedArrival}</small>
+        `);
     });
-  }, [activeRouteId, routeStatus, startTime, currentStopIndex]);
-
-  // Si está cargando, mostrar spinner
-  if (isLoading) {
-    return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
-        <MobileHeader 
-          user={user} 
-          darkMode={darkMode} 
-          onToggleDarkMode={toggleDarkMode} 
-          onSyncData={syncData}
-        />
-        <div className="h-[calc(100vh-132px)] flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <h3 className="font-medium text-primary">Cargando ruta...</h3>
-          </div>
-        </div>
-        <MobileFooter darkMode={darkMode} />
-      </div>
-    );
-  }
-
-  // Función para depurar el estado actual
-  const debugInfo = () => {
-    return (
-      <div className={`bg-slate-100 text-slate-800 p-3 mb-4 rounded-lg text-xs border ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : ''}`}>
-        <h3 className="font-bold mb-1 text-primary">DEBUG INFO:</h3>
-        <p>ID de Ruta: {activeRouteId}</p>
-        <p>Paradas totales: {routeStops.length}</p>
-        <p>Primer parada: {routeStops.length > 0 ? 
-          `${routeStops[0].customerName} (ID: ${routeStops[0].id})` : 
-          'Ninguna'}</p>
-        <p>Estado de ruta: {
-          routeStatus === 'in_progress' ? 'in_progress' : 
-          routeStatus === 'not_started' ? 'not_started' :
-          routeStatus === 'paused' ? 'paused' :
-          routeStatus === 'completed' ? 'completed' : 'desconocido'
-        }</p>
-        <p className="text-xs text-muted-foreground">Ubicación actual: [{currentLocation[0].toFixed(6)}, {currentLocation[1].toFixed(6)}]</p>
-      </div>
-    );
-  };
+    
+    // Dibujar línea conectando las paradas en orden
+    const routePoints = routeStops
+      .sort((a, b) => a.order - b.order)
+      .map(stop => [stop.latitude, stop.longitude]);
+    
+    L.polyline(routePoints as L.LatLngExpression[], { color: 'blue', weight: 3 }).addTo(map);
+    
+    // Ajustar visualización para incluir todas las paradas
+    if (routeStops.length > 1) {
+      map.fitBounds(L.latLngBounds(routePoints as L.LatLngExpression[]));
+    }
+    
+    // Añadir marcador para la ubicación actual del conductor
+    const driverMarker = L.marker(currentLocation, {
+      icon: L.divIcon({
+        className: 'driver-icon',
+        html: `<div style="background-color: #0ea5e9; width: 15px; height: 15px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+        iconSize: [25, 25],
+        iconAnchor: [12, 12]
+      })
+    }).addTo(map);
+    
+    // Actualizar el marcador cuando cambie la ubicación actual
+    return () => {
+      map.remove();
+    };
+  }, [routeStops, currentLocation]);
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
-      <MobileHeader 
-        user={user} 
-        darkMode={darkMode} 
-        onToggleDarkMode={toggleDarkMode} 
-        onSyncData={syncData}
-      />
-      
-      {/* Debug info - remover en producción */}
-      <div className="container max-w-md mx-auto px-4">
-        {debugInfo()}
-      </div>
-      
-      <main className="container max-w-md mx-auto pb-6">
-        {/* Mapa de la ruta (altura reducida, mismo ancho que paradas) */}
-        <div className="h-[28vh] relative mb-4 px-4">
-          <ResponsiveMapContainer className="w-full h-full z-0 rounded-xl overflow-hidden" fixedHeight={true}>
-            <MapContainer 
-              center={warehouseLocation} 
-              zoom={13} 
-              className="h-full w-full z-0"
-              zoomControl={false}
-              attributionControl={false}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              
-              {/* Marcador para la ubicación actual */}
-              <Marker 
-                position={currentLocation}
-                icon={WarehouseIcon}
-              >
-                <Popup>
-                  <div className="text-sm">
-                    <p className="font-bold">Almacén GoWater</p>
-                    <p className="text-xs">Punto de inicio</p>
-                  </div>
-                </Popup>
-              </Marker>
-              
-              {/* Marcadores para cada parada en la ruta */}
-              {routeStops.map((stop, index) => (
-                <Marker 
-                  key={stop.id} 
-                  position={[stop.latitude, stop.longitude]}
-                  icon={stop.isWarehouse ? WarehouseIcon : DefaultIcon}
-                >
-                  <Popup>
-                    <div className="text-sm">
-                      <p className="font-bold">{stop.customerName}</p>
-                      <p className="text-xs">{stop.address}</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-              
-              {/* Línea para la ruta */}
-              {routeStops.length > 0 && (
-                <Polyline 
-                  positions={[
-                    currentLocation,
-                    ...routeStops.map(stop => [stop.latitude, stop.longitude] as [number, number])
-                  ]}
-                  color="#2563eb"
-                  weight={4}
-                  opacity={0.7}
-                />
-              )}
-            </MapContainer>
-          </ResponsiveMapContainer>
-          
-          {/* Botón para centrar mapa en ubicación del almacén */}
-          <Button 
-            variant="default" 
-            size="icon" 
-            className="absolute bottom-4 right-4 z-10 h-10 w-10 shadow-md"
-            onClick={() => {
-              // Centrar en la ubicación del almacén
-              setCurrentLocation(warehouseLocation);
-              toast({
-                title: "Mapa centrado",
-                description: "Vista centrada en almacén principal",
-                variant: "default"
-              });
-            }}
-          >
-            <Navigation className="h-5 w-5" />
-          </Button>
+    <div className="container mx-auto pb-20">
+      {/* Header */}
+      <div className="flex justify-between items-center py-4 sticky top-0 bg-background border-b z-10">
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 p-2 rounded-full">
+            <Truck className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">Ruta de Entrega</h1>
+            <p className="text-xs text-muted-foreground">
+              {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+            </p>
+          </div>
         </div>
         
-        {/* Lista de paradas */}
-        <div className="px-4">
-          {/* Panel de control de ruta */}
-          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">Estado de Ruta</h2>
-                <Badge 
-                  variant={
-                    routeStatus === 'completed' ? "success" :
-                    routeStatus === 'in_progress' ? "default" :
-                    routeStatus === 'paused' ? "outline" :
-                    "secondary"
-                  }
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={syncData}
+            className="h-9 w-9"
+          >
+            <RefreshCw className="h-5 w-5" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleDarkMode}
+            className="h-9 w-9"
+          >
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Estado de la ruta */}
+      <div className="bg-primary-foreground p-4 rounded-lg mt-4 shadow-sm">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="font-semibold">Estado de la ruta</h2>
+            <p className="text-sm mt-1">
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium 
+                ${routeStatus === 'not_started' ? 'bg-yellow-100 text-yellow-800' : 
+                  routeStatus === 'in_progress' ? 'bg-green-100 text-green-800' : 
+                  routeStatus === 'paused' ? 'bg-orange-100 text-orange-800' : 
+                  'bg-blue-100 text-blue-800'}`}
+              >
+                {routeStatus === 'not_started' ? 'No iniciada' : 
+                  routeStatus === 'in_progress' ? 'En progreso' : 
+                  routeStatus === 'paused' ? 'Pausada' : 
+                  'Completada'}
+              </span>
+            </p>
+          </div>
+          
+          <div className="flex gap-2">
+            {routeStatus === 'not_started' && (
+              <Button 
+                size="sm" 
+                onClick={startRoute}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Iniciar Ruta
+              </Button>
+            )}
+            
+            {routeStatus === 'in_progress' && (
+              <>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={pauseRoute}
                 >
-                  {routeStatus === 'not_started' && "No iniciada"}
-                  {routeStatus === 'in_progress' && "En curso"}
-                  {routeStatus === 'paused' && "Pausada"}
-                  {routeStatus === 'completed' && "Completada"}
-                </Badge>
-              </div>
-              
-              {startTime && (
-                <div className="bg-primary/10 rounded-lg p-3 mb-4">
-                  <p className="text-sm flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>Iniciada: {startTime.toLocaleTimeString('es-DO')}</span>
-                  </p>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {routeStatus === 'not_started' || routeStatus === 'paused' ? (
-                  <Button
-                    className="flex items-center justify-center gap-1"
-                    onClick={startRoute}
-                    disabled={isLoading || routeStatus === 'completed' as any}
-                  >
-                    <Play className="h-4 w-4" />
-                    {routeStatus === 'paused' ? 'Continuar' : 'Iniciar'}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="flex items-center justify-center gap-1"
-                    onClick={pauseRoute}
-                    disabled={isLoading || routeStatus !== 'in_progress'}
-                  >
-                    <Pause className="h-4 w-4" />
-                    Pausar
-                  </Button>
-                )}
-                
-                <Button
-                  variant="destructive"
-                  className="flex items-center justify-center gap-1"
-                  onClick={finishRoute}
-                  disabled={isLoading || routeStatus === 'completed' || routeStatus === 'not_started'}
+                  Pausar
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  onClick={completeRoute}
                 >
-                  <Square className="h-4 w-4" />
                   Finalizar
                 </Button>
-                
-                <Button
-                  variant="secondary"
-                  className="flex items-center justify-center gap-1"
-                  onClick={syncData}
-                  disabled={isLoading}
-                >
-                  <RotateCw className="h-4 w-4" />
-                  Actualizar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </>
+            )}
+            
+            {routeStatus === 'paused' && (
+              <Button 
+                size="sm" 
+                onClick={resumeRoute}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Reanudar
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
 
-          {/* Barra de progreso con animación de gotas de agua */}
-          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <h2 className="text-lg font-bold mb-2">Progreso de Entrega</h2>
-              
-              {/* Barra de progreso animada con efecto de agua */}
-              <WaterProgressBar 
-                progress={calculateRouteProgress()}
-                total={routeStops.length > 0 ? routeStops.length - 1 : 0} 
-                completed={calculateCompletedStops()}
-                label="Entregas completadas"
-                darkMode={darkMode}
-                size="lg"
-              />
-              
-              <div className="mt-3 text-xs text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Almacén</span>
-                  <span>Destino final</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Mapa */}
+      <div className="mt-4 bg-background rounded-lg overflow-hidden shadow">
+        <div ref={mapContainerRef} className="h-64 w-full"></div>
+      </div>
+
+      {/* DEBUG INFO - Sólo para desarrollo */}
+      <div className="mt-4 bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-yellow-800">
+        <h3 className="font-bold text-lg">DEBUG INFO:</h3>
+        <p>Route ID: {activeRouteId}</p>
+        <p>Paradas totales: {routeStops.length}</p>
+        <p>Primer parada: {routeStops[0]?.customerName} (ID: {routeStops[0]?.id})</p>
+        <p>Estado de ruta: {routeStatus}</p>
+        <p>Ubicación actual: [{currentLocation[0].toFixed(6)}, {currentLocation[1].toFixed(6)}]</p>
+      </div>
+
+      {/* Listado de paradas */}
+      <div className="mt-4">
+        <h2 className="font-bold text-xl mb-3">Ruta de entrega</h2>
         
-          {/* Lista de paradas */}
-          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <h2 className="text-lg font-bold mb-2">Mi Ruta de Hoy</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                {new Date().toLocaleDateString('es-DO', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
-              
-              <div className="space-y-3">
-                {routeStops.length <= 1 ? (
-                  <div className="text-center py-8">
-                    <AlertTriangle className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
-                    <p className="text-muted-foreground">No hay paradas asignadas para hoy</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Debug: Encontradas {routeStops.length} paradas, {routeStops.length > 0 ? 'incluye almacén' : 'sin paradas'}
-                    </p>
-                  </div>
-                ) : (
-                  routeStops.map((stop, index) => (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-10">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+          </div>
+        ) : routeStops.length === 0 ? (
+          <div className="text-center py-10">
+            <AlertTriangle className="h-10 w-10 mx-auto text-yellow-500 mb-3" />
+            <p className="text-lg font-medium">No hay paradas asignadas para hoy</p>
+            <p className="text-muted-foreground mt-1">
+              Sincroniza tus datos o contacta a la oficina central
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {routeStops.map((stop) => (
+              <div 
+                key={stop.id} 
+                className="bg-card rounded-lg shadow-sm border overflow-hidden"
+              >
+                {/* Encabezado de la parada */}
+                <div className="flex items-start p-4">
+                  <div className="flex-shrink-0 flex flex-col items-center mr-3">
                     <div 
-                      key={stop.id}
-                      className={`border rounded-lg p-3 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center
+                        ${stop.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          stop.status === 'in_progress' ? 'bg-orange-100 text-orange-700' : 
+                          'bg-primary/10 text-primary'}`}
                     >
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                            stop.isWarehouse
-                              ? 'bg-primary/10 text-primary'
-                              : stop.status === 'completed' 
-                                ? 'bg-green-100 text-green-600' 
-                                : 'bg-primary/10 text-primary'
-                          }`}>
-                            <span className="text-xs font-medium">{stop.order}</span>
-                          </div>
-                          <span className="font-medium">{stop.customerName}</span>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          stop.status === 'completed' 
-                            ? 'bg-green-100 text-green-600' 
-                            : 'bg-primary/10 text-primary'
-                        }`}>
-                          {stop.estimatedArrival}
-                        </span>
-                      </div>
-                      
-                      <div className="ml-8 text-sm">
-                        <p className="text-muted-foreground text-xs mb-1">{stop.address}</p>
-                        {stop.products && stop.products.length > 0 ? (
-                          <div className="mt-1 mb-2">
-                            <h4 className="text-xs font-bold mb-1">Productos:</h4>
-                            <div className="bg-primary/5 rounded-md p-2">
-                              <ul className="space-y-1">
-                                {stop.products.map(product => (
-                                  <li 
-                                    key={product.id}
-                                    className="text-xs flex justify-between border-b last:border-0 pb-1 last:pb-0"
-                                  >
-                                    <span className="font-medium">{product.name}</span>
-                                    <span className="font-bold">{product.quantity} × ${product.price.toFixed(2)}</span>
-                                  </li>
-                                ))}
-                              </ul>
-                              <div className="border-t border-primary/20 mt-2 pt-2 space-y-1">
+                      {stop.order}
+                    </div>
+                    {stop.order < routeStops.length - 1 && (
+                      <div className="h-full w-0.5 bg-gray-200 my-1"></div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-grow">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold text-base">{stop.customerName}</h3>
+                        <div className="ml-8 text-sm">
+                          <p className="text-muted-foreground text-xs mb-1">{stop.address}</p>
+                          {stop.isWarehouse ? (
+                            <div className="mb-2">
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                Punto de inicio
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="mt-1 mb-2">
+                              <div className="bg-primary/5 rounded-md p-2">
                                 <div className="flex justify-between">
                                   <span className="text-xs font-bold">Total productos:</span>
                                   <span className="text-xs font-medium">
                                     {stop.products.reduce((total, product) => total + product.quantity, 0)} unidades
                                   </span>
                                 </div>
-                                <div className="flex justify-between">
+                                <div className="flex justify-between mt-1">
                                   <span className="text-xs font-bold">Valor del pedido:</span>
                                   <span className="text-xs font-bold text-primary">
                                     ${stop.totalValue.toFixed(2)}
@@ -944,113 +778,121 @@ export default function DriverRoute() {
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="mb-2">
-                            {stop.isWarehouse && (
-                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                Punto de inicio
-                              </span>
-                            )}
-                          </div>
-                        )}
+                          )}
 
-                        <div className="flex justify-between mt-2">
-                          <div className="flex flex-col">
-                            <span className="text-xs text-muted-foreground">Duración estimada:</span>
-                            <span className="text-xs font-medium">{stop.estimatedDuration} min</span>
+                          <div className="flex justify-between mt-2">
+                            <div className="flex flex-col">
+                              <span className="text-xs text-muted-foreground">Duración estimada:</span>
+                              <span className="text-xs font-medium">{stop.estimatedDuration} min</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              {!stop.isWarehouse && (
+                                <Button
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-xs h-8 flex items-center gap-1"
+                                  onClick={() => setExpandedStopId(expandedStopId === stop.id ? null : stop.id)}
+                                >
+                                  {expandedStopId === stop.id ? (
+                                    <ChevronUp className="h-3 w-3" />
+                                  ) : (
+                                    <ChevronDown className="h-3 w-3" />
+                                  )}
+                                  Detalles
+                                </Button>
+                              )}
+                              
+                              <Button 
+                                size="sm"
+                                variant="default"
+                                className="text-xs h-8"
+                                onClick={() => {
+                                  if (mapRef.current && !stop.isWarehouse) {
+                                    mapRef.current.setView([stop.latitude, stop.longitude], 17);
+                                  }
+                                }}
+                              >
+                                <Navigation className="h-3 w-3 mr-1" /> 
+                                Navegar
+                              </Button>
+                            </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
-                            {!stop.isWarehouse && (
-                              <Button
-                                variant="outline" 
-                                size="sm" 
-                                className="text-xs h-8 flex items-center gap-1"
-                                onClick={() => setExpandedStopId(expandedStopId === stop.id ? null : stop.id)}
-                              >
-                                {expandedStopId === stop.id ? (
-                                  <ChevronUp className="h-3 w-3" />
-                                ) : (
-                                  <ChevronDown className="h-3 w-3" />
-                                )}
-                                Detalles
-                              </Button>
-                            )}
-                            
-                            <Button
-                              variant="default" 
-                              size="sm" 
-                              className="text-xs h-8 flex items-center gap-1"
-                              onClick={() => navigateToLocation(stop.latitude, stop.longitude)}
+                          {expandedStopId === stop.id && !stop.isWarehouse && (
+                            <div 
+                              className="mt-3 animate-in fade-in-50 slide-in-from-top-5 duration-300"
                             >
-                              <Compass className="h-3 w-3" />
-                              Navegar
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {/* Panel expandible con detalles de la parada */}
-                        {expandedStopId === stop.id && !stop.isWarehouse && (
-                          <div className="mt-4 p-3 bg-muted rounded-md animate-in fade-in-50 duration-200">
-                            <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                              <Info className="h-4 w-4" />
-                              Productos a entregar
-                            </h4>
-                            
-                            <div className="space-y-2 text-sm">
-                              <div>
-                                <span className="text-xs font-semibold">Cliente:</span>
-                                <p className="text-xs">{stop.customerName}</p>
-                              </div>
-                              
-                              <div>
-                                <span className="text-xs font-semibold">Dirección:</span>
-                                <p className="text-xs">{stop.address}</p>
-                              </div>
-                              
-                              <div>
-                                <span className="text-xs font-semibold">Productos:</span>
-                                <div className="mt-1 border border-border rounded-sm overflow-hidden">
-                                  <table className="w-full text-xs">
-                                    <thead className="bg-background border-b border-border">
-                                      <tr>
-                                        <th className="px-2 py-1 text-left">Producto</th>
-                                        <th className="px-2 py-1 text-center">Cant.</th>
-                                        <th className="px-2 py-1 text-right">Precio</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {stop.products.map((product, idx) => (
-                                        <tr key={idx} className={idx % 2 === 0 ? "bg-muted/50" : ""}>
-                                          <td className="px-2 py-1">{product.name}</td>
-                                          <td className="px-2 py-1 text-center">{product.quantity}</td>
-                                          <td className="px-2 py-1 text-right">${(product.price * product.quantity).toFixed(2)}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                              <div className="bg-background rounded-md border p-3">
+                                <h4 className="font-medium mb-2 text-sm">Productos a entregar:</h4>
+                                <div className="divide-y">
+                                  <div className="grid grid-cols-12 gap-2 py-1 text-xs font-medium text-muted-foreground">
+                                    <div className="col-span-7">Producto</div>
+                                    <div className="col-span-2 text-center">Cant.</div>
+                                    <div className="col-span-3 text-right">Precio</div>
+                                  </div>
+                                  
+                                  {stop.products.map((product, idx) => (
+                                    <div key={idx} className="grid grid-cols-12 gap-2 py-2 text-xs">
+                                      <div className="col-span-7">{product.name}</div>
+                                      <div className="col-span-2 text-center">{product.quantity}x</div>
+                                      <div className="col-span-3 text-right">${product.price.toFixed(2)}</div>
+                                    </div>
+                                  ))}
+                                  
+                                  <div className="grid grid-cols-12 gap-2 py-2 text-xs font-bold">
+                                    <div className="col-span-7">Total</div>
+                                    <div className="col-span-2 text-center">
+                                      {stop.products.reduce((total, product) => total + product.quantity, 0)}
+                                    </div>
+                                    <div className="col-span-3 text-right text-primary">
+                                      ${stop.totalValue.toFixed(2)}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                               
-                              <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
-                                <span className="text-xs font-semibold">Total del pedido:</span>
-                                <span className="text-sm font-bold text-primary">${stop.totalValue.toFixed(2)}</span>
-                              </div>
+                              {stop.status !== 'completed' && (
+                                <div className="mt-3 flex items-center justify-between">
+                                  <span className="text-xs text-muted-foreground">
+                                    Marcar como entregado:
+                                  </span>
+                                  
+                                  <Link href={`/mobile-app/entregas/${stop.id}?routeId=${activeRouteId}`}>
+                                    <Button size="sm" className="text-xs">
+                                      <CheckSquare className="h-3 w-3 mr-1" />
+                                      Procesar entrega
+                                    </Button>
+                                  </Link>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col items-end">
+                        <span className={`text-xs ${
+                          stop.status === 'completed' ? 'bg-green-100 text-green-700' : 
+                          stop.status === 'in_progress' ? 'bg-orange-100 text-orange-700' : 
+                          'bg-blue-100 text-blue-800'
+                        } px-2 py-0.5 rounded-full`}>
+                          {stop.status === 'completed' ? 'Completado' : 
+                           stop.status === 'in_progress' ? 'En progreso' : 
+                           'Próximamente'}
+                        </span>
+                        <span className="text-xs font-medium mt-1">
+                          {stop.estimatedArrival}
+                        </span>
                       </div>
                     </div>
-                  ))
-                )}
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-      
-      <MobileFooter darkMode={darkMode} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
