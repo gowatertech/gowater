@@ -20,7 +20,14 @@ import {
   Recycle,
   Receipt,
   Printer,
-  Edit // Añadido para editar pedidos
+  Edit, // Añadido para editar pedidos
+  CreditCard, // Añadido para método de pago con tarjeta
+  CircleDollarSign, // Para opciones de pago rápido
+  Coins, // Para cambio en efectivo
+  Calculator, // Para cálculos
+  Ban, // Para cancelar
+  CheckCircle, // Para confirmar
+  BadgeDollarSign // Para montos exactos
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +37,16 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { apiRequest } from "@/lib/api";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter 
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Importamos el componente de mapa responsivo
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
@@ -173,6 +190,13 @@ export default function DriverRoute() {
   
   // Estado para controlar qué parada tiene los detalles expandidos
   const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
+  
+  // Estados para el diálogo de pago
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
+  const [paymentReceived, setPaymentReceived] = useState(0);
+  const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
   
   // Calcular el número de paradas completadas (excluyendo el almacén)
   const calculateCompletedStops = () => {
@@ -592,6 +616,78 @@ export default function DriverRoute() {
     // Usamos Google Maps para la navegación
     const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
     window.open(googleMapsUrl, '_blank');
+  };
+  
+  // Función para abrir el diálogo de pago
+  const openPaymentDialog = (stop: RouteStop) => {
+    setCurrentStopForPayment(stop);
+    setPaymentMethod("cash");
+    setPaymentReceived(stop.totalValue); // Establecer el monto predeterminado igual al total
+    setUpdateCustomerBalance(true);
+    setShowPaymentDialog(true);
+  };
+  
+  // Función para procesar el pago y completar la entrega
+  const processPayment = async () => {
+    if (!currentStopForPayment) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Preparar datos para la actualización
+      const updateData = {
+        orderId: currentStopForPayment.id,
+        status: "delivered",
+        paymentMethod: paymentMethod,
+        paymentAmount: paymentReceived,
+        updateCustomerBalance: updateCustomerBalance
+      };
+
+      console.log("Procesando entrega con datos:", JSON.stringify(updateData));
+      
+      // Enviar datos al servidor
+      const response = await fetch(`/api/orders/${currentStopForPayment.id}/deliver`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(updateData)
+      });
+      
+      if (!response.ok) {
+        throw new Error("No se pudo procesar la entrega");
+      }
+
+      const responseData = await response.json();
+      
+      // Actualizar el estado de la parada a completada
+      const updatedStops = routeStops.map(s => 
+        s.id === currentStopForPayment.id ? 
+          { ...s, status: "completed" as "pending" | "in_progress" | "completed" | "cancelled" } : 
+          s
+      );
+      setRouteStops(updatedStops);
+      
+      // Mostrar mensaje de éxito
+      toast({
+        title: "Entrega procesada",
+        description: `Entrega para ${currentStopForPayment.customerName} completada. ${responseData.invoiceCreated ? 'Factura generada.' : ''}`
+      });
+      
+      // Cerrar diálogo
+      setShowPaymentDialog(false);
+      setExpandedStopId(null);
+      
+    } catch (error) {
+      console.error("Error al procesar la entrega:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al procesar la entrega",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Cargar datos de ruta al montar el componente o cuando cambie el ID de la URL
@@ -1161,58 +1257,8 @@ export default function DriverRoute() {
                                       variant={stop.status === "completed" ? "outline" : "default"}
                                       disabled={stop.status === "completed"}
                                       onClick={() => {
-                                        // Confirmación de entrega
-                                        const confirmed = window.confirm(
-                                          `¿Confirmar entrega de productos y pago por ${stop.totalValue.toFixed(2)} RD$?`
-                                        );
-                                        
-                                        if (!confirmed) return;
-                                        
-                                        // Marcar la parada como completada
-                                        const updatedStops = routeStops.map(s => 
-                                          s.id === stop.id ? { ...s, status: "completed" as "pending" | "in_progress" | "completed" | "cancelled" } : s
-                                        );
-                                        setRouteStops(updatedStops);
-                                        
-                                        // Llamar a la API para actualizar el estado de la orden y registrar el pago
-                                        const updateData = {
-                                          status: 'delivered',
-                                          paymentReceived: stop.totalValue,
-                                          updateBalance: true // Actualizar balance del cliente
-                                        };
-                                        
-                                        fetch(`/api/orders/${stop.id}/status`, {
-                                          method: 'PATCH', // Cambiado de POST a PATCH para coincidir con el endpoint del servidor
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify(updateData)
-                                        })
-                                        .then(res => {
-                                          if (res.ok) {
-                                            toast({
-                                              title: "Entrega completada",
-                                              description: "Pedido entregado, pago registrado y balance actualizado",
-                                              variant: "default"
-                                            });
-                                            
-                                            // Mostrar notificación de factura/recibo
-                                            toast({
-                                              title: "Documentos generados",
-                                              description: "Se ha generado la factura y el recibo de pago",
-                                              variant: "default"
-                                            });
-                                            
-                                            // Cerrar el panel de detalles
-                                            setExpandedStopId(null);
-                                          }
-                                        })
-                                        .catch(err => {
-                                          console.error("Error al marcar entrega:", err);
-                                          toast({
-                                            title: "Error",
-                                            description: "No se pudo actualizar el estado del pedido",
-                                            variant: "destructive"
-                                          });
-                                        });
+                                        // Abrir el diálogo de pago mejorado
+                                        openPaymentDialog(stop);
                                       }}
                                     >
                                       <Check className="h-4 w-4" />
@@ -1235,6 +1281,212 @@ export default function DriverRoute() {
       </main>
       
       <MobileFooter darkMode={darkMode} />
+      
+      {/* Diálogo de pago mejorado */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              Procesar Pago
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="p-1">
+            {currentStopForPayment && (
+              <>
+                {/* Información del cliente */}
+                <div className="bg-primary/10 rounded-lg p-3 mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <h3 className="font-bold">{currentStopForPayment.customerName}</h3>
+                    <Badge variant="outline" className="ml-2">
+                      {currentStopForPayment.products.reduce((acc, item) => acc + item.quantity, 0)} productos
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{currentStopForPayment.address}</p>
+                </div>
+                
+                {/* Opciones de método de pago */}
+                <div className="mb-4">
+                  <Label className="text-sm font-medium mb-2 block">Método de pago</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      type="button" 
+                      variant={paymentMethod === "cash" ? "default" : "outline"} 
+                      className="justify-start"
+                      onClick={() => setPaymentMethod("cash")}
+                    >
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Efectivo
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant={paymentMethod === "credit" ? "default" : "outline"} 
+                      className="justify-start"
+                      onClick={() => setPaymentMethod("credit")}
+                    >
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Crédito
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Opciones según método de pago */}
+                {paymentMethod === "cash" ? (
+                  <>
+                    {/* Sección de pago en efectivo */}
+                    <div className="mb-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <Label htmlFor="paymentReceived" className="text-sm font-medium">
+                          Monto recibido (RD$)
+                        </Label>
+                        <div className="text-sm font-medium flex gap-1 items-center text-primary">
+                          <CircleDollarSign className="h-4 w-4" />
+                          Total: RD$ {currentStopForPayment.totalValue.toFixed(2)}
+                        </div>
+                      </div>
+                      
+                      {/* Campo de monto recibido */}
+                      <Input
+                        id="paymentReceived"
+                        type="number"
+                        value={paymentReceived}
+                        onChange={(e) => setPaymentReceived(Number(e.target.value))}
+                        className="text-xl font-bold mb-2"
+                      />
+                      
+                      {/* Botones de monto rápido */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="text-sm"
+                          onClick={() => setPaymentReceived(currentStopForPayment.totalValue)}
+                        >
+                          <BadgeDollarSign className="mr-1 h-3 w-3" />
+                          Monto exacto
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="text-sm"
+                          onClick={() => setPaymentReceived(Math.ceil(currentStopForPayment.totalValue / 100) * 100)}
+                        >
+                          <CircleDollarSign className="mr-1 h-3 w-3" />
+                          Redondear a 100
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          className="text-sm"
+                          onClick={() => setPaymentReceived(Math.ceil(currentStopForPayment.totalValue / 500) * 500)}
+                        >
+                          <CircleDollarSign className="mr-1 h-3 w-3" />
+                          Redondear a 500
+                        </Button>
+                      </div>
+                      
+                      {/* Cambio a devolver */}
+                      <div 
+                        className={`p-3 rounded-lg text-lg font-bold mb-4 flex justify-between items-center ${
+                          paymentReceived < currentStopForPayment.totalValue 
+                            ? 'bg-red-100 text-red-500' 
+                            : paymentReceived === currentStopForPayment.totalValue 
+                              ? 'bg-green-100 text-green-600' 
+                              : 'bg-amber-100 text-amber-600'
+                        }`}
+                      >
+                        <span className="text-sm">Cambio:</span>
+                        <div className="flex items-center">
+                          {paymentReceived < currentStopForPayment.totalValue ? (
+                            <Ban className="mr-2 h-4 w-4" />
+                          ) : (
+                            <Coins className="mr-2 h-4 w-4" />
+                          )}
+                          <span>
+                            RD$ {(paymentReceived - currentStopForPayment.totalValue).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Sección de pago a crédito */}
+                    <div className="mb-4 p-4 bg-primary/10 rounded-lg">
+                      <div className="text-center mb-3">
+                        <CreditCard className="h-10 w-10 text-primary mx-auto mb-2" />
+                        <p className="font-medium">Se cargará al crédito del cliente</p>
+                      </div>
+                      <div className="flex justify-between items-center text-lg font-bold">
+                        <span>Total a crédito:</span>
+                        <span>RD$ {currentStopForPayment.totalValue.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {/* Opción para actualizar balance */}
+                <div className="flex items-center space-x-2 mb-4">
+                  <Checkbox 
+                    id="updateBalance" 
+                    checked={updateCustomerBalance}
+                    onCheckedChange={(checked) => 
+                      setUpdateCustomerBalance(checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="updateBalance" className="text-sm">
+                    Actualizar balance del cliente
+                  </Label>
+                </div>
+                
+                {/* Información de productos */}
+                <div className="bg-muted/50 p-3 rounded-lg mb-4">
+                  <h4 className="text-sm font-medium mb-2">Detalle de productos</h4>
+                  <div className="space-y-1 max-h-32 overflow-y-auto text-sm">
+                    {currentStopForPayment.products.map((product, index) => (
+                      <div key={index} className="flex justify-between">
+                        <span>
+                          {product.quantity} × {product.name}
+                        </span>
+                        <span className="font-medium">
+                          RD$ {(product.price * product.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          
+          <DialogFooter className="mt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowPaymentDialog(false)}
+              className="w-full sm:w-auto gap-1"
+            >
+              <Ban className="h-4 w-4" />
+              Cancelar
+            </Button>
+            <Button 
+              onClick={processPayment} 
+              disabled={
+                isLoading || 
+                (paymentMethod === "cash" && paymentReceived < (currentStopForPayment?.totalValue || 0))
+              }
+              className="w-full sm:w-auto gap-1"
+            >
+              {isLoading ? (
+                <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-1" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              {isLoading ? "Procesando..." : "Confirmar Pago"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
