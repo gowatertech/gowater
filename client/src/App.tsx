@@ -38,6 +38,7 @@ import MobileApp from "@/pages/mobile-app";
 import MobileRoute from "@/pages/mobile-app/ruta";
 import MobileDeliveries from "@/pages/mobile-app/entregas";
 import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
+import MobileBottleReturns from "@/pages/mobile-app/envases";
 
 function Router() {
   const [location] = useLocation();
@@ -147,6 +148,7 @@ function Router() {
         <Route path="/mobile-app/rutas-pendientes" component={MobilePendingRoutes} />
         <Route path="/mobile-app/ruta" component={MobileRoute} />
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
+        <Route path="/mobile-app/envases" component={MobileBottleReturns} />
       </Switch>
     );
   }
