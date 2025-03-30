@@ -153,6 +153,8 @@ export default function Inventory() {
       price: "0.00",
       stock: 0,
       icon: "",
+      isReturnable: false,
+      depositAmount: "0.00",
     },
   });
 
@@ -163,6 +165,8 @@ export default function Inventory() {
       price: "0.00",
       stock: 0,
       icon: "",
+      isReturnable: false,
+      depositAmount: "0.00",
     },
   });
 
@@ -171,7 +175,9 @@ export default function Inventory() {
       const formattedData = {
         ...data,
         price: Number(data.price).toFixed(2),
-        stock: Number(data.stock)
+        stock: Number(data.stock),
+        isReturnable: !!data.isReturnable,
+        depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00"
       };
       const res = await apiRequest("POST", "/api/products", formattedData);
       return res.json();
@@ -202,7 +208,9 @@ export default function Inventory() {
         price: Number(data.price).toFixed(2),
         stock: Number(data.stock),
         // Asegurarnos de que icon sea una cadena o null, nunca undefined
-        icon: data.icon || null
+        icon: data.icon || null,
+        isReturnable: !!data.isReturnable,
+        depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00"
       };
       
       const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
@@ -285,7 +293,10 @@ export default function Inventory() {
       price: product.price.toString(),
       stock: product.stock,
       // Si icon es null o undefined, usar una cadena vacía
-      icon: product.icon || ""
+      icon: product.icon || "",
+      // Campos para productos retornables
+      isReturnable: product.isReturnable ?? false,
+      depositAmount: product.depositAmount?.toString() || "0.00"
     };
     
     editForm.reset(formValues);
@@ -397,7 +408,9 @@ export default function Inventory() {
                         name: "",
                         price: "0.00",
                         stock: 0,
-                        icon: ""
+                        icon: "",
+                        isReturnable: false,
+                        depositAmount: "0.00"
                       });
                       setActiveTab("form");
                     }}
@@ -442,19 +455,21 @@ export default function Inventory() {
                         <TableHead className="py-1">Nombre</TableHead>
                         <TableHead className="py-1 w-[100px] text-right">Precio</TableHead>
                         <TableHead className="py-1 w-[80px] text-center">Existencia</TableHead>
+                        <TableHead className="py-1 w-[80px] text-center">Retornable</TableHead>
+                        <TableHead className="py-1 w-[100px] text-center">Depósito</TableHead>
                         <TableHead className="py-1 w-[100px] text-center">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
                             Cargando productos...
                           </TableCell>
                         </TableRow>
                       ) : filteredProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
                             No se encontraron productos
                           </TableCell>
                         </TableRow>
@@ -482,6 +497,14 @@ export default function Inventory() {
                                 <Badge variant={product.stock > 0 ? "default" : "secondary"}>
                                   {product.stock}
                                 </Badge>
+                              </TableCell>
+                              <TableCell className="py-2 text-center">
+                                {product.isReturnable ? '✓' : '✗'}
+                              </TableCell>
+                              <TableCell className="py-2 text-center">
+                                {product.isReturnable 
+                                  ? `RD$ ${parseFloat(product.depositAmount?.toString() || '0').toFixed(2)}` 
+                                  : 'N/A'}
                               </TableCell>
                               <TableCell className="py-2">
                                 <div className="flex justify-center space-x-2">
@@ -622,6 +645,58 @@ export default function Inventory() {
                             <FormMessage className="text-xs" />
                           </FormItem>
                         )}
+                      />
+                      <FormField
+                        control={editingProduct ? editForm.control : form.control}
+                        name="isReturnable"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-3 space-y-0 py-4">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                  field.onChange(checked);
+                                  // Si se desmarca, resetear el valor del depósito
+                                  if (!checked) {
+                                    const setDepositToZero = editingProduct 
+                                      ? editForm.setValue 
+                                      : form.setValue;
+                                    setDepositToZero("depositAmount", "0.00");
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="text-xs cursor-pointer">
+                              Producto Retornable (con depósito)
+                            </FormLabel>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editingProduct ? editForm.control : form.control}
+                        name="depositAmount"
+                        render={({ field }) => {
+                          // Obtener el valor de isReturnable
+                          const isReturnableValue = editingProduct 
+                            ? editForm.watch("isReturnable") 
+                            : form.watch("isReturnable");
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel className="text-xs">Monto del Depósito (RD$)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  className="h-8 text-xs"
+                                  onChange={(e) => field.onChange(e.target.value)}
+                                  disabled={!isReturnableValue}
+                                />
+                              </FormControl>
+                              <FormMessage className="text-xs" />
+                            </FormItem>
+                          );
+                        }}
                       />
                     </div>
 
