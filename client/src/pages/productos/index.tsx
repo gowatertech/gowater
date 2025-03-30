@@ -377,6 +377,8 @@ export default function Productos() {
             <TableHead>{t("name")}</TableHead>
             <TableHead>{t("price")}</TableHead>
             <TableHead>{t("stock")}</TableHead>
+            <TableHead>Retornable</TableHead>
+            <TableHead>Depósito</TableHead>
             <TableHead>{t("actions")}</TableHead>
           </TableRow>
         </TableHeader>
@@ -399,6 +401,12 @@ export default function Productos() {
                 <TableCell>{product.name}</TableCell>
                 <TableCell>RD$ {parseFloat(product.price.toString()).toFixed(2)}</TableCell>
                 <TableCell>{product.stock}</TableCell>
+                <TableCell>{product.isReturnable ? '✓' : '✗'}</TableCell>
+                <TableCell>
+                  {product.isReturnable 
+                    ? `RD$ ${parseFloat(product.depositAmount?.toString() || '0').toFixed(2)}` 
+                    : 'N/A'}
+                </TableCell>
                 <TableCell className="space-x-2">
                   <Button
                     variant="ghost"
