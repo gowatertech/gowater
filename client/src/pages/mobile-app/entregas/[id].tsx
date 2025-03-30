@@ -95,11 +95,20 @@ export default function DeliveryDetails() {
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
-  // Obtener el ID de la ruta desde localStorage
+  // Obtener el ID de la ruta desde URL o localStorage
   useEffect(() => {
-    const savedRouteId = localStorage.getItem('activeRouteId');
-    if (savedRouteId) {
-      setRouteId(parseInt(savedRouteId));
+    // Primero intentamos obtener de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const routeIdFromUrl = urlParams.get('routeId');
+    
+    if (routeIdFromUrl) {
+      setRouteId(parseInt(routeIdFromUrl));
+    } else {
+      // Si no está en la URL, buscamos en localStorage
+      const savedRouteId = localStorage.getItem('activeRouteId');
+      if (savedRouteId) {
+        setRouteId(parseInt(savedRouteId));
+      }
     }
   }, []);
   

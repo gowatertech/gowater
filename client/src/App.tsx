@@ -95,29 +95,19 @@ function Router() {
     appleTouchIcon.href = '/images/icons/apple-touch-icon.svg';
     document.head.appendChild(appleTouchIcon);
     
-    const appleTouchIcon180 = document.createElement('link');
-    appleTouchIcon180.rel = 'apple-touch-icon';
-    appleTouchIcon180.sizes = '180x180';
-    appleTouchIcon180.href = '/images/icons/apple-touch-icon.svg';
-    document.head.appendChild(appleTouchIcon180);
+    // Crear elementos link para diferentes tamaños de íconos Apple usando HTML directo
+    const iconSizes = ['180x180', '152x152', '120x120', '76x76'];
+    const touchIcons: HTMLElement[] = [];
     
-    const appleTouchIcon152 = document.createElement('link');
-    appleTouchIcon152.rel = 'apple-touch-icon';
-    appleTouchIcon152.sizes = '152x152';
-    appleTouchIcon152.href = '/images/icons/apple-touch-icon.svg';
-    document.head.appendChild(appleTouchIcon152);
-    
-    const appleTouchIcon120 = document.createElement('link');
-    appleTouchIcon120.rel = 'apple-touch-icon';
-    appleTouchIcon120.sizes = '120x120';
-    appleTouchIcon120.href = '/images/icons/apple-touch-icon.svg';
-    document.head.appendChild(appleTouchIcon120);
-    
-    const appleTouchIcon76 = document.createElement('link');
-    appleTouchIcon76.rel = 'apple-touch-icon';
-    appleTouchIcon76.sizes = '76x76';
-    appleTouchIcon76.href = '/images/icons/apple-touch-icon.svg';
-    document.head.appendChild(appleTouchIcon76);
+    iconSizes.forEach(size => {
+      const linkElement = document.createElement('link');
+      linkElement.rel = 'apple-touch-icon';
+      // Usar setAttribute en lugar de asignar directamente
+      linkElement.setAttribute('sizes', size);
+      linkElement.href = '/images/icons/apple-touch-icon.svg';
+      document.head.appendChild(linkElement);
+      touchIcons.push(linkElement);
+    });
     
     // Apple Splash Screen
     const appleSplashScreen = document.createElement('meta');
@@ -132,10 +122,8 @@ function Router() {
       document.head.removeChild(appleCapable);
       document.head.removeChild(appleStatusBar);
       document.head.removeChild(appleTouchIcon);
-      document.head.removeChild(appleTouchIcon180);
-      document.head.removeChild(appleTouchIcon152);
-      document.head.removeChild(appleTouchIcon120);
-      document.head.removeChild(appleTouchIcon76);
+      // Eliminar los íconos de touch
+      touchIcons.forEach(icon => document.head.removeChild(icon));
       document.head.removeChild(appleSplashScreen);
     };
   }, []);

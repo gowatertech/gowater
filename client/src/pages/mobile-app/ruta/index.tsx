@@ -1304,7 +1304,9 @@ export default function DriverRoute() {
                                       disabled={stop.status === "completed"}
                                       onClick={() => {
                                         // Navegar a la página de detalle de entrega donde se pueden editar productos
-                                        setLocation(`/mobile-app/entregas/${stop.id}`);
+                                        // Asegurarnos de pasar el routeId en la URL para poder volver atrás correctamente
+                                        const routeIdParam = activeRouteId ? `?routeId=${activeRouteId}` : '';
+                                        setLocation(`/mobile-app/entregas/${stop.id}${routeIdParam}`);
                                       }}
                                     >
                                       <Edit className="h-4 w-4" />
