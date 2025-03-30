@@ -692,86 +692,146 @@ export default function DeliveryDetails() {
       <Dialog open={showDeliveryConfirm} onOpenChange={setShowDeliveryConfirm}>
         <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-800 text-white border-gray-700' : ''}`}>
           <DialogHeader>
-            <DialogTitle>Confirmar Entrega</DialogTitle>
+            <DialogTitle className="text-xl">Confirmar Entrega</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-5 py-4">
+            {/* Sección de total */}
+            <div className="bg-primary/10 p-4 rounded-lg border border-primary/20 mb-4">
+              <div className="flex justify-between items-center">
+                <span className="text-lg">Total a cobrar:</span>
+                <span className="text-xl font-bold">${delivery.total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Opciones de pago con iconos más grandes y mejor visualización */}
             <div>
-              <Label className="block mb-2">Método de Pago</Label>
-              <div className="flex space-x-2">
+              <Label className="text-md font-medium mb-3 block">Seleccione método de pago:</Label>
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   type="button"
                   onClick={() => {
-                    console.log("Seleccionando método de pago: cash");
                     setPaymentMethod("cash");
+                    // Mantener el monto recibido como el total si es un valor válido
+                    if (!paymentReceived || paymentReceived < delivery.total) {
+                      setPaymentReceived(delivery.total);
+                    }
                   }}
                   variant={paymentMethod === "cash" ? "default" : "outline"}
-                  className="flex-1 flex items-center justify-center"
+                  className={`p-3 h-auto flex flex-col items-center justify-center gap-2 ${
+                    paymentMethod === "cash" ? "ring-2 ring-primary" : ""
+                  }`}
                 >
-                  <DollarSign className="h-4 w-4 mr-1" />
-                  Efectivo
+                  <DollarSign className="h-8 w-8" />
+                  <span className="font-medium">Efectivo</span>
                 </Button>
                 
                 <Button
                   type="button"
                   onClick={() => {
-                    console.log("Seleccionando método de pago: credit");
                     setPaymentMethod("credit");
+                    setPaymentReceived(delivery.total);
                   }}
                   variant={paymentMethod === "credit" ? "default" : "outline"}
-                  className="flex-1 flex items-center justify-center"
+                  className={`p-3 h-auto flex flex-col items-center justify-center gap-2 ${
+                    paymentMethod === "credit" ? "ring-2 ring-primary" : ""
+                  }`}
                 >
-                  <CreditCard className="h-4 w-4 mr-1" />
-                  Crédito
+                  <CreditCard className="h-8 w-8" />
+                  <span className="font-medium">Crédito</span>
                 </Button>
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="payment-amount" className="block mb-2">
-                Monto Recibido {paymentMethod === "cash" ? "(Efectivo)" : "(A Crédito)"}
-              </Label>
-              <Input
-                id="payment-amount"
-                type="number"
-                step="0.01"
-                value={paymentReceived}
-                onChange={(e) => setPaymentReceived(parseFloat(e.target.value) || 0)}
-                className={darkMode ? 'bg-gray-700 border-gray-600' : ''}
-                disabled={paymentMethod === "credit"}
-              />
-            </div>
+            {/* Sección de pago en efectivo */}
+            {paymentMethod === "cash" && (
+              <div className="border rounded-lg p-3 space-y-3">
+                <Label htmlFor="payment-amount" className="font-medium block">
+                  Monto recibido:
+                </Label>
+                <Input
+                  id="payment-amount"
+                  type="number"
+                  step="0.01"
+                  value={paymentReceived}
+                  onChange={(e) => setPaymentReceived(parseFloat(e.target.value) || 0)}
+                  className={`text-lg ${darkMode ? 'bg-gray-700 border-gray-600' : ''}`}
+                />
+                
+                {/* Botones de acceso rápido para montos comunes */}
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setPaymentReceived(delivery.total)}
+                    className="text-xs h-8"
+                  >
+                    Exacto
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setPaymentReceived(Math.ceil(delivery.total / 100) * 100)}
+                    className="text-xs h-8"
+                  >
+                    ${Math.ceil(delivery.total / 100) * 100}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setPaymentReceived(Math.ceil(delivery.total / 500) * 500)}
+                    className="text-xs h-8"
+                  >
+                    ${Math.ceil(delivery.total / 500) * 500}
+                  </Button>
+                </div>
+
+                {/* Mostrar cambio si aplica */}
+                {paymentReceived > delivery.total && (
+                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md border border-green-200 dark:border-green-900 mt-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Cambio a devolver:</span>
+                      <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                        ${(paymentReceived - delivery.total).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sección de crédito */}
+            {paymentMethod === "credit" && (
+              <div className="border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">Monto a crédito:</span>
+                  <span className="font-bold">${delivery.total.toFixed(2)}</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Este monto será añadido a la cuenta de crédito del cliente.
+                </p>
+              </div>
+            )}
             
-            <div className="flex items-center space-x-2">
+            {/* Opción para actualizar balance */}
+            <div className="flex items-center space-x-2 border-t pt-3">
               <Checkbox 
                 id="update-balance" 
                 checked={updateCustomerBalance} 
                 onCheckedChange={(checked) => setUpdateCustomerBalance(!!checked)}
+                className="h-5 w-5"
               />
-              <Label htmlFor="update-balance" className="cursor-pointer">
+              <Label htmlFor="update-balance" className="cursor-pointer text-sm">
                 Actualizar balance del cliente
               </Label>
             </div>
-            
-            <div className="rounded-md bg-primary/10 p-3 border border-primary/20">
-              <div className="flex justify-between mb-2">
-                <span>Total del pedido:</span>
-                <span className="font-medium">${delivery.total.toFixed(2)}</span>
-              </div>
-              
-              {paymentMethod === "cash" && paymentReceived > delivery.total && (
-                <div className="flex justify-between text-sm">
-                  <span>Cambio a devolver:</span>
-                  <span className="font-medium">${(paymentReceived - delivery.total).toFixed(2)}</span>
-                </div>
-              )}
-            </div>
           </div>
           
-          <DialogFooter className="flex space-x-2 sm:space-x-0">
+          <DialogFooter className="flex space-x-3 border-t pt-3">
             <Button 
               variant="outline" 
               onClick={() => setShowDeliveryConfirm(false)}
+              className="flex-1"
             >
               Cancelar
             </Button>
@@ -779,11 +839,13 @@ export default function DeliveryDetails() {
             <Button 
               onClick={processDelivery}
               disabled={
-                !paymentMethod || // Deshabilitar si no se ha seleccionado un método de pago
+                !paymentMethod || 
                 (paymentMethod === "cash" && paymentReceived < delivery.total)
               }
+              className="flex-1"
             >
-              Confirmar entrega
+              <Check className="h-5 w-5 mr-1" />
+              Completar
             </Button>
           </DialogFooter>
         </DialogContent>
