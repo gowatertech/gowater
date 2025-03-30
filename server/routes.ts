@@ -14,6 +14,9 @@ import { registerRoutesEndpoints } from "./routes-endpoints";
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
 
+// Mapa para almacenar conexiones de los conductores
+const driverConnections = new Map<number, WebSocket>();
+
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
   storage: multer.memoryStorage(),

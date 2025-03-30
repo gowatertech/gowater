@@ -450,10 +450,10 @@ export default function DriverRoute() {
   
   // Actualizar el progreso de la ruta en el servidor
   const updateRouteProgress = async (latitude: number, longitude: number) => {
-    if (!activeRouteId) return;
+    if (!activeRouteId || !user?.id) return;
     
     try {
-      // Enviar la ubicación actual al servidor
+      // Enviar la ubicación actual al servidor mediante API REST
       const currentLocation = `${latitude},${longitude}`;
       console.log(`Actualizando progreso de ruta ${activeRouteId} en [${currentLocation}]`);
       
@@ -469,7 +469,53 @@ export default function DriverRoute() {
       });
       
       if (!response.ok) {
-        console.error(`Error al actualizar progreso: ${response.statusText}`);
+        console.error(`Error al actualizar progreso vía REST: ${response.statusText}`);
+      }
+      
+      // También intentar enviar la ubicación por WebSocket para actualización en tiempo real
+      try {
+        // Construir la URL del WebSocket
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        console.log("Intentando enviar ubicación vía WebSocket:", wsUrl);
+        
+        // Crear un WebSocket temporal para enviar la actualización
+        const socket = new WebSocket(wsUrl);
+        
+        // Función para enviar la ubicación cuando el WebSocket se conecte
+        socket.onopen = () => {
+          // Enviar el mensaje con la ubicación
+          const message = JSON.stringify({
+            type: 'driver_location',
+            driverId: user.id,
+            latitude,
+            longitude
+          });
+          
+          socket.send(message);
+          console.log("Ubicación enviada vía WebSocket:", message);
+          
+          // Cerrar el WebSocket después de enviar (no necesitamos mantenerlo abierto)
+          setTimeout(() => socket.close(), 500);
+        };
+        
+        // Manejar errores de WebSocket sin mostrar mensajes al usuario
+        socket.onerror = (err) => {
+          console.log("Error en WebSocket (ignorado silenciosamente):", err);
+          socket.close();
+        };
+        
+        // Si no se conecta en 3 segundos, cerrar el socket
+        setTimeout(() => {
+          if (socket.readyState !== WebSocket.CLOSED) {
+            console.log("Cerrando WebSocket por timeout");
+            socket.close();
+          }
+        }, 3000);
+      } catch (wsError) {
+        // No mostrar estos errores al usuario, solo registrarlos
+        console.log("No se pudo inicializar WebSocket:", wsError);
       }
     } catch (error) {
       console.error("Error al actualizar progreso:", error);
@@ -1526,7 +1572,11 @@ export default function DriverRoute() {
               productId: p.id,
               name: p.name,
               quantity: p.quantity,
-              price: p.price
+              price: p.price,
+              // Usamos el atributo de retornable que debería venir de la base de datos
+              // Este valor se cargará dinámicamente desde la API
+              isReturnable: (p as any).isReturnable === true,
+              depositAmount: (p as any).depositAmount || "0.00"
             })) || [] 
             : []
           }

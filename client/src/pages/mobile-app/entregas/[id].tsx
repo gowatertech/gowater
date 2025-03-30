@@ -175,12 +175,47 @@ export default function DeliveryDetails() {
   };
   
   // Registrar retorno de envases
-  const registerBottleReturn = (productId: number, quantity: number) => {
-    // Aquí implementarías la lógica para registrar el retorno de envases
-    toast({
-      title: "Envases retornados",
-      description: `Se registraron ${quantity} envases del producto ${productId}`,
-    });
+  const registerBottleReturn = async (productId: number, quantity: number) => {
+    if (!deliveryId) return;
+    
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`/api/orders/${deliveryId}/bottle-returns`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          productId: productId,
+          returnedQuantity: quantity,
+          expectedQuantity: delivery?.products.find(p => p.id === productId)?.quantity || 0
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al registrar el retorno de envases');
+      }
+      
+      const result = await response.json();
+      
+      // Recargar los datos actualizados
+      loadDeliveryDetails();
+      
+      toast({
+        title: "Envases retornados",
+        description: `Se registraron ${quantity} envases del producto correctamente`,
+      });
+    } catch (error) {
+      console.error('Error al registrar retorno de envases:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudo registrar el retorno de envases",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Iniciar edición de productos
