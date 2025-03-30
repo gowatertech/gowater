@@ -64,7 +64,10 @@ export default function BottleReturnDialog({
   // Obtener los retornos de botellas existentes para esta orden
   const { data: bottleReturns, isLoading: isLoadingReturns } = useQuery({
     queryKey: ['/api/orders', orderId, 'bottle-returns'],
-    queryFn: () => apiRequest(`/api/orders/${orderId}/bottle-returns`),
+    queryFn: async () => {
+      const response = await apiRequest(`/api/orders/${orderId}/bottle-returns`);
+      return await response.json();
+    },
     enabled: open && !!orderId
   });
 
@@ -75,10 +78,19 @@ export default function BottleReturnDialog({
       returnedQuantity: number; 
       expectedQuantity: number;
     }) => {
-      return apiRequest(`/api/orders/${orderId}/bottle-returns`, {
+      const response = await fetch(`/api/orders/${orderId}/bottle-returns`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(data)
       });
+      
+      if (!response.ok) {
+        throw new Error('Error al registrar el retorno de envases');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
