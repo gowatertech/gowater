@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 
 // Interfaces
 interface Product {
@@ -65,7 +64,7 @@ export default function BottleReturnDialog({
   const { data: bottleReturns, isLoading: isLoadingReturns } = useQuery({
     queryKey: ['/api/orders', orderId, 'bottle-returns'],
     queryFn: async () => {
-      const response = await apiRequest(`/api/orders/${orderId}/bottle-returns`);
+      const response = await fetch(`/api/orders/${orderId}/bottle-returns`);
       return await response.json();
     },
     enabled: open && !!orderId
