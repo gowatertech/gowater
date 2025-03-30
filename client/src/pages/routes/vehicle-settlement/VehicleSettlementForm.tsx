@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart4, Truck } from "lucide-react";
-import type { VehicleLoading, Product, User, Truck as TruckType } from "@shared/schema";
+import { BarChart4, Truck, Loader2, PillBottle } from "lucide-react";
+import type { VehicleLoading, Product, User, Truck as TruckType, BottleReturn } from "@shared/schema";
 
 // Esquema para validar formulario de cuadre
 const settlementSchema = z.object({
@@ -42,6 +42,17 @@ interface LoadingWithRelations extends VehicleLoading {
     notes: string | null;
     product: Product;
   }>;
+}
+
+// Extender el tipo BottleReturn para incluir el nombre del producto
+interface ExtendedBottleReturn extends BottleReturn {
+  productName?: string;
+}
+
+// Extender la respuesta de la API para incluir los datos de devolución de envases
+interface SettlementResponse {
+  loading: LoadingWithRelations;
+  bottleReturns: ExtendedBottleReturn[];
 }
 
 interface SettlementFormProps {
@@ -80,7 +91,77 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     resolver: zodResolver(settlementSchema),
     defaultValues,
   });
+  
+  // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
+  const calculateDifferences = useCallback(() => {
+    const values = form.getValues();
+    const totalCashReceived = parseFloat(values.totalCashReceived) || 0;
+    const totalCreditReceived = parseFloat(values.totalCreditReceived) || 0;
+    
+    // Total vendido basado en la cantidad vendida de cada producto
+    let totalSold = 0;
+    values.items.forEach(item => {
+      const product = loading.items.find(p => p.productId === item.productId)?.product;
+      if (product) {
+        const price = parseFloat(product.price || "0");
+        totalSold += price * item.soldQuantity;
+      }
+    });
+    
+    // Actualizar el valor facturado con lo que realmente se vendió
+    const totalInvoiced = totalSold;
+    form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
+    
+    // Diferencia entre lo recibido (efectivo + crédito) y lo facturado
+    // Si es positivo, hay un sobrante. Si es negativo, hay un faltante.
+    const cashDifference = (totalCashReceived + totalCreditReceived - totalInvoiced).toFixed(2);
+    
+    setCalculatedTotals({
+      cashDifference,
+      totalSold: totalSold.toFixed(2),
+    });
+  }, [form, loading.items]);
 
+  // Cargar los datos de devolución de envases
+  const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
+    queryKey: ["/api/route-settlements", loading.id],
+    enabled: !!loading.id,
+  });
+  
+  // Efecto para actualizar los valores de envases devueltos cuando se carguen los datos
+  useEffect(() => {
+    if (settlementData && settlementData.bottleReturns && settlementData.bottleReturns.length > 0) {
+      // Para cada item en el formulario, buscamos si hay datos de devolución para ese producto
+      const formItems = form.getValues().items;
+      let updated = false;
+      
+      formItems.forEach((item, index) => {
+        const returnData = settlementData.bottleReturns.filter(
+          (br: ExtendedBottleReturn) => br.productId === item.productId
+        );
+        
+        if (returnData.length > 0) {
+          // Sumamos todas las devoluciones para este producto
+          const totalReturned = returnData.reduce(
+            (sum: number, br: ExtendedBottleReturn) => sum + br.returnedQuantity, 
+            0
+          );
+          
+          // Actualizamos el valor en el formulario
+          if (totalReturned > 0) {
+            form.setValue(`items.${index}.returnedContainers`, totalReturned);
+            updated = true;
+          }
+        }
+      });
+      
+      // Si se actualizó algún valor, recalcular totales
+      if (updated) {
+        calculateDifferences();
+      }
+    }
+  }, [settlementData, form, calculateDifferences]);
+  
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
       return apiRequest("POST", "/api/route-settlements", data);
@@ -113,35 +194,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     return total.toFixed(2);
   }
 
-  // Manejador para calcular diferencias y ajustes
-  const calculateDifferences = () => {
-    const values = form.getValues();
-    const totalCashReceived = parseFloat(values.totalCashReceived) || 0;
-    const totalCreditReceived = parseFloat(values.totalCreditReceived) || 0;
-    
-    // Total vendido basado en la cantidad vendida de cada producto
-    let totalSold = 0;
-    values.items.forEach(item => {
-      const product = loading.items.find(p => p.productId === item.productId)?.product;
-      if (product) {
-        const price = parseFloat(product.price || "0");
-        totalSold += price * item.soldQuantity;
-      }
-    });
-    
-    // Actualizar el valor facturado con lo que realmente se vendió
-    const totalInvoiced = totalSold;
-    form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
-    
-    // Diferencia entre lo recibido (efectivo + crédito) y lo facturado
-    // Si es positivo, hay un sobrante. Si es negativo, hay un faltante.
-    const cashDifference = (totalCashReceived + totalCreditReceived - totalInvoiced).toFixed(2);
-    
-    setCalculatedTotals({
-      cashDifference,
-      totalSold: totalSold.toFixed(2),
-    });
-  };
+  // handleChange utiliza calculateDifferences que ya está definido con useCallback
 
   const handleChange = () => {
     // Calcular las diferencias cuando cambian los valores
@@ -200,6 +253,47 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             </div>
           </div>
         </div>
+
+        {isLoadingSettlementData ? (
+          <div className="flex justify-center items-center p-6">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mr-2" />
+            <span>Cargando datos de devoluciones...</span>
+          </div>
+        ) : settlementData?.bottleReturns && settlementData.bottleReturns.length > 0 ? (
+          <div className="mb-6 border border-primary/20 bg-primary/5 p-4 rounded-lg">
+            <div className="flex items-center mb-2">
+              <PillBottle className="h-5 w-5 text-primary mr-2" />
+              <h3 className="text-lg font-medium">Devoluciones de Envases Registradas</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Se encontraron {settlementData.bottleReturns.length} devoluciones de envases registradas por el conductor.
+            </p>
+            <div className="overflow-x-auto max-h-40">
+              <table className="w-full text-sm">
+                <thead className="bg-primary/10">
+                  <tr>
+                    <th className="px-2 py-1 text-left">Producto</th>
+                    <th className="px-2 py-1 text-center">Esperados</th>
+                    <th className="px-2 py-1 text-center">Devueltos</th>
+                    <th className="px-2 py-1 text-center">Pendientes</th>
+                    <th className="px-2 py-1 text-right">Depósito</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {settlementData.bottleReturns.map((bottleReturn: ExtendedBottleReturn) => (
+                    <tr key={bottleReturn.id} className="border-b border-primary/10">
+                      <td className="px-2 py-1">{bottleReturn.productName || `Producto #${bottleReturn.productId}`}</td>
+                      <td className="px-2 py-1 text-center">{bottleReturn.expectedQuantity}</td>
+                      <td className="px-2 py-1 text-center">{bottleReturn.returnedQuantity}</td>
+                      <td className="px-2 py-1 text-center">{bottleReturn.pendingQuantity}</td>
+                      <td className="px-2 py-1 text-right">RD$ {parseFloat(bottleReturn.depositAmount || "0").toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

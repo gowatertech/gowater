@@ -1,7 +1,8 @@
 import { Express, Request, Response } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "../db";
-import { vehicleLoading, vehicleLoadingItems } from "@shared/schema";
+import * as schema from "@shared/schema";
+import { vehicleLoading, vehicleLoadingItems, routes, orders, bottleReturns, products } from "@shared/schema";
 
 export async function registerRouteSettlements(app: Express) {
   // Crear nuevo cuadre de vehículo
@@ -118,16 +119,62 @@ export async function registerRouteSettlements(app: Express) {
         });
       }
 
-      // Verificar si ya fue completada
-      if (loading.status !== "completed") {
-        return res.status(400).json({
-          error: "Cuadre no disponible",
-          message: "No hay un cuadre completado para esta carga"
-        });
+      // Obtenemos las devoluciones de envases para las órdenes del conductor
+      let bottleReturnData: any[] = [];
+      
+      if (loading.driverId) {
+        // 1. Obtener las rutas asignadas al conductor desde que se creó la carga
+        const driverRoutes = await db
+          .select({
+            id: routes.id
+          })
+          .from(routes)
+          .where(eq(routes.driverId, loading.driverId));
+
+        const routeIds = driverRoutes.map(route => route.id);
+        
+        if (routeIds.length > 0) {
+          // 2. Obtener las órdenes asociadas a esas rutas
+          const routeOrders = await db
+            .select({
+              id: orders.id
+            })
+            .from(orders)
+            .where(inArray(orders.routeId, routeIds));
+          
+          const orderIds = routeOrders.map(order => order.id);
+          
+          if (orderIds.length > 0) {
+            // 3. Obtener todas las devoluciones de envases para esas órdenes
+            const returns = await db
+              .select()
+              .from(bottleReturns)
+              .where(inArray(bottleReturns.orderId, orderIds));
+              
+            // 4. Para cada devolución, obtener el nombre del producto correspondiente
+            bottleReturnData = await Promise.all(
+              returns.map(async (bottleReturn) => {
+                // Buscar el producto por ID
+                const product = await db
+                  .select({ name: products.name })
+                  .from(products)
+                  .where(eq(products.id, bottleReturn.productId))
+                  .then(results => results[0]);
+                
+                // Devolver la devolución con el nombre del producto
+                return {
+                  ...bottleReturn,
+                  productName: product?.name || `Producto #${bottleReturn.productId}`
+                };
+              })
+            );
+          }
+        }
       }
 
       res.json({
-        loading
+        loading,
+        bottleReturns: bottleReturnData
       });
     } catch (error) {
       console.error("Error al obtener cuadre de vehículo:", error);
