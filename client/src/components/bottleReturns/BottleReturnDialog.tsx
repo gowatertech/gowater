@@ -17,6 +17,8 @@ interface Product {
   name: string;
   quantity: number;
   price: number;
+  isReturnable: boolean;
+  depositAmount?: string;
 }
 
 interface BottleReturn {
@@ -54,11 +56,8 @@ export default function BottleReturnDialog({
 
   // Filtrar productos que sean retornables utilizando el atributo isReturnable
   const returnableProducts = products.filter(product => 
-    // Usamos la propiedad isReturnable si está disponible, o fallback al filtro por nombre
-    (product as any).isReturnable === true || 
-    product.name.toLowerCase().includes("botellón") || 
-    product.name.toLowerCase().includes("envase") ||
-    product.name.toLowerCase().includes("garrafón")
+    // Usamos exclusivamente la propiedad isReturnable que ahora está disponible en todos los productos
+    product.isReturnable === true
   );
 
   // Obtener los retornos de botellas existentes para esta orden
@@ -141,7 +140,7 @@ export default function BottleReturnDialog({
     setSelectedProduct(product);
     
     // Si ya existe un retorno para este producto, establecer la cantidad
-    const existingReturn = bottleReturns?.find(ret => ret.productId === product.productId);
+    const existingReturn = bottleReturns?.find((ret: BottleReturn) => ret.productId === product.productId);
     if (existingReturn) {
       setReturnedQuantity(existingReturn.returnedQuantity);
     } else {
@@ -184,7 +183,7 @@ export default function BottleReturnDialog({
             <div>
               <h3 className="text-sm font-medium mb-2">Retornos registrados</h3>
               <div className="bg-muted/40 rounded-lg p-2 space-y-2 max-h-32 overflow-y-auto">
-                {bottleReturns.map((ret) => (
+                {bottleReturns.map((ret: BottleReturn) => (
                   <div key={ret.id} className="flex justify-between items-center text-sm">
                     <div className="flex items-center">
                       <PillBottle className="h-4 w-4 mr-2 text-primary/70" />
@@ -222,7 +221,7 @@ export default function BottleReturnDialog({
                 ) : (
                   filteredProducts.map((product) => {
                     // Verificar si ya existe un retorno para este producto
-                    const existingReturn = bottleReturns?.find(ret => ret.productId === product.productId);
+                    const existingReturn = bottleReturns?.find((ret: BottleReturn) => ret.productId === product.productId);
                     return (
                       <Card 
                         key={product.productId} 
