@@ -21,6 +21,7 @@ import {
   Receipt,
   Printer,
   Edit, // Añadido para editar pedidos
+  Eye, // Añadido para ver detalles
   CreditCard, // Añadido para método de pago con tarjeta
   CircleDollarSign, // Para opciones de pago rápido
   Coins, // Para cambio en efectivo
@@ -1301,16 +1302,24 @@ export default function DriverRoute() {
                                     <Button 
                                       className="flex items-center justify-center gap-1"
                                       variant="outline"
-                                      disabled={stop.status === "completed"}
                                       onClick={() => {
-                                        // Navegar a la página de detalle de entrega donde se pueden editar productos
+                                        // Navegar a la página de detalle de entrega
                                         // Asegurarnos de pasar el routeId en la URL para poder volver atrás correctamente
                                         const routeIdParam = activeRouteId ? `?routeId=${activeRouteId}` : '';
                                         setLocation(`/mobile-app/entregas/${stop.id}${routeIdParam}`);
                                       }}
                                     >
-                                      <Edit className="h-4 w-4" />
-                                      Modificar pedido
+                                      {stop.status === "completed" ? (
+                                        <>
+                                          <Eye className="h-4 w-4" />
+                                          Ver detalles
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Edit className="h-4 w-4" />
+                                          Modificar pedido
+                                        </>
+                                      )}
                                     </Button>
                                     
                                     {/* Botón de confirmación */}
@@ -1328,7 +1337,7 @@ export default function DriverRoute() {
                                     </Button>
                                     
                                     {/* Botón para registrar devolución de envases */}
-                                    {stop.status === "completed" && (
+                                    {stop.status === "completed" && stop.products.some(p => p.isReturnable === true) && (
                                       <Button 
                                         className="flex items-center justify-center gap-1 mt-2"
                                         variant="secondary"
