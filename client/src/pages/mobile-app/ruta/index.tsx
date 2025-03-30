@@ -1276,6 +1276,18 @@ export default function DriverRoute() {
                                       <Check className="h-4 w-4" />
                                       {stop.status === "completed" ? "Entregado" : "Confirmar entrega"}
                                     </Button>
+                                    
+                                    {/* Botón para registrar devolución de envases */}
+                                    {stop.status === "completed" && (
+                                      <Button 
+                                        className="flex items-center justify-center gap-1 mt-2"
+                                        variant="secondary"
+                                        onClick={() => openBottleReturnDialog(stop)}
+                                      >
+                                        <PillBottle className="h-4 w-4" />
+                                        Devolución de Envases
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -1499,6 +1511,26 @@ export default function DriverRoute() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de devolución de envases */}
+      {currentOrderIdForReturn && (
+        <BottleReturnDialog
+          open={showBottleReturnDialog}
+          onOpenChange={setShowBottleReturnDialog}
+          orderId={currentOrderIdForReturn}
+          darkMode={darkMode}
+          products={currentOrderIdForReturn ? 
+            routeStops.find(stop => stop.id === currentOrderIdForReturn)?.products.map(p => ({
+              id: p.id,
+              productId: p.id,
+              name: p.name,
+              quantity: p.quantity,
+              price: p.price
+            })) || [] 
+            : []
+          }
+        />
+      )}
     </div>
   );
 }
