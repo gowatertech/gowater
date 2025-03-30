@@ -29,7 +29,9 @@ import {
   Ban, // Para cancelar
   CheckCircle, // Para confirmar
   BadgeDollarSign, // Para montos exactos
-  PillBottle // Para retorno de envases
+  PillBottle, // Para retorno de envases
+  Plus, // Para incrementar cantidad
+  Minus // Para decrementar cantidad
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,7 +47,8 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogFooter 
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
