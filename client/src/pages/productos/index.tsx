@@ -26,6 +26,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -87,6 +88,8 @@ export default function Productos() {
       price: "0.00",
       stock: 0,
       icon: "",
+      isReturnable: false,
+      depositAmount: "0.00",
     },
   });
 
@@ -97,6 +100,8 @@ export default function Productos() {
       price: "0.00",
       stock: 0,
       icon: "",
+      isReturnable: false,
+      depositAmount: "0.00",
     },
   });
 
@@ -194,6 +199,8 @@ export default function Productos() {
       price: product.price.toString(),
       stock: product.stock,
       icon: product.icon || undefined, // Handle null case
+      isReturnable: product.isReturnable ?? false,
+      depositAmount: product.depositAmount?.toString() || "0.00"
     });
     setIsEditDialogOpen(true);
   };
@@ -303,6 +310,48 @@ export default function Productos() {
                           value={field.value}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="isReturnable"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Es Retornable</FormLabel>
+                        <FormDescription className="text-xs">
+                          Indica si este producto tiene envases que pueden ser devueltos
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="depositAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Monto de Depósito (RD$)</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          disabled={!form.watch("isReturnable")}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Monto del depósito para los envases retornables
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -456,6 +505,48 @@ export default function Productos() {
                         value={field.value}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="isReturnable"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={field.value}
+                        onChange={field.onChange}
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Es Retornable</FormLabel>
+                      <FormDescription className="text-xs">
+                        Indica si este producto tiene envases que pueden ser devueltos
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="depositAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Monto de Depósito (RD$)</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        disabled={!editForm.watch("isReturnable")}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Monto del depósito para los envases retornables
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
