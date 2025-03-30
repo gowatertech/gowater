@@ -635,6 +635,7 @@ export default function DriverRoute() {
   
   // Función para abrir el diálogo de retorno de envases
   const openBottleReturnDialog = (stop: RouteStop) => {
+    console.log("Abriendo diálogo de devolución de envases para el pedido:", stop.id);
     setCurrentOrderIdForReturn(stop.id);
     setShowBottleReturnDialog(true);
   };
