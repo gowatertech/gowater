@@ -205,6 +205,11 @@ export default function DriverRoute() {
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
   const [currentOrderIdForReturn, setCurrentOrderIdForReturn] = useState<number | null>(null);
   
+  // Estados para el diálogo de edición de pedido
+  const [showEditOrderDialog, setShowEditOrderDialog] = useState(false);
+  const [currentStopForEdit, setCurrentStopForEdit] = useState<RouteStop | null>(null);
+  const [editedProducts, setEditedProducts] = useState<RouteStop['products']>([]);
+  
   // Calcular el número de paradas completadas (excluyendo el almacén)
   const calculateCompletedStops = () => {
     // Filtramos paradas completadas que no sean el almacén (order > 0)
@@ -686,6 +691,87 @@ export default function DriverRoute() {
     console.log("Abriendo diálogo de devolución de envases para el pedido:", stop.id);
     setCurrentOrderIdForReturn(stop.id);
     setShowBottleReturnDialog(true);
+  };
+  
+  // Función para abrir el diálogo de edición de pedido
+  const openEditOrderDialog = (stop: RouteStop) => {
+    console.log("Abriendo diálogo de edición para el pedido:", stop.id);
+    setCurrentStopForEdit(stop);
+    setEditedProducts([...stop.products]);
+    setShowEditOrderDialog(true);
+  };
+  
+  // Actualizar cantidad de un producto
+  const updateProductQuantity = (productId: number, quantity: number) => {
+    setEditedProducts(
+      editedProducts.map(product => 
+        product.id === productId ? { ...product, quantity } : product
+      )
+    );
+  };
+  
+  // Calcular el nuevo total
+  const calculateTotal = (products: RouteStop['products']) => {
+    return products.reduce((sum, product) => sum + (product.quantity * product.price), 0);
+  };
+  
+  // Guardar cambios de productos
+  const saveProductChanges = async () => {
+    if (!currentStopForEdit) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Calcular el nuevo total
+      const newTotal = calculateTotal(editedProducts);
+      
+      // Preparar datos para enviar al servidor
+      const productsData = editedProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        quantity: product.quantity,
+        price: product.price.toString(),
+        isReturnable: product.isReturnable
+      }));
+      
+      // Enviar la actualización al servidor
+      const response = await fetch(`/api/orders/${currentStopForEdit.id}/products`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ products: productsData })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar los productos');
+      }
+      
+      // Actualizar el estado local con las modificaciones
+      setRouteStops(routeStops.map(stop => 
+        stop.id === currentStopForEdit.id 
+          ? { ...stop, products: editedProducts, totalValue: newTotal } 
+          : stop
+      ));
+      
+      setShowEditOrderDialog(false);
+      setCurrentStopForEdit(null);
+      
+      toast({
+        title: "Cambios guardados",
+        description: "Los productos fueron actualizados correctamente"
+      });
+    } catch (error) {
+      console.error('Error al guardar cambios de productos:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudieron guardar los cambios",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   // Función para procesar el pago y completar la entrega
@@ -1303,10 +1389,14 @@ export default function DriverRoute() {
                                       className="flex items-center justify-center gap-1"
                                       variant="outline"
                                       onClick={() => {
-                                        // Navegar a la página de detalle de entrega
-                                        // Asegurarnos de pasar el routeId en la URL para poder volver atrás correctamente
-                                        const routeIdParam = activeRouteId ? `?routeId=${activeRouteId}` : '';
-                                        setLocation(`/mobile-app/entregas/${stop.id}${routeIdParam}`);
+                                        if (stop.status === "completed") {
+                                          // Para órdenes completadas, navegamos a la vista de detalles
+                                          const routeIdParam = activeRouteId ? `?routeId=${activeRouteId}` : '';
+                                          setLocation(`/mobile-app/entregas/${stop.id}${routeIdParam}`);
+                                        } else {
+                                          // Para órdenes pendientes, abrimos el diálogo de edición
+                                          openEditOrderDialog(stop);
+                                        }
                                       }}
                                     >
                                       {stop.status === "completed" ? (
@@ -1594,6 +1684,130 @@ export default function DriverRoute() {
           }
         />
       )}
+      
+      {/* Diálogo de edición de pedido */}
+      <Dialog open={showEditOrderDialog} onOpenChange={setShowEditOrderDialog}>
+        <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-primary" />
+              Modificar Pedido
+            </DialogTitle>
+            <DialogDescription>
+              {currentStopForEdit && `Cliente: ${currentStopForEdit.customerName}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-1">
+            {currentStopForEdit && (
+              <>
+                {/* Lista de productos */}
+                <div className="space-y-3 my-4 max-h-64 overflow-y-auto pr-2">
+                  {editedProducts.map((product, index) => (
+                    <div key={product.id} className="flex flex-col bg-muted/30 p-3 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center">
+                          <div>
+                            <h4 className="font-medium">{product.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              RD$ {product.price.toFixed(2)} c/u
+                              {product.isReturnable && (
+                                <span className="ml-2 inline-flex items-center gap-1 text-primary">
+                                  <PillBottle className="h-3 w-3" />
+                                  Retornable
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Control de cantidad */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              const newQuantity = Math.max(0, product.quantity - 1);
+                              updateProductQuantity(product.id, newQuantity);
+                            }}
+                            disabled={product.quantity <= 0}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          
+                          <Input
+                            className="w-16 h-8 text-center"
+                            value={product.quantity}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value);
+                              if (!isNaN(value) && value >= 0) {
+                                updateProductQuantity(product.id, value);
+                              }
+                            }}
+                            type="number"
+                            min="0"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                          />
+                          
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              updateProductQuantity(product.id, product.quantity + 1);
+                            }}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        
+                        <div className="font-medium">
+                          RD$ {(product.price * product.quantity).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Total */}
+                <div className="flex justify-between items-center py-3 px-4 bg-primary/10 rounded-lg mb-4 text-lg">
+                  <span className="font-semibold">Total:</span>
+                  <span className="font-bold">
+                    RD$ {calculateTotal(editedProducts).toFixed(2)}
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+          
+          <DialogFooter className="mt-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowEditOrderDialog(false)}
+              className="gap-1"
+            >
+              <Ban className="h-4 w-4" />
+              Cancelar
+            </Button>
+            <Button 
+              onClick={saveProductChanges} 
+              disabled={isLoading}
+              className="gap-1"
+            >
+              {isLoading ? (
+                <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-1" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              {isLoading ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
