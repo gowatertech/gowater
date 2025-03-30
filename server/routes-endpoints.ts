@@ -509,6 +509,96 @@ export function registerRoutesEndpoints(app: Express) {
     }
   });
   
+  // Endpoint para registrar retornos de envases
+  app.post("/api/orders/:id/bottle-returns", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const { productId, returnedQuantity, expectedQuantity } = req.body;
+      
+      if (isNaN(orderId) || isNaN(productId) || isNaN(returnedQuantity)) {
+        return res.status(400).json({ 
+          error: "Datos de retorno de envases inválidos",
+          details: "Se requieren orderId, productId y returnedQuantity como números válidos"
+        });
+      }
+      
+      // Verificar si ya existe un registro de retorno para esta orden y producto
+      const existingReturn = await db
+        .select()
+        .from(bottleReturns)
+        .where(and(
+          eq(bottleReturns.orderId, orderId),
+          eq(bottleReturns.productId, productId)
+        ))
+        .limit(1);
+      
+      let result;
+      
+      if (existingReturn.length > 0) {
+        // Actualizar registro existente
+        const pendingQuantity = existingReturn[0].expectedQuantity - returnedQuantity;
+        const status = pendingQuantity <= 0 ? "complete" : "incomplete";
+        
+        [result] = await db
+          .update(bottleReturns)
+          .set({
+            returnedQuantity: returnedQuantity,
+            pendingQuantity: pendingQuantity,
+            status: status,
+            returnDate: new Date()
+          })
+          .where(eq(bottleReturns.id, existingReturn[0].id))
+          .returning();
+          
+        console.log(`Registro de retorno actualizado para orden ${orderId}, producto ${productId}`);
+      } else {
+        // Crear nuevo registro
+        const pendingQuantity = expectedQuantity - returnedQuantity;
+        const status = pendingQuantity <= 0 ? "complete" : "incomplete";
+        
+        [result] = await db
+          .insert(bottleReturns)
+          .values({
+            orderId,
+            productId,
+            expectedQuantity,
+            returnedQuantity,
+            pendingQuantity,
+            returnDate: new Date(),
+            status,
+            amountCharged: 0,
+            depositAmount: 0,
+            automaticAlert: false,
+            manuallyAssigned: false
+          })
+          .returning();
+          
+        console.log(`Nuevo registro de retorno creado para orden ${orderId}, producto ${productId}`);
+      }
+      
+      // Obtener datos completos del producto
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, productId));
+      
+      // Devolver resultado enriquecido
+      const enrichedResult = {
+        ...result,
+        productName: product ? product.name : "Producto desconocido"
+      };
+      
+      res.status(201).json({
+        success: true,
+        message: "Retorno de envases registrado correctamente",
+        bottleReturn: enrichedResult
+      });
+    } catch (error) {
+      console.error("Error al registrar retorno de envases:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Endpoint para obtener los detalles de entrega de una orden
   app.get("/api/orders/:id/delivery", async (req, res) => {
     try {

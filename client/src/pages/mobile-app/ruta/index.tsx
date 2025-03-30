@@ -27,7 +27,8 @@ import {
   Calculator, // Para cálculos
   Ban, // Para cancelar
   CheckCircle, // Para confirmar
-  BadgeDollarSign // Para montos exactos
+  BadgeDollarSign, // Para montos exactos
+  PillBottle // Para retorno de envases
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { apiRequest } from "@/lib/api";
+import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
 import { 
   Dialog, 
   DialogContent, 
@@ -197,6 +199,10 @@ export default function DriverRoute() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
   const [paymentReceived, setPaymentReceived] = useState(0);
   const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
+  
+  // Estados para el diálogo de retorno de envases
+  const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
+  const [currentOrderIdForReturn, setCurrentOrderIdForReturn] = useState<number | null>(null);
   
   // Calcular el número de paradas completadas (excluyendo el almacén)
   const calculateCompletedStops = () => {
@@ -625,6 +631,12 @@ export default function DriverRoute() {
     setPaymentReceived(stop.totalValue); // Establecer el monto predeterminado igual al total
     setUpdateCustomerBalance(true);
     setShowPaymentDialog(true);
+  };
+  
+  // Función para abrir el diálogo de retorno de envases
+  const openBottleReturnDialog = (stop: RouteStop) => {
+    setCurrentOrderIdForReturn(stop.id);
+    setShowBottleReturnDialog(true);
   };
   
   // Función para procesar el pago y completar la entrega
