@@ -120,6 +120,7 @@ export function registerRoutesEndpoints(app: Express) {
                   name: products.name,
                   quantity: orderItemsTable.quantity,
                   price: orderItemsTable.price,
+                  isReturnable: products.isReturnable,
                 })
                 .from(orderItemsTable)
                 .innerJoin(products, eq(orderItemsTable.productId, products.id))
@@ -249,6 +250,7 @@ export function registerRoutesEndpoints(app: Express) {
               name: products.name,
               quantity: orderItemsTable.quantity,
               price: orderItemsTable.price,
+              isReturnable: products.isReturnable,
             })
             .from(orderItemsTable)
             .innerJoin(products, eq(orderItemsTable.productId, products.id))
@@ -298,6 +300,7 @@ export function registerRoutesEndpoints(app: Express) {
               name: products.name,
               quantity: orderItemsTable.quantity,
               price: orderItemsTable.price,
+              isReturnable: products.isReturnable,
             })
             .from(orderItemsTable)
             .innerJoin(products, eq(orderItemsTable.productId, products.id))

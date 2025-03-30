@@ -52,9 +52,10 @@ export default function BottleReturnDialog({
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
-  // Filtrar productos que sean retornables (en un sistema real, tendríamos un atributo para esto)
-  // Por ahora, asumimos que son retornables productos con nombres específicos
+  // Filtrar productos que sean retornables utilizando el atributo isReturnable
   const returnableProducts = products.filter(product => 
+    // Usamos la propiedad isReturnable si está disponible, o fallback al filtro por nombre
+    (product as any).isReturnable === true || 
     product.name.toLowerCase().includes("botellón") || 
     product.name.toLowerCase().includes("envase") ||
     product.name.toLowerCase().includes("garrafón")

@@ -1423,7 +1423,15 @@ export async function registerRoutes(app: Express) {
   app.get("/api/products", async (req, res) =>{
     try {
       const allProducts = await db
-        .select()
+        .select({
+          id: products.id,
+          name: products.name,
+          price: products.price,
+          stock: products.stock,
+          icon: products.icon,
+          isReturnable: products.isReturnable,
+          depositAmount: products.depositAmount
+        })
         .from(products)
         .orderBy(products.name);
 
