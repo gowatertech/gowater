@@ -91,7 +91,7 @@ interface RouteStop {
   estimatedArrival: string; // Hora estimada de llegada
   estimatedDuration: number; // Duración estimada en minutos
   distanceFromPrevious: number; // Distancia desde el punto anterior en km
-  products: { id: number; name: string; quantity: number; price: number }[];
+  products: { id: number; name: string; quantity: number; price: number; isReturnable?: boolean }[];
   totalValue: number; // Valor total del pedido
   isWarehouse?: boolean; // Indica si es el almacén (punto 0)
 }
@@ -388,7 +388,8 @@ export default function DriverRoute() {
             id: product.productId,
             name: product.name,
             quantity: product.quantity,
-            price: parseFloat(product.price)
+            price: parseFloat(product.price),
+            isReturnable: product.isReturnable === true
           })),
           totalValue: Number(order.total) || totalValue
         });
@@ -1227,7 +1228,7 @@ export default function DriverRoute() {
                                     </h5>
                                     <div className="space-y-1">
                                       {stop.products
-                                        .filter(p => p.name.includes("BOTELLON"))
+                                        .filter(p => p.isReturnable === true)
                                         .map((product, idx) => (
                                           <div key={idx} className="flex justify-between text-xs">
                                             <span>{product.name}:</span>
@@ -1235,7 +1236,7 @@ export default function DriverRoute() {
                                           </div>
                                         ))
                                       }
-                                      {!stop.products.some(p => p.name.includes("BOTELLON")) && (
+                                      {!stop.products.some(p => p.isReturnable === true) && (
                                         <div className="text-xs text-muted-foreground">
                                           No hay envases retornables en este pedido
                                         </div>
