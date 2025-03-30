@@ -110,7 +110,8 @@ export default function Productos() {
       const formattedData = {
         ...data,
         price: Number(data.price).toFixed(2),
-        stock: Number(data.stock)
+        stock: Number(data.stock),
+        depositAmount: Number(data.depositAmount).toFixed(2)
       };
       const res = await apiRequest("POST", "/api/products", formattedData);
       return res.json();
@@ -138,7 +139,8 @@ export default function Productos() {
       const formattedData = {
         ...data,
         price: Number(data.price).toFixed(2),
-        stock: Number(data.stock)
+        stock: Number(data.stock),
+        depositAmount: Number(data.depositAmount).toFixed(2)
       };
       const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
       return res.json();
