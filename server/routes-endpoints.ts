@@ -22,6 +22,34 @@ import { orderItems as orderItemsTable } from "@shared/schema";
  */
 export function registerRoutesEndpoints(app: Express) {
   
+  // Endpoint para obtener rutas activas (en progreso o pendientes)
+  app.get("/api/routes/active", async (req, res) => {
+    try {
+      // Obtener el ID del usuario conductor desde la consulta
+      const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
+      
+      // Construir la consulta base
+      let query = db
+        .select()
+        .from(routes)
+        .where(
+          and(
+            // Rutas que no están completadas
+            ne(routes.status, "completed"),
+            // Opcionalmente filtrar por conductor
+            driverId ? eq(routes.driverId, driverId) : undefined
+          )
+        );
+      
+      const activeRoutes = await query;
+      
+      res.json(activeRoutes);
+    } catch (error) {
+      console.error("Error al obtener rutas activas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Endpoint para crear una ruta con pedidos pendientes
   app.post("/api/routes-with-orders", async (req, res) => {
     try {
