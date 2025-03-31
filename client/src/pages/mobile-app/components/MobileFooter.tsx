@@ -6,7 +6,8 @@ import {
   Package,
   Recycle,
   BarChart3,
-  ListChecks
+  ListChecks,
+  Play
 } from "lucide-react";
 
 interface MobileFooterProps {
@@ -28,9 +29,9 @@ export function MobileFooter({ darkMode }: MobileFooterProps) {
       href: "/mobile-app/rutas-pendientes"
     },
     {
-      icon: Navigation,
-      label: "Mi Ruta",
-      href: "/mobile-app/ruta"
+      icon: Play,
+      label: "En Curso",
+      href: "/mobile-app/rutas-en-progreso"
     },
     {
       icon: Package,

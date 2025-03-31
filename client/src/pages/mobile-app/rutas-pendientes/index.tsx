@@ -64,9 +64,14 @@ export default function MobilePendingRoutes() {
     retry: 3
   });
 
-  // Filtrar rutas pendientes y en progreso
+  // Filtrar solo rutas pendientes (excluyendo las que están en progreso o pausadas en localStorage)
   const pendingRoutes = Array.isArray(routes) 
-    ? routes.filter(route => route.status === "pending" || route.status === "in_progress") 
+    ? routes.filter(route => {
+        // Verificar si la ruta está marcada como en progreso o pausada en localStorage
+        const savedStatus = localStorage.getItem(`routeStatus_${route.id}`);
+        // Solo incluir rutas con estado "pending" en la BD y que NO estén marcadas como "in_progress" o "paused" en localStorage
+        return route.status === "pending" && savedStatus !== 'in_progress' && savedStatus !== 'paused';
+      }) 
     : [];
 
   // Agrupar las órdenes por ruta con base en la secuencia de entrega
