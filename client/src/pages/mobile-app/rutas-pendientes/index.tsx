@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { 
   CalendarIcon, 
@@ -22,6 +22,7 @@ import { MobileFooter } from "../components/MobileFooter";
 import { InstallPrompt } from "../components/InstallPrompt";
 import { useMobile } from "@/hooks/use-mobile";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
@@ -64,6 +65,8 @@ export default function MobilePendingRoutes() {
   const { user, isLoading: isLoadingUser } = useCurrentUser();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [expandedRoutes, setExpandedRoutes] = useState<Record<number, boolean>>({});
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Consultar rutas pendientes
   const { data: routes = [], isLoading: isLoadingRoutes, error: routesError } = useQuery<Route[]>({
@@ -219,7 +222,7 @@ export default function MobilePendingRoutes() {
     // Si la ruta está en progreso o pausada, redirigimos directamente sin llamar a la API
     if (savedRouteStatus === 'in_progress' || savedRouteStatus === 'paused') {
       console.log(`Ruta ${routeId} ya iniciada (${savedRouteStatus}), redireccionando...`);
-      setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+      setLocation(`/mobile-app/ruta`);
       return;
     }
     
@@ -237,13 +240,28 @@ export default function MobilePendingRoutes() {
         localStorage.setItem(`routeStatus_${routeId}`, 'in_progress');
         // También guardar el estado general para compatibilidad
         localStorage.setItem('routeStatus', 'in_progress');
-        setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+        
+        // Invalidamos la consulta para asegurar que la página de ruta obtenga datos actualizados
+        queryClient.invalidateQueries({ queryKey: ['/api/routes/active'] });
+        
+        // Redirigir a la página de ruta (sin parámetros)
+        setLocation(`/mobile-app/ruta`);
+      } else {
+        console.error("Error al iniciar la ruta: respuesta no OK");
+        toast({
+          title: "Error al iniciar la ruta",
+          description: "No se pudo iniciar la ruta. Intente nuevamente.",
+          variant: "destructive"
+        });
       }
     })
     .catch(err => {
       console.error("Error al iniciar la ruta:", err);
-      // Incluso con error, redirigimos y manejamos el estado en la página de ruta
-      setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+      toast({
+        title: "Error al iniciar la ruta",
+        description: "Hubo un problema al conectarse con el servidor",
+        variant: "destructive"
+      });
     });
   };
 

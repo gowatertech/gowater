@@ -104,3 +104,15 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Hacer que el cliente de consulta esté globalmente disponible para el uso en otros archivos
+declare global {
+  interface Window {
+    queryClient: QueryClient;
+  }
+}
+
+// Asignar el queryClient a window para poder accederlo desde cualquier lugar
+if (typeof window !== 'undefined') {
+  window.queryClient = queryClient;
+}
