@@ -37,11 +37,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
 
   const { data: stats } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/dashboard/stats");
-      return response.json();
-    }
+    queryKey: ["/api/dashboard/stats"]
   });
 
   const { data: paymentStats } = useQuery<PaymentStats>({
