@@ -47,7 +47,7 @@ export function MobileFooter({ darkMode }: MobileFooterProps) {
   ];
   
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 z-10 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : 'bg-white'} border-t shadow-lg`}>
+    <nav className={`fixed bottom-16 left-0 right-0 z-10 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : 'bg-white'} border-t border-b rounded-md mx-2 shadow-md`}>
       <div className="grid grid-cols-5 h-16">
         {navItems.map((item) => {
           const isActive = location === item.href;
