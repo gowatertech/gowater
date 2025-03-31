@@ -143,6 +143,18 @@ export default function MobilePendingRoutes() {
 
   // Manejar inicio de ruta
   const handleStartRoute = (routeId: number) => {
+    // Comprobar si hay un estado guardado para esta ruta en localStorage
+    const savedRouteStatus = localStorage.getItem(`routeStatus_${routeId}`);
+    console.log(`Verificando estado guardado para ruta ${routeId}: ${savedRouteStatus}`);
+    
+    // Si la ruta está en progreso o pausada, redirigimos directamente sin llamar a la API
+    if (savedRouteStatus === 'in_progress' || savedRouteStatus === 'paused') {
+      console.log(`Ruta ${routeId} ya iniciada (${savedRouteStatus}), redireccionando...`);
+      setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+      return;
+    }
+    
+    // Si no tiene un estado guardado o está en 'not_started', llamamos a la API
     fetch(`/api/routes/${routeId}/start`, {
       method: 'POST',
       headers: {
@@ -151,11 +163,15 @@ export default function MobilePendingRoutes() {
     })
     .then(response => {
       if (response.ok) {
+        console.log(`Ruta ${routeId} iniciada correctamente via API`);
+        // Guardar el estado como 'in_progress' en localStorage
+        localStorage.setItem(`routeStatus_${routeId}`, 'in_progress');
         setLocation(`/mobile-app/ruta?routeId=${routeId}`);
       }
     })
     .catch(err => {
       console.error("Error al iniciar la ruta:", err);
+      // Incluso con error, redirigimos y manejamos el estado en la página de ruta
       setLocation(`/mobile-app/ruta?routeId=${routeId}`);
     });
   };

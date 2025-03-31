@@ -180,7 +180,16 @@ export default function DriverRoute() {
   });
   
   const [routeStatus, setRouteStatus] = useState<'not_started' | 'in_progress' | 'paused' | 'completed'>(() => {
-    const savedStatus = localStorage.getItem(`routeStatus_${routeIdFromUrl}`) as 'not_started' | 'in_progress' | 'paused' | 'completed';
+    // Primero intentamos obtener el estado de ruta usando routeIdFromUrl (si existe)
+    if (routeIdFromUrl) {
+      const savedRouteStatus = localStorage.getItem(`routeStatus_${routeIdFromUrl}`);
+      if (savedRouteStatus) {
+        return savedRouteStatus as 'not_started' | 'in_progress' | 'paused' | 'completed';
+      }
+    }
+    
+    // Si no hay estado específico, intentamos con el genérico
+    const savedStatus = localStorage.getItem('routeStatus') as 'not_started' | 'in_progress' | 'paused' | 'completed';
     return savedStatus || 'not_started';
   });
   
@@ -419,8 +428,20 @@ export default function DriverRoute() {
       }
       
       setRouteStops(stops);
-      const newStatus = routeData.status === "in_progress" ? "in_progress" : "not_started";
-      updateRouteStatus(newStatus);
+      
+      // Verificar si hay un estado guardado específicamente para esta ruta
+      const savedRouteStatus = localStorage.getItem(`routeStatus_${routeId}`);
+      
+      // Si hay un estado guardado específico para esta ruta, usarlo
+      if (savedRouteStatus) {
+        updateRouteStatus(savedRouteStatus as 'not_started' | 'in_progress' | 'paused' | 'completed');
+        console.log(`Cargando estado guardado para ruta ${routeId}: ${savedRouteStatus}`);
+      } else {
+        // Si no hay estado guardado, usar el de la base de datos
+        const newStatus = routeData.status === "in_progress" ? "in_progress" : "not_started";
+        updateRouteStatus(newStatus);
+        console.log(`No se encontró estado guardado para ruta ${routeId}, usando estado de BD: ${newStatus}`);
+      }
       
       setIsLoading(false);
     } catch (error) {
