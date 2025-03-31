@@ -92,6 +92,21 @@ const toNumber = (value: string | number): number => {
   return value;
 };
 
+// Función para formatear la diferencia de tiempo entre dos fechas
+const formatTimeDifference = (startDate: Date, endDate: Date): string => {
+  const diffInMs = endDate.getTime() - startDate.getTime();
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} min`;
+  }
+  
+  const hours = Math.floor(diffInMinutes / 60);
+  const minutes = diffInMinutes % 60;
+  
+  return `${hours} hr ${minutes} min`;
+};
+
 const toString = (value: string | number): string => {
   if (typeof value === 'number') {
     return value.toString();
@@ -1094,6 +1109,21 @@ export default function DriverRoute() {
         onSyncData={syncData}
       />
       
+      {/* Botón flotante para finalizar ruta - visible en todo momento */}
+      {routeStatus === 'in_progress' && (
+        <div className="fixed bottom-24 left-0 right-0 z-50 px-4 mx-auto max-w-md">
+          <Button
+            variant="destructive"
+            className="w-full py-4 text-lg font-bold flex items-center justify-center gap-2 shadow-lg animate-pulse"
+            onClick={openCompleteRouteDialog}
+            disabled={isLoading}
+          >
+            <CheckCircle className="h-5 w-5" />
+            FINALIZAR RUTA
+          </Button>
+        </div>
+      )}
+      
       {/* Debug info - remover en producción */}
       <div className="container max-w-md mx-auto px-4">
         {debugInfo()}
@@ -1993,60 +2023,100 @@ export default function DriverRoute() {
         </DialogContent>
       </Dialog>
     
-      {/* Diálogo para completar ruta con comentarios */}
+      {/* Diálogo para completar ruta con comentarios - REDISEÑADO */}
       <Dialog open={showCompleteRouteDialog} onOpenChange={setShowCompleteRouteDialog}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Finalizar Ruta</DialogTitle>
-            <DialogDescription>
-              Por favor, proporciona cualquier comentario o incidencia sobre esta ruta antes de finalizar.
+            <DialogTitle className="text-center text-xl font-bold text-primary">
+              Finalizar Ruta
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Esta acción marcará la ruta como completada
             </DialogDescription>
           </DialogHeader>
           
-          {/* Formulario de comentarios */}
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="routeComments">Comentarios</Label>
-              <textarea
-                id="routeComments"
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Describe cualquier incidencia o nota para esta ruta"
-                value={routeCompletionComments}
-                onChange={(e) => setRouteCompletionComments(e.target.value)}
-              />
+          {/* Resumen de la ruta */}
+          <div className="bg-muted/30 p-4 rounded-lg my-4">
+            <div className="flex justify-between mb-2">
+              <span className="font-medium">Entregas totales:</span>
+              <span className="font-bold">{routeStops.filter(stop => !stop.isWarehouse).length}</span>
             </div>
-            
-            {/* Obtener el número de pedidos pendientes */}
-            {(() => {
-              const pendingStops = routeStops.filter(stop => !stop.isWarehouse && stop.status === 'pending');
-              if (pendingStops.length > 0) {
-                return (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-yellow-800 text-sm">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
-                      <div>
-                        <span className="font-semibold">Atención:</span>
-                        <p>
-                          Hay {pendingStops.length} {pendingStops.length === 1 ? 'pedido pendiente' : 'pedidos pendientes'} que 
-                          no {pendingStops.length === 1 ? 'ha sido entregado' : 'han sido entregados'}.
-                        </p>
-                        <p className="mt-1 text-xs">
-                          Es necesario proporcionar comentarios sobre las razones por las que estos pedidos no fueron entregados.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
+            <div className="flex justify-between mb-2">
+              <span className="font-medium">Entregas completadas:</span>
+              <span className="font-bold text-green-600">{calculateCompletedStops()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Tiempo en ruta:</span>
+              <span className="font-bold">
+                {startTime ? formatTimeDifference(startTime, new Date()) : "N/A"}
+              </span>
+            </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCompleteRouteDialog(false)}>
-              Cancelar
+          {/* Obtener el número de pedidos pendientes */}
+          {(() => {
+            const pendingStops = routeStops.filter(stop => !stop.isWarehouse && stop.status === 'pending');
+            if (pendingStops.length > 0) {
+              return (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-yellow-800 mb-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-6 w-6 text-yellow-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-bold text-base">Pedidos sin entregar</span>
+                      <p className="mt-1">
+                        Tienes {pendingStops.length} {pendingStops.length === 1 ? 'pedido' : 'pedidos'} que no {pendingStops.length === 1 ? 'fue entregado' : 'fueron entregados'}.
+                      </p>
+                      <p className="mt-2 font-semibold">
+                        Favor explicar en los comentarios por qué no se realizaron estas entregas.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div className="bg-green-50 border border-green-200 rounded-md p-4 text-green-800 mb-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-6 w-6 text-green-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-bold text-base">¡Ruta completada!</span>
+                    <p className="mt-1">
+                      Todas las entregas fueron completadas exitosamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          
+          {/* Formulario de comentarios */}
+          <div className="mb-4">
+            <Label htmlFor="routeComments" className="text-base font-semibold mb-2 block">
+              Comentarios finales
+            </Label>
+            <textarea
+              id="routeComments"
+              className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder="Escribe aquí cualquier comentario sobre la ruta (problemas, incidencias, etc.)"
+              value={routeCompletionComments}
+              onChange={(e) => setRouteCompletionComments(e.target.value)}
+            />
+            {routeStops.some(stop => !stop.isWarehouse && stop.status === 'pending') && !routeCompletionComments.trim() && (
+              <p className="text-red-500 text-sm mt-1">* Comentario requerido para finalizar la ruta con pedidos pendientes</p>
+            )}
+          </div>
+          
+          <DialogFooter className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              variant="outline" 
+              className="w-full sm:w-auto"
+              onClick={() => setShowCompleteRouteDialog(false)}
+            >
+              Volver a la ruta
             </Button>
             <Button 
+              variant="destructive"
+              className="w-full sm:w-auto font-bold text-base py-6"
               onClick={finishRoute}
               disabled={
                 // Si hay pedidos pendientes, requerir comentarios
@@ -2054,7 +2124,12 @@ export default function DriverRoute() {
                 !routeCompletionComments.trim()
               }
             >
-              Finalizar Ruta
+              {isLoading ? (
+                <span className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full mr-2" />
+              ) : (
+                <CheckCircle className="h-5 w-5 mr-2" />
+              )}
+              {isLoading ? "Finalizando..." : "CONFIRMAR FINALIZACIÓN"}
             </Button>
           </DialogFooter>
         </DialogContent>
