@@ -134,32 +134,32 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+        <div className="grid grid-cols-2 gap-2">
           <FormField
             control={form.control}
             name="truckId"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Vehículo</FormLabel>
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs">Vehículo</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value?.toString()}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Seleccionar vehículo" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {trucks.map((truck) => (
-                      <SelectItem key={truck.id} value={truck.id.toString()}>
+                      <SelectItem key={truck.id} value={truck.id.toString()} className="text-xs py-1">
                         {truck.plate} - {truck.brand} {truck.model}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="text-[10px]" />
               </FormItem>
             )}
           />
@@ -168,26 +168,26 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             control={form.control}
             name="driverId"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Conductor</FormLabel>
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs">Conductor</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value?.toString()}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Seleccionar conductor" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {drivers.map((driver) => (
-                      <SelectItem key={driver.id} value={driver.id.toString()}>
+                      <SelectItem key={driver.id} value={driver.id.toString()} className="text-xs py-1">
                         {driver.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="text-[10px]" />
               </FormItem>
             )}
           />
@@ -196,26 +196,26 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             control={form.control}
             name="assistantId"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ayudante</FormLabel>
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs">Ayudante</FormLabel>
                 <Select
                   onValueChange={(value) => field.onChange(Number(value))}
                   value={field.value?.toString()}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-8 text-xs">
                       <SelectValue placeholder="Seleccionar ayudante" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {assistants.map((assistant) => (
-                      <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                      <SelectItem key={assistant.id} value={assistant.id.toString()} className="text-xs py-1">
                         {assistant.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                <FormMessage className="text-[10px]" />
               </FormItem>
             )}
           />
@@ -224,13 +224,14 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             control={form.control}
             name="initialCash"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Efectivo Inicial (RD$)</FormLabel>
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs">Efectivo Inicial (RD$)</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
                     type="text"
                     placeholder="0.00"
+                    className="h-8 text-xs"
                     onChange={(e) => {
                       const value = parseFloat(e.target.value);
                       if (!isNaN(value)) {
@@ -239,41 +240,42 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                     }}
                   />
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-[10px]" />
               </FormItem>
             )}
           />
         </div>
 
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Productos a Cargar</h3>
+        <div className="space-y-2 pt-1">
+          <div className="flex justify-between items-center py-1">
+            <h3 className="text-sm font-semibold">Productos a Cargar</h3>
             <Button
               type="button"
               onClick={() => append({ productId: 0, quantity: 1 })}
               variant="outline"
               size="sm"
+              className="h-7 text-xs px-2"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-3.5 w-3.5 mr-1" />
               Agregar Producto
             </Button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             {fields.map((field, index) => (
-              <div key={field.id} className="flex gap-4 items-end">
+              <div key={field.id} className="flex gap-2 items-end">
                 <FormField
                   control={form.control}
                   name={`items.${index}.productId`}
                   render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormLabel>Producto</FormLabel>
+                    <FormItem className="flex-1 space-y-1">
+                      <FormLabel className="text-xs">Producto</FormLabel>
                       <Select
                         onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value?.toString()}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 text-xs">
                             <SelectValue placeholder="Seleccionar producto" />
                           </SelectTrigger>
                         </FormControl>
@@ -282,13 +284,14 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                             <SelectItem
                               key={product.id}
                               value={product.id.toString()}
+                              className="text-xs py-1"
                             >
                               {product.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
+                      <FormMessage className="text-[10px]" />
                     </FormItem>
                   )}
                 />
@@ -297,18 +300,18 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                   control={form.control}
                   name={`items.${index}.quantity`}
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cantidad</FormLabel>
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Cantidad</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="number"
                           min="1"
-                          className="w-24"
+                          className="w-16 h-8 text-xs"
                           onChange={(e) => field.onChange(Number(e.target.value))}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-[10px]" />
                     </FormItem>
                   )}
                 />
@@ -317,9 +320,10 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
                   type="button"
                   variant="destructive"
                   size="icon"
+                  className="h-8 w-8 mt-5"
                   onClick={() => remove(index)}
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
             ))}
@@ -328,7 +332,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full h-8 text-xs mt-2"
           disabled={isSubmitting}
         >
           {isSubmitting ? "Guardando..." : "Registrar Carga"}
