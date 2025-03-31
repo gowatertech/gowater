@@ -1605,13 +1605,20 @@ export async function registerRoutes(app: Express) {
     try {
       console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
 
-      // Procesamiento directo sin validación Zod por ahora
+      // Extraer datos de los items antes de preparar los datos del pedido
+      const orderItemsData = req.body.items || [];
+      
+      // Preparar datos del pedido (excluir items para no guardarlos en la tabla orders)
+      const { items, ...orderDataRaw } = req.body;
+      
+      // Procesar datos adicionales del pedido
       const orderData = {
-        ...req.body,
+        ...orderDataRaw,
         date: new Date(req.body.date || new Date()),
       };
 
-      console.log("Datos de orden validados:", orderData);
+      console.log("Datos de orden procesados:", orderData);
+      console.log("Items del pedido a insertar:", orderItemsData);
 
       // Crear el pedido
       const [order] = await db
@@ -1620,17 +1627,40 @@ export async function registerRoutes(app: Express) {
         .returning();
 
       // Si hay items, crearlos
-      if (req.body.items && Array.isArray(req.body.items)) {
-        for (const item of req.body.items) {
+      if (orderItemsData && Array.isArray(orderItemsData) && orderItemsData.length > 0) {
+        console.log(`Insertando ${orderItemsData.length} items para el pedido #${order.id}`);
+        
+        for (const item of orderItemsData) {
+          // Validar que el item tiene los datos necesarios
+          if (!item.code && !item.productId) {
+            console.warn("Item sin código de producto:", item);
+            continue;
+          }
+          
+          const productId = parseInt(item.code || item.productId);
+          
+          if (isNaN(productId)) {
+            console.warn(`ID de producto inválido: ${item.code || item.productId}`);
+            continue;
+          }
+          
+          const itemToInsert = {
+            orderId: order.id,
+            productId: productId,
+            quantity: parseInt(item.quantity) || 1,
+            price: typeof item.price === 'string' ? item.price : item.price.toFixed(2)
+          };
+          
+          console.log("Insertando item:", itemToInsert);
+          
           await db
             .insert(orderItems)
-            .values({
-              orderId: order.id,
-              productId: parseInt(item.code || item.productId),
-              quantity: item.quantity,
-              price: typeof item.price === 'string' ? item.price : item.price.toFixed(2)
-            });
+            .values(itemToInsert);
         }
+        
+        console.log(`Items insertados correctamente para el pedido #${order.id}`);
+      } else {
+        console.log("No se recibieron items para este pedido");
       }
 
       console.log("POST /api/orders - Pedido creado:", order);
