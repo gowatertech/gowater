@@ -13,10 +13,15 @@ function getBaseUrl() {
 }
 
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+  options?: {
+    method?: string;
+    data?: unknown;
+  }
+): Promise<any> {
+  const method = options?.method || 'GET';
+  const data = options?.data;
+  
   const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
   const fullUrl = `${getBaseUrl()}${apiUrl}`;
 
@@ -32,7 +37,7 @@ export async function apiRequest(
     });
 
     await throwIfResNotOk(res);
-    return res;
+    return await res.json();
   } catch (error) {
     console.error(`API Request Error (${method} ${fullUrl}):`, error);
     throw error;
