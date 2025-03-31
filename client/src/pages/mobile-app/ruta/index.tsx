@@ -987,6 +987,25 @@ export default function DriverRoute() {
     loadRouteData();
     startLocationTracking();
     
+    // Asegurar que el estado de la ruta esté establecido correctamente
+    if (routeIdFromUrl) {
+      // Si se accede directamente, verificar si la ruta ya está en progreso
+      // según la base de datos y actualizar el estado local
+      fetch(`/api/routes/${routeIdFromUrl}`)
+        .then(res => res.json())
+        .then(routeData => {
+          if (routeData.status === "in_progress") {
+            setRouteStatus("in_progress");
+            setStartTime(new Date(routeData.driverStartedAt || Date.now()));
+          } else if (routeData.status === "completed") {
+            setRouteStatus("completed");
+          }
+        })
+        .catch(error => {
+          console.error("Error al verificar estado de ruta:", error);
+        });
+    }
+    
     // Limpiar el intervalo al desmontar
     return () => {
       if (watchId !== null) {
@@ -1229,12 +1248,12 @@ export default function DriverRoute() {
                 {routeStatus !== 'in_progress' && (
                   <Button
                     variant="destructive"
-                    className="flex items-center justify-center gap-1"
+                    className="flex items-center justify-center gap-1 uppercase font-bold"
                     onClick={openCompleteRouteDialog}
                     disabled={isLoading || routeStatus === 'completed' || routeStatus === 'not_started'}
                   >
-                    <Square className="h-4 w-4" />
-                    Finalizar
+                    <CheckCircle className="h-4 w-4" />
+                    Finalizar Ruta
                   </Button>
                 )}
                 

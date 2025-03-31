@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { CalendarIcon, MapPin, TruckIcon, DollarSign, Clock, UserRound, Package, Play, Pause } from "lucide-react";
+import { 
+  CalendarIcon, 
+  MapPin, 
+  TruckIcon, 
+  DollarSign, 
+  Clock, 
+  UserRound, 
+  Package, 
+  Play, 
+  Pause, 
+  CheckCircle, 
+  Square 
+} from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -360,13 +372,25 @@ export default function MobilePendingRoutes() {
             </div>
           )}
           
+          {/* Botón para iniciar o continuar ruta */}
           <button 
             onClick={() => handleStartRoute(route.id)}
-            className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center"
+            className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center mb-2"
           >
             <ButtonIcon className="h-3 w-3 mr-1" />
             {buttonText}
           </button>
+          
+          {/* Botón para finalizar ruta - solo visible para rutas en progreso */}
+          {(route.localStatus === 'in_progress' || route.status === 'in_progress') && (
+            <button 
+              onClick={() => setLocation(`/mobile-app/ruta/${route.id}`)}
+              className="w-full py-2 px-4 bg-red-600 text-white rounded-md text-xs font-medium hover:bg-red-700 transition-colors flex items-center justify-center"
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              FINALIZAR RUTA
+            </button>
+          )}
         </div>
       </div>
     );
