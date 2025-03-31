@@ -41,11 +41,7 @@ export default function Dashboard() {
   });
 
   const { data: paymentStats } = useQuery<PaymentStats>({
-    queryKey: ["/api/dashboard/payments-stats"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/dashboard/payments-stats");
-      return response.json();
-    }
+    queryKey: ["/api/dashboard/payments-stats"]
   });
 
   // Datos para el gráfico de ventas y cobros
