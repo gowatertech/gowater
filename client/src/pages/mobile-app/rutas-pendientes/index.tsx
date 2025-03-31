@@ -223,6 +223,8 @@ export default function MobilePendingRoutes() {
         console.log(`Ruta ${routeId} iniciada correctamente via API`);
         // Guardar el estado como 'in_progress' en localStorage
         localStorage.setItem(`routeStatus_${routeId}`, 'in_progress');
+        // También guardar el estado general para compatibilidad
+        localStorage.setItem('routeStatus', 'in_progress');
         setLocation(`/mobile-app/ruta?routeId=${routeId}`);
       }
     })

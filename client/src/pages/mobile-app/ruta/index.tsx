@@ -198,7 +198,10 @@ export default function DriverRoute() {
     setRouteStatus(status);
     // Guardar el estado específico para esta ruta
     if (routeIdFromUrl) {
+      // Guardar con formato específico por ID para mantener consistencia entre páginas
       localStorage.setItem(`routeStatus_${routeIdFromUrl}`, status);
+      // También guardar el estado general para compatibilidad
+      localStorage.setItem('routeStatus', status);
     }
   };
   

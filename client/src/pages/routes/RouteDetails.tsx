@@ -40,6 +40,7 @@ interface RouteComponent {
   stops: string[] | null;
   driverStartedAt: Date | null;
   driverCompletedAt: Date | null;
+  driverEndedAt: Date | null;  // Campo necesario para compatibilidad con componentes
   startTime: Date | null;
   endTime: Date | null;
   totalRevenue: string | null;
@@ -48,10 +49,32 @@ interface RouteComponent {
 
 // Función adaptadora para convertir los tipos
 function adaptRouteForComponent(route: RouteDetails): RouteComponent {
+  // Crear una versión segura con campos obligatorios explícitamente definidos
   return {
-    ...route,
-    totalRevenue: route.totalRevenue || "0.00",
+    id: route.id,
+    name: route.name,
+    driverId: route.driverId,
+    assistantId: route.assistantId,
+    truckId: route.truckId,
+    zoneId: route.zoneId,
+    isCompleted: route.isCompleted,
+    date: route.date,
+    status: route.status,
+    currentLocation: route.currentLocation,
+    lastUpdate: route.lastUpdate,
+    deliverySequence: route.deliverySequence,
+    estimatedDuration: route.estimatedDuration,
+    actualDuration: route.actualDuration,
     totalDistance: route.totalDistance ? String(route.totalDistance) : "0",
+    completion: route.completion,
+    orderUpdates: route.orderUpdates,
+    stops: route.stops,
+    driverStartedAt: route.driverStartedAt,
+    driverCompletedAt: route.driverCompletedAt,
+    driverEndedAt: route.driverCompletedAt, // Campo para compatibilidad
+    startTime: route.startTime,
+    endTime: route.endTime,
+    totalRevenue: route.totalRevenue || "0.00",
     comments: route.comments,
   };
 }
