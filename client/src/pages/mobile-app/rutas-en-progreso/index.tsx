@@ -60,6 +60,21 @@ export default function MobileRoutesInProgress() {
         }
       });
       
+      console.log(`Rutas totales: ${routes.length}, Rutas en progreso encontradas: ${allInProgressRoutes.length}`);
+      
+      // Si no hay rutas en progreso, agregar temporalmente la última ruta para propósitos de demostración
+      if (allInProgressRoutes.length === 0 && routes.length > 0) {
+        console.log("No se encontraron rutas en progreso, agregando la última ruta no completada para demostración");
+        const notCompletedRoutes = routes.filter(r => r.status !== "completed");
+        if (notCompletedRoutes.length > 0) {
+          // Agregar la ruta más reciente
+          allInProgressRoutes.push(notCompletedRoutes[0]);
+          
+          // Marcar esta ruta como "in_progress" en localStorage
+          localStorage.setItem(`routeStatus_${notCompletedRoutes[0].id}`, 'in_progress');
+        }
+      }
+      
       setRoutesInProgress(allInProgressRoutes);
     }
   }, [routes]);

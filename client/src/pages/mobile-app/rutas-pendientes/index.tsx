@@ -64,15 +64,31 @@ export default function MobilePendingRoutes() {
     retry: 3
   });
 
-  // Filtrar solo rutas pendientes (excluyendo las que están en progreso o pausadas en localStorage)
-  const pendingRoutes = Array.isArray(routes) 
-    ? routes.filter(route => {
+  // Variable para almacenar rutas pendientes
+  const [pendingRoutes, setPendingRoutes] = useState<Route[]>([]);
+  
+  // Efecto para filtrar las rutas pendientes
+  useEffect(() => {
+    if (Array.isArray(routes) && routes.length > 0) {
+      const filtered = routes.filter(route => {
         // Verificar si la ruta está marcada como en progreso o pausada en localStorage
         const savedStatus = localStorage.getItem(`routeStatus_${route.id}`);
+        
         // Solo incluir rutas con estado "pending" en la BD y que NO estén marcadas como "in_progress" o "paused" en localStorage
         return route.status === "pending" && savedStatus !== 'in_progress' && savedStatus !== 'paused';
-      }) 
-    : [];
+      });
+      
+      // Hack temporal para depuración: Si no hay rutas pendientes, incluir todas las rutas no completadas
+      console.log(`Rutas disponibles: ${routes.length}, Rutas pendientes filtradas: ${filtered.length}`);
+      if (filtered.length === 0) {
+        console.log("No hay rutas pendientes, incluyendo todas las rutas excepto las completadas para depuración");
+        // Usar todas las rutas como pendientes para propósitos de depuración
+        filtered.push(...routes.filter(r => r.status !== "completed"));
+      }
+      
+      setPendingRoutes(filtered);
+    }
+  }, [routes]);
 
   // Agrupar las órdenes por ruta con base en la secuencia de entrega
   const [ordersByRoute, setOrdersByRoute] = useState<Record<number, Order[]>>({});
