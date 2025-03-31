@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
+import { apiRequest } from "@/lib/queryClient";
 
 // Tipo para un retorno de envase
 interface BottleReturn {
@@ -91,13 +92,7 @@ export default function DriverDeliveries() {
     
     try {
       // Obtener órdenes
-      const ordersResponse = await fetch('/api/orders');
-      if (!ordersResponse.ok) {
-        throw new Error('Error al obtener órdenes');
-      }
-      const ordersData = await ordersResponse.json();
-      
-      console.log('Datos recibidos de /api/orders:', ordersData);
+      const ordersData = await apiRequest('/api/orders');
       
       // Para cada orden, obtener sus retornos de botellas
       const deliveriesWithBottleReturns = await Promise.all(
@@ -105,11 +100,7 @@ export default function DriverDeliveries() {
           let bottleReturnsData: BottleReturn[] = [];
           
           try {
-            const bottleReturnsResponse = await fetch(`/api/orders/${order.id}/bottle-returns`);
-            if (bottleReturnsResponse.ok) {
-              bottleReturnsData = await bottleReturnsResponse.json();
-              console.log(`Retornos de botellas para orden ${order.id}:`, bottleReturnsData);
-            }
+            bottleReturnsData = await apiRequest(`/api/orders/${order.id}/bottle-returns`);
           } catch (error) {
             console.error(`Error al obtener retornos para orden ${order.id}:`, error);
           }

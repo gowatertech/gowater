@@ -27,18 +27,8 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   fetchUser: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiRequest('GET', '/api/me');
-      if (response.ok) {
-        const user = await response.json();
-        set({ user, isLoading: false });
-      } else {
-        console.error('Error al obtener usuario:', response.status);
-        set({ 
-          user: null, 
-          isLoading: false,
-          error: new Error(`Error al obtener usuario: ${response.status}`)
-        });
-      }
+      const user = await apiRequest('/api/me');
+      set({ user, isLoading: false });
     } catch (error) {
       console.error('Error en fetch usuario:', error);
       set({ 
@@ -51,7 +41,7 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   logout: async () => {
     set({ isLoading: true, error: null });
     try {
-      await apiRequest('POST', '/api/logout');
+      await apiRequest('/api/logout', { method: 'POST' });
       set({ user: null, isLoading: false });
     } catch (error) {
       set({ error: error as Error, isLoading: false });
