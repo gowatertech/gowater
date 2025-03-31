@@ -471,6 +471,21 @@ export function registerRoutesEndpoints(app: Express) {
   app.post("/api/routes/:id/start", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
+      console.log(`Iniciando ruta ${routeId}...`);
+      
+      // Verificar si la ruta existe
+      const existingRoute = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.id, routeId))
+        .limit(1);
+      
+      if (!existingRoute || existingRoute.length === 0) {
+        console.error(`Ruta no encontrada: ${routeId}`);
+        return res.status(404).json({ error: "Ruta no encontrada" });
+      }
+      
+      console.log(`Encontrada ruta: ${JSON.stringify(existingRoute[0])}`);
       
       // Actualizar el estado de la ruta a "en_curso" (internamente "in_progress")
       const [updatedRoute] = await db
@@ -482,9 +497,39 @@ export function registerRoutesEndpoints(app: Express) {
         .where(eq(routes.id, routeId))
         .returning();
       
+      console.log(`Ruta actualizada: ${JSON.stringify(updatedRoute)}`);
+      
+      // Buscar pedidos pendientes que no tienen ruta asignada y asignarlos a esta ruta
+      const pendingOrdersWithoutRoute = await db
+        .select()
+        .from(orders)
+        .where(
+          and(
+            isNull(orders.routeId),
+            eq(orders.status, "pending")
+          )
+        );
+      
+      console.log(`Encontrados ${pendingOrdersWithoutRoute.length} pedidos pendientes sin ruta asignada`);
+      
+      // Asignar estos pedidos a la ruta actual
+      if (pendingOrdersWithoutRoute.length > 0) {
+        const orderIds = pendingOrdersWithoutRoute.map(order => order.id);
+        
+        await db
+          .update(orders)
+          .set({
+            routeId: routeId,
+            status: "in_transit"
+          })
+          .where(inArray(orders.id, orderIds));
+        
+        console.log(`Asignados ${orderIds.length} pedidos pendientes a la ruta ${routeId}`);
+      }
+      
       // Ahora, actualizar todos los pedidos asociados a esta ruta a estado "in_transit"
       // para que no aparezcan en las listas de pedidos pendientes
-      await db
+      const updateResult = await db
         .update(orders)
         .set({
           status: "in_transit"  // Cambiamos de "pending" a "in_transit"
@@ -496,7 +541,8 @@ export function registerRoutesEndpoints(app: Express) {
           )
         );
       
-      console.log(`Ruta ${routeId} y sus pedidos asociados actualizados a estado "in_transit"`);
+      console.log(`Actualizados los pedidos ya asignados a la ruta ${routeId} a estado "in_transit"`);
+      console.log(`Ruta ${routeId} iniciada con éxito. Total de pedidos procesados: ${pendingOrdersWithoutRoute.length}`);
       
       res.json(updatedRoute);
     } catch (error) {

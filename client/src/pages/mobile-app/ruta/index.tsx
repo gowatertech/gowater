@@ -47,6 +47,10 @@ export default function DriverRoute() {
   
   useEffect(() => {
     // Determinar la ruta activa
+    console.log("======= DATOS DE RUTA =======");
+    console.log("Rutas activas disponibles:", activeRoutes);
+    console.log("Pedidos disponibles:", routeOrders);
+    
     if (activeRoutes && activeRoutes.length > 0) {
       // Buscar la ruta más reciente que esté en progreso o pendiente
       let activeRoute = activeRoutes.find(r => r.status === 'in_progress');
@@ -61,7 +65,11 @@ export default function DriverRoute() {
         
         // Procesamos los pedidos para crear las paradas de la ruta
         processOrdersIntoStops(activeRoute.id);
+      } else {
+        console.log("No se encontró ninguna ruta activa en el estado 'in_progress' o 'pending'");
       }
+    } else {
+      console.log("No hay rutas activas disponibles");
     }
   }, [activeRoutes, routeOrders]);
   
@@ -82,10 +90,21 @@ export default function DriverRoute() {
       });
       
       // Filtrar los pedidos para esta ruta
-      const routeRelatedOrders = routeOrders.filter(order => 
-        order.routeId === routeId || 
-        (order.routeId === null && order.status === "pending")
-      );
+      console.log("Pedidos antes de filtrar:", routeOrders);
+      console.log("ID de ruta a buscar:", routeId);
+      
+      const routeRelatedOrders = routeOrders.filter(order => {
+        // Convertir los IDs a números para asegurar la comparación correcta
+        const orderRouteId = typeof order.routeId === 'string' ? parseInt(order.routeId) : order.routeId;
+        const targetRouteId = typeof routeId === 'string' ? parseInt(routeId) : routeId;
+        
+        // Mostrar detalles de cada pedido para depuración
+        console.log(`Pedido ID: ${order.id}, Ruta ID: ${orderRouteId} (${typeof orderRouteId}), Estado: ${order.status}`);
+        
+        // Verificar si pertenece a esta ruta o si es un pedido pendiente sin ruta asignada
+        return orderRouteId === targetRouteId || 
+               (orderRouteId === null && order.status === "pending");
+      });
       
       console.log(`Procesando ${routeRelatedOrders.length} pedidos para la ruta ${routeId}`);
       
