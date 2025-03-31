@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { CalendarIcon, MapPin, TruckIcon, DollarSign, Clock, UserRound, Package } from "lucide-react";
+import { CalendarIcon, MapPin, TruckIcon, DollarSign, Clock, UserRound, Package, Play, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -24,6 +24,7 @@ interface Route {
   totalRevenue: number | null;
   deliverySequence: string[];
   stops: string[];
+  localStatus?: 'in_progress' | 'paused' | undefined;
 }
 
 // Tipo para los pedidos
@@ -64,70 +65,105 @@ export default function MobilePendingRoutes() {
     retry: 3
   });
 
-  // Variable para almacenar rutas pendientes
-  const [pendingRoutes, setPendingRoutes] = useState<Route[]>([]);
+  // Variables para almacenar rutas por estado
+  const [allAvailableRoutes, setAllAvailableRoutes] = useState<Route[]>([]);
+  const [routesInProgress, setRoutesInProgress] = useState<Route[]>([]);
+  const [routesPaused, setRoutesPaused] = useState<Route[]>([]);
+  const [routesPending, setRoutesPending] = useState<Route[]>([]);
   
-  // Efecto para filtrar las rutas pendientes
+  // Efecto para clasificar las rutas por su estado
   useEffect(() => {
     if (Array.isArray(routes) && routes.length > 0) {
-      const filtered = routes.filter(route => {
-        // Verificar si la ruta está marcada como en progreso o pausada en localStorage
+      const inProgress: Route[] = [];
+      const paused: Route[] = [];
+      const pending: Route[] = [];
+      const available: Route[] = [];
+      
+      routes.forEach(route => {
+        // Saltar rutas completadas
+        if (route.status === "completed") return;
+        
+        // Verificar estado en localStorage
         const savedStatus = localStorage.getItem(`routeStatus_${route.id}`);
         
-        // Solo incluir rutas con estado "pending" en la BD y que NO estén marcadas como "in_progress" o "paused" en localStorage
-        return route.status === "pending" && savedStatus !== 'in_progress' && savedStatus !== 'paused';
+        // Clasificar la ruta según su estado
+        if (savedStatus === 'in_progress' || route.status === "in_progress") {
+          inProgress.push({...route, localStatus: 'in_progress'});
+        } 
+        else if (savedStatus === 'paused') {
+          paused.push({...route, localStatus: 'paused'});
+        }
+        else if (route.status === "pending") {
+          pending.push({...route, localStatus: undefined});
+        }
+        
+        // Agregar todas las rutas no completadas a la lista disponible
+        available.push(route);
       });
       
-      // Hack temporal para depuración: Si no hay rutas pendientes, incluir todas las rutas no completadas
-      console.log(`Rutas disponibles: ${routes.length}, Rutas pendientes filtradas: ${filtered.length}`);
-      if (filtered.length === 0) {
-        console.log("No hay rutas pendientes, incluyendo todas las rutas excepto las completadas para depuración");
-        // Usar todas las rutas como pendientes para propósitos de depuración
-        filtered.push(...routes.filter(r => r.status !== "completed"));
-      }
+      console.log(`Rutas disponibles: ${available.length}, En progreso: ${inProgress.length}, Pausadas: ${paused.length}, Pendientes: ${pending.length}`);
       
-      setPendingRoutes(filtered);
+      // Actualizar estados
+      setRoutesInProgress(inProgress);
+      setRoutesPaused(paused);
+      setRoutesPending(pending);
+      setAllAvailableRoutes(available);
     }
   }, [routes]);
 
   // Agrupar las órdenes por ruta con base en la secuencia de entrega
   const [ordersByRoute, setOrdersByRoute] = useState<Record<number, Order[]>>({});
 
-  // Esta función asigna órdenes a rutas
-  const assignOrdersToRoutes = () => {
-    // Inicializar el objeto para almacenar las órdenes por ruta
-    const routeOrders: Record<number, Order[]> = {};
-
-    // Para cada ruta pendiente
-    pendingRoutes.forEach(route => {
-      // Filtrar órdenes que no tengan ruta asignada
-      const unassignedOrders = allOrders.filter(order => 
-        order.routeId === null && order.status === "pending"
-      );
-
-      // Las órdenes pendientes siempre se muestran en las rutas disponibles
-      // ya que aún no están asociadas a ninguna ruta específica
-      routeOrders[route.id] = unassignedOrders;
-    });
-
-    // Actualizar el estado con las órdenes asignadas
-    setOrdersByRoute(routeOrders);
+  // Función para obtener título apropiado según el estado de la ruta
+  const getRouteStatusText = (route: Route) => {
+    if (route.localStatus === 'in_progress' || route.status === 'in_progress') {
+      return 'En progreso';
+    } else if (route.localStatus === 'paused') {
+      return 'Pausada';
+    } else {
+      return 'Pendiente';
+    }
+  };
+  
+  // Función para obtener el icono apropiado según el estado de la ruta
+  const getRouteStatusIcon = (route: Route) => {
+    if (route.localStatus === 'in_progress' || route.status === 'in_progress') {
+      return <Play className="h-3 w-3 text-green-500" />;
+    } else if (route.localStatus === 'paused') {
+      return <Pause className="h-3 w-3 text-amber-500" />;
+    } else {
+      return <Clock className="h-3 w-3 text-blue-500" />;
+    }
   };
 
   // Al cargar las rutas y las órdenes, asignar órdenes a rutas
   useEffect(() => {
-    if (pendingRoutes.length > 0 && allOrders.length > 0) {
-      // Asignar órdenes a rutas basándose en coordenadas
-      assignOrdersToRoutes();
+    if (allAvailableRoutes.length > 0 && allOrders.length > 0) {
+      // Inicializar el objeto para almacenar las órdenes por ruta
+      const routeOrders: Record<number, Order[]> = {};
+      
+      // Para cada ruta disponible
+      allAvailableRoutes.forEach(route => {
+        // Filtrar órdenes que no tengan ruta asignada
+        const unassignedOrders = allOrders.filter(order => 
+          order.routeId === null && order.status === "pending"
+        );
+        
+        // Las órdenes pendientes siempre se muestran en las rutas disponibles
+        routeOrders[route.id] = unassignedOrders;
+      });
+      
+      // Actualizar el estado con las órdenes asignadas
+      setOrdersByRoute(routeOrders);
       
       // Inicializar el estado de expansión para cada ruta (todas contraídas inicialmente)
       const initialExpandState: Record<number, boolean> = {};
-      pendingRoutes.forEach(route => {
+      allAvailableRoutes.forEach(route => {
         initialExpandState[route.id] = false;
       });
       setExpandedRoutes(initialExpandState);
     }
-  }, [pendingRoutes.length, allOrders.length]);
+  }, [allAvailableRoutes.length, allOrders.length]);
 
   // Contar el número de paradas por ruta (excluyendo el almacén)
   const countStops = (route: Route) => {
@@ -197,11 +233,148 @@ export default function MobilePendingRoutes() {
     });
   };
 
+  // Función para renderizar la tarjeta de una ruta
+  const renderRouteCard = (route: Route) => {
+    const routeOrders = ordersByRoute[route.id] || [];
+    const stopCount = countStops(route);
+    const routeDate = new Date(route.date);
+    const totalRevenue = calculateTotalRevenue(route.id);
+    const isExpanded = expandedRoutes[route.id] || false;
+    
+    // Determinar el texto del botón según el estado de la ruta
+    const buttonText = 
+      route.localStatus === 'in_progress' ? 'Continuar Ruta' : 
+      route.localStatus === 'paused' ? 'Reanudar Ruta' : 
+      'Iniciar Ruta';
+    
+    // Determinar el icono del botón según el estado
+    const ButtonIcon = 
+      route.localStatus === 'in_progress' || route.localStatus === 'paused' ? 
+      Play : TruckIcon;
+    
+    return (
+      <div 
+        key={route.id} 
+        className={`border rounded-lg overflow-hidden shadow-sm ${
+          isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'
+        }`}
+      >
+        <div className="p-4">
+          {/* Información general de la ruta con indicador de estado */}
+          <div 
+            className="flex justify-between items-center cursor-pointer mb-2"
+            onClick={() => toggleRouteExpand(route.id)}
+          >
+            <div className="flex items-center">
+              <h3 className="font-semibold text-sm">{route.name}</h3>
+              <div className="ml-2 flex items-center">
+                {getRouteStatusIcon(route)}
+                <span className="text-xs ml-1 text-muted-foreground">
+                  {getRouteStatusText(route)}
+                </span>
+              </div>
+            </div>
+            <Badge variant={routeOrders.length > 0 ? "default" : "outline"}>
+              {routeOrders.length} pedidos
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+            <div className="flex items-center text-muted-foreground">
+              <CalendarIcon className="h-3 w-3 mr-1" />
+              <span>
+                {format(routeDate, 'PPP', { locale: es })}
+              </span>
+            </div>
+            <div className="flex items-center text-muted-foreground">
+              <MapPin className="h-3 w-3 mr-1" />
+              <span>{stopCount} paradas</span>
+            </div>
+            <div className="flex items-center text-muted-foreground">
+              <DollarSign className="h-3 w-3 mr-1" />
+              <span>${totalRevenue.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1" />
+              <span>{route.totalDistance ? `${route.totalDistance} km` : 'Dist. no disp.'}</span>
+            </div>
+          </div>
+          
+          {/* Mostrar los pedidos de la ruta si está expandida */}
+          {isExpanded && (
+            <div className={`text-xs ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              <Separator className="mb-2" />
+              
+              {routeOrders.length > 0 ? (
+                <div className="space-y-3 mb-3">
+                  <h4 className="font-medium">Pedidos en esta ruta:</h4>
+                  
+                  {routeOrders.map(order => (
+                    <div 
+                      key={order.id} 
+                      className={`rounded-md p-2 ${
+                        isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="font-medium flex items-center">
+                          <UserRound className="h-3 w-3 mr-1" />
+                          {order.customerName}
+                        </div>
+                        <span className="text-primary font-medium">${parseFloat(order.total).toFixed(2)}</span>
+                      </div>
+                      
+                      <div className="text-muted-foreground flex items-start mb-1">
+                        <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                        <span className="line-clamp-1">{order.customerAddress}</span>
+                      </div>
+                      
+                      <div className="mt-2">
+                        <h5 className="font-medium mb-1 flex items-center">
+                          <Package className="h-3 w-3 mr-1" />
+                          Productos
+                        </h5>
+                        <ul className="space-y-1 pl-4 list-disc">
+                          {order.products.map((product, idx) => (
+                            <li key={idx} className="flex justify-between">
+                              <span className="truncate mr-2">{product.quantity}x {product.name}</span>
+                              <span className="flex-shrink-0">${(parseFloat(product.price) * product.quantity).toFixed(2)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-2 mb-2">
+                  <span className="text-muted-foreground">No hay pedidos asignados a esta ruta</span>
+                </div>
+              )}
+              
+              <Separator className="mt-2 mb-3" />
+            </div>
+          )}
+          
+          <button 
+            onClick={() => handleStartRoute(route.id)}
+            className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center"
+          >
+            <ButtonIcon className="h-3 w-3 mr-1" />
+            {buttonText}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   // Si está cargando el usuario o los datos, mostrar spinner
   if (isLoadingUser || isLoadingRoutes || isLoadingOrders) {
     return (
       <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
-        <MobileHeader title="Rutas Pendientes" darkMode={isDarkMode} />
+        <MobileHeader title="Mis Rutas" darkMode={isDarkMode} />
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
         </div>
@@ -212,7 +385,7 @@ export default function MobilePendingRoutes() {
 
   return (
     <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50'}`}>
-      <MobileHeader title="Rutas Pendientes" darkMode={isDarkMode} />
+      <MobileHeader title="Mis Rutas" darkMode={isDarkMode} />
       
       {showInstallPrompt && (
         <InstallPrompt onClose={() => {
@@ -226,132 +399,65 @@ export default function MobilePendingRoutes() {
           <div className="text-red-500 p-4 text-center">
             Error al cargar los datos. Por favor, intenta nuevamente.
           </div>
-        ) : pendingRoutes.length === 0 ? (
+        ) : allAvailableRoutes.length === 0 ? (
           <div className="text-center py-8">
             <TruckIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-            <h3 className="text-lg font-semibold">No hay rutas pendientes</h3>
+            <h3 className="text-lg font-semibold">No hay rutas disponibles</h3>
             <p className="text-muted-foreground mt-2">
-              Actualmente no hay rutas pendientes en el sistema.
+              Actualmente no hay rutas pendientes o en progreso en el sistema.
             </p>
           </div>
         ) : (
           <div className="space-y-6">
-            {pendingRoutes.map((route) => {
-              const routeOrders = ordersByRoute[route.id] || [];
-              const stopCount = countStops(route);
-              const routeDate = new Date(route.date);
-              const totalRevenue = calculateTotalRevenue(route.id);
-              const isExpanded = expandedRoutes[route.id] || false;
-              
-              return (
-                <div 
-                  key={route.id} 
-                  className={`border rounded-lg overflow-hidden shadow-sm ${
-                    isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'
-                  }`}
-                >
-                  <div className="p-4">
-                    {/* Información general de la ruta */}
-                    <div 
-                      className="flex justify-between items-center cursor-pointer mb-2"
-                      onClick={() => toggleRouteExpand(route.id)}
-                    >
-                      <h3 className="font-semibold text-sm">{route.name}</h3>
-                      <Badge variant={routeOrders.length > 0 ? "default" : "outline"}>
-                        {routeOrders.length} pedidos
-                      </Badge>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                      <div className="flex items-center text-muted-foreground">
-                        <CalendarIcon className="h-3 w-3 mr-1" />
-                        <span>
-                          {format(routeDate, 'PPP', { locale: es })}
-                        </span>
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        <span>{stopCount} paradas</span>
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <DollarSign className="h-3 w-3 mr-1" />
-                        <span>${totalRevenue.toFixed(2)}</span>
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{route.totalDistance ? `${route.totalDistance} km` : 'Dist. no disp.'}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Mostrar los pedidos de la ruta si está expandida */}
-                    {isExpanded && (
-                      <div className={`text-xs ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                      }`}>
-                        <Separator className="mb-2" />
-                        
-                        {routeOrders.length > 0 ? (
-                          <div className="space-y-3 mb-3">
-                            <h4 className="font-medium">Pedidos en esta ruta:</h4>
-                            
-                            {routeOrders.map(order => (
-                              <div 
-                                key={order.id} 
-                                className={`rounded-md p-2 ${
-                                  isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-                                }`}
-                              >
-                                <div className="flex justify-between items-center mb-1">
-                                  <div className="font-medium flex items-center">
-                                    <UserRound className="h-3 w-3 mr-1" />
-                                    {order.customerName}
-                                  </div>
-                                  <span className="text-primary font-medium">${parseFloat(order.total).toFixed(2)}</span>
-                                </div>
-                                
-                                <div className="text-muted-foreground flex items-start mb-1">
-                                  <MapPin className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
-                                  <span className="line-clamp-1">{order.customerAddress}</span>
-                                </div>
-                                
-                                <div className="mt-2">
-                                  <h5 className="font-medium mb-1 flex items-center">
-                                    <Package className="h-3 w-3 mr-1" />
-                                    Productos
-                                  </h5>
-                                  <ul className="space-y-1 pl-4 list-disc">
-                                    {order.products.map((product, idx) => (
-                                      <li key={idx} className="flex justify-between">
-                                        <span className="truncate mr-2">{product.quantity}x {product.name}</span>
-                                        <span className="flex-shrink-0">${(parseFloat(product.price) * product.quantity).toFixed(2)}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-2 mb-2">
-                            <span className="text-muted-foreground">No hay pedidos asignados a esta ruta</span>
-                          </div>
-                        )}
-                        
-                        <Separator className="mt-2 mb-3" />
-                      </div>
-                    )}
-                    
-                    <button 
-                      onClick={() => handleStartRoute(route.id)}
-                      className="w-full py-2 px-4 bg-primary text-white rounded-md text-xs font-medium hover:bg-primary/90 transition-colors flex items-center justify-center"
-                    >
-                      <TruckIcon className="h-3 w-3 mr-1" />
-                      Iniciar Ruta
-                    </button>
-                  </div>
+            {/* Rutas en progreso */}
+            {routesInProgress.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 flex items-center">
+                  <Play className="h-4 w-4 mr-2 text-green-500" />
+                  Rutas en progreso
+                </h2>
+                <div className="space-y-3">
+                  {routesInProgress.map((route) => renderRouteCard(route))}
                 </div>
-              );
-            })}
+              </div>
+            )}
+            
+            {/* Rutas pausadas */}
+            {routesPaused.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 flex items-center">
+                  <Pause className="h-4 w-4 mr-2 text-amber-500" />
+                  Rutas pausadas
+                </h2>
+                <div className="space-y-3">
+                  {routesPaused.map((route) => renderRouteCard(route))}
+                </div>
+              </div>
+            )}
+            
+            {/* Rutas pendientes */}
+            {routesPending.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold mb-3 flex items-center">
+                  <Clock className="h-4 w-4 mr-2 text-blue-500" />
+                  Rutas pendientes
+                </h2>
+                <div className="space-y-3">
+                  {routesPending.map((route) => renderRouteCard(route))}
+                </div>
+              </div>
+            )}
+            
+            {/* Si no hay rutas en ninguna categoría */}
+            {routesInProgress.length === 0 && routesPaused.length === 0 && routesPending.length === 0 && (
+              <div className="text-center py-8">
+                <TruckIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold">No hay rutas activas</h3>
+                <p className="text-muted-foreground mt-2">
+                  Todas las rutas han sido completadas o canceladas.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

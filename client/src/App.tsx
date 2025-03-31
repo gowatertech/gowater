@@ -135,7 +135,6 @@ function Router() {
       <Switch>
         <Route path="/mobile-app" component={MobileApp} />
         <Route path="/mobile-app/rutas-pendientes" component={MobilePendingRoutes} />
-        <Route path="/mobile-app/rutas-en-progreso" component={MobileRoutesInProgress} />
         <Route path="/mobile-app/ruta" component={MobileRoute} />
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
         <Route path="/mobile-app/envases" component={MobileBottleReturns} />
