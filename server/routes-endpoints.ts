@@ -358,6 +358,61 @@ export function registerRoutesEndpoints(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para actualizar el progreso de una ruta
+  app.post("/api/routes/:id/progress", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const { currentLocation, lastUpdate } = req.body;
+      
+      if (!currentLocation) {
+        return res.status(400).json({ error: "Se requiere la ubicación actual" });
+      }
+      
+      const updateDate = lastUpdate ? new Date(lastUpdate) : new Date();
+      
+      // Actualizar el progreso de la ruta usando el método del storage
+      const updatedRoute = await storage.updateRouteProgress(
+        routeId,
+        currentLocation,
+        updateDate
+      );
+      
+      // Verificar si todos los pedidos en esta ruta están completados
+      // Si es así, actualizar el estado de la ruta a "completed"
+      const routeOrders = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.routeId, routeId));
+      
+      // Contar órdenes no entregadas (pending o in_transit)
+      const pendingOrders = routeOrders.filter(
+        order => order.status === 'pending' || order.status === 'in_transit'
+      );
+      
+      // Si no hay órdenes pendientes y la ruta está en progreso, marcarla como completada
+      if (pendingOrders.length === 0 && updatedRoute.status === 'in_progress') {
+        // Actualizar el estado de la ruta a "completed"
+        const [completedRoute] = await db
+          .update(routes)
+          .set({
+            status: "completed",
+            isCompleted: true,
+            driverEndedAt: new Date()
+          })
+          .where(eq(routes.id, routeId))
+          .returning();
+        
+        console.log(`Ruta ${routeId} actualizada automáticamente a "completed" porque todas las órdenes están entregadas`);
+        res.json(completedRoute);
+      } else {
+        res.json(updatedRoute);
+      }
+    } catch (error) {
+      console.error("Error al actualizar progreso de ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Endpoint para borrar una ruta
   app.delete("/api/routes/:id", async (req, res) => {
