@@ -913,7 +913,8 @@ export function registerRoutesEndpoints(app: Express) {
       .where(eq(orderItemsTable.orderId, orderId));
       
       if (!orderProductItems || orderProductItems.length === 0) {
-        return res.status(404).json({ error: "No se encontraron productos para este pedido" });
+        // Devolver una lista vacía en lugar de un error 404
+        return res.json([]);
       }
       
       // Formatear los productos para la respuesta
@@ -952,7 +953,8 @@ export function registerRoutesEndpoints(app: Express) {
       .where(eq(orderItemsTable.orderId, orderId));
       
       if (!orderItems || orderItems.length === 0) {
-        return res.status(404).json({ error: "No se encontraron items para este pedido" });
+        // Devolver una lista vacía en lugar de un error 404
+        return res.json([]);
       }
       
       res.json(orderItems);

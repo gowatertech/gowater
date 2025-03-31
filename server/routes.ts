@@ -1666,6 +1666,41 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para agregar items a un pedido existente
+  app.post("/api/orders/:id/items", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: 'ID de pedido inválido' });
+      }
+      
+      console.log("POST /api/orders/:id/items - Datos recibidos:", JSON.stringify(req.body, null, 2));
+      
+      // Validar datos requeridos
+      const { productId, quantity, price } = req.body;
+      if (!productId || !quantity || !price) {
+        return res.status(400).json({ error: 'Faltan datos requeridos (productId, quantity, price)' });
+      }
+      
+      // Crear el item del pedido
+      const [orderItem] = await db
+        .insert(orderItems)
+        .values({
+          orderId,
+          productId: parseInt(productId.toString()),
+          quantity: parseInt(quantity.toString()),
+          price: typeof price === 'string' ? price : price.toFixed(2)
+        })
+        .returning();
+      
+      console.log("Item agregado al pedido:", orderItem);
+      res.status(201).json(orderItem);
+    } catch (error) {
+      console.error("Error al agregar item al pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Endpoint para actualizar el estado de un pedido
   app.patch("/api/orders/:id/status", async (req, res) => {
