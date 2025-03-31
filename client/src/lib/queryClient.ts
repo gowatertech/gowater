@@ -14,13 +14,24 @@ function getBaseUrl() {
 
 export async function apiRequest(
   url: string,
-  options?: {
-    method?: string;
-    data?: unknown;
-  }
+  options?: RequestInit | string | { method?: string; data?: unknown }
 ): Promise<any> {
-  const method = options?.method || 'GET';
-  const data = options?.data;
+  let method = 'GET';
+  let data = undefined;
+  
+  // Handle backwards compatibility with previous signatures
+  if (typeof options === 'string') {
+    method = options;
+  } else if (options && 'method' in options) {
+    method = options.method || 'GET';
+    if ('data' in options) {
+      data = options.data;
+    }
+  } else if (options) {
+    // It's a RequestInit object
+    method = options.method || 'GET';
+    // For RequestInit, body is already set, so we don't need to handle data
+  }
   
   const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
   const fullUrl = `${getBaseUrl()}${apiUrl}`;
@@ -34,6 +45,7 @@ export async function apiRequest(
       },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
+      ...(typeof options === 'object' && !('data' in options) && !('method' in options) ? options : {}),
     });
 
     await throwIfResNotOk(res);
@@ -56,7 +68,6 @@ export const getQueryFn: <T>(options: {
     const fullUrl = `${getBaseUrl()}${apiUrl}`;
 
     try {
-      console.log(`Fetching data from ${fullUrl}`);
       const res = await fetch(fullUrl, {
         credentials: "include",
         headers: {
@@ -65,13 +76,11 @@ export const getQueryFn: <T>(options: {
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log(`Unauthorized access to ${fullUrl}, returning null`);
         return null;
       }
 
       await throwIfResNotOk(res);
       const data = await res.json();
-      console.log(`Data received from ${fullUrl}:`, data);
       return data;
     } catch (error) {
       console.error(`Query Error (${fullUrl}):`, error);
