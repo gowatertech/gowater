@@ -390,10 +390,14 @@ export function registerRoutesEndpoints(app: Express) {
   // Endpoint para completar manualmente una ruta
   app.post("/api/routes/:id/complete", async (req, res) => {
     try {
+      console.log("Solicitud recibida para completar ruta:", req.params.id);
+      console.log("Datos del body:", req.body);
+      
       const routeId = parseInt(req.params.id);
       const { completedAt, comments } = req.body;
       
       if (isNaN(routeId)) {
+        console.error("ID de ruta inválido:", req.params.id);
         return res.status(400).json({ error: "ID de ruta inválido" });
       }
       
@@ -404,12 +408,16 @@ export function registerRoutesEndpoints(app: Express) {
         .where(eq(routes.id, routeId))
         .limit(1);
       
+      console.log("Estado actual de la ruta:", currentRoute);
+      
       if (!currentRoute) {
+        console.error("Ruta no encontrada con ID:", routeId);
         return res.status(404).json({ error: "Ruta no encontrada" });
       }
       
       // Verificar si la ruta ya está completada
       if (currentRoute.status === "completed") {
+        console.log("Intento de completar una ruta ya completada:", routeId);
         return res.status(400).json({ 
           error: "La ruta ya está completada",
           route: currentRoute
@@ -422,30 +430,52 @@ export function registerRoutesEndpoints(app: Express) {
         .from(orders)
         .where(eq(orders.routeId, routeId));
       
+      console.log(`Encontrados ${routeOrders.length} pedidos para la ruta ${routeId}`);
+      
       // Contar órdenes no entregadas (pending o in_transit)
       const pendingOrders = routeOrders.filter(
         order => order.status === 'pending' || order.status === 'in_transit'
       );
       
+      console.log(`Hay ${pendingOrders.length} pedidos pendientes en la ruta ${routeId}`);
+      
       // Si hay órdenes pendientes, requerimos comentarios explicativos
       if (pendingOrders.length > 0 && (!comments || comments.trim() === "")) {
+        console.log("Intento de completar ruta con pedidos pendientes sin comentarios");
         return res.status(400).json({
           error: "Se requieren comentarios para completar una ruta con pedidos pendientes",
           pendingOrdersCount: pendingOrders.length
         });
       }
       
+      const now = new Date();
+      const endDate = completedAt ? new Date(completedAt) : now;
+      
+      console.log(`Completando ruta ${routeId} con fecha de finalización ${endDate.toISOString()}`);
+      console.log(`Comentarios: ${comments || "Ninguno"}`);
+      
       // Actualizar el estado de la ruta a "completed" usando SQL directo para evitar problemas con nombres de columnas
-      const updateResult = await db.execute(sql`
-        UPDATE routes 
-        SET 
-          status = 'completed', 
-          is_completed = true, 
-          driver_ended_at = ${completedAt ? new Date(completedAt) : new Date()},
-          comments = ${comments || null}
-        WHERE id = ${routeId}
-        RETURNING *
-      `);
+      let updateResult;
+      try {
+        updateResult = await db.execute(sql`
+          UPDATE routes 
+          SET 
+            status = 'completed', 
+            is_completed = true, 
+            driver_ended_at = ${endDate},
+            comments = ${comments || null}
+          WHERE id = ${routeId}
+          RETURNING *
+        `);
+        
+        console.log("Actualización ejecutada correctamente, filas afectadas:", updateResult.rowCount);
+      } catch (sqlError) {
+        console.error("Error en la consulta SQL:", sqlError);
+        return res.status(500).json({ 
+          error: "Error al actualizar la ruta en la base de datos",
+          details: String(sqlError)
+        });
+      }
       
       const completedRoute = updateResult.rows[0];
       

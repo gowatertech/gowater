@@ -734,14 +734,24 @@ export default function DriverRoute() {
       }, 3000);
     } catch (error) {
       console.error("Error al finalizar ruta:", error);
+      
+      // Intentar extraer mensaje de error si está disponible
+      let errorMessage = "No se pudo finalizar la ruta. Inténtalo de nuevo.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = String(error);
+      }
+      
       toast({
         title: "Error al finalizar ruta",
-        description: "No se pudo finalizar la ruta. Inténtalo de nuevo.",
+        description: errorMessage,
         variant: "destructive"
       });
       
-      // Para asegurar que la UI refleje el cambio, incluso si hay un error
-      updateRouteStatus('completed');
+      // NO actualizamos el estado de la ruta a 'completed' si hay error
+      // ya que esto causa inconsistencia con el estado real del servidor
     } finally {
       setIsLoading(false);
     }
