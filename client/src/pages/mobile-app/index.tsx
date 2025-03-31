@@ -220,7 +220,7 @@ export default function GoWaterDriverApp() {
   }
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
+    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-16`}>
       {/* Prompt de instalación */}
       {showInstallPrompt && <InstallPrompt onClose={() => setShowInstallPrompt(false)} />}
       
