@@ -42,6 +42,8 @@ import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { apiRequest } from "@/lib/api";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
+
+
 import { 
   Dialog, 
   DialogContent, 
@@ -82,6 +84,21 @@ let WarehouseIcon = L.divIcon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Funciones de ayuda para conversión de tipos
+const toNumber = (value: string | number): number => {
+  if (typeof value === 'string') {
+    return parseFloat(value) || 0;
+  }
+  return value;
+};
+
+const toString = (value: string | number): string => {
+  if (typeof value === 'number') {
+    return value.toString();
+  }
+  return value;
+};
+
 // Tipo para una parada en la ruta
 interface RouteStop {
   id: number;
@@ -96,7 +113,7 @@ interface RouteStop {
   estimatedDuration: number; // Duración estimada en minutos
   distanceFromPrevious: number; // Distancia desde el punto anterior en km
   products: { id: number; name: string; quantity: number; price: number; isReturnable?: boolean }[];
-  totalValue: number; // Valor total del pedido
+  totalValue: number | string; // Valor total del pedido (puede venir como string desde la API)
   isWarehouse?: boolean; // Indica si es el almacén (punto 0)
 }
 
@@ -741,7 +758,7 @@ export default function DriverRoute() {
   const openPaymentDialog = (stop: RouteStop) => {
     setCurrentStopForPayment(stop);
     setPaymentMethod("cash");
-    setPaymentReceived(stop.totalValue); // Establecer el monto predeterminado igual al total
+    setPaymentReceived(toNumber(stop.totalValue)); // Establecer el monto predeterminado igual al total
     setUpdateCustomerBalance(true);
     setShowPaymentDialog(true);
   };
@@ -771,14 +788,14 @@ export default function DriverRoute() {
               console.log("Creando productos para pedido sin items...");
               
               // Calculamos un producto default basado en el total dividido entre una cantidad estimada
+              const totalValueAsNumber = typeof stop.totalValue === 'string' ? parseFloat(stop.totalValue) : stop.totalValue;
               const defaultProducts = [
                 {
                   id: 1, // ID del botellón de agua 5L
                   name: "BOTELLON 5L",
-                  quantity: Math.ceil(parseFloat(stop.totalValue) / 40), // Dividir el total entre el precio del botellón
+                  quantity: Math.ceil(totalValueAsNumber / 40), // Dividir el total entre el precio del botellón
                   price: 40,
-                  isReturnable: true,
-                  depositAmount: 10
+                  isReturnable: true
                 }
               ];
               
@@ -847,7 +864,7 @@ export default function DriverRoute() {
       const productsData = editedProducts.map(product => ({
         id: product.id,
         name: product.name,
-        quantity: product.quantity,
+        quantity: typeof product.quantity === 'number' ? product.quantity.toString() : product.quantity,
         price: product.price.toString(),
         isReturnable: product.isReturnable
       }));
@@ -1308,7 +1325,7 @@ export default function DriverRoute() {
                                 <div className="flex justify-between">
                                   <span className="text-xs font-bold">Valor del pedido:</span>
                                   <span className="text-xs font-bold text-primary">
-                                    ${stop.totalValue.toFixed(2)}
+                                    ${toNumber(stop.totalValue).toFixed(2)}
                                   </span>
                                 </div>
                               </div>
@@ -1404,7 +1421,7 @@ export default function DriverRoute() {
                               
                               <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
                                 <span className="text-xs font-semibold">Total del pedido:</span>
-                                <span className="text-sm font-bold text-primary">${stop.totalValue.toFixed(2)}</span>
+                                <span className="text-sm font-bold text-primary">${toNumber(stop.totalValue).toFixed(2)}</span>
                               </div>
                               
                               {/* Sección para confirmar entrega y pago */}
@@ -1424,7 +1441,7 @@ export default function DriverRoute() {
                                     </div>
                                     <div className="flex justify-between text-xs">
                                       <span>Total a cobrar:</span>
-                                      <span className="font-bold text-primary">${stop.totalValue.toFixed(2)}</span>
+                                      <span className="font-bold text-primary">${toNumber(stop.totalValue).toFixed(2)}</span>
                                     </div>
                                   </div>
                                   
@@ -1636,7 +1653,7 @@ export default function DriverRoute() {
                         </Label>
                         <div className="text-sm font-medium flex gap-1 items-center text-primary">
                           <CircleDollarSign className="h-4 w-4" />
-                          Total: RD$ {currentStopForPayment.totalValue.toFixed(2)}
+                          Total: RD$ {toNumber(currentStopForPayment.totalValue).toFixed(2)}
                         </div>
                       </div>
                       
@@ -1655,7 +1672,7 @@ export default function DriverRoute() {
                           type="button" 
                           variant="outline" 
                           className="text-sm"
-                          onClick={() => setPaymentReceived(currentStopForPayment.totalValue)}
+                          onClick={() => setPaymentReceived(toNumber(currentStopForPayment.totalValue))}
                         >
                           <BadgeDollarSign className="mr-1 h-3 w-3" />
                           Monto exacto
@@ -1664,7 +1681,7 @@ export default function DriverRoute() {
                           type="button" 
                           variant="outline" 
                           className="text-sm"
-                          onClick={() => setPaymentReceived(Math.ceil(currentStopForPayment.totalValue / 100) * 100)}
+                          onClick={() => setPaymentReceived(Math.ceil(toNumber(currentStopForPayment.totalValue) / 100) * 100)}
                         >
                           <CircleDollarSign className="mr-1 h-3 w-3" />
                           Redondear a 100
@@ -1673,7 +1690,7 @@ export default function DriverRoute() {
                           type="button" 
                           variant="outline" 
                           className="text-sm"
-                          onClick={() => setPaymentReceived(Math.ceil(currentStopForPayment.totalValue / 500) * 500)}
+                          onClick={() => setPaymentReceived(Math.ceil(toNumber(currentStopForPayment.totalValue) / 500) * 500)}
                         >
                           <CircleDollarSign className="mr-1 h-3 w-3" />
                           Redondear a 500
@@ -1683,22 +1700,22 @@ export default function DriverRoute() {
                       {/* Cambio a devolver */}
                       <div 
                         className={`p-3 rounded-lg text-lg font-bold mb-4 flex justify-between items-center ${
-                          paymentReceived < currentStopForPayment.totalValue 
+                          paymentReceived < toNumber(currentStopForPayment.totalValue) 
                             ? 'bg-red-100 text-red-500' 
-                            : paymentReceived === currentStopForPayment.totalValue 
+                            : paymentReceived === toNumber(currentStopForPayment.totalValue) 
                               ? 'bg-green-100 text-green-600' 
                               : 'bg-amber-100 text-amber-600'
                         }`}
                       >
                         <span className="text-sm">Cambio:</span>
                         <div className="flex items-center">
-                          {paymentReceived < currentStopForPayment.totalValue ? (
+                          {paymentReceived < toNumber(currentStopForPayment.totalValue) ? (
                             <Ban className="mr-2 h-4 w-4" />
                           ) : (
                             <Coins className="mr-2 h-4 w-4" />
                           )}
                           <span>
-                            RD$ {(paymentReceived - currentStopForPayment.totalValue).toFixed(2)}
+                            RD$ {(paymentReceived - toNumber(currentStopForPayment.totalValue)).toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -1714,7 +1731,7 @@ export default function DriverRoute() {
                       </div>
                       <div className="flex justify-between items-center text-lg font-bold">
                         <span>Total a crédito:</span>
-                        <span>RD$ {currentStopForPayment.totalValue.toFixed(2)}</span>
+                        <span>RD$ {toNumber(currentStopForPayment.totalValue).toFixed(2)}</span>
                       </div>
                     </div>
                   </>
@@ -1767,7 +1784,7 @@ export default function DriverRoute() {
               onClick={processPayment} 
               disabled={
                 isLoading || 
-                (paymentMethod === "cash" && paymentReceived < (currentStopForPayment?.totalValue || 0))
+                (paymentMethod === "cash" && paymentReceived < toNumber(currentStopForPayment?.totalValue || 0))
               }
               className="w-full sm:w-auto gap-1"
             >

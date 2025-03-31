@@ -128,12 +128,12 @@ export default function OrdersPage() {
   
   // Obtener detalles del pedido seleccionado
   const { data: orderDetails = [], isLoading: isLoadingDetails } = useQuery<OrderItem[]>({
-    queryKey: ["/api/order-items", selectedOrder?.id],
+    queryKey: ["/api/orders/products", selectedOrder?.id],
     enabled: !!selectedOrder?.id,
     queryFn: async () => {
       if (!selectedOrder?.id) return [];
       try {
-        const response = await apiRequest("GET", `/api/orders/${selectedOrder.id}/items`);
+        const response = await apiRequest("GET", `/api/orders/${selectedOrder.id}/products`);
         if (!response.ok) {
           console.error("Error cargando detalles del pedido");
           return [];
@@ -141,8 +141,8 @@ export default function OrdersPage() {
         
         const items = await response.json();
         return items.map((item: any) => ({
-          code: item.productId.toString(),
-          description: products?.find(p => p.id === item.productId)?.name || "Producto",
+          code: item.id.toString(),
+          description: item.name || "Producto",
           quantity: item.quantity,
           price: parseFloat(item.price.toString()),
           total: parseFloat(item.price.toString()) * item.quantity

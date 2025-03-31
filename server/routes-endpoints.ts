@@ -933,6 +933,35 @@ export function registerRoutesEndpoints(app: Express) {
     }
   });
 
+  // Endpoint para obtener los items de un pedido
+  app.get("/api/orders/:id/items", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de pedido inválido" });
+      }
+      
+      // Obtener los elementos del pedido con información de productos
+      const orderItems = await db.select({
+        productId: orderItemsTable.productId,
+        quantity: orderItemsTable.quantity,
+        price: orderItemsTable.price
+      })
+      .from(orderItemsTable)
+      .where(eq(orderItemsTable.orderId, orderId));
+      
+      if (!orderItems || orderItems.length === 0) {
+        return res.status(404).json({ error: "No se encontraron items para este pedido" });
+      }
+      
+      res.json(orderItems);
+    } catch (error) {
+      console.error("Error al obtener items del pedido:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+  
   // Endpoint para marcar un pedido como entregado con pago
   // Endpoint para actualizar los productos de un pedido
   app.patch("/api/orders/:id/products", async (req, res) => {
