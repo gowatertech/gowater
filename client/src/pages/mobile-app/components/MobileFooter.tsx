@@ -17,7 +17,8 @@ interface MobileFooterProps {
 export function MobileFooter({ darkMode }: MobileFooterProps) {
   const [location, setLocation] = useLocation();
   
-  const navItems = [
+  // Definimos los elementos de navegación principales y los que aparecerán en la sección "Más"
+  const mainNavItems = [
     {
       icon: Home,
       label: "Inicio",
@@ -29,9 +30,9 @@ export function MobileFooter({ darkMode }: MobileFooterProps) {
       href: "/mobile-app/rutas-pendientes"
     },
     {
-      icon: Play,
-      label: "En Curso",
-      href: "/mobile-app/rutas-en-progreso"
+      icon: Navigation,
+      label: "Mi Ruta",
+      href: "/mobile-app/ruta"
     },
     {
       icon: Package,
@@ -45,9 +46,19 @@ export function MobileFooter({ darkMode }: MobileFooterProps) {
     }
   ];
   
+  // Agregar la opción En Curso como sexto elemento
+  const navItems = [
+    ...mainNavItems,
+    {
+      icon: Play,
+      label: "En Curso",
+      href: "/mobile-app/rutas-en-progreso"
+    }
+  ];
+  
   return (
     <nav className={`fixed bottom-0 left-0 right-0 z-10 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : 'bg-white'} border-t shadow-lg`}>
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-6 h-16">
         {navItems.map((item) => {
           const isActive = location === item.href;
           return (
