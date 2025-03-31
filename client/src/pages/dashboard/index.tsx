@@ -37,11 +37,19 @@ export default function Dashboard() {
   const { t } = useTranslation();
 
   const { data: stats } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"]
+    queryKey: ["/api/dashboard/stats"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/dashboard/stats");
+      return response.json();
+    }
   });
 
   const { data: paymentStats } = useQuery<PaymentStats>({
-    queryKey: ["/api/dashboard/payments-stats"]
+    queryKey: ["/api/dashboard/payments-stats"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/dashboard/payments-stats");
+      return response.json();
+    }
   });
 
   // Datos para el gráfico de ventas y cobros

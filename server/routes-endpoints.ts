@@ -22,152 +22,6 @@ import { orderItems as orderItemsTable } from "@shared/schema";
  */
 export function registerRoutesEndpoints(app: Express) {
   
-  // Endpoint para obtener rutas activas (en progreso o pendientes)
-  app.get("/api/routes/active", async (req, res) => {
-    try {
-      // Obtener el ID del usuario conductor desde la consulta
-      const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : undefined;
-      
-      // Construir la consulta base
-      let query = db
-        .select()
-        .from(routes)
-        .where(
-          and(
-            // Rutas que no están completadas
-            ne(routes.status, "completed"),
-            // Opcionalmente filtrar por conductor
-            driverId ? eq(routes.driverId, driverId) : undefined
-          )
-        );
-      
-      const activeRoutes = await query;
-      
-      res.json(activeRoutes);
-    } catch (error) {
-      console.error("Error al obtener rutas activas:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-  
-  // Endpoint para obtener las paradas de una ruta específica
-  app.get("/api/routes/:id/stops", async (req, res) => {
-    try {
-      const routeId = parseInt(req.params.id);
-      
-      if (isNaN(routeId)) {
-        return res.status(400).json({ error: "ID de ruta inválido" });
-      }
-      
-      // Obtener la ruta específica
-      const routeData = await db
-        .select()
-        .from(routes)
-        .where(eq(routes.id, routeId))
-        .limit(1);
-        
-      if (routeData.length === 0) {
-        return res.status(404).json({ error: "Ruta no encontrada" });
-      }
-      
-      const route = routeData[0];
-      
-      // Buscar todos los pedidos asociados a esta ruta
-      const routeOrders = await db
-        .select({
-          id: orders.id,
-          routeId: orders.routeId,
-          customerId: orders.customerId,
-          status: orders.status,
-          total: orders.total,
-          date: orders.date,
-          paymentMethod: orders.paymentMethod,
-          customerName: customers.businessname,
-          customerAddress: customers.street,
-          streetnumber: customers.streetnumber,
-          coordinates: customers.coordinates
-        })
-        .from(orders)
-        .leftJoin(customers, eq(orders.customerId, customers.id))
-        .where(eq(orders.routeId, routeId));
-      
-      // Para cada pedido, obtener sus productos
-      const ordersWithProducts = await Promise.all(
-        routeOrders.map(async (order) => {
-          const items = await db
-            .select({
-              productId: orderItemsTable.productId,
-              name: products.name,
-              quantity: orderItemsTable.quantity,
-              price: orderItemsTable.price,
-              isReturnable: products.isReturnable
-            })
-            .from(orderItemsTable)
-            .innerJoin(products, eq(orderItemsTable.productId, products.id))
-            .where(eq(orderItemsTable.orderId, order.id));
-          
-          return {
-            ...order,
-            products: items
-          };
-        })
-      );
-      
-      // Formatear las paradas para incluir el almacén y todos los pedidos
-      const stops = [];
-      
-      // Agregar el almacén como primera parada
-      stops.push({
-        id: 'warehouse',
-        order: 0,
-        customerName: 'Almacén Central',
-        address: 'Punto de inicio',
-        status: 'completed',
-        isWarehouse: true,
-        estimatedArrival: '08:00 AM'
-      });
-      
-      // Agregar los pedidos como paradas
-      ordersWithProducts.forEach((order, index) => {
-        // Calcular valor total de los productos
-        const totalValue = order.products.reduce(
-          (sum, product) => sum + (parseFloat(product.price) * product.quantity), 
-          0
-        );
-        
-        // Extraer las coordenadas
-        let latitude = null;
-        let longitude = null;
-        if (order.coordinates) {
-          const coordParts = order.coordinates.split(',');
-          if (coordParts.length === 2) {
-            latitude = parseFloat(coordParts[0]);
-            longitude = parseFloat(coordParts[1]);
-          }
-        }
-        
-        stops.push({
-          id: order.id,
-          order: index + 1,
-          customerName: order.customerName,
-          address: `${order.customerAddress} ${order.streetnumber || ''}`,
-          status: order.status === 'delivered' ? 'completed' : 'pending',
-          totalValue: totalValue,
-          latitude: latitude,
-          longitude: longitude,
-          products: order.products,
-          isWarehouse: false,
-          estimatedArrival: `${(8 + Math.floor(index / 2))}:${index % 2 ? '30' : '00'} AM`
-        });
-      });
-      
-      res.json(stops);
-    } catch (error) {
-      console.error("Error al obtener paradas de la ruta:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-  
   // Endpoint para crear una ruta con pedidos pendientes
   app.post("/api/routes-with-orders", async (req, res) => {
     try {
@@ -471,21 +325,6 @@ export function registerRoutesEndpoints(app: Express) {
   app.post("/api/routes/:id/start", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
-      console.log(`Iniciando ruta ${routeId}...`);
-      
-      // Verificar si la ruta existe
-      const existingRoute = await db
-        .select()
-        .from(routes)
-        .where(eq(routes.id, routeId))
-        .limit(1);
-      
-      if (!existingRoute || existingRoute.length === 0) {
-        console.error(`Ruta no encontrada: ${routeId}`);
-        return res.status(404).json({ error: "Ruta no encontrada" });
-      }
-      
-      console.log(`Encontrada ruta: ${JSON.stringify(existingRoute[0])}`);
       
       // Actualizar el estado de la ruta a "en_curso" (internamente "in_progress")
       const [updatedRoute] = await db
@@ -497,11 +336,9 @@ export function registerRoutesEndpoints(app: Express) {
         .where(eq(routes.id, routeId))
         .returning();
       
-      console.log(`Ruta actualizada: ${JSON.stringify(updatedRoute)}`);
-      
       // Ahora, actualizar todos los pedidos asociados a esta ruta a estado "in_transit"
       // para que no aparezcan en las listas de pedidos pendientes
-      const updateResult = await db
+      await db
         .update(orders)
         .set({
           status: "in_transit"  // Cambiamos de "pending" a "in_transit"
@@ -513,7 +350,7 @@ export function registerRoutesEndpoints(app: Express) {
           )
         );
       
-      console.log(`Actualizados los pedidos ya asignados a la ruta ${routeId} a estado "in_transit"`);
+      console.log(`Ruta ${routeId} y sus pedidos asociados actualizados a estado "in_transit"`);
       
       res.json(updatedRoute);
     } catch (error) {
