@@ -111,7 +111,8 @@ export default function DriverRoute() {
       // Agregar los pedidos como paradas
       routeRelatedOrders.forEach((order, index) => {
         const totalValue = order.products.reduce(
-          (sum, product) => sum + (parseFloat(product.price) * product.quantity), 
+          (sum: number, product: { price: string | number, quantity: number }) => 
+            sum + (parseFloat(typeof product.price === 'string' ? product.price : product.price.toString()) * product.quantity), 
           0
         );
         
