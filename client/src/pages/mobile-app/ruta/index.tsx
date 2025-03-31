@@ -1189,6 +1189,21 @@ export default function DriverRoute() {
                 </div>
               )}
               
+              {/* Botón grande para completar ruta cuando está en progreso */}
+              {routeStatus === 'in_progress' && (
+                <div className="mb-4">
+                  <Button
+                    variant="destructive"
+                    className="w-full py-6 text-lg font-medium flex items-center justify-center gap-2"
+                    onClick={openCompleteRouteDialog}
+                    disabled={isLoading}
+                  >
+                    <CheckCircle className="h-6 w-6" />
+                    FINALIZAR RUTA
+                  </Button>
+                </div>
+              )}
+              
               <div className="grid grid-cols-3 gap-2 mb-4">
                 {routeStatus === 'not_started' || routeStatus === 'paused' ? (
                   <Button
@@ -1211,19 +1226,21 @@ export default function DriverRoute() {
                   </Button>
                 )}
                 
-                <Button
-                  variant="destructive"
-                  className="flex items-center justify-center gap-1"
-                  onClick={openCompleteRouteDialog}
-                  disabled={isLoading || routeStatus === 'completed' || routeStatus === 'not_started'}
-                >
-                  <Square className="h-4 w-4" />
-                  Finalizar
-                </Button>
+                {routeStatus !== 'in_progress' && (
+                  <Button
+                    variant="destructive"
+                    className="flex items-center justify-center gap-1"
+                    onClick={openCompleteRouteDialog}
+                    disabled={isLoading || routeStatus === 'completed' || routeStatus === 'not_started'}
+                  >
+                    <Square className="h-4 w-4" />
+                    Finalizar
+                  </Button>
+                )}
                 
                 <Button
-                  variant="secondary"
-                  className="flex items-center justify-center gap-1"
+                  variant={routeStatus === 'in_progress' ? "outline" : "secondary"}
+                  className={`flex items-center justify-center gap-1 ${routeStatus === 'in_progress' ? "col-span-2" : ""}`}
                   onClick={syncData}
                   disabled={isLoading}
                 >
