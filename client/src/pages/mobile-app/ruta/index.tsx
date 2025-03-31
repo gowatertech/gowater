@@ -756,9 +756,46 @@ export default function DriverRoute() {
   // Función para abrir el diálogo de edición de pedido
   const openEditOrderDialog = (stop: RouteStop) => {
     console.log("Abriendo diálogo de edición para el pedido:", stop.id);
-    setCurrentStopForEdit(stop);
-    setEditedProducts([...stop.products]);
-    setShowEditOrderDialog(true);
+    console.log("Productos del pedido:", stop.products);
+    
+    if (!stop.products || stop.products.length === 0) {
+      console.error("Error: No hay productos en este pedido o no se cargaron correctamente");
+      
+      // Si no hay productos, intentemos recuperarlos de la API
+      fetch(`/api/orders/${stop.id}/products`)
+        .then(response => {
+          if (!response.ok) throw new Error("No se pudieron cargar los productos");
+          return response.json();
+        })
+        .then(data => {
+          console.log("Productos cargados desde API:", data);
+          if (data && Array.isArray(data) && data.length > 0) {
+            // Actualizar stop con los productos cargados
+            const updatedStop = { ...stop, products: data };
+            setCurrentStopForEdit(updatedStop);
+            setEditedProducts([...data]);
+            setShowEditOrderDialog(true);
+          } else {
+            toast({
+              title: "Error",
+              description: "No se encontraron productos para este pedido",
+              variant: "destructive"
+            });
+          }
+        })
+        .catch(error => {
+          console.error("Error al cargar productos:", error);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los productos del pedido",
+            variant: "destructive"
+          });
+        });
+    } else {
+      setCurrentStopForEdit(stop);
+      setEditedProducts([...stop.products]);
+      setShowEditOrderDialog(true);
+    }
   };
   
   // Actualizar cantidad de un producto

@@ -890,6 +890,49 @@ export function registerRoutesEndpoints(app: Express) {
     }
   });
 
+  // Endpoint para obtener los productos de un pedido específico
+  app.get("/api/orders/:id/products", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de pedido inválido" });
+      }
+      
+      // Obtener los elementos del pedido
+      const orderProductItems = await db.select({
+        id: orderItemsTable.productId,
+        quantity: orderItemsTable.quantity,
+        price: products.price,
+        name: products.name,
+        isReturnable: products.isReturnable,
+        depositAmount: products.depositAmount
+      })
+      .from(orderItemsTable)
+      .innerJoin(products, eq(orderItemsTable.productId, products.id))
+      .where(eq(orderItemsTable.orderId, orderId));
+      
+      if (!orderProductItems || orderProductItems.length === 0) {
+        return res.status(404).json({ error: "No se encontraron productos para este pedido" });
+      }
+      
+      // Formatear los productos para la respuesta
+      const formattedProducts = orderProductItems.map((item: any) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: Number(item.price),
+        isReturnable: item.isReturnable,
+        depositAmount: item.depositAmount ? Number(item.depositAmount) : 0
+      }));
+      
+      res.json(formattedProducts);
+    } catch (error) {
+      console.error("Error al obtener productos del pedido:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  });
+
   // Endpoint para marcar un pedido como entregado con pago
   // Endpoint para actualizar los productos de un pedido
   app.patch("/api/orders/:id/products", async (req, res) => {
