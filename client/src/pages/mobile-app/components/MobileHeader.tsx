@@ -11,7 +11,6 @@ import {
   Settings,
   Home,
   Droplet,
-  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -24,9 +23,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ThemeThumbnail } from "@/components/theme/ThemeThumbnail";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import ThemeSwitcher from "@/components/theme/ThemeSwitcher";
 
 interface MobileHeaderProps {
   title?: string;
@@ -77,23 +73,6 @@ export function MobileHeader({ title = "GoWater Driver", user, darkMode, onToggl
           >
             <RotateCcw className="h-5 w-5" />
           </Button>
-          
-          {/* Selector de tema */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9"
-                title="Cambiar tema"
-              >
-                <Palette className="h-5 w-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-60 p-0" align="end">
-              <ThemeSwitcher />
-            </PopoverContent>
-          </Popover>
           
           {/* Botón para alternar modo oscuro/claro */}
           <Button 

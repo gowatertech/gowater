@@ -11,7 +11,6 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-lea
 import { LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { AddressSearchBox } from "@/components/map/AddressSearchBox";
-import ThemeSelector from "@/components/theme/ThemeSelector";
 
 import {
   Form,
@@ -50,8 +49,7 @@ import {
   Globe,
   Percent,
   Image,
-  CheckCircle2,
-  Droplet
+  CheckCircle2
 } from "lucide-react";
 
 function Settings() {
@@ -162,19 +160,6 @@ function Settings() {
 
   return (
     <div className="space-y-2 p-2">
-      {/* Sección del tema de la aplicación */}
-      <Card className="shadow-sm">
-        <CardHeader className="flex flex-row justify-between items-center px-2 py-1.5">
-          <div className="flex items-center gap-1">
-            <Droplet className="h-3.5 w-3.5 text-blue-500" />
-            <CardTitle className="text-sm font-medium">Personalización de GoWater</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-2">
-          <ThemeSelector />
-        </CardContent>
-      </Card>
-      
       {/* Configuración de la empresa */}
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row justify-between items-center px-2 py-1.5">
