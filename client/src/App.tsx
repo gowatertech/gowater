@@ -34,6 +34,7 @@ import TrucksPage from "./pages/routes/trucks";
 import { useEffect } from "react";
 import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
+import { DesignCredit } from "@/components/common/DesignCredit";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -195,6 +196,7 @@ export default function App() {
         <Toaster />
         <CenteredLogo size="medium" showName={true} companyName="GoWater" />
         <CompanyFooter />
+        <DesignCredit />
       </QueryClientProvider>
     </I18nextProvider>
   );
