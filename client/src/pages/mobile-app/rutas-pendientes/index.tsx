@@ -241,11 +241,15 @@ export default function MobilePendingRoutes() {
         // También guardar el estado general para compatibilidad
         localStorage.setItem('routeStatus', 'in_progress');
         
-        // Invalidamos la consulta para asegurar que la página de ruta obtenga datos actualizados
+        // Invalidamos las consultas para asegurar que la página de ruta obtenga datos actualizados
         queryClient.invalidateQueries({ queryKey: ['/api/routes/active'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
         
-        // Redirigir a la página de ruta (sin parámetros)
-        setLocation(`/mobile-app/ruta`);
+        // Esperar un momento para que terminen de procesarse las consultas antes de redirigir
+        setTimeout(() => {
+          // Redirigir a la página de ruta (sin parámetros)
+          setLocation(`/mobile-app/ruta`);
+        }, 500);
       } else {
         console.error("Error al iniciar la ruta: respuesta no OK");
         toast({

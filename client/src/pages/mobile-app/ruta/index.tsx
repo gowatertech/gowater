@@ -34,12 +34,19 @@ export default function DriverRoute() {
   const [activeRouteId, setActiveRouteId] = useState<number | null>(null);
   
   // Consultar rutas activas
-  const { data: activeRoutes = [], isLoading, error } = useQuery<any[]>({
+  const { data: activeRoutes = [], isLoading: isLoadingRoutes, error: routesError } = useQuery<any[]>({
     queryKey: ['/api/routes/active'],
     enabled: !!user
   });
   
+  // Cargar pedidos de la ruta activa directamente
+  const { data: routeOrders = [], isLoading: isLoadingOrders, error: ordersError } = useQuery<any[]>({
+    queryKey: ['/api/orders'],
+    enabled: !!user
+  });
+  
   useEffect(() => {
+    // Determinar la ruta activa
     if (activeRoutes && activeRoutes.length > 0) {
       // Buscar la ruta más reciente que esté en progreso o pendiente
       let activeRoute = activeRoutes.find(r => r.status === 'in_progress');
@@ -50,27 +57,76 @@ export default function DriverRoute() {
       
       if (activeRoute) {
         setActiveRouteId(activeRoute.id);
+        console.log("Ruta activa encontrada:", activeRoute.id);
         
-        // Cargar los detalles de la ruta
-        fetchRouteDetails(activeRoute.id);
+        // Procesamos los pedidos para crear las paradas de la ruta
+        processOrdersIntoStops(activeRoute.id);
       }
     }
-  }, [activeRoutes]);
+  }, [activeRoutes, routeOrders]);
   
-  // Obtener detalles de la ruta
-  const fetchRouteDetails = async (routeId: number) => {
+  // Procesar pedidos en paradas para la ruta
+  const processOrdersIntoStops = (routeId: number) => {
     try {
-      const response = await apiRequest(`/api/routes/${routeId}/stops`, {
-        method: 'GET'
+      const stops = [];
+      
+      // Agregar el almacén como primera parada
+      stops.push({
+        id: 'warehouse',
+        order: 0,
+        customerName: 'Almacén Central',
+        address: 'Punto de inicio',
+        status: 'completed',
+        isWarehouse: true,
+        estimatedArrival: '08:00 AM'
       });
-      if (response && Array.isArray(response)) {
-        setRouteStops(response);
-      }
+      
+      // Filtrar los pedidos para esta ruta
+      const routeRelatedOrders = routeOrders.filter(order => 
+        order.routeId === routeId || 
+        (order.routeId === null && order.status === "pending")
+      );
+      
+      console.log(`Procesando ${routeRelatedOrders.length} pedidos para la ruta ${routeId}`);
+      
+      // Agregar los pedidos como paradas
+      routeRelatedOrders.forEach((order, index) => {
+        const totalValue = order.products.reduce(
+          (sum, product) => sum + (parseFloat(product.price) * product.quantity), 
+          0
+        );
+        
+        let latitude = null;
+        let longitude = null;
+        if (order.coordinates) {
+          const coordParts = order.coordinates.split(',');
+          if (coordParts.length === 2) {
+            latitude = parseFloat(coordParts[0]);
+            longitude = parseFloat(coordParts[1]);
+          }
+        }
+        
+        stops.push({
+          id: order.id,
+          order: index + 1,
+          customerName: order.customerName,
+          address: `${order.customerAddress} ${order.streetnumber || ''}`,
+          status: order.status === 'delivered' ? 'completed' : 'pending',
+          totalValue: totalValue,
+          latitude: latitude,
+          longitude: longitude,
+          products: order.products,
+          isWarehouse: false,
+          estimatedArrival: `${(8 + Math.floor(index / 2))}:${index % 2 ? '30' : '00'} AM`
+        });
+      });
+      
+      setRouteStops(stops);
     } catch (err) {
-      console.error("Error fetching route details:", err);
+      console.error("Error processing orders into stops:", err);
       toast({
-        title: "Error al cargar la ruta",
-        description: "No se pudieron cargar los detalles de la ruta",
+        title: "Error al procesar la ruta",
+        description: "No se pudieron procesar los pedidos de la ruta",
         variant: "destructive"
       });
     }
@@ -111,7 +167,7 @@ export default function DriverRoute() {
     setDarkMode(!darkMode);
   };
   
-  if (isLoading) {
+  if (isLoadingRoutes || isLoadingOrders) {
     return (
       <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
         <MobileHeader 
@@ -131,7 +187,7 @@ export default function DriverRoute() {
     );
   }
   
-  if (error) {
+  if (routesError || ordersError) {
     return (
       <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
         <MobileHeader 
@@ -149,7 +205,10 @@ export default function DriverRoute() {
                 No se pudo obtener la información de la ruta activa.
               </p>
               <Button 
-                onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/routes/active'] })}
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['/api/routes/active'] });
+                  queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+                }}
                 className="mx-auto"
               >
                 Reintentar
@@ -202,9 +261,7 @@ export default function DriverRoute() {
         onToggleDarkMode={toggleDarkMode} 
         onSyncData={() => {
           queryClient.invalidateQueries({ queryKey: ['/api/routes/active'] });
-          if (activeRouteId) {
-            fetchRouteDetails(activeRouteId);
-          }
+          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
         }}
       />
       
