@@ -32,6 +32,7 @@ import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
 import RecurringOrders from "./pages/routes/RecurringOrders";
 import TrucksPage from "./pages/routes/trucks";
 import { useEffect } from "react";
+import { CenteredLogo } from "@/components/common/CenteredLogo";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -191,6 +192,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <Router />
         <Toaster />
+        <CenteredLogo size="medium" showName={true} companyName="GoWater" />
       </QueryClientProvider>
     </I18nextProvider>
   );
