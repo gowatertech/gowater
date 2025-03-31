@@ -29,7 +29,7 @@ export function CompanyFooter() {
   }, [settings]);
 
   return (
-    <div className="fixed bottom-2 left-4 z-40 bg-background/80 backdrop-blur-sm py-1 px-3 text-left border rounded-md text-sm font-medium text-primary/70">
+    <div className="fixed bottom-1 left-1 z-40 bg-background/80 backdrop-blur-sm py-1 px-3 text-left border rounded-sm text-sm font-medium text-primary/70">
       {companyName}
     </div>
   );
