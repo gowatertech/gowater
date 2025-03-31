@@ -30,7 +30,7 @@ export function CenteredLogo({
   };
 
   return (
-    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
+    <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50 -translate-y-8">
       <div className="flex flex-col items-center justify-center">
         {/* Logo SVG */}
         <svg
@@ -56,7 +56,7 @@ export function CenteredLogo({
 
         {/* Nombre de la empresa */}
         {showName && (
-          <div className={`${textSizes[size]} font-bold text-primary opacity-50 mt-2`}>
+          <div className={`${textSizes[size]} font-bold text-primary opacity-50 mt-1`}>
             {companyName}
           </div>
         )}

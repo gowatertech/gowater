@@ -7,8 +7,8 @@ import { Palette } from "lucide-react";
  */
 export function DesignCredit() {
   return (
-    <div className="fixed bottom-0 right-0 z-40 px-3 py-1 bg-background/80 backdrop-blur-sm text-center border-t border-l rounded-tl-md text-xs text-muted-foreground font-medium flex items-center gap-1.5 shadow-sm">
-      <Palette size={13} className="text-primary" />
+    <div className="fixed bottom-10 right-2 z-40 px-2 py-1 bg-background/80 backdrop-blur-sm text-center border rounded-md text-xs text-muted-foreground font-medium flex items-center gap-1 shadow-sm">
+      <Palette size={12} className="text-primary" />
       <span>Design by Wally Moya</span>
     </div>
   );
