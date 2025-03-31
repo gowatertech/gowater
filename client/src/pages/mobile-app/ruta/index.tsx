@@ -180,9 +180,18 @@ export default function DriverRoute() {
   });
   
   const [routeStatus, setRouteStatus] = useState<'not_started' | 'in_progress' | 'paused' | 'completed'>(() => {
-    const savedStatus = localStorage.getItem('routeStatus') as 'not_started' | 'in_progress' | 'paused' | 'completed';
+    const savedStatus = localStorage.getItem(`routeStatus_${routeIdFromUrl}`) as 'not_started' | 'in_progress' | 'paused' | 'completed';
     return savedStatus || 'not_started';
   });
+  
+  // Función para actualizar el estado de la ruta y guardarlo en localStorage
+  const updateRouteStatus = (status: 'not_started' | 'in_progress' | 'paused' | 'completed') => {
+    setRouteStatus(status);
+    // Guardar el estado específico para esta ruta
+    if (routeIdFromUrl) {
+      localStorage.setItem(`routeStatus_${routeIdFromUrl}`, status);
+    }
+  };
   
   const [startTime, setStartTime] = useState<Date | null>(() => {
     const savedTime = localStorage.getItem('startTime');
@@ -410,7 +419,8 @@ export default function DriverRoute() {
       }
       
       setRouteStops(stops);
-      setRouteStatus(routeData.status === "in_progress" ? "in_progress" : "not_started");
+      const newStatus = routeData.status === "in_progress" ? "in_progress" : "not_started";
+      updateRouteStatus(newStatus);
       
       setIsLoading(false);
     } catch (error) {
@@ -556,7 +566,7 @@ export default function DriverRoute() {
       console.log("Respuesta al iniciar ruta:", data);
       
       // Internamente usamos 'in_progress', pero en la UI se muestra como 'En curso'
-      setRouteStatus('in_progress');
+      updateRouteStatus('in_progress');
       setStartTime(new Date());
       
       toast({
@@ -573,7 +583,7 @@ export default function DriverRoute() {
       });
       
       // Para asegurar que la UI siga funcionando, incluso si hay un error
-      setRouteStatus('in_progress');
+      updateRouteStatus('in_progress');
       setStartTime(new Date());
     } finally {
       setIsLoading(false);
@@ -594,7 +604,7 @@ export default function DriverRoute() {
       // }
       
       // Para desarrollo, simulamos la pausa
-      setRouteStatus('paused');
+      updateRouteStatus('paused');
       
       toast({
         title: "Ruta pausada",
@@ -640,7 +650,7 @@ export default function DriverRoute() {
       const data = await response.json();
       console.log("Respuesta al finalizar ruta:", data);
       
-      setRouteStatus('completed');
+      updateRouteStatus('completed');
       
       toast({
         title: "Ruta completada",
@@ -650,7 +660,7 @@ export default function DriverRoute() {
       
       // Borrar los datos guardados en localStorage para esta ruta
       localStorage.removeItem('activeRouteId');
-      localStorage.removeItem('routeStatus');
+      localStorage.removeItem(`routeStatus_${activeRouteId}`);
       localStorage.removeItem('startTime');
       localStorage.removeItem('currentStopIndex');
       
@@ -667,7 +677,7 @@ export default function DriverRoute() {
       });
       
       // Para asegurar que la UI refleje el cambio, incluso si hay un error
-      setRouteStatus('completed');
+      updateRouteStatus('completed');
     } finally {
       setIsLoading(false);
     }
@@ -860,8 +870,11 @@ export default function DriverRoute() {
       localStorage.setItem('activeRouteId', activeRouteId.toString());
     }
     
-    // Guardar el estado de la ruta
+    // Guardar el estado de la ruta (tanto general como específico)
     localStorage.setItem('routeStatus', routeStatus);
+    if (activeRouteId) {
+      localStorage.setItem(`routeStatus_${activeRouteId}`, routeStatus);
+    }
     
     // Guardar la hora de inicio si existe
     if (startTime) {
