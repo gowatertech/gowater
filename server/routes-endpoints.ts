@@ -378,8 +378,45 @@ export function registerRoutesEndpoints(app: Express) {
         updateDate
       );
       
-      // Verificar si todos los pedidos en esta ruta están completados
-      // Si es así, actualizar el estado de la ruta a "completed"
+      // Ya no completamos automáticamente la ruta, esto ahora se hace manualmente
+      // a través del endpoint /api/routes/:id/complete
+      res.json(updatedRoute);
+    } catch (error) {
+      console.error("Error al actualizar progreso de ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoint para completar manualmente una ruta
+  app.post("/api/routes/:id/complete", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const { completedAt, comments } = req.body;
+      
+      if (isNaN(routeId)) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+      
+      // Verificar el estado actual de la ruta
+      const [currentRoute] = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.id, routeId))
+        .limit(1);
+      
+      if (!currentRoute) {
+        return res.status(404).json({ error: "Ruta no encontrada" });
+      }
+      
+      // Verificar si la ruta ya está completada
+      if (currentRoute.status === "completed") {
+        return res.status(400).json({ 
+          error: "La ruta ya está completada",
+          route: currentRoute
+        });
+      }
+      
+      // Verificar si hay pedidos pendientes
       const routeOrders = await db
         .select()
         .from(orders)
@@ -390,26 +427,43 @@ export function registerRoutesEndpoints(app: Express) {
         order => order.status === 'pending' || order.status === 'in_transit'
       );
       
-      // Si no hay órdenes pendientes y la ruta está en progreso, marcarla como completada
-      if (pendingOrders.length === 0 && updatedRoute.status === 'in_progress') {
-        // Actualizar el estado de la ruta a "completed"
-        const [completedRoute] = await db
-          .update(routes)
-          .set({
-            status: "completed",
-            isCompleted: true,
-            driverEndedAt: new Date()
-          })
-          .where(eq(routes.id, routeId))
-          .returning();
-        
-        console.log(`Ruta ${routeId} actualizada automáticamente a "completed" porque todas las órdenes están entregadas`);
-        res.json(completedRoute);
-      } else {
-        res.json(updatedRoute);
+      // Si hay órdenes pendientes, requerimos comentarios explicativos
+      if (pendingOrders.length > 0 && (!comments || comments.trim() === "")) {
+        return res.status(400).json({
+          error: "Se requieren comentarios para completar una ruta con pedidos pendientes",
+          pendingOrdersCount: pendingOrders.length
+        });
       }
+      
+      // Actualizar el estado de la ruta a "completed" usando SQL directo para evitar problemas con nombres de columnas
+      const updateResult = await db.execute(sql`
+        UPDATE routes 
+        SET 
+          status = 'completed', 
+          is_completed = true, 
+          driver_ended_at = ${completedAt ? new Date(completedAt) : new Date()},
+          comments = ${comments || null}
+        WHERE id = ${routeId}
+        RETURNING *
+      `);
+      
+      const completedRoute = updateResult.rows[0];
+      
+      console.log(`Ruta ${routeId} completada manualmente por el conductor`);
+      
+      // Si hay pedidos pendientes, considerar añadir alguna lógica adicional aquí
+      // Por ejemplo, cancelar automáticamente los pedidos pendientes o moverlos a otra ruta
+      
+      res.json({
+        success: true,
+        route: completedRoute,
+        pendingOrdersCount: pendingOrders.length,
+        message: pendingOrders.length > 0 
+          ? `Ruta completada con ${pendingOrders.length} pedidos pendientes` 
+          : "Ruta completada exitosamente"
+      });
     } catch (error) {
-      console.error("Error al actualizar progreso de ruta:", error);
+      console.error("Error al completar ruta:", error);
       res.status(500).json({ error: String(error) });
     }
   });
@@ -626,27 +680,21 @@ export function registerRoutesEndpoints(app: Express) {
           
         console.log(`Registro de retorno actualizado para orden ${orderId}, producto ${productId}`);
       } else {
-        // Crear nuevo registro
+        // Crear nuevo registro usando SQL directo para evitar problemas con los nombres de columnas
         const pendingQuantity = expectedQuantity - returnedQuantity;
         const status = pendingQuantity <= 0 ? "complete" : "incomplete";
         
-        [result] = await db
-          .insert(bottleReturns)
-          .values({
-            orderId,
-            productId,
-            expectedQuantity,
-            returnedQuantity,
-            pendingQuantity,
-            returnDate: new Date(),
-            status,
-            amountCharged: 0,
-            depositAmount: 0,
-            automaticAlert: false,
-            manuallyAssigned: false
-          })
-          .returning();
-          
+        const insertResult = await db.execute(sql`
+          INSERT INTO bottle_returns 
+          (order_id, product_id, expected_quantity, returned_quantity, pending_quantity, 
+           return_date, status, amount_charged, deposit_amount, automatic_alert, manually_assigned)
+          VALUES 
+          (${orderId}, ${productId}, ${expectedQuantity}, ${returnedQuantity}, ${pendingQuantity}, 
+           NOW(), ${status}, '0.00', '0.00', false, false)
+          RETURNING *
+        `);
+        
+        result = insertResult.rows[0];
         console.log(`Nuevo registro de retorno creado para orden ${orderId}, producto ${productId}`);
       }
       
@@ -704,8 +752,8 @@ export function registerRoutesEndpoints(app: Express) {
       const customer = await db
         .select({
           id: customers.id,
-          name: customers.name,
-          address: customers.address
+          name: customers.businessname,
+          address: customers.street
         })
         .from(customers)
         .where(eq(customers.id, order[0].customerId))
@@ -774,7 +822,8 @@ export function registerRoutesEndpoints(app: Express) {
       res.json(delivery);
     } catch (error) {
       console.error("Error al obtener detalles de entrega:", error);
-      res.status(500).json({ error: "Error al procesar la solicitud", details: error.message });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: "Error al procesar la solicitud", details: errorMessage });
     }
   });
 

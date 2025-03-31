@@ -203,8 +203,10 @@ export const routes = pgTable("routes", {
   currentLocation: text("current_location"),
   lastUpdate: timestamp("last_update"),
   driverStartedAt: timestamp("driver_started_at"),
+  driverEndedAt: timestamp("driver_ended_at"),
   isCompleted: boolean("is_completed").notNull().default(false),
   stops: text("stops").array(),
+  comments: text("comments")  // Campo para comentarios al completar rutas
 });
 
 export const insertRouteSchema = z.object({
@@ -226,7 +228,9 @@ export const insertRouteSchema = z.object({
   currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   lastUpdate: z.string().datetime().optional(),
   driverStartedAt: z.string().datetime().optional(),
+  driverEndedAt: z.string().datetime().optional(),
   stops: z.array(z.string()).optional(),
+  comments: z.string().optional(),
 });
 
 // Orders

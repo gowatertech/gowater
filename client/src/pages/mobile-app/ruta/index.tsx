@@ -644,11 +644,33 @@ export default function DriverRoute() {
     }
   };
   
+  // Estado para el diálogo de completar ruta
+  const [showCompleteRouteDialog, setShowCompleteRouteDialog] = useState(false);
+  const [routeCompletionComments, setRouteCompletionComments] = useState("");
+  
+  // Función para mostrar el diálogo de completar ruta
+  const openCompleteRouteDialog = () => {
+    if (routeStatus === 'completed') return;
+    
+    // Verificar si hay pedidos pendientes
+    const pendingStops = routeStops.filter(stop => !stop.isWarehouse && stop.status === 'pending');
+    
+    // Si hay pedidos pendientes, mostrar un mensaje
+    if (pendingStops.length > 0) {
+      setRouteCompletionComments(`Ruta completada con ${pendingStops.length} pedidos pendientes.`);
+    } else {
+      setRouteCompletionComments("");
+    }
+    
+    setShowCompleteRouteDialog(true);
+  };
+  
   // Función para finalizar la ruta
   const finishRoute = async () => {
     if (routeStatus === 'completed') return;
     
     setIsLoading(true);
+    setShowCompleteRouteDialog(false);
     
     try {
       // Llamar a la API para finalizar la ruta
@@ -658,9 +680,10 @@ export default function DriverRoute() {
         headers: {
           'Content-Type': 'application/json'
         },
-        // Si existe alguna información adicional que queramos enviar al completar
+        // Enviar la fecha de finalización y los comentarios
         body: JSON.stringify({
-          completedAt: new Date().toISOString()
+          completedAt: new Date().toISOString(),
+          comments: routeCompletionComments
         })
       });
       
@@ -1103,7 +1126,7 @@ export default function DriverRoute() {
                 <Button
                   variant="destructive"
                   className="flex items-center justify-center gap-1"
-                  onClick={finishRoute}
+                  onClick={openCompleteRouteDialog}
                   disabled={isLoading || routeStatus === 'completed' || routeStatus === 'not_started'}
                 >
                   <Square className="h-4 w-4" />
@@ -1841,6 +1864,73 @@ export default function DriverRoute() {
                 <CheckCircle className="h-4 w-4" />
               )}
               {isLoading ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    
+      {/* Diálogo para completar ruta con comentarios */}
+      <Dialog open={showCompleteRouteDialog} onOpenChange={setShowCompleteRouteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Finalizar Ruta</DialogTitle>
+            <DialogDescription>
+              Por favor, proporciona cualquier comentario o incidencia sobre esta ruta antes de finalizar.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Formulario de comentarios */}
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="routeComments">Comentarios</Label>
+              <textarea
+                id="routeComments"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Describe cualquier incidencia o nota para esta ruta"
+                value={routeCompletionComments}
+                onChange={(e) => setRouteCompletionComments(e.target.value)}
+              />
+            </div>
+            
+            {/* Obtener el número de pedidos pendientes */}
+            {(() => {
+              const pendingStops = routeStops.filter(stop => !stop.isWarehouse && stop.status === 'pending');
+              if (pendingStops.length > 0) {
+                return (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 text-yellow-800 text-sm">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5" />
+                      <div>
+                        <span className="font-semibold">Atención:</span>
+                        <p>
+                          Hay {pendingStops.length} {pendingStops.length === 1 ? 'pedido pendiente' : 'pedidos pendientes'} que 
+                          no {pendingStops.length === 1 ? 'ha sido entregado' : 'han sido entregados'}.
+                        </p>
+                        <p className="mt-1 text-xs">
+                          Es necesario proporcionar comentarios sobre las razones por las que estos pedidos no fueron entregados.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompleteRouteDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={finishRoute}
+              disabled={
+                // Si hay pedidos pendientes, requerir comentarios
+                routeStops.some(stop => !stop.isWarehouse && stop.status === 'pending') && 
+                !routeCompletionComments.trim()
+              }
+            >
+              Finalizar Ruta
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -43,6 +43,7 @@ interface RouteComponent {
   startTime: Date | null;
   endTime: Date | null;
   totalRevenue: string | null;
+  comments: string | null;
 }
 
 // Función adaptadora para convertir los tipos
@@ -51,6 +52,7 @@ function adaptRouteForComponent(route: RouteDetails): RouteComponent {
     ...route,
     totalRevenue: route.totalRevenue || "0.00",
     totalDistance: route.totalDistance ? String(route.totalDistance) : "0",
+    comments: route.comments,
   };
 }
 
@@ -82,6 +84,7 @@ interface RouteDetails {
   startTime: Date | null;
   endTime: Date | null;
   totalRevenue: string | null;
+  comments: string | null;
 }
 
 export default function RouteDetails() {
@@ -124,6 +127,7 @@ export default function RouteDetails() {
         endTime: data.driverCompletedAt ? new Date(data.driverCompletedAt) : null,
         // Asegurar que totalRevenue siempre tenga un valor válido con formato adecuado
         totalRevenue: data.totalRevenue ? Number(data.totalRevenue).toFixed(2) : "0.00",
+        comments: data.comments,
       };
     },
     enabled: routeId > 0,
