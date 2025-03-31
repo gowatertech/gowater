@@ -336,6 +336,22 @@ export function registerRoutesEndpoints(app: Express) {
         .where(eq(routes.id, routeId))
         .returning();
       
+      // Ahora, actualizar todos los pedidos asociados a esta ruta a estado "in_transit"
+      // para que no aparezcan en las listas de pedidos pendientes
+      await db
+        .update(orders)
+        .set({
+          status: "in_transit"  // Cambiamos de "pending" a "in_transit"
+        })
+        .where(
+          and(
+            eq(orders.routeId, routeId),
+            eq(orders.status, "pending")  // Solo actualizamos los pedidos en estado pendiente
+          )
+        );
+      
+      console.log(`Ruta ${routeId} y sus pedidos asociados actualizados a estado "in_transit"`);
+      
       res.json(updatedRoute);
     } catch (error) {
       console.error("Error al iniciar ruta:", error);
