@@ -56,6 +56,8 @@ import {
 import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 import PendingOrdersRouteForm from "@/components/routes/PendingOrdersRouteForm";
 import ZoneMap from "./ZoneMap";
+import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
+import { ResponsiveZonesList } from "@/components/routes/ResponsiveZonesList";
 
 // Placeholders para componentes que necesitamos crear
 const DriverView = () => <div>Vista de conductor</div>;
@@ -390,58 +392,12 @@ export default function RoutesPage() {
           
           <Card>
             <CardContent className="p-4">
-              <div className="space-y-3">
-                {zones.map((zone) => (
-                  <div
-                    key={zone.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-4 h-4 rounded"
-                        style={{ backgroundColor: zone.color }}
-                      />
-                      <span className="font-medium">{zone.name}</span>
-                      <Badge variant="outline" title="Cada punto representa una coordenada geográfica que forma el perímetro de la zona">
-                        {zone.coordinates.length} {t("points")}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-primary"
-                        onClick={() => handleViewZone(zone)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-secondary"
-                        onClick={() => handleEditZone(zone)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteZone(zone)}
-                        disabled={deleteZoneMutation.isPending}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                {zones.length === 0 && (
-                  <div className="text-center text-muted-foreground py-8">
-                    {t("noZones")}
-                  </div>
-                )}
-              </div>
+              <ResponsiveZonesList 
+                zones={zones} 
+                onViewZone={handleViewZone} 
+                onEditZone={handleEditZone} 
+                onDeleteZone={handleDeleteZone} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -476,118 +432,12 @@ export default function RoutesPage() {
                   </div>
                 )}
                 
-                {!loading && !error && routes && routes.filter(route => !route.isCompleted).length === 0 && (
-                  <div className="text-center py-6">{t("noActiveRoutes")}</div>
-                )}
-                
                 {!loading && !error && routes && (
-                  <div className="space-y-3">
-                    {routes
-                      .filter(route => !route.isCompleted)
-                      .map(route => (
-                        <Card key={route.id} className="overflow-hidden">
-                          <div className={isMobile ? "flex flex-col p-3" : "flex items-center p-2"}>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <Truck className="h-4 w-4" />
-                                <span className="font-medium text-sm">
-                                  {route.name || `Ruta #${route.id}`}
-                                </span>
-                                <Badge
-                                  variant={route.driverStartedAt ? "secondary" : "outline"}
-                                  className="ml-auto text-xs py-0 h-5"
-                                >
-                                  {route.driverStartedAt ? t("inProgress") : t("notStarted")}
-                                </Badge>
-                              </div>
-                              
-                              <div className={isMobile ? "grid grid-cols-2 gap-2 mt-1 text-xs" : "grid grid-cols-3 gap-2 mt-1 text-xs"}>
-                                <div className="flex items-center">
-                                  <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
-                                  <span className="text-muted-foreground">
-                                    {format(new Date(route.date), "dd/MM/yyyy")}
-                                  </span>
-                                </div>
-                                <div className="flex items-center">
-                                  <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
-                                  <span className="text-muted-foreground">
-                                    {route.stops?.length} paradas
-                                  </span>
-                                </div>
-                                <div className={isMobile ? "flex items-center col-span-2 mt-1" : "flex items-center justify-end"}>
-                                  <span className="text-muted-foreground">
-                                    {route.totalDistance
-                                      ? `${Number(route.totalDistance).toFixed(1)} km`
-                                      : "Calculando..."}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              {isMobile && (
-                                <div className="flex justify-end mt-2 pt-2 border-t border-gray-100">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                    className="h-8 mr-2"
-                                  >
-                                    <Link href={`/routes/${route.id}`}>
-                                      <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                                    </Link>
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {!isMobile && (
-                              <div className="flex">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  asChild
-                                  className="h-8 mx-1"
-                                >
-                                  <Link href={`/routes/${route.id}`}>
-                                    <ArrowRight className="h-4 w-4" />
-                                  </Link>
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50 mx-1"
-                                  onClick={() => {
-                                    if (confirm(t("confirmDeleteRoute"))) {
-                                      fetch(`/api/routes/${route.id}`, {
-                                        method: 'DELETE',
-                                      })
-                                      .then(response => {
-                                        if (response.ok) {
-                                          queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-                                          toast({
-                                            description: t("routeDeletedSuccessfully"),
-                                          });
-                                        } else {
-                                          throw new Error(t("errorDeletingRoute"));
-                                        }
-                                      })
-                                      .catch(error => {
-                                        toast({
-                                          variant: "destructive",
-                                          title: t("error"),
-                                          description: error.message
-                                        });
-                                      });
-                                    }
-                                  }}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-                  </div>
+                  <ResponsiveRoutesList
+                    routes={routes}
+                    zones={zones}
+                    isActive={true}
+                  />
                 )}
               </div>
             )}
@@ -601,87 +451,12 @@ export default function RoutesPage() {
                   </div>
                 )}
                 
-                {!loading && !error && routes && routes.filter(route => route.isCompleted).length === 0 && (
-                  <div className="text-center py-6">{t("noCompletedRoutes")}</div>
-                )}
-                
                 {!loading && !error && routes && (
-                  <div className="space-y-3">
-                    {routes
-                      .filter(route => route.isCompleted)
-                      .map(route => (
-                        <Card key={route.id} className="overflow-hidden">
-                          <div className={isMobile ? "flex flex-col p-3" : "flex items-center p-2"}>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <Truck className="h-4 w-4" />
-                                <span className="font-medium text-sm">
-                                  {route.name || `Ruta #${route.id}`}
-                                </span>
-                                <Badge
-                                  variant="success"
-                                  className="ml-auto text-xs py-0 h-5 bg-green-100 text-green-700"
-                                >
-                                  {t("completed")}
-                                </Badge>
-                              </div>
-                              
-                              <div className={isMobile ? "grid grid-cols-2 gap-2 mt-1 text-xs" : "grid grid-cols-3 gap-2 mt-1 text-xs"}>
-                                <div className="flex items-center">
-                                  <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
-                                  <span className="text-muted-foreground">
-                                    {format(new Date(route.date), "dd/MM/yyyy")}
-                                  </span>
-                                </div>
-                                <div className="flex items-center">
-                                  <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
-                                  <span className="text-muted-foreground">
-                                    {route.stops?.length} paradas
-                                  </span>
-                                </div>
-                                <div className={isMobile ? "flex items-center col-span-2 mt-1" : "flex items-center justify-end"}>
-                                  <span className="text-muted-foreground">
-                                    {route.totalDistance
-                                      ? `${Number(route.totalDistance).toFixed(1)} km`
-                                      : "Calculando..."}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              {isMobile && (
-                                <div className="flex justify-end mt-2 pt-2 border-t border-gray-100">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    asChild
-                                    className="h-8 mr-2"
-                                  >
-                                    <Link href={`/routes/${route.id}`}>
-                                      <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                                    </Link>
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {!isMobile && (
-                              <div className="flex">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  asChild
-                                  className="h-8"
-                                >
-                                  <Link href={`/routes/${route.id}`}>
-                                    <ArrowRight className="h-4 w-4" />
-                                  </Link>
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-                  </div>
+                  <ResponsiveRoutesList
+                    routes={routes}
+                    zones={zones}
+                    isActive={false}
+                  />
                 )}
               </div>
             )}
