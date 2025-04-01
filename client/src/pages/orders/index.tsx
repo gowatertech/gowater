@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   type Customer, 
@@ -94,7 +94,11 @@ export default function Orders() {
   const isMobile = useIsMobile();
   
   // Log para depuración
-  console.log("Estado de móvil:", isMobile);
+  console.log("Estado de móvil (hook):", isMobile);
+  
+  // Detección directa para móviles
+  const isMobileView = window.innerWidth < 768;
+  console.log("Detección directa:", isMobileView);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -535,67 +539,68 @@ export default function Orders() {
               </div>
             ) : (
               <>
-                {/* Vista para móviles - Tarjetas */}
-                <div className="md:hidden space-y-2">
-                  {filteredOrders.map((order) => {
-                    const customer = customers?.find(c => c.id === order.customerId);
-                    return (
-                      <Card 
-                        key={order.id} 
-                        className={`border-l-4 ${getStatusColor(order.status)} p-2`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs font-bold">#{order.id}</span>
-                            <span className="text-xs text-muted-foreground">•</span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(order.date).toLocaleDateString()}
-                            </span>
+                {isSmallScreen ? (
+                  // Vista para móviles - Tarjetas 
+                  <div className="space-y-2">
+                    {filteredOrders.map((order) => {
+                      const customer = customers?.find(c => c.id === order.customerId);
+                      return (
+                        <Card 
+                          key={order.id} 
+                          className={`border-l-4 ${getStatusColor(order.status)} p-2`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-bold">#{order.id}</span>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(order.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            {getStatusBadge(order.status)}
                           </div>
-                          {getStatusBadge(order.status)}
-                        </div>
-                        
-                        <div className="mb-2">
-                          <div className="text-sm font-medium">{customer?.businessname}</div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="text-xs text-muted-foreground">Total:</div>
-                          <div className="text-sm font-bold">
-                            RD$ {parseFloat(order.total.toString()).toFixed(2)}
+                          
+                          <div className="mb-2">
+                            <div className="text-sm font-medium">{customer?.businessname}</div>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center justify-between gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs flex-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setActiveTab("details");
-                            }}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            Ver
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs flex-1 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                            onClick={() => openStatusDialog(order)}
-                          >
-                            <Tag className="h-3 w-3 mr-1" />
-                            Estado
-                          </Button>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-                
-                {/* Vista para desktop - Tabla tradicional */}
-                <div className="hidden md:block border rounded-md">
+                          
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-xs text-muted-foreground">Total:</div>
+                            <div className="text-sm font-bold">
+                              RD$ {parseFloat(order.total.toString()).toFixed(2)}
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs flex-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setActiveTab("details");
+                              }}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs flex-1 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                              onClick={() => openStatusDialog(order)}
+                            >
+                              <Tag className="h-3 w-3 mr-1" />
+                              Estado
+                            </Button>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  // Vista para desktop - Tabla tradicional
+                  <div className="border rounded-md">
                   <Table>
                     <TableHeader>
                       <TableRow className="h-8">
