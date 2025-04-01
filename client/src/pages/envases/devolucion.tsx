@@ -178,13 +178,14 @@ export default function DevolucionEnvases() {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{t("Devolución de Envases")}</h1>
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-bold">{t("Devolución de Envases")}</h1>
         <Button 
           onClick={() => refetch()} 
           variant="outline"
           disabled={isLoading}
+          className="w-full sm:w-auto"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           {t("Actualizar")}
@@ -192,26 +193,26 @@ export default function DevolucionEnvases() {
       </div>
 
       {/* Resumen */}
-      <Card className="p-4">
+      <Card className="p-3 sm:p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
-            <Package className="h-5 w-5 text-primary mr-2" />
-            <h2 className="font-medium">Resumen de Envases</h2>
+            <Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary mr-1 sm:mr-2" />
+            <h2 className="text-sm sm:text-base font-medium">Resumen de Envases</h2>
           </div>
         </div>
         
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <div className="bg-primary/10 rounded-lg p-3 text-center">
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 mb-3">
+          <div className="bg-primary/10 rounded-lg p-2 sm:p-3 text-center">
             <div className="text-xs text-muted-foreground mb-1">Esperados</div>
-            <div className="text-xl font-bold">{totalExpected}</div>
+            <div className="text-base sm:text-xl font-bold">{totalExpected}</div>
           </div>
-          <div className="bg-muted/30 rounded-lg p-3 text-center">
+          <div className="bg-muted/30 rounded-lg p-2 sm:p-3 text-center">
             <div className="text-xs text-muted-foreground mb-1">Devueltos</div>
-            <div className="text-xl font-bold">{totalReturned}</div>
+            <div className="text-base sm:text-xl font-bold">{totalReturned}</div>
           </div>
-          <div className="bg-destructive/10 rounded-lg p-3 text-center">
+          <div className="bg-destructive/10 rounded-lg p-2 sm:p-3 text-center">
             <div className="text-xs text-muted-foreground mb-1">Pendientes</div>
-            <div className="text-xl font-bold">{totalPending}</div>
+            <div className="text-base sm:text-xl font-bold">{totalPending}</div>
           </div>
         </div>
         
@@ -229,7 +230,7 @@ export default function DevolucionEnvases() {
       </Card>
 
       {/* Buscador y filtros */}
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute top-2.5 left-3 h-4 w-4 text-muted-foreground" />
           <Input
@@ -239,9 +240,9 @@ export default function DevolucionEnvases() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="w-48">
+        <div className="w-full sm:w-48">
           <Select value={activeTab} onValueChange={setActiveTab}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <div className="flex items-center">
                 <Filter className="h-4 w-4 mr-2" />
                 <span>
@@ -262,78 +263,139 @@ export default function DevolucionEnvases() {
         </div>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-3 sm:p-4">
         <ScrollArea className="h-[calc(100vh-410px)]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("Orden")}</TableHead>
-                <TableHead>{t("Cliente")}</TableHead>
-                <TableHead>{t("Producto")}</TableHead>
-                <TableHead className="text-center">{t("Esperados")}</TableHead>
-                <TableHead className="text-center">{t("Devueltos")}</TableHead>
-                <TableHead className="text-center">{t("Pendientes")}</TableHead>
-                <TableHead className="text-center">{t("Estado")}</TableHead>
-                <TableHead className="text-center">{t("Acciones")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredBottleReturns.length === 0 ? (
+          {/* Vista para móviles (tabla en forma de tarjetas) */}
+          <div className="block md:hidden space-y-3">
+            {filteredBottleReturns.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                {searchTerm 
+                  ? "No se encontraron resultados para la búsqueda" 
+                  : activeTab === "pending" 
+                    ? "No hay envases pendientes de devolución" 
+                    : activeTab === "complete" 
+                      ? "No hay envases completados"
+                      : "No hay envases registrados"}
+              </div>
+            ) : (
+              filteredBottleReturns.map((bottleReturn) => (
+                <Card key={bottleReturn.id} className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="font-medium text-sm">#{bottleReturn.orderId} - {bottleReturn.customerName}</div>
+                    <Badge 
+                      variant={
+                        bottleReturn.status === "complete" ? "success" : 
+                        bottleReturn.status === "pending" ? "default" : 
+                        "destructive"
+                      }
+                    >
+                      {translateStatus(bottleReturn.status)}
+                    </Badge>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground mb-2">{bottleReturn.customerAddress}</div>
+                  
+                  <div className="text-sm mb-1">Producto: {bottleReturn.productName}</div>
+                  
+                  <div className="grid grid-cols-3 gap-1 text-xs mb-3">
+                    <div>
+                      <span className="text-muted-foreground">Esperados:</span> {bottleReturn.expectedQuantity}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Devueltos:</span> {bottleReturn.returnedQuantity}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Pendientes:</span> {bottleReturn.pendingQuantity}
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full"
+                    disabled={bottleReturn.status === "complete"}
+                    onClick={() => handleRegisterOpen(bottleReturn)}
+                  >
+                    {t("Registrar Devolución")}
+                  </Button>
+                </Card>
+              ))
+            )}
+          </div>
+
+          {/* Vista para tablets y desktop (tabla tradicional) */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                    {searchTerm 
-                      ? "No se encontraron resultados para la búsqueda" 
-                      : activeTab === "pending" 
-                        ? "No hay envases pendientes de devolución" 
-                        : activeTab === "complete" 
-                          ? "No hay envases completados"
-                          : "No hay envases registrados"}
-                  </TableCell>
+                  <TableHead className="w-[60px]">{t("Orden")}</TableHead>
+                  <TableHead>{t("Cliente")}</TableHead>
+                  <TableHead>{t("Producto")}</TableHead>
+                  <TableHead className="text-center">{t("Esperados")}</TableHead>
+                  <TableHead className="text-center">{t("Devueltos")}</TableHead>
+                  <TableHead className="text-center">{t("Pendientes")}</TableHead>
+                  <TableHead className="text-center">{t("Estado")}</TableHead>
+                  <TableHead className="text-center">{t("Acciones")}</TableHead>
                 </TableRow>
-              ) : (
-                filteredBottleReturns.map((bottleReturn) => (
-                  <TableRow key={bottleReturn.id}>
-                    <TableCell>#{bottleReturn.orderId}</TableCell>
-                    <TableCell>
-                      <div className="font-medium">{bottleReturn.customerName}</div>
-                      <div className="text-xs text-muted-foreground">{bottleReturn.customerAddress}</div>
-                    </TableCell>
-                    <TableCell>{bottleReturn.productName}</TableCell>
-                    <TableCell className="text-center">{bottleReturn.expectedQuantity}</TableCell>
-                    <TableCell className="text-center">{bottleReturn.returnedQuantity}</TableCell>
-                    <TableCell className="text-center">{bottleReturn.pendingQuantity}</TableCell>
-                    <TableCell className="text-center">
-                      <Badge 
-                        variant={
-                          bottleReturn.status === "complete" ? "success" : 
-                          bottleReturn.status === "pending" ? "default" : 
-                          "destructive"
-                        }
-                      >
-                        {translateStatus(bottleReturn.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        disabled={bottleReturn.status === "complete"}
-                        onClick={() => handleRegisterOpen(bottleReturn)}
-                      >
-                        {t("Registrar Devolución")}
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {filteredBottleReturns.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                      {searchTerm 
+                        ? "No se encontraron resultados para la búsqueda" 
+                        : activeTab === "pending" 
+                          ? "No hay envases pendientes de devolución" 
+                          : activeTab === "complete" 
+                            ? "No hay envases completados"
+                            : "No hay envases registrados"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  filteredBottleReturns.map((bottleReturn) => (
+                    <TableRow key={bottleReturn.id}>
+                      <TableCell>#{bottleReturn.orderId}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{bottleReturn.customerName}</div>
+                        <div className="text-xs text-muted-foreground">{bottleReturn.customerAddress}</div>
+                      </TableCell>
+                      <TableCell>{bottleReturn.productName}</TableCell>
+                      <TableCell className="text-center">{bottleReturn.expectedQuantity}</TableCell>
+                      <TableCell className="text-center">{bottleReturn.returnedQuantity}</TableCell>
+                      <TableCell className="text-center">{bottleReturn.pendingQuantity}</TableCell>
+                      <TableCell className="text-center">
+                        <Badge 
+                          variant={
+                            bottleReturn.status === "complete" ? "success" : 
+                            bottleReturn.status === "pending" ? "default" : 
+                            "destructive"
+                          }
+                        >
+                          {translateStatus(bottleReturn.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={bottleReturn.status === "complete"}
+                          onClick={() => handleRegisterOpen(bottleReturn)}
+                        >
+                          {t("Registrar Devolución")}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </ScrollArea>
       </Card>
 
       {/* Diálogo para registrar devolución */}
       <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Registrar Devolución de Envases</DialogTitle>
             <DialogDescription>
@@ -343,25 +405,25 @@ export default function DevolucionEnvases() {
           
           {selectedReturn && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                 <div>
                   <div className="text-sm font-medium">Cliente</div>
-                  <div className="text-lg">{selectedReturn.customerName}</div>
+                  <div className="text-base sm:text-lg">{selectedReturn.customerName}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium">Producto</div>
-                  <div className="text-lg">{selectedReturn.productName}</div>
+                  <div className="text-base sm:text-lg">{selectedReturn.productName}</div>
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                 <div>
                   <div className="text-sm font-medium">Cantidad Esperada</div>
-                  <div className="text-lg">{selectedReturn.expectedQuantity}</div>
+                  <div className="text-base sm:text-lg">{selectedReturn.expectedQuantity}</div>
                 </div>
                 <div>
                   <div className="text-sm font-medium">Cantidad Devuelta Actual</div>
-                  <div className="text-lg">{selectedReturn.returnedQuantity}</div>
+                  <div className="text-base sm:text-lg">{selectedReturn.returnedQuantity}</div>
                 </div>
               </div>
               
@@ -379,16 +441,18 @@ export default function DevolucionEnvases() {
             </div>
           )}
           
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row sm:justify-end gap-2">
             <Button 
               variant="outline" 
               onClick={() => setRegisterDialogOpen(false)}
+              className="w-full sm:w-auto"
             >
               Cancelar
             </Button>
             <Button 
               onClick={handleRegisterSubmit}
               disabled={updateReturnMutation.isPending || returnQuantity <= 0}
+              className="w-full sm:w-auto"
             >
               {updateReturnMutation.isPending ? "Procesando..." : "Registrar Devolución"}
             </Button>
