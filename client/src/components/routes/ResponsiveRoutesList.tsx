@@ -65,156 +65,159 @@ export function ResponsiveRoutesList({ routes, zones, isActive = true }: Respons
   }
 
   return (
-    <>
-      {/* Vista para móviles (tarjetas verticales) */}
-      <div className="block md:hidden space-y-3">
-        {filteredRoutes.map(route => (
-          <Card key={route.id} className="overflow-hidden p-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4" />
-                <span className="font-medium text-sm">
-                  {route.name || `Ruta #${route.id}`}
-                </span>
-              </div>
-              <Badge
-                variant={route.driverStartedAt ? (route.isCompleted ? "default" : "secondary") : "outline"}
-                className="text-xs py-0 h-5"
-              >
-                {route.isCompleted 
-                  ? t("completed") 
-                  : (route.driverStartedAt ? t("inProgress") : t("notStarted"))}
-              </Badge>
+    <div className="space-y-3">
+      {/* Vista para móviles (tarjetas) */}
+      {filteredRoutes.map(route => (
+        <Card key={route.id} className="block md:hidden p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              <span className="font-medium text-sm">
+                {route.name || `Ruta #${route.id}`}
+              </span>
+            </div>
+            <Badge
+              variant={route.driverStartedAt ? (route.isCompleted ? "default" : "secondary") : "outline"}
+              className="text-xs py-0 h-5"
+            >
+              {route.isCompleted 
+                ? t("completed") 
+                : (route.driverStartedAt ? t("inProgress") : t("notStarted"))}
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+            <div className="flex items-center">
+              <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
+              <span className="text-muted-foreground">
+                {format(new Date(route.date), "dd/MM/yyyy")}
+              </span>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+            {route.zoneId && (
               <div className="flex items-center">
-                <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
+                <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
                 <span className="text-muted-foreground">
-                  {format(new Date(route.date), "dd/MM/yyyy")}
+                  {zones.find(z => z.id === route.zoneId)?.name || "Zona"}
                 </span>
               </div>
-              
-              {route.zoneId && (
-                <div className="flex items-center">
-                  <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground">
-                    {zones.find(z => z.id === route.zoneId)?.name || "Zona"}
-                  </span>
-                </div>
-              )}
-              
-              {route.truckId && (
-                <div className="flex items-center">
-                  <Truck className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground">
-                    Camión #{route.truckId}
-                  </span>
-                </div>
-              )}
-            </div>
+            )}
             
-            <div className="flex gap-2">
+            {route.stops && (
+              <div className="flex items-center">
+                <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
+                <span className="text-muted-foreground">
+                  {route.stops.length} paradas
+                </span>
+              </div>
+            )}
+            
+            {route.totalDistance && (
+              <div className="flex items-center">
+                <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
+                <span className="text-muted-foreground">
+                  {Number(route.totalDistance).toFixed(1)} km
+                </span>
+              </div>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="text-xs h-8 col-span-2"
+            >
+              <Link href={`/routes/${route.id}`}>
+                <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalles
+              </Link>
+            </Button>
+            {!route.isCompleted && (
               <Button
                 variant="outline"
                 size="sm"
-                asChild
-                className="h-8 flex-1"
+                className="text-xs h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                onClick={() => handleDeleteRoute(route.id)}
               >
-                <Link href={`/routes/${route.id}`}>
-                  <Eye className="h-3.5 w-3.5 mr-1" /> Ver detalles
-                </Link>
+                <X className="h-3.5 w-3.5 mr-1" /> Eliminar
               </Button>
-              {!route.isCompleted && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => handleDeleteRoute(route.id)}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+            )}
+          </div>
+        </Card>
+      ))}
       
-      {/* Vista para tablet/desktop (tarjetas horizontales) */}
-      <div className="hidden md:block space-y-3">
-        {filteredRoutes.map(route => (
-          <Card key={route.id} className="overflow-hidden">
-            <div className="flex items-center p-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4" />
-                  <span className="font-medium text-sm">
-                    {route.name || `Ruta #${route.id}`}
-                  </span>
-                  <Badge
-                    variant={route.driverStartedAt ? (route.isCompleted ? "default" : "secondary") : "outline"}
-                    className="ml-auto text-xs py-0 h-5"
-                  >
-                    {route.isCompleted 
-                      ? t("completed") 
-                      : (route.driverStartedAt ? t("inProgress") : t("notStarted"))}
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-2 mt-1 text-xs">
-                  <div className="flex items-center">
-                    <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
-                    <span className="text-muted-foreground">
-                      {format(new Date(route.date), "dd/MM/yyyy")}
-                    </span>
-                  </div>
-                  
-                  {route.zoneId && (
-                    <div className="flex items-center">
-                      <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
-                      <span className="text-muted-foreground">
-                        {zones.find(z => z.id === route.zoneId)?.name || "Zona"}
-                      </span>
-                    </div>
-                  )}
-                  
-                  {route.truckId && (
-                    <div className="flex items-center">
-                      <Truck className="h-3 w-3 text-muted-foreground mr-1" />
-                      <span className="text-muted-foreground">
-                        Camión #{route.truckId}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="h-8 mx-1"
-                >
-                  <Link href={`/routes/${route.id}`}>
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-                {!route.isCompleted && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50 mx-1"
-                    onClick={() => handleDeleteRoute(route.id)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+      {/* Vista para tablet/desktop (filas) */}
+      {filteredRoutes.map(route => (
+        <div
+          key={route.id}
+          className="hidden md:flex items-center justify-between p-3 border rounded-lg hover:bg-accent/5 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Truck className="h-4 w-4" />
+            <span className="font-medium">
+              {route.name || `Ruta #${route.id}`}
+            </span>
+            <Badge
+              variant={route.driverStartedAt ? (route.isCompleted ? "default" : "secondary") : "outline"}
+              className="text-xs py-0 h-5"
+            >
+              {route.isCompleted 
+                ? t("completed") 
+                : (route.driverStartedAt ? t("inProgress") : t("notStarted"))}
+            </Badge>
+            
+            <div className="flex items-center ml-4 text-xs text-muted-foreground">
+              <Calendar className="h-3 w-3 mr-1" />
+              <span>{format(new Date(route.date), "dd/MM/yyyy")}</span>
             </div>
-          </Card>
-        ))}
-      </div>
-    </>
+            
+            {route.zoneId && (
+              <div className="flex items-center ml-2 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span>{zones.find(z => z.id === route.zoneId)?.name || "Zona"}</span>
+              </div>
+            )}
+            
+            {route.stops && (
+              <div className="flex items-center ml-2 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span>{route.stops.length} paradas</span>
+              </div>
+            )}
+            
+            {route.totalDistance && (
+              <div className="flex items-center ml-2 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1" />
+                <span>{Number(route.totalDistance).toFixed(1)} km</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="text-muted-foreground hover:text-primary h-8"
+            >
+              <Link href={`/routes/${route.id}`}>
+                <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+            {!route.isCompleted && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-destructive h-8"
+                onClick={() => handleDeleteRoute(route.id)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
