@@ -531,67 +531,129 @@ export default function Orders() {
                 </p>
               </div>
             ) : (
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="h-8">
-                      <TableHead className="w-[10%] text-xs">ID</TableHead>
-                      <TableHead className="w-[25%] text-xs">Cliente</TableHead>
-                      <TableHead className="w-[15%] text-xs">Fecha</TableHead>
-                      <TableHead className="w-[15%] text-xs text-right">Total</TableHead>
-                      <TableHead className="w-[15%] text-xs">Estado</TableHead>
-                      <TableHead className="w-[20%] text-xs text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredOrders.map((order) => (
-                      <TableRow key={order.id} className="h-8">
-                        <TableCell className="font-medium text-xs py-1">#{order.id}</TableCell>
-                        <TableCell className="text-xs py-1">
-                          {customers?.find(c => c.id === order.customerId)?.businessname}
-                        </TableCell>
-                        <TableCell className="text-xs py-1">
-                          {new Date(order.date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-xs py-1 text-right">
-                          RD$ {parseFloat(order.total.toString()).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="py-1">
+              <>
+                {/* Vista para móviles - Tarjetas */}
+                <div className="md:hidden space-y-2">
+                  {filteredOrders.map((order) => {
+                    const customer = customers?.find(c => c.id === order.customerId);
+                    return (
+                      <Card 
+                        key={order.id} 
+                        className={`border-l-4 ${getStatusColor(order.status)} p-2`}
+                      >
+                        <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1">
-                            {getStatusBadge(order.status)}
+                            <span className="text-xs font-bold">#{order.id}</span>
+                            <span className="text-xs text-muted-foreground">•</span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(order.date).toLocaleDateString()}
+                            </span>
                           </div>
-                        </TableCell>
-                        <TableCell className="py-1">
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setActiveTab("details");
-                              }}
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              Ver
-                            </Button>
-                            
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 text-gray-600 hover:text-gray-700 hover:bg-gray-50 text-xs"
-                              onClick={() => openStatusDialog(order)}
-                            >
-                              <Tag className="h-3 w-3 mr-1" />
-                              Estado
-                            </Button>
+                          {getStatusBadge(order.status)}
+                        </div>
+                        
+                        <div className="mb-2">
+                          <div className="text-sm font-medium">{customer?.businessname}</div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs text-muted-foreground">Total:</div>
+                          <div className="text-sm font-bold">
+                            RD$ {parseFloat(order.total.toString()).toFixed(2)}
                           </div>
-                        </TableCell>
+                        </div>
+                        
+                        <div className="flex items-center justify-between gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs flex-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setActiveTab("details");
+                            }}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Ver
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs flex-1 text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                            onClick={() => openStatusDialog(order)}
+                          >
+                            <Tag className="h-3 w-3 mr-1" />
+                            Estado
+                          </Button>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+                
+                {/* Vista para desktop - Tabla tradicional */}
+                <div className="hidden md:block border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="h-8">
+                        <TableHead className="w-[10%] text-xs">ID</TableHead>
+                        <TableHead className="w-[25%] text-xs">Cliente</TableHead>
+                        <TableHead className="w-[15%] text-xs">Fecha</TableHead>
+                        <TableHead className="w-[15%] text-xs text-right">Total</TableHead>
+                        <TableHead className="w-[15%] text-xs">Estado</TableHead>
+                        <TableHead className="w-[20%] text-xs text-right">Acciones</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredOrders.map((order) => (
+                        <TableRow key={order.id} className="h-8">
+                          <TableCell className="font-medium text-xs py-1">#{order.id}</TableCell>
+                          <TableCell className="text-xs py-1">
+                            {customers?.find(c => c.id === order.customerId)?.businessname}
+                          </TableCell>
+                          <TableCell className="text-xs py-1">
+                            {new Date(order.date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell className="text-xs py-1 text-right">
+                            RD$ {parseFloat(order.total.toString()).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              {getStatusBadge(order.status)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="py-1">
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-xs"
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setActiveTab("details");
+                                }}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Ver
+                              </Button>
+                              
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-gray-600 hover:text-gray-700 hover:bg-gray-50 text-xs"
+                                onClick={() => openStatusDialog(order)}
+                              >
+                                <Tag className="h-3 w-3 mr-1" />
+                                Estado
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
 
             {/* Estadísticas de pedidos */}
