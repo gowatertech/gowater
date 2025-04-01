@@ -92,6 +92,9 @@ export default function Orders() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  
+  // Log para depuración
+  console.log("Estado de móvil:", isMobile);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
