@@ -857,6 +857,56 @@ export function registerRoutesEndpoints(app: Express) {
     }
   });
 
+  // Endpoint para obtener todos los envases retornables
+  app.get("/api/bottle-returns", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      
+      // Base de la consulta
+      const baseQuery = {
+        id: bottleReturns.id,
+        orderId: bottleReturns.orderId,
+        productId: bottleReturns.productId,
+        productName: products.name,
+        expectedQuantity: bottleReturns.expectedQuantity,
+        returnedQuantity: bottleReturns.returnedQuantity,
+        pendingQuantity: bottleReturns.pendingQuantity,
+        returnDate: bottleReturns.returnDate,
+        status: bottleReturns.status,
+        amountCharged: bottleReturns.amountCharged,
+        depositAmount: bottleReturns.depositAmount,
+        responsibleType: bottleReturns.responsibleType,
+        chargeMethod: bottleReturns.chargeMethod,
+        customerName: customers.businessname,
+        customerAddress: customers.street,
+      };
+      
+      // Ejecutar la consulta con o sin filtro de estado
+      let bottleReturnsData;
+      if (status) {
+        bottleReturnsData = await db
+          .select(baseQuery)
+          .from(bottleReturns)
+          .innerJoin(products, eq(bottleReturns.productId, products.id))
+          .innerJoin(orders, eq(bottleReturns.orderId, orders.id))
+          .innerJoin(customers, eq(orders.customerId, customers.id))
+          .where(eq(bottleReturns.status, status as "pending" | "complete" | "incomplete"));
+      } else {
+        bottleReturnsData = await db
+          .select(baseQuery)
+          .from(bottleReturns)
+          .innerJoin(products, eq(bottleReturns.productId, products.id))
+          .innerJoin(orders, eq(bottleReturns.orderId, orders.id))
+          .innerJoin(customers, eq(orders.customerId, customers.id));
+      }
+      
+      res.json(bottleReturnsData);
+    } catch (error) {
+      console.error("Error al obtener los envases retornables:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   // Endpoint para obtener los envases retornables de una ruta específica
   app.get("/api/routes/:id/bottle-returns", async (req, res) => {
     try {
