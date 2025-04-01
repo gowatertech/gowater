@@ -11,6 +11,7 @@ import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
 import Payments from "@/pages/payments";
+import PaymentsList from "@/pages/pagos/lista";
 import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
@@ -43,6 +44,7 @@ import MobileDeliveries from "@/pages/mobile-app/entregas";
 import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
+import MobilePayments from "@/pages/mobile-app/pagos";
 
 function Router() {
   const [location] = useLocation();
@@ -141,6 +143,7 @@ function Router() {
         <Route path="/mobile-app/ruta" component={MobileRoute} />
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
         <Route path="/mobile-app/envases" component={MobileBottleReturns} />
+        <Route path="/mobile-app/pagos" component={MobilePayments} />
       </Switch>
     );
   }
@@ -152,6 +155,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
+        <Route path="/pagos/lista" component={PaymentsList} />
         <Route path="/customers" component={Customers} />
 
         {/* Inventory Routes - Specific routes first */}

@@ -11,7 +11,7 @@ import {
   invoiceItems,
   payments
 } from "@shared/schema";
-import { and, eq, inArray, sql, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, sql, isNull, ne, desc } from "drizzle-orm";
 import { storage } from "./storage";
 
 // Importación con alias para evitar la colisión de nombres
@@ -1276,6 +1276,86 @@ export function registerRoutesEndpoints(app: Express) {
       
     } catch (error) {
       console.error("Error al marcar pedido como entregado:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para obtener datos de pagos
+  app.get("/api/payments", async (req, res) => {
+    try {
+      // Consultar todos los pagos con información del cliente y factura
+      const paymentsData = await db
+        .select({
+          id: payments.id,
+          invoiceId: payments.invoiceId,
+          customerId: payments.customerId,
+          amount: payments.amount,
+          paymentMethod: payments.paymentMethod,
+          date: payments.date,
+          reference: payments.reference,
+          notes: payments.notes,
+          // Campos adicionales de la factura
+          invoiceNumber: invoices.invoiceNumber,
+          // Campos del cliente
+          customerName: customers.businessname
+        })
+        .from(payments)
+        .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
+        .leftJoin(customers, eq(payments.customerId, customers.id))
+        .orderBy(desc(payments.date));
+      
+      res.json(paymentsData);
+    } catch (error) {
+      console.error("Error al obtener datos de pagos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para crear un nuevo pago
+  app.post("/api/payments", async (req, res) => {
+    try {
+      const { invoiceId, customerId, amount, paymentMethod, reference, notes } = req.body;
+      
+      // Validar datos requeridos
+      if (!invoiceId || !customerId || !amount || !paymentMethod) {
+        return res.status(400).json({ 
+          error: "Faltan datos requeridos para registrar el pago",
+          requiredFields: ["invoiceId", "customerId", "amount", "paymentMethod"]
+        });
+      }
+      
+      // Registrar el pago usando el storage
+      const newPayment = await storage.registerPayment({
+        invoiceId,
+        customerId,
+        amount,
+        paymentMethod,
+        reference,
+        notes
+      });
+      
+      // Obtener datos adicionales del pago recién creado (cliente y factura)
+      const [paymentWithDetails] = await db
+        .select({
+          id: payments.id,
+          invoiceId: payments.invoiceId,
+          customerId: payments.customerId,
+          amount: payments.amount,
+          paymentMethod: payments.paymentMethod,
+          date: payments.date,
+          reference: payments.reference,
+          notes: payments.notes,
+          invoiceNumber: invoices.invoiceNumber,
+          customerName: customers.businessname
+        })
+        .from(payments)
+        .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
+        .leftJoin(customers, eq(payments.customerId, customers.id))
+        .where(eq(payments.id, newPayment.id));
+      
+      res.status(201).json(paymentWithDetails);
+    } catch (error) {
+      console.error("Error al registrar el pago:", error);
       res.status(500).json({ error: String(error) });
     }
   });
