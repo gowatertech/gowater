@@ -1,45 +1,76 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
-import { useTranslation } from "react-i18next";
-import { MapPin, Calendar, PlusCircle, Truck, RefreshCw, X, Edit, Eye, ArrowRight, User, Package } from "lucide-react";
-import { format } from "date-fns";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRoutes } from "@/hooks/use-routes";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import RouteMap from "@/components/routes/RouteMap";
-import RouteStats from "@/components/routes/RouteStats";
-import RouteTimeline from "@/components/routes/RouteTimeline";
-import NewRouteForm from "@/components/routes/NewRouteForm";
-import RouteSummary from "@/components/routes/RouteSummary";
-import ZoneMap from "./ZoneMap";
-import { formatCurrency } from "@/lib/format";
-import { useIsMobile } from "@/hooks/use-mobile";
-import type { Zone } from "@shared/schema";
-import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
+
+// Components
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
-import { MapContainer, TileLayer, Polygon, Marker, Popup } from "react-leaflet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-// Vista del chofer (GoWater Driver)
-import DriverView from "@/pages/drivers/DriverView";
-import DeliveryTracking from "./DeliveryTracking";
+// Map components
+import { MapContainer, TileLayer, Polygon } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Icons
+import {
+  PlusCircle,
+  RefreshCw,
+  Truck,
+  Calendar,
+  MapPin,
+  Eye,
+  Edit,
+  X,
+  ArrowRight,
+  User,
+  Package,
+} from "lucide-react";
+
+// Sub-components
 import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 import PendingOrdersRouteForm from "@/components/routes/PendingOrdersRouteForm";
+import ZoneMap from "./ZoneMap";
 
-export default function Routes() {
+// Placeholders para componentes que necesitamos crear
+const DriverView = () => <div>Vista de conductor</div>;
+const DeliveryTracking = () => <div>Seguimiento de entrega</div>;
+
+// Types
+import { Zone, Route } from "@shared/schema";
+
+export default function RoutesPage() {
   const { t } = useTranslation();
-  const [location, setLocation] = useLocation();
   const { user } = useCurrentUser();
-  const { routes, loading, error } = useRoutes();
-  const [selectedTab, setSelectedTab] = useState("active");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [routes, setRoutes] = useState<Route[]>([]);
+  const [selectedTab, setSelectedTab] = useState<"active" | "completed">("active");
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
   const [isCreatingZone, setIsCreatingZone] = useState(false);
   const [zoneName, setZoneName] = useState("");
@@ -50,7 +81,10 @@ export default function Routes() {
   const [editZoneName, setEditZoneName] = useState("");
   const [editZoneColor, setEditZoneColor] = useState("");
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  
+  // Usamos el hook para detección de móvil
   const isMobile = useIsMobile();
+  
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -61,6 +95,32 @@ export default function Routes() {
   const { data: zones = [] } = useQuery<Zone[]>({
     queryKey: ["/api/zones"],
   });
+  
+  // Obtener rutas
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      setLoading(true);
+      setError(false);
+      
+      try {
+        const response = await fetch('/api/routes');
+        if (!response.ok) {
+          throw new Error('Error al cargar rutas');
+        }
+        
+        const data = await response.json();
+        setRoutes(data);
+        console.log("Routes loaded in useRoutes hook:", data);
+      } catch (err) {
+        console.error('Error fetching routes:', err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchRoutes();
+  }, []);
 
   const isDriver = user?.role === "driver";
   const isAssistant = user?.role === "assistant";
@@ -245,7 +305,7 @@ export default function Routes() {
         <h1 className="text-2xl font-bold tracking-tight">{t("routes")}</h1>
       </div>
 
-      {/* Nueva estructura de pestañas principales */}
+      {/* Pestañas principales */}
       <Tabs value={mainTab} onValueChange={setMainTab} className="space-y-4">
         <div className="flex justify-between items-center mb-4">
           <TabsList>
@@ -391,7 +451,7 @@ export default function Routes() {
           <div className="flex justify-between items-center mb-2">
             <Tabs
               value={selectedTab}
-              onValueChange={setSelectedTab}
+              onValueChange={setSelectedTab as any}
               className="w-full"
             >
               <TabsList className="w-full justify-start">
@@ -405,7 +465,7 @@ export default function Routes() {
             </Tabs>
           </div>
           
-          {/* Lista de rutas activas o completadas según la pestaña seleccionada */}
+          {/* Lista de rutas */}
           <div className="space-y-4">
             {selectedTab === "active" && (
               <div>
@@ -416,17 +476,17 @@ export default function Routes() {
                   </div>
                 )}
                 
-                {!loading && !error && routes.filter(route => !route.isCompleted).length === 0 && (
+                {!loading && !error && routes && routes.filter(route => !route.isCompleted).length === 0 && (
                   <div className="text-center py-6">{t("noActiveRoutes")}</div>
                 )}
                 
-                {!loading && !error && (
+                {!loading && !error && routes && (
                   <div className="space-y-3">
                     {routes
                       .filter(route => !route.isCompleted)
                       .map(route => (
                         <Card key={route.id} className="overflow-hidden">
-                          <div className="flex items-center p-2">
+                          <div className={isMobile ? "flex flex-col p-3" : "flex items-center p-2"}>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <Truck className="h-4 w-4" />
@@ -441,7 +501,7 @@ export default function Routes() {
                                 </Badge>
                               </div>
                               
-                              <div className="grid grid-cols-3 gap-2 mt-1 text-xs">
+                              <div className={isMobile ? "grid grid-cols-2 gap-2 mt-1 text-xs" : "grid grid-cols-3 gap-2 mt-1 text-xs"}>
                                 <div className="flex items-center">
                                   <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
                                   <span className="text-muted-foreground">
@@ -454,58 +514,76 @@ export default function Routes() {
                                     {route.stops?.length} paradas
                                   </span>
                                 </div>
-                                <div className="flex items-center justify-end">
-                                  {route.totalDistance
-                                    ? `${Number(route.totalDistance).toFixed(1)} km`
-                                    : "Calculando..."}
+                                <div className={isMobile ? "flex items-center col-span-2 mt-1" : "flex items-center justify-end"}>
+                                  <span className="text-muted-foreground">
+                                    {route.totalDistance
+                                      ? `${Number(route.totalDistance).toFixed(1)} km`
+                                      : "Calculando..."}
+                                  </span>
                                 </div>
                               </div>
+                              
+                              {isMobile && (
+                                <div className="flex justify-end mt-2 pt-2 border-t border-gray-100">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="h-8 mr-2"
+                                  >
+                                    <Link href={`/routes/${route.id}`}>
+                                      <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                                    </Link>
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                             
-                            <div className="flex">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                                className="h-8"
-                              >
-                                <Link href={`/routes/${route.id}`}>
-                                  <ArrowRight className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                              
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => {
-                                  if (confirm(t("confirmDeleteRoute"))) {
-                                    fetch(`/api/routes/${route.id}`, {
-                                      method: 'DELETE',
-                                    })
-                                    .then(response => {
-                                      if (response.ok) {
-                                        queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+                            {!isMobile && (
+                              <div className="flex">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  asChild
+                                  className="h-8 mx-1"
+                                >
+                                  <Link href={`/routes/${route.id}`}>
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-red-500 hover:text-red-700 hover:bg-red-50 mx-1"
+                                  onClick={() => {
+                                    if (confirm(t("confirmDeleteRoute"))) {
+                                      fetch(`/api/routes/${route.id}`, {
+                                        method: 'DELETE',
+                                      })
+                                      .then(response => {
+                                        if (response.ok) {
+                                          queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+                                          toast({
+                                            description: t("routeDeletedSuccessfully"),
+                                          });
+                                        } else {
+                                          throw new Error(t("errorDeletingRoute"));
+                                        }
+                                      })
+                                      .catch(error => {
                                         toast({
-                                          description: t("routeDeletedSuccessfully"),
+                                          variant: "destructive",
+                                          title: t("error"),
+                                          description: error.message
                                         });
-                                      } else {
-                                        throw new Error(t("errorDeletingRoute"));
-                                      }
-                                    })
-                                    .catch(error => {
-                                      toast({
-                                        variant: "destructive",
-                                        title: t("error"),
-                                        description: error.message
                                       });
-                                    });
-                                  }
-                                }}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
+                                    }
+                                  }}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </Card>
                       ))}
@@ -523,17 +601,17 @@ export default function Routes() {
                   </div>
                 )}
                 
-                {!loading && !error && routes.filter(route => route.isCompleted).length === 0 && (
+                {!loading && !error && routes && routes.filter(route => route.isCompleted).length === 0 && (
                   <div className="text-center py-6">{t("noCompletedRoutes")}</div>
                 )}
                 
-                {!loading && !error && (
+                {!loading && !error && routes && (
                   <div className="space-y-3">
                     {routes
                       .filter(route => route.isCompleted)
                       .map(route => (
                         <Card key={route.id} className="overflow-hidden">
-                          <div className="flex items-center p-2">
+                          <div className={isMobile ? "flex flex-col p-3" : "flex items-center p-2"}>
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <Truck className="h-4 w-4" />
@@ -548,7 +626,7 @@ export default function Routes() {
                                 </Badge>
                               </div>
                               
-                              <div className="grid grid-cols-3 gap-2 mt-1 text-xs">
+                              <div className={isMobile ? "grid grid-cols-2 gap-2 mt-1 text-xs" : "grid grid-cols-3 gap-2 mt-1 text-xs"}>
                                 <div className="flex items-center">
                                   <Calendar className="h-3 w-3 text-muted-foreground mr-1" />
                                   <span className="text-muted-foreground">
@@ -561,26 +639,45 @@ export default function Routes() {
                                     {route.stops?.length} paradas
                                   </span>
                                 </div>
-                                <div className="flex items-center justify-end">
-                                  {route.totalDistance
-                                    ? `${Number(route.totalDistance).toFixed(1)} km`
-                                    : "Calculando..."}
+                                <div className={isMobile ? "flex items-center col-span-2 mt-1" : "flex items-center justify-end"}>
+                                  <span className="text-muted-foreground">
+                                    {route.totalDistance
+                                      ? `${Number(route.totalDistance).toFixed(1)} km`
+                                      : "Calculando..."}
+                                  </span>
                                 </div>
                               </div>
+                              
+                              {isMobile && (
+                                <div className="flex justify-end mt-2 pt-2 border-t border-gray-100">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                    className="h-8 mr-2"
+                                  >
+                                    <Link href={`/routes/${route.id}`}>
+                                      <Eye className="h-3.5 w-3.5 mr-1" /> Ver
+                                    </Link>
+                                  </Button>
+                                </div>
+                              )}
                             </div>
                             
-                            <div className="flex">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                                className="h-8"
-                              >
-                                <Link href={`/routes/${route.id}`}>
-                                  <ArrowRight className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                            </div>
+                            {!isMobile && (
+                              <div className="flex">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  asChild
+                                  className="h-8"
+                                >
+                                  <Link href={`/routes/${route.id}`}>
+                                    <ArrowRight className="h-4 w-4" />
+                                  </Link>
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </Card>
                       ))}
