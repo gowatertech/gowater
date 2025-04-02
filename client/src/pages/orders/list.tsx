@@ -280,7 +280,8 @@ export default function OrdersList() {
           </tr>
         </table>
         <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
-        ${order.notes ? `<div style="margin-bottom: 5px;"><strong>Notas:</strong> ${order.notes}</div>` : ''}
+        <div style="margin: 10px 0 5px 0;"><strong>Nota del Pedido:</strong> ${order.notes || ""}</div>
+        <div style="margin: 10px 0;"></div>
         <div style="text-align: center; font-size: 9px; margin-top: 10px;">
           <p>¡Gracias por su compra!</p>
         </div>
@@ -470,17 +471,22 @@ export default function OrdersList() {
       doc.text("TOTAL:", 60, yPos, { align: 'right' });
       doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
       
-      // Notas adicionales
+      // Nota del Pedido (siempre se muestra el título)
+      yPos += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.text("Nota del Pedido:", 5, yPos);
+      
+      // Si hay notas, mostrarlas
       if (order.notes) {
-        yPos += 8;
-        doc.setFont('helvetica', 'bold');
-        doc.text("NOTAS:", 5, yPos);
         yPos += 5;
         doc.setFont('helvetica', 'normal');
         doc.text(order.notes, 5, yPos, { 
           maxWidth: 70 
         });
       }
+      
+      // Siempre agregar un espacio adicional
+      yPos += 5;
       
       // Mensaje final
       yPos += 10;
