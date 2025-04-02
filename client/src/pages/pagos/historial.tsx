@@ -301,11 +301,12 @@ export default function PaymentsHistory() {
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
-              size="icon"
-              className="h-8 w-8"
+              size="sm"
+              className="h-8 flex items-center gap-1.5"
               onClick={() => setLocation("/payments")}
             >
               <ArrowLeft className="h-4 w-4" />
+              <span className="text-sm">Volver</span>
             </Button>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Wallet className="h-5 w-5 text-primary" />
