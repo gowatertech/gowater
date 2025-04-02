@@ -56,7 +56,7 @@ export default function RegisterPayment() {
   // Mutation para crear un nuevo pago
   const createPaymentMutation = useMutation({
     mutationFn: async (paymentData: any) => {
-      return await apiRequest("/api/payments", "POST", paymentData);
+      return await apiRequest("POST", "/api/payments", paymentData);
     },
     onSuccess: () => {
       toast({

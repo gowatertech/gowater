@@ -62,11 +62,12 @@ export default function PaymentDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Consulta para obtener pagos
-  const { data: payments = [], isLoading: isLoadingPayments } = useQuery({
+  const { data: payments = [], isLoading: isLoadingPayments } = useQuery<any[]>({
     queryKey: ["/api/payments"],
-    queryFn: async () => {
-      const response = await apiRequest("/api/payments");
-      return response;
+    queryFn: async ({ queryKey }) => {
+      const response = await apiRequest("GET", queryKey[0] as string);
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 
@@ -82,7 +83,7 @@ export default function PaymentDashboard() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 
     return payments.reduce(
-      (stats, payment) => {
+      (stats: PaymentsStats, payment: any) => {
         const paymentDate = new Date(payment.date).getTime();
         const amount = payment.amount || 0;
 
@@ -108,7 +109,7 @@ export default function PaymentDashboard() {
 
     const searchLower = searchTerm.toLowerCase().trim();
     return payments.filter(
-      (payment) =>
+      (payment: any) =>
         (payment.customerName && payment.customerName.toLowerCase().includes(searchLower)) ||
         (payment.invoiceNumber && payment.invoiceNumber.toString().includes(searchLower)) ||
         (payment.notes && payment.notes.toLowerCase().includes(searchLower))
