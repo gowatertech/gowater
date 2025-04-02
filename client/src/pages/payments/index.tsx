@@ -82,7 +82,7 @@ export default function PaymentDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [filters, setFilters] = useState({
-    method: "" as "" | "cash" | "card" | "transfer"
+    method: "all" as "all" | "cash" | "card" | "transfer"
   });
 
   console.log("Fetching data from /api/payments");
@@ -136,7 +136,7 @@ export default function PaymentDashboard() {
     let result = [...payments];
     
     // Filtrar por método de pago
-    if (filters.method) {
+    if (filters.method && filters.method !== "all") {
       result = result.filter(payment => 
         (payment.method || payment.paymentMethod) === filters.method
       );
@@ -397,7 +397,7 @@ export default function PaymentDashboard() {
                     </div>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="cash">Efectivo</SelectItem>
                     <SelectItem value="card">Tarjeta</SelectItem>
                     <SelectItem value="transfer">Transferencia</SelectItem>
