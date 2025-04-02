@@ -26,15 +26,15 @@ export default function Orders() {
 
   // Determinar la pestaña activa basado en la URL
   useEffect(() => {
-    const location = window.location.pathname;
-    if (location.includes("/orders/new")) {
+    const pathname = window.location.pathname;
+    if (pathname.includes("/orders/new")) {
       setActiveTab("new");
-    } else if (location.includes("/orders/details")) {
+    } else if (pathname.includes("/orders/details/")) {
       setActiveTab("details");
     } else {
       setActiveTab("list");
     }
-  }, [window.location.pathname]);
+  }, []);
 
   // Manejar cambios de pestaña y actualizar la URL
   const handleTabChange = (value: string) => {

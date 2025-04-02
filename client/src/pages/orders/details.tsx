@@ -56,8 +56,10 @@ export default function OrderDetails() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
-  const [, params] = useRoute("/orders/details/:id");
-  const orderId = params?.id ? parseInt(params.id) : undefined;
+  const [matches, params] = useRoute("/orders/details/:id");
+  const pathname = window.location.pathname;
+  const orderIdFromPath = pathname.split('/').pop();
+  const orderId = params?.id ? parseInt(params.id) : orderIdFromPath ? parseInt(orderIdFromPath) : undefined;
   const [newStatus, setNewStatus] = useState<string>("");
 
   // Obtener los detalles del pedido
