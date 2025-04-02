@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { jsPDF } from "jspdf";
 import { 
   Package, 
   Search, 
@@ -7,7 +8,10 @@ import {
   XCircle, 
   CheckCircle, 
   Clock, 
-  AlertTriangle 
+  AlertTriangle,
+  Printer,
+  FileDown,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
