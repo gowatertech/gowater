@@ -291,19 +291,19 @@ export default function PaymentsHistory() {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto px-2 sm:px-4 pb-16">
       <div className="flex flex-col space-y-4">
         {/* Encabezado con título y estadísticas */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <h1 className="text-xl font-bold flex items-center gap-2">
             <Wallet className="h-5 w-5 text-primary" />
             Historial de Pagos
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button 
               variant="outline" 
               size="sm" 
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs"
               onClick={() => {
                 // Implementar la función de exportar datos
                 toast({
@@ -313,43 +313,43 @@ export default function PaymentsHistory() {
               }}
             >
               <DownloadCloud className="h-3.5 w-3.5" />
-              Exportar
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs"
               onClick={() => {
                 // Implementar la función de imprimir
                 window.print();
               }}
             >
               <Printer className="h-3.5 w-3.5" />
-              Imprimir
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => refetch()}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 text-xs"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              Actualizar
+              <span className="hidden sm:inline">Actualizar</span>
             </Button>
           </div>
         </div>
 
         {/* Resumen de estadísticas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
           <Card className="bg-muted/20">
             <CardContent className="p-2">
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Pagos</p>
-                  <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalAmount)}</p>
+                  <p className="text-sm sm:text-lg font-bold">{formatCurrency(paymentsStats.totalAmount)}</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <DollarSign className="h-7 w-7 text-blue-500" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 sm:h-7 sm:w-7 text-blue-500" />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-1">{paymentsStats.totalCount} transacciones</p>
@@ -361,15 +361,15 @@ export default function PaymentsHistory() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Por Método</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 mt-1">
                     <p className="text-[11px]">Efectivo: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.cash)}</span></p>
                     <p className="text-[11px]">Tarjeta: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.card)}</span></p>
                     <p className="text-[11px]">Crédito: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.credit)}</span></p>
-                    <p className="text-[11px]">Transferencia: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.transfer)}</span></p>
+                    <p className="text-[11px]">Transfer.: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.transfer)}</span></p>
                   </div>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <CreditCard className="h-7 w-7 text-green-500" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <CreditCard className="h-6 w-6 sm:h-7 sm:w-7 text-green-500" />
                 </div>
               </div>
             </CardContent>
@@ -380,10 +380,10 @@ export default function PaymentsHistory() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Esta Semana</p>
-                  <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalWeek)}</p>
+                  <p className="text-sm sm:text-lg font-bold">{formatCurrency(paymentsStats.totalWeek)}</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <Calendar className="h-7 w-7 text-yellow-500" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <Calendar className="h-6 w-6 sm:h-7 sm:w-7 text-yellow-500" />
                 </div>
               </div>
               <div className="h-1.5 w-full bg-muted mt-1.5 rounded-full overflow-hidden">
@@ -404,10 +404,10 @@ export default function PaymentsHistory() {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Hoy</p>
-                  <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalToday)}</p>
+                  <p className="text-sm sm:text-lg font-bold">{formatCurrency(paymentsStats.totalToday)}</p>
                 </div>
-                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <AlertCircle className="h-7 w-7 text-purple-500" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <AlertCircle className="h-6 w-6 sm:h-7 sm:w-7 text-purple-500" />
                 </div>
               </div>
               <div className="h-1.5 w-full bg-muted mt-1.5 rounded-full overflow-hidden">
@@ -425,26 +425,26 @@ export default function PaymentsHistory() {
         </div>
 
         {/* Filtros y opciones */}
-        <div className="flex flex-col md:flex-row gap-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 flex-1">
-            <Tabs 
-              value={activeTab} 
-              onValueChange={setActiveTab} 
-              className="w-full"
-            >
-              <TabsList className="w-full">
-                <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="today">Hoy</TabsTrigger>
-                <TabsTrigger value="week">Esta Semana</TabsTrigger>
-                <TabsTrigger value="month">Este Mes</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            
+        <div className="flex flex-col gap-2">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="w-full"
+          >
+            <TabsList className="w-full grid grid-cols-4 h-9">
+              <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
+              <TabsTrigger value="today" className="text-xs">Hoy</TabsTrigger>
+              <TabsTrigger value="week" className="text-xs">Semana</TabsTrigger>
+              <TabsTrigger value="month" className="text-xs">Mes</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar pagos..."
-                className="pl-8"
+                className="pl-8 h-9 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -454,7 +454,7 @@ export default function PaymentsHistory() {
               value={filters.method}
               onValueChange={(value) => setFilters({...filters, method: value as any})}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full h-9 text-sm">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
                   <span>{filters.method ? `Método: ${filters.method}` : "Método de Pago"}</span>
@@ -469,25 +469,21 @@ export default function PaymentsHistory() {
               </SelectContent>
             </Select>
             
-            <div className="flex items-center gap-1">
-              <div className="flex-1">
-                <DatePicker
-                  selected={dateRange.from}
-                  onSelect={(date) => 
-                    setDateRange(prev => ({ ...prev, from: date }))
-                  }
-                  placeholderText="Fecha inicio"
-                />
-              </div>
-              <div className="flex-1">
-                <DatePicker
-                  selected={dateRange.to}
-                  onSelect={(date) => 
-                    setDateRange(prev => ({ ...prev, to: date }))
-                  }
-                  placeholderText="Fecha fin"
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-1">
+              <DatePicker
+                selected={dateRange.from}
+                onSelect={(date) => 
+                  setDateRange(prev => ({ ...prev, from: date }))
+                }
+                placeholderText="Fecha inicio"
+              />
+              <DatePicker
+                selected={dateRange.to}
+                onSelect={(date) => 
+                  setDateRange(prev => ({ ...prev, to: date }))
+                }
+                placeholderText="Fecha fin"
+              />
             </div>
             
             <Button 
@@ -498,76 +494,134 @@ export default function PaymentsHistory() {
                 setDateRange({});
                 setActiveTab("all");
               }}
-              className="h-10"
+              className="h-9 text-sm"
             >
               Limpiar filtros
             </Button>
           </div>
         </div>
 
-        {/* Tabla de Pagos */}
-        <Card>
-          <ScrollArea className="h-[calc(100vh-360px)] min-h-[300px]">
-            <Table>
-              <TableHeader className="bg-muted/50 sticky top-0">
-                <TableRow className="text-xs">
-                  <TableHead className="py-1 w-[180px]">Cliente</TableHead>
-                  <TableHead className="py-1 w-[100px]">Fecha</TableHead>
-                  <TableHead className="py-1 w-[100px]">Factura</TableHead>
-                  <TableHead className="py-1 w-[80px]">Método</TableHead>
-                  <TableHead className="py-1">Notas</TableHead>
-                  <TableHead className="py-1 w-[100px] text-right">Monto</TableHead>
-                  <TableHead className="py-1 w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
-                      Cargando pagos...
-                    </TableCell>
+        {/* Vista de escritorio: Tabla de Pagos */}
+        <div className="hidden md:block">
+          <Card>
+            <ScrollArea className="h-[calc(100vh-360px)] min-h-[300px]">
+              <Table>
+                <TableHeader className="bg-muted/50 sticky top-0">
+                  <TableRow className="text-xs">
+                    <TableHead className="py-1 w-[180px]">Cliente</TableHead>
+                    <TableHead className="py-1 w-[100px]">Fecha</TableHead>
+                    <TableHead className="py-1 w-[100px]">Factura</TableHead>
+                    <TableHead className="py-1 w-[80px]">Método</TableHead>
+                    <TableHead className="py-1">Notas</TableHead>
+                    <TableHead className="py-1 w-[100px] text-right">Monto</TableHead>
+                    <TableHead className="py-1 w-[50px]"></TableHead>
                   </TableRow>
-                ) : filteredPayments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
-                      No hay pagos que coincidan con los filtros
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPayments.map((payment) => (
-                    <TableRow key={payment.id} className="text-xs hover:bg-muted/30">
-                      <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
-                      <TableCell className="py-1.5">
-                        {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
-                      </TableCell>
-                      <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
-                      <TableCell className="py-1.5">
-                        <PaymentMethodBadge method={payment.paymentMethod} />
-                      </TableCell>
-                      <TableCell className="py-1.5 truncate max-w-[150px]">{payment.notes || "-"}</TableCell>
-                      <TableCell className="py-1.5 text-right font-semibold">
-                        {formatCurrency(payment.amount)}
-                      </TableCell>
-                      <TableCell className="py-1.5">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-6 w-6 p-0"
-                          onClick={() => {
-                            setSelectedPayment(payment);
-                            setDetailsOpen(true);
-                          }}
-                        >
-                          <FileText className="h-3 w-3" />
-                        </Button>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
+                        Cargando pagos...
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </ScrollArea>
-        </Card>
+                  ) : filteredPayments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
+                        No hay pagos que coincidan con los filtros
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredPayments.map((payment) => (
+                      <TableRow key={payment.id} className="text-xs hover:bg-muted/30">
+                        <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
+                        <TableCell className="py-1.5">
+                          {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                        </TableCell>
+                        <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
+                        <TableCell className="py-1.5">
+                          <PaymentMethodBadge method={payment.paymentMethod} />
+                        </TableCell>
+                        <TableCell className="py-1.5 truncate max-w-[150px]">{payment.notes || "-"}</TableCell>
+                        <TableCell className="py-1.5 text-right font-semibold">
+                          {formatCurrency(payment.amount)}
+                        </TableCell>
+                        <TableCell className="py-1.5">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 w-6 p-0"
+                            onClick={() => {
+                              setSelectedPayment(payment);
+                              setDetailsOpen(true);
+                            }}
+                          >
+                            <FileText className="h-3 w-3" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </Card>
+        </div>
+        
+        {/* Vista móvil: Tarjetas de pagos */}
+        <div className="md:hidden space-y-2">
+          {isLoading ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              Cargando pagos...
+            </div>
+          ) : filteredPayments.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              No hay pagos que coincidan con los filtros
+            </div>
+          ) : (
+            filteredPayments.map((payment) => (
+              <Card key={payment.id} className="overflow-hidden">
+                <CardContent className="p-3">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="font-medium text-sm">{payment.customerName}</div>
+                    <PaymentMethodBadge method={payment.paymentMethod} />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-2">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Calendar className="h-3 w-3" />
+                      {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <FileText className="h-3 w-3" />
+                      Factura #{payment.invoiceNumber}
+                    </div>
+                  </div>
+                  
+                  {payment.notes && (
+                    <div className="text-xs text-muted-foreground mb-2 truncate">
+                      {payment.notes}
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center">
+                    <div className="text-base font-bold">{formatCurrency(payment.amount)}</div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 text-xs px-2"
+                      onClick={() => {
+                        setSelectedPayment(payment);
+                        setDetailsOpen(true);
+                      }}
+                    >
+                      Ver detalles
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
       </div>
 
       {/* Diálogo de detalles del pago */}
