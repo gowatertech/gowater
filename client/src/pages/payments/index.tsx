@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Payment, type Invoice } from "@shared/schema";
+import { Link } from "wouter";
 
 // Extender el tipo Invoice para incluir campos adicionales del endpoint
 interface InvoiceWithDetails extends Invoice {
@@ -319,13 +320,24 @@ export default function Payments() {
                     <CheckCircle className="h-4 w-4 text-blue-400" />
                     Historial de Pagos
                   </CardTitle>
-                  <Button 
-                    size="sm" 
-                    className="h-7 text-xs"
-                    onClick={() => setActiveTab("new")}
-                  >
-                    Registrar Nuevo Pago
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Link href="/pagos/historial">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="h-7 text-xs"
+                      >
+                        Ver Historial Detallado
+                      </Button>
+                    </Link>
+                    <Button 
+                      size="sm" 
+                      className="h-7 text-xs"
+                      onClick={() => setActiveTab("new")}
+                    >
+                      Registrar Nuevo Pago
+                    </Button>
+                  </div>
                 </div>
                 <CardDescription className="text-xs">
                   Consulta todos los pagos registrados en el sistema
