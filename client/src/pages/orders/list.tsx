@@ -206,11 +206,19 @@ export default function OrdersList() {
       printContent.style.fontFamily = "Arial, sans-serif";
       
       // Información de la empresa (encabezado)
+      // Obtener el municipio y provincia de la empresa
+      const municipalityResponse = await apiRequest("GET", `/api/municipalities/${companySettings.municipalityId}`);
+      const municipality = municipalityResponse.ok ? await municipalityResponse.json() : null;
+      
+      const provinceResponse = await apiRequest("GET", `/api/provinces/${companySettings.provinceId}`);
+      const province = provinceResponse.ok ? await provinceResponse.json() : null;
+      
       printContent.innerHTML = `
         <div style="text-align: center; margin-bottom: 10px;">
           <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">${companySettings.name}</div>
           <div style="margin-bottom: 3px;">RNC: ${companySettings.rnc}</div>
           <div style="margin-bottom: 3px;">${companySettings.street} ${companySettings.streetNumber}</div>
+          <div style="margin-bottom: 3px;">${municipality?.name || ""}, ${province?.name || ""}</div>
           <div style="margin-bottom: 3px;">Tel: ${companySettings.contactPhone}</div>
           <div style="margin-bottom: 8px;">Email: ${companySettings.email}</div>
         </div>
@@ -382,14 +390,22 @@ export default function OrdersList() {
       // Información de la empresa
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
+      // Obtener municipio y provincia para el PDF
+      const municipalityResponse = await apiRequest("GET", `/api/municipalities/${companySettings.municipalityId}`);
+      const municipality = municipalityResponse.ok ? await municipalityResponse.json() : null;
+      
+      const provinceResponse = await apiRequest("GET", `/api/provinces/${companySettings.provinceId}`);
+      const province = provinceResponse.ok ? await provinceResponse.json() : null;
+      
       doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
       doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
-      doc.text(`Tel: ${companySettings.contactPhone}`, 40, 23, { align: 'center' });
-      doc.text(`Email: ${companySettings.email}`, 40, 27, { align: 'center' });
+      doc.text(`${municipality?.name || ""}, ${province?.name || ""}`, 40, 23, { align: 'center' });
+      doc.text(`Tel: ${companySettings.contactPhone}`, 40, 27, { align: 'center' });
+      doc.text(`Email: ${companySettings.email}`, 40, 31, { align: 'center' });
       
       // Línea separadora
       doc.setDrawColor(200);
-      doc.line(5, 30, 75, 30);
+      doc.line(5, 34, 75, 34);
       
       // Detalles del pedido
       doc.setFontSize(10);
