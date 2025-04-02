@@ -245,10 +245,10 @@ export default function OrderDetails() {
             ) : (
               <div className="space-y-3">
                 {orderItems.map((item: any) => (
-                  <Card key={item.id} className="p-3">
+                  <Card key={item.productId} className="p-3">
                     <div className="space-y-2">
                       <div className="font-medium">
-                        {products.find((p: any) => p.id === item.id)?.name || "Producto"}
+                        {products.find((p: any) => p.id === item.productId)?.name || "Producto"}
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-sm">
                         <div>
@@ -293,9 +293,9 @@ export default function OrderDetails() {
                     </TableRow>
                   ) : (
                     orderItems.map((item: any) => (
-                      <TableRow key={item.id}>
+                      <TableRow key={item.productId}>
                         <TableCell className="p-2">
-                          {products.find((p: any) => p.id === item.id)?.name || "Producto"}
+                          {products.find((p: any) => p.id === item.productId)?.name || "Producto"}
                         </TableCell>
                         <TableCell className="text-right p-2">{item.quantity}</TableCell>
                         <TableCell className="text-right p-2">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
