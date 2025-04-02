@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { jsPDF } from "jspdf";
+import 'jspdf-autotable';
+import html2canvas from "html2canvas";
 
 // Iconos
 import { 
@@ -15,7 +18,9 @@ import {
   CircleX, 
   AlertTriangle,
   Tag,
-  Package
+  Package,
+  Printer,
+  Download
 } from "lucide-react";
 
 // Componentes UI
@@ -95,6 +100,18 @@ export default function OrderDetails() {
   // Obtener productos para mostrar nombres
   const { data: products = [] } = useQuery<any[]>({
     queryKey: ["/api/products"],
+  });
+
+  // Obtener información de la empresa
+  const { data: companySettings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/settings`);
+      if (!response.ok) {
+        throw new Error('Error al cargar la configuración de la empresa');
+      }
+      return response.json();
+    },
   });
 
   // Mutación para actualizar el estado del pedido
@@ -189,6 +206,226 @@ export default function OrderDetails() {
   }
 
   const customer = customers.find((c: any) => c.id === order.customerId);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  // Función para generar e imprimir el ticket
+  const handlePrint = () => {
+    const printContent = document.createElement("div");
+    printContent.style.width = "80mm"; // Ancho de 3 pulgadas (76.2mm)
+    printContent.style.margin = "0 auto";
+    printContent.style.fontSize = "10px";
+    printContent.style.fontFamily = "Arial, sans-serif";
+    
+    // Información de la empresa (encabezado)
+    if (companySettings) {
+      printContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 10px;">
+          <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">${companySettings.name}</div>
+          <div style="margin-bottom: 3px;">RNC: ${companySettings.rnc}</div>
+          <div style="margin-bottom: 3px;">${companySettings.street} ${companySettings.streetNumber}</div>
+          <div style="margin-bottom: 3px;">Tel: ${companySettings.contactPhone}</div>
+          <div style="margin-bottom: 8px;">Email: ${companySettings.email}</div>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+      `;
+    }
+    
+    // Información del pedido
+    printContent.innerHTML += `
+      <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">PEDIDO #${order.id}</div>
+      <div style="margin-bottom: 5px;">Fecha: ${new Date(order.date).toLocaleDateString()}</div>
+      <div style="margin-bottom: 5px;">Cliente: ${customer?.businessname || "Cliente"}</div>
+      <div style="margin-bottom: 5px;">Dirección: ${order.customerAddress}</div>
+      ${order.notes ? `<div style="margin-bottom: 5px;">Notas: ${order.notes}</div>` : ''}
+      <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+    `;
+    
+    // Detalles de productos
+    printContent.innerHTML += `
+      <div style="margin-bottom: 5px; font-weight: bold;">DETALLE DE PRODUCTOS</div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+        <tr style="border-bottom: 1px solid #eee;">
+          <th style="text-align: left; padding: 3px 0;">Prod.</th>
+          <th style="text-align: right; padding: 3px 0;">Cant.</th>
+          <th style="text-align: right; padding: 3px 0;">Precio</th>
+          <th style="text-align: right; padding: 3px 0;">Total</th>
+        </tr>
+    `;
+    
+    // Agregar productos
+    orderItems.forEach((item: any) => {
+      const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
+      const total = parseFloat(item.price) * item.quantity;
+      
+      printContent.innerHTML += `
+        <tr style="border-bottom: 1px dotted #eee;">
+          <td style="text-align: left; padding: 3px 0;">${productName}</td>
+          <td style="text-align: right; padding: 3px 0;">${item.quantity}</td>
+          <td style="text-align: right; padding: 3px 0;">RD$${parseFloat(item.price).toFixed(2)}</td>
+          <td style="text-align: right; padding: 3px 0;">RD$${total.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+    
+    // Totales
+    printContent.innerHTML += `
+        <tr>
+          <td colspan="2"></td>
+          <td style="text-align: right; padding: 5px 0; font-weight: bold;">TOTAL:</td>
+          <td style="text-align: right; padding: 5px 0; font-weight: bold;">RD$${parseFloat(order.total).toFixed(2)}</td>
+        </tr>
+      </table>
+      <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+      <div style="text-align: center; font-size: 9px; margin-top: 10px;">
+        <p>¡Gracias por su compra!</p>
+      </div>
+    `;
+    
+    // Crear un iframe para la impresión
+    const printFrame = document.createElement("iframe");
+    printFrame.style.display = "none";
+    document.body.appendChild(printFrame);
+    
+    // Escribir el contenido en el iframe
+    if (printFrame.contentWindow) {
+      printFrame.contentWindow.document.open();
+      printFrame.contentWindow.document.write(`
+        <html>
+          <head>
+            <title>Ticket #${order.id}</title>
+            <style>
+              @media print {
+                body { 
+                  margin: 0; 
+                  padding: 0;
+                  width: 80mm; 
+                }
+                * { box-sizing: border-box; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent.outerHTML}
+          </body>
+        </html>
+      `);
+      printFrame.contentWindow.document.close();
+      
+      // Imprimir
+      printFrame.contentWindow.focus();
+      printFrame.contentWindow.print();
+      
+      // Remover el iframe después de imprimir
+      setTimeout(() => {
+        document.body.removeChild(printFrame);
+      }, 1000);
+    }
+  };
+
+  // Función para descargar el pedido como PDF
+  const handleDownload = () => {
+    if (!companySettings) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo cargar la información de la empresa",
+      });
+      return;
+    }
+    
+    // Crear un documento PDF (tamaño ticket térmico)
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 200], // 80mm de ancho (3 pulgadas) x 200mm de alto
+    });
+    
+    // Agregar logo o nombre de la empresa
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companySettings.name, 40, 10, { align: 'center' });
+    
+    // Información de la empresa
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
+    doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
+    doc.text(`Tel: ${companySettings.contactPhone}`, 40, 23, { align: 'center' });
+    doc.text(`Email: ${companySettings.email}`, 40, 27, { align: 'center' });
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    doc.line(5, 30, 75, 30);
+    
+    // Detalles del pedido
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`PEDIDO #${order.id}`, 40, 35, { align: 'center' });
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 5, 40);
+    doc.text(`Cliente: ${customer?.businessname || "Cliente"}`, 5, 44);
+    doc.text(`Dirección: ${order.customerAddress}`, 5, 48);
+    
+    if (order.notes) {
+      doc.text(`Notas: ${order.notes}`, 5, 52);
+    }
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    doc.line(5, 56, 75, 56);
+    
+    // Encabezado de productos
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text("DETALLE DE PRODUCTOS", 40, 60, { align: 'center' });
+    
+    doc.setFontSize(7);
+    doc.text("Producto", 5, 65);
+    doc.text("Cant.", 45, 65, { align: 'right' });
+    doc.text("Precio", 60, 65, { align: 'right' });
+    doc.text("Total", 75, 65, { align: 'right' });
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    doc.line(5, 67, 75, 67);
+    
+    // Productos
+    let yPos = 71;
+    doc.setFont('helvetica', 'normal');
+    
+    orderItems.forEach((item: any) => {
+      const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
+      const total = parseFloat(item.price) * item.quantity;
+      
+      doc.text(productName.length > 20 ? productName.substring(0, 18) + "..." : productName, 5, yPos);
+      doc.text(`${item.quantity}`, 45, yPos, { align: 'right' });
+      doc.text(`RD$${parseFloat(item.price).toFixed(2)}`, 60, yPos, { align: 'right' });
+      doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
+      
+      yPos += 5;
+    });
+    
+    // Línea separadora
+    doc.setDrawColor(200);
+    doc.line(5, yPos, 75, yPos);
+    yPos += 5;
+    
+    // Total
+    doc.setFont('helvetica', 'bold');
+    doc.text("TOTAL:", 60, yPos, { align: 'right' });
+    doc.text(`RD$${parseFloat(order.total).toFixed(2)}`, 75, yPos, { align: 'right' });
+    
+    // Mensaje final
+    yPos += 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text("¡Gracias por su compra!", 40, yPos, { align: 'center' });
+    
+    // Guardar PDF
+    doc.save(`Pedido-${order.id}.pdf`);
+  };
 
   return (
     <div className="space-y-3 sm:space-y-4">
@@ -197,15 +434,54 @@ export default function OrderDetails() {
           <FileText className="h-5 w-5 text-primary" />
           Pedido #{order.id}
         </h1>
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={() => setLocation("/orders/list")}
-          className="w-full sm:w-auto"
-        >
-          Volver a la Lista
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handlePrint}
+            className="w-full sm:w-auto flex items-center gap-1"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            className="w-full sm:w-auto flex items-center gap-1"
+          >
+            <Download className="h-4 w-4" />
+            Descargar PDF
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation("/orders/list")}
+            className="w-full sm:w-auto"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Volver
+          </Button>
+        </div>
       </div>
+      
+      {/* Área oculta para referencia del ticket */}
+      <div ref={receiptRef} style={{ display: 'none' }}></div>
+
+      {/* Información de la empresa */}
+      {companySettings && (
+        <Card className="p-3 sm:p-4">
+          <CardContent className="p-0 space-y-2">
+            <div className="flex flex-col items-center text-center">
+              <h2 className="text-xl font-bold">{companySettings.name}</h2>
+              <p className="text-sm">RNC: {companySettings.rnc}</p>
+              <p className="text-sm">{companySettings.street} {companySettings.streetNumber}</p>
+              <p className="text-sm">Tel: {companySettings.contactPhone}</p>
+              <p className="text-sm">Email: {companySettings.email}</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="p-3 sm:p-4">
         <CardContent className="p-0 space-y-4">
