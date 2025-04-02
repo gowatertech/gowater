@@ -240,7 +240,10 @@ export default function OrderDetails() {
       <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">PEDIDO #${order.id}</div>
       <div style="margin-bottom: 5px;">Fecha: ${new Date(order.date).toLocaleDateString()}</div>
       <div style="margin-bottom: 5px;">Cliente: ${customer?.businessname || "Cliente"}</div>
+      <div style="margin-bottom: 5px;">Teléfono: ${order.customerPhone || "No disponible"}</div>
       <div style="margin-bottom: 5px;">Dirección: ${order.customerAddress}</div>
+      <div style="margin-bottom: 5px;">Ubicación: ${order.municipalityName || ""}, ${order.provinceName || ""}</div>
+      <div style="margin-bottom: 5px;">Método de pago: ${order.paymentMethod === 'cash' ? 'Efectivo' : order.paymentMethod}</div>
       ${order.notes ? `<div style="margin-bottom: 5px;">Notas: ${order.notes}</div>` : ''}
       <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
     `;
@@ -371,33 +374,40 @@ export default function OrderDetails() {
     doc.setFont('helvetica', 'normal');
     doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 5, 40);
     doc.text(`Cliente: ${customer?.businessname || "Cliente"}`, 5, 44);
-    doc.text(`Dirección: ${order.customerAddress}`, 5, 48);
+    doc.text(`Teléfono: ${order.customerPhone || "No disponible"}`, 5, 48);
+    doc.text(`Dirección: ${order.customerAddress}`, 5, 52);
+    doc.text(`Ubicación: ${order.municipalityName || ""}, ${order.provinceName || ""}`, 5, 56);
+    doc.text(`Método de pago: ${order.paymentMethod === 'cash' ? 'Efectivo' : order.paymentMethod}`, 5, 60);
     
+    // Ajustamos la posición para las notas
+    let notesYPos = 64;
     if (order.notes) {
-      doc.text(`Notas: ${order.notes}`, 5, 52);
+      doc.text(`Notas: ${order.notes}`, 5, notesYPos);
+      notesYPos += 4;
     }
     
     // Línea separadora
     doc.setDrawColor(200);
-    doc.line(5, 56, 75, 56);
+    doc.line(5, notesYPos + 2, 75, notesYPos + 2);
     
     // Encabezado de productos
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text("DETALLE DE PRODUCTOS", 40, 60, { align: 'center' });
+    doc.text("DETALLE DE PRODUCTOS", 40, notesYPos + 6, { align: 'center' });
     
     doc.setFontSize(7);
-    doc.text("Producto", 5, 65);
-    doc.text("Cant.", 45, 65, { align: 'right' });
-    doc.text("Precio", 60, 65, { align: 'right' });
-    doc.text("Total", 75, 65, { align: 'right' });
+    let headerY = notesYPos + 10;
+    doc.text("Producto", 5, headerY);
+    doc.text("Cant.", 45, headerY, { align: 'right' });
+    doc.text("Precio", 60, headerY, { align: 'right' });
+    doc.text("Total", 75, headerY, { align: 'right' });
     
     // Línea separadora
     doc.setDrawColor(200);
-    doc.line(5, 67, 75, 67);
+    doc.line(5, headerY + 2, 75, headerY + 2);
     
     // Productos
-    let yPos = 71;
+    let yPos = headerY + 6;
     doc.setFont('helvetica', 'normal');
     
     orderItems.forEach((item: any) => {
@@ -500,14 +510,44 @@ export default function OrderDetails() {
                 </div>
               </div>
               <div>
+                <div className="text-xs font-medium text-muted-foreground">Teléfono</div>
+                <div className="text-sm">{order.customerPhone || "No disponible"}</div>
+              </div>
+              <div>
                 <div className="text-xs font-medium text-muted-foreground">Fecha</div>
                 <div className="text-sm">{new Date(order.date).toLocaleDateString()}</div>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+              <div>
+                <div className="text-xs font-medium text-muted-foreground">Dirección</div>
+                <div className="text-sm">{order.customerAddress || "No especificada"}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground">Municipio</div>
+                <div className="text-sm">{order.municipalityName || "No especificado"}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground">Provincia</div>
+                <div className="text-sm">{order.provinceName || "No especificada"}</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
               <div>
                 <div className="text-xs font-medium text-muted-foreground">Estado</div>
                 <div>
                   {getStatusBadge(order.status)}
                 </div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground">Método de pago</div>
+                <div className="text-sm">{order.paymentMethod === 'cash' ? 'Efectivo' : order.paymentMethod}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-muted-foreground">Total</div>
+                <div className="text-sm font-semibold">RD$ {parseFloat(order.total).toFixed(2)}</div>
               </div>
             </div>
           </div>
