@@ -69,19 +69,22 @@ export default function OrdersList() {
   });
 
   // Filtrar pedidos según criterios de búsqueda
-  const filteredOrders = orders.filter((order: any) => {
-    // Filtrar por término de búsqueda
-    const customer = customers?.find((c: any) => c.id === order.customerId);
-    const searchMatch = 
-      customer?.businessname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.id.toString().includes(searchTerm) ||
-      order.total.toString().includes(searchTerm);
-    
-    // Filtrar por estado
-    const statusMatch = statusFilter === "all" || order.status === statusFilter;
-    
-    return searchMatch && statusMatch;
-  });
+  const filteredOrders = orders
+    .filter((order: any) => {
+      // Filtrar por término de búsqueda
+      const customer = customers?.find((c: any) => c.id === order.customerId);
+      const searchMatch = 
+        customer?.businessname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toString().includes(searchTerm) ||
+        order.total.toString().includes(searchTerm);
+      
+      // Filtrar por estado
+      const statusMatch = statusFilter === "all" || order.status === statusFilter;
+      
+      return searchMatch && statusMatch;
+    })
+    // Ordenar por ID de mayor a menor (más recientes primero)
+    .sort((a: any, b: any) => b.id - a.id);
 
   // Obtener estadísticas de pedidos
   const getOrderStats = () => {
