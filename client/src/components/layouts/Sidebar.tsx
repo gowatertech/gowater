@@ -106,9 +106,9 @@ const sidebarItems = [
     href: "/payments",
     description: "Gestión financiera", 
     subItems: [
-      { icon: CreditCard, label: "Pagos", href: "/payments" },
-      { icon: List, label: "Lista de Pagos", href: "/pagos/lista" },
-      { icon: AreaChart, label: "Historial de Pagos", href: "/pagos/historial" },
+      { icon: CreditCard, label: "Payments", href: "/payments" },
+      { icon: List, label: "Payments List", href: "/payments/list" },
+      { icon: AreaChart, label: "Payment History", href: "/payments/history" },
       { icon: FileText, label: "Facturación", href: "/billing" },
       { icon: TrendingUp, label: "Comisiones", href: "/payments/commissions" },
     ],
