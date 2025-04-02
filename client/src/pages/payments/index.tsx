@@ -206,32 +206,28 @@ export default function PaymentDashboard() {
 
         {/* Tarjetas para Navegación */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <Card className="hover:bg-muted/10 transition-colors cursor-pointer">
-            <Link href="/payments/register">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
-                  <Plus className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Registrar Pago</h3>
-                  <p className="text-sm text-muted-foreground">Añadir un nuevo pago al sistema</p>
-                </div>
-              </CardContent>
-            </Link>
+          <Card className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => setLocation("/payments/register")}>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                <Plus className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Registrar Pago</h3>
+                <p className="text-sm text-muted-foreground">Añadir un nuevo pago al sistema</p>
+              </div>
+            </CardContent>
           </Card>
 
-          <Card className="hover:bg-muted/10 transition-colors cursor-pointer">
-            <Link href="/payments/history">
-              <CardContent className="p-4 flex items-center gap-4">
-                <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
-                  <HistoryIcon className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Historial de Pagos</h3>
+          <Card className="hover:bg-muted/10 transition-colors cursor-pointer" onClick={() => setLocation("/payments/history")}>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
+                <HistoryIcon className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Historial de Pagos</h3>
                   <p className="text-sm text-muted-foreground">Ver todos los pagos realizados</p>
                 </div>
               </CardContent>
-            </Link>
           </Card>
         </div>
 
@@ -243,15 +239,14 @@ export default function PaymentDashboard() {
                 <CheckCircle className="h-5 w-5 text-blue-500" />
                 <CardTitle className="text-xl">Pagos Recientes</CardTitle>
               </div>
-              <Link href="/payments/history">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="h-8 text-xs"
-                >
-                  Ver Historial Completo
-                </Button>
-              </Link>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={() => setLocation("/payments/history")}
+              >
+                Ver Historial Completo
+              </Button>
             </div>
             <CardDescription className="text-sm">
               Últimos pagos registrados en el sistema
