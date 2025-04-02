@@ -1,9 +1,16 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+// @ts-ignore
+import { jsPDF } from "jspdf";
+// @ts-ignore
+import 'jspdf-autotable';
+// @ts-ignore
+import html2canvas from "html2canvas";
 
 // Iconos
 import { 
@@ -19,7 +26,9 @@ import {
   CircleX, 
   AlertTriangle,
   Calendar,
-  SearchX
+  SearchX,
+  Printer,
+  Download
 } from "lucide-react";
 
 // Componentes UI
@@ -55,6 +64,7 @@ export default function OrdersList() {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -66,6 +76,23 @@ export default function OrdersList() {
   // Obtener clientes para mostrar sus nombres
   const { data: customers = [] } = useQuery<any[]>({
     queryKey: ["/api/customers"],
+  });
+  
+  // Obtener productos para mostrar nombres
+  const { data: products = [] } = useQuery<any[]>({
+    queryKey: ["/api/products"],
+  });
+  
+  // Obtener información de la empresa para los tickets
+  const { data: companySettings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/settings`);
+      if (!response.ok) {
+        throw new Error('Error al cargar la configuración de la empresa');
+      }
+      return response.json();
+    },
   });
 
   // Filtrar pedidos según criterios de búsqueda
@@ -139,6 +166,284 @@ export default function OrdersList() {
         return "border-l-red-500";
       default:
         return "border-l-gray-500";
+    }
+  };
+  
+  // Función para generar e imprimir el ticket
+  const handlePrint = async (orderId: number) => {
+    // Primero obtener los detalles del pedido
+    try {
+      const response = await apiRequest("GET", `/api/orders/${orderId}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar el pedido');
+      }
+      const order = await response.json();
+      
+      // Obtener los items del pedido
+      const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
+      if (!itemsResponse.ok) {
+        throw new Error('Error al cargar los items del pedido');
+      }
+      const orderItems = await itemsResponse.json();
+      
+      // Verificar que tengamos la configuración de la empresa
+      if (!companySettings) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cargar la información de la empresa",
+        });
+        return;
+      }
+      
+      const customer = customers?.find((c: any) => c.id === order.customerId);
+      
+      // Crear el contenido del ticket
+      const printContent = document.createElement("div");
+      printContent.style.width = "80mm"; // Ancho de 3 pulgadas (76.2mm)
+      printContent.style.margin = "0 auto";
+      printContent.style.fontSize = "10px";
+      printContent.style.fontFamily = "Arial, sans-serif";
+      
+      // Información de la empresa (encabezado)
+      printContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 10px;">
+          <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">${companySettings.name}</div>
+          <div style="margin-bottom: 3px;">RNC: ${companySettings.rnc}</div>
+          <div style="margin-bottom: 3px;">${companySettings.street} ${companySettings.streetNumber}</div>
+          <div style="margin-bottom: 3px;">Tel: ${companySettings.contactPhone}</div>
+          <div style="margin-bottom: 8px;">Email: ${companySettings.email}</div>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+      `;
+      
+      // Información del pedido
+      printContent.innerHTML += `
+        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">PEDIDO #${order.id}</div>
+        <div style="margin-bottom: 5px;">Fecha: ${new Date(order.date).toLocaleDateString()}</div>
+        <div style="margin-bottom: 5px;">Cliente: ${customer?.businessname || "Cliente"}</div>
+        <div style="margin-bottom: 5px;">Dirección: ${order.customerAddress}</div>
+        ${order.notes ? `<div style="margin-bottom: 5px;">Notas: ${order.notes}</div>` : ''}
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+      `;
+      
+      // Detalles de productos
+      printContent.innerHTML += `
+        <div style="margin-bottom: 5px; font-weight: bold;">DETALLE DE PRODUCTOS</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
+          <tr style="border-bottom: 1px solid #eee;">
+            <th style="text-align: left; padding: 3px 0;">Prod.</th>
+            <th style="text-align: right; padding: 3px 0;">Cant.</th>
+            <th style="text-align: right; padding: 3px 0;">Precio</th>
+            <th style="text-align: right; padding: 3px 0;">Total</th>
+          </tr>
+      `;
+      
+      // Agregar productos
+      orderItems.forEach((item: any) => {
+        const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
+        const total = parseFloat(item.price) * item.quantity;
+        
+        printContent.innerHTML += `
+          <tr style="border-bottom: 1px dotted #eee;">
+            <td style="text-align: left; padding: 3px 0;">${productName}</td>
+            <td style="text-align: right; padding: 3px 0;">${item.quantity}</td>
+            <td style="text-align: right; padding: 3px 0;">RD$${parseFloat(item.price).toFixed(2)}</td>
+            <td style="text-align: right; padding: 3px 0;">RD$${total.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+      
+      // Totales
+      printContent.innerHTML += `
+          <tr>
+            <td colspan="2"></td>
+            <td style="text-align: right; padding: 5px 0; font-weight: bold;">TOTAL:</td>
+            <td style="text-align: right; padding: 5px 0; font-weight: bold;">RD$${parseFloat(order.total).toFixed(2)}</td>
+          </tr>
+        </table>
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+        <div style="text-align: center; font-size: 9px; margin-top: 10px;">
+          <p>¡Gracias por su compra!</p>
+        </div>
+      `;
+      
+      // Crear un iframe para la impresión
+      const printFrame = document.createElement("iframe");
+      printFrame.style.display = "none";
+      document.body.appendChild(printFrame);
+      
+      // Escribir el contenido en el iframe
+      if (printFrame.contentWindow) {
+        printFrame.contentWindow.document.open();
+        printFrame.contentWindow.document.write(`
+          <html>
+            <head>
+              <title>Ticket #${order.id}</title>
+              <style>
+                @media print {
+                  body { 
+                    margin: 0; 
+                    padding: 0;
+                    width: 80mm; 
+                  }
+                  * { box-sizing: border-box; }
+                }
+              </style>
+            </head>
+            <body>
+              ${printContent.outerHTML}
+            </body>
+          </html>
+        `);
+        printFrame.contentWindow.document.close();
+        
+        // Imprimir
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+        
+        // Remover el iframe después de imprimir
+        setTimeout(() => {
+          document.body.removeChild(printFrame);
+        }, 1000);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al generar el ticket",
+      });
+    }
+  };
+
+  // Función para descargar el pedido como PDF
+  const handleDownload = async (orderId: number) => {
+    // Primero obtener los detalles del pedido
+    try {
+      const response = await apiRequest("GET", `/api/orders/${orderId}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar el pedido');
+      }
+      const order = await response.json();
+      
+      // Obtener los items del pedido
+      const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
+      if (!itemsResponse.ok) {
+        throw new Error('Error al cargar los items del pedido');
+      }
+      const orderItems = await itemsResponse.json();
+      
+      // Verificar que tengamos la configuración de la empresa
+      if (!companySettings) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cargar la información de la empresa",
+        });
+        return;
+      }
+      
+      const customer = customers?.find((c: any) => c.id === order.customerId);
+      
+      // Crear un documento PDF (tamaño ticket térmico)
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 200], // 80mm de ancho (3 pulgadas) x 200mm de alto
+      });
+      
+      // Agregar logo o nombre de la empresa
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(companySettings.name, 40, 10, { align: 'center' });
+      
+      // Información de la empresa
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
+      doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
+      doc.text(`Tel: ${companySettings.contactPhone}`, 40, 23, { align: 'center' });
+      doc.text(`Email: ${companySettings.email}`, 40, 27, { align: 'center' });
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, 30, 75, 30);
+      
+      // Detalles del pedido
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`PEDIDO #${order.id}`, 40, 35, { align: 'center' });
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 5, 40);
+      doc.text(`Cliente: ${customer?.businessname || "Cliente"}`, 5, 44);
+      doc.text(`Dirección: ${order.customerAddress}`, 5, 48);
+      
+      if (order.notes) {
+        doc.text(`Notas: ${order.notes}`, 5, 52);
+      }
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      const notesOffset = order.notes ? 4 : 0;
+      doc.line(5, 56 + notesOffset, 75, 56 + notesOffset);
+      
+      // Encabezado de productos
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text("DETALLE DE PRODUCTOS", 40, 60 + notesOffset, { align: 'center' });
+      
+      doc.setFontSize(7);
+      doc.text("Producto", 5, 65 + notesOffset);
+      doc.text("Cant.", 45, 65 + notesOffset, { align: 'right' });
+      doc.text("Precio", 60, 65 + notesOffset, { align: 'right' });
+      doc.text("Total", 75, 65 + notesOffset, { align: 'right' });
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, 67 + notesOffset, 75, 67 + notesOffset);
+      
+      // Productos
+      let yPos = 71 + notesOffset;
+      doc.setFont('helvetica', 'normal');
+      
+      orderItems.forEach((item: any) => {
+        const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
+        const total = parseFloat(item.price) * item.quantity;
+        
+        doc.text(productName.length > 20 ? productName.substring(0, 18) + "..." : productName, 5, yPos);
+        doc.text(`${item.quantity}`, 45, yPos, { align: 'right' });
+        doc.text(`RD$${parseFloat(item.price).toFixed(2)}`, 60, yPos, { align: 'right' });
+        doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
+        
+        yPos += 5;
+      });
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+      
+      // Total
+      doc.setFont('helvetica', 'bold');
+      doc.text("TOTAL:", 60, yPos, { align: 'right' });
+      doc.text(`RD$${parseFloat(order.total).toFixed(2)}`, 75, yPos, { align: 'right' });
+      
+      // Mensaje final
+      yPos += 10;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text("¡Gracias por su compra!", 40, yPos, { align: 'center' });
+      
+      // Guardar PDF
+      doc.save(`Pedido-${order.id}.pdf`);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al generar el PDF",
+      });
     }
   };
 
@@ -306,7 +611,7 @@ export default function OrdersList() {
                       
                       <div className="flex justify-between items-center">
                         <div>{getStatusBadge(order.status)}</div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap justify-end">
                           <Button
                             variant="outline"
                             size="sm"
@@ -324,6 +629,24 @@ export default function OrdersList() {
                           >
                             <Tag className="h-3.5 w-3.5 mr-1" />
                             Estado
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => handlePrint(order.id)}
+                          >
+                            <Printer className="h-3.5 w-3.5 mr-1" />
+                            Imprimir
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={() => handleDownload(order.id)}
+                          >
+                            <Download className="h-3.5 w-3.5 mr-1" />
+                            PDF
                           </Button>
                         </div>
                       </div>
@@ -388,6 +711,24 @@ export default function OrdersList() {
                             >
                               <Tag className="h-3.5 w-3.5 mr-1" />
                               Estado
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => handlePrint(order.id)}
+                            >
+                              <Printer className="h-3.5 w-3.5 mr-1" />
+                              Imprimir
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                              onClick={() => handleDownload(order.id)}
+                            >
+                              <Download className="h-3.5 w-3.5 mr-1" />
+                              PDF
                             </Button>
                           </div>
                         </TableCell>
