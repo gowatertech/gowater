@@ -232,10 +232,10 @@ export default function OrdersList() {
         <div style="margin-bottom: 5px; font-weight: bold;">DETALLE DE PRODUCTOS</div>
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <tr style="border-bottom: 1px solid #eee;">
-            <th style="text-align: left; padding: 3px 0;">Prod.</th>
-            <th style="text-align: right; padding: 3px 0;">Cant.</th>
-            <th style="text-align: right; padding: 3px 0;">Precio</th>
-            <th style="text-align: right; padding: 3px 0;">Total</th>
+            <th style="text-align: left; padding: 3px 0; width: 40%;">Producto</th>
+            <th style="text-align: center; padding: 3px 0; width: 15%;">Cant.</th>
+            <th style="text-align: right; padding: 3px 0; width: 20%;">Precio</th>
+            <th style="text-align: right; padding: 3px 0; width: 25%;">Total</th>
           </tr>
       `;
       
@@ -246,10 +246,10 @@ export default function OrdersList() {
         
         printContent.innerHTML += `
           <tr style="border-bottom: 1px dotted #eee;">
-            <td style="text-align: left; padding: 3px 0;">${productName}</td>
-            <td style="text-align: right; padding: 3px 0;">${item.quantity}</td>
-            <td style="text-align: right; padding: 3px 0;">RD$${parseFloat(item.price).toFixed(2)}</td>
-            <td style="text-align: right; padding: 3px 0;">RD$${total.toFixed(2)}</td>
+            <td style="text-align: left; padding: 3px 0; width: 40%;">${productName}</td>
+            <td style="text-align: center; padding: 3px 0; width: 15%;">${item.quantity}</td>
+            <td style="text-align: right; padding: 3px 0; width: 20%;">RD$${parseFloat(item.price).toFixed(2)}</td>
+            <td style="text-align: right; padding: 3px 0; width: 25%;">RD$${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -396,8 +396,8 @@ export default function OrdersList() {
       
       doc.setFontSize(7);
       doc.text("Producto", 5, 65 + notesOffset);
-      doc.text("Cant.", 45, 65 + notesOffset, { align: 'right' });
-      doc.text("Precio", 60, 65 + notesOffset, { align: 'right' });
+      doc.text("Cant.", 35, 65 + notesOffset, { align: 'center' });
+      doc.text("Precio", 55, 65 + notesOffset, { align: 'right' });
       doc.text("Total", 75, 65 + notesOffset, { align: 'right' });
       
       // Línea separadora
@@ -412,9 +412,9 @@ export default function OrdersList() {
         const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
         const total = parseFloat(item.price) * item.quantity;
         
-        doc.text(productName.length > 20 ? productName.substring(0, 18) + "..." : productName, 5, yPos);
-        doc.text(`${item.quantity}`, 45, yPos, { align: 'right' });
-        doc.text(`RD$${parseFloat(item.price).toFixed(2)}`, 60, yPos, { align: 'right' });
+        doc.text(productName.length > 18 ? productName.substring(0, 16) + "..." : productName, 5, yPos);
+        doc.text(`${item.quantity}`, 35, yPos, { align: 'center' });
+        doc.text(`RD$${parseFloat(item.price).toFixed(2)}`, 55, yPos, { align: 'right' });
         doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
         
         yPos += 5;
