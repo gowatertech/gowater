@@ -1020,137 +1020,186 @@ export default function Billing() {
           </TabsContent>
 
           {/* Pestaña de Detalles */}
-          <TabsContent value="details" className="space-y-4">
+          <TabsContent value="details" className="space-y-3 sm:space-y-4">
             {selectedInvoice ? (
-              <Card>
-                <CardHeader className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <CardTitle className="text-base">Detalle de Factura #{selectedInvoice.id}</CardTitle>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setActiveTab("list")}
-                    >
-                      Volver a la Lista
-                    </Button>
-                  </div>
-                  <CardDescription className="text-xs">
-                    Información detallada de la factura
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 p-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <div className="text-xs font-medium text-muted-foreground">Cliente</div>
-                      <div className="font-medium text-xs">
-                        {selectedInvoice.businessName || 
-                          customers.find((c: any) => c.id === selectedInvoice.customerId)?.businessname || 
-                          "Cliente"}
+              <>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+                  <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Factura #{selectedInvoice.invoiceNumber}
+                  </h1>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveTab("list")}
+                    className="w-full sm:w-auto"
+                  >
+                    Volver a la Lista
+                  </Button>
+                </div>
+
+                <Card className="p-3 sm:p-4">
+                  <CardContent className="p-0 space-y-4">
+                    {/* Información básica de la factura */}
+                    <div className="bg-muted/30 rounded-lg p-3 sm:p-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground">Cliente</div>
+                          <div className="font-medium text-sm">
+                            {selectedInvoice.businessName || 
+                              customers.find((c: any) => c.id === selectedInvoice.customerId)?.businessname || 
+                              "Cliente"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground">Fecha</div>
+                          <div className="text-sm">{new Date(selectedInvoice.date).toLocaleDateString()}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground">Estado</div>
+                          <div>
+                            <StatusBadge status={selectedInvoice.status} invoice={selectedInvoice} />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-xs font-medium text-muted-foreground">Fecha</div>
-                      <div className="text-xs">{new Date(selectedInvoice.date).toLocaleDateString()}</div>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-xs font-medium text-muted-foreground">Estado</div>
-                      <StatusBadge status={selectedInvoice.status} invoice={selectedInvoice} />
+
+                    {/* Sección de notas */}
+                    <div className="space-y-1 sm:space-y-2">
+                      <div className="text-sm font-medium">Notas</div>
+                      <p className="text-sm bg-muted/20 rounded-lg p-2">{selectedInvoice.notes || "Sin notas"}</p>
                     </div>
 
-                    <div className="md:col-span-3">
-                      <Separator className="my-2" />
-                      <div className="font-medium mb-1 text-sm">Detalles de Productos</div>
-                      <Table>
-                        <TableHeader className="bg-muted/50">
-                          <TableRow>
-                            <TableHead className="py-1.5 text-xs">Producto</TableHead>
-                            <TableHead className="py-1.5 text-xs text-right">Cantidad</TableHead>
-                            <TableHead className="py-1.5 text-xs text-right">Precio</TableHead>
-                            <TableHead className="py-1.5 text-xs text-right">Total</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {invoiceDetails.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={4} className="text-center py-4">
-                                No hay detalles disponibles
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            invoiceDetails.map((item: any) => (
-                              <TableRow key={item.id}>
-                                <TableCell className="py-1.5 text-xs">
+                    {/* Productos - Vista Móvil */}
+                    <div className="space-y-2 block md:hidden">
+                      <div className="text-sm font-medium">Detalles de Productos</div>
+                      {invoiceDetails.length === 0 ? (
+                        <div className="py-4 text-center">No hay detalles disponibles</div>
+                      ) : (
+                        <div className="space-y-3">
+                          {invoiceDetails.map((item: any) => (
+                            <Card key={item.id} className="p-3">
+                              <div className="space-y-2">
+                                <div className="font-medium">
                                   {products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
-                                </TableCell>
-                                <TableCell className="py-1.5 text-xs text-right">{item.quantity}</TableCell>
-                                <TableCell className="py-1.5 text-xs text-right">{parseFloat(item.price).toFixed(2)}</TableCell>
-                                <TableCell className="py-1.5 text-xs text-right">{parseFloat(item.total).toFixed(2)}</TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <div className="space-y-1">
-                        <div className="text-xs font-medium text-muted-foreground">Notas</div>
-                        <p className="text-xs">{selectedInvoice.notes || "Sin notas"}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 p-2 bg-muted rounded-lg">
-                      <div className="flex justify-between text-xs">
-                        <span>Total:</span>
-                        <span className="font-medium">RD$ {parseFloat(selectedInvoice.total).toFixed(2)}</span>
-                      </div>
-                      {selectedInvoice.totalPaid && (
-                        <>
-                          <div className="flex justify-between text-xs">
-                            <span>Pagado:</span>
-                            <span className="font-medium">RD$ {parseFloat(selectedInvoice.totalPaid).toFixed(2)}</span>
-                          </div>
-                          <div className="flex justify-between text-xs">
-                            <span>Pendiente:</span>
-                            <span className="font-medium">RD$ {parseFloat(selectedInvoice.pendingAmount || "0").toFixed(2)}</span>
-                          </div>
-                        </>
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                  <div>
+                                    <div className="text-xs text-muted-foreground">Cantidad</div>
+                                    <div>{item.quantity}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-muted-foreground">Precio</div>
+                                    <div>RD$ {parseFloat(item.price).toFixed(2)}</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-muted-foreground">Total</div>
+                                    <div className="font-medium">RD$ {parseFloat(item.total).toFixed(2)}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          ))}
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {selectedInvoice.status !== "paid" && (
-                    <div className="p-2 border rounded-lg space-y-1.5 mt-2">
-                      <h3 className="font-medium text-xs">Registrar Pago</h3>
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          placeholder="Monto a pagar"
-                          className="max-w-xs h-7 text-xs"
-                          min="0"
-                          step="0.01"
-                          id="paymentAmount"
-                        />
-                        <Button
-                          size="sm"
-                          className="h-7 text-xs"
-                          onClick={() => {
-                            const amountInput = document.getElementById("paymentAmount") as HTMLInputElement;
-                            handlePayment(selectedInvoice, amountInput.value);
-                          }}
-                          disabled={createPaymentMutation.isPending}
-                        >
-                          {createPaymentMutation.isPending ? "Procesando..." : "Procesar Pago"}
-                        </Button>
+                    {/* Productos - Vista Desktop */}
+                    <div className="space-y-2 hidden md:block">
+                      <div className="text-sm font-medium">Detalles de Productos</div>
+                      <div className="border rounded-lg overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-muted/50">
+                            <TableRow>
+                              <TableHead className="py-2">Producto</TableHead>
+                              <TableHead className="py-2 text-right">Cantidad</TableHead>
+                              <TableHead className="py-2 text-right">Precio</TableHead>
+                              <TableHead className="py-2 text-right">Total</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {invoiceDetails.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={4} className="text-center p-3">
+                                  No hay detalles disponibles
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              invoiceDetails.map((item: any) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="p-2">
+                                    {products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
+                                  </TableCell>
+                                  <TableCell className="text-right p-2">{item.quantity}</TableCell>
+                                  <TableCell className="text-right p-2">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
+                                  <TableCell className="text-right font-medium p-2">RD$ {parseFloat(item.total).toFixed(2)}</TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                    {/* Totales */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div></div>
+                      <div className="space-y-1.5 p-3 bg-muted/30 rounded-lg">
+                        <div className="flex justify-between text-sm">
+                          <span>Total:</span>
+                          <span className="font-medium">RD$ {parseFloat(selectedInvoice.total).toFixed(2)}</span>
+                        </div>
+                        {selectedInvoice.totalPaid && (
+                          <>
+                            <div className="flex justify-between text-sm">
+                              <span>Pagado:</span>
+                              <span className="font-medium">RD$ {parseFloat(selectedInvoice.totalPaid).toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>Pendiente:</span>
+                              <span className="font-medium">RD$ {parseFloat(selectedInvoice.pendingAmount || "0").toFixed(2)}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Procesar Pago */}
+                    {selectedInvoice.status !== "paid" && (
+                      <div className="space-y-2 border rounded-lg p-3 sm:p-4 mt-4">
+                        <h3 className="font-medium">Registrar Pago</h3>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Monto a pagar"
+                            className="w-full sm:max-w-xs"
+                            min="0"
+                            step="0.01"
+                            id="paymentAmount"
+                          />
+                          <Button
+                            className="w-full sm:w-auto"
+                            onClick={() => {
+                              const amountInput = document.getElementById("paymentAmount") as HTMLInputElement;
+                              handlePayment(selectedInvoice, amountInput.value);
+                            }}
+                            disabled={createPaymentMutation.isPending}
+                          >
+                            {createPaymentMutation.isPending ? (
+                              <>
+                                <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                                Procesando...
+                              </>
+                            ) : (
+                              "Procesar Pago"
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
             ) : (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-10">
