@@ -9,7 +9,9 @@ import {
   bottleReturns,
   invoices,
   invoiceItems,
-  payments
+  payments,
+  provinces,
+  municipalities
 } from "@shared/schema";
 import { and, eq, inArray, sql, isNull, ne, desc } from "drizzle-orm";
 import { storage } from "./storage";
@@ -330,7 +332,7 @@ export function registerRoutesEndpoints(app: Express) {
         return res.status(400).json({ error: "ID de pedido inválido" });
       }
       
-      // Buscar el pedido específico con información de cliente
+      // Buscar el pedido específico con información de cliente incluyendo municipio y provincia
       const [order] = await db
         .select({
           id: orders.id,
@@ -345,6 +347,9 @@ export function registerRoutesEndpoints(app: Express) {
           customerAddress: customers.street,
           streetnumber: customers.streetnumber,
           coordinates: customers.coordinates,
+          phone: customers.phone,
+          municipalityId: customers.municipalityid,
+          provinceId: customers.provinceid,
         })
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
@@ -368,11 +373,46 @@ export function registerRoutesEndpoints(app: Express) {
         .innerJoin(products, eq(orderItemsTable.productId, products.id))
         .where(eq(orderItemsTable.orderId, orderId));
       
+      // Obtener nombres de provincia y municipio
+      let municipalityName = "";
+      let provinceName = "";
+      
+      if (order.municipalityId) {
+        try {
+          const municipalityResult = await db.execute(
+            sql`SELECT name FROM municipalities WHERE id = ${order.municipalityId}`
+          );
+          
+          if (municipalityResult.rows.length > 0) {
+            municipalityName = String(municipalityResult.rows[0].name || "");
+          }
+        } catch (err) {
+          console.error("Error al obtener municipio:", err);
+        }
+      }
+      
+      if (order.provinceId) {
+        try {
+          const provinceResult = await db.execute(
+            sql`SELECT name FROM provinces WHERE id = ${order.provinceId}`
+          );
+          
+          if (provinceResult.rows.length > 0) {
+            provinceName = String(provinceResult.rows[0].name || "");
+          }
+        } catch (err) {
+          console.error("Error al obtener provincia:", err);
+        }
+      }
+      
       // Construir el pedido completo con sus productos
       const orderWithProducts = {
         ...order,
         products: items,
         customerAddress: `${order.customerAddress} ${order.streetnumber}`,
+        customerPhone: order.phone,
+        municipalityName,
+        provinceName
       };
       
       res.json(orderWithProducts);

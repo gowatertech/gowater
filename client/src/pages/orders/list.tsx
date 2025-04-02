@@ -222,7 +222,9 @@ export default function OrdersList() {
         <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">PEDIDO #${order.id}</div>
         <div style="margin-bottom: 5px;">Fecha: ${new Date(order.date).toLocaleDateString()}</div>
         <div style="margin-bottom: 5px;">Cliente: ${customer?.businessname || "Cliente"}</div>
+        <div style="margin-bottom: 5px;">Teléfono: ${order.customerPhone || ""}</div>
         <div style="margin-bottom: 5px;">Dirección: ${order.customerAddress}</div>
+        <div style="margin-bottom: 5px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
         ${order.notes ? `<div style="margin-bottom: 5px;">Notas: ${order.notes}</div>` : ''}
         <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
       `;
@@ -381,34 +383,37 @@ export default function OrdersList() {
       doc.setFont('helvetica', 'normal');
       doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 5, 40);
       doc.text(`Cliente: ${customer?.businessname || "Cliente"}`, 5, 44);
-      doc.text(`Dirección: ${order.customerAddress}`, 5, 48);
+      doc.text(`Teléfono: ${order.customerPhone || ""}`, 5, 48);
+      doc.text(`Dirección: ${order.customerAddress}`, 5, 52);
+      doc.text(`${order.municipalityName || ""}, ${order.provinceName || ""}`, 5, 56);
       
+      const noteYPosition = 60;
       if (order.notes) {
-        doc.text(`Notas: ${order.notes}`, 5, 52);
+        doc.text(`Notas: ${order.notes}`, 5, noteYPosition);
       }
       
       // Línea separadora
       doc.setDrawColor(200);
       const notesOffset = order.notes ? 4 : 0;
-      doc.line(5, 56 + notesOffset, 75, 56 + notesOffset);
+      doc.line(5, 64, 75, 64);
       
       // Encabezado de productos
       doc.setFontSize(9);
       doc.setFont('helvetica', 'bold');
-      doc.text("DETALLE DE PRODUCTOS", 40, 60 + notesOffset, { align: 'center' });
+      doc.text("DETALLE DE PRODUCTOS", 40, 68, { align: 'center' });
       
       doc.setFontSize(7);
-      doc.text("Producto", 5, 65 + notesOffset);
-      doc.text("Cant.", 35, 65 + notesOffset, { align: 'center' });
-      doc.text("Precio", 55, 65 + notesOffset, { align: 'right' });
-      doc.text("Total", 75, 65 + notesOffset, { align: 'right' });
+      doc.text("Producto", 5, 73);
+      doc.text("Cant.", 35, 73, { align: 'center' });
+      doc.text("Precio", 55, 73, { align: 'right' });
+      doc.text("Total", 75, 73, { align: 'right' });
       
       // Línea separadora
       doc.setDrawColor(200);
-      doc.line(5, 67 + notesOffset, 75, 67 + notesOffset);
+      doc.line(5, 75, 75, 75);
       
       // Productos
-      let yPos = 71 + notesOffset;
+      let yPos = 80;
       doc.setFont('helvetica', 'normal');
       
       orderItems.forEach((item: any) => {
