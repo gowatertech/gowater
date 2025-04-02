@@ -304,45 +304,53 @@ export default function Payments() {
           </Card>
         </div>
 
-        {/* Pestañas */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-2">
-            <TabsTrigger value="list" className="text-xs">Historial de Pagos</TabsTrigger>
-            <TabsTrigger value="new" className="text-xs">Registrar Pago</TabsTrigger>
-          </TabsList>
+        {/* Pestañas principales - Historial y Registro */}
+        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+          <Card 
+            className="w-full md:w-1/2 cursor-pointer transition-all hover:shadow-md"
+            onClick={() => window.location.href = "/payments/history"}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-full bg-blue-100 p-3">
+                <CheckCircle className="h-6 w-6 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Historial de Pagos</h3>
+                <p className="text-sm text-muted-foreground">Ver todos los pagos realizados</p>
+              </div>
+              <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
 
-          {/* Pestaña de Lista de Pagos */}
-          <TabsContent value="list" className="space-y-2">
-            <Card>
-              <CardHeader className="p-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-1">
-                    <CheckCircle className="h-4 w-4 text-blue-400" />
-                    Historial de Pagos
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Link href="/payments/history">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="h-7 text-xs"
-                      >
-                        Ver Historial Detallado
-                      </Button>
-                    </Link>
-                    <Button 
-                      size="sm" 
-                      className="h-7 text-xs"
-                      onClick={() => setActiveTab("new")}
-                    >
-                      Registrar Nuevo Pago
-                    </Button>
-                  </div>
-                </div>
-                <CardDescription className="text-xs">
-                  Consulta todos los pagos registrados en el sistema
-                </CardDescription>
-              </CardHeader>
+          <Card 
+            className="w-full md:w-1/2 cursor-pointer transition-all hover:shadow-md"
+            onClick={() => setActiveTab("new")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="rounded-full bg-green-100 p-3">
+                <CircleDollarSign className="h-6 w-6 text-green-500" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Registrar Pago</h3>
+                <p className="text-sm text-muted-foreground">Registrar un nuevo pago</p>
+              </div>
+              <ArrowRight className="ml-auto h-5 w-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Panel de registro de pago */}
+        {activeTab === "new" && (
+        <Card className="mt-4">
+          <CardHeader className="p-4 border-b">
+            <div className="flex items-center gap-2">
+              <CircleDollarSign className="h-5 w-5 text-green-500" />
+              <CardTitle className="text-xl">Registrar Pago</CardTitle>
+            </div>
+            <CardDescription className="text-sm">
+              Registra un nuevo pago para una factura pendiente
+            </CardDescription>
+          </CardHeader>
               <CardContent className="p-3">
                 {/* Filtros y Búsqueda */}
                 <div className="flex flex-col md:flex-row gap-2 mb-3">
