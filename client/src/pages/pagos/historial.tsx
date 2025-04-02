@@ -501,8 +501,8 @@ export default function PaymentsHistory() {
           </div>
         </div>
 
-        {/* Vista de escritorio: Tabla de Pagos */}
-        <div className="hidden md:block">
+        {/* Vista de escritorio: Tabla de Pagos (ahora oculta) */}
+        <div className="hidden">
           <Card>
             <ScrollArea className="h-[calc(100vh-360px)] min-h-[300px]">
               <Table>
@@ -567,8 +567,8 @@ export default function PaymentsHistory() {
           </Card>
         </div>
         
-        {/* Vista móvil: Tarjetas de pagos */}
-        <div className="md:hidden space-y-2">
+        {/* Vista responsiva: Tarjetas de pagos */}
+        <div className="block">
           {isLoading ? (
             <div className="text-center py-8 text-sm text-muted-foreground">
               Cargando pagos...
@@ -578,48 +578,58 @@ export default function PaymentsHistory() {
               No hay pagos que coincidan con los filtros
             </div>
           ) : (
-            filteredPayments.map((payment) => (
-              <Card key={payment.id} className="overflow-hidden">
-                <CardContent className="p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="font-medium text-sm">{payment.customerName}</div>
-                    <PaymentMethodBadge method={payment.paymentMethod} />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-2">
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {filteredPayments.map((payment) => (
+                <Card 
+                  key={payment.id} 
+                  className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => {
+                    setSelectedPayment(payment);
+                    setDetailsOpen(true);
+                  }}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex flex-wrap justify-between items-center mb-2">
+                      <div className="font-medium text-sm">{payment.customerName}</div>
+                      <PaymentMethodBadge method={payment.paymentMethod} />
                     </div>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <FileText className="h-3 w-3" />
-                      Factura #{payment.invoiceNumber}
+                    
+                    <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-xs mb-2">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <FileText className="h-3 w-3" />
+                        Factura #{payment.invoiceNumber}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {payment.notes && (
-                    <div className="text-xs text-muted-foreground mb-2 truncate">
-                      {payment.notes}
+                    
+                    {payment.notes && (
+                      <div className="text-xs text-muted-foreground mb-2 truncate border-t pt-2 border-muted/10">
+                        {payment.notes}
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="text-base font-bold">{formatCurrency(payment.amount)}</div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-7 text-xs px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPayment(payment);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        Ver detalles
+                      </Button>
                     </div>
-                  )}
-                  
-                  <div className="flex justify-between items-center">
-                    <div className="text-base font-bold">{formatCurrency(payment.amount)}</div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="h-7 text-xs px-2"
-                      onClick={() => {
-                        setSelectedPayment(payment);
-                        setDetailsOpen(true);
-                      }}
-                    >
-                      Ver detalles
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </div>
       </div>
