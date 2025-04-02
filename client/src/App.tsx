@@ -12,6 +12,7 @@ import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
 import Payments from "@/pages/payments";
 import PaymentsList from "@/pages/pagos/lista";
+import PaymentsHistory from "@/pages/pagos/historial";
 import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
@@ -156,6 +157,7 @@ function Router() {
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
         <Route path="/pagos/lista" component={PaymentsList} />
+        <Route path="/pagos/historial" component={PaymentsHistory} />
         <Route path="/customers" component={Customers} />
 
         {/* Inventory Routes - Specific routes first */}

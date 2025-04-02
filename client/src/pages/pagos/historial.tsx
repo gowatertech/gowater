@@ -1,0 +1,666 @@
+import { useTranslation } from "react-i18next";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { 
+  CheckCircle, 
+  XCircle, 
+  RefreshCw, 
+  Search, 
+  Filter,
+  CreditCard,
+  DollarSign,
+  FileText,
+  Calendar,
+  Wallet,
+  AlertCircle,
+  DownloadCloud,
+  Printer
+} from "lucide-react";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { DatePicker } from "@/components/ui/date-picker";
+
+// Tipo para los pagos con detalles adicionales
+interface PaymentWithDetails {
+  id: number;
+  invoiceId: number;
+  invoiceNumber: string;
+  customerId: number;
+  customerName: string;
+  amount: string;
+  paymentMethod: "cash" | "credit" | "card" | "transfer";
+  date: string;
+  reference?: string;
+  notes?: string;
+}
+
+// Tipo para las estadísticas de pago
+interface PaymentsStats {
+  totalToday: number;
+  totalWeek: number;
+  totalMonth: number;
+  totalAmount: number;
+  totalCount: number;
+  methodStats: {
+    cash: number;
+    credit: number;
+    card: number;
+    transfer: number;
+  };
+}
+
+export default function PaymentsHistory() {
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<{
+    from?: Date;
+    to?: Date;
+  }>({});
+  const [filters, setFilters] = useState({
+    method: "" as "" | "cash" | "credit" | "card" | "transfer",
+    customer: "",
+  });
+
+  // Cargar pagos
+  const { data: payments, isLoading, refetch } = useQuery<PaymentWithDetails[]>({
+    queryKey: ["/api/payments"],
+    enabled: true,
+  });
+
+  // Aplicar filtros y búsqueda a los pagos
+  const filteredPayments = useMemo(() => {
+    if (!payments) return [];
+    
+    let result = [...payments];
+    
+    // Filtrar por método de pago
+    if (filters.method) {
+      result = result.filter(payment => payment.paymentMethod === filters.method);
+    }
+    
+    // Filtrar por rango de fecha
+    if (dateRange.from) {
+      const fromDate = new Date(dateRange.from);
+      fromDate.setHours(0, 0, 0, 0);
+      
+      result = result.filter(payment => {
+        const paymentDate = new Date(payment.date);
+        return paymentDate >= fromDate;
+      });
+    }
+    
+    if (dateRange.to) {
+      const toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
+      
+      result = result.filter(payment => {
+        const paymentDate = new Date(payment.date);
+        return paymentDate <= toDate;
+      });
+    }
+    
+    // Filtrar por término de búsqueda
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        payment =>
+          payment.customerName.toLowerCase().includes(term) ||
+          payment.invoiceNumber.includes(term) ||
+          (payment.notes && payment.notes.toLowerCase().includes(term))
+      );
+    }
+    
+    // Filtrar por pestaña activa
+    if (activeTab === "today") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      result = result.filter(payment => {
+        const paymentDate = new Date(payment.date);
+        return paymentDate >= today;
+      });
+    } else if (activeTab === "week") {
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      
+      result = result.filter(payment => {
+        const paymentDate = new Date(payment.date);
+        return paymentDate >= weekStart;
+      });
+    } else if (activeTab === "month") {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      
+      result = result.filter(payment => {
+        const paymentDate = new Date(payment.date);
+        return paymentDate >= monthStart;
+      });
+    }
+    
+    // Organizar por fecha (más recientes primero)
+    return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [payments, searchTerm, filters, dateRange, activeTab]);
+
+  // Calcular estadísticas de pagos
+  const paymentsStats: PaymentsStats = useMemo(() => {
+    if (!filteredPayments || filteredPayments.length === 0) {
+      return {
+        totalToday: 0,
+        totalWeek: 0,
+        totalMonth: 0,
+        totalAmount: 0,
+        totalCount: 0,
+        methodStats: {
+          cash: 0,
+          credit: 0,
+          card: 0,
+          transfer: 0
+        }
+      };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    let totalToday = 0;
+    let totalWeek = 0;
+    let totalMonth = 0;
+    let totalAmount = 0;
+    let methodStats = {
+      cash: 0,
+      credit: 0,
+      card: 0,
+      transfer: 0
+    };
+    
+    filteredPayments.forEach(payment => {
+      const paymentDate = new Date(payment.date);
+      const amount = parseFloat(payment.amount);
+      totalAmount += amount;
+      
+      if (paymentDate >= today) {
+        totalToday += amount;
+      }
+      
+      if (paymentDate >= weekStart) {
+        totalWeek += amount;
+      }
+      
+      if (paymentDate >= monthStart) {
+        totalMonth += amount;
+      }
+      
+      // Acumular por método de pago
+      if (payment.paymentMethod === 'cash') {
+        methodStats.cash += amount;
+      } else if (payment.paymentMethod === 'credit') {
+        methodStats.credit += amount;
+      } else if (payment.paymentMethod === 'card') {
+        methodStats.card += amount;
+      } else if (payment.paymentMethod === 'transfer') {
+        methodStats.transfer += amount;
+      }
+    });
+    
+    return {
+      totalToday,
+      totalWeek,
+      totalMonth,
+      totalAmount,
+      totalCount: filteredPayments.length,
+      methodStats
+    };
+  }, [filteredPayments]);
+
+  // Función para formatear moneda
+  const formatCurrency = (value: number | string) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return new Intl.NumberFormat('es-DO', {
+      style: 'currency',
+      currency: 'DOP',
+      minimumFractionDigits: 2
+    }).format(numValue);
+  };
+
+  // Componente para mostrar el método de pago con un badge
+  const PaymentMethodBadge = ({ method }: { method: string }) => {
+    let variant: "default" | "secondary" | "outline" | "destructive" = "default";
+    let label = method;
+
+    if (method === "cash") {
+      variant = "default";
+      label = "Efectivo";
+    } else if (method === "card") {
+      variant = "secondary";
+      label = "Tarjeta";
+    } else if (method === "credit") {
+      variant = "outline";
+      label = "Crédito";
+    } else if (method === "transfer") {
+      variant = "outline";
+      label = "Transferencia";
+    }
+
+    return <Badge variant={variant}>{label}</Badge>;
+  };
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex flex-col space-y-4">
+        {/* Encabezado con título y estadísticas */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Wallet className="h-5 w-5 text-primary" />
+            Historial de Pagos
+          </h1>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={() => {
+                // Implementar la función de exportar datos
+                toast({
+                  title: "Exportando datos",
+                  description: "Los datos se están exportando...",
+                });
+              }}
+            >
+              <DownloadCloud className="h-3.5 w-3.5" />
+              Exportar
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1"
+              onClick={() => {
+                // Implementar la función de imprimir
+                window.print();
+              }}
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Imprimir
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetch()}
+              className="flex items-center gap-1"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Actualizar
+            </Button>
+          </div>
+        </div>
+
+        {/* Resumen de estadísticas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-2">
+          <Card className="bg-muted/20">
+            <CardContent className="p-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Pagos</p>
+                  <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalAmount)}</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                  <DollarSign className="h-7 w-7 text-blue-500" />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{paymentsStats.totalCount} transacciones</p>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/20">
+            <CardContent className="p-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Por Método</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 mt-1">
+                    <p className="text-[11px]">Efectivo: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.cash)}</span></p>
+                    <p className="text-[11px]">Tarjeta: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.card)}</span></p>
+                    <p className="text-[11px]">Crédito: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.credit)}</span></p>
+                    <p className="text-[11px]">Transferencia: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.transfer)}</span></p>
+                  </div>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                  <CreditCard className="h-7 w-7 text-green-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/20">
+            <CardContent className="p-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Esta Semana</p>
+                  <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalWeek)}</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <Calendar className="h-7 w-7 text-yellow-500" />
+                </div>
+              </div>
+              <div className="h-1.5 w-full bg-muted mt-1.5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-yellow-500 rounded-full" 
+                  style={{ 
+                    width: paymentsStats.totalAmount > 0 
+                      ? `${Math.min(100, (paymentsStats.totalWeek / paymentsStats.totalAmount) * 100)}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-muted/20">
+            <CardContent className="p-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-muted-foreground">Hoy</p>
+                  <p className="text-lg font-bold">{formatCurrency(paymentsStats.totalToday)}</p>
+                </div>
+                <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                  <AlertCircle className="h-7 w-7 text-purple-500" />
+                </div>
+              </div>
+              <div className="h-1.5 w-full bg-muted mt-1.5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-purple-500 rounded-full" 
+                  style={{ 
+                    width: paymentsStats.totalWeek > 0 
+                      ? `${Math.min(100, (paymentsStats.totalToday / paymentsStats.totalWeek) * 100)}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filtros y opciones */}
+        <div className="flex flex-col md:flex-row gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 flex-1">
+            <Tabs 
+              value={activeTab} 
+              onValueChange={setActiveTab} 
+              className="w-full"
+            >
+              <TabsList className="w-full">
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="today">Hoy</TabsTrigger>
+                <TabsTrigger value="week">Esta Semana</TabsTrigger>
+                <TabsTrigger value="month">Este Mes</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar pagos..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <Select
+              value={filters.method}
+              onValueChange={(value) => setFilters({...filters, method: value as any})}
+            >
+              <SelectTrigger className="w-full">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>{filters.method ? `Método: ${filters.method}` : "Método de Pago"}</span>
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="cash">Efectivo</SelectItem>
+                <SelectItem value="card">Tarjeta</SelectItem>
+                <SelectItem value="credit">Crédito</SelectItem>
+                <SelectItem value="transfer">Transferencia</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div className="flex items-center gap-1">
+              <div className="flex-1">
+                <DatePicker
+                  selected={dateRange.from}
+                  onSelect={(date) => 
+                    setDateRange(prev => ({ ...prev, from: date }))
+                  }
+                  placeholderText="Fecha inicio"
+                />
+              </div>
+              <div className="flex-1">
+                <DatePicker
+                  selected={dateRange.to}
+                  onSelect={(date) => 
+                    setDateRange(prev => ({ ...prev, to: date }))
+                  }
+                  placeholderText="Fecha fin"
+                />
+              </div>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setSearchTerm("");
+                setFilters({method: "", customer: ""});
+                setDateRange({});
+                setActiveTab("all");
+              }}
+              className="h-10"
+            >
+              Limpiar filtros
+            </Button>
+          </div>
+        </div>
+
+        {/* Tabla de Pagos */}
+        <Card>
+          <ScrollArea className="h-[calc(100vh-360px)] min-h-[300px]">
+            <Table>
+              <TableHeader className="bg-muted/50 sticky top-0">
+                <TableRow className="text-xs">
+                  <TableHead className="py-1 w-[180px]">Cliente</TableHead>
+                  <TableHead className="py-1 w-[100px]">Fecha</TableHead>
+                  <TableHead className="py-1 w-[100px]">Factura</TableHead>
+                  <TableHead className="py-1 w-[80px]">Método</TableHead>
+                  <TableHead className="py-1">Notas</TableHead>
+                  <TableHead className="py-1 w-[100px] text-right">Monto</TableHead>
+                  <TableHead className="py-1 w-[50px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
+                      Cargando pagos...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredPayments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-4 text-xs text-muted-foreground">
+                      No hay pagos que coincidan con los filtros
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPayments.map((payment) => (
+                    <TableRow key={payment.id} className="text-xs hover:bg-muted/30">
+                      <TableCell className="py-1.5 font-medium">{payment.customerName || '-'}</TableCell>
+                      <TableCell className="py-1.5">
+                        {format(new Date(payment.date), 'dd/MM/yyyy', { locale: es })}
+                      </TableCell>
+                      <TableCell className="py-1.5">#{payment.invoiceNumber}</TableCell>
+                      <TableCell className="py-1.5">
+                        <PaymentMethodBadge method={payment.paymentMethod} />
+                      </TableCell>
+                      <TableCell className="py-1.5 truncate max-w-[150px]">{payment.notes || "-"}</TableCell>
+                      <TableCell className="py-1.5 text-right font-semibold">
+                        {formatCurrency(payment.amount)}
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-6 w-6 p-0"
+                          onClick={() => {
+                            setSelectedPayment(payment);
+                            setDetailsOpen(true);
+                          }}
+                        >
+                          <FileText className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </Card>
+      </div>
+
+      {/* Diálogo de detalles del pago */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Detalles del Pago</DialogTitle>
+            <DialogDescription>
+              Información completa del pago seleccionado
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedPayment && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Cliente:</p>
+                  <p className="font-medium">{selectedPayment.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Factura:</p>
+                  <p className="font-medium">#{selectedPayment.invoiceNumber}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Fecha:</p>
+                  <p className="font-medium">
+                    {format(new Date(selectedPayment.date), 'dd/MM/yyyy HH:mm', { locale: es })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Método de Pago:</p>
+                  <p className="font-medium">
+                    <PaymentMethodBadge method={selectedPayment.paymentMethod} />
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Monto:</p>
+                  <p className="font-medium text-lg">{formatCurrency(selectedPayment.amount)}</p>
+                </div>
+                {selectedPayment.reference && (
+                  <div>
+                    <p className="text-muted-foreground text-xs">Referencia:</p>
+                    <p className="font-medium">{selectedPayment.reference}</p>
+                  </div>
+                )}
+              </div>
+              
+              {selectedPayment.notes && (
+                <div>
+                  <p className="text-muted-foreground text-xs">Notas:</p>
+                  <p className="text-sm mt-1 p-2 bg-muted/20 rounded-md">{selectedPayment.notes}</p>
+                </div>
+              )}
+              
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Implementar imprimir recibo
+                    toast({
+                      title: "Imprimiendo recibo",
+                      description: "El recibo se está preparando para imprimir",
+                    });
+                  }}
+                >
+                  <Printer className="h-3.5 w-3.5 mr-2" />
+                  Imprimir Recibo
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Implementar descargar PDF
+                    toast({
+                      title: "Descargando recibo",
+                      description: "El recibo se está preparando para descargar",
+                    });
+                  }}
+                >
+                  <DownloadCloud className="h-3.5 w-3.5 mr-2" />
+                  Descargar PDF
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={() => setDetailsOpen(false)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
