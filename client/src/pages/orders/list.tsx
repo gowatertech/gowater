@@ -256,15 +256,31 @@ export default function OrdersList() {
         `;
       });
       
+      // Calcular subtotal e ITBIS
+      const subtotal = parseFloat(order.subtotal || order.total);
+      const itbis = parseFloat(order.tax || '0');
+      const total = parseFloat(order.total);
+
       // Totales
       printContent.innerHTML += `
           <tr>
             <td colspan="2"></td>
+            <td style="text-align: right; padding: 5px 0;">SUBTOTAL:</td>
+            <td style="text-align: right; padding: 5px 0;">RD$${subtotal.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td colspan="2"></td>
+            <td style="text-align: right; padding: 5px 0;">ITBIS:</td>
+            <td style="text-align: right; padding: 5px 0;">RD$${itbis.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td colspan="2"></td>
             <td style="text-align: right; padding: 5px 0; font-weight: bold;">TOTAL:</td>
-            <td style="text-align: right; padding: 5px 0; font-weight: bold;">RD$${parseFloat(order.total).toFixed(2)}</td>
+            <td style="text-align: right; padding: 5px 0; font-weight: bold;">RD$${total.toFixed(2)}</td>
           </tr>
         </table>
         <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+        ${order.notes ? `<div style="margin-bottom: 5px;"><strong>Notas:</strong> ${order.notes}</div>` : ''}
         <div style="text-align: center; font-size: 9px; margin-top: 10px;">
           <p>¡Gracias por su compra!</p>
         </div>
@@ -433,10 +449,38 @@ export default function OrdersList() {
       doc.line(5, yPos, 75, yPos);
       yPos += 5;
       
+      // Calcular subtotal e ITBIS
+      const subtotal = parseFloat(order.subtotal || order.total);
+      const itbis = parseFloat(order.tax || '0');
+      const total = parseFloat(order.total);
+      
+      // Subtotal
+      doc.setFont('helvetica', 'normal');
+      doc.text("SUBTOTAL:", 60, yPos, { align: 'right' });
+      doc.text(`RD$${subtotal.toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 5;
+      
+      // ITBIS
+      doc.text("ITBIS:", 60, yPos, { align: 'right' });
+      doc.text(`RD$${itbis.toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 5;
+      
       // Total
       doc.setFont('helvetica', 'bold');
       doc.text("TOTAL:", 60, yPos, { align: 'right' });
-      doc.text(`RD$${parseFloat(order.total).toFixed(2)}`, 75, yPos, { align: 'right' });
+      doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
+      
+      // Notas adicionales
+      if (order.notes) {
+        yPos += 8;
+        doc.setFont('helvetica', 'bold');
+        doc.text("NOTAS:", 5, yPos);
+        yPos += 5;
+        doc.setFont('helvetica', 'normal');
+        doc.text(order.notes, 5, yPos, { 
+          maxWidth: 70 
+        });
+      }
       
       // Mensaje final
       yPos += 10;
