@@ -153,6 +153,15 @@ export default function DeliveryDetails() {
         bottleReturnsData = await bottleReturnsResponse.json();
       }
       
+      // Obtener configuración de la empresa para la impresión y PDF
+      const settingsResponse = await fetch('/api/settings');
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        setCompanySettings(settingsData);
+      } else {
+        console.error('No se pudo cargar la configuración de la empresa');
+      }
+      
       // Convertir los datos al formato necesario
       const deliveryData: Delivery = {
         id: orderData.id,
@@ -401,6 +410,360 @@ export default function DeliveryDetails() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Función para imprimir el pedido
+  const handlePrint = async () => {
+    if (!delivery) return;
+    
+    try {
+      // Verificar que tenemos la configuración de la empresa
+      if (!companySettings) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cargar la información de la empresa",
+        });
+        return;
+      }
+      
+      // Cargar detalles de la orden completa (para obtener información adicional si es necesario)
+      const orderResponse = await fetch(`/api/orders/${delivery.orderId}`);
+      if (!orderResponse.ok) {
+        throw new Error('Error al cargar el pedido');
+      }
+      const orderData = await orderResponse.json();
+      
+      // Cargar items del pedido
+      const itemsResponse = await fetch(`/api/orders/${delivery.orderId}/items`);
+      if (!itemsResponse.ok) {
+        throw new Error('Error al cargar los items del pedido');
+      }
+      const orderItems = await itemsResponse.json();
+      
+      // Crear el contenido del ticket
+      const printContent = document.createElement("div");
+      printContent.style.width = "80mm"; // Ancho de 3 pulgadas
+      printContent.style.margin = "0 auto";
+      printContent.style.fontSize = "10px";
+      printContent.style.fontFamily = "Arial, sans-serif";
+      
+      // Información de la empresa (encabezado)
+      const companyMunicipality = companySettings.municipalityName || "Cotuí";
+      const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
+      
+      printContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 15px;">
+          <div style="font-weight: bold; font-size: 16px; margin-bottom: 5px;">${companySettings.name}</div>
+          <div style="margin-bottom: 3px;">RNC: ${companySettings.rnc}</div>
+          <div style="margin-bottom: 3px;">${companySettings.street} ${companySettings.streetNumber}</div>
+          <div style="margin-bottom: 3px;">${companyMunicipality}, ${companyProvince}</div>
+          <div style="margin-bottom: 3px;">Tel: ${companySettings.contactPhone}</div>
+          <div style="margin-bottom: 3px;">Email: ${companySettings.email}</div>
+        </div>
+        <div style="border-top: 1px solid #ddd; margin: 5px 0;"></div>
+      `;
+      
+      // Información del pedido
+      printContent.innerHTML += `
+        <div style="text-align: center; font-weight: bold; margin: 10px 0; font-size: 14px;">PEDIDO #${delivery.orderId}</div>
+        <div style="margin-bottom: 5px;">Fecha: ${new Date(orderData.date).toLocaleDateString()}</div>
+        <div style="margin-bottom: 5px;">Cliente: ${orderData.customerName || "Cliente"}</div>
+        <div style="margin-bottom: 5px;">Teléfono: ${orderData.customerPhone || ""}</div>
+        <div style="margin-bottom: 5px;">Dirección: ${orderData.customerAddress}</div>
+        <div style="margin-bottom: 10px;">${orderData.municipalityName || ""}, ${orderData.provinceName || ""}</div>
+        <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
+      `;
+      
+      // Detalles de productos
+      printContent.innerHTML += `
+        <div style="text-align: center; font-weight: bold; margin: 10px 0; font-size: 14px;">DETALLE DE PRODUCTOS</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 5px;">
+          <tr style="border-bottom: 1px solid #ddd; padding: 5px 0;">
+            <th style="text-align: left; padding: 5px 0;">Producto</th>
+            <th style="text-align: center; padding: 5px 0;">Cant.</th>
+            <th style="text-align: right; padding: 5px 0;">Precio</th>
+            <th style="text-align: right; padding: 5px 0;">Total</th>
+          </tr>
+      `;
+      
+      // Agregar productos
+      delivery.products.forEach(product => {
+        const total = product.price * product.quantity;
+        
+        printContent.innerHTML += `
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="text-align: left; padding: 8px 0;">${product.name}</td>
+            <td style="text-align: center; padding: 8px 0;">${product.quantity}</td>
+            <td style="text-align: right; padding: 8px 0;">RD$${product.price.toFixed(2)}</td>
+            <td style="text-align: right; padding: 8px 0;">RD$${total.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+      
+      // Calcular subtotal e ITBIS
+      const subtotal = parseFloat(orderData.subtotal || orderData.total);
+      const itbis = parseFloat(orderData.tax || '0');
+      const total = parseFloat(orderData.total);
+      
+      // Totales
+      printContent.innerHTML += `
+        </table>
+        <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
+        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+          <div style="flex: 1;"></div>
+          <div style="text-align: right; padding-right: 10px;">SUBTOTAL:</div>
+          <div style="text-align: right; width: 80px;">RD$${subtotal.toFixed(2)}</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+          <div style="flex: 1;"></div>
+          <div style="text-align: right; padding-right: 10px;">ITBIS:</div>
+          <div style="text-align: right; width: 80px;">RD$${itbis.toFixed(2)}</div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+          <div style="flex: 1;"></div>
+          <div style="text-align: right; padding-right: 10px; font-weight: bold;">TOTAL:</div>
+          <div style="text-align: right; width: 80px; font-weight: bold;">RD$${total.toFixed(2)}</div>
+        </div>
+        <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
+        <div style="margin: 10px 0 5px 0;"><strong>Nota del Pedido:</strong> ${orderData.notes || ""}</div>
+        <div style="margin: 15px 0;"></div>
+        <div style="text-align: center; font-size: 10px; margin-top: 15px;">
+          <p>¡Gracias por su compra!</p>
+        </div>
+      `;
+      
+      // Crear un iframe para la impresión
+      const printFrame = document.createElement("iframe");
+      printFrame.style.display = "none";
+      document.body.appendChild(printFrame);
+      
+      // Escribir el contenido en el iframe
+      if (printFrame.contentWindow) {
+        printFrame.contentWindow.document.open();
+        printFrame.contentWindow.document.write(`
+          <html>
+            <head>
+              <title>Pedido #${delivery.orderId}</title>
+              <style>
+                @page {
+                  size: 80mm 200mm;
+                  margin: 5mm;
+                }
+                body { 
+                  margin: 0;
+                  padding: 5mm;
+                  width: 80mm;
+                  height: auto;
+                  font-family: Arial, Helvetica, sans-serif;
+                }
+                * { box-sizing: border-box; }
+                table { width: 100%; }
+              </style>
+            </head>
+            <body>
+              ${printContent.outerHTML}
+            </body>
+          </html>
+        `);
+        printFrame.contentWindow.document.close();
+        
+        // Imprimir
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+        
+        // Remover el iframe después de imprimir
+        setTimeout(() => {
+          document.body.removeChild(printFrame);
+        }, 1000);
+      }
+      
+      toast({
+        title: "Imprimiendo",
+        description: "Se está enviando el pedido a la impresora",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al generar el ticket",
+      });
+    }
+  };
+  
+  // Función para descargar el pedido como PDF
+  const handleDownload = async () => {
+    if (!delivery) return;
+    
+    try {
+      // Verificar que tenemos la configuración de la empresa
+      if (!companySettings) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cargar la información de la empresa",
+        });
+        return;
+      }
+      
+      // Cargar detalles de la orden completa
+      const orderResponse = await fetch(`/api/orders/${delivery.orderId}`);
+      if (!orderResponse.ok) {
+        throw new Error('Error al cargar el pedido');
+      }
+      const orderData = await orderResponse.json();
+      
+      // Cargar items del pedido
+      const itemsResponse = await fetch(`/api/orders/${delivery.orderId}/items`);
+      if (!itemsResponse.ok) {
+        throw new Error('Error al cargar los items del pedido');
+      }
+      const orderItems = await itemsResponse.json();
+      
+      // Crear un documento PDF (tamaño ticket térmico)
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 200], // 80mm de ancho (3 pulgadas) x 200mm de alto
+      });
+      
+      // Agregar logo o nombre de la empresa
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(companySettings.name, 40, 10, { align: 'center' });
+      
+      // Información de la empresa
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      const companyMunicipality = companySettings.municipalityName || "Cotuí";
+      const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
+      
+      doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
+      doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
+      doc.text(`${companyMunicipality}, ${companyProvince}`, 40, 23, { align: 'center' });
+      doc.text(`Tel: ${companySettings.contactPhone}`, 40, 27, { align: 'center' });
+      doc.text(`Email: ${companySettings.email}`, 40, 31, { align: 'center' });
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, 34, 75, 34);
+      
+      // Detalles del pedido
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`PEDIDO #${delivery.orderId}`, 40, 38, { align: 'center' });
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${new Date(orderData.date).toLocaleDateString()}`, 5, 43);
+      doc.text(`Cliente: ${orderData.customerName || "Cliente"}`, 5, 47);
+      doc.text(`Teléfono: ${orderData.customerPhone || ""}`, 5, 51);
+      doc.text(`Dirección: ${orderData.customerAddress}`, 5, 55);
+      doc.text(`${orderData.municipalityName || ""}, ${orderData.provinceName || ""}`, 5, 59);
+      
+      const noteYPosition = 63;
+      if (orderData.notes) {
+        doc.text(`Notas: ${orderData.notes}`, 5, noteYPosition);
+      }
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      const notesOffset = orderData.notes ? 4 : 0;
+      doc.line(5, 67, 75, 67);
+      
+      // Encabezado de productos
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text("DETALLE DE PRODUCTOS", 40, 71, { align: 'center' });
+      
+      doc.setFontSize(7);
+      doc.text("Producto", 5, 76);
+      doc.text("Cant.", 35, 76, { align: 'center' });
+      doc.text("Precio", 55, 76, { align: 'right' });
+      doc.text("Total", 75, 76, { align: 'right' });
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, 78, 75, 78);
+      
+      // Productos
+      let yPos = 85;
+      doc.setFont('helvetica', 'normal');
+      
+      delivery.products.forEach(product => {
+        const total = product.price * product.quantity;
+        
+        doc.text(product.name.length > 18 ? product.name.substring(0, 16) + "..." : product.name, 5, yPos);
+        doc.text(`${product.quantity}`, 35, yPos, { align: 'center' });
+        doc.text(`RD$${product.price.toFixed(2)}`, 55, yPos, { align: 'right' });
+        doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
+        
+        yPos += 8;
+      });
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, yPos, 75, yPos);
+      yPos += 5;
+      
+      // Calcular subtotal e ITBIS
+      const subtotal = parseFloat(orderData.subtotal || orderData.total);
+      const itbis = parseFloat(orderData.tax || '0');
+      const total = parseFloat(orderData.total);
+      
+      // Subtotal
+      doc.setFont('helvetica', 'normal');
+      doc.text("SUBTOTAL:", 60, yPos, { align: 'right' });
+      doc.text(`RD$${subtotal.toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 5;
+      
+      // ITBIS
+      doc.text("ITBIS:", 60, yPos, { align: 'right' });
+      doc.text(`RD$${itbis.toFixed(2)}`, 75, yPos, { align: 'right' });
+      yPos += 5;
+      
+      // Total
+      doc.setFont('helvetica', 'bold');
+      doc.text("TOTAL:", 60, yPos, { align: 'right' });
+      doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
+      
+      // Nota del Pedido (siempre se muestra el título)
+      yPos += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.text("Nota del Pedido:", 5, yPos);
+      
+      // Si hay notas, mostrarlas
+      if (orderData.notes) {
+        yPos += 5;
+        doc.setFont('helvetica', 'normal');
+        doc.text(orderData.notes, 5, yPos, { 
+          maxWidth: 70 
+        });
+      }
+      
+      // Siempre agregar un espacio adicional
+      yPos += 5;
+      
+      // Mensaje final
+      yPos += 10;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text("¡Gracias por su compra!", 40, yPos, { align: 'center' });
+      
+      // Guardar PDF
+      doc.save(`Pedido-${delivery.orderId}.pdf`);
+      
+      toast({
+        title: "PDF generado",
+        description: "Se ha descargado el PDF del pedido",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al generar el PDF",
+      });
     }
   };
   
@@ -701,8 +1064,31 @@ export default function DeliveryDetails() {
             </Card>
           )}
           
+          {/* Botones de impresión y PDF */}
+          <div className="flex space-x-2 mt-4">
+            <Button 
+              className="flex-1" 
+              variant="outline"
+              onClick={handlePrint}
+              disabled={isEditing}
+            >
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir
+            </Button>
+            
+            <Button 
+              className="flex-1" 
+              variant="outline"
+              onClick={handleDownload}
+              disabled={isEditing}
+            >
+              <FileDown className="h-4 w-4 mr-2" />
+              PDF
+            </Button>
+          </div>
+          
           {/* Botones de acción */}
-          <div className="flex space-x-2 mt-6">
+          <div className="flex space-x-2 mt-4">
             <Button 
               className="flex-1" 
               variant={delivery.status === "delivered" ? "outline" : "default"}
