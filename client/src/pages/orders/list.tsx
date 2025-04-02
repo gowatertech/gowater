@@ -281,14 +281,17 @@ export default function OrdersList() {
             <head>
               <title>Ticket #${order.id}</title>
               <style>
-                @media print {
-                  body { 
-                    margin: 0; 
-                    padding: 0;
-                    width: 80mm; 
-                  }
-                  * { box-sizing: border-box; }
+                @page {
+                  size: 80mm 200mm;
+                  margin: 0mm;
                 }
+                body { 
+                  margin: 0; 
+                  padding: 0;
+                  width: 80mm;
+                  height: auto;
+                }
+                * { box-sizing: border-box; }
               </style>
             </head>
             <body>
