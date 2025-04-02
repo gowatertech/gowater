@@ -211,39 +211,37 @@ export default function OrdersList() {
       const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
       
       printContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 10px;">
-          <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px;">${companySettings.name}</div>
+        <div style="text-align: center; margin-bottom: 15px;">
+          <div style="font-weight: bold; font-size: 14px; margin-bottom: 5px;">${companySettings.name}</div>
           <div style="margin-bottom: 3px;">RNC: ${companySettings.rnc}</div>
           <div style="margin-bottom: 3px;">${companySettings.street} ${companySettings.streetNumber}</div>
           <div style="margin-bottom: 3px;">${companyMunicipality}, ${companyProvince}</div>
           <div style="margin-bottom: 3px;">Tel: ${companySettings.contactPhone}</div>
-          <div style="margin-bottom: 8px;">Email: ${companySettings.email}</div>
+          <div style="margin-bottom: 3px;">Email: ${companySettings.email}</div>
         </div>
-        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+        <div style="border-top: 1px solid #ddd; margin: 5px 0;"></div>
       `;
       
       // Información del pedido
       printContent.innerHTML += `
-        <div style="text-align: center; font-weight: bold; margin: 10px 0;">PEDIDO #${order.id}</div>
+        <div style="text-align: center; font-weight: bold; margin: 10px 0; font-size: 12px;">PEDIDO #${order.id}</div>
         <div style="margin-bottom: 5px;">Fecha: ${new Date(order.date).toLocaleDateString()}</div>
         <div style="margin-bottom: 5px;">Cliente: ${customer?.businessname || "Cliente"}</div>
         <div style="margin-bottom: 5px;">Teléfono: ${order.customerPhone || ""}</div>
         <div style="margin-bottom: 5px;">Dirección: ${order.customerAddress}</div>
-        <div style="margin-bottom: 5px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
-        ${order.notes ? `<div style="margin-bottom: 5px;">Notas: ${order.notes}</div>` : ''}
-        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+        <div style="margin-bottom: 10px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
+        <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
       `;
       
       // Detalles de productos
       printContent.innerHTML += `
-        <div style="margin-bottom: 5px; font-weight: bold;">DETALLE DE PRODUCTOS</div>
-        <div style="margin-bottom: 5px;"></div>
-        <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
-          <tr style="border-bottom: 1px solid #eee;">
-            <th style="text-align: left; padding: 3px 0; width: 40%;">Producto</th>
-            <th style="text-align: center; padding: 3px 0; width: 15%;">Cant.</th>
-            <th style="text-align: right; padding: 3px 0; width: 20%;">Precio</th>
-            <th style="text-align: right; padding: 3px 0; width: 25%;">Total</th>
+        <div style="text-align: center; font-weight: bold; margin: 10px 0; font-size: 12px;">DETALLE DE PRODUCTOS</div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 5px;">
+          <tr style="border-bottom: 1px solid #ddd; padding: 5px 0;">
+            <th style="text-align: left; padding: 5px 0;">Producto</th>
+            <th style="text-align: center; padding: 5px 0;">Cant.</th>
+            <th style="text-align: right; padding: 5px 0;">Precio</th>
+            <th style="text-align: right; padding: 5px 0;">Total</th>
           </tr>
       `;
       
@@ -253,11 +251,11 @@ export default function OrdersList() {
         const total = parseFloat(item.price) * item.quantity;
         
         printContent.innerHTML += `
-          <tr style="border-bottom: 1px dotted #eee;">
-            <td style="text-align: left; padding: 5px 0; width: 40%;">${productName}</td>
-            <td style="text-align: center; padding: 5px 0; width: 15%;">${item.quantity}</td>
-            <td style="text-align: right; padding: 5px 0; width: 20%;">RD$${parseFloat(item.price).toFixed(2)}</td>
-            <td style="text-align: right; padding: 5px 0; width: 25%;">RD$${total.toFixed(2)}</td>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="text-align: left; padding: 8px 0; width: 40%;">${productName}</td>
+            <td style="text-align: center; padding: 8px 0; width: 15%;">${item.quantity}</td>
+            <td style="text-align: right; padding: 8px 0; width: 20%;">RD$${parseFloat(item.price).toFixed(2)}</td>
+            <td style="text-align: right; padding: 8px 0; width: 25%;">RD$${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -271,24 +269,24 @@ export default function OrdersList() {
       printContent.innerHTML += `
           <tr>
             <td colspan="2"></td>
-            <td style="text-align: right; padding: 5px 0;">SUBTOTAL:</td>
-            <td style="text-align: right; padding: 5px 0;">RD$${subtotal.toFixed(2)}</td>
+            <td style="text-align: right; padding: 8px 0;">SUBTOTAL:</td>
+            <td style="text-align: right; padding: 8px 0;">RD$${subtotal.toFixed(2)}</td>
           </tr>
           <tr>
             <td colspan="2"></td>
-            <td style="text-align: right; padding: 5px 0;">ITBIS:</td>
-            <td style="text-align: right; padding: 5px 0;">RD$${itbis.toFixed(2)}</td>
+            <td style="text-align: right; padding: 8px 0;">ITBIS:</td>
+            <td style="text-align: right; padding: 8px 0;">RD$${itbis.toFixed(2)}</td>
           </tr>
           <tr>
             <td colspan="2"></td>
-            <td style="text-align: right; padding: 5px 0; font-weight: bold;">TOTAL:</td>
-            <td style="text-align: right; padding: 5px 0; font-weight: bold;">RD$${total.toFixed(2)}</td>
+            <td style="text-align: right; padding: 8px 0; font-weight: bold;">TOTAL:</td>
+            <td style="text-align: right; padding: 8px 0; font-weight: bold;">RD$${total.toFixed(2)}</td>
           </tr>
         </table>
-        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+        <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
         <div style="margin: 10px 0 5px 0;"><strong>Nota del Pedido:</strong> ${order.notes || ""}</div>
-        <div style="margin: 10px 0;"></div>
-        <div style="text-align: center; font-size: 9px; margin-top: 10px;">
+        <div style="margin: 15px 0;"></div>
+        <div style="text-align: center; font-size: 10px; margin-top: 15px;">
           <p>¡Gracias por su compra!</p>
         </div>
       `;
@@ -308,15 +306,17 @@ export default function OrdersList() {
               <style>
                 @page {
                   size: 80mm 200mm;
-                  margin: 0mm;
+                  margin: 5mm;
                 }
                 body { 
-                  margin: 0; 
-                  padding: 0;
+                  margin: 0;
+                  padding: 5mm;
                   width: 80mm;
                   height: auto;
+                  font-family: Arial, Helvetica, sans-serif;
                 }
                 * { box-sizing: border-box; }
+                table { width: 100%; }
               </style>
             </head>
             <body>
