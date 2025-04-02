@@ -454,7 +454,6 @@ export default function Billing() {
       header.style.marginBottom = '10px';
       header.innerHTML = `
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Distribuidor de agua purificada</div>
         <div style="font-size: 11px; margin-bottom: 2px;">${settings?.street || ''} ${settings?.streetNumber || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">${settings?.municipalityId ? 'Cotuí' : ''}, ${settings?.provinceId ? 'Sánchez Ramírez' : ''}, ${settings?.country || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
@@ -663,8 +662,8 @@ export default function Billing() {
       // Crear un div temporal para el PDF
       const pdfContent = document.createElement('div');
       pdfContent.id = 'pdf-content';
-      pdfContent.style.width = '210mm'; // Ancho A4
-      pdfContent.style.padding = '20px';
+      pdfContent.style.width = '80mm'; // Ancho para impresora térmica
+      pdfContent.style.padding = '10px';
       pdfContent.style.fontFamily = 'Arial, sans-serif';
       pdfContent.style.position = 'absolute';
       pdfContent.style.left = '-9999px';
@@ -677,7 +676,6 @@ export default function Billing() {
       header.innerHTML = `
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">Distribuidor de agua purificada</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">${settings?.street || ''} ${settings?.streetNumber || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">${settings?.municipalityId ? 'Cotuí' : ''}, ${settings?.provinceId ? 'Sánchez Ramírez' : ''}, ${settings?.country || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
@@ -840,11 +838,11 @@ export default function Billing() {
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: 'a4'
+          format: [80, 200] // 80mm de ancho (3 pulgadas) x 200mm de alto
         });
         
-        const imgWidth = 210; // A4 width in mm
-        const pageHeight = 297; // A4 height in mm
+        const imgWidth = 80; // Ancho de impresora térmica en mm
+        const pageHeight = 200; // Altura aproximada en mm
         const imgHeight = canvas.height * imgWidth / canvas.width;
         let heightLeft = imgHeight;
         let position = 0;
