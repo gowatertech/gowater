@@ -320,6 +320,67 @@ export function registerRoutesEndpoints(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para obtener un pedido específico por ID
+  app.get("/api/orders/:id", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de pedido inválido" });
+      }
+      
+      // Buscar el pedido específico con información de cliente
+      const [order] = await db
+        .select({
+          id: orders.id,
+          routeId: orders.routeId,
+          customerId: orders.customerId,
+          status: orders.status,
+          total: orders.total,
+          date: orders.date,
+          paymentMethod: orders.paymentMethod,
+          notes: orders.notes,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+          streetnumber: customers.streetnumber,
+          coordinates: customers.coordinates,
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(eq(orders.id, orderId))
+        .limit(1);
+      
+      if (!order) {
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+      
+      // Obtener los productos del pedido
+      const items = await db
+        .select({
+          productId: orderItemsTable.productId,
+          name: products.name,
+          quantity: orderItemsTable.quantity,
+          price: orderItemsTable.price,
+          isReturnable: products.isReturnable,
+        })
+        .from(orderItemsTable)
+        .innerJoin(products, eq(orderItemsTable.productId, products.id))
+        .where(eq(orderItemsTable.orderId, orderId));
+      
+      // Construir el pedido completo con sus productos
+      const orderWithProducts = {
+        ...order,
+        products: items,
+        customerAddress: `${order.customerAddress} ${order.streetnumber}`,
+      };
+      
+      res.json(orderWithProducts);
+    } catch (error) {
+      console.error("Error al obtener el pedido:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Endpoint para iniciar una ruta
   app.post("/api/routes/:id/start", async (req, res) => {
