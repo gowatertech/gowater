@@ -5,6 +5,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useLocation } from "wouter";
 import { 
   CheckCircle, 
   XCircle, 
@@ -18,7 +19,8 @@ import {
   Wallet,
   AlertCircle,
   DownloadCloud,
-  Printer
+  Printer,
+  ArrowLeft
 } from "lucide-react";
 
 import {
@@ -87,6 +89,7 @@ interface PaymentsStats {
 export default function PaymentsHistory() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const [_, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [selectedPayment, setSelectedPayment] = useState<PaymentWithDetails | null>(null);
@@ -295,10 +298,20 @@ export default function PaymentsHistory() {
       <div className="flex flex-col space-y-4">
         {/* Encabezado con título y estadísticas */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-primary" />
-            Historial de Pagos
-          </h1>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setLocation("/payments")}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              Historial de Pagos
+            </h1>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button 
               variant="outline" 
