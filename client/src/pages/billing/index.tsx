@@ -675,7 +675,7 @@ export default function Billing() {
       header.style.marginBottom = '20px';
       header.innerHTML = `
         <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Distribuidor de agua purificada</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">${settings?.street || ''} ${settings?.streetNumber || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">${settings?.municipalityId ? 'Cotuí' : ''}, ${settings?.provinceId ? 'Sánchez Ramírez' : ''}, ${settings?.country || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
         <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
