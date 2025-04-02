@@ -237,6 +237,7 @@ export default function OrdersList() {
       // Detalles de productos
       printContent.innerHTML += `
         <div style="margin-bottom: 5px; font-weight: bold;">DETALLE DE PRODUCTOS</div>
+        <div style="margin-bottom: 5px;"></div>
         <table style="width: 100%; border-collapse: collapse; font-size: 9px;">
           <tr style="border-bottom: 1px solid #eee;">
             <th style="text-align: left; padding: 3px 0; width: 40%;">Producto</th>
@@ -253,10 +254,10 @@ export default function OrdersList() {
         
         printContent.innerHTML += `
           <tr style="border-bottom: 1px dotted #eee;">
-            <td style="text-align: left; padding: 3px 0; width: 40%;">${productName}</td>
-            <td style="text-align: center; padding: 3px 0; width: 15%;">${item.quantity}</td>
-            <td style="text-align: right; padding: 3px 0; width: 20%;">RD$${parseFloat(item.price).toFixed(2)}</td>
-            <td style="text-align: right; padding: 3px 0; width: 25%;">RD$${total.toFixed(2)}</td>
+            <td style="text-align: left; padding: 5px 0; width: 40%;">${productName}</td>
+            <td style="text-align: center; padding: 5px 0; width: 15%;">${item.quantity}</td>
+            <td style="text-align: right; padding: 5px 0; width: 20%;">RD$${parseFloat(item.price).toFixed(2)}</td>
+            <td style="text-align: right; padding: 5px 0; width: 25%;">RD$${total.toFixed(2)}</td>
           </tr>
         `;
       });
@@ -440,7 +441,7 @@ export default function OrdersList() {
       doc.line(5, 78, 75, 78);
       
       // Productos
-      let yPos = 80;
+      let yPos = 85;
       doc.setFont('helvetica', 'normal');
       
       orderItems.forEach((item: any) => {
@@ -452,7 +453,7 @@ export default function OrdersList() {
         doc.text(`RD$${parseFloat(item.price).toFixed(2)}`, 55, yPos, { align: 'right' });
         doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
         
-        yPos += 5;
+        yPos += 8;
       });
       
       // Línea separadora
