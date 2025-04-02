@@ -10,6 +10,7 @@ import Orders from "@/pages/orders";
 import OrdersList from "@/pages/orders/list";
 import NewOrder from "@/pages/orders/new";
 import OrderDetails from "@/pages/orders/details";
+import OrderStatus from "@/pages/orders/status";
 import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
@@ -178,6 +179,7 @@ function Router() {
         <Route path="/orders/list" component={OrdersList} />
         <Route path="/orders/new" component={NewOrder} />
         <Route path="/orders/details/:id" component={OrderDetails} />
+        <Route path="/orders/status/:id" component={OrderStatus} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/recurring-orders" component={RecurringOrders} />
