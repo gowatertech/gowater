@@ -321,7 +321,7 @@ export default function Payments() {
                     Historial de Pagos
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    <Link href="/pagos/historial">
+                    <Link href="/payments/history">
                       <Button 
                         size="sm" 
                         variant="outline"

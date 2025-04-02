@@ -159,6 +159,7 @@ function Router() {
         <Route path="/payments" component={Payments} />
         <Route path="/payments/list" component={PaymentsList} />
         <Route path="/payments/history" component={PaymentsHistory} />
+        <Route path="/pagos/historial" component={PaymentsHistory} />
         <Route path="/customers" component={Customers} />
 
         {/* Inventory Routes - Specific routes first */}
