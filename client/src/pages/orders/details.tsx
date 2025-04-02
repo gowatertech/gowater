@@ -5,12 +5,7 @@ import { useLocation, useRoute } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-// @ts-ignore
-import { jsPDF } from "jspdf";
-// @ts-ignore
-import 'jspdf-autotable';
-// @ts-ignore
-import html2canvas from "html2canvas";
+// Eliminados imports de PDF e impresión
 
 // Iconos
 import { 
