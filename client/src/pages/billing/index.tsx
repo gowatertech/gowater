@@ -725,31 +725,39 @@ export default function Billing() {
           </TabsContent>
 
           {/* Pestaña de Nueva Factura */}
-          <TabsContent value="new" className="space-y-2">
-            <Card>
-              <CardHeader className="p-3">
-                <div className="flex items-center gap-1">
-                  <Plus className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">Nueva Factura</CardTitle>
-                </div>
-                <CardDescription className="text-xs">
-                  Crea una nueva factura para un cliente
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 p-3">
-                {/* Formulario */}
+          <TabsContent value="new" className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <Plus className="h-5 w-5 text-primary" />
+                Nueva Factura
+              </h1>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab("list")}
+                className="w-full sm:w-auto"
+              >
+                Volver a la Lista
+              </Button>
+            </div>
+
+            {/* Formulario */}
+            <Card className="p-3 sm:p-4">
+              <CardContent className="p-0 space-y-4">
+                {/* Cliente */}
                 <div className="space-y-2">
-                  {/* Cliente */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <div className="space-y-1 md:col-span-3">
-                      <label className="text-xs font-medium">Cliente</label>
+                  <div className="text-sm font-medium">Datos del Cliente</div>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Seleccione un Cliente</label>
                       <Select
                         onValueChange={(value) => {
                           const customer = customers.find((c: any) => c.id === parseInt(value));
                           setSelectedCustomer(customer || null);
                         }}
                       >
-                        <SelectTrigger className="h-7 text-xs">
+                        <SelectTrigger className="h-9 text-sm w-full">
                           <SelectValue placeholder="Seleccionar Cliente" />
                         </SelectTrigger>
                         <SelectContent>
@@ -757,7 +765,7 @@ export default function Billing() {
                             <SelectItem
                               key={customer.id}
                               value={customer.id.toString()}
-                              className="text-xs py-1"
+                              className="text-sm"
                             >
                               {customer.businessname}
                             </SelectItem>
@@ -767,97 +775,145 @@ export default function Billing() {
                     </div>
 
                     {selectedCustomer && (
-                      <>
-                        <div className="bg-muted/30 rounded p-1.5">
-                          <div className="text-[10px] font-medium text-muted-foreground">Nombre del Gerente</div>
-                          <div className="text-xs">{selectedCustomer.managername}</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-muted/30 rounded-lg p-3">
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground">Nombre del Gerente</div>
+                          <div className="text-sm">{selectedCustomer.managername}</div>
                         </div>
-                        <div className="bg-muted/30 rounded p-1.5">
-                          <div className="text-[10px] font-medium text-muted-foreground">Dirección</div>
-                          <div className="text-xs">{selectedCustomer.street} {selectedCustomer.streetnumber}</div>
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground">Dirección</div>
+                          <div className="text-sm">{selectedCustomer.street} {selectedCustomer.streetnumber}</div>
                         </div>
-                        <div className="bg-muted/30 rounded p-1.5">
-                          <div className="text-[10px] font-medium text-muted-foreground">Teléfono</div>
-                          <div className="text-xs">{selectedCustomer.phone}</div>
+                        <div>
+                          <div className="text-xs font-medium text-muted-foreground">Teléfono</div>
+                          <div className="text-sm">{selectedCustomer.phone}</div>
                         </div>
-                      </>
-                    )}
-
-                    {/* Campo de Notas */}
-                    <div className="space-y-1 md:col-span-3">
-                      <label className="text-xs font-medium">Nota</label>
-                      <Textarea
-                        value={notes}
-                        onChange={(e) => {
-                          if (e.target.value.length <= 200) {
-                            setNotes(e.target.value);
-                          }
-                        }}
-                        placeholder="Añadir nota a la factura (máximo 200 caracteres)"
-                        className="h-16 text-xs resize-none"
-                        maxLength={200}
-                      />
-                      <div className="text-[10px] text-muted-foreground text-right">
-                        {notes.length}/200 caracteres
                       </div>
-                    </div>
+                    )}
                   </div>
+                </div>
 
-                  {/* Método de Pago */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium">Método de Pago</label>
-                    <div className="flex flex-wrap gap-1">
-                      <Button
-                        type="button"
-                        variant={paymentMethod === 'cash' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setPaymentMethod('cash')}
-                        className="text-xs h-6 flex-1"
-                      >
-                        Efectivo
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={paymentMethod === 'credit' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setPaymentMethod('credit')}
-                        className="text-xs h-6 flex-1"
-                      >
-                        Crédito
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={paymentMethod === 'card' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setPaymentMethod('card')}
-                        className="text-xs h-6 flex-1"
-                      >
-                        Tarjeta
-                      </Button>
-                    </div>
+                {/* Método de Pago */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Método de Pago</div>
+                  <div className="flex flex-wrap sm:flex-nowrap gap-2">
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'cash' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPaymentMethod('cash')}
+                      className="flex-1"
+                    >
+                      Efectivo
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'credit' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPaymentMethod('credit')}
+                      className="flex-1"
+                    >
+                      Crédito
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setPaymentMethod('card')}
+                      className="flex-1"
+                    >
+                      Tarjeta
+                    </Button>
                   </div>
+                </div>
 
-                  {/* Tabla de Productos */}
+                {/* Productos - Vista Móvil */}
+                <div className="space-y-2 block md:hidden">
+                  <div className="text-sm font-medium">Productos</div>
+                  <div className="space-y-3">
+                    {orderItems.map((item, index) => item.code || index === orderItems.length - 1 ? (
+                      <Card key={index} className="p-3">
+                        <div className="space-y-2">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-muted-foreground">Producto</label>
+                            <Select
+                              value={item.code}
+                              onValueChange={(value) => handleProductChange(index, value)}
+                            >
+                              <SelectTrigger className="h-9 text-sm w-full">
+                                <SelectValue placeholder="Seleccionar Producto" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {products.map((product: Product) => (
+                                  <SelectItem
+                                    key={product.id}
+                                    value={product.id.toString()}
+                                    className="text-sm"
+                                  >
+                                    {product.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          {item.description && (
+                            <div className="text-sm">{item.description}</div>
+                          )}
+                          
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">Cantidad</label>
+                              <Input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
+                                className="h-9"
+                                min="0"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">Precio</label>
+                              <div className="h-9 flex items-center text-sm">
+                                {item.price.toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-xs font-medium text-muted-foreground">Total</label>
+                              <div className="h-9 flex items-center font-medium text-sm">
+                                {item.total.toFixed(2)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ) : null)}
+                  </div>
+                </div>
+
+                {/* Productos - Vista Desktop */}
+                <div className="space-y-2 hidden md:block">
+                  <div className="text-sm font-medium">Productos</div>
                   <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader className="bg-muted/50">
-                        <TableRow className="text-[10px]">
-                          <TableHead className="py-1 w-[140px]">Producto</TableHead>
-                          <TableHead className="py-1">Descripción</TableHead>
-                          <TableHead className="py-1 w-[60px] text-right">Cant.</TableHead>
-                          <TableHead className="py-1 w-[70px] text-right">Precio</TableHead>
-                          <TableHead className="py-1 w-[70px] text-right">Total</TableHead>
+                        <TableRow>
+                          <TableHead className="py-2 w-[200px]">Producto</TableHead>
+                          <TableHead className="py-2">Descripción</TableHead>
+                          <TableHead className="py-2 w-[80px] text-right">Cant.</TableHead>
+                          <TableHead className="py-2 w-[100px] text-right">Precio</TableHead>
+                          <TableHead className="py-2 w-[100px] text-right">Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {orderItems.map((item, index) => (
                           <TableRow key={index}>
-                            <TableCell className="p-1">
+                            <TableCell className="p-2">
                               <Select
                                 value={item.code}
                                 onValueChange={(value) => handleProductChange(index, value)}
                               >
-                                <SelectTrigger className="h-7 text-xs">
+                                <SelectTrigger className="h-9 text-sm">
                                   <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -865,7 +921,7 @@ export default function Billing() {
                                     <SelectItem
                                       key={product.id}
                                       value={product.id.toString()}
-                                      className="text-xs"
+                                      className="text-sm"
                                     >
                                       {product.name}
                                     </SelectItem>
@@ -873,20 +929,20 @@ export default function Billing() {
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell className="text-xs p-1">{item.description}</TableCell>
-                            <TableCell className="p-1">
+                            <TableCell className="text-sm p-2">{item.description}</TableCell>
+                            <TableCell className="p-2">
                               <Input
                                 type="number"
                                 value={item.quantity}
                                 onChange={(e) => handleQuantityChange(index, parseInt(e.target.value) || 0)}
-                                className="h-7 text-xs text-right"
+                                className="h-9 text-sm text-right"
                                 min="0"
                               />
                             </TableCell>
-                            <TableCell className="text-right text-xs p-1">
+                            <TableCell className="text-right text-sm p-2">
                               {item.price.toFixed(2)}
                             </TableCell>
-                            <TableCell className="text-right text-xs p-1">
+                            <TableCell className="text-right text-sm p-2 font-medium">
                               {item.total.toFixed(2)}
                             </TableCell>
                           </TableRow>
@@ -894,53 +950,70 @@ export default function Billing() {
                       </TableBody>
                     </Table>
                   </div>
+                </div>
 
-                  {/* Totales */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <div className="md:col-span-2"></div>
-                    <div className="space-y-1 p-2 bg-muted rounded-lg">
-                      <div className="flex justify-between text-xs">
-                        <span>Subtotal:</span>
-                        <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span>ITBIS (18%):</span>
-                        <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
-                      </div>
-                      <Separator className="my-0.5" />
-                      <div className="flex justify-between text-xs font-semibold">
-                        <span>Total:</span>
-                        <span>RD$ {calculateTotal().total.toFixed(2)}</span>
-                      </div>
+                {/* Campo de Notas */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Notas de la Factura</div>
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 200) {
+                        setNotes(e.target.value);
+                      }
+                    }}
+                    placeholder="Añadir nota a la factura (máximo 200 caracteres)"
+                    className="h-20 text-sm resize-none"
+                    maxLength={200}
+                  />
+                  <div className="text-xs text-muted-foreground text-right">
+                    {notes.length}/200 caracteres
+                  </div>
+                </div>
+
+                {/* Totales */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <div></div>
+                  <div className="space-y-1.5 p-3 bg-muted/30 rounded-lg">
+                    <div className="flex justify-between text-sm">
+                      <span>Subtotal:</span>
+                      <span>RD$ {calculateTotal().subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>ITBIS (18%):</span>
+                      <span>RD$ {calculateTotal().tax.toFixed(2)}</span>
+                    </div>
+                    <Separator className="my-1" />
+                    <div className="flex justify-between text-sm font-medium">
+                      <span>Total:</span>
+                      <span>RD$ {calculateTotal().total.toFixed(2)}</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Botones */}
-                  <div className="flex justify-end gap-2 pt-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => setActiveTab("list")}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={handleCreateInvoice}
-                      disabled={createMutation.isPending}
-                    >
-                      {createMutation.isPending ? (
-                        <>
-                          <div className="animate-spin mr-1 h-3 w-3 border-2 border-current border-t-transparent rounded-full"></div>
-                          Creando...
-                        </>
-                      ) : (
-                        "Crear Factura"
-                      )}
-                    </Button>
-                  </div>
+                {/* Botones */}
+                <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    onClick={() => setActiveTab("list")}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    className="w-full sm:w-auto"
+                    onClick={handleCreateInvoice}
+                    disabled={createMutation.isPending}
+                  >
+                    {createMutation.isPending ? (
+                      <>
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                        Creando...
+                      </>
+                    ) : (
+                      "Crear Factura"
+                    )}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
