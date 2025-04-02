@@ -14,8 +14,12 @@ import {
   Save,
   CreditCard,
   Check,
-  X
+  X,
+  Printer,
+  FileDown
 } from "lucide-react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -92,6 +96,7 @@ export default function DeliveryDetails() {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
   const [paymentReceived, setPaymentReceived] = useState(0);
   const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
+  const [companySettings, setCompanySettings] = useState<any>(null);
   
   const deliveryId = params?.id ? parseInt(params.id) : null;
   
