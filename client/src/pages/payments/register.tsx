@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { type Invoice } from "@shared/schema";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,7 +38,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 export default function RegisterPayment() {
-  const navigate = useNavigate();
+  const [_, setLocation] = useLocation();
   const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -67,7 +67,7 @@ export default function RegisterPayment() {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices/pending"] });
       
       // Redirigir al historial de pagos
-      navigate("/payments/history");
+      setLocation("/payments/history");
     },
     onError: (error: Error) => {
       toast({
@@ -132,7 +132,7 @@ export default function RegisterPayment() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => navigate("/payments")}
+            onClick={() => setLocation("/payments")}
             className="gap-1"
           >
             <ArrowLeft className="h-4 w-4" /> Volver
@@ -289,7 +289,7 @@ export default function RegisterPayment() {
           <CardFooter className="flex justify-end gap-3 border-t py-4">
             <Button
               variant="outline"
-              onClick={() => navigate("/payments")}
+              onClick={() => setLocation("/payments")}
             >
               Cancelar
             </Button>
