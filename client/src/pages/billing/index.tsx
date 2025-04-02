@@ -571,18 +571,84 @@ export default function Billing() {
                   </Badge>
                 </div>
                 <ScrollArea className="h-[45vh]">
-                  <Table>
-                    <TableHeader className="bg-muted/50">
-                      <TableRow>
-                        <TableHead className="py-1.5 text-xs">Cliente</TableHead>
-                        <TableHead className="py-1.5 text-xs">Fecha</TableHead>
-                        <TableHead className="py-1.5 text-xs">Factura No.</TableHead>
-                        <TableHead className="py-1.5 text-xs">Estado</TableHead>
-                        <TableHead className="py-1.5 text-xs text-right">Total</TableHead>
-                        <TableHead className="py-1.5 text-xs text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  {/* Vista para móviles (tarjetas) */}
+                  <div className="block md:hidden p-2 space-y-3">
+                    {invoicesError ? (
+                      <div className="text-center py-6 text-red-500">
+                        Error al cargar facturas: {invoicesError.message}
+                      </div>
+                    ) : isLoadingInvoices ? (
+                      <div className="text-center py-6">
+                        <svg className="animate-spin h-5 w-5 text-primary mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      </div>
+                    ) : filteredInvoices.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        No hay facturas para mostrar
+                      </div>
+                    ) : (
+                      filteredInvoices.map((invoice) => (
+                        <Card key={invoice.id} className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium text-sm">
+                              {customers.find((c: any) => c.id === invoice.customerId)?.businessname || "Cliente"}
+                            </div>
+                            <StatusBadge status={invoice.status} invoice={invoice} />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-1 text-xs mb-3">
+                            <div>
+                              <span className="text-muted-foreground">Factura:</span> #{invoice.invoiceNumber || invoice.id}
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Fecha:</span> {new Date(invoice.date).toLocaleDateString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                              })}
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Total:</span> RD$ {parseFloat(invoice.total).toFixed(2)}
+                            </div>
+                            {invoice.status === "pending" && parseFloat(invoice.totalPaid || "0") > 0 && (
+                              <div>
+                                <span className="text-muted-foreground">Pendiente:</span> RD$ {parseFloat(invoice.pendingAmount || "0").toFixed(2)}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="w-full"
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setActiveTab("details");
+                            }}
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1" /> Ver Detalles
+                          </Button>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Vista para tablets y desktop (tabla tradicional) */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader className="bg-muted/50">
+                        <TableRow>
+                          <TableHead className="py-1.5 text-xs">Cliente</TableHead>
+                          <TableHead className="py-1.5 text-xs">Fecha</TableHead>
+                          <TableHead className="py-1.5 text-xs">Factura No.</TableHead>
+                          <TableHead className="py-1.5 text-xs">Estado</TableHead>
+                          <TableHead className="py-1.5 text-xs text-right">Total</TableHead>
+                          <TableHead className="py-1.5 text-xs text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                       {invoicesError ? (
                         <TableRow>
                           <TableCell colSpan={6} className="text-center py-6 text-red-500">
@@ -652,6 +718,7 @@ export default function Billing() {
                       )}
                     </TableBody>
                   </Table>
+                  </div>
                 </ScrollArea>
               </div>
             </div>
