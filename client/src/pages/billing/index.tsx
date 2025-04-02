@@ -137,6 +137,17 @@ export default function Billing() {
       return response.json();
     }
   });
+  
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/settings");
+      if (!response.ok) {
+        throw new Error('Error al cargar configuración');
+      }
+      return response.json();
+    }
+  });
 
   // Consulta para obtener los items de una factura específica
   const { data: invoiceDetails = [] } = useQuery({
