@@ -46,6 +46,7 @@ import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
 import MobilePayments from "@/pages/mobile-app/pagos";
+import MobilePaymentsHistory from "@/pages/mobile-app/pagos/historial";
 
 function Router() {
   const [location] = useLocation();

@@ -461,7 +461,7 @@ export default function PaymentsHistory() {
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="cash">Efectivo</SelectItem>
                 <SelectItem value="card">Tarjeta</SelectItem>
                 <SelectItem value="credit">Crédito</SelectItem>

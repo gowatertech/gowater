@@ -232,6 +232,8 @@ export default function MobilePayments() {
       />
 
       <main className="flex-1 p-3 pt-2 pb-16 overflow-auto">
+
+
         {/* Resumen de estadísticas */}
         <div className="grid grid-cols-2 gap-2 mb-3">
           <Card className="bg-muted/20">
