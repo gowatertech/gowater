@@ -11,6 +11,7 @@ import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
 import Payments from "@/pages/payments";
+import RegisterPayment from "@/pages/payments/register";
 import PaymentsList from "@/pages/pagos/lista";
 import PaymentsHistory from "@/pages/pagos/historial";
 import Billing from "@/pages/billing";
@@ -46,7 +47,8 @@ import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
 import MobilePayments from "@/pages/mobile-app/pagos";
-import MobilePaymentsHistory from "@/pages/mobile-app/pagos/historial";
+// El componente MobilePaymentsHistory no está disponible
+// import MobilePaymentsHistory from "@/pages/mobile-app/pagos/historial";
 
 function Router() {
   const [location] = useLocation();
@@ -157,6 +159,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/billing" component={Billing} />
         <Route path="/payments" component={Payments} />
+        <Route path="/payments/register" component={RegisterPayment} />
         <Route path="/payments/list" component={PaymentsList} />
         <Route path="/payments/history" component={PaymentsHistory} />
         <Route path="/pagos/historial" component={PaymentsHistory} />
