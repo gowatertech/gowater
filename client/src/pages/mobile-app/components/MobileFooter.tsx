@@ -1,80 +1,82 @@
 import React from "react";
 import { useLocation } from "wouter";
-import {
-  Home,
-  Navigation,
-  Package,
-  Recycle,
-  BarChart3,
-  ListChecks,
-  Play
-} from "lucide-react";
+import { Home, Truck, FileText, Map, Settings, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MobileFooterProps {
-  darkMode: boolean;
+  darkMode?: boolean;
 }
 
-export function MobileFooter({ darkMode }: MobileFooterProps) {
+export const MobileFooter: React.FC<MobileFooterProps> = ({ darkMode = false }) => {
   const [location, setLocation] = useLocation();
-  
-  // Definimos los elementos de navegación principales
-  const navItems = [
-    {
-      icon: Home,
-      label: "Inicio",
-      href: "/mobile-app"
-    },
-    {
-      icon: ListChecks,
-      label: "Mis Rutas",
-      href: "/mobile-app/rutas-pendientes"
-    },
-    {
-      icon: Navigation,
-      label: "Mi Ruta",
-      href: "/mobile-app/ruta"
-    },
-    {
-      icon: Package,
-      label: "Entregas",
-      href: "/mobile-app/entregas"
-    },
-    {
-      icon: Recycle,
-      label: "Envases",
-      href: "/mobile-app/envases"
-    },
-    {
-      icon: BarChart3,
-      label: "Pagos",
-      href: "/mobile-app/pagos"
-    }
-  ];
-  
+
+  const isActivePath = (path: string) => {
+    return location.startsWith(path);
+  };
+
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 z-10 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : 'bg-white'} border-t`}>
-      <div className="grid grid-cols-6 h-16">
-        {navItems.map((item) => {
-          const isActive = location === item.href;
-          return (
-            <button
-              key={item.href}
-              className={`flex flex-col items-center justify-center py-1 relative ${
-                isActive 
-                  ? `text-primary ${darkMode ? 'bg-primary/10' : ''}`
-                  : 'text-muted-foreground'
-              }`}
-              onClick={() => setLocation(item.href)}
-            >
-              <item.icon className={`h-5 w-5 ${isActive ? 'text-primary' : ''}`} />
-              <span className="text-[10px] mt-0.5">{item.label}</span>
-              {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+    <footer className={`sticky bottom-0 border-t shadow-sm py-2 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
+      <nav className="flex justify-around items-center px-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex flex-col items-center gap-1 h-auto py-2 ${
+            isActivePath("/mobile-app") && !isActivePath("/mobile-app/") ? "text-primary" : ""
+          }`}
+          onClick={() => setLocation("/mobile-app")}
+        >
+          <Home className="h-5 w-5" />
+          <span className="text-xs">Inicio</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex flex-col items-center gap-1 h-auto py-2 ${
+            isActivePath("/mobile-app/rutas") || isActivePath("/mobile-app/ruta") ? "text-primary" : ""
+          }`}
+          onClick={() => setLocation("/mobile-app/rutas-pendientes")}
+        >
+          <Truck className="h-5 w-5" />
+          <span className="text-xs">Rutas</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex flex-col items-center gap-1 h-auto py-2 ${
+            isActivePath("/mobile-app/entregas") ? "text-primary" : ""
+          }`}
+          onClick={() => setLocation("/mobile-app/entregas")}
+        >
+          <FileText className="h-5 w-5" />
+          <span className="text-xs">Entregas</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex flex-col items-center gap-1 h-auto py-2 ${
+            isActivePath("/mobile-app/mapa") ? "text-primary" : ""
+          }`}
+          onClick={() => setLocation("/mobile-app/mapa")}
+        >
+          <Map className="h-5 w-5" />
+          <span className="text-xs">Mapa</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`flex flex-col items-center gap-1 h-auto py-2 ${
+            isActivePath("/mobile-app/perfil") ? "text-primary" : ""
+          }`}
+          onClick={() => setLocation("/mobile-app/perfil")}
+        >
+          <User className="h-5 w-5" />
+          <span className="text-xs">Perfil</span>
+        </Button>
+      </nav>
+    </footer>
   );
-}
+};

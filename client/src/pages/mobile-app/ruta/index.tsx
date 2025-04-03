@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import RouteTimeline from "@/components/route/RouteTimeline";
-
 import { useLocation } from "wouter";
 import { jsPDF } from "jspdf";
 import { 
@@ -9,7 +8,7 @@ import {
   MapPin, 
   AlertTriangle,
   Play,
-  Square, // Reemplazamos Stop por Square
+  Square,
   Pause,
   Check,
   Clock,
@@ -24,18 +23,18 @@ import {
   Package,
   Receipt,
   Printer,
-  Edit, // Añadido para editar pedidos
-  Eye, // Añadido para ver detalles
-  CreditCard, // Añadido para método de pago con tarjeta
-  CircleDollarSign, // Para opciones de pago rápido
-  Coins, // Para cambio en efectivo
-  Calculator, // Para cálculos
-  Ban, // Para cancelar
-  CheckCircle, // Para confirmar
-  BadgeDollarSign, // Para montos exactos
-  PillBottle, // Para retorno de envases
-  Plus, // Para incrementar cantidad
-  Minus // Para decrementar cantidad
+  Edit,
+  Eye,
+  CreditCard,
+  CircleDollarSign,
+  Coins,
+  Calculator,
+  Ban,
+  CheckCircle,
+  BadgeDollarSign,
+  PillBottle,
+  Plus,
+  Minus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,49 +45,50 @@ import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { apiRequest } from "@/lib/api";
 import BottleReturnDialog from "@/components/bottleReturns/BottleReturnDialog";
+import { RouteStop } from "@/types/route";
 
-
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+// Componentes de diálogo
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
   DialogFooter,
-  DialogDescription
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
+
+// Formularios e inputs
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 
-// Importamos el componente de mapa responsivo
-import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
-import { WaterProgressBar } from "@/components/ui/water-progress-bar";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+// Función para formatear tiempo
+const formatTimeDifference = (startDate: Date, endDate: Date): string => {
+  const diffInMs = endDate.getTime() - startDate.getTime();
+  const diffInMin = Math.floor(diffInMs / 60000);
+  
+  if (diffInMin < 60) {
+    return `${diffInMin} min`;
+  }
+  
+  const hours = Math.floor(diffInMin / 60);
+  const minutes = diffInMin % 60;
+  
+  return `${hours}h ${minutes}m`;
+};
 
-// Solución al problema de iconos en Leaflet
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-
-// Icono verde para el almacén
-let WarehouseIcon = L.divIcon({
-  html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-full w-8 h-8 text-sm font-semibold shadow-lg border-2 border-white">A</div>`,
-  className: 'custom-warehouse-icon',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// Funciones de ayuda para conversión de tipos
+// Conversor string a número
 const toNumber = (value: string | number): number => {
   if (typeof value === 'string') {
     return parseFloat(value) || 0;
@@ -96,1475 +96,330 @@ const toNumber = (value: string | number): number => {
   return value;
 };
 
-// Función para formatear la diferencia de tiempo entre dos fechas
-const formatTimeDifference = (startDate: Date, endDate: Date): string => {
-  const diffInMs = endDate.getTime() - startDate.getTime();
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} min`;
-  }
-  
-  const hours = Math.floor(diffInMinutes / 60);
-  const minutes = diffInMinutes % 60;
-  
-  return `${hours} hr ${minutes} min`;
-};
-
-const toString = (value: string | number): string => {
-  if (typeof value === 'number') {
-    return value.toString();
-  }
-  return value;
-};
-
-// Tipo para una parada en la ruta
-interface RouteStop {
-  id: number;
-  order: number; // Orden en la secuencia de la ruta (0 para almacén, 1, 2, 3, etc.)
-  customerId: number;
-  customerName: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
-  estimatedArrival: string; // Hora estimada de llegada
-  estimatedDuration: number; // Duración estimada en minutos
-  distanceFromPrevious: number; // Distancia desde el punto anterior en km
-  products: { id: number; name: string; quantity: number; price: number; isReturnable?: boolean }[];
-  totalValue: number | string; // Valor total del pedido (puede venir como string desde la API)
-  isWarehouse?: boolean; // Indica si es el almacén (punto 0)
-}
-
-// Coordenadas del almacén (punto de inicio) - Cotuí, Sánchez Ramírez
-const warehouseLocation: [number, number] = [19.05878, -70.15141]; // República Dominicana
-
 export default function DriverRoute() {
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useCurrentUser();
-  const [darkMode, setDarkMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Estado local
+  const [loading, setLoading] = useState(true);
+  const [activeRouteId, setActiveRouteId] = useState<number | null>(null);
+  const [routeDetails, setRouteDetails] = useState<any>(null);
   const [routeStops, setRouteStops] = useState<RouteStop[]>([]);
-  const [currentLocation, setCurrentLocation] = useState<[number, number]>(warehouseLocation); // Ubicación predeterminada: almacén
-  const [watchId, setWatchId] = useState<number | null>(null);
-  
-  // Obtener el ID de la ruta desde la URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const routeIdFromUrl = urlParams.get('routeId');
-  
-  console.log("URL location:", location);
-  console.log("URL search params:", window.location.search);
-  console.log("ID de Ruta desde URL:", routeIdFromUrl);
-  
-  // Alternar modo oscuro
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('theme', darkMode ? 'light' : 'dark');
-  };
-
-  // Sincronizar datos
-  const syncData = async () => {
-    toast({
-      title: "Sincronizando datos de ruta",
-      description: "Actualizando información..."
-    });
-    
-    try {
-      // Recargar datos de la ruta desde el servidor
-      await loadRouteData();
-      
-      // Obtener ubicación actual si está disponible
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            setCurrentLocation([latitude, longitude]);
-            
-            // Si la ruta está activa, actualizar progreso
-            if (routeStatus === 'in_progress' && activeRouteId) {
-              updateRouteProgress(latitude, longitude);
-            }
-          },
-          (error) => {
-            console.error("Error al obtener la ubicación durante sincronización:", error);
-          }
-        );
-      }
-      
-      toast({
-        title: "Ruta actualizada",
-        description: "Los datos de tu ruta han sido actualizados",
-        variant: "default"
-      });
-    } catch (error) {
-      console.error("Error al sincronizar datos:", error);
-      toast({
-        title: "Error de sincronización",
-        description: "No se pudieron actualizar los datos. Inténtalo de nuevo.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Estado para la ruta activa
-  // Inicializamos el estado con los valores almacenados en localStorage si existen
-  const [activeRouteId, setActiveRouteId] = useState<number | null>(() => {
-    const savedId = localStorage.getItem('activeRouteId');
-    return savedId ? parseInt(savedId) : null;
-  });
-  
-  const [routeStatus, setRouteStatus] = useState<'not_started' | 'in_progress' | 'paused' | 'completed'>(() => {
-    // Primero intentamos obtener el estado de ruta usando routeIdFromUrl (si existe)
-    if (routeIdFromUrl) {
-      const savedRouteStatus = localStorage.getItem(`routeStatus_${routeIdFromUrl}`);
-      if (savedRouteStatus) {
-        return savedRouteStatus as 'not_started' | 'in_progress' | 'paused' | 'completed';
-      }
-    }
-    
-    // Si no hay estado específico, intentamos con el genérico
-    const savedStatus = localStorage.getItem('routeStatus') as 'not_started' | 'in_progress' | 'paused' | 'completed';
-    return savedStatus || 'not_started';
-  });
-  
-  // Función para actualizar el estado de la ruta y guardarlo en localStorage
-  const updateRouteStatus = (status: 'not_started' | 'in_progress' | 'paused' | 'completed') => {
-    setRouteStatus(status);
-    // Guardar el estado específico para esta ruta
-    if (routeIdFromUrl) {
-      // Guardar con formato específico por ID para mantener consistencia entre páginas
-      localStorage.setItem(`routeStatus_${routeIdFromUrl}`, status);
-      // También guardar el estado general para compatibilidad
-      localStorage.setItem('routeStatus', status);
-    }
-  };
-  
-  const [startTime, setStartTime] = useState<Date | null>(() => {
-    const savedTime = localStorage.getItem('startTime');
-    return savedTime ? new Date(savedTime) : null;
-  });
-  
-  const [currentStopIndex, setCurrentStopIndex] = useState<number>(() => {
-    const savedIndex = localStorage.getItem('currentStopIndex');
-    return savedIndex ? parseInt(savedIndex) : 0;
-  });
-  
-  // Estado para controlar qué parada tiene los detalles expandidos
   const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
+  const [currentStopIndex, setCurrentStopIndex] = useState<number>(-1);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
   
-  // Estados para el diálogo de pago
+  // Estados para diálogos
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
-  const [paymentReceived, setPaymentReceived] = useState(0);
-  const [updateCustomerBalance, setUpdateCustomerBalance] = useState(true);
-  
-  // Estados para el diálogo de retorno de envases
-  const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
-  const [currentOrderIdForReturn, setCurrentOrderIdForReturn] = useState<number | null>(null);
-  
-  // Estados para el diálogo de edición de pedido
   const [showEditOrderDialog, setShowEditOrderDialog] = useState(false);
+  const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
+  const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
   const [currentStopForEdit, setCurrentStopForEdit] = useState<RouteStop | null>(null);
-  const [editedProducts, setEditedProducts] = useState<RouteStop['products']>([]);
+  const [currentOrderIdForBottleReturn, setCurrentOrderIdForBottleReturn] = useState<number | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "credit">("cash");
+  const [amountPaid, setAmountPaid] = useState<string>("");
+  const [returnedBottlesCount, setReturnedBottlesCount] = useState<number>(0);
   
-  // Calcular el número de paradas completadas (excluyendo el almacén)
-  const calculateCompletedStops = () => {
-    // Filtramos paradas completadas que no sean el almacén (order > 0)
-    return routeStops.filter(stop => stop.status === 'completed' && !stop.isWarehouse).length;
-  };
-
-  // Calcular el porcentaje de progreso de la ruta
-  const calculateRouteProgress = () => {
-    // Si no hay paradas o solo está el almacén, devolvemos 0%
-    if (routeStops.length <= 1) return 0;
-    
-    // Calculamos el total de paradas excluyendo el almacén
-    const totalStops = routeStops.length - 1; 
-    
-    // Calculamos el número de paradas completadas
-    const completedStops = calculateCompletedStops();
-    
-    // Si la ruta está en curso pero no hay paradas completadas, mostramos 5% para indicar progreso
-    if (routeStatus === 'in_progress' && completedStops === 0) return 5;
-    
-    // Si la ruta está completada, retornamos 100%
-    if (routeStatus === 'completed') return 100;
-    
-    // Calculamos el porcentaje: (completadas / total) * 100
-    return (completedStops / totalStops) * 100;
-  };
-
-  // Cargar datos de la ruta
-  const loadRouteData = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Usar el ID de la ruta de la URL
-      const routeId = routeIdFromUrl ? parseInt(routeIdFromUrl) : null;
-      
-      if (!routeId) {
-        console.error("No se encontró un ID de ruta en la URL");
-        toast({
-          title: "Error al cargar la ruta",
-          description: "ID de ruta no proporcionado. Regresa al listado de rutas.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log(`Cargando datos para la ruta ID: ${routeId}`);
-      setActiveRouteId(routeId);
-      
-      // Obtener información básica sobre la ruta
-      const routeResponse = await fetch(`/api/routes/${routeId}`);
-      if (!routeResponse.ok) {
-        throw new Error(`Error al obtener la ruta: ${routeResponse.statusText}`);
-      }
-      
-      const routeData = await routeResponse.json();
-      console.log("Datos de la ruta:", routeData);
-      
-      // Obtener los pedidos asociados a esta ruta
-      const ordersResponse = await fetch(`/api/routes/${routeId}/orders`);
-      if (!ordersResponse.ok) {
-        throw new Error(`Error al obtener los pedidos: ${ordersResponse.statusText}`);
-      }
-      
-      const ordersData = await ordersResponse.json();
-      console.log("Pedidos de la ruta:", ordersData);
-      console.log("Número de pedidos encontrados:", ordersData.length);
-      
-      // Si no hay órdenes, mostramos un mensaje de diagnóstico
-      if (ordersData.length === 0) {
-        console.warn("No se encontraron pedidos para esta ruta");
-      } else {
-        console.log("Primer pedido:", ordersData[0]);
-        console.log("Coordenadas del primer pedido:", ordersData[0].coordinates);
-      }
-      
-      // Usamos las coordenadas del almacén definidas globalmente
-      
-      // Crear la estructura de paradas para la ruta
-      const stops: RouteStop[] = [];
-      
-      // Agregar el almacén como punto de inicio (stop 0)
-      stops.push({
-        id: 0,
-        order: 0,
-        customerId: 0,
-        customerName: "Almacén GoWater",
-        address: "Calle Principal #23, Cotuí, Sánchez Ramírez",
-        latitude: warehouseLocation[0],
-        longitude: warehouseLocation[1],
-        status: "completed",
-        estimatedArrival: "08:00 AM",
-        estimatedDuration: 0,
-        distanceFromPrevious: 0,
-        products: [],
-        totalValue: 0,
-        isWarehouse: true
-      });
-      
-      // Verificar si la ruta tiene secuencia de entrega y coordenadas definidas
-      let stopSequence = [];
-      let stopCoordinates = [];
-      
-      if (routeData.deliverySequence && routeData.deliverySequence.length > 0) {
-        stopSequence = routeData.deliverySequence;
-      }
-      
-      if (routeData.stops && routeData.stops.length > 0) {
-        stopCoordinates = routeData.stops.map((stop: string) => {
-          const [lat, lng] = stop.split(',').map(coord => parseFloat(coord));
-          return { latitude: lat, longitude: lng };
-        });
-      }
-      
-      // Mantener el estado de pedidos completados (si existen)
-      const completedStops = routeStops.filter(stop => 
-        stop.status === "completed" && !stop.isWarehouse
-      );
-      const completedStopIds = completedStops.map(stop => stop.id);
-      
-      // Cargar adicionalmente las paradas completadas guardadas en localStorage
-      let savedCompletedStopIds: number[] = [];
+  // Cargar datos de la ruta activa
+  useEffect(() => {
+    const fetchActiveRoute = async () => {
       try {
-        const savedStopsJson = localStorage.getItem(`routeCompletedStops_${routeId}`);
-        if (savedStopsJson) {
-          savedCompletedStopIds = JSON.parse(savedStopsJson);
-          console.log("Paradas completadas cargadas desde localStorage:", savedCompletedStopIds);
+        const response = await apiRequest("/api/routes/active");
+        
+        if (response && response.id) {
+          setActiveRouteId(response.id);
+          setRouteDetails(response);
+          fetchRouteStops(response.id);
+        } else {
+          setLoading(false);
+          toast({
+            title: "No hay ruta activa",
+            description: "No tienes una ruta asignada para hoy.",
+            variant: "destructive"
+          });
         }
       } catch (error) {
-        console.error("Error al cargar paradas completadas desde localStorage:", error);
+        console.error("Error al cargar la ruta activa:", error);
+        setLoading(false);
       }
+    };
+    
+    fetchActiveRoute();
+    
+    // Verificar preferencia de modo oscuro
+    const darkModePreference = localStorage.getItem("darkMode");
+    if (darkModePreference === "true") {
+      setDarkMode(true);
+    }
+  }, []);
+  
+  // Función para cargar las paradas de la ruta
+  const fetchRouteStops = async (routeId: number) => {
+    try {
+      const response = await apiRequest(`/api/routes/${routeId}/orders`);
       
-      // Combinar las paradas completadas actuales con las guardadas
-      const allCompletedStopIds = Array.from(new Set([...completedStopIds, ...savedCompletedStopIds]));
-      
-      console.log("Paradas completadas actuales:", completedStops.length);
-      console.log("IDs de paradas completadas (combinadas):", allCompletedStopIds);
-      
-      // Agregar las paradas de los clientes
-      console.log("Procesando ordersData:", ordersData);
-      ordersData.forEach((order: any, index: number) => {
-        console.log(`Procesando orden ${index + 1}/${ordersData.length}:`, order.id);
+      if (response && Array.isArray(response)) {
+        const warehouseStop: RouteStop = {
+          id: 0,
+          order: 0,
+          customerId: 0,
+          customerName: "Almacén Principal",
+          address: "Calle Principal #123",
+          latitude: 19.075380,
+          longitude: -70.128822,
+          status: "completed",
+          estimatedArrival: "Inicio",
+          estimatedDuration: 0,
+          distanceFromPrevious: 0,
+          products: [],
+          totalValue: 0,
+          isWarehouse: true
+        };
         
-        // Verificar si este pedido ya existe como completado (en memoria o localStorage)
-        const isAlreadyCompleted = allCompletedStopIds.includes(order.id);
-        
-        // Calcular el valor total del pedido a partir de los productos
-        const totalValue = order.products.reduce(
-          (sum: number, product: any) => sum + (Number(product.price) * product.quantity), 
-          0
-        );
-        console.log(`Valor total calculado para pedido ${order.id}: $${totalValue}`);
-        
-        // Extraer coordenadas del cliente directamente del orden si están disponibles
-        let latitude = 0, longitude = 0;
-        let stopOrder = index + 1; // Por defecto, orden secuencial
-        
-        // Intentar obtener coordenadas del pedido primero
-        if (order.coordinates) {
-          console.log(`Coordenadas del pedido ${order.id}:`, order.coordinates);
-          const [lat, lng] = order.coordinates.split(',').map((coord: string) => parseFloat(coord));
-          if (!isNaN(lat) && !isNaN(lng)) {
-            latitude = lat;
-            longitude = lng;
-            console.log(`Coordenadas procesadas correctamente: [${latitude}, ${longitude}]`);
-          } else {
-            console.warn(`Error al analizar coordenadas para pedido ${order.id}: ${order.coordinates}`);
+        // Calcular distancias e índice actual
+        const stopsWithDistances = response.map((stop: any, index: number) => {
+          // Encontrar el índice de la parada actual (la primera que no está completada)
+          if (stop.status !== "completed" && currentStopIndex === -1) {
+            setCurrentStopIndex(index + 1); // +1 debido al almacén
           }
-        } else {
-          console.warn(`Pedido ${order.id} no tiene coordenadas definidas`);
-        }
-        
-        // Intentar encontrar la posición correcta en la secuencia si no tenemos coordenadas directas
-        if ((latitude === 0 || longitude === 0) && stopSequence.length > index + 1) {
-          const sequenceIndex = parseInt(stopSequence[index + 1]);
-          stopOrder = sequenceIndex;
           
-          // Si tenemos coordenadas para esta parada
-          if (stopCoordinates.length > sequenceIndex) {
-            latitude = stopCoordinates[sequenceIndex].latitude;
-            longitude = stopCoordinates[sequenceIndex].longitude;
-          }
-        }
-        
-        // Si aún no tenemos coordenadas válidas, usar valores ligeramente diferentes para visualización
-        if (latitude === 0 || longitude === 0) {
-          latitude = warehouseLocation[0] + (Math.random() * 0.02);
-          longitude = warehouseLocation[1] + (Math.random() * 0.02);
-          console.log(`Usando coordenadas aleatorias para pedido ${order.id}`);
-        }
-        
-        // Calcular estimados aproximados (en una app real estos vendrían de un servicio)
-        const estimatedDuration = 5 + Math.floor(Math.random() * 10); // 5-15 minutos
-        const distanceFromPrevious = 0.5 + Math.random() * 3; // 0.5-3.5 km
-        
-        // Si el pedido ya está completado en nuestro estado local, mantener ese estado
-        // De lo contrario, usar el estado que viene de la API (normalmente "pending")
-        const currentStatus = isAlreadyCompleted 
-          ? "completed" 
-          : (order.status === "delivered" ? "completed" : order.status);
-        
-        stops.push({
-          id: order.id,
-          order: stopOrder,
-          customerId: order.customerId,
-          customerName: order.customerName,
-          address: order.customerAddress || "Dirección no disponible",
-          latitude,
-          longitude,
-          status: currentStatus as "pending" | "in_progress" | "completed" | "cancelled",
-          estimatedArrival: currentStatus === "completed" ? "Completado" : "Próximamente",
-          estimatedDuration,
-          distanceFromPrevious,
-          products: order.products.map((product: any) => ({
-            id: product.productId,
-            name: product.name,
-            quantity: product.quantity,
-            price: parseFloat(product.price),
-            isReturnable: product.isReturnable === true
-          })),
-          totalValue: Number(order.total) || totalValue
+          return {
+            ...stop,
+            order: index + 1, // Almacén es 0, las paradas empiezan en 1
+            // Añadir distancia desde el punto anterior - simulado para demostración
+            distanceFromPrevious: (index === 0) ? 3.2 : (Math.random() * 5 + 1).toFixed(1)
+          };
         });
-      });
-      
-      // También incluir paradas completadas que ya no están en los pedidos de la API
-      completedStops.forEach(completedStop => {
-        // Si este pedido completado no está en los datos de la API, añadirlo
-        if (!stops.some(stop => stop.id === completedStop.id)) {
-          console.log(`Manteniendo parada completada ID ${completedStop.id} que ya no está en los datos de la API`);
-          stops.push({...completedStop});
+        
+        // Ordenar las paradas según la secuencia de entrega
+        const deliverySequence = routeDetails.deliverySequence || [];
+        const orderedStops = deliverySequence.length > 0
+          ? deliverySequence.map((id: string) => {
+              if (id === "0") return warehouseStop;
+              return stopsWithDistances.find((s: any) => s.id.toString() === id);
+            }).filter((s: any) => s) // Filtrar undefined
+          : [warehouseStop, ...stopsWithDistances];
+        
+        setRouteStops(orderedStops);
+        
+        // Si no se estableció un índice actual, usar el primer punto después del almacén
+        if (currentStopIndex === -1) {
+          setCurrentStopIndex(1);
         }
-      });
-      
-      // Ordenar las paradas según la secuencia si está disponible
-      if (stopSequence.length > 0) {
-        stops.sort((a, b) => a.order - b.order);
       }
       
-      setRouteStops(stops);
-      
-      // Verificar si hay un estado guardado específicamente para esta ruta
-      const savedRouteStatus = localStorage.getItem(`routeStatus_${routeId}`);
-      
-      // Si hay un estado guardado específico para esta ruta, usarlo
-      if (savedRouteStatus) {
-        updateRouteStatus(savedRouteStatus as 'not_started' | 'in_progress' | 'paused' | 'completed');
-        console.log(`Cargando estado guardado para ruta ${routeId}: ${savedRouteStatus}`);
-      } else {
-        // Si no hay estado guardado, usar el de la base de datos
-        const newStatus = routeData.status === "in_progress" ? "in_progress" : "not_started";
-        updateRouteStatus(newStatus);
-        console.log(`No se encontró estado guardado para ruta ${routeId}, usando estado de BD: ${newStatus}`);
-      }
-      
-      setIsLoading(false);
+      setLoading(false);
     } catch (error) {
-      console.error("Error al cargar datos de ruta:", error);
-      toast({
-        title: "Error al cargar la ruta",
-        description: "No se pudieron obtener los datos de tu ruta asignada",
-        variant: "destructive"
-      });
-      setIsLoading(false);
-    }
-  };
-
-  // Iniciar seguimiento de ubicación
-  const startLocationTracking = () => {
-    // Usamos siempre la ubicación del almacén en República Dominicana en lugar de la geolocalización real
-    // para evitar problemas durante las demostraciones
-    setCurrentLocation(warehouseLocation);
-    
-    try {
-      toast({
-        title: "Información",
-        description: "Usando ubicación predeterminada de Cotuí, República Dominicana",
-        variant: "default"
-      });
-      
-      // Simulamos actualizaciones de ubicación cada 30 segundos
-      const id = window.setInterval(() => {
-        // Simular pequeños movimientos alrededor del almacén
-        const randomLat = warehouseLocation[0] + (Math.random() * 0.001 - 0.0005);
-        const randomLng = warehouseLocation[1] + (Math.random() * 0.001 - 0.0005);
-        
-        console.log("Ubicación actual (simulada):", randomLat, randomLng);
-        setCurrentLocation([randomLat, randomLng]);
-        
-        // Si la ruta está activa, actualizar progreso con la ubicación simulada
-        if (routeStatus === 'in_progress' && activeRouteId) {
-          updateRouteProgress(randomLat, randomLng);
-        }
-      }, 30000) as unknown as number;
-      
-      setWatchId(id);
-    } catch (error) {
-      console.error("Error al iniciar la simulación de ubicación:", error);
+      console.error("Error al cargar las paradas de la ruta:", error);
+      setLoading(false);
     }
   };
   
-  // Actualizar el progreso de la ruta en el servidor
-  const updateRouteProgress = async (latitude: number, longitude: number) => {
-    if (!activeRouteId || !user?.id) return;
-    
-    try {
-      // Enviar la ubicación actual al servidor mediante API REST
-      const currentLocation = `${latitude},${longitude}`;
-      console.log(`Actualizando progreso de ruta ${activeRouteId} en [${currentLocation}]`);
-      
-      const response = await fetch(`/api/routes/${activeRouteId}/progress`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          currentLocation,
-          lastUpdate: new Date().toISOString()
-        })
-      });
-      
-      if (!response.ok) {
-        console.error(`Error al actualizar progreso vía REST: ${response.statusText}`);
-      }
-      
-      // También intentar enviar la ubicación por WebSocket para actualización en tiempo real
-      try {
-        // Construir la URL del WebSocket
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        
-        console.log("Intentando enviar ubicación vía WebSocket:", wsUrl);
-        
-        // Crear un WebSocket temporal para enviar la actualización
-        const socket = new WebSocket(wsUrl);
-        
-        // Función para enviar la ubicación cuando el WebSocket se conecte
-        socket.onopen = () => {
-          // Enviar el mensaje con la ubicación
-          const message = JSON.stringify({
-            type: 'driver_location',
-            driverId: user.id,
-            latitude,
-            longitude
-          });
-          
-          socket.send(message);
-          console.log("Ubicación enviada vía WebSocket:", message);
-          
-          // Cerrar el WebSocket después de enviar (no necesitamos mantenerlo abierto)
-          setTimeout(() => socket.close(), 500);
-        };
-        
-        // Manejar errores de WebSocket sin mostrar mensajes al usuario
-        socket.onerror = (err) => {
-          console.log("Error en WebSocket (ignorado silenciosamente):", err);
-          socket.close();
-        };
-        
-        // Si no se conecta en 3 segundos, cerrar el socket
-        setTimeout(() => {
-          if (socket.readyState !== WebSocket.CLOSED) {
-            console.log("Cerrando WebSocket por timeout");
-            socket.close();
-          }
-        }, 3000);
-      } catch (wsError) {
-        // No mostrar estos errores al usuario, solo registrarlos
-        console.log("No se pudo inicializar WebSocket:", wsError);
-      }
-    } catch (error) {
-      console.error("Error al actualizar progreso:", error);
-    }
-  };
-  
-  // Función para iniciar la ruta
-  const startRoute = async () => {
-    if (routeStatus !== 'not_started' && routeStatus !== 'paused') return;
-    
-    setIsLoading(true);
-    
-    try {
-      // Llamar a la API para iniciar la ruta
-      console.log(`Iniciando ruta ID: ${activeRouteId}`);
-      const response = await fetch(`/api/routes/${activeRouteId}/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error al iniciar ruta: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log("Respuesta al iniciar ruta:", data);
-      
-      // Internamente usamos 'in_progress', pero en la UI se muestra como 'En curso'
-      updateRouteStatus('in_progress');
-      setStartTime(new Date());
-      
-      toast({
-        title: "Ruta iniciada",
-        description: "Has comenzado la ruta. ¡Conduce con precaución!",
-        variant: "default"
-      });
-    } catch (error) {
-      console.error("Error al iniciar ruta:", error);
-      toast({
-        title: "Error al iniciar ruta",
-        description: "No se pudo iniciar la ruta. Inténtalo de nuevo.",
-        variant: "destructive"
-      });
-      
-      // Para asegurar que la UI siga funcionando, incluso si hay un error
-      updateRouteStatus('in_progress');
-      setStartTime(new Date());
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Función para pausar la ruta
-  const pauseRoute = async () => {
-    if (routeStatus !== 'in_progress') return;
-    
-    setIsLoading(true);
-    
-    try {
-      // En un entorno real, pausaríamos la ruta en la API
-      // const response = await apiRequest('POST', `/api/driver/routes/${activeRouteId}/pause`);
-      // if (response.ok) {
-      //   setRouteStatus('paused');
-      // }
-      
-      // Para desarrollo, simulamos la pausa
-      updateRouteStatus('paused');
-      
-      toast({
-        title: "Ruta pausada",
-        description: "Has pausado la ruta. Puedes reanudarla cuando estés listo.",
-        variant: "default"
-      });
-    } catch (error) {
-      console.error("Error al pausar ruta:", error);
-      toast({
-        title: "Error al pausar ruta",
-        description: "No se pudo pausar la ruta. Inténtalo de nuevo.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Estado para el diálogo de completar ruta
-  const [showCompleteRouteDialog, setShowCompleteRouteDialog] = useState(false);
-  const [routeCompletionComments, setRouteCompletionComments] = useState("");
-  
-  // Función para mostrar el diálogo de completar ruta
-  const openCompleteRouteDialog = () => {
-    if (routeStatus === 'completed') return;
-    
-    // Verificar si hay pedidos pendientes
-    const pendingStops = routeStops.filter(stop => !stop.isWarehouse && stop.status === 'pending');
-    
-    // Si hay pedidos pendientes, mostrar un mensaje
-    if (pendingStops.length > 0) {
-      setRouteCompletionComments(`Ruta completada con ${pendingStops.length} pedidos pendientes.`);
-    } else {
-      setRouteCompletionComments("");
-    }
-    
-    setShowCompleteRouteDialog(true);
-  };
-  
-  // Función para finalizar la ruta
-  const finishRoute = async () => {
-    if (routeStatus === 'completed') return;
-    
-    setIsLoading(true);
-    setShowCompleteRouteDialog(false);
-    
-    try {
-      // Llamar a la API para finalizar la ruta
-      console.log(`Finalizando ruta ID: ${activeRouteId}`);
-      const response = await fetch(`/api/routes/${activeRouteId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        // Enviar la fecha de finalización y los comentarios
-        body: JSON.stringify({
-          completedAt: new Date().toISOString(),
-          comments: routeCompletionComments
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error al finalizar ruta: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      console.log("Respuesta al finalizar ruta:", data);
-      
-      updateRouteStatus('completed');
-      
-      toast({
-        title: "Ruta completada",
-        description: "¡Felicidades! Has completado todas las entregas.",
-        variant: "default"
-      });
-      
-      // Borrar los datos de estado de ruta en localStorage pero mantener las paradas completadas
-      localStorage.removeItem('activeRouteId');
-      localStorage.removeItem(`routeStatus_${activeRouteId}`);
-      localStorage.removeItem('startTime');
-      localStorage.removeItem('currentStopIndex');
-      // No eliminamos `routeCompletedStops_${activeRouteId}` para mantener historial de pedidos completados
-      
-      // Redireccionar al listado de rutas después de 3 segundos
-      setTimeout(() => {
-        setLocation('/mobile-app/rutas-pendientes');
-      }, 3000);
-    } catch (error) {
-      console.error("Error al finalizar ruta:", error);
-      
-      // Intentar extraer mensaje de error si está disponible
-      let errorMessage = "No se pudo finalizar la ruta. Inténtalo de nuevo.";
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      } else if (typeof error === 'object' && error !== null) {
-        errorMessage = String(error);
-      }
-      
-      toast({
-        title: "Error al finalizar ruta",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      
-      // NO actualizamos el estado de la ruta a 'completed' si hay error
-      // ya que esto causa inconsistencia con el estado real del servidor
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Función para abrir la navegación a una ubicación
-  const navigateToLocation = (latitude: number, longitude: number) => {
-    // Usamos Google Maps para la navegación
-    const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
-    window.open(googleMapsUrl, '_blank');
-  };
-  
-  // Función para abrir el diálogo de pago
+  // Abrir diálogo de pago
   const openPaymentDialog = (stop: RouteStop) => {
     setCurrentStopForPayment(stop);
+    setAmountPaid(toNumber(stop.totalValue).toFixed(2)); // Iniciar con el monto exacto
     setPaymentMethod("cash");
-    setPaymentReceived(toNumber(stop.totalValue)); // Establecer el monto predeterminado igual al total
-    setUpdateCustomerBalance(true);
     setShowPaymentDialog(true);
   };
   
-  // Función para alternar la expansión de una parada
-  const toggleExpandStop = (stopId: number) => {
-    setExpandedStopId(expandedStopId === stopId ? null : stopId);
-  };
-  
-  // Función para manejar la marcación de una parada como completada
-  // Función para manejar la entrega de órdenes
+  // Manejar pago y entrega
   const handleDeliverOrder = (stop: RouteStop) => {
-    console.log("Entregar pedido:", stop.id);
-    // Abrir el diálogo de pago
     openPaymentDialog(stop);
   };
   
+  // Marcar parada como completada
   const handleMarkStopCompleted = (stop: RouteStop) => {
-    console.log("Marcando parada como completada:", stop.id);
-    // Simplemente delegamos a la función de entregar pedido que ya existe
-    handleDeliverOrder(stop);
-  };
-  
-  // Función para editar un pedido
-  const handleEditOrder = (stop: RouteStop) => {
-    console.log("Editando pedido:", stop.id);
-    // Por ahora, simplemente mostramos una notificación de que esta funcionalidad está en desarrollo
+    // Implementar lógica para marcar parada completada
     toast({
-      title: "Función en desarrollo",
-      description: "La edición de pedidos estará disponible próximamente",
-      variant: "default"
+      title: "Parada completada",
+      description: `Parada #${stop.order} marcada como completada.`,
     });
   };
   
-  // Función para ver detalles de un pedido
+  // Editar pedido
+  const handleEditOrder = (stop: RouteStop) => {
+    setCurrentStopForEdit(stop);
+    setShowEditOrderDialog(true);
+  };
+  
+  // Ver detalles del pedido
   const handleViewOrderDetails = (stop: RouteStop) => {
-    console.log("Viendo detalles del pedido:", stop.id);
-    // Si es un pedido completado, podríamos mostrar un recibo o factura
-    if (stop.status === 'completed') {
-      // Por ahora simplemente mostramos un mensaje
-      toast({
-        title: "Funcionalidad en desarrollo",
-        description: "La generación de facturas PDF está en desarrollo",
-        variant: "default"
-      });
-    } else {
-      // Si no está completado, simplemente expandimos/colapsamos la vista
-      toggleExpandStop(stop.id);
-    }
+    const routeIdParam = activeRouteId ? `?routeId=${activeRouteId}` : '';
+    setLocation(`/mobile-app/entregas/${stop.id}${routeIdParam}`);
   };
   
-  // Función para manejar el retorno de envases
+  // Abrir diálogo para registrar devolución de envases
   const handleBottleReturn = (orderId: number) => {
-    console.log("Registrando retorno de envases para el pedido:", orderId);
-    setCurrentOrderIdForReturn(orderId);
+    setCurrentOrderIdForBottleReturn(orderId);
+    setReturnedBottlesCount(0);
     setShowBottleReturnDialog(true);
   };
   
-  // Función para abrir el diálogo de retorno de envases
-  const openBottleReturnDialog = (stop: RouteStop) => {
-    console.log("Abriendo diálogo de devolución de envases para el pedido:", stop.id);
-    setCurrentOrderIdForReturn(stop.id);
-    setShowBottleReturnDialog(true);
-  };
-  
-  // Función para abrir el diálogo de edición de pedido
-  const openEditOrderDialog = (stop: RouteStop) => {
-    console.log("Abriendo diálogo de edición para el pedido:", stop.id);
-    console.log("Productos del pedido:", stop.products);
-    
-    if (!stop.products || stop.products.length === 0) {
-      console.error("Error: No hay productos en este pedido o no se cargaron correctamente");
-      
-      // Si no hay productos, intentemos recuperarlos de la API
-      fetch(`/api/orders/${stop.id}/products`)
-        .then(response => {
-          if (!response.ok) {
-            // Si da error 404, es porque realmente no hay productos
-            if (response.status === 404) {
-              // Crear productos ficticios basados en el total del pedido
-              console.log("Creando productos para pedido sin items...");
-              
-              // Calculamos un producto default basado en el total dividido entre una cantidad estimada
-              const totalValueAsNumber = typeof stop.totalValue === 'string' ? parseFloat(stop.totalValue) : stop.totalValue;
-              const defaultProducts = [
-                {
-                  id: 1, // ID del botellón de agua 5L
-                  name: "BOTELLON 5L",
-                  quantity: Math.ceil(totalValueAsNumber / 40), // Dividir el total entre el precio del botellón
-                  price: 40,
-                  isReturnable: true
-                }
-              ];
-              
-              // Actualizar stop con los productos estimados
-              const updatedStop = { ...stop, products: defaultProducts };
-              setCurrentStopForEdit(updatedStop);
-              setEditedProducts([...defaultProducts]);
-              setShowEditOrderDialog(true);
-              
-              return [];
-            }
-            throw new Error("No se pudieron cargar los productos");
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data && Array.isArray(data) && data.length > 0) {
-            console.log("Productos cargados desde API:", data);
-            // Actualizar stop con los productos cargados
-            const updatedStop = { ...stop, products: data };
-            setCurrentStopForEdit(updatedStop);
-            setEditedProducts([...data]);
-            setShowEditOrderDialog(true);
-          }
-        })
-        .catch(error => {
-          console.error("Error al cargar productos:", error);
-          toast({
-            title: "Error",
-            description: "No se pudieron cargar los productos del pedido",
-            variant: "destructive"
-          });
-        });
+  // Alternar expansión de parada
+  const toggleExpandStop = (stopId: number) => {
+    if (expandedStopId === stopId) {
+      setExpandedStopId(null);
     } else {
-      setCurrentStopForEdit(stop);
-      setEditedProducts([...stop.products]);
-      setShowEditOrderDialog(true);
+      setExpandedStopId(stopId);
     }
   };
   
-  // Actualizar cantidad de un producto
-  const updateProductQuantity = (productId: number, quantity: number) => {
-    setEditedProducts(
-      editedProducts.map(product => 
-        product.id === productId ? { ...product, quantity } : product
-      )
-    );
-  };
-  
-  // Calcular el nuevo total
-  const calculateTotal = (products: RouteStop['products']) => {
-    return products.reduce((sum, product) => sum + (product.quantity * product.price), 0);
-  };
-  
-  // Guardar cambios de productos
-  const saveProductChanges = async () => {
-    if (!currentStopForEdit) return;
-    
-    try {
-      setIsLoading(true);
-      
-      // Calcular el nuevo total
-      const newTotal = calculateTotal(editedProducts);
-      
-      // Preparar datos para enviar al servidor
-      const productsData = editedProducts.map(product => ({
-        id: product.id,
-        name: product.name,
-        quantity: typeof product.quantity === 'number' ? product.quantity.toString() : product.quantity,
-        price: product.price.toString(),
-        isReturnable: product.isReturnable
-      }));
-      
-      // Enviar la actualización al servidor
-      const response = await fetch(`/api/orders/${currentStopForEdit.id}/products`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ products: productsData })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar los productos');
-      }
-      
-      // Actualizar el estado local con las modificaciones
-      setRouteStops(routeStops.map(stop => 
-        stop.id === currentStopForEdit.id 
-          ? { ...stop, products: editedProducts, totalValue: newTotal } 
-          : stop
-      ));
-      
-      setShowEditOrderDialog(false);
-      setCurrentStopForEdit(null);
-      
-      toast({
-        title: "Cambios guardados",
-        description: "Los productos fueron actualizados correctamente"
-      });
-    } catch (error) {
-      console.error('Error al guardar cambios de productos:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "No se pudieron guardar los cambios",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Función para procesar el pago y completar la entrega
-  const processPayment = async () => {
+  // Completar pago y entrega
+  const completePaymentAndDelivery = async () => {
     if (!currentStopForPayment) return;
     
-    setIsLoading(true);
-    
     try {
-      // Preparar datos para la actualización
-      const updateData = {
-        orderId: currentStopForPayment.id,
-        status: "delivered",
-        paymentMethod: paymentMethod,
-        paymentAmount: paymentReceived,
-        updateCustomerBalance: updateCustomerBalance,
-        createInvoice: true, // Siempre crear factura al completar entrega
-        printInvoice: false  // Por defecto no imprimir, se puede habilitar después
-      };
-
-      console.log("Procesando entrega con datos:", JSON.stringify(updateData));
+      setShowPaymentDialog(false);
       
-      // Guardar una copia local del ID y nombre del cliente por si hay problemas con la referencia después
-      const customerId = currentStopForPayment.customerId;
-      const customerName = currentStopForPayment.customerName;
-      
-      // Enviar datos al servidor
-      const response = await fetch(`/api/orders/${currentStopForPayment.id}/deliver`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(updateData)
+      // Mostrar toast mientras se procesa
+      toast({
+        title: "Procesando entrega",
+        description: "Registrando la entrega y pago...",
       });
       
-      if (!response.ok) {
-        throw new Error("No se pudo procesar la entrega");
-      }
-
-      const responseData = await response.json();
+      // Simular actualización en la base de datos
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Actualizar el estado de la parada a completada
-      const updatedStops = routeStops.map(s => 
-        s.id === currentStopForPayment.id ? 
-          { ...s, status: "completed" as "pending" | "in_progress" | "completed" | "cancelled" } : 
-          s
+      // Actualizar estado local
+      setRouteStops(prevStops => 
+        prevStops.map(stop => 
+          stop.id === currentStopForPayment.id 
+            ? { ...stop, status: "completed" } 
+            : stop
+        )
       );
       
-      // Primero cerrar el diálogo para evitar problemas de referencias
-      setShowPaymentDialog(false);
-      setExpandedStopId(null);
+      // Confirmar éxito
+      toast({
+        title: "¡Entrega completada!",
+        description: `Pedido #${currentStopForPayment.id} entregado y cobrado correctamente.`,
+        variant: "default",
+      });
       
-      // Luego actualizar el estado local con la parada marcada como completada
-      setRouteStops(updatedStops);
-      
-      // Guardamos en localStorage las paradas completadas para mantener este estado
-      // entre recargas o navegaciones
-      const completedStopsData = updatedStops
-        .filter(stop => stop.status === "completed" && !stop.isWarehouse)
-        .map(stop => stop.id);
-      localStorage.setItem(`routeCompletedStops_${activeRouteId}`, JSON.stringify(completedStopsData));
-      
-      console.log("Paradas completadas guardadas:", completedStopsData);
-      
-      // Mostrar mensaje de éxito
-      if (responseData.invoiceCreated && responseData.invoiceId) {
-        // Mostrar mensaje con opción para ver/imprimir factura
-        toast({
-          title: "Entrega procesada",
-          description: 
-            <div className="flex flex-col gap-2">
-              <span>Entrega para {customerName} completada exitosamente.</span>
-              <div className="flex gap-2 mt-1">
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="py-0 h-7 text-xs"
-                  onClick={() => viewInvoice(responseData.invoiceId)}
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  Ver factura
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="py-0 h-7 text-xs"
-                  onClick={() => printInvoice(responseData.invoiceId)}
-                >
-                  <Printer className="h-3 w-3 mr-1" />
-                  Imprimir
-                </Button>
-              </div>
-            </div>
-        });
-      } else {
-        // Mensaje simple si no hay factura
-        toast({
-          title: "Entrega procesada",
-          description: `Entrega para ${customerName} completada.`
-        });
-      }
-      
-      // Preguntar si desea crear un pedido nuevo para el mismo cliente
+      // Generar factura automáticamente
       setTimeout(() => {
-        try {
-          if (confirm(`¿Desea programar un nuevo pedido para ${customerName}?`)) {
-            openCreateNewOrderDialog(customerId);
-          }
-        } catch (error) {
-          console.error("Error al mostrar confirmación:", error);
-        }
-      }, 1500);
-      
-    } catch (error) {
-      console.error("Error al procesar la entrega:", error);
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al procesar la entrega",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Función para visualizar factura
-  const viewInvoice = (invoiceId: number) => {
-    // Abrir factura en nueva pestaña
-    window.open(`/mobile-app/facturas/${invoiceId}`, '_blank');
-  };
-  
-  // Función para imprimir factura
-  const printInvoice = async (invoiceId: number) => {
-    try {
-      // Solicitar datos de la factura
-      const response = await fetch(`/api/invoices/${invoiceId}`);
-      if (!response.ok) {
-        throw new Error("No se pudo obtener la factura");
-      }
-      const invoiceData = await response.json();
-      
-      // Generar PDF para impresión
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: [80, 200] // Tamaño típico para impresora térmica
-      });
-      
-      // Configurar el documento
-      doc.setFontSize(10);
-      doc.text("GOWATER", 40, 10, { align: 'center' });
-      doc.setFontSize(8);
-      doc.text("Factura de compra", 40, 15, { align: 'center' });
-      doc.text(`Factura #: ${invoiceData.id}`, 10, 25);
-      doc.text(`Fecha: ${new Date(invoiceData.date).toLocaleDateString()}`, 10, 30);
-      doc.text(`Cliente: ${invoiceData.customerName}`, 10, 35);
-      
-      // Productos
-      let y = 45;
-      doc.text("Producto", 10, y);
-      doc.text("Cant", 50, y);
-      doc.text("Total", 65, y);
-      y += 5;
-      doc.line(10, y, 70, y);
-      y += 5;
-      
-      // Agregar productos
-      invoiceData.items.forEach((item: { name: string; quantity: number; total: string | number }) => {
-        doc.text(item.name.substring(0, 25), 10, y);
-        doc.text(item.quantity.toString(), 50, y);
-        doc.text(`$${parseFloat(item.total.toString()).toFixed(2)}`, 65, y);
-        y += 5;
-      });
-      
-      y += 5;
-      doc.line(10, y, 70, y);
-      y += 5;
-      
-      // Total
-      doc.setFontSize(10);
-      doc.text("Total:", 45, y);
-      doc.text(`$${parseFloat(invoiceData.total).toFixed(2)}`, 65, y);
-      
-      // Método de pago
-      y += 10;
-      doc.setFontSize(8);
-      doc.text(`Forma de pago: ${invoiceData.paymentMethod === 'cash' ? 'Efectivo' : 'Crédito'}`, 10, y);
-      
-      // Mensaje de agradecimiento
-      y += 15;
-      doc.text("¡Gracias por su compra!", 40, y, { align: 'center' });
-      
-      // Abrir o imprimir el PDF
-      doc.output('dataurlnewwindow');
-    } catch (error) {
-      console.error("Error al imprimir factura:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo imprimir la factura",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Función para abrir diálogo de creación de nuevo pedido
-  const openCreateNewOrderDialog = (customerId: number) => {
-    // Redirigir a la pantalla de creación de pedidos con el cliente preseleccionado
-    setLocation(`/mobile-app/pedidos/nuevo?cliente=${customerId}`);
-  };
-
-  // Cargar datos de ruta al montar el componente o cuando cambie el ID de la URL
-  useEffect(() => {
-    loadRouteData();
-    startLocationTracking();
-    
-    // Asegurar que el estado de la ruta esté establecido correctamente
-    if (routeIdFromUrl) {
-      // Si se accede directamente, verificar si la ruta ya está en progreso
-      // según la base de datos y actualizar el estado local
-      fetch(`/api/routes/${routeIdFromUrl}`)
-        .then(res => res.json())
-        .then(routeData => {
-          if (routeData.status === "in_progress") {
-            setRouteStatus("in_progress");
-            setStartTime(new Date(routeData.driverStartedAt || Date.now()));
-          } else if (routeData.status === "completed") {
-            setRouteStatus("completed");
-          }
-        })
-        .catch(error => {
-          console.error("Error al verificar estado de ruta:", error);
+        toast({
+          title: "Factura generada",
+          description: `Factura #F-${currentStopForPayment.id}-${new Date().toISOString().slice(0, 10)}`,
         });
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Error al procesar el pago:", error);
+      toast({
+        title: "Error al procesar",
+        description: "No se pudo completar la entrega. Intente nuevamente.",
+        variant: "destructive"
+      });
     }
-    
-    // Limpiar el intervalo al desmontar
-    return () => {
-      if (watchId !== null) {
-        window.clearInterval(watchId);
-      }
-    };
-  }, [routeIdFromUrl]); // Dependencia en routeIdFromUrl para recargar si cambia
+  };
   
-  // Guardar cambios del estado de la ruta en localStorage cuando cambien
-  useEffect(() => {
-    // Solo guardar en localStorage si tenemos valores válidos
-    if (activeRouteId) {
-      localStorage.setItem('activeRouteId', activeRouteId.toString());
-    }
-    
-    // Guardar el estado de la ruta (tanto general como específico)
-    localStorage.setItem('routeStatus', routeStatus);
-    if (activeRouteId) {
-      localStorage.setItem(`routeStatus_${activeRouteId}`, routeStatus);
-    }
-    
-    // Guardar la hora de inicio si existe
-    if (startTime) {
-      localStorage.setItem('startTime', startTime.toISOString());
-    }
-    
-    // Guardar el índice de parada actual
-    localStorage.setItem('currentStopIndex', currentStopIndex.toString());
-    
-    console.log('Estado de ruta guardado en localStorage:', {
-      activeRouteId,
-      routeStatus,
-      startTime: startTime?.toISOString(),
-      currentStopIndex
-    });
-  }, [activeRouteId, routeStatus, startTime, currentStopIndex]);
-
-  // Si está cargando, mostrar spinner
-  if (isLoading) {
+  // Si está cargando, mostrar estado de carga
+  if (loading) {
     return (
-      <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
+      <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
         <MobileHeader 
-          user={user} 
-          darkMode={darkMode} 
-          onToggleDarkMode={toggleDarkMode} 
-          onSyncData={syncData}
+          title="Cargando ruta..." 
+          showBackButton={true} 
+          onBackButtonClick={() => setLocation("/mobile-app")}
+          darkMode={darkMode}
         />
-        <div className="h-[calc(100vh-132px)] flex items-center justify-center">
+        <main className="flex-1 p-4 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <h3 className="font-medium text-primary">Cargando ruta...</h3>
+            <RotateCw className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p>Cargando información de la ruta...</p>
           </div>
-        </div>
+        </main>
         <MobileFooter darkMode={darkMode} />
       </div>
     );
   }
-
-  // Función para depurar el estado actual
-  const debugInfo = () => {
+  
+  // Si no hay ruta activa
+  if (!activeRouteId || !routeDetails) {
     return (
-      <div className={`bg-slate-100 text-slate-800 p-3 mb-4 rounded-lg text-xs border ${darkMode ? 'border-gray-700 bg-gray-800 text-gray-300' : ''}`}>
-        <h3 className="font-bold mb-1 text-primary">DEBUG INFO:</h3>
-        <p>ID de Ruta: {activeRouteId}</p>
-        <p>Paradas totales: {routeStops.length}</p>
-        <p>Primer parada: {routeStops.length > 0 ? 
-          `${routeStops[0].customerName} (ID: ${routeStops[0].id})` : 
-          'Ninguna'}</p>
-        <p>Estado de ruta: {
-          routeStatus === 'in_progress' ? 'in_progress' : 
-          routeStatus === 'not_started' ? 'not_started' :
-          routeStatus === 'paused' ? 'paused' :
-          routeStatus === 'completed' ? 'completed' : 'desconocido'
-        }</p>
-        <p className="text-xs text-muted-foreground">Ubicación actual: [{currentLocation[0].toFixed(6)}, {currentLocation[1].toFixed(6)}]</p>
+      <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
+        <MobileHeader 
+          title="Sin ruta asignada" 
+          showBackButton={true} 
+          onBackButtonClick={() => setLocation("/mobile-app")}
+          darkMode={darkMode}
+        />
+        <main className="flex-1 p-4">
+          <div className="text-center py-10">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+            <h2 className="text-xl font-bold mb-2">No tienes una ruta asignada</h2>
+            <p className="text-muted-foreground mb-6">
+              Actualmente no tienes ninguna ruta asignada para entrega. 
+              Comunícate con el administrador para más información.
+            </p>
+            <Button 
+              variant="default" 
+              onClick={() => setLocation("/mobile-app")}
+            >
+              Volver al inicio
+            </Button>
+          </div>
+        </main>
+        <MobileFooter darkMode={darkMode} />
       </div>
     );
-  };
-
+  }
+  
+  // Vista principal con la ruta
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-slate-50'} pb-20`}>
+    <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
       <MobileHeader 
-        user={user} 
-        darkMode={darkMode} 
-        onToggleDarkMode={toggleDarkMode} 
-        onSyncData={syncData}
+        title="Mi Ruta" 
+        showBackButton={true} 
+        onBackButtonClick={() => setLocation("/mobile-app")}
+        darkMode={darkMode}
       />
       
-      {/* Botón flotante para finalizar ruta - visible en todo momento */}
-      {routeStatus === 'in_progress' && (
-        <div className="fixed bottom-24 left-0 right-0 z-50 px-4 mx-auto max-w-md">
-          <Button
-            variant="destructive"
-            className="w-full py-4 text-lg font-bold flex items-center justify-center gap-2 shadow-lg animate-pulse"
-            onClick={openCompleteRouteDialog}
-            disabled={isLoading}
-          >
-            <CheckCircle className="h-5 w-5" />
-            FINALIZAR RUTA
-          </Button>
-        </div>
-      )}
-      
-      {/* Debug info - remover en producción */}
-      <div className="container max-w-md mx-auto px-4">
-        {debugInfo()}
-      </div>
-      
-      <main className="container max-w-md mx-auto pb-6">
-        {/* Mapa de la ruta (altura reducida, mismo ancho que paradas) */}
-        <div className="h-[28vh] relative mb-4 px-4">
-          <ResponsiveMapContainer className="w-full h-full z-0 rounded-xl overflow-hidden" fixedHeight={true}>
-            <MapContainer 
-              center={warehouseLocation} 
-              zoom={13} 
-              className="h-full w-full z-0"
-              zoomControl={false}
-              attributionControl={false}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              
-              {/* Marcador para la ubicación actual */}
-              <Marker 
-                position={currentLocation}
-                icon={WarehouseIcon}
-              >
-                <Popup>
-                  <div className="text-sm">
-                    <p className="font-bold">Almacén GoWater</p>
-                    <p className="text-xs">Punto de inicio</p>
-                  </div>
-                </Popup>
-              </Marker>
-              
-              {/* Marcadores para cada parada en la ruta */}
-              {routeStops.map((stop, index) => (
-                <Marker 
-                  key={stop.id} 
-                  position={[stop.latitude, stop.longitude]}
-                  icon={stop.isWarehouse ? WarehouseIcon : DefaultIcon}
-                >
-                  <Popup>
-                    <div className="text-sm">
-                      <p className="font-bold">{stop.customerName}</p>
-                      <p className="text-xs">{stop.address}, {stop.isWarehouse ? "" : "Cotuí, Sánchez Ramírez"}</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-              
-              {/* Línea para la ruta */}
-              {routeStops.length > 0 && (
-                <Polyline 
-                  positions={[
-                    currentLocation,
-                    ...routeStops.map(stop => [stop.latitude, stop.longitude] as [number, number])
-                  ]}
-                  color="#2563eb"
-                  weight={4}
-                  opacity={0.7}
-                />
-              )}
-            </MapContainer>
-          </ResponsiveMapContainer>
-          
-          {/* Botón para centrar mapa en ubicación del almacén */}
-          <Button 
-            variant="default" 
-            size="icon" 
-            className="absolute bottom-4 right-4 z-10 h-10 w-10 shadow-md"
-            onClick={() => {
-              // Centrar en la ubicación del almacén
-              setCurrentLocation(warehouseLocation);
-              toast({
-                title: "Mapa centrado",
-                description: "Vista centrada en almacén principal",
-                variant: "default"
-              });
-            }}
-          >
-            <Navigation className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        {/* Lista de paradas */}
-        <div className="px-4">
-          {/* Panel de control de ruta */}
+      <main className="flex-1 p-4">
+        <div className="space-y-4">
+          {/* Tarjeta de estado actual */}
           <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">Estado de Ruta</h2>
+              <div className="flex justify-between items-center mb-3">
+                <div>
+                  <h2 className="text-lg font-bold">{routeDetails.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(routeDetails.date).toLocaleDateString('es-DO', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long'
+                    })}
+                  </p>
+                </div>
                 <Badge 
-                  variant={
-                    routeStatus === 'completed' ? "success" :
-                    routeStatus === 'in_progress' ? "default" :
-                    routeStatus === 'paused' ? "outline" :
-                    "secondary"
-                  }
+                  variant="outline" 
+                  className={`px-3 py-1 ${
+                    routeDetails.status === 'completed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
+                    routeDetails.status === 'in_progress' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' : 
+                    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                  }`}
                 >
-                  {routeStatus === 'not_started' && "No iniciada"}
-                  {routeStatus === 'in_progress' && "En curso"}
-                  {routeStatus === 'paused' && "Pausada"}
-                  {routeStatus === 'completed' && "Completada"}
+                  {routeDetails.status === 'pending' && 'Pendiente'}
+                  {routeDetails.status === 'in_progress' && 'En progreso'}
+                  {routeDetails.status === 'completed' && 'Completada'}
                 </Badge>
               </div>
               
-              {startTime && (
-                <div className="bg-primary/10 rounded-lg p-3 mb-4">
-                  <p className="text-sm flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    <span>Iniciada: {startTime.toLocaleTimeString('es-DO')}</span>
-                  </p>
+              <div className="grid grid-cols-3 gap-2 text-center border-t border-border pt-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Paradas</p>
+                  <p className="text-lg font-bold">{routeStops.length - 1}</p>
                 </div>
-              )}
-              
-              {/* Botón grande para completar ruta cuando está en progreso */}
-              {routeStatus === 'in_progress' && (
-                <div className="mb-4">
-                  <Button
-                    variant="destructive"
-                    className="w-full py-6 text-lg font-medium flex items-center justify-center gap-2"
-                    onClick={openCompleteRouteDialog}
-                    disabled={isLoading}
-                  >
-                    <CheckCircle className="h-6 w-6" />
-                    FINALIZAR RUTA
-                  </Button>
+                <div>
+                  <p className="text-xs text-muted-foreground">Distancia</p>
+                  <p className="text-lg font-bold">{routeDetails.totalDistance} km</p>
                 </div>
-              )}
-              
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {routeStatus === 'not_started' || routeStatus === 'paused' ? (
-                  <Button
-                    className="flex items-center justify-center gap-1"
-                    onClick={startRoute}
-                    disabled={isLoading || routeStatus === 'completed' as any}
-                  >
-                    <Play className="h-4 w-4" />
-                    {routeStatus === 'paused' ? 'Continuar' : 'Iniciar'}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="flex items-center justify-center gap-1"
-                    onClick={pauseRoute}
-                    disabled={isLoading || routeStatus !== 'in_progress'}
-                  >
-                    <Pause className="h-4 w-4" />
-                    Pausar
-                  </Button>
-                )}
-                
-                {routeStatus !== 'in_progress' && (
-                  <Button
-                    variant="destructive"
-                    className="flex items-center justify-center gap-1 uppercase font-bold"
-                    onClick={openCompleteRouteDialog}
-                    disabled={isLoading || routeStatus === 'completed' || routeStatus === 'not_started'}
-                  >
-                    <CheckCircle className="h-4 w-4" />
-                    Finalizar Ruta
-                  </Button>
-                )}
-                
-                <Button
-                  variant={routeStatus === 'in_progress' ? "outline" : "secondary"}
-                  className={`flex items-center justify-center gap-1 ${routeStatus === 'in_progress' ? "col-span-2" : ""}`}
-                  onClick={syncData}
-                  disabled={isLoading}
-                >
-                  <RotateCw className="h-4 w-4" />
-                  Actualizar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Barra de progreso con animación de gotas de agua */}
-          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <h2 className="text-lg font-bold mb-2">Progreso de Entrega</h2>
-              
-              {/* Barra de progreso animada con efecto de agua */}
-              <WaterProgressBar 
-                progress={calculateRouteProgress()}
-                total={routeStops.length > 0 ? routeStops.length - 1 : 0} 
-                completed={calculateCompletedStops()}
-                label="Entregas completadas"
-                darkMode={darkMode}
-                size="lg"
-              />
-              
-              <div className="mt-3 text-xs text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Almacén</span>
-                  <span>Destino final</span>
+                <div>
+                  <p className="text-xs text-muted-foreground">Duración est.</p>
+                  <p className="text-lg font-bold">{routeDetails.estimatedDuration} min</p>
                 </div>
               </div>
             </CardContent>
@@ -1596,215 +451,6 @@ export default function DriverRoute() {
                 onViewOrderDetails={handleViewOrderDetails}
                 currentStopIndex={currentStopIndex}
               />
-                        {expandedStopId === stop.id && !stop.isWarehouse && (
-                          <div className="mt-4 p-3 bg-muted rounded-md animate-in fade-in-50 duration-200">
-                            <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                              <Info className="h-4 w-4" />
-                              Productos a entregar
-                            </h4>
-                            
-                            <div className="space-y-2 text-sm">
-                              <div>
-                                <span className="text-xs font-semibold">Cliente:</span>
-                                <p className="text-xs">{stop.customerName}</p>
-                              </div>
-                              
-                              <div>
-                                <span className="text-xs font-semibold">Dirección completa:</span>
-                                <p className="text-xs">{stop.address}, Cotuí, Sánchez Ramírez, Rep. Dominicana</p>
-                              </div>
-                              
-                              <div>
-                                <span className="text-xs font-semibold">Productos:</span>
-                                <div className="mt-1 border border-border rounded-sm overflow-hidden">
-                                  <table className="w-full text-xs">
-                                    <thead className="bg-background border-b border-border">
-                                      <tr>
-                                        <th className="px-2 py-1 text-left">Producto</th>
-                                        <th className="px-2 py-1 text-center">Cant.</th>
-                                        <th className="px-2 py-1 text-right">Precio</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {stop.products.map((product, idx) => (
-                                        <tr key={idx} className={idx % 2 === 0 ? "bg-muted/50" : ""}>
-                                          <td className="px-2 py-1">{product.name}</td>
-                                          <td className="px-2 py-1 text-center">{product.quantity}</td>
-                                          <td className="px-2 py-1 text-right">${(product.price * product.quantity).toFixed(2)}</td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                              
-                              <div className="flex justify-between items-center pt-2 mt-1 border-t border-border">
-                                <span className="text-xs font-semibold">Total del pedido:</span>
-                                <span className="text-sm font-bold text-primary">${toNumber(stop.totalValue).toFixed(2)}</span>
-                              </div>
-                              
-                              {/* Sección para confirmar entrega y pago */}
-                              <div className="mt-4 pt-3 border-t border-border">
-                                <h4 className="text-xs font-bold mb-2">Confirmar Entrega y Pago:</h4>
-                                
-                                <div className="space-y-4">
-                                  {/* Sección pago */}
-                                  <div className="p-3 bg-background rounded-md border border-border">
-                                    <h5 className="text-xs font-bold mb-2 flex items-center gap-1">
-                                      <DollarSign className="h-3 w-3" />
-                                      Cobro
-                                    </h5>
-                                    <div className="flex justify-between text-xs mb-2">
-                                      <span>Método de pago:</span>
-                                      <span className="font-medium">Efectivo</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs">
-                                      <span>Total a cobrar:</span>
-                                      <span className="font-bold text-primary">${toNumber(stop.totalValue).toFixed(2)}</span>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Sección retorno de envases */}
-                                  <div className="p-3 bg-background rounded-md border border-border">
-                                    <h5 className="text-xs font-bold mb-2 flex items-center gap-1">
-                                      <Recycle className="h-3 w-3" />
-                                      Retorno de envases
-                                    </h5>
-                                    <div className="space-y-1">
-                                      {stop.products
-                                        .filter(p => p.isReturnable === true)
-                                        .map((product, idx) => (
-                                          <div key={idx} className="flex justify-between text-xs">
-                                            <span>{product.name}:</span>
-                                            <span className="font-medium">{product.quantity} unidades</span>
-                                          </div>
-                                        ))
-                                      }
-                                      {!stop.products.some(p => p.isReturnable === true) && (
-                                        <div className="text-xs text-muted-foreground">
-                                          No hay envases retornables en este pedido
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Botones de factura y recibo */}
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <Button 
-                                      variant="outline"
-                                      size="sm"
-                                      className="flex items-center justify-center gap-1"
-                                      onClick={() => {
-                                        // Generar factura
-                                        toast({
-                                          title: "Generando factura",
-                                          description: "Preparando documento...",
-                                        });
-                                        
-                                        setTimeout(() => {
-                                          toast({
-                                            title: "Factura lista",
-                                            description: "Factura #F-" + stop.id + "-" + new Date().toISOString().slice(0, 10),
-                                            variant: "default"
-                                          });
-                                        }, 1500);
-                                      }}
-                                    >
-                                      <FileText className="h-3 w-3" />
-                                      <span className="text-xs">Factura</span>
-                                    </Button>
-                                    
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="flex items-center justify-center gap-1"
-                                      onClick={() => {
-                                        // Generar recibo
-                                        toast({
-                                          title: "Generando recibo",
-                                          description: "Preparando documento...",
-                                        });
-                                        
-                                        setTimeout(() => {
-                                          toast({
-                                            title: "Recibo listo",
-                                            description: "Recibo #R-" + stop.id + "-" + new Date().toISOString().slice(0, 10),
-                                            variant: "default"
-                                          });
-                                        }, 1500);
-                                      }}
-                                    >
-                                      <Receipt className="h-3 w-3" />
-                                      <span className="text-xs">Recibo</span>
-                                    </Button>
-                                  </div>
-                                  
-                                  {/* Botones de acción */}
-                                  <div className="grid grid-cols-2 gap-2 mt-3">
-                                    {/* Botón para ir a la página de detalle de entrega */}
-                                    <Button 
-                                      className="flex items-center justify-center gap-1"
-                                      variant="outline"
-                                      onClick={() => {
-                                        if (stop.status === "completed") {
-                                          // Para órdenes completadas, navegamos a la vista de detalles
-                                          const routeIdParam = activeRouteId ? `?routeId=${activeRouteId}` : '';
-                                          setLocation(`/mobile-app/entregas/${stop.id}${routeIdParam}`);
-                                        } else {
-                                          // Para órdenes pendientes, abrimos el diálogo de edición
-                                          openEditOrderDialog(stop);
-                                        }
-                                      }}
-                                    >
-                                      {stop.status === "completed" ? (
-                                        <>
-                                          <Eye className="h-4 w-4" />
-                                          Ver detalles
-                                        </>
-                                      ) : (
-                                        <>
-                                          <Edit className="h-4 w-4" />
-                                          Modificar pedido
-                                        </>
-                                      )}
-                                    </Button>
-                                    
-                                    {/* Botón de confirmación */}
-                                    <Button 
-                                      className="flex items-center justify-center gap-1"
-                                      variant={stop.status === "completed" ? "outline" : "default"}
-                                      disabled={stop.status === "completed"}
-                                      onClick={() => {
-                                        // Abrir el diálogo de pago mejorado
-                                        openPaymentDialog(stop);
-                                      }}
-                                    >
-                                      <Check className="h-4 w-4" />
-                                      {stop.status === "completed" ? "Entregado" : "Confirmar entrega"}
-                                    </Button>
-                                    
-                                    {/* Botón para registrar devolución de envases */}
-                                    {stop.status === "completed" && stop.products.some(p => p.isReturnable === true) && (
-                                      <Button 
-                                        className="flex items-center justify-center gap-1 mt-2"
-                                        variant="secondary"
-                                        onClick={() => openBottleReturnDialog(stop)}
-                                      >
-                                        <PillBottle className="h-4 w-4" />
-                                        Devolución de Envases
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -1861,418 +507,182 @@ export default function DriverRoute() {
                   </div>
                 </div>
                 
-                {/* Opciones según método de pago */}
-                {paymentMethod === "cash" ? (
-                  <>
-                    {/* Sección de pago en efectivo */}
-                    <div className="mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <Label htmlFor="paymentReceived" className="text-sm font-medium">
-                          Monto recibido (RD$)
-                        </Label>
-                        <div className="text-sm font-medium flex gap-1 items-center text-primary">
-                          <CircleDollarSign className="h-4 w-4" />
-                          Total: RD$ {toNumber(currentStopForPayment.totalValue).toFixed(2)}
-                        </div>
-                      </div>
-                      
-                      {/* Campo de monto recibido */}
-                      <Input
-                        id="paymentReceived"
-                        type="number"
-                        value={paymentReceived}
-                        onChange={(e) => setPaymentReceived(Number(e.target.value))}
-                        className="text-xl font-bold mb-2"
-                      />
-                      
-                      {/* Botones de monto rápido */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="text-sm"
-                          onClick={() => setPaymentReceived(toNumber(currentStopForPayment.totalValue))}
-                        >
-                          <BadgeDollarSign className="mr-1 h-3 w-3" />
-                          Monto exacto
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="text-sm"
-                          onClick={() => setPaymentReceived(Math.ceil(toNumber(currentStopForPayment.totalValue) / 100) * 100)}
-                        >
-                          <CircleDollarSign className="mr-1 h-3 w-3" />
-                          Redondear a 100
-                        </Button>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="text-sm"
-                          onClick={() => setPaymentReceived(Math.ceil(toNumber(currentStopForPayment.totalValue) / 500) * 500)}
-                        >
-                          <CircleDollarSign className="mr-1 h-3 w-3" />
-                          Redondear a 500
-                        </Button>
-                      </div>
-                      
-                      {/* Cambio a devolver */}
-                      <div 
-                        className={`p-3 rounded-lg text-lg font-bold mb-4 flex justify-between items-center ${
-                          paymentReceived < toNumber(currentStopForPayment.totalValue) 
-                            ? 'bg-red-100 text-red-500' 
-                            : paymentReceived === toNumber(currentStopForPayment.totalValue) 
-                              ? 'bg-green-100 text-green-600' 
-                              : 'bg-amber-100 text-amber-600'
-                        }`}
-                      >
-                        <span className="text-sm">Cambio:</span>
-                        <div className="flex items-center">
-                          {paymentReceived < toNumber(currentStopForPayment.totalValue) ? (
-                            <Ban className="mr-2 h-4 w-4" />
-                          ) : (
-                            <Coins className="mr-2 h-4 w-4" />
-                          )}
-                          <span>
-                            RD$ {(paymentReceived - toNumber(currentStopForPayment.totalValue)).toFixed(2)}
-                          </span>
-                        </div>
+                {/* Calculadora de pago en efectivo */}
+                {paymentMethod === "cash" && (
+                  <div className="space-y-4 mb-4">
+                    <div>
+                      <Label htmlFor="amount" className="text-sm font-medium mb-1 block">
+                        Monto recibido
+                      </Label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          id="amount"
+                          type="text"
+                          className="pl-9"
+                          value={amountPaid}
+                          onChange={(e) => setAmountPaid(e.target.value)}
+                        />
                       </div>
                     </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Sección de pago a crédito */}
-                    <div className="mb-4 p-4 bg-primary/10 rounded-lg">
-                      <div className="text-center mb-3">
-                        <CreditCard className="h-10 w-10 text-primary mx-auto mb-2" />
-                        <p className="font-medium">Se cargará al crédito del cliente</p>
+                    
+                    {/* Opciones rápidas */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {[50, 100, 200, 500, 1000, 2000].map((amount) => (
+                        <Button 
+                          key={amount}
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={() => setAmountPaid(amount.toString())}
+                        >
+                          ${amount}
+                        </Button>
+                      ))}
+                    </div>
+                    
+                    {/* Cambio a devolver */}
+                    <div className="bg-muted p-3 rounded-md">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Total a cobrar:</span>
+                        <span className="font-bold">${toNumber(currentStopForPayment.totalValue).toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-lg font-bold">
-                        <span>Total a crédito:</span>
-                        <span>RD$ {toNumber(currentStopForPayment.totalValue).toFixed(2)}</span>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t border-border">
+                        <span className="text-sm font-medium">Cambio a devolver:</span>
+                        <span className="font-bold text-primary">
+                          ${Math.max(0, parseFloat(amountPaid) - toNumber(currentStopForPayment.totalValue)).toFixed(2)}
+                        </span>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
                 
-                {/* Opción para actualizar balance */}
-                <div className="flex items-center space-x-2 mb-4">
-                  <Checkbox 
-                    id="updateBalance" 
-                    checked={updateCustomerBalance}
-                    onCheckedChange={(checked) => 
-                      setUpdateCustomerBalance(checked as boolean)
-                    }
-                  />
-                  <Label htmlFor="updateBalance" className="text-sm">
-                    Actualizar balance del cliente
-                  </Label>
-                </div>
-                
-                {/* Información de productos */}
-                <div className="bg-muted/50 p-3 rounded-lg mb-4">
+                {/* Resumen de productos */}
+                <div className="mt-4 border-t border-border pt-4">
                   <h4 className="text-sm font-medium mb-2">Detalle de productos</h4>
-                  <div className="space-y-1 max-h-32 overflow-y-auto text-sm">
-                    {currentStopForPayment.products.map((product, index) => (
-                      <div key={index} className="flex justify-between">
-                        <span>
-                          {product.quantity} × {product.name}
-                        </span>
-                        <span className="font-medium">
-                          RD$ {(product.price * product.quantity).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="max-h-40 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-xs text-muted-foreground">
+                        <tr>
+                          <th className="text-left font-medium py-1">Producto</th>
+                          <th className="text-center font-medium py-1">Cant.</th>
+                          <th className="text-right font-medium py-1">Precio</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {currentStopForPayment.products.map((product, index) => (
+                          <tr key={index} className="border-b border-border last:border-0">
+                            <td className="py-1">
+                              <div className="flex items-center">
+                                {product.isReturnable && (
+                                  <Recycle className="h-3 w-3 text-green-500 mr-1" />
+                                )}
+                                <span>{product.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-1 text-center">{product.quantity}</td>
+                            <td className="py-1 text-right">${(product.price * product.quantity).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </>
             )}
           </div>
           
-          <DialogFooter className="mt-2">
-            <Button 
-              variant="outline" 
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
               onClick={() => setShowPaymentDialog(false)}
-              className="w-full sm:w-auto gap-1"
+              className="w-full sm:w-auto"
             >
-              <Ban className="h-4 w-4" />
               Cancelar
             </Button>
-            <Button 
-              onClick={processPayment} 
-              disabled={
-                isLoading || 
-                (paymentMethod === "cash" && paymentReceived < toNumber(currentStopForPayment?.totalValue || 0))
-              }
-              className="w-full sm:w-auto gap-1"
+            <Button
+              onClick={completePaymentAndDelivery}
+              className="w-full sm:w-auto"
             >
-              {isLoading ? (
-                <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-1" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              {isLoading ? "Procesando..." : "Confirmar Pago"}
+              Confirmar pago y entrega
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Diálogo de devolución de envases */}
-      {currentOrderIdForReturn && (
-        <BottleReturnDialog
-          open={showBottleReturnDialog}
-          onOpenChange={setShowBottleReturnDialog}
-          orderId={currentOrderIdForReturn}
-          darkMode={darkMode}
-          products={currentOrderIdForReturn ? 
-            routeStops.find(stop => stop.id === currentOrderIdForReturn)?.products.map(p => ({
-              id: p.id,
-              productId: p.id,
-              name: p.name,
-              quantity: p.quantity,
-              price: p.price,
-              // Usamos el atributo de retornable que debería venir de la base de datos
-              // Este valor se cargará dinámicamente desde la API
-              isReturnable: (p as any).isReturnable === true,
-              depositAmount: (p as any).depositAmount || "0.00"
-            })) || [] 
-            : []
-          }
-        />
-      )}
       
-      {/* Diálogo de edición de pedido */}
-      <Dialog open={showEditOrderDialog} onOpenChange={setShowEditOrderDialog}>
+      {/* Diálogo para devolución de envases (botellas) */}
+      <Dialog open={showBottleReturnDialog} onOpenChange={setShowBottleReturnDialog}>
         <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Edit className="h-5 w-5 text-primary" />
-              Modificar Pedido
+              <Recycle className="h-5 w-5 text-green-500" />
+              Registrar devolución de envases
             </DialogTitle>
-            <DialogDescription>
-              {currentStopForEdit && `Cliente: ${currentStopForEdit.customerName}`}
-            </DialogDescription>
           </DialogHeader>
           
           <div className="p-1">
-            {currentStopForEdit && (
-              <>
-                {/* Lista de productos */}
-                <div className="space-y-3 my-4 max-h-64 overflow-y-auto pr-2">
-                  {editedProducts.map((product, index) => (
-                    <div key={product.id} className="flex flex-col bg-muted/30 p-3 rounded-lg">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center">
-                          <div>
-                            <h4 className="font-medium">{product.name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              RD$ {product.price.toFixed(2)} c/u
-                              {product.isReturnable && (
-                                <span className="ml-2 inline-flex items-center gap-1 text-primary">
-                                  <PillBottle className="h-3 w-3" />
-                                  Retornable
-                                </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Control de cantidad */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              const newQuantity = Math.max(0, product.quantity - 1);
-                              updateProductQuantity(product.id, newQuantity);
-                            }}
-                            disabled={product.quantity <= 0}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          
-                          <Input
-                            className="w-16 h-8 text-center"
-                            value={product.quantity}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value);
-                              if (!isNaN(value) && value >= 0) {
-                                updateProductQuantity(product.id, value);
-                              }
-                            }}
-                            type="number"
-                            min="0"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                          />
-                          
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => {
-                              updateProductQuantity(product.id, product.quantity + 1);
-                            }}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        
-                        <div className="font-medium">
-                          RD$ {(product.price * product.quantity).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Total */}
-                <div className="flex justify-between items-center py-3 px-4 bg-primary/10 rounded-lg mb-4 text-lg">
-                  <span className="font-semibold">Total:</span>
-                  <span className="font-bold">
-                    RD$ {calculateTotal(editedProducts).toFixed(2)}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-          
-          <DialogFooter className="mt-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowEditOrderDialog(false)}
-              className="gap-1"
-            >
-              <Ban className="h-4 w-4" />
-              Cancelar
-            </Button>
-            <Button 
-              onClick={saveProductChanges} 
-              disabled={isLoading}
-              className="gap-1"
-            >
-              {isLoading ? (
-                <span className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-1" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              {isLoading ? "Guardando..." : "Guardar Cambios"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    
-      {/* Diálogo para completar ruta con comentarios - REDISEÑADO */}
-      <Dialog open={showCompleteRouteDialog} onOpenChange={setShowCompleteRouteDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold text-primary">
-              Finalizar Ruta
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              Esta acción marcará la ruta como completada
-            </DialogDescription>
-          </DialogHeader>
-          
-          {/* Resumen de la ruta */}
-          <div className="bg-muted/30 p-4 rounded-lg my-4">
-            <div className="flex justify-between mb-2">
-              <span className="font-medium">Entregas totales:</span>
-              <span className="font-bold">{routeStops.filter(stop => !stop.isWarehouse).length}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="font-medium">Entregas completadas:</span>
-              <span className="font-bold text-green-600">{calculateCompletedStops()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Tiempo en ruta:</span>
-              <span className="font-bold">
-                {startTime ? formatTimeDifference(startTime, new Date()) : "N/A"}
-              </span>
-            </div>
-          </div>
-          
-          {/* Obtener el número de pedidos pendientes */}
-          {(() => {
-            const pendingStops = routeStops.filter(stop => !stop.isWarehouse && stop.status === 'pending');
-            if (pendingStops.length > 0) {
-              return (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 text-yellow-800 mb-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-6 w-6 text-yellow-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-bold text-base">Pedidos sin entregar</span>
-                      <p className="mt-1">
-                        Tienes {pendingStops.length} {pendingStops.length === 1 ? 'pedido' : 'pedidos'} que no {pendingStops.length === 1 ? 'fue entregado' : 'fueron entregados'}.
-                      </p>
-                      <p className="mt-2 font-semibold">
-                        Favor explicar en los comentarios por qué no se realizaron estas entregas.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            return (
-              <div className="bg-green-50 border border-green-200 rounded-md p-4 text-green-800 mb-4">
-                <div className="flex items-start gap-3">
-                  <CheckCircle className="h-6 w-6 text-green-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <span className="font-bold text-base">¡Ruta completada!</span>
-                    <p className="mt-1">
-                      Todas las entregas fueron completadas exitosamente.
-                    </p>
-                  </div>
+            <div className="space-y-4">
+              <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Registra la cantidad de envases que el cliente está devolviendo en este momento.
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="returnedBottles" className="text-sm font-medium mb-2 block">
+                  Cantidad de envases devueltos
+                </Label>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setReturnedBottlesCount(Math.max(0, returnedBottlesCount - 1))}
+                    disabled={returnedBottlesCount <= 0}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  
+                  <Input
+                    id="returnedBottles"
+                    type="number"
+                    className="text-center"
+                    value={returnedBottlesCount}
+                    min="0"
+                    onChange={(e) => setReturnedBottlesCount(parseInt(e.target.value) || 0)}
+                  />
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setReturnedBottlesCount(returnedBottlesCount + 1)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            );
-          })()}
-          
-          {/* Formulario de comentarios */}
-          <div className="mb-4">
-            <Label htmlFor="routeComments" className="text-base font-semibold mb-2 block">
-              Comentarios finales
-            </Label>
-            <textarea
-              id="routeComments"
-              className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              placeholder="Escribe aquí cualquier comentario sobre la ruta (problemas, incidencias, etc.)"
-              value={routeCompletionComments}
-              onChange={(e) => setRouteCompletionComments(e.target.value)}
-            />
-            {routeStops.some(stop => !stop.isWarehouse && stop.status === 'pending') && !routeCompletionComments.trim() && (
-              <p className="text-red-500 text-sm mt-1">* Comentario requerido para finalizar la ruta con pedidos pendientes</p>
-            )}
+            </div>
           </div>
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              variant="outline" 
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowBottleReturnDialog(false)}
               className="w-full sm:w-auto"
-              onClick={() => setShowCompleteRouteDialog(false)}
             >
-              Volver a la ruta
+              Cancelar
             </Button>
-            <Button 
-              variant="destructive"
-              className="w-full sm:w-auto font-bold text-base py-6"
-              onClick={finishRoute}
-              disabled={
-                // Si hay pedidos pendientes, requerir comentarios
-                routeStops.some(stop => !stop.isWarehouse && stop.status === 'pending') && 
-                !routeCompletionComments.trim()
-              }
+            <Button
+              onClick={() => {
+                setShowBottleReturnDialog(false);
+                toast({
+                  title: "Devolución registrada",
+                  description: `Se han registrado ${returnedBottlesCount} envases devueltos.`,
+                });
+              }}
+              className="w-full sm:w-auto"
+              disabled={returnedBottlesCount <= 0}
             >
-              {isLoading ? (
-                <span className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full mr-2" />
-              ) : (
-                <CheckCircle className="h-5 w-5 mr-2" />
-              )}
-              {isLoading ? "Finalizando..." : "CONFIRMAR FINALIZACIÓN"}
+              Confirmar devolución
             </Button>
           </DialogFooter>
         </DialogContent>

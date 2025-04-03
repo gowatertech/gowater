@@ -1,340 +1,330 @@
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React from "react";
 import { 
+  CheckCircle, 
+  Circle, 
   Clock, 
   MapPin, 
-  Check, 
   ChevronDown, 
   ChevronUp, 
-  Package, 
-  Recycle,
-  CheckCircle,
-  Compass,
-  Info,
-  Edit,
+  Truck,
+  CircleCheck,
+  CircleDollarSign,
+  Warehouse,
+  Building,
+  Clipboard,
   Receipt,
-  DollarSign
-} from 'lucide-react';
+  DollarSign,
+  Recycle,
+  Edit,
+  Eye
+} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { RouteStop } from "@/types/route";
 
-// Define la interfaz de una parada/stop
-interface RouteStop {
-  id: number;
-  order: number; // Orden en la secuencia de la ruta (0 para almacén, 1, 2, 3, etc.)
-  customerId: number;
-  customerName: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  status: "pending" | "in_progress" | "completed" | "cancelled";
-  estimatedArrival: string; // Hora estimada de llegada
-  estimatedDuration: number; // Duración estimada en minutos
-  distanceFromPrevious: number; // Distancia desde el punto anterior en km
-  products: { id: number; name: string; quantity: number; price: number; isReturnable?: boolean }[];
-  totalValue: number | string; // Valor total del pedido (puede venir como string desde la API)
-  isWarehouse?: boolean; // Indica si es el almacén (punto 0)
-}
-
-// Props del componente
 interface RouteTimelineProps {
   stops: RouteStop[];
   expandedStopId: number | null;
   darkMode: boolean;
+  currentStopIndex: number;
   onToggleExpand: (stopId: number) => void;
   onMarkCompleted: (stop: RouteStop) => void;
   onDeliverOrder: (stop: RouteStop) => void;
   onRegisterBottleReturn: (orderId: number) => void;
   onEditOrder: (stop: RouteStop) => void;
   onViewOrderDetails: (stop: RouteStop) => void;
-  currentStopIndex: number;
 }
 
-// Función para convertir string a número
-const toNumber = (value: string | number): number => {
-  if (typeof value === 'string') {
-    return parseFloat(value) || 0;
-  }
-  return value;
+const formatCurrency = (value: number | string): string => {
+  // Asegurar que el valor es un número
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  
+  // Formatear con formato de moneda dominicana
+  return numValue.toLocaleString('es-DO', {
+    style: 'currency',
+    currency: 'DOP',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 };
 
-// Componente principal
-const RouteTimeline: React.FC<RouteTimelineProps> = ({ 
-  stops, 
-  expandedStopId, 
-  darkMode, 
-  onToggleExpand, 
-  onMarkCompleted, 
+const RouteTimeline: React.FC<RouteTimelineProps> = ({
+  stops,
+  expandedStopId,
+  darkMode,
+  currentStopIndex,
+  onToggleExpand,
+  onMarkCompleted,
   onDeliverOrder,
   onRegisterBottleReturn,
   onEditOrder,
-  onViewOrderDetails,
-  currentStopIndex
+  onViewOrderDetails
 }) => {
+  // Verificar si hay algún envase retornable en la orden
+  const hasReturnableItems = (stop: RouteStop): boolean => {
+    return stop.products.some(product => product.isReturnable);
+  };
+  
+  // Contar número total de productos
+  const countTotalProducts = (stop: RouteStop): number => {
+    return stop.products.reduce((acc, product) => acc + product.quantity, 0);
+  };
+  
+  // Determinar el color y estado de la parada
+  const getStopStatusColor = (status: string, index: number, currentIndex: number): string => {
+    if (status === "completed") return "text-green-500";
+    if (index === currentIndex) return "text-blue-500";
+    return "text-gray-400";
+  };
+  
   return (
-    <div className="space-y-4">
-      {stops.map((stop, index) => (
-        <div 
-          key={stop.id}
-          className={`border rounded-lg p-3 relative ${
-            stop.status === 'completed' 
-              ? `${darkMode ? 'border-green-800 bg-green-900/10' : 'border-green-200 bg-green-50'}`
-              : `${darkMode ? 'border-gray-700' : 'border-gray-200'}`
-          } ${
-            expandedStopId === stop.id ? 'ring-2 ring-primary/50' : ''
-          }`}
-        >
-          {/* Decorador de línea de tiempo vertical */}
-          {index < stops.length - 1 && (
-            <div className="absolute left-6 top-9 bottom-0 w-[2px] bg-primary/20"></div>
-          )}
-          
-          {/* Cabecera con estado e información principal */}
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center z-10 ${
-                stop.isWarehouse
-                  ? `${darkMode ? 'bg-blue-900 text-blue-300' : 'bg-blue-100 text-blue-700'}`
-                  : stop.status === 'completed' 
-                    ? `${darkMode ? 'bg-green-900 text-green-300' : 'bg-green-100 text-green-700'}` 
-                    : `${darkMode ? 'bg-primary/20 text-primary' : 'bg-primary/10 text-primary'}`
-              }`}>
-                {stop.status === 'completed' ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <span className="text-xs font-bold">{stop.order}</span>
-                )}
-              </div>
-              <div className="flex flex-col">
-                <span className={`font-medium ${stop.status === 'completed' ? 'line-through opacity-70' : ''}`}>
-                  {stop.customerName}
-                </span>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
-                  <span className={`text-xs ${
-                    stop.status === 'completed' 
-                      ? `${darkMode ? 'text-green-400' : 'text-green-600'}` 
-                      : 'text-muted-foreground'
-                  }`}>
-                    {stop.status === 'completed' 
-                      ? 'Completado' 
-                      : stop.estimatedArrival ? stop.estimatedArrival : 'Hora estimada N/A'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Badge de estado */}
-            <Badge 
-              variant={
-                stop.status === 'completed' ? "success" :
-                stop.status === 'in_progress' ? "default" :
-                stop.status === 'cancelled' ? "destructive" :
-                "outline"
-              }
-              className="capitalize text-xs"
-            >
-              {stop.status === 'completed' && "Completado"}
-              {stop.status === 'in_progress' && "En curso"}
-              {stop.status === 'pending' && "Pendiente"}
-              {stop.status === 'cancelled' && "Cancelado"}
-              {!stop.status && "Programado"}
-            </Badge>
-          </div>
-          
-          {/* Contenido de la tarjeta */}
-          <div className="ml-10 text-sm">
-            {/* Dirección */}
-            <div className="flex items-start gap-1 mb-2">
-              <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground" />
-              <p className="text-muted-foreground text-xs flex-1">
-                {stop.address}{!stop.isWarehouse ? ", Cotuí, Sánchez Ramírez" : ""}
-              </p>
-            </div>
-            
-            {/* Información de productos */}
-            {stop.products && stop.products.length > 0 ? (
-              <div className="mt-2 mb-2">
-                <div className={`rounded-md p-2 ${
-                  darkMode ? 'bg-gray-800/50' : 'bg-primary/5'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold flex items-center gap-1">
-                      <Package className="h-3 w-3" />
-                      Productos ({stop.products.length})
-                    </h4>
-                    <span className="text-xs font-medium">
-                      {stop.products.reduce((total, product) => total + product.quantity, 0)} unidades
-                    </span>
-                  </div>
-                  
-                  <ul className="space-y-1">
-                    {stop.products.slice(0, expandedStopId === stop.id ? stop.products.length : 2).map(product => (
-                      <li 
-                        key={product.id}
-                        className={`text-xs flex justify-between pb-1 ${
-                          expandedStopId === stop.id ? 'border-b last:border-0' : ''
-                        }`}
-                      >
-                        <span className="font-medium flex items-center gap-1">
-                          {product.isReturnable && <Recycle className="h-2.5 w-2.5 text-green-500" />}
-                          {product.name}
-                        </span>
-                        <span className="font-bold whitespace-nowrap">
-                          {product.quantity} × ${product.price.toFixed(2)}
-                        </span>
-                      </li>
-                    ))}
-                    
-                    {stop.products.length > 2 && expandedStopId !== stop.id && (
-                      <li className="text-xs text-center pt-1 italic text-muted-foreground">
-                        + {stop.products.length - 2} productos más...
-                      </li>
-                    )}
-                  </ul>
-                  
-                  {/* Total y valor */}
-                  <div className={`mt-2 pt-2 flex justify-between ${
-                    darkMode ? 'border-t border-gray-700' : 'border-t border-primary/20'
-                  }`}>
-                    <span className="text-xs font-bold">Total:</span>
-                    <span className="text-xs font-bold text-primary">
-                      ${toNumber(stop.totalValue).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mb-2">
-                {stop.isWarehouse && (
-                  <Badge variant="outline" className="text-xs">
-                    Punto de inicio
-                  </Badge>
-                )}
-              </div>
+    <div className="relative">
+      {stops.map((stop, index) => {
+        // No mostrar la última línea conectora para la última parada
+        const showConnector = index < stops.length - 1;
+        
+        // Determinar colores y estado visual
+        const isCompleted = stop.status === "completed";
+        const isCurrent = index === currentStopIndex;
+        const isPending = !isCompleted && !isCurrent;
+        const isExpanded = expandedStopId === stop.id;
+        
+        return (
+          <div key={stop.id} className="relative">
+            {/* Línea vertical de la cronología */}
+            {showConnector && (
+              <div 
+                className={`absolute left-3 top-6 w-0.5 h-full ${
+                  isCompleted ? "bg-green-500" : (index < currentStopIndex ? "bg-green-500" : "bg-gray-300")
+                }`}
+                style={{ height: "calc(100% - 1.5rem)" }}
+              />
             )}
-
-            <div className="flex justify-between mt-2">
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">Duración estimada:</span>
-                <span className="text-xs font-medium">{stop.estimatedDuration} min</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {!stop.isWarehouse && (
-                  <Button
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs h-8 flex items-center gap-1"
-                    onClick={() => onToggleExpand(stop.id)}
-                  >
-                    {expandedStopId === stop.id ? (
-                      <ChevronUp className="h-3 w-3" />
-                    ) : (
-                      <ChevronDown className="h-3 w-3" />
-                    )}
-                    Detalles
-                  </Button>
-                )}
-                
-                <Button
-                  variant="default" 
-                  size="sm" 
-                  className="text-xs h-8 flex items-center gap-1"
-                  onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${stop.latitude},${stop.longitude}`, '_blank')}
-                >
-                  <Compass className="h-3 w-3" />
-                  Navegar
-                </Button>
-              </div>
-            </div>
             
-            {/* Panel expandible con acciones para la parada */}
-            {expandedStopId === stop.id && !stop.isWarehouse && (
-              <div className="mt-4 p-3 bg-muted rounded-md animate-in fade-in-50 duration-200 space-y-3">
-                <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
-                  <Info className="h-4 w-4" />
-                  Acciones para esta parada
-                </h4>
-                
-                {/* Botones de acción */}
-                <div className={`grid grid-cols-2 gap-2 ${stop.status === 'completed' ? 'opacity-50' : ''}`}>
-                  {stop.status !== 'completed' ? (
-                    <>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="text-xs h-9 w-full"
-                        onClick={() => onDeliverOrder(stop)}
-                      >
-                        <Check className="h-3 w-3 mr-1" />
-                        Entregar y Cobrar
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-xs h-9 w-full"
-                        onClick={() => onEditOrder(stop)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Editar Pedido
-                      </Button>
-                    </>
+            {/* Tarjeta de parada */}
+            <div className={`mb-4 ${isExpanded ? 'animate-in fade-in-50 duration-100' : ''}`}>
+              <div className="flex gap-3">
+                {/* Indicador de estado */}
+                <div className="relative flex items-start pt-1">
+                  {stop.isWarehouse ? (
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
+                      isCompleted ? "border-green-500 bg-green-500/20" : "border-gray-400 bg-gray-200"
+                    }`}>
+                      <Warehouse className={`h-3 w-3 ${isCompleted ? "text-green-500" : "text-gray-600"}`} />
+                    </div>
                   ) : (
-                    <>
-                      <Button 
-                        variant="default" 
-                        size="sm" 
-                        className="text-xs h-9 w-full"
-                        onClick={() => onViewOrderDetails(stop)}
-                      >
-                        <Receipt className="h-3 w-3 mr-1" />
-                        Ver Recibo
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-xs h-9 w-full"
-                        onClick={() => onRegisterBottleReturn(stop.id)}
-                        disabled={!stop.products.some(p => p.isReturnable)}
-                      >
-                        <Recycle className="h-3 w-3 mr-1" />
-                        Retorno de Envases
-                      </Button>
-                    </>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
+                      isCompleted ? "border-green-500 bg-green-500/20" : 
+                      isCurrent ? "border-blue-500 bg-blue-500/20" : 
+                      "border-gray-400 bg-gray-200"
+                    }`}>
+                      {isCompleted ? (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      ) : isCurrent ? (
+                        <Clock className="h-3 w-3 text-blue-500" />
+                      ) : (
+                        <Circle className="h-3 w-3 text-gray-400" />
+                      )}
+                    </div>
                   )}
                 </div>
                 
-                {/* Productos y envases retornables cuando es una entrega completada */}
-                {stop.status === 'completed' && (
-                  <div className="mt-3 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium flex items-center gap-1">
-                        <DollarSign className="h-3 w-3" />
-                        Valor cobrado:
-                      </span>
-                      <span className="font-bold">${toNumber(stop.totalValue).toFixed(2)}</span>
+                {/* Contenido principal de la parada */}
+                <div className="flex-1">
+                  <Card 
+                    className={`overflow-hidden border ${
+                      isCompleted ? "border-green-500/30 bg-green-500/5" : 
+                      isCurrent ? "border-blue-500/30 bg-blue-500/5" : 
+                      "border-gray-200 bg-white"
+                    } ${darkMode ? 'dark bg-gray-800 text-white' : ''}`}
+                  >
+                    {/* Encabezado de la parada */}
+                    <div 
+                      className={`p-3 cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between`}
+                      onClick={() => onToggleExpand(stop.id)}
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1">
+                          {stop.isWarehouse ? (
+                            <>
+                              <Warehouse className="h-4 w-4 text-gray-500 mr-1" />
+                              <span className="font-medium">{stop.customerName}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Building className="h-4 w-4 text-gray-500 mr-1" />
+                              <span className="font-medium">
+                                {stop.order}. {stop.customerName}
+                              </span>
+                            </>
+                          )}
+                          
+                          {/* Badge de estado */}
+                          <Badge 
+                            variant="outline" 
+                            className={`ml-2 px-2 py-0 text-xs ${
+                              isCompleted ? "bg-green-500/10 text-green-500 border-green-500/20" : 
+                              isCurrent ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
+                              "bg-gray-200 text-gray-500 border-gray-300/30"
+                            }`}
+                          >
+                            {isCompleted ? "Completada" : isCurrent ? "En progreso" : "Pendiente"}
+                          </Badge>
+                        </div>
+                        
+                        {/* Información adicional condensada */}
+                        <div className="flex items-center text-xs text-muted-foreground gap-2">
+                          <span className="flex items-center">
+                            <MapPin className="h-3 w-3 mr-0.5 inline-block" />
+                            <span className="truncate max-w-[200px]">{stop.address}</span>
+                          </span>
+                          
+                          {!stop.isWarehouse && (
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-gray-300" />
+                              <span>{countTotalProducts(stop)} productos</span>
+                              
+                              {typeof stop.totalValue !== 'undefined' && (
+                                <>
+                                  <span className="w-1 h-1 rounded-full bg-gray-300" />
+                                  <span className="font-medium">
+                                    {formatCurrency(stop.totalValue)}
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Flecha para expandir/contraer */}
+                      {!stop.isWarehouse && (
+                        <div>
+                          {isExpanded ? (
+                            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                      )}
                     </div>
                     
-                    {stop.products.some(p => p.isReturnable) && (
-                      <div className="mt-1 flex items-center justify-between">
-                        <span className="font-medium flex items-center gap-1">
-                          <Recycle className="h-3 w-3" />
-                          Envases a retornar:
-                        </span>
-                        <span className="font-medium">
-                          {stop.products.filter(p => p.isReturnable).reduce((sum, p) => sum + p.quantity, 0)} unidades
-                        </span>
-                      </div>
+                    {/* Contenido expandido */}
+                    {isExpanded && !stop.isWarehouse && (
+                      <CardContent className="p-3 pt-1 border-t">
+                        {/* Productos */}
+                        <div className="mb-3">
+                          <h4 className="text-xs font-medium text-muted-foreground mb-2">
+                            Productos ({stop.products.length})
+                          </h4>
+                          <div className="bg-muted/40 rounded-md p-2 text-sm max-h-40 overflow-y-auto">
+                            <table className="w-full text-xs">
+                              <thead className="text-muted-foreground">
+                                <tr>
+                                  <th className="text-left font-medium py-1">Producto</th>
+                                  <th className="text-center font-medium py-1">Cant.</th>
+                                  <th className="text-right font-medium py-1">Subtotal</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {stop.products.map((product, i) => (
+                                  <tr key={i} className="border-b last:border-0 border-border/40">
+                                    <td className="py-1.5">
+                                      <div className="flex items-center">
+                                        {product.isReturnable && (
+                                          <Recycle className="h-3 w-3 text-green-500 mr-1" />
+                                        )}
+                                        {product.name}
+                                      </div>
+                                    </td>
+                                    <td className="py-1 text-center">{product.quantity}</td>
+                                    <td className="py-1 text-right">
+                                      {formatCurrency(product.price * product.quantity)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="font-medium">
+                                  <td colSpan={2} className="pt-2 text-right">Total:</td>
+                                  <td className="pt-2 text-right">{formatCurrency(stop.totalValue)}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                        
+                        {/* Acciones */}
+                        <div className="flex flex-wrap gap-2 justify-end mt-3">
+                          {isPending && (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => onEditOrder(stop)}
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Editar
+                              </Button>
+                              
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => onViewOrderDetails(stop)}
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                Detalles
+                              </Button>
+                              
+                              <Button 
+                                variant="default" 
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => onDeliverOrder(stop)}
+                              >
+                                <CircleDollarSign className="h-3 w-3 mr-1" />
+                                Entregar y cobrar
+                              </Button>
+                            </>
+                          )}
+                          
+                          {isCompleted && hasReturnableItems(stop) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-xs text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700"
+                              onClick={() => onRegisterBottleReturn(stop.id)}
+                            >
+                              <Recycle className="h-3 w-3 mr-1" />
+                              Registrar devolución
+                            </Button>
+                          )}
+                          
+                          {isCompleted && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => onViewOrderDetails(stop)}
+                            >
+                              <Receipt className="h-3 w-3 mr-1" />
+                              Ver factura
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
                     )}
-                  </div>
-                )}
+                  </Card>
+                </div>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
