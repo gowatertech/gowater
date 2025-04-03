@@ -345,21 +345,45 @@ export default function OrdersList() {
       thankYouMsg.textContent = '¡Gracias por su compra!';
       printContent.appendChild(thankYouMsg);
       
-      // Método 1: Usar window.print() directamente con CSS controlado
+      // Método con CSS específico para impresoras térmicas de 80mm
       // Crear un elemento de estilo para controlar la impresión
       const style = document.createElement('style');
       style.innerHTML = `
         @media print {
+          /* Resetear todos los elementos */
+          * {
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box !important;
+          }
+          
           /* Ocultar todo el contenido de la página */
+          html, body {
+            width: 80mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            max-height: fit-content !important;
+          }
+          
+          /* Esto es importante para evitar páginas en blanco */
+          body:after {
+            content: "" !important;
+            display: block !important;
+            height: 0 !important;
+            clear: both !important;
+            visibility: hidden !important;
+          }
+          
           body * {
-            visibility: hidden;
-            margin: 0;
-            padding: 0;
+            visibility: hidden !important;
+            display: none !important; /* Ocultar completamente para evitar espacio reservado */
           }
           
           /* Mostrar solo el contenedor de impresión */
           #print-container, #print-container * {
-            visibility: visible;
+            visibility: visible !important;
+            display: block !important; /* Asegurar que los elementos son visibles */
           }
           
           /* Posicionar y dimensionar el contenedor */
@@ -367,28 +391,72 @@ export default function OrdersList() {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: 80mm !important; /* Ancho térmico estándar */
-            padding: 5mm !important;
-            box-sizing: border-box !important;
+            width: 72mm !important; /* 80mm menos los márgenes */
+            max-width: 72mm !important;
+            margin: 0 !important;
+            padding: 2mm !important;
+            font-size: 10px !important;
+            line-height: 1.1 !important;
           }
           
-          /* Configurar tamaño de página */
+          /* Configuración específica de @page para impresoras térmicas */
           @page {
-            size: 80mm auto !important; /* Ancho 80mm (3 pulgadas), alto automático */
+            size: 80mm !important; /* Ancho exacto 80mm, sin especificar auto para evitar páginas adicionales */
             margin: 0mm !important;
             padding: 0mm !important;
           }
           
-          /* Asegurarse que para navegadores Chrome/Edge/Safari se aplica correctamente */
+          /* Eliminar páginas extra */
+          @page :left {
+            margin: 0mm !important;
+          }
+          
+          @page :right {
+            margin: 0mm !important;
+          }
+          
+          /* Soporte específico para Chrome/Safari */
+          @supports (-webkit-appearance:none) {
+            @page {
+              size: 80mm !important; /* Sin auto para evitar páginas adicionales */
+              margin: 0mm !important;
+            }
+            #print-container {
+              width: 72mm !important;
+              height: auto !important;
+              overflow: visible !important;
+            }
+          }
+          
+          /* Soporte específico para Firefox */
           @-moz-document url-prefix() {
             @page {
-              size: 80mm auto !important;
+              size: 80mm !important; /* Sin auto para evitar páginas adicionales */
+              margin: 0mm !important;
+            }
+            #print-container {
+              width: 72mm !important;
+              height: auto !important;
+              overflow: visible !important;
             }
           }
           
           /* Asegurar que no hay saltos de página dentro de elementos importantes */
-          table, tr, td {
+          table, tr, td, th {
             page-break-inside: avoid !important;
+            font-size: 9px !important;
+          }
+          
+          /* Ajustar otros elementos en el ticket */
+          #print-container h1, #print-container h2, #print-container h3 {
+            font-size: 12px !important;
+            margin-bottom: 2mm !important;
+          }
+          
+          #print-container p, #print-container div {
+            font-size: 9px !important;
+            line-height: 1.2 !important;
+            margin-bottom: 1mm !important;
           }
         }
       `;
@@ -396,11 +464,13 @@ export default function OrdersList() {
       // Crear un contenedor para el contenido a imprimir
       const printContainer = document.createElement('div');
       printContainer.id = 'print-container';
-      printContainer.style.width = '80mm';
-      printContainer.style.maxWidth = '80mm';
+      printContainer.style.width = '72mm';
+      printContainer.style.maxWidth = '72mm';
       printContainer.style.boxSizing = 'border-box';
-      printContainer.style.padding = '3mm';
+      printContainer.style.padding = '2mm';
       printContainer.style.fontFamily = 'Arial, sans-serif';
+      printContainer.style.overflow = 'hidden'; // Evita scroll
+      printContainer.style.height = 'auto'; // Solo el alto necesario
       printContainer.appendChild(printContent);
       
       // Añadir elementos al DOM
@@ -492,9 +562,10 @@ export default function OrdersList() {
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: [80, 297], // 80mm de ancho (3 pulgadas) x altura automática
+          format: [80, 200], // 80mm de ancho x 200mm de alto (en vez de 297 para reducir páginas en blanco)
           hotfixes: ['px_scaling'], // Fix para escala de píxeles
           compress: false, // Evitar compresión que puede alterar el tamaño
+          putOnlyUsedFonts: true, // Optimización
         });
         
         // Agregar logo o nombre de la empresa
