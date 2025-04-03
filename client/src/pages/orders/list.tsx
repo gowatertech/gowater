@@ -383,13 +383,13 @@ export default function OrdersList() {
             <title>Pedido #${order.id}</title>
             <style>
               @page {
-                size: 72mm auto;
+                size: 80mm auto;
                 margin: 0mm;
                 padding: 0mm;
               }
               body {
                 font-family: Arial, sans-serif;
-                width: 72mm;
+                width: 80mm;
                 max-width: 100%;
                 margin: 0 auto;
                 padding: 8px;
@@ -470,13 +470,13 @@ export default function OrdersList() {
         style.innerHTML = `
           @media print {
             @page {
-              size: 72mm auto;
+              size: 80mm auto;
               margin: 0mm !important;
               padding: 0mm !important;
             }
             
             html, body {
-              width: 72mm !important;
+              width: 80mm !important;
               font-family: Arial, sans-serif !important;
               font-size: 10px !important;
               margin: 0 !important;
@@ -499,7 +499,7 @@ export default function OrdersList() {
               position: absolute !important;
               left: 0 !important;
               top: 0 !important;
-              width: 72mm !important;
+              width: 80mm !important;
               padding: 4mm !important;
               margin: 0 !important;
             }
@@ -516,19 +516,19 @@ export default function OrdersList() {
 
             /* Ajustes específicos para impresora térmica */
             #print-container {
-              width: 72mm !important;
-              max-width: 72mm !important;
+              width: 80mm !important;
+              max-width: 80mm !important;
               font-size: 10px !important;
               line-height: 1.2 !important;
             }
 
             #print-container * {
               font-family: 'Arial', sans-serif !important;
-              max-width: 72mm !important;
+              max-width: 80mm !important;
             }
 
             #print-container table {
-              width: 72mm !important;
+              width: 80mm !important;
               margin: 0 auto !important;
             }
           }
@@ -537,7 +537,7 @@ export default function OrdersList() {
         // Crear un contenedor para imprimir
         const printContainer = document.createElement('div');
         printContainer.id = 'print-container';
-        printContainer.style.width = '72mm';
+        printContainer.style.width = '80mm';
         printContainer.style.margin = '0 auto';
         printContainer.appendChild(printContent);
         
@@ -631,7 +631,7 @@ export default function OrdersList() {
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: [72, 297], // 72mm de ancho (80mm con margen) x altura automática
+          format: [80, 297], // 80mm de ancho x altura automática
           hotfixes: ['px_scaling'], // Fix para escala de píxeles
           compress: false, // Evitar compresión que puede alterar el tamaño
         });
