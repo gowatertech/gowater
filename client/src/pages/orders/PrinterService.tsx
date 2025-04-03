@@ -1,8 +1,8 @@
 // Servicio para impresión de tickets de pedidos
-// Usa React para renderizar tickets dinámicamente y un portal para aislar la impresión
+// Implementa una versión simplificada que no depende de ReactDOM.render
 
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { PrintContent } from '@/components/printer/PrintContent';
 import { OrderTicket } from '@/components/printer/OrderTicket';
 
@@ -32,32 +32,45 @@ export const printOrderTicket = (
       description: "Preparando documento para impresión...",
     });
     
-    // Crear un div temporal para el portal de React
-    const printContainer = document.createElement('div');
-    printContainer.id = 'print-portal-container';
-    document.body.appendChild(printContainer);
+    // Crear un iframe para aislar el contenido de impresión
+    const iframe = document.createElement('iframe');
+    iframe.id = 'print-frame';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
     
-    console.log('[PrintService] Container de impresión creado');
+    console.log('[PrintService] Frame de impresión creado');
     
-    // Renderizar el componente de ticket dentro del portal
-    ReactDOM.render(
-      <PrintContent
-        onAfterPrint={() => {
-          console.log('[PrintService] Finalizando impresión, limpiando...');
-          
-          // Desmontar componente y eliminar contenedor
-          ReactDOM.unmountComponentAtNode(printContainer);
-          if (document.body.contains(printContainer)) {
-            document.body.removeChild(printContainer);
-          }
-          
-          // Notificar al usuario
-          toast({
-            title: "Impresión completada",
-            description: "El documento se ha enviado a la impresora",
-          });
-        }}
-      >
+    // Esperar a que el iframe esté listo
+    iframe.onload = () => {
+      if (!iframe.contentDocument) {
+        console.error('[PrintService] No se pudo acceder al documento del iframe');
+        return;
+      }
+      
+      // Crear contenedor dentro del iframe
+      const printContainer = iframe.contentDocument.createElement('div');
+      printContainer.id = 'print-container';
+      iframe.contentDocument.body.appendChild(printContainer);
+      
+      // Agregar estilos al iframe
+      const style = iframe.contentDocument.createElement('style');
+      style.textContent = `
+        @page { size: 80mm auto; margin: 0; }
+        body { margin: 0; padding: 0; width: 80mm; }
+        .ticket-container { width: 80mm; }
+      `;
+      iframe.contentDocument.head.appendChild(style);
+      
+      // Crear un root de React para el container
+      const root = createRoot(printContainer);
+      
+      // Renderizar el componente
+      root.render(
         <OrderTicket
           order={order}
           orderItems={orderItems}
@@ -65,11 +78,31 @@ export const printOrderTicket = (
           companySettings={companySettings}
           products={products}
         />
-      </PrintContent>,
-      printContainer
-    );
-    
-    console.log('[PrintService] Componente de ticket renderizado');
+      );
+      
+      console.log('[PrintService] Componente de ticket renderizado');
+      
+      // Dar tiempo para que se renderice el contenido
+      setTimeout(() => {
+        console.log('[PrintService] Iniciando impresión');
+        
+        if (iframe.contentWindow) {
+          iframe.contentWindow.print();
+          
+          // Limpiar después de la impresión
+          setTimeout(() => {
+            console.log('[PrintService] Finalizando impresión, limpiando...');
+            document.body.removeChild(iframe);
+            
+            // Notificar al usuario
+            toast({
+              title: "Impresión completada",
+              description: "El documento se ha enviado a la impresora",
+            });
+          }, 1000);
+        }
+      }, 500);
+    };
     
   } catch (error: any) {
     console.error('[PrintService] Error en printOrderTicket:', error);
@@ -80,10 +113,9 @@ export const printOrderTicket = (
     });
     
     // Limpiar en caso de error
-    const printContainer = document.getElementById('print-portal-container');
-    if (printContainer && document.body.contains(printContainer)) {
-      ReactDOM.unmountComponentAtNode(printContainer);
-      document.body.removeChild(printContainer);
+    const iframe = document.getElementById('print-frame');
+    if (iframe && document.body.contains(iframe)) {
+      document.body.removeChild(iframe);
     }
   }
 };
