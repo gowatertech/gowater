@@ -1,7 +1,6 @@
 // Servicio para impresión de tickets de pedidos
-// Solución directa que no necesita React para renderizar
-
-import React from 'react';
+// Este servicio implementa la funcionalidad de impresión usando el enfoque iframe
+// que funciona consistentemente tanto en móviles como en escritorio
 
 /**
  * Genera un ticket de pedido e invoca la impresión
@@ -27,250 +26,200 @@ export const printOrderTicket = (
       description: "Preparando documento para impresión...",
     });
     
-    // Generar el HTML del ticket directamente
-    let ticketHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Ticket Pedido #${order.id}</title>
-        <style>
-          @page { 
-            size: 80mm auto; 
-            margin: 0;
-          }
-          body { 
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 5mm 2mm; 
-            width: 76mm;
-            font-size: 10px;
-          }
-          .ticket-container {
-            width: 100%;
-            box-sizing: border-box;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 10px;
-          }
-          .company-name {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 5px;
-          }
-          .company-info {
-            font-size: 11px;
-            margin-bottom: 2px;
-          }
-          .separator {
-            border-bottom: 1px dashed #000;
-            margin: 10px 0;
-          }
-          .order-info {
-            margin-bottom: 10px;
-            font-size: 11px;
-          }
-          .order-title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 5px;
-          }
-          .order-detail {
-            margin-bottom: 3px;
-            padding-left: 15px;
-          }
-          .items-title {
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 5px;
-          }
-          .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-          }
-          .items-table th, .items-table td {
-            padding: 3px;
-          }
-          .left { text-align: left; }
-          .center { text-align: center; }
-          .right { text-align: right; }
-          .totals {
-            margin-top: 10px;
-            font-size: 11px;
-          }
-          .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-          }
-          .total-label {
-            flex: 1;
-            text-align: left;
-          }
-          .total-value {
-            flex: 1;
-            text-align: center;
-          }
-          .bold {
-            font-weight: bold;
-          }
-          .notes {
-            margin-top: 10px;
-            font-size: 10px;
-          }
-          .notes-title {
-            font-weight: bold;
-            margin-bottom: 3px;
-          }
-          .thank-you {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 11px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="ticket-container">
-          <!-- Encabezado: Información de la empresa -->
-          <div class="header">
-            <div class="company-name">${companySettings.name}</div>
-            <div class="company-info">RNC: ${companySettings.rnc}</div>
-            <div class="company-info">${companySettings.street} ${companySettings.streetNumber}</div>
-            <div class="company-info">${companySettings.municipalityName}, ${companySettings.provinceName}</div>
-            <div class="company-info">Tel: ${companySettings.contactPhone}</div>
-            <div class="company-info">Email: ${companySettings.email}</div>
-          </div>
-          
-          <!-- Separador -->
-          <div class="separator"></div>
-          
-          <!-- Información del pedido -->
-          <div class="order-info">
-            <div class="order-title">PEDIDO #${order.id}</div>
-            <div class="order-detail"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
-            <div class="order-detail"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-            <div class="order-detail"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
-            <div class="order-detail"><strong>Dirección:</strong> ${order.customerAddress}</div>
-            <div class="order-detail">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
-          </div>
-          
-          <!-- Separador -->
-          <div class="separator"></div>
-          
-          <!-- Detalle del pedido -->
-          <div class="items-title">DETALLE DEL PEDIDO</div>
-          
-          <!-- Tabla de productos -->
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th class="left">Producto</th>
-                <th class="center">Cant.</th>
-                <th class="right">Precio</th>
-                <th class="right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
+    // Generar el contenido HTML del ticket
+    const printContent = document.createElement('div');
+    printContent.style.width = '74mm';
+    printContent.style.boxSizing = 'border-box';
+    printContent.style.padding = '0';
+    printContent.style.margin = '0';
+    printContent.style.fontFamily = 'Arial, sans-serif';
+    printContent.style.fontSize = '10px';
+    
+    // Encabezado: Información de la empresa
+    const header = document.createElement('div');
+    header.style.textAlign = 'center';
+    header.style.marginBottom = '10px';
+    
+    header.innerHTML = `
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companySettings.name}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${companySettings.rnc}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.street} ${companySettings.streetNumber}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.municipalityName}, ${companySettings.provinceName}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${companySettings.contactPhone}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">Email: ${companySettings.email}</div>
+    `;
+    printContent.appendChild(header);
+    
+    // Separador
+    const separator = document.createElement('div');
+    separator.style.borderBottom = '1px dashed #000';
+    separator.style.margin = '10px 0';
+    printContent.appendChild(separator);
+    
+    // Título e información del pedido
+    const orderInfo = document.createElement('div');
+    orderInfo.style.marginBottom = '10px';
+    orderInfo.style.fontSize = '11px';
+    
+    orderInfo.innerHTML = `
+      <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order.id}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
+    `;
+    printContent.appendChild(orderInfo);
+    
+    // Otro separador
+    const separator2 = document.createElement('div');
+    separator2.style.borderBottom = '1px dashed #000';
+    separator2.style.margin = '10px 0';
+    printContent.appendChild(separator2);
+    
+    // Tabla de productos
+    printContent.innerHTML += `
+      <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DEL PEDIDO</div>
     `;
     
-    // Generar filas de productos
-    orderItems.forEach(item => {
-      const product = products.find(p => p.id === item.productId);
-      const itemTotal = parseFloat(item.price) * item.quantity;
-      
-      ticketHtml += `
-        <tr>
-          <td class="left">${product?.name || "Producto"}</td>
-          <td class="center">${item.quantity}</td>
-          <td class="right">RD$${parseFloat(item.price).toFixed(2)}</td>
-          <td class="right">RD$${itemTotal.toFixed(2)}</td>
+    const table = document.createElement('table');
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.style.fontSize = '10px';
+    
+    table.innerHTML = `
+      <thead>
+        <tr style="border-bottom: 1px solid #ddd;">
+          <th style="text-align: left; padding: 3px;">Producto</th>
+          <th style="text-align: center; padding: 3px;">Cant.</th>
+          <th style="text-align: right; padding: 3px;">Precio</th>
+          <th style="text-align: right; padding: 3px;">Total</th>
         </tr>
-      `;
-    });
+      </thead>
+      <tbody>
+        ${orderItems.map((item: any) => {
+          const product = products.find((p: any) => p.id === item.productId);
+          const total = parseFloat(item.price) * item.quantity;
+          return `
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="text-align: left; padding: 3px;">${product?.name || "Producto"}</td>
+              <td style="text-align: center; padding: 3px;">${item.quantity}</td>
+              <td style="text-align: right; padding: 3px;">RD$${parseFloat(item.price).toFixed(2)}</td>
+              <td style="text-align: right; padding: 3px;">RD$${total.toFixed(2)}</td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    `;
+    printContent.appendChild(table);
+    
+    // Separador antes de totales
+    const separator3 = document.createElement('div');
+    separator3.style.borderBottom = '1px dashed #000';
+    separator3.style.margin = '10px 0';
+    printContent.appendChild(separator3);
     
     // Calcular totales
     const subtotal = parseFloat(order.subtotal || order.total);
     const itbis = parseFloat(order.tax || '0');
     const total = parseFloat(order.total);
     
-    // Completar el HTML con los totales y el pie de página
-    ticketHtml += `
-            </tbody>
-          </table>
-          
-          <!-- Separador -->
-          <div class="separator"></div>
-          
-          <!-- Totales -->
-          <div class="totals">
-            <div class="total-row">
-              <span class="total-label">SUBTOTAL:</span>
-              <span class="total-value">RD$ ${subtotal.toFixed(2)}</span>
-            </div>
-            <div class="total-row">
-              <span class="total-label">ITBIS:</span>
-              <span class="total-value">RD$ ${itbis.toFixed(2)}</span>
-            </div>
-            <div class="total-row bold">
-              <span class="total-label">TOTAL:</span>
-              <span class="total-value">RD$ ${total.toFixed(2)}</span>
-            </div>
-          </div>
+    // Totales
+    const totalsDiv = document.createElement('div');
+    totalsDiv.style.marginTop = '10px';
+    totalsDiv.style.fontSize = '11px';
+    totalsDiv.innerHTML = `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span style="flex: 1; text-align: left;">SUBTOTAL:</span>
+        <span style="flex: 1; text-align: center;">RD$ ${subtotal.toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span style="flex: 1; text-align: left;">ITBIS:</span>
+        <span style="flex: 1; text-align: center;">RD$ ${itbis.toFixed(2)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
+        <span style="flex: 1; text-align: left;">TOTAL:</span>
+        <span style="flex: 1; text-align: center;">RD$ ${total.toFixed(2)}</span>
+      </div>
     `;
+    printContent.appendChild(totalsDiv);
     
-    // Añadir notas si existen
+    // Notas (si hay)
     if (order.notes) {
-      ticketHtml += `
-        <!-- Notas -->
-        <div class="notes">
-          <div class="notes-title">Nota del Pedido:</div>
-          <div class="notes-content">${order.notes}</div>
-        </div>
+      const notesDiv = document.createElement('div');
+      notesDiv.style.marginTop = '10px';
+      notesDiv.style.fontSize = '10px';
+      notesDiv.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 3px;">Nota del Pedido:</div>
+        <div>${order.notes}</div>
       `;
+      printContent.appendChild(notesDiv);
     }
     
-    // Finalizar el HTML
-    ticketHtml += `
-          <!-- Separador -->
-          <div class="separator"></div>
-          
-          <!-- Mensaje de agradecimiento -->
-          <div class="thank-you">¡Gracias por su compra!</div>
-        </div>
-      </body>
+    // Separador final
+    const separator4 = document.createElement('div');
+    separator4.style.borderBottom = '1px dashed #000';
+    separator4.style.margin = '10px 0';
+    printContent.appendChild(separator4);
+    
+    // Mensaje de agradecimiento
+    const thankYouMsg = document.createElement('div');
+    thankYouMsg.style.textAlign = 'center';
+    thankYouMsg.style.marginTop = '10px';
+    thankYouMsg.style.fontSize = '11px';
+    thankYouMsg.textContent = '¡Gracias por su compra!';
+    printContent.appendChild(thankYouMsg);
+    
+    // Crear un iframe para impresión (siguiendo el patrón que funciona en facturación)
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+    
+    // Escribir el contenido HTML en el iframe
+    iframe.contentDocument?.open();
+    iframe.contentDocument?.write(`
+      <html>
+        <head>
+          <title>Pedido #${order.id}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 0; }
+              @page { size: 80mm 297mm; margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent.outerHTML}
+        </body>
       </html>
-    `;
+    `);
+    iframe.contentDocument?.close();
     
-    // Crear una ventana de impresión oculta
-    const printWindow = window.open('', '_blank', 'width=400,height=600,left=200,top=200');
-    
-    if (!printWindow) {
-      throw new Error('No se pudo crear la ventana de impresión. Por favor, verifica que los popups estén permitidos.');
-    }
-    
-    // Escribir el contenido HTML en la ventana
-    printWindow.document.open();
-    printWindow.document.write(ticketHtml);
-    printWindow.document.close();
-    
-    // Esperar a que se carguen los estilos y el contenido
-    printWindow.onload = function() {
-      // Imprimir
-      printWindow.print();
-      
-      // Cerrar la ventana después de imprimir (o después de un tiempo si el usuario cancela)
-      setTimeout(() => {
-        printWindow.close();
+    // Imprimir después de que el iframe cargue
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
         
         // Notificar al usuario
         toast({
-          title: "Impresión completada",
+          title: "Imprimiendo ticket",
           description: "El documento se ha enviado a la impresora",
         });
-      }, 1000);
+        
+        // Limpiar después de imprimir
+        setTimeout(() => {
+          document.body.removeChild(iframe);
+        }, 1000);
+      } catch (printError) {
+        console.error('Error al imprimir:', printError);
+        toast({
+          variant: "destructive",
+          title: "Error de impresión",
+          description: "No se pudo enviar a la impresora",
+        });
+        document.body.removeChild(iframe);
+      }
     };
     
   } catch (error: any) {
