@@ -170,56 +170,85 @@ export const printOrderTicket = (
     thankYouMsg.textContent = '¡Gracias por su compra!';
     printContent.appendChild(thankYouMsg);
     
-    // Usar iframe para todos los dispositivos (desktop y móvil)
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+    // Usar método directo de window.print() para evitar problemas
+    console.log('[PrintService] Iniciando proceso de impresión directa');
     
-    iframe.contentDocument?.open();
-    iframe.contentDocument?.write(`
-    <html>
-      <head>
-        <title>Pedido #${order.id}</title>
-        <style>
-          @media print {
-            body { margin: 0; padding: 0; }
-            @page { size: 80mm 297mm; margin: 0; }
-          }
-        </style>
-      </head>
-      <body>
-        ${printContent.outerHTML}
-      </body>
-    </html>
-    `);
-    iframe.contentDocument?.close();
+    // Crear un div temporal que contendrá el contenido a imprimir
+    const printDiv = document.createElement('div');
+    printDiv.id = 'print-container';
+    printDiv.style.position = 'fixed';
+    printDiv.style.left = '-9999px';
+    printDiv.style.top = '0';
+    printDiv.style.zIndex = '-1';
+    printDiv.style.width = '80mm';
+    printDiv.innerHTML = printContent.outerHTML;
+    document.body.appendChild(printDiv);
     
-    // Imprimir después de que el iframe cargue
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
+    console.log('[PrintService] Contenedor de impresión creado:', printDiv.id);
+    
+    try {
+      // Guardar el contenido actual de la página
+      console.log('[PrintService] Guardando contenido de la página actual');
+      const originalTitle = document.title;
+      const originalBodyHtml = document.body.innerHTML;
+      
+      // Reemplazar todo el cuerpo de la página con el contenido a imprimir
+      document.title = `Pedido #${order.id}`;
+      
+      console.log('[PrintService] Reemplazando body con contenido de impresión');
+      
+      // Crear una nueva hoja de estilo para la impresión
+      const styleElement = document.createElement('style');
+      styleElement.textContent = `
+        @media print {
+          body { margin: 0; padding: 0; }
+          @page { size: 80mm 297mm; margin: 0; }
+        }
+      `;
+      document.head.appendChild(styleElement);
+      
+      // Mostrar solo el contenido a imprimir
+      document.body.innerHTML = printDiv.innerHTML;
+      
+      console.log('[PrintService] Invocando window.print()');
+      
+      // Abrir el diálogo de impresión
+      window.print();
+      
+      console.log('[PrintService] window.print() completado, restaurando contenido original');
+      
+      // Restaurar el contenido original después de la impresión
+      setTimeout(() => {
+        document.title = originalTitle;
+        document.body.innerHTML = originalBodyHtml;
+        
+        console.log('[PrintService] Contenido original restaurado');
+        
+        // Remover el estilo temporal
+        if (styleElement.parentNode) {
+          styleElement.parentNode.removeChild(styleElement);
+        }
         
         // Notificar al usuario
         toast({
-          title: "Imprimiendo ticket",
+          title: "Impresión completada",
           description: "El documento se ha enviado a la impresora",
         });
-        
-        // Limpiar después de imprimir
-        setTimeout(() => {
-          document.body.removeChild(iframe);
-        }, 1000);
-      } catch (printError) {
-        console.error('Error al imprimir:', printError);
-        toast({
-          variant: "destructive",
-          title: "Error de impresión",
-          description: "No se pudo enviar a la impresora",
-        });
-        document.body.removeChild(iframe);
+      }, 1000);
+      
+    } catch (printError) {
+      console.error('[PrintService] Error durante el proceso de impresión:', printError);
+      toast({
+        variant: "destructive",
+        title: "Error de impresión",
+        description: `No se pudo imprimir: ${printError.message}`,
+      });
+      
+      // Limpiar en caso de error
+      if (document.body.contains(printDiv)) {
+        document.body.removeChild(printDiv);
       }
-    };
+    }
     
   } catch (error: any) {
     console.error('Error en printOrderTicket:', error);
