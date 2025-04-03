@@ -345,56 +345,65 @@ export default function OrdersList() {
       thankYouMsg.textContent = '¡Gracias por su compra!';
       printContent.appendChild(thankYouMsg);
       
-      // Crear un iframe para imprimir (enfoque simple)
-      const printFrame = document.createElement('iframe');
-      printFrame.style.position = 'absolute';
-      printFrame.style.top = '-9999px';
-      printFrame.style.left = '-9999px';
-      printFrame.style.width = '80mm';
-      printFrame.style.height = '0';
-      document.body.appendChild(printFrame);
+      // Volver al método original para impresoras térmicas con mejoras
+      // Crear un estilo más simple pero efectivo
+      const style = document.createElement('style');
+      style.innerHTML = `
+        @media print {
+          @page {
+            size: 80mm auto;
+            margin: 0mm !important;
+          }
+          
+          html, body {
+            width: 80mm !important;
+            font-family: Arial, sans-serif !important;
+            font-size: 10px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          
+          /* Ocultar todo excepto el ticket */
+          body * {
+            display: none !important;
+          }
+          
+          /* Mostrar solo el contenedor de ticket */
+          #print-container, #print-container * {
+            display: block !important;
+            visibility: visible !important;
+          }
+          
+          #print-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 72mm !important;
+            padding: 4mm !important;
+            margin: 0 !important;
+          }
+          
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          
+          th, td {
+            padding: 1mm !important;
+            font-size: 9px !important;
+          }
+        }
+      `;
       
-      // Configurar el documento del iframe
-      const frameDoc = printFrame.contentDocument;
-      if (!frameDoc) {
-        throw new Error('No se pudo crear el documento para impresión');
-      }
+      // Crear un contenedor para imprimir
+      const printContainer = document.createElement('div');
+      printContainer.id = 'print-container';
+      printContainer.appendChild(printContent);
       
-      // Escribir el contenido HTML en el iframe
-      frameDoc.open();
-      frameDoc.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <title>Pedido #${order.id}</title>
-          <style>
-            @page {
-              size: 80mm auto;
-              margin: 0;
-            }
-            body {
-              font-family: 'Arial', sans-serif;
-              margin: 0;
-              padding: 3mm;
-              width: 74mm;
-              font-size: 10px;
-              line-height: 1.2;
-            }
-            .center { text-align: center; }
-            .ticket { width: 100%; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { text-align: left; padding: 2px; }
-          </style>
-        </head>
-        <body>
-          <div class="ticket">
-            ${printContent.innerHTML}
-          </div>
-        </body>
-        </html>
-      `);
-      frameDoc.close();
+      // Añadir a la página
+      document.head.appendChild(style);
+      document.body.appendChild(printContainer);
       
       // Notificar al usuario
       toast({
@@ -402,11 +411,11 @@ export default function OrdersList() {
         description: "Se abrirá el diálogo de impresión en unos segundos",
       });
       
-      // Esperar un momento para que se cargue el contenido
+      // Esperar un momento para asegurar que todo esté cargado
       setTimeout(() => {
         try {
-          // Imprimir el iframe
-          printFrame.contentWindow?.print();
+          // Imprimir
+          window.print();
           
           // Notificar al usuario
           toast({
@@ -416,7 +425,8 @@ export default function OrdersList() {
           
           // Limpiar después de imprimir
           setTimeout(() => {
-            document.body.removeChild(printFrame);
+            document.body.removeChild(printContainer);
+            document.head.removeChild(style);
           }, 2000);
         } catch (printError) {
           console.error('Error al imprimir:', printError);
@@ -426,7 +436,8 @@ export default function OrdersList() {
             description: "No se pudo enviar a la impresora",
           });
           // Limpiar en caso de error
-          document.body.removeChild(printFrame);
+          document.body.removeChild(printContainer);
+          document.head.removeChild(style);
         }
       }, 1000);
     } catch (error: any) {
