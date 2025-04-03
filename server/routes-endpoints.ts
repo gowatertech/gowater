@@ -174,7 +174,10 @@ export function registerRoutesEndpoints(app: Express) {
         return res.status(404).json({ error: "Ruta no encontrada" });
       }
       
-      // Buscar todas las órdenes para esta ruta
+      const routeDetails = route[0];
+      console.log("Obteniendo pedidos para la ruta:", routeDetails);
+      
+      // Buscar todas las órdenes para esta ruta, independientemente de su estado
       let routeOrders = await db
         .select({
           id: orders.id,
@@ -192,52 +195,69 @@ export function registerRoutesEndpoints(app: Express) {
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(eq(orders.routeId, routeId));
+        
+      console.log(`Se encontraron ${routeOrders.length} órdenes directamente asignadas a la ruta ${routeId}`);
       
-      // Si no hay órdenes asignadas directamente a la ruta, buscar órdenes pendientes sin asignar
-      if (routeOrders.length === 0) {
-        console.log(`No hay órdenes asignadas a la ruta ${routeId}, buscando órdenes pendientes...`);
+      // Si no hay órdenes asignadas directamente a la ruta, buscar órdenes en la misma zona
+      if (routeOrders.length === 0 && routeDetails.zoneId) {
+        console.log(`No hay órdenes asignadas a la ruta ${routeId}, buscando órdenes de la zona ${routeDetails.zoneId}...`);
         
-        // Obtener detalles de la ruta para usar sus coordenadas
-        const routeDetails = route[0];
-        console.log("Detalles de la ruta:", routeDetails);
-        
-        // Si la ruta tiene stops definidos, los usamos para buscar órdenes cercanas
-        if (routeDetails.stops && routeDetails.stops.length > 0) {
-          console.log("La ruta tiene coordenadas definidas:", routeDetails.stops);
-          
-          // Para simplicidad, asignamos todas las órdenes pendientes a esta ruta
-          // En un sistema real, haríamos una búsqueda basada en cercanía
-        }
-        
-        // Primero, buscar pedidos pendientes y entregados que estén asignados a esta ruta
-        const completedOrders = await db
+        // Obtener todos los clientes de la zona
+        const zoneCustomers = await db
           .select({
-            id: orders.id,
-            routeId: orders.routeId, 
-            customerId: orders.customerId,
-            status: orders.status,
-            total: orders.total,
-            customerName: customers.businessname,
-            customerAddress: customers.street,
-            date: orders.date,
-            paymentMethod: orders.paymentMethod,
-            coordinates: customers.coordinates,
-            streetnumber: customers.streetnumber
+            id: customers.id,
+            coordinates: customers.coordinates
           })
-          .from(orders)
-          .leftJoin(customers, eq(orders.customerId, customers.id))
-          .where(and(
-            eq(orders.routeId, routeId),
-            eq(orders.status, "delivered")
-          ));
+          .from(customers)
+          .where(eq(customers.zoneid, routeDetails.zoneId));
           
-        console.log(`Se encontraron ${completedOrders.length} órdenes completadas para esta ruta`);
+        if (zoneCustomers.length > 0) {
+          const customerIds = zoneCustomers.map(c => c.id);
+          console.log(`Se encontraron ${customerIds.length} clientes en la zona ${routeDetails.zoneId}`);
+          
+          // Buscar pedidos pendientes de estos clientes
+          const zoneOrders = await db
+            .select({
+              id: orders.id,
+              routeId: orders.routeId,
+              customerId: orders.customerId,
+              status: orders.status,
+              total: orders.total,
+              customerName: customers.businessname,
+              customerAddress: customers.street,
+              date: orders.date,
+              paymentMethod: orders.paymentMethod,
+              coordinates: customers.coordinates,
+              streetnumber: customers.streetnumber
+            })
+            .from(orders)
+            .leftJoin(customers, eq(orders.customerId, customers.id))
+            .where(and(
+              inArray(orders.customerId, customerIds),
+              isNull(orders.routeId),
+              eq(orders.status, "pending")
+            ));
+            
+          console.log(`Se encontraron ${zoneOrders.length} pedidos pendientes en la zona ${routeDetails.zoneId}`);
+          
+          // Asignar temporalmente estos pedidos a la ruta (solo en memoria)
+          if (zoneOrders.length > 0) {
+            routeOrders = zoneOrders.map(order => ({
+              ...order,
+              routeId: routeId // Asignar el ID de la ruta temporalmente
+            }));
+          }
+        }
+      }
+      
+      // Si aún no hay órdenes, buscar cualquier pedido pendiente sin asignar
+      if (routeOrders.length === 0) {
+        console.log(`No se encontraron pedidos en la zona, buscando cualquier pedido pendiente...`);
         
-        // Luego, buscar pedidos pendientes sin asignar
         routeOrders = await db
           .select({
             id: orders.id,
-            routeId: orders.routeId, 
+            routeId: orders.routeId,
             customerId: orders.customerId,
             status: orders.status,
             total: orders.total,
@@ -255,18 +275,13 @@ export function registerRoutesEndpoints(app: Express) {
             eq(orders.status, "pending")
           ));
           
-        // Añadir órdenes completadas a las órdenes a retornar
-        routeOrders = [...completedOrders, ...routeOrders];
+        console.log(`Se encontraron ${routeOrders.length} pedidos pendientes sin asignar`);
         
-        console.log(`Se encontraron ${routeOrders.length} órdenes pendientes sin asignar`);
-        
-        // Si encontramos órdenes pendientes, las asignamos temporalmente a esta ruta
-        // (solo en memoria, no en la base de datos)
+        // Asignar temporalmente estos pedidos a la ruta (solo en memoria)
         if (routeOrders.length > 0) {
-          console.log(`Asignando temporalmente ${routeOrders.length} órdenes pendientes a la ruta ${routeId}`);
           routeOrders = routeOrders.map(order => ({
             ...order,
-            routeId: routeId // Asignar el ID de la ruta para la respuesta
+            routeId: routeId
           }));
         }
       }
@@ -1316,15 +1331,16 @@ export function registerRoutesEndpoints(app: Express) {
       .innerJoin(products, eq(orderItemsTable.productId, products.id))
       .where(eq(orderItemsTable.orderId, orderId));
       
-      // Actualizar el estado del pedido a "entregado"
+      // Actualizar el estado del pedido a "entregado", manteniendo la asociación con la ruta
       await db.update(orders)
         .set({ 
           status: "delivered",
-          paymentMethod: paymentMethod // Usar el método proporcionado por el cliente (no usar valor por defecto)
+          paymentMethod: paymentMethod, // Usar el método proporcionado por el cliente (no usar valor por defecto)
+          // NO modificamos el campo routeId, para mantener la asociación con la ruta
         })
         .where(eq(orders.id, orderId));
-      
-      console.log(`Pedido ${orderId} actualizado como entregado`);
+        
+      console.log(`Pedido ${orderId} actualizado como entregado, manteniendo su asociación con la ruta ${order[0].routeId || 'ninguna'}`);
       
       // Actualizar el balance del cliente si se requiere
       if (updateCustomerBalance) {
