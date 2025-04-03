@@ -382,10 +382,22 @@ export default function DriverRoute() {
         });
       }
       
+      // Mantener el estado de pedidos completados (si existen)
+      const completedStops = routeStops.filter(stop => 
+        stop.status === "completed" && !stop.isWarehouse
+      );
+      const completedStopIds = completedStops.map(stop => stop.id);
+      
+      console.log("Paradas completadas actuales:", completedStops.length);
+      console.log("IDs de paradas completadas:", completedStopIds);
+      
       // Agregar las paradas de los clientes
       console.log("Procesando ordersData:", ordersData);
       ordersData.forEach((order: any, index: number) => {
         console.log(`Procesando orden ${index + 1}/${ordersData.length}:`, order.id);
+        
+        // Verificar si este pedido ya existe como completado
+        const isAlreadyCompleted = completedStopIds.includes(order.id);
         
         // Calcular el valor total del pedido a partir de los productos
         const totalValue = order.products.reduce(
@@ -436,6 +448,12 @@ export default function DriverRoute() {
         const estimatedDuration = 5 + Math.floor(Math.random() * 10); // 5-15 minutos
         const distanceFromPrevious = 0.5 + Math.random() * 3; // 0.5-3.5 km
         
+        // Si el pedido ya está completado en nuestro estado local, mantener ese estado
+        // De lo contrario, usar el estado que viene de la API (normalmente "pending")
+        const currentStatus = isAlreadyCompleted 
+          ? "completed" 
+          : (order.status === "delivered" ? "completed" : order.status);
+        
         stops.push({
           id: order.id,
           order: stopOrder,
@@ -444,8 +462,8 @@ export default function DriverRoute() {
           address: order.customerAddress || "Dirección no disponible",
           latitude,
           longitude,
-          status: "pending",
-          estimatedArrival: "Próximamente",
+          status: currentStatus as "pending" | "in_progress" | "completed" | "cancelled",
+          estimatedArrival: currentStatus === "completed" ? "Completado" : "Próximamente",
           estimatedDuration,
           distanceFromPrevious,
           products: order.products.map((product: any) => ({
@@ -457,6 +475,15 @@ export default function DriverRoute() {
           })),
           totalValue: Number(order.total) || totalValue
         });
+      });
+      
+      // También incluir paradas completadas que ya no están en los pedidos de la API
+      completedStops.forEach(completedStop => {
+        // Si este pedido completado no está en los datos de la API, añadirlo
+        if (!stops.some(stop => stop.id === completedStop.id)) {
+          console.log(`Manteniendo parada completada ID ${completedStop.id} que ya no está en los datos de la API`);
+          stops.push({...completedStop});
+        }
       });
       
       // Ordenar las paradas según la secuencia si está disponible
@@ -956,6 +983,10 @@ export default function DriverRoute() {
 
       console.log("Procesando entrega con datos:", JSON.stringify(updateData));
       
+      // Guardar una copia local del ID y nombre del cliente por si hay problemas con la referencia después
+      const customerId = currentStopForPayment.customerId;
+      const customerName = currentStopForPayment.customerName;
+      
       // Enviar datos al servidor
       const response = await fetch(`/api/orders/${currentStopForPayment.id}/deliver`, {
         method: "POST",
@@ -977,16 +1008,25 @@ export default function DriverRoute() {
           { ...s, status: "completed" as "pending" | "in_progress" | "completed" | "cancelled" } : 
           s
       );
+      
+      // Primero cerrar el diálogo para evitar problemas de referencias
+      setShowPaymentDialog(false);
+      setExpandedStopId(null);
+      
+      // Luego actualizar el estado
       setRouteStops(updatedStops);
       
-      // Verificar si se generó factura y mostrar opción para visualizarla
+      // Ya no es necesario recargar los datos completos desde el servidor
+      // porque hemos guardado el estado actualizado con las paradas completadas
+      
+      // Mostrar mensaje de éxito
       if (responseData.invoiceCreated && responseData.invoiceId) {
-        // Mostrar mensaje de éxito con opción para ver/imprimir factura
+        // Mostrar mensaje con opción para ver/imprimir factura
         toast({
           title: "Entrega procesada",
           description: 
             <div className="flex flex-col gap-2">
-              <span>Entrega para {currentStopForPayment.customerName} completada exitosamente.</span>
+              <span>Entrega para {customerName} completada exitosamente.</span>
               <div className="flex gap-2 mt-1">
                 <Button 
                   size="sm" 
@@ -1013,20 +1053,20 @@ export default function DriverRoute() {
         // Mensaje simple si no hay factura
         toast({
           title: "Entrega procesada",
-          description: `Entrega para ${currentStopForPayment.customerName} completada.`
+          description: `Entrega para ${customerName} completada.`
         });
       }
       
-      // Cerrar diálogo de pago
-      setShowPaymentDialog(false);
-      setExpandedStopId(null);
-      
       // Preguntar si desea crear un pedido nuevo para el mismo cliente
       setTimeout(() => {
-        if (confirm(`¿Desea programar un nuevo pedido para ${currentStopForPayment.customerName}?`)) {
-          openCreateNewOrderDialog(currentStopForPayment.customerId);
+        try {
+          if (confirm(`¿Desea programar un nuevo pedido para ${customerName}?`)) {
+            openCreateNewOrderDialog(customerId);
+          }
+        } catch (error) {
+          console.error("Error al mostrar confirmación:", error);
         }
-      }, 1000);
+      }, 1500);
       
     } catch (error) {
       console.error("Error al procesar la entrega:", error);
