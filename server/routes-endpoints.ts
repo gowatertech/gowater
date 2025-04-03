@@ -241,49 +241,36 @@ export function registerRoutesEndpoints(app: Express) {
             
           console.log(`Se encontraron ${zoneOrders.length} pedidos pendientes en la zona ${routeDetails.zoneId}`);
           
-          // Asignar temporalmente estos pedidos a la ruta (solo en memoria)
+          // Asignar estos pedidos a la ruta (persistentemente en la base de datos)
           if (zoneOrders.length > 0) {
-            routeOrders = zoneOrders.map(order => ({
-              ...order,
-              routeId: routeId // Asignar el ID de la ruta temporalmente
-            }));
+            for (const order of zoneOrders) {
+              await db
+                .update(orders)
+                .set({ routeId: routeId })
+                .where(eq(orders.id, order.id));
+              
+              console.log(`Pedido ${order.id} asignado permanentemente a la ruta ${routeId}`);
+            }
+            
+            // Recargar los pedidos ahora que están asignados a la ruta
+            routeOrders = await db
+              .select({
+                id: orders.id,
+                routeId: orders.routeId,
+                customerId: orders.customerId,
+                status: orders.status,
+                total: orders.total,
+                customerName: customers.businessname,
+                customerAddress: customers.street,
+                date: orders.date,
+                paymentMethod: orders.paymentMethod,
+                coordinates: customers.coordinates,
+                streetnumber: customers.streetnumber
+              })
+              .from(orders)
+              .leftJoin(customers, eq(orders.customerId, customers.id))
+              .where(eq(orders.routeId, routeId));
           }
-        }
-      }
-      
-      // Si aún no hay órdenes, buscar cualquier pedido pendiente sin asignar
-      if (routeOrders.length === 0) {
-        console.log(`No se encontraron pedidos en la zona, buscando cualquier pedido pendiente...`);
-        
-        routeOrders = await db
-          .select({
-            id: orders.id,
-            routeId: orders.routeId,
-            customerId: orders.customerId,
-            status: orders.status,
-            total: orders.total,
-            customerName: customers.businessname,
-            customerAddress: customers.street,
-            date: orders.date,
-            paymentMethod: orders.paymentMethod,
-            coordinates: customers.coordinates,
-            streetnumber: customers.streetnumber
-          })
-          .from(orders)
-          .leftJoin(customers, eq(orders.customerId, customers.id))
-          .where(and(
-            isNull(orders.routeId),
-            eq(orders.status, "pending")
-          ));
-          
-        console.log(`Se encontraron ${routeOrders.length} pedidos pendientes sin asignar`);
-        
-        // Asignar temporalmente estos pedidos a la ruta (solo en memoria)
-        if (routeOrders.length > 0) {
-          routeOrders = routeOrders.map(order => ({
-            ...order,
-            routeId: routeId
-          }));
         }
       }
         
@@ -302,9 +289,24 @@ export function registerRoutesEndpoints(app: Express) {
             .innerJoin(products, eq(orderItemsTable.productId, products.id))
             .where(eq(orderItemsTable.orderId, order.id));
             
+          // Extraer las coordenadas para facilitar su uso en el front-end
+          let latitude = null;
+          let longitude = null;
+          
+          if (order.coordinates) {
+            const coordParts = order.coordinates.split(',');
+            if (coordParts.length === 2) {
+              latitude = parseFloat(coordParts[0].trim());
+              longitude = parseFloat(coordParts[1].trim());
+            }
+          }
+            
           return {
             ...order,
             products: items,
+            address: `${order.customerAddress} ${order.streetnumber}`,
+            latitude,
+            longitude
           };
         })
       );
