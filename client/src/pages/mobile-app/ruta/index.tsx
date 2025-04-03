@@ -666,19 +666,22 @@ export default function DriverRoute() {
       
       {/* Diálogo de pago mejorado */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
+        <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-primary" />
               Procesar Pago
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Complete los datos para procesar el pago y registrar la entrega
+            </DialogDescription>
           </DialogHeader>
           
-          <div className="p-1">
+          <div className="py-1">
             {currentStopForPayment && (
               <>
                 {/* Información del cliente */}
-                <div className="bg-primary/10 rounded-lg p-3 mb-4">
+                <div className="bg-primary/10 rounded-lg p-3 mb-3">
                   <div className="flex justify-between items-center mb-1">
                     <h3 className="font-bold">{currentStopForPayment.customerName}</h3>
                     <Badge variant="outline" className="ml-2">
@@ -689,13 +692,13 @@ export default function DriverRoute() {
                 </div>
                 
                 {/* Opciones de método de pago */}
-                <div className="mb-4">
+                <div className="mb-3">
                   <Label className="text-sm font-medium mb-2 block">Método de pago</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <Button 
                       type="button" 
                       variant={paymentMethod === "cash" ? "default" : "outline"} 
-                      className="justify-start"
+                      className="justify-start py-1 h-9"
                       onClick={() => setPaymentMethod("cash")}
                     >
                       <DollarSign className="mr-2 h-4 w-4" />
@@ -704,7 +707,7 @@ export default function DriverRoute() {
                     <Button 
                       type="button" 
                       variant={paymentMethod === "credit" ? "default" : "outline"} 
-                      className="justify-start"
+                      className="justify-start py-1 h-9"
                       onClick={() => setPaymentMethod("credit")}
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
@@ -715,7 +718,7 @@ export default function DriverRoute() {
                 
                 {/* Calculadora de pago en efectivo */}
                 {paymentMethod === "cash" && (
-                  <div className="space-y-4 mb-4">
+                  <div className="space-y-3 mb-3">
                     <div>
                       <Label htmlFor="amount" className="text-sm font-medium mb-1 block">
                         Monto recibido
@@ -739,7 +742,7 @@ export default function DriverRoute() {
                           key={amount}
                           variant="outline"
                           size="sm"
-                          className="text-xs"
+                          className="text-xs h-7"
                           onClick={() => setAmountPaid(amount.toString())}
                         >
                           ${amount}
@@ -763,12 +766,12 @@ export default function DriverRoute() {
                   </div>
                 )}
                 
-                {/* Resumen de productos */}
-                <div className="mt-4 border-t border-border pt-4">
+                {/* Resumen de productos - Versión compacta */}
+                <div className="mt-3 border-t border-border pt-3">
                   <h4 className="text-sm font-medium mb-2">Detalle de productos</h4>
-                  <div className="max-h-40 overflow-y-auto">
+                  <div className="max-h-[25vh] overflow-y-auto">
                     <table className="w-full text-sm">
-                      <thead className="text-xs text-muted-foreground">
+                      <thead className="text-xs text-muted-foreground sticky top-0 bg-background">
                         <tr>
                           <th className="text-left font-medium py-1">Producto</th>
                           <th className="text-center font-medium py-1">Cant.</th>
@@ -798,17 +801,17 @@ export default function DriverRoute() {
             )}
           </div>
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-3 border-t border-border flex flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setShowPaymentDialog(false)}
-              className="w-full sm:w-auto"
+              className="flex-1 py-1 h-10"
             >
               Cancelar
             </Button>
             <Button
               onClick={completePaymentAndDelivery}
-              className="w-full sm:w-auto"
+              className="flex-1 py-1 h-10"
             >
               Confirmar pago y entrega
             </Button>
@@ -818,16 +821,19 @@ export default function DriverRoute() {
       
       {/* Diálogo para devolución de envases (botellas) */}
       <Dialog open={showBottleReturnDialog} onOpenChange={setShowBottleReturnDialog}>
-        <DialogContent className={`sm:max-w-md ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
+        <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Recycle className="h-5 w-5 text-green-500" />
               Registrar devolución de envases
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Ingrese la cantidad de envases retornados por el cliente
+            </DialogDescription>
           </DialogHeader>
           
-          <div className="p-1">
-            <div className="space-y-4">
+          <div className="py-1">
+            <div className="space-y-3">
               <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
                 <p className="text-sm text-green-600 dark:text-green-400">
                   Registra la cantidad de envases que el cliente está devolviendo en este momento.
@@ -844,6 +850,7 @@ export default function DriverRoute() {
                     size="sm"
                     onClick={() => setReturnedBottlesCount(Math.max(0, returnedBottlesCount - 1))}
                     disabled={returnedBottlesCount <= 0}
+                    className="h-10 w-10"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
@@ -851,7 +858,7 @@ export default function DriverRoute() {
                   <Input
                     id="returnedBottles"
                     type="number"
-                    className="text-center"
+                    className="text-center h-10"
                     value={returnedBottlesCount}
                     min="0"
                     onChange={(e) => setReturnedBottlesCount(parseInt(e.target.value) || 0)}
@@ -861,6 +868,7 @@ export default function DriverRoute() {
                     variant="outline"
                     size="sm"
                     onClick={() => setReturnedBottlesCount(returnedBottlesCount + 1)}
+                    className="h-10 w-10"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -869,11 +877,11 @@ export default function DriverRoute() {
             </div>
           </div>
           
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-3 border-t border-border flex flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setShowBottleReturnDialog(false)}
-              className="w-full sm:w-auto"
+              className="flex-1 py-1 h-10"
             >
               Cancelar
             </Button>
@@ -885,7 +893,7 @@ export default function DriverRoute() {
                   description: `Se han registrado ${returnedBottlesCount} envases devueltos.`,
                 });
               }}
-              className="w-full sm:w-auto"
+              className="flex-1 py-1 h-10"
               disabled={returnedBottlesCount <= 0}
             >
               Confirmar devolución

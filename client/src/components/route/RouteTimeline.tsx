@@ -175,21 +175,25 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                         </div>
                         
                         {/* Información adicional condensada */}
-                        <div className="flex items-center text-xs text-muted-foreground gap-2">
-                          <span className="flex items-center">
-                            <MapPin className="h-3 w-3 mr-0.5 inline-block" />
-                            <span className="truncate max-w-[200px]">{stop.address}</span>
+                        <div className="flex flex-wrap items-center text-xs text-muted-foreground gap-y-1">
+                          <span className="flex items-center max-w-full">
+                            <MapPin className="h-3 w-3 mr-0.5 flex-shrink-0" />
+                            <span className="truncate">{stop.address}</span>
                           </span>
                           
                           {!stop.isWarehouse && (
                             <>
-                              <span className="w-1 h-1 rounded-full bg-gray-300" />
-                              <span>{countTotalProducts(stop)} productos</span>
+                              <span className="w-1 h-1 rounded-full bg-gray-300 mx-1 hidden sm:inline-block" />
+                              <span className="flex items-center sm:inline-block">
+                                <span className="w-1 h-1 rounded-full bg-gray-300 mr-1 inline-block sm:hidden" />
+                                {countTotalProducts(stop)} productos
+                              </span>
                               
                               {typeof stop.totalValue !== 'undefined' && (
                                 <>
-                                  <span className="w-1 h-1 rounded-full bg-gray-300" />
-                                  <span className="font-medium">
+                                  <span className="w-1 h-1 rounded-full bg-gray-300 mx-1 hidden sm:inline-block" />
+                                  <span className="font-medium flex items-center sm:inline-block">
+                                    <span className="w-1 h-1 rounded-full bg-gray-300 mr-1 inline-block sm:hidden" />
                                     {formatCurrency(stop.totalValue)}
                                   </span>
                                 </>
@@ -220,50 +224,54 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                             Productos ({stop.products.length})
                           </h4>
                           <div className="bg-muted/40 rounded-md p-2 text-sm max-h-40 overflow-y-auto">
-                            <table className="w-full text-xs">
-                              <thead className="text-muted-foreground">
-                                <tr>
-                                  <th className="text-left font-medium py-1">Producto</th>
-                                  <th className="text-center font-medium py-1">Cant.</th>
-                                  <th className="text-right font-medium py-1">Subtotal</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {stop.products.map((product, i) => (
-                                  <tr key={i} className="border-b last:border-0 border-border/40">
-                                    <td className="py-1.5">
-                                      <div className="flex items-center">
-                                        {product.isReturnable && (
-                                          <Recycle className="h-3 w-3 text-green-500 mr-1" />
-                                        )}
-                                        {product.name}
-                                      </div>
-                                    </td>
-                                    <td className="py-1 text-center">{product.quantity}</td>
-                                    <td className="py-1 text-right">
-                                      {formatCurrency(product.price * product.quantity)}
-                                    </td>
+                            <div className="min-w-full overflow-x-auto">
+                              <table className="w-full text-xs">
+                                <thead className="text-muted-foreground">
+                                  <tr>
+                                    <th className="text-left font-medium py-1 sticky left-0 bg-muted/40">Producto</th>
+                                    <th className="text-center font-medium py-1 px-2 whitespace-nowrap">Cant.</th>
+                                    <th className="text-right font-medium py-1 whitespace-nowrap">Subtotal</th>
                                   </tr>
-                                ))}
-                              </tbody>
-                              <tfoot>
-                                <tr className="font-medium">
-                                  <td colSpan={2} className="pt-2 text-right">Total:</td>
-                                  <td className="pt-2 text-right">{formatCurrency(stop.totalValue)}</td>
-                                </tr>
-                              </tfoot>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {stop.products.map((product, i) => (
+                                    <tr key={i} className="border-b last:border-0 border-border/40">
+                                      <td className="py-1.5 sticky left-0 bg-muted/40">
+                                        <div className="flex items-center">
+                                          {product.isReturnable && (
+                                            <Recycle className="h-3 w-3 text-green-500 mr-1 flex-shrink-0" />
+                                          )}
+                                          <span className="truncate max-w-[120px] sm:max-w-none">
+                                            {product.name}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="py-1 text-center px-2 whitespace-nowrap">{product.quantity}</td>
+                                      <td className="py-1 text-right whitespace-nowrap">
+                                        {formatCurrency(product.price * product.quantity)}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                                <tfoot>
+                                  <tr className="font-medium border-t border-border">
+                                    <td colSpan={2} className="pt-2 text-right sticky left-0 bg-muted/40">Total:</td>
+                                    <td className="pt-2 text-right whitespace-nowrap">{formatCurrency(stop.totalValue)}</td>
+                                  </tr>
+                                </tfoot>
+                              </table>
+                            </div>
                           </div>
                         </div>
                         
                         {/* Acciones */}
-                        <div className="flex flex-wrap gap-2 justify-end mt-3">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 sm:flex sm:flex-wrap gap-2 justify-end mt-3">
                           {isPending && (
                             <>
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                className="text-xs"
+                                className="text-xs h-8 w-full xs:w-auto"
                                 onClick={() => onEditOrder(stop)}
                               >
                                 <Edit className="h-3 w-3 mr-1" />
@@ -273,7 +281,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                className="text-xs"
+                                className="text-xs h-8 w-full xs:w-auto"
                                 onClick={() => onViewOrderDetails(stop)}
                               >
                                 <Eye className="h-3 w-3 mr-1" />
@@ -283,7 +291,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                               <Button 
                                 variant="default" 
                                 size="sm"
-                                className="text-xs"
+                                className="text-xs h-8 w-full col-span-1 xs:col-span-2 sm:w-auto"
                                 onClick={() => onDeliverOrder(stop)}
                               >
                                 <CircleDollarSign className="h-3 w-3 mr-1" />
@@ -296,7 +304,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                             <Button 
                               variant="outline" 
                               size="sm"
-                              className="text-xs text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700"
+                              className="text-xs h-8 w-full xs:w-auto text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700"
                               onClick={() => onRegisterBottleReturn(stop.id)}
                             >
                               <Recycle className="h-3 w-3 mr-1" />
@@ -308,7 +316,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                             <Button 
                               variant="outline" 
                               size="sm"
-                              className="text-xs"
+                              className="text-xs h-8 w-full xs:w-auto"
                               onClick={() => onViewOrderDetails(stop)}
                             >
                               <Receipt className="h-3 w-3 mr-1" />
