@@ -11,6 +11,8 @@ import { jsPDF } from "jspdf";
 import 'jspdf-autotable';
 // @ts-ignore
 import html2canvas from "html2canvas";
+// Importamos nuestro servicio de impresión
+import { printOrderTicket, generateOrderPdf } from "./PrinterService";
 
 // Iconos
 import { 
@@ -169,10 +171,10 @@ export default function OrdersList() {
     }
   };
   
-  // Función para generar e imprimir el ticket
+  // Función para generar e imprimir el ticket usando el nuevo servicio
   const handlePrint = async (orderId: number) => {
-    // Primero obtener los detalles del pedido
     try {
+      // Primero obtener los detalles del pedido
       const response = await apiRequest("GET", `/api/orders/${orderId}`);
       if (!response.ok) {
         throw new Error('Error al cargar el pedido');
@@ -196,397 +198,59 @@ export default function OrdersList() {
         return;
       }
       
+      // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
       
-      // Mostramos un toast de carga
-      toast({
-        title: "Preparando impresión",
-        description: "Por favor espere...",
-      });
-      
-      // Crear el contenido del ticket
-      const printContent = document.createElement('div');
-      printContent.className = 'print-content';
-      printContent.style.width = '74mm'; // Ancho interno para impresora térmica (80mm - márgenes)
-      printContent.style.boxSizing = 'border-box';
-      printContent.style.padding = '0';
-      printContent.style.margin = '0';
-      printContent.style.fontFamily = 'Arial, sans-serif';
-      printContent.style.fontSize = '10px';
-      
-      // Información de la empresa (encabezado)
-      const header = document.createElement('div');
-      header.style.textAlign = 'center';
-      header.style.marginBottom = '10px';
-      
-      // Utilizar directamente los datos disponibles
-      const companyMunicipality = companySettings.municipalityName || "Cotuí";
-      const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
-      
-      header.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companySettings.name}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${companySettings.rnc}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.street} ${companySettings.streetNumber}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">${companyMunicipality}, ${companyProvince}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${companySettings.contactPhone}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Email: ${companySettings.email}</div>
-      `;
-      printContent.appendChild(header);
-      
-      // Separador
-      const separator = document.createElement('div');
-      separator.style.borderBottom = '1px solid #000';
-      separator.style.margin = '10px 0';
-      printContent.appendChild(separator);
-      
-      // Título del pedido
-      const title = document.createElement('div');
-      title.style.textAlign = 'center';
-      title.style.fontSize = '14px';
-      title.style.fontWeight = 'bold';
-      title.style.margin = '10px 0';
-      title.textContent = `PEDIDO #${order.id}`;
-      printContent.appendChild(title);
-      
-      // Información del pedido
-      const orderInfo = document.createElement('div');
-      orderInfo.style.marginBottom = '10px';
-      orderInfo.style.fontSize = '11px';
-      orderInfo.innerHTML = `
-        <div style="margin-bottom: 5px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
-        <div style="margin-bottom: 5px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-        <div style="margin-bottom: 5px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
-        <div style="margin-bottom: 5px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
-        <div style="margin-bottom: 5px;"><strong>Ubicación:</strong> ${order.municipalityName || ""}, ${order.provinceName || ""}</div>
-      `;
-      printContent.appendChild(orderInfo);
-      
-      // Otro separador
-      const separator2 = document.createElement('div');
-      separator2.style.borderBottom = '1px solid #000';
-      separator2.style.margin = '10px 0';
-      printContent.appendChild(separator2);
-      
-      // Tabla de productos
-      const productTable = document.createElement('table');
-      productTable.style.width = '100%';
-      productTable.style.borderCollapse = 'collapse';
-      productTable.style.marginBottom = '10px';
-      productTable.style.fontSize = '11px';
-      
-      // Cabecera de la tabla
-      productTable.innerHTML = `
-        <thead>
-          <tr style="border-bottom: 1px solid #000; text-align: left;">
-            <th style="padding: 5px; text-align: left;">Producto</th>
-            <th style="padding: 5px; text-align: right;">Cant.</th>
-            <th style="padding: 5px; text-align: right;">Precio</th>
-            <th style="padding: 5px; text-align: right;">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${orderItems.map((item: any) => {
-            const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
-            const total = parseFloat(item.price) * item.quantity;
-            return `
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 5px; text-align: left;">${productName}</td>
-                <td style="padding: 5px; text-align: right;">${item.quantity}</td>
-                <td style="padding: 5px; text-align: right;">${parseFloat(item.price).toFixed(2)}</td>
-                <td style="padding: 5px; text-align: right;">${total.toFixed(2)}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      `;
-      printContent.appendChild(productTable);
-      
-      // Calcular subtotal e ITBIS
-      const subtotal = parseFloat(order.subtotal || order.total);
-      const itbis = parseFloat(order.tax || '0');
-      const total = parseFloat(order.total);
-      
-      // Resumen de totales
-      const totalsSection = document.createElement('div');
-      totalsSection.style.marginTop = '10px';
-      totalsSection.style.fontSize = '11px';
-      totalsSection.style.textAlign = 'right';
-      totalsSection.innerHTML = `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-          <span>Subtotal:</span>
-          <span>RD$ ${subtotal.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-          <span>ITBIS:</span>
-          <span>RD$ ${itbis.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
-          <span>Total:</span>
-          <span>RD$ ${total.toFixed(2)}</span>
-        </div>
-      `;
-      printContent.appendChild(totalsSection);
-      
-      // Notas del pedido
-      const notesSection = document.createElement('div');
-      notesSection.style.marginTop = '15px';
-      notesSection.style.fontSize = '11px';
-      notesSection.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 5px;">Nota del Pedido:</div>
-        <div style="font-style: italic;">${order.notes || ""}</div>
-      `;
-      printContent.appendChild(notesSection);
-      
-      // Mensaje de agradecimiento
-      const thankYouMsg = document.createElement('div');
-      thankYouMsg.style.textAlign = 'center';
-      thankYouMsg.style.marginTop = '20px';
-      thankYouMsg.style.fontSize = '11px';
-      thankYouMsg.textContent = '¡Gracias por su compra!';
-      printContent.appendChild(thankYouMsg);
-      
-      // Detectar si es un dispositivo móvil
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      
-      if (isMobile) {
-        // Enfoque para dispositivos móviles: crear un iframe
-        const printFrame = document.createElement('iframe');
-        printFrame.style.position = 'fixed';
-        printFrame.style.top = '0';
-        printFrame.style.left = '0';
-        printFrame.style.width = '100%';
-        printFrame.style.height = '100%';
-        printFrame.style.backgroundColor = '#ffffff';
-        printFrame.style.zIndex = '9999';
-        document.body.appendChild(printFrame);
-        
-        // Notificar al usuario
-        toast({
-          title: "Preparando vista para impresión",
-          description: "Un momento, por favor...",
-        });
-        
-        // Configurar el documento para móviles
-        const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
-        if (!frameDoc) {
-          throw new Error('No se pudo crear el documento para impresión');
-        }
-        
-        // Escribir el contenido HTML en el iframe
-        frameDoc.open();
-        frameDoc.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Pedido #${order.id}</title>
-            <style>
-              @page {
-                size: 80mm auto;
-                margin: 0mm;
-                padding: 0mm;
-              }
-              body {
-                font-family: Arial, sans-serif;
-                width: 80mm;
-                max-width: 100%;
-                margin: 0 auto;
-                padding: 8px;
-                background-color: white;
-                font-size: 10px;
-                line-height: 1.2;
-              }
-              .ticket {
-                width: 100%;
-              }
-              .center {
-                text-align: center;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-              }
-              th, td {
-                padding: 2px;
-                font-size: 9px;
-              }
-              .print-btn {
-                position: fixed;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                padding: 10px 20px;
-                background-color: #0066cc;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 16px;
-                cursor: pointer;
-              }
-              .close-btn {
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                padding: 5px 10px;
-                background-color: #cc0000;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-size: 16px;
-                cursor: pointer;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="ticket">
-              ${printContent.innerHTML}
-            </div>
-            <button id="printButton" class="print-btn">Imprimir</button>
-            <button id="closeButton" class="close-btn">Cerrar</button>
-            <script>
-              document.getElementById('printButton').addEventListener('click', function() {
-                this.style.display = 'none';
-                document.getElementById('closeButton').style.display = 'none';
-                window.print();
-                setTimeout(function() {
-                  document.getElementById('printButton').style.display = 'block';
-                  document.getElementById('closeButton').style.display = 'block';
-                }, 500);
-              });
-              
-              document.getElementById('closeButton').addEventListener('click', function() {
-                window.parent.document.body.removeChild(window.frameElement);
-              });
-            </script>
-          </body>
-          </html>
-        `);
-        frameDoc.close();
-      } else {
-        // Enfoque para escritorio: método original mejorado
-        // Crear un estilo más simple pero efectivo
-        const style = document.createElement('style');
-        style.innerHTML = `
-          @media print {
-            @page {
-              size: 80mm auto;
-              margin: 0mm !important;
-              padding: 0mm !important;
-            }
-            
-            html, body {
-              width: 80mm !important;
-              font-family: Arial, sans-serif !important;
-              font-size: 10px !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              background: white !important;
-            }
-            
-            /* Ocultar todo excepto el ticket */
-            body * {
-              display: none !important;
-            }
-            
-            /* Mostrar solo el contenedor de ticket */
-            #print-container, #print-container * {
-              display: block !important;
-              visibility: visible !important;
-            }
-            
-            #print-container {
-              position: absolute !important;
-              left: 0 !important;
-              top: 0 !important;
-              width: 80mm !important;
-              padding: 4mm !important;
-              margin: 0 !important;
-            }
-            
-            table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-            }
-            
-            th, td {
-              padding: 1mm !important;
-              font-size: 9px !important;
-            }
-
-            /* Ajustes específicos para impresora térmica */
-            #print-container {
-              width: 80mm !important;
-              max-width: 80mm !important;
-              font-size: 10px !important;
-              line-height: 1.2 !important;
-            }
-
-            #print-container * {
-              font-family: 'Arial', sans-serif !important;
-              max-width: 80mm !important;
-            }
-
-            #print-container table {
-              width: 80mm !important;
-              margin: 0 auto !important;
-            }
-          }
-        `;
-        
-        // Crear un contenedor para imprimir
-        const printContainer = document.createElement('div');
-        printContainer.id = 'print-container';
-        printContainer.style.width = '80mm';
-        printContainer.style.margin = '0 auto';
-        printContainer.appendChild(printContent);
-        
-        // Añadir a la página
-        document.head.appendChild(style);
-        document.body.appendChild(printContainer);
-        
-        // Notificar al usuario
-        toast({
-          title: "Preparando impresión",
-          description: "Se abrirá el diálogo de impresión en unos segundos",
-        });
-        
-        // Esperar un momento para asegurar que todo esté cargado
-        setTimeout(() => {
-          try {
-            // Imprimir
-            window.print();
-            
-            // Notificar al usuario
-            toast({
-              title: "Enviando a impresora",
-              description: "El documento se está enviando a la impresora",
-            });
-            
-            // Limpiar después de imprimir
-            setTimeout(() => {
-              document.body.removeChild(printContainer);
-              document.head.removeChild(style);
-            }, 2000);
-          } catch (printError) {
-            console.error('Error al imprimir:', printError);
-            toast({
-              variant: "destructive",
-              title: "Error de impresión",
-              description: "No se pudo enviar a la impresora",
-            });
-            // Limpiar en caso de error
-            document.body.removeChild(printContainer);
-            document.head.removeChild(style);
-          }
-        }, 1000);
-      }
+      // Llamar al servicio de impresión
+      printOrderTicket(order, orderItems, customer, companySettings, products, toast);
     } catch (error: any) {
       console.error('Error en handlePrint:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: error.message || "Error al generar el ticket",
+      });
+    }
+  };
+  
+  // Función para generar PDF del pedido
+  const handleGeneratePdf = async (orderId: number) => {
+    try {
+      // Primero obtener los detalles del pedido
+      const response = await apiRequest("GET", `/api/orders/${orderId}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar el pedido');
+      }
+      const order = await response.json();
+      
+      // Obtener los items del pedido
+      const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
+      if (!itemsResponse.ok) {
+        throw new Error('Error al cargar los items del pedido');
+      }
+      const orderItems = await itemsResponse.json();
+      
+      // Verificar que tengamos la configuración de la empresa
+      if (!companySettings) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cargar la información de la empresa",
+        });
+        return;
+      }
+      
+      // Buscar el cliente asociado
+      const customer = customers?.find((c: any) => c.id === order.customerId);
+      
+      // Llamar al servicio para generar PDF
+      generateOrderPdf(order, orderItems, customer, companySettings, products, toast, jsPDF);
+    } catch (error: any) {
+      console.error('Error en handleGeneratePdf:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al generar el PDF",
       });
     }
   };
@@ -986,7 +650,7 @@ export default function OrdersList() {
                             variant="outline"
                             size="sm"
                             className="h-8 text-xs"
-                            onClick={() => handleDownload(order.id)}
+                            onClick={() => handleGeneratePdf(order.id)}
                           >
                             <Download className="h-3.5 w-3.5 mr-1" />
                             PDF
@@ -1068,7 +732,7 @@ export default function OrdersList() {
                               variant="outline"
                               size="sm"
                               className="h-8"
-                              onClick={() => handleDownload(order.id)}
+                              onClick={() => handleGeneratePdf(order.id)}
                             >
                               <Download className="h-3.5 w-3.5 mr-1" />
                               PDF
