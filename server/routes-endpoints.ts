@@ -209,6 +209,31 @@ export function registerRoutesEndpoints(app: Express) {
           // En un sistema real, haríamos una búsqueda basada en cercanía
         }
         
+        // Primero, buscar pedidos pendientes y entregados que estén asignados a esta ruta
+        const completedOrders = await db
+          .select({
+            id: orders.id,
+            routeId: orders.routeId, 
+            customerId: orders.customerId,
+            status: orders.status,
+            total: orders.total,
+            customerName: customers.businessname,
+            customerAddress: customers.street,
+            date: orders.date,
+            paymentMethod: orders.paymentMethod,
+            coordinates: customers.coordinates,
+            streetnumber: customers.streetnumber
+          })
+          .from(orders)
+          .leftJoin(customers, eq(orders.customerId, customers.id))
+          .where(and(
+            eq(orders.routeId, routeId),
+            eq(orders.status, "delivered")
+          ));
+          
+        console.log(`Se encontraron ${completedOrders.length} órdenes completadas para esta ruta`);
+        
+        // Luego, buscar pedidos pendientes sin asignar
         routeOrders = await db
           .select({
             id: orders.id,
@@ -229,6 +254,9 @@ export function registerRoutesEndpoints(app: Express) {
             isNull(orders.routeId),
             eq(orders.status, "pending")
           ));
+          
+        // Añadir órdenes completadas a las órdenes a retornar
+        routeOrders = [...completedOrders, ...routeOrders];
         
         console.log(`Se encontraron ${routeOrders.length} órdenes pendientes sin asignar`);
         

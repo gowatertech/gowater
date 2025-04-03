@@ -388,16 +388,31 @@ export default function DriverRoute() {
       );
       const completedStopIds = completedStops.map(stop => stop.id);
       
+      // Cargar adicionalmente las paradas completadas guardadas en localStorage
+      let savedCompletedStopIds: number[] = [];
+      try {
+        const savedStopsJson = localStorage.getItem(`routeCompletedStops_${routeId}`);
+        if (savedStopsJson) {
+          savedCompletedStopIds = JSON.parse(savedStopsJson);
+          console.log("Paradas completadas cargadas desde localStorage:", savedCompletedStopIds);
+        }
+      } catch (error) {
+        console.error("Error al cargar paradas completadas desde localStorage:", error);
+      }
+      
+      // Combinar las paradas completadas actuales con las guardadas
+      const allCompletedStopIds = Array.from(new Set([...completedStopIds, ...savedCompletedStopIds]));
+      
       console.log("Paradas completadas actuales:", completedStops.length);
-      console.log("IDs de paradas completadas:", completedStopIds);
+      console.log("IDs de paradas completadas (combinadas):", allCompletedStopIds);
       
       // Agregar las paradas de los clientes
       console.log("Procesando ordersData:", ordersData);
       ordersData.forEach((order: any, index: number) => {
         console.log(`Procesando orden ${index + 1}/${ordersData.length}:`, order.id);
         
-        // Verificar si este pedido ya existe como completado
-        const isAlreadyCompleted = completedStopIds.includes(order.id);
+        // Verificar si este pedido ya existe como completado (en memoria o localStorage)
+        const isAlreadyCompleted = allCompletedStopIds.includes(order.id);
         
         // Calcular el valor total del pedido a partir de los productos
         const totalValue = order.products.reduce(
@@ -766,11 +781,12 @@ export default function DriverRoute() {
         variant: "default"
       });
       
-      // Borrar los datos guardados en localStorage para esta ruta
+      // Borrar los datos de estado de ruta en localStorage pero mantener las paradas completadas
       localStorage.removeItem('activeRouteId');
       localStorage.removeItem(`routeStatus_${activeRouteId}`);
       localStorage.removeItem('startTime');
       localStorage.removeItem('currentStopIndex');
+      // No eliminamos `routeCompletedStops_${activeRouteId}` para mantener historial de pedidos completados
       
       // Redireccionar al listado de rutas después de 3 segundos
       setTimeout(() => {
@@ -1013,11 +1029,17 @@ export default function DriverRoute() {
       setShowPaymentDialog(false);
       setExpandedStopId(null);
       
-      // Luego actualizar el estado
+      // Luego actualizar el estado local con la parada marcada como completada
       setRouteStops(updatedStops);
       
-      // Ya no es necesario recargar los datos completos desde el servidor
-      // porque hemos guardado el estado actualizado con las paradas completadas
+      // Guardamos en localStorage las paradas completadas para mantener este estado
+      // entre recargas o navegaciones
+      const completedStopsData = updatedStops
+        .filter(stop => stop.status === "completed" && !stop.isWarehouse)
+        .map(stop => stop.id);
+      localStorage.setItem(`routeCompletedStops_${activeRouteId}`, JSON.stringify(completedStopsData));
+      
+      console.log("Paradas completadas guardadas:", completedStopsData);
       
       // Mostrar mensaje de éxito
       if (responseData.invoiceCreated && responseData.invoiceId) {
