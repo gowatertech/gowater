@@ -218,26 +218,6 @@ export const printOrderTicket = (
       
       iframe.contentDocument?.open();
       iframe.contentDocument?.write(`
-        <html>
-          <head>
-            <title>Pedido #${order.id}</title>
-            <style>
-              @page { size: 80mm auto; margin: 0; }
-              body { margin: 0; padding: 8px; }
-            </style>
-          </head>
-          <body>${printContent.outerHTML}</body>
-        </html>
-      `);
-      iframe.contentDocument?.close();
-
-      setTimeout(() => {
-        iframe.contentWindow?.print();
-        document.body.removeChild(iframe);
-      }, 500);
-    }TML en el iframe
-    iframe.contentDocument?.open();
-    iframe.contentDocument?.write(`
       <html>
         <head>
           <title>Pedido #${order.id}</title>
@@ -252,35 +232,36 @@ export const printOrderTicket = (
           ${printContent.outerHTML}
         </body>
       </html>
-    `);
-    iframe.contentDocument?.close();
-    
-    // Imprimir después de que el iframe cargue
-    iframe.onload = () => {
-      try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
-        
-        // Notificar al usuario
-        toast({
-          title: "Imprimiendo ticket",
-          description: "El documento se ha enviado a la impresora",
-        });
-        
-        // Limpiar después de imprimir
-        setTimeout(() => {
+      `);
+      iframe.contentDocument?.close();
+      
+      // Imprimir después de que el iframe cargue
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          
+          // Notificar al usuario
+          toast({
+            title: "Imprimiendo ticket",
+            description: "El documento se ha enviado a la impresora",
+          });
+          
+          // Limpiar después de imprimir
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 1000);
+        } catch (printError) {
+          console.error('Error al imprimir:', printError);
+          toast({
+            variant: "destructive",
+            title: "Error de impresión",
+            description: "No se pudo enviar a la impresora",
+          });
           document.body.removeChild(iframe);
-        }, 1000);
-      } catch (printError) {
-        console.error('Error al imprimir:', printError);
-        toast({
-          variant: "destructive",
-          title: "Error de impresión",
-          description: "No se pudo enviar a la impresora",
-        });
-        document.body.removeChild(iframe);
-      }
-    };
+        }
+      };
+    }
     
   } catch (error: any) {
     console.error('Error en printOrderTicket:', error);
