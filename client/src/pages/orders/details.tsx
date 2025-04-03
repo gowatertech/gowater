@@ -5,6 +5,8 @@ import { useLocation, useRoute } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 // Iconos
 import { 
@@ -13,7 +15,9 @@ import {
   CheckCircle, 
   Clock, 
   CircleX, 
-  AlertTriangle
+  AlertTriangle,
+  Printer,
+  FileDown
 } from "lucide-react";
 
 // Componentes UI
