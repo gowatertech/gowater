@@ -157,6 +157,401 @@ export default function OrderDetails() {
     });
   };
 
+  // Funciones para imprimir y generar PDF
+  const handlePrint = () => {
+    if (!order || !companySettings) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo cargar la información necesaria para imprimir",
+      });
+      return;
+    }
+
+    // Mostramos un toast de carga
+    toast({
+      title: "Preparando impresión",
+      description: "Por favor espere...",
+    });
+
+    setTimeout(() => {
+      const printContent = document.createElement('div');
+      printContent.className = 'print-content';
+      printContent.style.width = '80mm'; // Ancho para impresora térmica
+      printContent.style.padding = '10px';
+      printContent.style.fontFamily = 'Arial, sans-serif';
+      
+      // Encabezado de la empresa con información completa
+      const header = document.createElement('div');
+      header.style.textAlign = 'center';
+      header.style.marginBottom = '10px';
+      header.innerHTML = `
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companySettings.name}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.street} ${companySettings.streetNumber}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.municipalityName || "Cotuí"}, ${companySettings.provinceName || "Sánchez Ramírez"}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${companySettings.contactPhone}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">Email: ${companySettings.email}</div>
+        <div style="font-size: 11px; margin-bottom: 5px;">RNC: ${companySettings.rnc}</div>
+      `;
+      printContent.appendChild(header);
+
+      // Separador
+      const separator = document.createElement('div');
+      separator.style.borderBottom = '1px dashed #000';
+      separator.style.margin = '10px 0';
+      printContent.appendChild(separator);
+      
+      // Título de pedido
+      const title = document.createElement('div');
+      title.style.textAlign = 'center';
+      title.style.fontSize = '14px';
+      title.style.fontWeight = 'bold';
+      title.style.margin = '10px 0';
+      title.textContent = `PEDIDO #${order.id}`;
+      printContent.appendChild(title);
+      
+      // Información del pedido
+      const orderInfo = document.createElement('div');
+      orderInfo.style.marginBottom = '10px';
+      orderInfo.style.fontSize = '11px';
+      
+      orderInfo.innerHTML = `
+        <div style="margin-bottom: 5px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
+        <div style="margin-bottom: 5px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
+        <div style="margin-bottom: 5px;"><strong>Teléfono:</strong> ${order.customerPhone || "No disponible"}</div>
+        <div style="margin-bottom: 5px;"><strong>Dirección:</strong> ${order.customerAddress || "No especificada"}</div>
+        <div style="margin-bottom: 5px;"><strong>Municipio:</strong> ${order.municipalityName || "No especificado"}</div>
+        <div style="margin-bottom: 5px;"><strong>Provincia:</strong> ${order.provinceName || "No especificada"}</div>
+        <div style="margin-bottom: 5px;"><strong>Método de pago:</strong> ${
+          order.paymentMethod === 'cash' ? 'Efectivo' : order.paymentMethod
+        }</div>
+        <div style="margin-bottom: 5px;"><strong>Estado:</strong> ${
+          order.status === 'delivered' ? 'Entregado' : 
+          order.status === 'pending' ? 'Pendiente' : 
+          order.status === 'cancelled' ? 'Cancelado' : 'Desconocido'
+        }</div>
+      `;
+      printContent.appendChild(orderInfo);
+      
+      // Otro separador
+      const separator2 = document.createElement('div');
+      separator2.style.borderBottom = '1px dashed #000';
+      separator2.style.margin = '10px 0';
+      printContent.appendChild(separator2);
+      
+      // Tabla de productos
+      const productTable = document.createElement('table');
+      productTable.style.width = '100%';
+      productTable.style.borderCollapse = 'collapse';
+      productTable.style.marginBottom = '10px';
+      productTable.style.fontSize = '11px';
+      
+      // Cabecera de la tabla
+      productTable.innerHTML = `
+        <thead>
+          <tr style="border-bottom: 1px solid #ddd; text-align: left;">
+            <th style="padding: 5px; text-align: left;">Producto</th>
+            <th style="padding: 5px; text-align: right;">Cant.</th>
+            <th style="padding: 5px; text-align: right;">Precio</th>
+            <th style="padding: 5px; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orderItems.map((item: any) => {
+            const product = products.find((p: any) => p.id === item.productId);
+            const itemTotal = parseFloat(item.price) * item.quantity;
+            return `
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 5px; text-align: left;">${product?.name || "Producto"}</td>
+                <td style="padding: 5px; text-align: right;">${item.quantity}</td>
+                <td style="padding: 5px; text-align: right;">RD$ ${parseFloat(item.price).toFixed(2)}</td>
+                <td style="padding: 5px; text-align: right;">RD$ ${itemTotal.toFixed(2)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      `;
+      printContent.appendChild(productTable);
+      
+      // Cálculo del total
+      const total = parseFloat(order.total);
+      
+      // Totales
+      const totalsSection = document.createElement('div');
+      totalsSection.style.marginTop = '10px';
+      totalsSection.style.fontSize = '11px';
+      totalsSection.style.textAlign = 'right';
+      totalsSection.innerHTML = `
+        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
+          <span>Total:</span>
+          <span>RD$ ${total.toFixed(2)}</span>
+        </div>
+      `;
+      printContent.appendChild(totalsSection);
+      
+      // Notas del pedido
+      if (order.notes) {
+        const notesSection = document.createElement('div');
+        notesSection.style.marginTop = '15px';
+        notesSection.style.fontSize = '11px';
+        notesSection.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 5px;">Notas:</div>
+          <div style="font-style: italic;">${order.notes}</div>
+        `;
+        printContent.appendChild(notesSection);
+      }
+      
+      // Mensaje de agradecimiento
+      const thankYouMsg = document.createElement('div');
+      thankYouMsg.style.textAlign = 'center';
+      thankYouMsg.style.marginTop = '20px';
+      thankYouMsg.style.fontSize = '11px';
+      thankYouMsg.textContent = 'Gracias por su compra';
+      printContent.appendChild(thankYouMsg);
+      
+      // Crear un iframe para la impresión
+      const printFrame = document.createElement('iframe');
+      printFrame.style.display = 'none';
+      document.body.appendChild(printFrame);
+      
+      printFrame.contentDocument?.open();
+      printFrame.contentDocument?.write(`
+        <html>
+          <head>
+            <title>Pedido #${order.id}</title>
+            <style>
+              @media print {
+                body { margin: 0; padding: 0; }
+                @page { size: 80mm 297mm; margin: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent.outerHTML}
+          </body>
+        </html>
+      `);
+      printFrame.contentDocument?.close();
+      
+      // Imprimir después de que el iframe cargue
+      printFrame.onload = () => {
+        printFrame.contentWindow?.focus();
+        printFrame.contentWindow?.print();
+        
+        // Eliminar el iframe después de imprimir
+        setTimeout(() => {
+          document.body.removeChild(printFrame);
+        }, 1000);
+      };
+    }, 500);
+  };
+
+  const handleDownload = () => {
+    if (!order || !companySettings) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo cargar la información necesaria para generar el PDF",
+      });
+      return;
+    }
+
+    // Mostramos un toast de carga
+    toast({
+      title: "Generando PDF",
+      description: "Por favor espere...",
+    });
+
+    setTimeout(() => {
+      // Crear un div temporal para el PDF
+      const pdfContent = document.createElement('div');
+      pdfContent.id = 'pdf-content';
+      pdfContent.style.width = '80mm'; // Ancho para impresora térmica
+      pdfContent.style.padding = '10px';
+      pdfContent.style.fontFamily = 'Arial, sans-serif';
+      pdfContent.style.position = 'absolute';
+      pdfContent.style.left = '-9999px';
+      document.body.appendChild(pdfContent);
+      
+      // Encabezado de la empresa
+      const header = document.createElement('div');
+      header.style.textAlign = 'center';
+      header.style.marginBottom = '20px';
+      header.innerHTML = `
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companySettings.name}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.street} ${companySettings.streetNumber}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.municipalityName || "Cotuí"}, ${companySettings.provinceName || "Sánchez Ramírez"}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${companySettings.contactPhone}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">Email: ${companySettings.email}</div>
+        <div style="font-size: 11px; margin-bottom: 5px;">RNC: ${companySettings.rnc}</div>
+      `;
+      pdfContent.appendChild(header);
+      
+      // Separador
+      const separator = document.createElement('div');
+      separator.style.borderBottom = '1px solid #000';
+      separator.style.margin = '10px 0 20px';
+      pdfContent.appendChild(separator);
+      
+      // Título de pedido
+      const title = document.createElement('div');
+      title.style.textAlign = 'center';
+      title.style.fontSize = '18px';
+      title.style.fontWeight = 'bold';
+      title.style.margin = '20px 0';
+      title.textContent = `PEDIDO #${order.id}`;
+      pdfContent.appendChild(title);
+      
+      // Información del pedido
+      const orderInfo = document.createElement('div');
+      orderInfo.style.marginBottom = '20px';
+      orderInfo.style.fontSize = '14px';
+      
+      orderInfo.innerHTML = `
+        <div style="margin-bottom: 8px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
+        <div style="margin-bottom: 8px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
+        <div style="margin-bottom: 8px;"><strong>Teléfono:</strong> ${order.customerPhone || "No disponible"}</div>
+        <div style="margin-bottom: 8px;"><strong>Dirección:</strong> ${order.customerAddress || "No especificada"}</div>
+        <div style="margin-bottom: 8px;"><strong>Municipio:</strong> ${order.municipalityName || "No especificado"}</div>
+        <div style="margin-bottom: 8px;"><strong>Provincia:</strong> ${order.provinceName || "No especificada"}</div>
+        <div style="margin-bottom: 8px;"><strong>Método de pago:</strong> ${
+          order.paymentMethod === 'cash' ? 'Efectivo' : order.paymentMethod
+        }</div>
+        <div style="margin-bottom: 8px;"><strong>Estado:</strong> ${
+          order.status === 'delivered' ? 'Entregado' : 
+          order.status === 'pending' ? 'Pendiente' : 
+          order.status === 'cancelled' ? 'Cancelado' : 'Desconocido'
+        }</div>
+      `;
+      pdfContent.appendChild(orderInfo);
+      
+      // Otro separador
+      const separator2 = document.createElement('div');
+      separator2.style.borderBottom = '1px solid #000';
+      separator2.style.margin = '10px 0 20px';
+      pdfContent.appendChild(separator2);
+      
+      // Tabla de productos
+      const productTable = document.createElement('table');
+      productTable.style.width = '100%';
+      productTable.style.borderCollapse = 'collapse';
+      productTable.style.marginBottom = '20px';
+      productTable.style.fontSize = '14px';
+      
+      // Cabecera de la tabla
+      productTable.innerHTML = `
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 8px; text-align: left;">Producto</th>
+            <th style="padding: 8px; text-align: right;">Cant.</th>
+            <th style="padding: 8px; text-align: right;">Precio</th>
+            <th style="padding: 8px; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orderItems.map((item: any) => {
+            const product = products.find((p: any) => p.id === item.productId);
+            const itemTotal = parseFloat(item.price) * item.quantity;
+            return `
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 8px; text-align: left;">${product?.name || "Producto"}</td>
+                <td style="padding: 8px; text-align: right;">${item.quantity}</td>
+                <td style="padding: 8px; text-align: right;">RD$ ${parseFloat(item.price).toFixed(2)}</td>
+                <td style="padding: 8px; text-align: right;">RD$ ${itemTotal.toFixed(2)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      `;
+      pdfContent.appendChild(productTable);
+      
+      // Cálculo del total
+      const total = parseFloat(order.total);
+      
+      // Totales
+      const totalsSection = document.createElement('div');
+      totalsSection.style.marginTop = '20px';
+      totalsSection.style.fontSize = '14px';
+      totalsSection.style.textAlign = 'right';
+      totalsSection.innerHTML = `
+        <div style="display: flex; justify-content: flex-end; font-weight: bold; margin-bottom: 8px;">
+          <span style="width: 150px; text-align: left;">Total:</span>
+          <span style="width: 100px; text-align: right;">RD$ ${total.toFixed(2)}</span>
+        </div>
+      `;
+      pdfContent.appendChild(totalsSection);
+      
+      // Notas del pedido
+      if (order.notes) {
+        const notesSection = document.createElement('div');
+        notesSection.style.marginTop = '30px';
+        notesSection.style.fontSize = '14px';
+        notesSection.innerHTML = `
+          <div style="font-weight: bold; margin-bottom: 8px;">Notas:</div>
+          <div style="font-style: italic;">${order.notes}</div>
+        `;
+        pdfContent.appendChild(notesSection);
+      }
+      
+      // Mensaje de agradecimiento
+      const thankYouMsg = document.createElement('div');
+      thankYouMsg.style.textAlign = 'center';
+      thankYouMsg.style.marginTop = '40px';
+      thankYouMsg.style.fontSize = '14px';
+      thankYouMsg.textContent = 'Gracias por su compra';
+      pdfContent.appendChild(thankYouMsg);
+      
+      // Generar PDF usando html2canvas y jsPDF
+      html2canvas(pdfContent).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: [80, 200] // 80mm de ancho (3 pulgadas) x 200mm de alto
+        });
+        
+        const imgWidth = 80; // Ancho de impresora térmica en mm
+        const pageHeight = 200; // Altura aproximada en mm
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        let heightLeft = imgHeight;
+        let position = 0;
+        
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        // Si el contenido es más largo que una página, agregar más páginas
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+        
+        pdf.save(`Pedido-${order.id}.pdf`);
+        
+        // Eliminar el div temporal
+        document.body.removeChild(pdfContent);
+        
+        toast({
+          title: "¡Listo!",
+          description: "PDF generado exitosamente",
+        });
+      }).catch(error => {
+        console.error("Error al generar PDF:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo generar el PDF. Inténtelo de nuevo.",
+        });
+        
+        // Asegurarse de eliminar el div temporal en caso de error
+        if (document.body.contains(pdfContent)) {
+          document.body.removeChild(pdfContent);
+        }
+      });
+    }, 500);
+  };
+
   // Función para renderizar el estado con color apropiado
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -213,12 +608,30 @@ export default function OrderDetails() {
           <FileText className="h-5 w-5 text-primary" />
           Pedido #{order.id}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handlePrint}
+            className={isMobile ? "flex-1" : ""}
+          >
+            <Printer className="h-4 w-4 mr-1" />
+            Imprimir
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={handleDownload}
+            className={isMobile ? "flex-1" : ""}
+          >
+            <FileDown className="h-4 w-4 mr-1" />
+            PDF
+          </Button>
           <Button 
             variant="outline"
             size="sm"
             onClick={() => setLocation("/orders/list")}
-            className="w-full sm:w-auto"
+            className={isMobile ? "flex-1" : ""}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Volver
