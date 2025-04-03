@@ -79,12 +79,12 @@ export default function OrdersList() {
   const { data: customers = [] } = useQuery<any[]>({
     queryKey: ["/api/customers"],
   });
-  
+
   // Obtener productos para mostrar nombres
   const { data: products = [] } = useQuery<any[]>({
     queryKey: ["/api/products"],
   });
-  
+
   // Obtener información de la empresa para los tickets
   const { data: companySettings } = useQuery<any>({
     queryKey: ["/api/settings"],
@@ -106,10 +106,10 @@ export default function OrdersList() {
         customer?.businessname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.id.toString().includes(searchTerm) ||
         order.total.toString().includes(searchTerm);
-      
+
       // Filtrar por estado
       const statusMatch = statusFilter === "all" || order.status === statusFilter;
-      
+
       return searchMatch && statusMatch;
     })
     // Ordenar por ID de mayor a menor (más recientes primero)
@@ -170,7 +170,7 @@ export default function OrdersList() {
         return "border-l-gray-500";
     }
   };
-  
+
   // Función para generar e imprimir el ticket usando el nuevo servicio
   const handlePrint = async (orderId: number) => {
     try {
@@ -180,14 +180,14 @@ export default function OrdersList() {
         throw new Error('Error al cargar el pedido');
       }
       const order = await response.json();
-      
+
       // Obtener los items del pedido
       const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
       if (!itemsResponse.ok) {
         throw new Error('Error al cargar los items del pedido');
       }
       const orderItems = await itemsResponse.json();
-      
+
       // Verificar que tengamos la configuración de la empresa
       if (!companySettings) {
         toast({
@@ -197,10 +197,10 @@ export default function OrdersList() {
         });
         return;
       }
-      
+
       // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
-      
+
       // Llamar al servicio de impresión
       printOrderTicket(order, orderItems, customer, companySettings, products, toast);
     } catch (error: any) {
@@ -212,7 +212,7 @@ export default function OrdersList() {
       });
     }
   };
-  
+
   // Función para generar PDF del pedido
   const handleGeneratePdf = async (orderId: number) => {
     try {
@@ -222,14 +222,14 @@ export default function OrdersList() {
         throw new Error('Error al cargar el pedido');
       }
       const order = await response.json();
-      
+
       // Obtener los items del pedido
       const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
       if (!itemsResponse.ok) {
         throw new Error('Error al cargar los items del pedido');
       }
       const orderItems = await itemsResponse.json();
-      
+
       // Verificar que tengamos la configuración de la empresa
       if (!companySettings) {
         toast({
@@ -239,10 +239,10 @@ export default function OrdersList() {
         });
         return;
       }
-      
+
       // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
-      
+
       // Llamar al servicio para generar PDF
       generateOrderPdf(order, orderItems, customer, companySettings, products, toast, jsPDF);
     } catch (error: any) {
@@ -270,14 +270,14 @@ export default function OrdersList() {
         throw new Error('Error al cargar el pedido');
       }
       const order = await response.json();
-      
+
       // Obtener los items del pedido
       const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
       if (!itemsResponse.ok) {
         throw new Error('Error al cargar los items del pedido');
       }
       const orderItems = await itemsResponse.json();
-      
+
       // Verificar que tengamos la configuración de la empresa
       if (!companySettings) {
         toast({
@@ -287,9 +287,9 @@ export default function OrdersList() {
         });
         return;
       }
-      
+
       const customer = customers?.find((c: any) => c.id === order.customerId);
-      
+
       try {
         // Crear un documento PDF (tamaño ticket térmico)
         const doc = new jsPDF({
@@ -299,34 +299,34 @@ export default function OrdersList() {
           hotfixes: ['px_scaling'], // Fix para escala de píxeles
           compress: false, // Evitar compresión que puede alterar el tamaño
         });
-        
+
         // Agregar logo o nombre de la empresa
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
         doc.text(companySettings.name, 40, 10, { align: 'center' });
-        
+
         // Información de la empresa
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         // Utilizar directamente los datos disponibles
         const companyMunicipality = companySettings.municipalityName || "Cotuí";
         const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
-        
+
         doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
         doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
         doc.text(`${companyMunicipality}, ${companyProvince}`, 40, 23, { align: 'center' });
         doc.text(`Tel: ${companySettings.contactPhone}`, 40, 27, { align: 'center' });
         doc.text(`Email: ${companySettings.email}`, 40, 31, { align: 'center' });
-        
+
         // Línea separadora
         doc.setDrawColor(200);
         doc.line(5, 34, 75, 34);
-        
+
         // Detalles del pedido
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.text(`PEDIDO #${order.id}`, 40, 38, { align: 'center' });
-        
+
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
         doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 5, 43);
@@ -334,85 +334,85 @@ export default function OrdersList() {
         doc.text(`Teléfono: ${order.customerPhone || ""}`, 5, 51);
         doc.text(`Dirección: ${order.customerAddress}`, 5, 55);
         doc.text(`${order.municipalityName || ""}, ${order.provinceName || ""}`, 5, 59);
-        
+
         const noteYPosition = 63;
         if (order.notes) {
           doc.text(`Notas: ${order.notes}`, 5, noteYPosition);
         }
-        
+
         // Línea separadora
         doc.setDrawColor(200);
         const notesOffset = order.notes ? 4 : 0;
         doc.line(5, 67, 75, 67);
-        
+
         // Encabezado de productos
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.text("DETALLE DE PRODUCTOS", 40, 71, { align: 'center' });
-        
+
         doc.setFontSize(7);
         doc.text("Producto", 5, 76);
         doc.text("Cant.", 35, 76, { align: 'center' });
         doc.text("Precio", 55, 76, { align: 'right' });
         doc.text("Total", 75, 76, { align: 'right' });
-        
+
         // Línea separadora
         doc.setDrawColor(200);
         doc.line(5, 78, 75, 78);
-        
+
         // Productos
         let yPos = 85;
         doc.setFont('helvetica', 'normal');
-        
+
         orderItems.forEach((item: any) => {
           const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
           const total = parseFloat(item.price) * item.quantity;
-          
+
           // Asegurar que el texto del producto no exceda el ancho disponible
           let displayName = productName;
           if (productName.length > 18) {
             displayName = productName.substring(0, 16) + "...";
           }
-          
+
           doc.text(displayName, 5, yPos);
           doc.text(`${item.quantity}`, 35, yPos, { align: 'center' });
           doc.text(`RD$${parseFloat(item.price).toFixed(2)}`, 55, yPos, { align: 'right' });
           doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
-          
+
           yPos += 8;
         });
-        
+
         // Línea separadora
         doc.setDrawColor(200);
         doc.line(5, yPos, 75, yPos);
         yPos += 5;
-        
+
         // Calcular subtotal e ITBIS
         const subtotal = parseFloat(order.subtotal || order.total);
         const itbis = parseFloat(order.tax || '0');
         const total = parseFloat(order.total);
-        
+
         // Subtotal
         doc.setFont('helvetica', 'normal');
         doc.text("SUBTOTAL:", 60, yPos, { align: 'right' });
         doc.text(`RD$${subtotal.toFixed(2)}`, 75, yPos, { align: 'right' });
         yPos += 5;
-        
+
         // ITBIS
         doc.text("ITBIS:", 60, yPos, { align: 'right' });
         doc.text(`RD$${itbis.toFixed(2)}`, 75, yPos, { align: 'right' });
         yPos += 5;
-        
+
         // Total
         doc.setFont('helvetica', 'bold');
         doc.text("TOTAL:", 60, yPos, { align: 'right' });
         doc.text(`RD$${total.toFixed(2)}`, 75, yPos, { align: 'right' });
-        
+
         // Nota del Pedido (siempre se muestra el título)
         yPos += 8;
         doc.setFont('helvetica', 'bold');
         doc.text("Nota del Pedido:", 5, yPos);
-        
+
         // Si hay notas, mostrarlas
         if (order.notes) {
           yPos += 5;
@@ -421,16 +421,16 @@ export default function OrdersList() {
             maxWidth: 70 
           });
         }
-        
+
         // Mensaje final
         yPos += 15;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8);
         doc.text("¡Gracias por su compra!", 40, yPos, { align: 'center' });
-        
+
         // Guardar PDF
         doc.save(`Pedido-${order.id}.pdf`);
-        
+
         // Notificar al usuario
         toast({
           title: "PDF generado",
@@ -483,7 +483,7 @@ export default function OrdersList() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
@@ -495,7 +495,7 @@ export default function OrdersList() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
@@ -507,7 +507,7 @@ export default function OrdersList() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card className="shadow-sm">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
@@ -548,7 +548,7 @@ export default function OrdersList() {
                 </Button>
               )}
             </div>
-            
+
             <Select 
               value={statusFilter} 
               onValueChange={setStatusFilter}
@@ -615,7 +615,7 @@ export default function OrdersList() {
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex justify-between items-center">
                         <div>{getStatusBadge(order.status)}</div>
                         <div className="flex gap-1 flex-wrap justify-end">
