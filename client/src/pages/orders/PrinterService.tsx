@@ -1,6 +1,10 @@
 // Servicio para impresión de tickets de pedidos
-// Este servicio implementa la funcionalidad de impresión usando el enfoque iframe
-// que funciona consistentemente tanto en móviles como en escritorio
+// Usa React para renderizar tickets dinámicamente y un portal para aislar la impresión
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import { PrintContent } from '@/components/printer/PrintContent';
+import { OrderTicket } from '@/components/printer/OrderTicket';
 
 /**
  * Genera un ticket de pedido e invoca la impresión
@@ -20,243 +24,67 @@ export const printOrderTicket = (
   toast: any
 ) => {
   try {
+    console.log('[PrintService] Iniciando generación de ticket');
+    
     // Notificar al usuario
     toast({
       title: "Generando ticket",
       description: "Preparando documento para impresión...",
     });
     
-    // Generar el contenido HTML del ticket
-    const printContent = document.createElement('div');
-    printContent.style.width = '74mm';
-    printContent.style.boxSizing = 'border-box';
-    printContent.style.padding = '0';
-    printContent.style.margin = '0';
-    printContent.style.fontFamily = 'Arial, sans-serif';
-    printContent.style.fontSize = '10px';
+    // Crear un div temporal para el portal de React
+    const printContainer = document.createElement('div');
+    printContainer.id = 'print-portal-container';
+    document.body.appendChild(printContainer);
     
-    // Encabezado: Información de la empresa
-    const header = document.createElement('div');
-    header.style.textAlign = 'center';
-    header.style.marginBottom = '10px';
+    console.log('[PrintService] Container de impresión creado');
     
-    header.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companySettings.name}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${companySettings.rnc}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.street} ${companySettings.streetNumber}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.municipalityName}, ${companySettings.provinceName}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${companySettings.contactPhone}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">Email: ${companySettings.email}</div>
-    `;
-    printContent.appendChild(header);
+    // Renderizar el componente de ticket dentro del portal
+    ReactDOM.render(
+      <PrintContent
+        onAfterPrint={() => {
+          console.log('[PrintService] Finalizando impresión, limpiando...');
+          
+          // Desmontar componente y eliminar contenedor
+          ReactDOM.unmountComponentAtNode(printContainer);
+          if (document.body.contains(printContainer)) {
+            document.body.removeChild(printContainer);
+          }
+          
+          // Notificar al usuario
+          toast({
+            title: "Impresión completada",
+            description: "El documento se ha enviado a la impresora",
+          });
+        }}
+      >
+        <OrderTicket
+          order={order}
+          orderItems={orderItems}
+          customer={customer}
+          companySettings={companySettings}
+          products={products}
+        />
+      </PrintContent>,
+      printContainer
+    );
     
-    // Separador
-    const separator = document.createElement('div');
-    separator.style.borderBottom = '1px dashed #000';
-    separator.style.margin = '10px 0';
-    printContent.appendChild(separator);
-    
-    // Título e información del pedido
-    const orderInfo = document.createElement('div');
-    orderInfo.style.marginBottom = '10px';
-    orderInfo.style.fontSize = '11px';
-    
-    orderInfo.innerHTML = `
-      <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order.id}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
-    `;
-    printContent.appendChild(orderInfo);
-    
-    // Otro separador
-    const separator2 = document.createElement('div');
-    separator2.style.borderBottom = '1px dashed #000';
-    separator2.style.margin = '10px 0';
-    printContent.appendChild(separator2);
-    
-    // Tabla de productos
-    printContent.innerHTML += `
-      <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLE DEL PEDIDO</div>
-    `;
-    
-    const table = document.createElement('table');
-    table.style.width = '100%';
-    table.style.borderCollapse = 'collapse';
-    table.style.fontSize = '10px';
-    
-    table.innerHTML = `
-      <thead>
-        <tr style="border-bottom: 1px solid #ddd;">
-          <th style="text-align: left; padding: 3px;">Producto</th>
-          <th style="text-align: center; padding: 3px;">Cant.</th>
-          <th style="text-align: right; padding: 3px;">Precio</th>
-          <th style="text-align: right; padding: 3px;">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${orderItems.map((item: any) => {
-          const product = products.find((p: any) => p.id === item.productId);
-          const total = parseFloat(item.price) * item.quantity;
-          return `
-            <tr style="border-bottom: 1px solid #eee;">
-              <td style="text-align: left; padding: 3px;">${product?.name || "Producto"}</td>
-              <td style="text-align: center; padding: 3px;">${item.quantity}</td>
-              <td style="text-align: right; padding: 3px;">RD$${parseFloat(item.price).toFixed(2)}</td>
-              <td style="text-align: right; padding: 3px;">RD$${total.toFixed(2)}</td>
-            </tr>
-          `;
-        }).join('')}
-      </tbody>
-    `;
-    printContent.appendChild(table);
-    
-    // Separador antes de totales
-    const separator3 = document.createElement('div');
-    separator3.style.borderBottom = '1px dashed #000';
-    separator3.style.margin = '10px 0';
-    printContent.appendChild(separator3);
-    
-    // Calcular totales
-    const subtotal = parseFloat(order.subtotal || order.total);
-    const itbis = parseFloat(order.tax || '0');
-    const total = parseFloat(order.total);
-    
-    // Totales
-    const totalsDiv = document.createElement('div');
-    totalsDiv.style.marginTop = '10px';
-    totalsDiv.style.fontSize = '11px';
-    totalsDiv.innerHTML = `
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="flex: 1; text-align: left;">SUBTOTAL:</span>
-        <span style="flex: 1; text-align: center;">RD$ ${subtotal.toFixed(2)}</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-        <span style="flex: 1; text-align: left;">ITBIS:</span>
-        <span style="flex: 1; text-align: center;">RD$ ${itbis.toFixed(2)}</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
-        <span style="flex: 1; text-align: left;">TOTAL:</span>
-        <span style="flex: 1; text-align: center;">RD$ ${total.toFixed(2)}</span>
-      </div>
-    `;
-    printContent.appendChild(totalsDiv);
-    
-    // Notas (si hay)
-    if (order.notes) {
-      const notesDiv = document.createElement('div');
-      notesDiv.style.marginTop = '10px';
-      notesDiv.style.fontSize = '10px';
-      notesDiv.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 3px;">Nota del Pedido:</div>
-        <div>${order.notes}</div>
-      `;
-      printContent.appendChild(notesDiv);
-    }
-    
-    // Separador final
-    const separator4 = document.createElement('div');
-    separator4.style.borderBottom = '1px dashed #000';
-    separator4.style.margin = '10px 0';
-    printContent.appendChild(separator4);
-    
-    // Mensaje de agradecimiento
-    const thankYouMsg = document.createElement('div');
-    thankYouMsg.style.textAlign = 'center';
-    thankYouMsg.style.marginTop = '10px';
-    thankYouMsg.style.fontSize = '11px';
-    thankYouMsg.textContent = '¡Gracias por su compra!';
-    printContent.appendChild(thankYouMsg);
-    
-    // Usar método directo de window.print() para evitar problemas
-    console.log('[PrintService] Iniciando proceso de impresión directa');
-    
-    // Crear un div temporal que contendrá el contenido a imprimir
-    const printDiv = document.createElement('div');
-    printDiv.id = 'print-container';
-    printDiv.style.position = 'fixed';
-    printDiv.style.left = '-9999px';
-    printDiv.style.top = '0';
-    printDiv.style.zIndex = '-1';
-    printDiv.style.width = '80mm';
-    printDiv.innerHTML = printContent.outerHTML;
-    document.body.appendChild(printDiv);
-    
-    console.log('[PrintService] Contenedor de impresión creado:', printDiv.id);
-    
-    try {
-      // Guardar el contenido actual de la página
-      console.log('[PrintService] Guardando contenido de la página actual');
-      const originalTitle = document.title;
-      const originalBodyHtml = document.body.innerHTML;
-      
-      // Reemplazar todo el cuerpo de la página con el contenido a imprimir
-      document.title = `Pedido #${order.id}`;
-      
-      console.log('[PrintService] Reemplazando body con contenido de impresión');
-      
-      // Crear una nueva hoja de estilo para la impresión
-      const styleElement = document.createElement('style');
-      styleElement.textContent = `
-        @media print {
-          body { margin: 0; padding: 0; }
-          @page { size: 80mm 297mm; margin: 0; }
-        }
-      `;
-      document.head.appendChild(styleElement);
-      
-      // Mostrar solo el contenido a imprimir
-      document.body.innerHTML = printDiv.innerHTML;
-      
-      console.log('[PrintService] Invocando window.print()');
-      
-      // Abrir el diálogo de impresión
-      window.print();
-      
-      console.log('[PrintService] window.print() completado, restaurando contenido original');
-      
-      // Restaurar el contenido original después de la impresión
-      setTimeout(() => {
-        document.title = originalTitle;
-        document.body.innerHTML = originalBodyHtml;
-        
-        console.log('[PrintService] Contenido original restaurado');
-        
-        // Remover el estilo temporal
-        if (styleElement.parentNode) {
-          styleElement.parentNode.removeChild(styleElement);
-        }
-        
-        // Notificar al usuario
-        toast({
-          title: "Impresión completada",
-          description: "El documento se ha enviado a la impresora",
-        });
-      }, 1000);
-      
-    } catch (printError) {
-      console.error('[PrintService] Error durante el proceso de impresión:', printError);
-      toast({
-        variant: "destructive",
-        title: "Error de impresión",
-        description: `No se pudo imprimir: ${printError.message}`,
-      });
-      
-      // Limpiar en caso de error
-      if (document.body.contains(printDiv)) {
-        document.body.removeChild(printDiv);
-      }
-    }
+    console.log('[PrintService] Componente de ticket renderizado');
     
   } catch (error: any) {
-    console.error('Error en printOrderTicket:', error);
+    console.error('[PrintService] Error en printOrderTicket:', error);
     toast({
       variant: "destructive",
       title: "Error",
       description: error.message || "Error al generar el ticket",
     });
+    
+    // Limpiar en caso de error
+    const printContainer = document.getElementById('print-portal-container');
+    if (printContainer && document.body.contains(printContainer)) {
+      ReactDOM.unmountComponentAtNode(printContainer);
+      document.body.removeChild(printContainer);
+    }
   }
 };
 
