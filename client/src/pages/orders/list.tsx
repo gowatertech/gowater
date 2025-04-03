@@ -345,100 +345,220 @@ export default function OrdersList() {
       thankYouMsg.textContent = '¡Gracias por su compra!';
       printContent.appendChild(thankYouMsg);
       
-      // Volver al método original para impresoras térmicas con mejoras
-      // Crear un estilo más simple pero efectivo
-      const style = document.createElement('style');
-      style.innerHTML = `
-        @media print {
-          @page {
-            size: 80mm auto;
-            margin: 0mm !important;
-          }
-          
-          html, body {
-            width: 80mm !important;
-            font-family: Arial, sans-serif !important;
-            font-size: 10px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-          }
-          
-          /* Ocultar todo excepto el ticket */
-          body * {
-            display: none !important;
-          }
-          
-          /* Mostrar solo el contenedor de ticket */
-          #print-container, #print-container * {
-            display: block !important;
-            visibility: visible !important;
-          }
-          
-          #print-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 72mm !important;
-            padding: 4mm !important;
-            margin: 0 !important;
-          }
-          
-          table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-          }
-          
-          th, td {
-            padding: 1mm !important;
-            font-size: 9px !important;
-          }
+      // Detectar si es un dispositivo móvil
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Enfoque para dispositivos móviles: crear un iframe
+        const printFrame = document.createElement('iframe');
+        printFrame.style.position = 'fixed';
+        printFrame.style.top = '0';
+        printFrame.style.left = '0';
+        printFrame.style.width = '100%';
+        printFrame.style.height = '100%';
+        printFrame.style.backgroundColor = '#ffffff';
+        printFrame.style.zIndex = '9999';
+        document.body.appendChild(printFrame);
+        
+        // Notificar al usuario
+        toast({
+          title: "Preparando vista para impresión",
+          description: "Un momento, por favor...",
+        });
+        
+        // Configurar el documento para móviles
+        const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
+        if (!frameDoc) {
+          throw new Error('No se pudo crear el documento para impresión');
         }
-      `;
-      
-      // Crear un contenedor para imprimir
-      const printContainer = document.createElement('div');
-      printContainer.id = 'print-container';
-      printContainer.appendChild(printContent);
-      
-      // Añadir a la página
-      document.head.appendChild(style);
-      document.body.appendChild(printContainer);
-      
-      // Notificar al usuario
-      toast({
-        title: "Preparando impresión",
-        description: "Se abrirá el diálogo de impresión en unos segundos",
-      });
-      
-      // Esperar un momento para asegurar que todo esté cargado
-      setTimeout(() => {
-        try {
-          // Imprimir
-          window.print();
-          
-          // Notificar al usuario
-          toast({
-            title: "Enviando a impresora",
-            description: "El documento se está enviando a la impresora",
-          });
-          
-          // Limpiar después de imprimir
-          setTimeout(() => {
+        
+        // Escribir el contenido HTML en el iframe
+        frameDoc.open();
+        frameDoc.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Pedido #${order.id}</title>
+            <style>
+              @page {
+                size: 80mm auto;
+                margin: 0mm;
+              }
+              body {
+                font-family: Arial, sans-serif;
+                width: 80mm;
+                max-width: 100%;
+                margin: 0 auto;
+                padding: 8px;
+                background-color: white;
+                font-size: 10px;
+                line-height: 1.2;
+              }
+              .ticket {
+                width: 100%;
+              }
+              .center {
+                text-align: center;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              th, td {
+                padding: 2px;
+                font-size: 9px;
+              }
+              .print-btn {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 10px 20px;
+                background-color: #0066cc;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+              }
+              .close-btn {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                background-color: #cc0000;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="ticket">
+              ${printContent.innerHTML}
+            </div>
+            <button id="printButton" class="print-btn">Imprimir</button>
+            <button id="closeButton" class="close-btn">Cerrar</button>
+            <script>
+              document.getElementById('printButton').addEventListener('click', function() {
+                this.style.display = 'none';
+                document.getElementById('closeButton').style.display = 'none';
+                window.print();
+                setTimeout(function() {
+                  document.getElementById('printButton').style.display = 'block';
+                  document.getElementById('closeButton').style.display = 'block';
+                }, 500);
+              });
+              
+              document.getElementById('closeButton').addEventListener('click', function() {
+                window.parent.document.body.removeChild(window.frameElement);
+              });
+            </script>
+          </body>
+          </html>
+        `);
+        frameDoc.close();
+      } else {
+        // Enfoque para escritorio: método original mejorado
+        // Crear un estilo más simple pero efectivo
+        const style = document.createElement('style');
+        style.innerHTML = `
+          @media print {
+            @page {
+              size: 80mm auto;
+              margin: 0mm !important;
+            }
+            
+            html, body {
+              width: 80mm !important;
+              font-family: Arial, sans-serif !important;
+              font-size: 10px !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+            
+            /* Ocultar todo excepto el ticket */
+            body * {
+              display: none !important;
+            }
+            
+            /* Mostrar solo el contenedor de ticket */
+            #print-container, #print-container * {
+              display: block !important;
+              visibility: visible !important;
+            }
+            
+            #print-container {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 72mm !important;
+              padding: 4mm !important;
+              margin: 0 !important;
+            }
+            
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
+            
+            th, td {
+              padding: 1mm !important;
+              font-size: 9px !important;
+            }
+          }
+        `;
+        
+        // Crear un contenedor para imprimir
+        const printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        printContainer.appendChild(printContent);
+        
+        // Añadir a la página
+        document.head.appendChild(style);
+        document.body.appendChild(printContainer);
+        
+        // Notificar al usuario
+        toast({
+          title: "Preparando impresión",
+          description: "Se abrirá el diálogo de impresión en unos segundos",
+        });
+        
+        // Esperar un momento para asegurar que todo esté cargado
+        setTimeout(() => {
+          try {
+            // Imprimir
+            window.print();
+            
+            // Notificar al usuario
+            toast({
+              title: "Enviando a impresora",
+              description: "El documento se está enviando a la impresora",
+            });
+            
+            // Limpiar después de imprimir
+            setTimeout(() => {
+              document.body.removeChild(printContainer);
+              document.head.removeChild(style);
+            }, 2000);
+          } catch (printError) {
+            console.error('Error al imprimir:', printError);
+            toast({
+              variant: "destructive",
+              title: "Error de impresión",
+              description: "No se pudo enviar a la impresora",
+            });
+            // Limpiar en caso de error
             document.body.removeChild(printContainer);
             document.head.removeChild(style);
-          }, 2000);
-        } catch (printError) {
-          console.error('Error al imprimir:', printError);
-          toast({
-            variant: "destructive",
-            title: "Error de impresión",
-            description: "No se pudo enviar a la impresora",
-          });
-          // Limpiar en caso de error
-          document.body.removeChild(printContainer);
-          document.head.removeChild(style);
-        }
+          }
+        }, 1000);
+      }
       }, 1000);
     } catch (error: any) {
       console.error('Error en handlePrint:', error);
