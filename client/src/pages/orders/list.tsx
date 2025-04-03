@@ -342,62 +342,50 @@ export default function OrdersList() {
       thankYouMsg.textContent = '¡Gracias por su compra!';
       printContent.appendChild(thankYouMsg);
       
-      // Crear un iframe para la impresión
-      const printFrame = document.createElement('iframe');
-      printFrame.style.position = 'fixed';
-      printFrame.style.right = '0';
-      printFrame.style.bottom = '0';
-      printFrame.style.width = '0';
-      printFrame.style.height = '0';
-      printFrame.style.border = '0';
+      // Método 1: Usar window.print() directamente con CSS
+      // Crear un elemento de estilo para controlar la impresión
+      const style = document.createElement('style');
+      style.innerHTML = `
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-container, #print-container * {
+            visibility: visible;
+          }
+          #print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 80mm;
+          }
+          @page {
+            size: 80mm auto;
+            margin: 0;
+          }
+        }
+      `;
       
-      document.body.appendChild(printFrame);
+      // Crear un contenedor para el contenido a imprimir
+      const printContainer = document.createElement('div');
+      printContainer.id = 'print-container';
+      printContainer.appendChild(printContent);
       
-      const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+      // Añadir elementos al DOM
+      document.head.appendChild(style);
+      document.body.appendChild(printContainer);
       
-      if (!frameDoc) {
-        throw new Error('No se pudo crear el documento para impresión');
-      }
+      // Notificar al usuario
+      toast({
+        title: "Abriendo diálogo de impresión",
+        description: "Se abrirá el diálogo de impresión en unos segundos",
+      });
       
-      // Escribir el contenido en el iframe
-      frameDoc.open();
-      frameDoc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Pedido #${order.id}</title>
-            <meta charset="utf-8">
-            <style>
-              body {
-                margin: 0;
-                padding: 10px;
-                font-family: 'Arial', sans-serif;
-                width: 80mm;
-              }
-              @media print {
-                @page {
-                  size: 80mm auto;
-                  margin: 0;
-                }
-                body {
-                  width: 80mm;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            ${printContent.outerHTML}
-          </body>
-        </html>
-      `);
-      frameDoc.close();
-      
-      // Esperar a que el contenido se cargue antes de imprimir
+      // Esperar un poco para asegurar que el contenido se ha renderizado
       setTimeout(() => {
         try {
-          // Imprimir el contenido
-          printFrame.contentWindow?.focus();
-          printFrame.contentWindow?.print();
+          // Imprimir
+          window.print();
           
           // Notificar al usuario
           toast({
@@ -405,18 +393,21 @@ export default function OrdersList() {
             description: "El documento se está enviando a la impresora",
           });
           
-          // Eliminar el iframe después de un tiempo
+          // Limpiar después de imprimir
           setTimeout(() => {
-            document.body.removeChild(printFrame);
+            document.body.removeChild(printContainer);
+            document.head.removeChild(style);
           }, 2000);
         } catch (printError) {
           console.error('Error al imprimir:', printError);
           toast({
             variant: "destructive",
             title: "Error de impresión",
-            description: "No se pudo enviar a la impresora",
+            description: "No se pudo enviar a la impresora. " + (printError instanceof Error ? printError.message : ''),
           });
-          document.body.removeChild(printFrame);
+          // Limpiar en caso de error
+          document.body.removeChild(printContainer);
+          document.head.removeChild(style);
         }
       }, 1000);
     } catch (error: any) {
