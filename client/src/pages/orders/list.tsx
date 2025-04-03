@@ -345,149 +345,68 @@ export default function OrdersList() {
       thankYouMsg.textContent = '¡Gracias por su compra!';
       printContent.appendChild(thankYouMsg);
       
-      // Método con CSS específico para impresoras térmicas de 80mm
-      // Crear un elemento de estilo para controlar la impresión
-      const style = document.createElement('style');
-      style.innerHTML = `
-        @media print {
-          /* Resetear todos los elementos */
-          * {
-            margin: 0 !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-          }
-          
-          /* Ocultar todo el contenido de la página */
-          html, body {
-            width: 80mm !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            height: auto !important;
-            max-height: fit-content !important;
-          }
-          
-          /* Esto es importante para evitar páginas en blanco */
-          body:after {
-            content: "" !important;
-            display: block !important;
-            height: 0 !important;
-            clear: both !important;
-            visibility: hidden !important;
-          }
-          
-          body * {
-            visibility: hidden !important;
-            display: none !important; /* Ocultar completamente para evitar espacio reservado */
-          }
-          
-          /* Mostrar solo el contenedor de impresión */
-          #print-container, #print-container * {
-            visibility: visible !important;
-            display: block !important; /* Asegurar que los elementos son visibles */
-          }
-          
-          /* Posicionar y dimensionar el contenedor */
-          #print-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 72mm !important; /* 80mm menos los márgenes */
-            max-width: 72mm !important;
-            margin: 0 !important;
-            padding: 2mm !important;
-            font-size: 10px !important;
-            line-height: 1.1 !important;
-          }
-          
-          /* Configuración específica de @page para impresoras térmicas */
-          @page {
-            size: 80mm !important; /* Ancho exacto 80mm, sin especificar auto para evitar páginas adicionales */
-            margin: 0mm !important;
-            padding: 0mm !important;
-          }
-          
-          /* Eliminar páginas extra */
-          @page :left {
-            margin: 0mm !important;
-          }
-          
-          @page :right {
-            margin: 0mm !important;
-          }
-          
-          /* Soporte específico para Chrome/Safari */
-          @supports (-webkit-appearance:none) {
-            @page {
-              size: 80mm !important; /* Sin auto para evitar páginas adicionales */
-              margin: 0mm !important;
-            }
-            #print-container {
-              width: 72mm !important;
-              height: auto !important;
-              overflow: visible !important;
-            }
-          }
-          
-          /* Soporte específico para Firefox */
-          @-moz-document url-prefix() {
-            @page {
-              size: 80mm !important; /* Sin auto para evitar páginas adicionales */
-              margin: 0mm !important;
-            }
-            #print-container {
-              width: 72mm !important;
-              height: auto !important;
-              overflow: visible !important;
-            }
-          }
-          
-          /* Asegurar que no hay saltos de página dentro de elementos importantes */
-          table, tr, td, th {
-            page-break-inside: avoid !important;
-            font-size: 9px !important;
-          }
-          
-          /* Ajustar otros elementos en el ticket */
-          #print-container h1, #print-container h2, #print-container h3 {
-            font-size: 12px !important;
-            margin-bottom: 2mm !important;
-          }
-          
-          #print-container p, #print-container div {
-            font-size: 9px !important;
-            line-height: 1.2 !important;
-            margin-bottom: 1mm !important;
-          }
-        }
-      `;
+      // Crear un iframe para imprimir (enfoque simple)
+      const printFrame = document.createElement('iframe');
+      printFrame.style.position = 'absolute';
+      printFrame.style.top = '-9999px';
+      printFrame.style.left = '-9999px';
+      printFrame.style.width = '80mm';
+      printFrame.style.height = '0';
+      document.body.appendChild(printFrame);
       
-      // Crear un contenedor para el contenido a imprimir
-      const printContainer = document.createElement('div');
-      printContainer.id = 'print-container';
-      printContainer.style.width = '72mm';
-      printContainer.style.maxWidth = '72mm';
-      printContainer.style.boxSizing = 'border-box';
-      printContainer.style.padding = '2mm';
-      printContainer.style.fontFamily = 'Arial, sans-serif';
-      printContainer.style.overflow = 'hidden'; // Evita scroll
-      printContainer.style.height = 'auto'; // Solo el alto necesario
-      printContainer.appendChild(printContent);
+      // Configurar el documento del iframe
+      const frameDoc = printFrame.contentDocument;
+      if (!frameDoc) {
+        throw new Error('No se pudo crear el documento para impresión');
+      }
       
-      // Añadir elementos al DOM
-      document.head.appendChild(style);
-      document.body.appendChild(printContainer);
+      // Escribir el contenido HTML en el iframe
+      frameDoc.open();
+      frameDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Pedido #${order.id}</title>
+          <style>
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+            body {
+              font-family: 'Arial', sans-serif;
+              margin: 0;
+              padding: 3mm;
+              width: 74mm;
+              font-size: 10px;
+              line-height: 1.2;
+            }
+            .center { text-align: center; }
+            .ticket { width: 100%; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { text-align: left; padding: 2px; }
+          </style>
+        </head>
+        <body>
+          <div class="ticket">
+            ${printContent.innerHTML}
+          </div>
+        </body>
+        </html>
+      `);
+      frameDoc.close();
       
       // Notificar al usuario
       toast({
-        title: "Abriendo diálogo de impresión",
+        title: "Preparando impresión",
         description: "Se abrirá el diálogo de impresión en unos segundos",
       });
       
-      // Esperar un poco para asegurar que el contenido se ha renderizado
+      // Esperar un momento para que se cargue el contenido
       setTimeout(() => {
         try {
-          // Imprimir
-          window.print();
+          // Imprimir el iframe
+          printFrame.contentWindow?.print();
           
           // Notificar al usuario
           toast({
@@ -497,19 +416,17 @@ export default function OrdersList() {
           
           // Limpiar después de imprimir
           setTimeout(() => {
-            document.body.removeChild(printContainer);
-            document.head.removeChild(style);
+            document.body.removeChild(printFrame);
           }, 2000);
         } catch (printError) {
           console.error('Error al imprimir:', printError);
           toast({
             variant: "destructive",
             title: "Error de impresión",
-            description: "No se pudo enviar a la impresora. " + (printError instanceof Error ? printError.message : ''),
+            description: "No se pudo enviar a la impresora",
           });
           // Limpiar en caso de error
-          document.body.removeChild(printContainer);
-          document.head.removeChild(style);
+          document.body.removeChild(printFrame);
         }
       }, 1000);
     } catch (error: any) {
