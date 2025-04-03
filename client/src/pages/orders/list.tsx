@@ -207,9 +207,12 @@ export default function OrdersList() {
       // Crear el contenido del ticket
       const printContent = document.createElement('div');
       printContent.className = 'print-content';
-      printContent.style.width = '80mm'; // Ancho para impresora térmica
-      printContent.style.padding = '10px';
+      printContent.style.width = '74mm'; // Ancho interno para impresora térmica (80mm - márgenes)
+      printContent.style.boxSizing = 'border-box';
+      printContent.style.padding = '0';
+      printContent.style.margin = '0';
       printContent.style.fontFamily = 'Arial, sans-serif';
+      printContent.style.fontSize = '10px';
       
       // Información de la empresa (encabezado)
       const header = document.createElement('div');
@@ -342,26 +345,50 @@ export default function OrdersList() {
       thankYouMsg.textContent = '¡Gracias por su compra!';
       printContent.appendChild(thankYouMsg);
       
-      // Método 1: Usar window.print() directamente con CSS
+      // Método 1: Usar window.print() directamente con CSS controlado
       // Crear un elemento de estilo para controlar la impresión
       const style = document.createElement('style');
       style.innerHTML = `
         @media print {
+          /* Ocultar todo el contenido de la página */
           body * {
             visibility: hidden;
+            margin: 0;
+            padding: 0;
           }
+          
+          /* Mostrar solo el contenedor de impresión */
           #print-container, #print-container * {
             visibility: visible;
           }
+          
+          /* Posicionar y dimensionar el contenedor */
           #print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 80mm;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 80mm !important; /* Ancho térmico estándar */
+            padding: 5mm !important;
+            box-sizing: border-box !important;
           }
+          
+          /* Configurar tamaño de página */
           @page {
-            size: 80mm auto;
-            margin: 0;
+            size: 80mm auto !important; /* Ancho 80mm (3 pulgadas), alto automático */
+            margin: 0mm !important;
+            padding: 0mm !important;
+          }
+          
+          /* Asegurarse que para navegadores Chrome/Edge/Safari se aplica correctamente */
+          @-moz-document url-prefix() {
+            @page {
+              size: 80mm auto !important;
+            }
+          }
+          
+          /* Asegurar que no hay saltos de página dentro de elementos importantes */
+          table, tr, td {
+            page-break-inside: avoid !important;
           }
         }
       `;
@@ -369,6 +396,11 @@ export default function OrdersList() {
       // Crear un contenedor para el contenido a imprimir
       const printContainer = document.createElement('div');
       printContainer.id = 'print-container';
+      printContainer.style.width = '80mm';
+      printContainer.style.maxWidth = '80mm';
+      printContainer.style.boxSizing = 'border-box';
+      printContainer.style.padding = '3mm';
+      printContainer.style.fontFamily = 'Arial, sans-serif';
       printContainer.appendChild(printContent);
       
       // Añadir elementos al DOM
@@ -460,8 +492,9 @@ export default function OrdersList() {
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: [80, 297], // 80mm de ancho (3 pulgadas) x altura estándar A4
+          format: [80, 297], // 80mm de ancho (3 pulgadas) x altura automática
           hotfixes: ['px_scaling'], // Fix para escala de píxeles
+          compress: false, // Evitar compresión que puede alterar el tamaño
         });
         
         // Agregar logo o nombre de la empresa
