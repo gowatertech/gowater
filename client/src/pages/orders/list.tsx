@@ -207,79 +207,81 @@ export default function OrdersList() {
       // Crear el contenido del ticket
       const printContent = document.createElement('div');
       printContent.className = 'print-content';
-      printContent.style.width = '58mm'; // Ancho interno para impresora térmica pequeña
+      printContent.style.width = '74mm'; // Ancho interno para impresora térmica (80mm - márgenes)
       printContent.style.boxSizing = 'border-box';
       printContent.style.padding = '0';
       printContent.style.margin = '0';
       printContent.style.fontFamily = 'Arial, sans-serif';
-      printContent.style.fontSize = '9px'; // Texto más pequeño
+      printContent.style.fontSize = '10px';
       
       // Información de la empresa (encabezado)
       const header = document.createElement('div');
       header.style.textAlign = 'center';
-      header.style.marginBottom = '5px'; // Reducido
+      header.style.marginBottom = '10px';
       
       // Utilizar directamente los datos disponibles
       const companyMunicipality = companySettings.municipalityName || "Cotuí";
       const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
       
       header.innerHTML = `
-        <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companySettings.name}</div>
-        <div style="font-size: 10px; margin-bottom: 1px;">RNC: ${companySettings.rnc}</div>
-        <div style="font-size: 10px; margin-bottom: 1px;">${companySettings.street} ${companySettings.streetNumber}</div>
-        <div style="font-size: 10px; margin-bottom: 1px;">${companyMunicipality}, ${companyProvince}</div>
-        <div style="font-size: 10px; margin-bottom: 1px;">Tel: ${companySettings.contactPhone}</div>
+        <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companySettings.name}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${companySettings.rnc}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.street} ${companySettings.streetNumber}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">${companyMunicipality}, ${companyProvince}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${companySettings.contactPhone}</div>
+        <div style="font-size: 11px; margin-bottom: 2px;">Email: ${companySettings.email}</div>
       `;
       printContent.appendChild(header);
       
       // Separador
       const separator = document.createElement('div');
       separator.style.borderBottom = '1px solid #000';
-      separator.style.margin = '5px 0'; // Reducido
+      separator.style.margin = '10px 0';
       printContent.appendChild(separator);
       
       // Título del pedido
       const title = document.createElement('div');
       title.style.textAlign = 'center';
-      title.style.fontSize = '12px'; // Reducido
+      title.style.fontSize = '14px';
       title.style.fontWeight = 'bold';
-      title.style.margin = '5px 0'; // Reducido
+      title.style.margin = '10px 0';
       title.textContent = `PEDIDO #${order.id}`;
       printContent.appendChild(title);
       
       // Información del pedido
       const orderInfo = document.createElement('div');
-      orderInfo.style.marginBottom = '5px'; // Reducido
-      orderInfo.style.fontSize = '9px'; // Reducido
+      orderInfo.style.marginBottom = '10px';
+      orderInfo.style.fontSize = '11px';
       orderInfo.innerHTML = `
-        <div style="margin-bottom: 2px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
-        <div style="margin-bottom: 2px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-        <div style="margin-bottom: 2px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
-        <div style="margin-bottom: 2px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
+        <div style="margin-bottom: 5px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
+        <div style="margin-bottom: 5px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
+        <div style="margin-bottom: 5px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
+        <div style="margin-bottom: 5px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
+        <div style="margin-bottom: 5px;"><strong>Ubicación:</strong> ${order.municipalityName || ""}, ${order.provinceName || ""}</div>
       `;
       printContent.appendChild(orderInfo);
       
       // Otro separador
       const separator2 = document.createElement('div');
       separator2.style.borderBottom = '1px solid #000';
-      separator2.style.margin = '5px 0'; // Reducido
+      separator2.style.margin = '10px 0';
       printContent.appendChild(separator2);
       
       // Tabla de productos
       const productTable = document.createElement('table');
       productTable.style.width = '100%';
       productTable.style.borderCollapse = 'collapse';
-      productTable.style.marginBottom = '5px'; // Reducido
-      productTable.style.fontSize = '8px'; // Reducido
+      productTable.style.marginBottom = '10px';
+      productTable.style.fontSize = '11px';
       
       // Cabecera de la tabla
       productTable.innerHTML = `
         <thead>
           <tr style="border-bottom: 1px solid #000; text-align: left;">
-            <th style="padding: 2px; text-align: left;">Producto</th>
-            <th style="padding: 2px; text-align: right;">Cant.</th>
-            <th style="padding: 2px; text-align: right;">Precio</th>
-            <th style="padding: 2px; text-align: right;">Total</th>
+            <th style="padding: 5px; text-align: left;">Producto</th>
+            <th style="padding: 5px; text-align: right;">Cant.</th>
+            <th style="padding: 5px; text-align: right;">Precio</th>
+            <th style="padding: 5px; text-align: right;">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -288,10 +290,10 @@ export default function OrdersList() {
             const total = parseFloat(item.price) * item.quantity;
             return `
               <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 2px; text-align: left;">${productName}</td>
-                <td style="padding: 2px; text-align: right;">${item.quantity}</td>
-                <td style="padding: 2px; text-align: right;">${parseFloat(item.price).toFixed(2)}</td>
-                <td style="padding: 2px; text-align: right;">${total.toFixed(2)}</td>
+                <td style="padding: 5px; text-align: left;">${productName}</td>
+                <td style="padding: 5px; text-align: right;">${item.quantity}</td>
+                <td style="padding: 5px; text-align: right;">${parseFloat(item.price).toFixed(2)}</td>
+                <td style="padding: 5px; text-align: right;">${total.toFixed(2)}</td>
               </tr>
             `;
           }).join('')}
@@ -306,249 +308,277 @@ export default function OrdersList() {
       
       // Resumen de totales
       const totalsSection = document.createElement('div');
-      totalsSection.style.marginTop = '5px'; // Reducido
-      totalsSection.style.fontSize = '9px'; // Reducido
+      totalsSection.style.marginTop = '10px';
+      totalsSection.style.fontSize = '11px';
       totalsSection.style.textAlign = 'right';
       totalsSection.innerHTML = `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
           <span>Subtotal:</span>
           <span>RD$ ${subtotal.toFixed(2)}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
           <span>ITBIS:</span>
           <span>RD$ ${itbis.toFixed(2)}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
           <span>Total:</span>
           <span>RD$ ${total.toFixed(2)}</span>
         </div>
       `;
       printContent.appendChild(totalsSection);
       
+      // Notas del pedido
+      const notesSection = document.createElement('div');
+      notesSection.style.marginTop = '15px';
+      notesSection.style.fontSize = '11px';
+      notesSection.innerHTML = `
+        <div style="font-weight: bold; margin-bottom: 5px;">Nota del Pedido:</div>
+        <div style="font-style: italic;">${order.notes || ""}</div>
+      `;
+      printContent.appendChild(notesSection);
+      
       // Mensaje de agradecimiento
       const thankYouMsg = document.createElement('div');
       thankYouMsg.style.textAlign = 'center';
-      thankYouMsg.style.marginTop = '10px'; // Reducido
-      thankYouMsg.style.fontSize = '10px';
+      thankYouMsg.style.marginTop = '20px';
+      thankYouMsg.style.fontSize = '11px';
       thankYouMsg.textContent = '¡Gracias por su compra!';
       printContent.appendChild(thankYouMsg);
       
       // Detectar si es un dispositivo móvil
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      setTimeout(() => {
-        if (isMobile) {
-          // Enfoque para dispositivos móviles: crear un iframe
-          const printFrame = document.createElement('iframe');
-          printFrame.style.position = 'fixed';
-          printFrame.style.top = '0';
-          printFrame.style.left = '0';
-          printFrame.style.width = '100%';
-          printFrame.style.height = '100%';
-          printFrame.style.backgroundColor = '#ffffff';
-          printFrame.style.zIndex = '9999';
-          document.body.appendChild(printFrame);
-          
-          // Notificar al usuario
-          toast({
-            title: "Preparando vista para impresión",
-            description: "Un momento, por favor...",
-          });
-          
-          // Configurar el documento para móviles
-          const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
-          if (!frameDoc) {
-            throw new Error('No se pudo crear el documento para impresión');
-          }
-          
-          // Escribir el contenido HTML en el iframe
-          frameDoc.open();
-          frameDoc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>Pedido #${order.id}</title>
-              <style>
-                @page {
-                  size: 58mm auto;  /* Tamaño reducido para impresoras térmicas pequeñas */
-                  margin: 0mm;
-                }
-                body {
-                  font-family: Arial, sans-serif;
-                  width: 58mm;  /* Ancho reducido */
-                  max-width: 100%;
-                  margin: 0 auto;
-                  padding: 4px;  /* Padding reducido */
-                  background-color: white;
-                  font-size: 9px;  /* Texto más pequeño */
-                  line-height: 1.1;
-                }
-                .ticket {
-                  width: 100%;
-                }
-                .center {
-                  text-align: center;
-                }
-                table {
-                  width: 100%;
-                  border-collapse: collapse;
-                  font-size: 8px;  /* Texto de tabla más pequeño */
-                }
-                th, td {
-                  padding: 1px;
-                  font-size: 8px;
-                }
-                .print-btn {
-                  position: fixed;
-                  bottom: 20px;
-                  left: 50%;
-                  transform: translateX(-50%);
-                  padding: 10px 20px;
-                  background-color: #0066cc;
-                  color: white;
-                  border: none;
-                  border-radius: 4px;
-                  font-size: 16px;
-                  cursor: pointer;
-                }
-                .close-btn {
-                  position: fixed;
-                  top: 10px;
-                  right: 10px;
-                  padding: 5px 10px;
-                  background-color: #cc0000;
-                  color: white;
-                  border: none;
-                  border-radius: 4px;
-                  font-size: 16px;
-                  cursor: pointer;
-                }
-              </style>
-            </head>
-            <body>
-              <div class="ticket">
-                ${printContent.innerHTML}
-              </div>
-              <button id="printButton" class="print-btn">Imprimir</button>
-              <button id="closeButton" class="close-btn">Cerrar</button>
-              <script>
-                document.getElementById('printButton').addEventListener('click', function() {
-                  this.style.display = 'none';
-                  document.getElementById('closeButton').style.display = 'none';
-                  window.print();
-                  setTimeout(function() {
-                    document.getElementById('printButton').style.display = 'block';
-                    document.getElementById('closeButton').style.display = 'block';
-                  }, 500);
-                });
-                
-                document.getElementById('closeButton').addEventListener('click', function() {
-                  window.parent.document.body.removeChild(window.frameElement);
-                });
-              </script>
-            </body>
-            </html>
-          `);
-          frameDoc.close();
-        } else {
-          // Enfoque para escritorio: método original mejorado
-          // Crear un estilo más simple pero efectivo
-          const style = document.createElement('style');
-          style.innerHTML = `
-            @media print {
+      if (isMobile) {
+        // Enfoque para dispositivos móviles: crear un iframe
+        const printFrame = document.createElement('iframe');
+        printFrame.style.position = 'fixed';
+        printFrame.style.top = '0';
+        printFrame.style.left = '0';
+        printFrame.style.width = '100%';
+        printFrame.style.height = '100%';
+        printFrame.style.backgroundColor = '#ffffff';
+        printFrame.style.zIndex = '9999';
+        document.body.appendChild(printFrame);
+        
+        // Notificar al usuario
+        toast({
+          title: "Preparando vista para impresión",
+          description: "Un momento, por favor...",
+        });
+        
+        // Configurar el documento para móviles
+        const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
+        if (!frameDoc) {
+          throw new Error('No se pudo crear el documento para impresión');
+        }
+        
+        // Escribir el contenido HTML en el iframe
+        frameDoc.open();
+        frameDoc.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Pedido #${order.id}</title>
+            <style>
               @page {
-                size: 58mm auto;  /* Tamaño reducido para impresoras térmicas pequeñas */
-                margin: 0mm !important;
+                size: 80mm auto;
+                margin: 0mm;
               }
-              
-              html, body {
-                width: 58mm !important;  /* Ancho reducido */
-                font-family: Arial, sans-serif !important;
-                font-size: 9px !important;  /* Texto más pequeño */
-                margin: 0 !important;
-                padding: 0 !important;
-                background: white !important;
+              body {
+                font-family: Arial, sans-serif;
+                width: 80mm;
+                max-width: 100%;
+                margin: 0 auto;
+                padding: 8px;
+                background-color: white;
+                font-size: 10px;
+                line-height: 1.2;
               }
-              
-              /* Ocultar todo excepto el ticket */
-              body * {
-                display: none !important;
+              .ticket {
+                width: 100%;
               }
-              
-              /* Mostrar solo el contenedor de ticket */
-              #print-container, #print-container * {
-                display: block !important;
-                visibility: visible !important;
+              .center {
+                text-align: center;
               }
-              
-              #print-container {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 50mm !important;  /* Ancho reducido */
-                padding: 4mm !important;
-                margin: 0 !important;
-              }
-              
               table {
-                width: 100% !important;
-                border-collapse: collapse !important;
+                width: 100%;
+                border-collapse: collapse;
               }
-              
               th, td {
-                padding: 1mm !important;
-                font-size: 8px !important;  /* Texto de tabla más pequeño */
+                padding: 2px;
+                font-size: 9px;
               }
+              .print-btn {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 10px 20px;
+                background-color: #0066cc;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+              }
+              .close-btn {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                background-color: #cc0000;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="ticket">
+              ${printContent.innerHTML}
+            </div>
+            <button id="printButton" class="print-btn">Imprimir</button>
+            <button id="closeButton" class="close-btn">Cerrar</button>
+            <script>
+              document.getElementById('printButton').addEventListener('click', function() {
+                this.style.display = 'none';
+                document.getElementById('closeButton').style.display = 'none';
+                window.print();
+                setTimeout(function() {
+                  document.getElementById('printButton').style.display = 'block';
+                  document.getElementById('closeButton').style.display = 'block';
+                }, 500);
+              });
+              
+              document.getElementById('closeButton').addEventListener('click', function() {
+                window.parent.document.body.removeChild(window.frameElement);
+              });
+            </script>
+          </body>
+          </html>
+        `);
+        frameDoc.close();
+      } else {
+        // Enfoque para escritorio: método original mejorado
+        // Crear un estilo más simple pero efectivo
+        const style = document.createElement('style');
+        style.innerHTML = `
+          @media print {
+            @page {
+              size: 80mm auto;
+              margin: 0mm !important;
             }
-          `;
-          
-          // Crear un contenedor para imprimir
-          const printContainer = document.createElement('div');
-          printContainer.id = 'print-container';
-          printContainer.appendChild(printContent);
-          
-          // Añadir a la página
-          document.head.appendChild(style);
-          document.body.appendChild(printContainer);
-          
-          // Notificar al usuario
-          toast({
-            title: "Preparando impresión",
-            description: "Se abrirá el diálogo de impresión en unos segundos",
-          });
-          
-          // Esperar un momento para asegurar que todo esté cargado
-          setTimeout(() => {
-            try {
-              // Imprimir
-              window.print();
-              
-              // Notificar al usuario
-              toast({
-                title: "Enviando a impresora",
-                description: "El documento se está enviando a la impresora",
-              });
-              
-              // Limpiar después de imprimir
-              setTimeout(() => {
-                document.body.removeChild(printContainer);
-                document.head.removeChild(style);
-              }, 2000);
-            } catch (printError) {
-              console.error('Error al imprimir:', printError);
-              toast({
-                variant: "destructive",
-                title: "Error de impresión",
-                description: "No se pudo enviar a la impresora",
-              });
-              // Limpiar en caso de error
+            
+            html, body {
+              width: 80mm !important;
+              font-family: Arial, sans-serif !important;
+              font-size: 10px !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+            
+            /* Ocultar todo excepto el ticket */
+            body * {
+              display: none !important;
+            }
+            
+            /* Mostrar solo el contenedor de ticket */
+            #print-container, #print-container * {
+              display: block !important;
+              visibility: visible !important;
+            }
+            
+            #print-container {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 72mm !important;
+              padding: 4mm !important;
+              margin: 0 !important;
+            }
+            
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
+            
+            th, td {
+              padding: 1mm !important;
+              font-size: 9px !important;
+            }
+
+            /* Ajustes específicos para impresora térmica */
+            #print-container {
+              width: 80mm !important;
+              max-width: 80mm !important;
+              font-size: 10px !important;
+              line-height: 1.2 !important;
+            }
+
+            #print-container * {
+              font-family: 'Arial', sans-serif !important;
+              max-width: 80mm !important;
+            }
+
+            #print-container table {
+              width: 72mm !important;
+              margin: 0 auto !important;
+            }
+          }
+        `;
+        
+        // Crear un contenedor para imprimir
+        const printContainer = document.createElement('div');
+        printContainer.id = 'print-container';
+        printContainer.style.width = '80mm';
+        printContainer.style.margin = '0 auto';
+        printContainer.appendChild(printContent);
+        
+        // Añadir a la página
+        document.head.appendChild(style);
+        document.body.appendChild(printContainer);
+        
+        // Notificar al usuario
+        toast({
+          title: "Preparando impresión",
+          description: "Se abrirá el diálogo de impresión en unos segundos",
+        });
+        
+        // Esperar un momento para asegurar que todo esté cargado
+        setTimeout(() => {
+          try {
+            // Imprimir
+            window.print();
+            
+            // Notificar al usuario
+            toast({
+              title: "Enviando a impresora",
+              description: "El documento se está enviando a la impresora",
+            });
+            
+            // Limpiar después de imprimir
+            setTimeout(() => {
               document.body.removeChild(printContainer);
               document.head.removeChild(style);
-            }
-          }, 1000);
-        }
+            }, 2000);
+          } catch (printError) {
+            console.error('Error al imprimir:', printError);
+            toast({
+              variant: "destructive",
+              title: "Error de impresión",
+              description: "No se pudo enviar a la impresora",
+            });
+            // Limpiar en caso de error
+            document.body.removeChild(printContainer);
+            document.head.removeChild(style);
+          }
+        }, 1000);
+      }
       }, 1000);
     } catch (error: any) {
       console.error('Error en handlePrint:', error);
