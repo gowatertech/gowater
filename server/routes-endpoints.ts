@@ -1,4 +1,4 @@
-import { Express } from "express";
+import { Express, Request, Response } from "express";
 import { db } from "./db";
 import { 
   customers,
@@ -11,7 +11,8 @@ import {
   invoiceItems,
   payments,
   provinces,
-  municipalities
+  municipalities,
+  users
 } from "@shared/schema";
 import { and, eq, inArray, sql, isNull, ne, desc } from "drizzle-orm";
 import { storage } from "./storage";
@@ -1501,6 +1502,46 @@ export function registerRoutesEndpoints(app: Express) {
       res.status(201).json(paymentWithDetails);
     } catch (error) {
       console.error("Error al registrar el pago:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoint para obtener la ruta activa de un conductor
+  app.get("/api/routes/active", async (req: Request, res: Response) => {
+    try {
+      // En un entorno real, obtendríamos el ID del conductor del usuario autenticado
+      // Por ahora lo simplificamos y asumimos que es el conductor con ID 2 (como en tu ejemplo)
+      const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : 2;
+      
+      if (!driverId) {
+        return res.status(400).json({ error: "ID de conductor no proporcionado" });
+      }
+      
+      console.log(`Buscando ruta activa para el conductor ID: ${driverId}`);
+      
+      // Buscar rutas en progreso asignadas al conductor
+      const activeRoutes = await db
+        .select()
+        .from(routes)
+        .where(
+          and(
+            eq(routes.driverId, driverId),
+            eq(routes.status, "in_progress")
+          )
+        )
+        .orderBy(desc(routes.date))
+        .limit(1);
+      
+      console.log(`Rutas activas encontradas: ${activeRoutes.length}`);
+      
+      if (!activeRoutes || activeRoutes.length === 0) {
+        return res.status(404).json({ error: "No hay rutas activas para este conductor" });
+      }
+      
+      // Devolver la ruta activa
+      res.json(activeRoutes[0]);
+    } catch (error) {
+      console.error("Error al obtener la ruta activa:", error);
       res.status(500).json({ error: String(error) });
     }
   });
