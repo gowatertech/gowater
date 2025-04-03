@@ -157,39 +157,49 @@ export default function DriverRoute() {
   // Función para cargar las paradas de la ruta
   const fetchRouteStops = async (routeId: number) => {
     try {
+      console.log("Solicitando órdenes para la ruta", routeId);
       const response = await apiRequest(`/api/routes/${routeId}/orders`);
+      console.log("Respuesta del servidor:", response);
+      
+      // Definir la parada inicial (almacén/base)
+      const warehouseStop: RouteStop = {
+        id: 0,
+        order: 0,
+        customerId: 0,
+        customerName: "Almacén Principal",
+        address: "Calle Principal #123",
+        latitude: 19.075380,
+        longitude: -70.128822,
+        status: "completed",
+        estimatedArrival: "Inicio",
+        estimatedDuration: 0,
+        distanceFromPrevious: 0,
+        products: [],
+        totalValue: 0,
+        isWarehouse: true
+      };
+      
+      // Inicializar con el almacén
+      let orderedStops: RouteStop[] = [warehouseStop];
       
       if (response && Array.isArray(response)) {
-        // Definir la parada inicial (almacén/base)
-        const warehouseStop: RouteStop = {
-          id: 0,
-          order: 0,
-          customerId: 0,
-          customerName: "Almacén Principal",
-          address: "Calle Principal #123",
-          latitude: 19.075380,
-          longitude: -70.128822,
-          status: "completed",
-          estimatedArrival: "Inicio",
-          estimatedDuration: 0,
-          distanceFromPrevious: 0,
-          products: [],
-          totalValue: 0,
-          isWarehouse: true
-        };
-        
         // Mapear las órdenes a paradas con la estructura correcta
-        const stopsWithDistances = response.map((order: any, index: number) => {
+        const customerStops = response.map((order: any, index: number) => {
           // Encontrar el índice de la parada actual (la primera que no está completada)
           if (order.status !== "completed" && currentStopIndex === -1) {
             setCurrentStopIndex(index + 1); // +1 debido al almacén
           }
           
-          // Usar las coordenadas desglosadas si están disponibles, o procesarlas si es una cadena
-          let lat = order.latitude;
-          let lng = order.longitude;
+          // Obtener coordenadas
+          let lat = null, lng = null;
           
-          if (!lat && !lng && order.coordinates) {
+          // Si ya están desglosadas en la respuesta, usarlas
+          if (typeof order.latitude === 'number' && typeof order.longitude === 'number') {
+            lat = order.latitude;
+            lng = order.longitude;
+          } 
+          // Si no, intentar extraerlas de la cadena de coordenadas
+          else if (order.coordinates) {
             try {
               const coordParts = order.coordinates.split(',');
               if (coordParts.length === 2) {
@@ -201,64 +211,122 @@ export default function DriverRoute() {
             }
           }
           
+          // Procesar los productos
+          const products = order.products && Array.isArray(order.products) 
+            ? order.products.map((p: any) => ({
+                id: p.productId,
+                name: p.name,
+                quantity: p.quantity || 1,
+                price: typeof p.price === 'string' ? parseFloat(p.price) : p.price || 0,
+                isReturnable: !!p.isReturnable
+              }))
+            : [];
+            
+          // Construir la parada
           return {
             id: order.id,
             order: index + 1, // Almacén es 0, las paradas empiezan en 1
             customerId: order.customerId,
-            customerName: order.customerName,
-            address: order.address || `${order.customerAddress} ${order.streetnumber}`,
+            customerName: order.customerName || "Cliente",
+            address: order.address || `${order.customerAddress || ""} ${order.streetnumber || ""}`,
             latitude: lat,
             longitude: lng,
-            status: order.status,
+            status: order.status || "pending",
             estimatedArrival: "Programado", // Placeholder
             estimatedDuration: 15, // Placeholder - minutos estimados en la parada
             distanceFromPrevious: (index === 0) ? 3.2 : (Math.random() * 5 + 1).toFixed(1),
-            products: order.products.map((p: any) => ({
-              id: p.productId,
-              name: p.name,
-              quantity: p.quantity,
-              price: parseFloat(p.price),
-              isReturnable: p.isReturnable
-            })),
-            totalValue: parseFloat(order.total),
+            products: products,
+            totalValue: typeof order.total === 'string' ? parseFloat(order.total) : (order.total || 0),
           };
         });
         
         // Ordenar las paradas según la secuencia de entrega especificada en la ruta
-        const deliverySequence = routeDetails.deliverySequence || [];
-        let orderedStops = [];
-        
-        if (deliverySequence.length > 0) {
+        if (routeDetails && routeDetails.deliverySequence && routeDetails.deliverySequence.length > 0) {
+          console.log("Usando secuencia de entrega:", routeDetails.deliverySequence);
+          
           // Mapa para buscar rápidamente las paradas por ID
           const stopsMap = new Map();
-          stopsWithDistances.forEach(stop => stopsMap.set(stop.id.toString(), stop));
+          customerStops.forEach(stop => stopsMap.set(stop.id.toString(), stop));
           
-          // Construir la secuencia ordenada incluyendo el almacén
-          orderedStops = deliverySequence.map((id: string) => {
-            if (id === "0") return warehouseStop;
-            return stopsMap.get(id) || null;
-          }).filter(stop => stop !== null); // Eliminar elementos nulos
+          // Primero siempre va el almacén, luego las paradas en el orden indicado
+          orderedStops = [warehouseStop];
+          
+          // Añadir el resto de paradas en el orden indicado
+          for (let i = 1; i < routeDetails.deliverySequence.length; i++) {
+            const stopId = routeDetails.deliverySequence[i];
+            if (stopId !== "0") { // El almacén ya está incluido
+              const stop = stopsMap.get(stopId);
+              if (stop) {
+                orderedStops.push(stop);
+              }
+            }
+          }
+          
+          // Si alguna parada no está en la secuencia, añadirla al final
+          customerStops.forEach(stop => {
+            if (!routeDetails.deliverySequence.includes(stop.id.toString())) {
+              orderedStops.push(stop);
+            }
+          });
         } else {
           // Si no hay secuencia definida, simplemente poner el almacén primero
-          orderedStops = [warehouseStop, ...stopsWithDistances];
+          orderedStops = [warehouseStop, ...customerStops];
         }
         
-        setRouteStops(orderedStops);
+        console.log("Paradas ordenadas:", orderedStops);
         
-        // Si no se estableció un índice actual, usar el primer punto después del almacén
-        if (currentStopIndex === -1) {
-          setCurrentStopIndex(1);
+        // Actualizar el índice de la parada actual si no se ha establecido
+        if (currentStopIndex === -1 && orderedStops.length > 1) {
+          // Buscar la primera parada no completada después del almacén
+          for (let i = 1; i < orderedStops.length; i++) {
+            if (orderedStops[i].status !== "completed") {
+              setCurrentStopIndex(i);
+              break;
+            }
+          }
+          
+          // Si todas están completadas, usar la última
+          if (currentStopIndex === -1) {
+            setCurrentStopIndex(orderedStops.length - 1);
+          }
         }
-        
-        console.log("Paradas de la ruta cargadas:", orderedStops);
       } else {
-        console.warn("No se recibió una respuesta de array válida de la API");
+        console.warn("No se recibió una respuesta de array válida de la API, usando solo el almacén");
       }
       
+      // Actualizar estado con las paradas
+      setRouteStops(orderedStops);
       setLoading(false);
     } catch (error) {
       console.error("Error al cargar las paradas de la ruta:", error);
+      
+      // Aun en caso de error, mostrar al menos el almacén
+      const warehouseStop: RouteStop = {
+        id: 0,
+        order: 0,
+        customerId: 0,
+        customerName: "Almacén Principal",
+        address: "Calle Principal #123",
+        latitude: 19.075380,
+        longitude: -70.128822,
+        status: "completed",
+        estimatedArrival: "Inicio",
+        estimatedDuration: 0,
+        distanceFromPrevious: 0,
+        products: [],
+        totalValue: 0,
+        isWarehouse: true
+      };
+      
+      setRouteStops([warehouseStop]);
+      setCurrentStopIndex(0);
       setLoading(false);
+      
+      toast({
+        title: "Error al cargar paradas",
+        description: "No se pudieron cargar las paradas de la ruta. Se muestra solo el punto inicial.",
+        variant: "destructive"
+      });
     }
   };
   
