@@ -170,12 +170,72 @@ export const printOrderTicket = (
     thankYouMsg.textContent = '¡Gracias por su compra!';
     printContent.appendChild(thankYouMsg);
     
-    // Crear un iframe para impresión (siguiendo el patrón que funciona en facturación)
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    
-    // Escribir el contenido HTML en el iframe
+    // Detectar si es dispositivo móvil
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // En móviles, usar una nueva ventana para mejor compatibilidad
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo abrir la ventana de impresión. Permita ventanas emergentes.",
+        });
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Pedido #${order.id}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              @page { size: 80mm auto; margin: 0; }
+              body { width: 80mm; margin: 0; padding: 8px; font-family: sans-serif; }
+              @media print {
+                body { width: 80mm; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent.outerHTML}
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(function() { window.close(); }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+
+    } else {
+      // En desktop, usar iframe
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      iframe.contentDocument?.open();
+      iframe.contentDocument?.write(`
+        <html>
+          <head>
+            <title>Pedido #${order.id}</title>
+            <style>
+              @page { size: 80mm auto; margin: 0; }
+              body { margin: 0; padding: 8px; }
+            </style>
+          </head>
+          <body>${printContent.outerHTML}</body>
+        </html>
+      `);
+      iframe.contentDocument?.close();
+
+      setTimeout(() => {
+        iframe.contentWindow?.print();
+        document.body.removeChild(iframe);
+      }, 500);
+    }TML en el iframe
     iframe.contentDocument?.open();
     iframe.contentDocument?.write(`
       <html>
