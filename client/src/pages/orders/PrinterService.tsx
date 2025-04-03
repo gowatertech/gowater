@@ -63,11 +63,11 @@ export const printOrderTicket = (
     
     orderInfo.innerHTML = `
       <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order.id}</div>
-      <div style="margin-bottom: 3px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
-      <div style="margin-bottom: 3px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-      <div style="margin-bottom: 3px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
-      <div style="margin-bottom: 3px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
-      <div style="margin-bottom: 3px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
     `;
     printContent.appendChild(orderInfo);
     
@@ -128,18 +128,17 @@ export const printOrderTicket = (
     const totalsDiv = document.createElement('div');
     totalsDiv.style.marginTop = '10px';
     totalsDiv.style.fontSize = '11px';
+    totalsDiv.style.textAlign = 'right';
+    totalsDiv.style.paddingRight = '5px';
     totalsDiv.innerHTML = `
-      <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-        <span style="font-weight: bold;">SUBTOTAL:</span>
-        <span>RD$ ${subtotal.toFixed(2)}</span>
+      <div style="margin-bottom: 3px;">
+        <span style="font-weight: bold;">SUBTOTAL: RD$ ${subtotal.toFixed(2)}</span>
       </div>
-      <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-        <span style="font-weight: bold;">ITBIS:</span>
-        <span>RD$ ${itbis.toFixed(2)}</span>
+      <div style="margin-bottom: 3px;">
+        <span style="font-weight: bold;">ITBIS: RD$ ${itbis.toFixed(2)}</span>
       </div>
-      <div style="display: flex; justify-content: space-between; margin-bottom: 3px; font-weight: bold;">
-        <span>TOTAL:</span>
-        <span>RD$ ${total.toFixed(2)}</span>
+      <div style="margin-bottom: 3px; font-weight: bold;">
+        <span>TOTAL: RD$ ${total.toFixed(2)}</span>
       </div>
     `;
     printContent.appendChild(totalsDiv);
@@ -299,16 +298,16 @@ export const generateOrderPdf = (
     // Información del cliente y pedido
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 5, 43);
-    doc.text(`Cliente: ${customer?.businessname || "Cliente"}`, 5, 47);
-    doc.text(`Teléfono: ${order.customerPhone || ""}`, 5, 51);
-    doc.text(`Dirección: ${order.customerAddress}`, 5, 55);
-    doc.text(`${order.municipalityName || ""}, ${order.provinceName || ""}`, 5, 59);
+    doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 15, 43);
+    doc.text(`Cliente: ${customer?.businessname || "Cliente"}`, 15, 47);
+    doc.text(`Teléfono: ${order.customerPhone || ""}`, 15, 51);
+    doc.text(`Dirección: ${order.customerAddress}`, 15, 55);
+    doc.text(`${order.municipalityName || ""}, ${order.provinceName || ""}`, 15, 59);
     
     // Notas del pedido si existen
     let yPosition = 63;
     if (order.notes) {
-      doc.text(`Notas: ${order.notes}`, 5, yPosition);
+      doc.text(`Notas: ${order.notes}`, 15, yPosition);
       yPosition += 4;
     }
     
@@ -369,19 +368,16 @@ export const generateOrderPdf = (
     
     // Subtotal
     doc.setFont('helvetica', 'normal');
-    doc.text("SUBTOTAL:", 60, yPosition, { align: 'right' });
-    doc.text(`RD$${subtotal.toFixed(2)}`, 75, yPosition, { align: 'right' });
+    doc.text(`SUBTOTAL: RD$${subtotal.toFixed(2)}`, 75, yPosition, { align: 'right' });
     yPosition += 5;
     
     // ITBIS
-    doc.text("ITBIS:", 60, yPosition, { align: 'right' });
-    doc.text(`RD$${itbis.toFixed(2)}`, 75, yPosition, { align: 'right' });
+    doc.text(`ITBIS: RD$${itbis.toFixed(2)}`, 75, yPosition, { align: 'right' });
     yPosition += 5;
     
     // Total
     doc.setFont('helvetica', 'bold');
-    doc.text("TOTAL:", 60, yPosition, { align: 'right' });
-    doc.text(`RD$${total.toFixed(2)}`, 75, yPosition, { align: 'right' });
+    doc.text(`TOTAL: RD$${total.toFixed(2)}`, 75, yPosition, { align: 'right' });
     yPosition += 10;
     
     // Mensaje final
