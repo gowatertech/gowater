@@ -9,99 +9,60 @@ interface OrderTicketProps {
 }
 
 /**
- * Componente que renderiza un ticket de pedido
- * para ser impreso en impresora térmica (80mm)
+ * Componente que renderiza un ticket de pedido para impresión
+ * Formato específico para impresoras térmicas 80mm
  */
 export const OrderTicket: React.FC<OrderTicketProps> = ({
   order,
   orderItems,
   customer,
   companySettings,
-  products
+  products,
 }) => {
   // Calcular totales
   const subtotal = parseFloat(order.subtotal || order.total);
   const itbis = parseFloat(order.tax || '0');
   const total = parseFloat(order.total);
-
-  // Formatear cantidades monetarias
-  const formatCurrency = (amount: number) => `RD$${amount.toFixed(2)}`;
-
-  // Obtener la fecha formateada
-  const formattedDate = new Date(order.date).toLocaleDateString();
-
+  
   return (
-    <div style={{
-      fontFamily: 'Arial, sans-serif',
-      fontSize: '10px',
-      padding: '0',
-      margin: '0',
-      width: '100%',
-      boxSizing: 'border-box'
-    }}>
-      {/* Encabezado de la empresa */}
-      <div style={{ textAlign: 'center', marginBottom: '10px' }}>
-        <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '5px' }}>
-          {companySettings.name}
-        </div>
-        <div style={{ fontSize: '11px', marginBottom: '2px' }}>
-          RNC: {companySettings.rnc}
-        </div>
-        <div style={{ fontSize: '11px', marginBottom: '2px' }}>
-          {companySettings.street} {companySettings.streetNumber}
-        </div>
-        <div style={{ fontSize: '11px', marginBottom: '2px' }}>
-          {companySettings.municipalityName}, {companySettings.provinceName}
-        </div>
-        <div style={{ fontSize: '11px', marginBottom: '2px' }}>
-          Tel: {companySettings.contactPhone}
-        </div>
-        <div style={{ fontSize: '11px', marginBottom: '2px' }}>
-          Email: {companySettings.email}
-        </div>
+    <div className="ticket-container">
+      {/* Encabezado: Información de la empresa */}
+      <div className="header">
+        <div className="company-name">{companySettings.name}</div>
+        <div className="company-info">RNC: {companySettings.rnc}</div>
+        <div className="company-info">{companySettings.street} {companySettings.streetNumber}</div>
+        <div className="company-info">{companySettings.municipalityName}, {companySettings.provinceName}</div>
+        <div className="company-info">Tel: {companySettings.contactPhone}</div>
+        <div className="company-info">Email: {companySettings.email}</div>
       </div>
-
+      
       {/* Separador */}
-      <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }} />
-
-      {/* Título e información del pedido */}
-      <div style={{ marginBottom: '10px' }}>
-        <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '14px', marginBottom: '5px' }}>
-          PEDIDO #{order.id}
-        </div>
-        <div style={{ marginBottom: '3px', paddingLeft: '15px' }}>
-          <strong>Fecha:</strong> {formattedDate}
-        </div>
-        <div style={{ marginBottom: '3px', paddingLeft: '15px' }}>
-          <strong>Cliente:</strong> {customer?.businessname || "Cliente"}
-        </div>
-        <div style={{ marginBottom: '3px', paddingLeft: '15px' }}>
-          <strong>Teléfono:</strong> {order.customerPhone || ""}
-        </div>
-        <div style={{ marginBottom: '3px', paddingLeft: '15px' }}>
-          <strong>Dirección:</strong> {order.customerAddress}
-        </div>
-        <div style={{ marginBottom: '3px', paddingLeft: '15px' }}>
-          {order.municipalityName || ""}, {order.provinceName || ""}
-        </div>
+      <div className="separator"></div>
+      
+      {/* Información del pedido */}
+      <div className="order-info">
+        <div className="order-title">PEDIDO #{order.id}</div>
+        <div className="order-detail"><strong>Fecha:</strong> {new Date(order.date).toLocaleDateString()}</div>
+        <div className="order-detail"><strong>Cliente:</strong> {customer?.businessname || "Cliente"}</div>
+        <div className="order-detail"><strong>Teléfono:</strong> {order.customerPhone || ""}</div>
+        <div className="order-detail"><strong>Dirección:</strong> {order.customerAddress}</div>
+        <div className="order-detail">{order.municipalityName || ""}, {order.provinceName || ""}</div>
       </div>
-
+      
       {/* Separador */}
-      <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }} />
-
-      {/* Detalle de productos */}
-      <div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: '5px' }}>
-        DETALLE DEL PEDIDO
-      </div>
-
+      <div className="separator"></div>
+      
+      {/* Detalle del pedido */}
+      <div className="items-title">DETALLE DEL PEDIDO</div>
+      
       {/* Tabla de productos */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px' }}>
+      <table className="items-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #ddd' }}>
-            <th style={{ textAlign: 'left', padding: '3px' }}>Producto</th>
-            <th style={{ textAlign: 'center', padding: '3px' }}>Cant.</th>
-            <th style={{ textAlign: 'right', padding: '3px' }}>Precio</th>
-            <th style={{ textAlign: 'right', padding: '3px' }}>Total</th>
+          <tr>
+            <th className="left">Producto</th>
+            <th className="center">Cant.</th>
+            <th className="right">Precio</th>
+            <th className="right">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -110,61 +71,169 @@ export const OrderTicket: React.FC<OrderTicketProps> = ({
             const itemTotal = parseFloat(item.price) * item.quantity;
             
             return (
-              <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ textAlign: 'left', padding: '3px' }}>
-                  {product?.name || "Producto"}
-                </td>
-                <td style={{ textAlign: 'center', padding: '3px' }}>
-                  {item.quantity}
-                </td>
-                <td style={{ textAlign: 'right', padding: '3px' }}>
-                  {formatCurrency(parseFloat(item.price))}
-                </td>
-                <td style={{ textAlign: 'right', padding: '3px' }}>
-                  {formatCurrency(itemTotal)}
-                </td>
+              <tr key={index}>
+                <td className="left">{product?.name || "Producto"}</td>
+                <td className="center">{item.quantity}</td>
+                <td className="right">RD${parseFloat(item.price).toFixed(2)}</td>
+                <td className="right">RD${itemTotal.toFixed(2)}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
-
+      
       {/* Separador */}
-      <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }} />
-
+      <div className="separator"></div>
+      
       {/* Totales */}
-      <div style={{ marginTop: '10px', fontSize: '11px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-          <span style={{ flex: 1, textAlign: 'left' }}>SUBTOTAL:</span>
-          <span style={{ flex: 1, textAlign: 'center' }}>{formatCurrency(subtotal)}</span>
+      <div className="totals">
+        <div className="total-row">
+          <span className="total-label">SUBTOTAL:</span>
+          <span className="total-value">RD$ {subtotal.toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-          <span style={{ flex: 1, textAlign: 'left' }}>ITBIS:</span>
-          <span style={{ flex: 1, textAlign: 'center' }}>{formatCurrency(itbis)}</span>
+        <div className="total-row">
+          <span className="total-label">ITBIS:</span>
+          <span className="total-value">RD$ {itbis.toFixed(2)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginBottom: '5px' }}>
-          <span style={{ flex: 1, textAlign: 'left' }}>TOTAL:</span>
-          <span style={{ flex: 1, textAlign: 'center' }}>{formatCurrency(total)}</span>
+        <div className="total-row bold">
+          <span className="total-label">TOTAL:</span>
+          <span className="total-value">RD$ {total.toFixed(2)}</span>
         </div>
       </div>
-
+      
       {/* Notas (si hay) */}
       {order.notes && (
-        <div style={{ marginTop: '10px', fontSize: '10px' }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>Nota del Pedido:</div>
-          <div>{order.notes}</div>
+        <div className="notes">
+          <div className="notes-title">Nota del Pedido:</div>
+          <div className="notes-content">{order.notes}</div>
         </div>
       )}
-
+      
       {/* Separador */}
-      <div style={{ borderBottom: '1px dashed #000', margin: '10px 0' }} />
-
+      <div className="separator"></div>
+      
       {/* Mensaje de agradecimiento */}
-      <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '11px' }}>
-        ¡Gracias por su compra!
-      </div>
+      <div className="thank-you">¡Gracias por su compra!</div>
+      
+      {/* Estilos internos */}
+      <style>
+        {`
+          .ticket-container {
+            width: 74mm;
+            font-family: Arial, sans-serif;
+            font-size: 10px;
+            padding: 5mm 2mm;
+            box-sizing: border-box;
+          }
+          
+          .header {
+            text-align: center;
+            margin-bottom: 10px;
+          }
+          
+          .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          
+          .company-info {
+            font-size: 11px;
+            margin-bottom: 2px;
+          }
+          
+          .separator {
+            border-bottom: 1px dashed black;
+            margin: 10px 0;
+          }
+          
+          .order-info {
+            margin-bottom: 10px;
+            font-size: 11px;
+          }
+          
+          .order-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+          }
+          
+          .order-detail {
+            margin-bottom: 3px;
+            padding-left: 15px;
+          }
+          
+          .items-title {
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 5px;
+          }
+          
+          .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+          }
+          
+          .items-table th, .items-table td {
+            padding: 3px;
+          }
+          
+          .left {
+            text-align: left;
+          }
+          
+          .center {
+            text-align: center;
+          }
+          
+          .right {
+            text-align: right;
+          }
+          
+          .totals {
+            margin-top: 10px;
+            font-size: 11px;
+          }
+          
+          .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+          }
+          
+          .total-label {
+            flex: 1;
+            text-align: left;
+          }
+          
+          .total-value {
+            flex: 1;
+            text-align: center;
+          }
+          
+          .bold {
+            font-weight: bold;
+          }
+          
+          .notes {
+            margin-top: 10px;
+            font-size: 10px;
+          }
+          
+          .notes-title {
+            font-weight: bold;
+            margin-bottom: 3px;
+          }
+          
+          .thank-you {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 11px;
+          }
+        `}
+      </style>
     </div>
   );
 };
-
-export default OrderTicket;
