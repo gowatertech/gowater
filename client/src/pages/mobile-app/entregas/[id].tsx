@@ -444,9 +444,9 @@ export default function DeliveryDetails() {
       
       // Crear el contenido del ticket
       const printContent = document.createElement("div");
-      printContent.style.width = "80mm"; // Ancho de 3 pulgadas
-      printContent.style.margin = "0 auto";
-      printContent.style.fontSize = "10px";
+      printContent.style.width = "80mm"; // Ancho estándar de impresora térmica
+      printContent.style.padding = "0 5px";
+      printContent.style.boxSizing = "border-box";
       printContent.style.fontFamily = "Arial, sans-serif";
       
       // Información de la empresa (encabezado)
@@ -512,19 +512,16 @@ export default function DeliveryDetails() {
         </table>
         <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
         <div style="display: flex; justify-content: space-between; margin: 5px 0;">
-          <div style="flex: 1;"></div>
-          <div style="text-align: right; padding-right: 10px;">SUBTOTAL:</div>
-          <div style="text-align: right; width: 80px;">RD$${subtotal.toFixed(2)}</div>
+          <span style="flex: 1; text-align: left;">SUBTOTAL:</span>
+          <span style="flex: 1; text-align: center;">RD$ ${subtotal.toFixed(2)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; margin: 5px 0;">
-          <div style="flex: 1;"></div>
-          <div style="text-align: right; padding-right: 10px;">ITBIS:</div>
-          <div style="text-align: right; width: 80px;">RD$${itbis.toFixed(2)}</div>
+          <span style="flex: 1; text-align: left;">ITBIS:</span>
+          <span style="flex: 1; text-align: center;">RD$ ${itbis.toFixed(2)}</span>
         </div>
-        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
-          <div style="flex: 1;"></div>
-          <div style="text-align: right; padding-right: 10px; font-weight: bold;">TOTAL:</div>
-          <div style="text-align: right; width: 80px; font-weight: bold;">RD$${total.toFixed(2)}</div>
+        <div style="display: flex; justify-content: space-between; margin: 5px 0; font-weight: bold;">
+          <span style="flex: 1; text-align: left;">TOTAL:</span>
+          <span style="flex: 1; text-align: center;">RD$ ${total.toFixed(2)}</span>
         </div>
         <div style="border-top: 1px solid #ddd; margin: 10px 0;"></div>
         <div style="margin: 10px 0 5px 0;"><strong>Nota del Pedido:</strong> ${orderData.notes || ""}</div>
@@ -534,53 +531,57 @@ export default function DeliveryDetails() {
         </div>
       `;
       
-      // Crear un iframe para la impresión (método que funciona en la versión de escritorio)
-      const printFrame = document.createElement("iframe");
-      printFrame.style.display = "none";
-      document.body.appendChild(printFrame);
+      // Crear un iframe para impresión (siguiendo el patrón que funciona en facturación)
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
       
-      // Escribir el contenido en el iframe
-      if (printFrame.contentWindow) {
-        printFrame.contentWindow.document.open();
-        printFrame.contentWindow.document.write(`
-          <html>
-            <head>
-              <title>Pedido #${delivery.orderId}</title>
-              <style>
-                @page {
-                  size: 80mm 200mm;
-                  margin: 5mm;
-                }
-                body { 
-                  margin: 0;
-                  padding: 5mm;
-                  width: 80mm;
-                  height: auto;
-                  font-family: Arial, Helvetica, sans-serif;
-                }
-                * { box-sizing: border-box; }
-                table { width: 100%; }
-              </style>
-            </head>
-            <body>
-              ${printContent.outerHTML}
-            </body>
-          </html>
-        `);
-        printFrame.contentWindow.document.close();
-        
-        // Imprimir - primero forzar una espera para que el navegador tenga tiempo
-        // de procesar el contenido del iframe antes de intentar imprimir
-        setTimeout(() => {
-          printFrame.contentWindow?.focus();
-          printFrame.contentWindow?.print();
+      // Escribir el contenido HTML en el iframe
+      iframe.contentDocument?.open();
+      iframe.contentDocument?.write(`
+        <html>
+          <head>
+            <title>Pedido #${delivery.orderId}</title>
+            <style>
+              @media print {
+                body { margin: 0; padding: 0; }
+                @page { size: 80mm 297mm; margin: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            ${printContent.outerHTML}
+          </body>
+        </html>
+      `);
+      iframe.contentDocument?.close();
+      
+      // Imprimir después de que el iframe cargue
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
           
-          // Remover el iframe después de imprimir
+          // Notificar al usuario
+          toast({
+            title: "Imprimiendo ticket",
+            description: "El documento se ha enviado a la impresora",
+          });
+          
+          // Limpiar después de imprimir
           setTimeout(() => {
-            document.body.removeChild(printFrame);
+            document.body.removeChild(iframe);
           }, 1000);
-        }, 200);
-      }
+        } catch (printError) {
+          console.error('Error al imprimir:', printError);
+          toast({
+            variant: "destructive",
+            title: "Error de impresión",
+            description: "No se pudo enviar a la impresora",
+          });
+          document.body.removeChild(iframe);
+        }
+      };
       
       toast({
         title: "Imprimiendo",
