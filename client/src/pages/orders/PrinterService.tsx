@@ -128,17 +128,18 @@ export const printOrderTicket = (
     const totalsDiv = document.createElement('div');
     totalsDiv.style.marginTop = '10px';
     totalsDiv.style.fontSize = '11px';
-    totalsDiv.style.textAlign = 'right';
-    totalsDiv.style.paddingRight = '5px';
     totalsDiv.innerHTML = `
-      <div style="margin-bottom: 3px;">
-        <span style="font-weight: bold;">SUBTOTAL: RD$ ${subtotal.toFixed(2)}</span>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span>SUBTOTAL:</span>
+        <span>RD$ ${subtotal.toFixed(2)}</span>
       </div>
-      <div style="margin-bottom: 3px;">
-        <span style="font-weight: bold;">ITBIS: RD$ ${itbis.toFixed(2)}</span>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+        <span>ITBIS:</span>
+        <span>RD$ ${itbis.toFixed(2)}</span>
       </div>
-      <div style="margin-bottom: 3px; font-weight: bold;">
-        <span>TOTAL: RD$ ${total.toFixed(2)}</span>
+      <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
+        <span>TOTAL:</span>
+        <span>RD$ ${total.toFixed(2)}</span>
       </div>
     `;
     printContent.appendChild(totalsDiv);
