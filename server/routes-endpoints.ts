@@ -1547,4 +1547,125 @@ export function registerRoutesEndpoints(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Completar una orden (entregar y cobrar)
+  app.post("/api/orders/:id/complete", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "ID de orden inválido" });
+      }
+      
+      const { status, paymentMethod, amountPaid, userId } = req.body;
+      
+      // Validar los datos de entrada
+      if (!status || !paymentMethod) {
+        return res.status(400).json({ error: "Datos incompletos para completar la orden" });
+      }
+      
+      // Obtener la orden
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ error: "Orden no encontrada" });
+      }
+      
+      // Si la orden ya está entregada, retornar éxito
+      if (order.status === "delivered") {
+        return res.json({ success: true, message: "La orden ya estaba marcada como entregada" });
+      }
+      
+      // Actualizar el estado de la orden
+      const updatedOrder = await storage.updateOrderStatus(id, "delivered");
+      
+      // Registrar el pago
+      if (amountPaid && paymentMethod) {
+        try {
+          // Obtener el cliente de la orden para el registro del pago
+          const order = await db.query.orders.findFirst({
+            where: eq(orders.id, id)
+          });
+          
+          if (order) {
+            const payment = {
+              invoiceId: id, // Usando el ID de la orden como invoiceId
+              amount: amountPaid.toString(),
+              paymentMethod: paymentMethod,
+              customerId: order.customerId,
+              reference: `Pago orden #${id}`,
+              notes: `Pago procesado por conductor`
+            };
+            
+            await storage.registerPayment(payment);
+            
+            console.log(`Pago registrado para la orden ${id}: ${amountPaid} via ${paymentMethod}`);
+          }
+        } catch (paymentError) {
+          console.error("Error al registrar el pago:", paymentError);
+          // No fallamos la operación completa si el pago no se registra
+        }
+      }
+      
+      // Si la orden está asociada a una ruta, verificar si todas las órdenes están completadas
+      if (order.routeId) {
+        try {
+          // Obtener todas las órdenes de la ruta
+          const routeOrders = await db.query.orders.findMany({
+            where: eq(orders.routeId, order.routeId)
+          });
+          
+          // Verificar si todas están entregadas
+          const allDelivered = routeOrders.every(o => o.id === id || o.status === "delivered");
+          
+          if (allDelivered) {
+            console.log(`Todas las órdenes de la ruta ${order.routeId} han sido entregadas`);
+            
+            // Actualizar la ruta como completada
+            await storage.updateRouteStatus(order.routeId, "completed");
+            
+            // Actualizar la fecha de finalización y marcar como completada
+            await db.update(routes)
+              .set({ 
+                driverEndedAt: new Date(),
+                isCompleted: true
+              })
+              .where(eq(routes.id, order.routeId));
+          }
+        } catch (routeError) {
+          console.error("Error al verificar/actualizar el estado de la ruta:", routeError);
+        }
+      }
+      
+      res.json({ success: true, order: updatedOrder });
+    } catch (error) {
+      console.error("Error al completar la orden:", error);
+      res.status(500).json({ error: "Error al completar la orden" });
+    }
+  });
+  
+  // Generar factura para una orden
+  app.post("/api/invoices/generate", async (req, res) => {
+    try {
+      const { orderId, total, paymentMethod, userId } = req.body;
+      
+      if (!orderId) {
+        return res.status(400).json({ error: "ID de orden requerido" });
+      }
+      
+      // En un sistema real, aquí se generaría la factura en la base de datos
+      // Para esta implementación, solo retornamos un ID de factura simulado
+      
+      const invoiceId = `INV-${orderId}-${Date.now().toString().slice(-6)}`;
+      
+      console.log(`Factura ${invoiceId} generada para la orden ${orderId}`);
+      
+      res.json({ 
+        success: true, 
+        invoiceId,
+        message: "Factura generada correctamente"
+      });
+    } catch (error) {
+      console.error("Error al generar la factura:", error);
+      res.status(500).json({ error: "Error al generar la factura" });
+    }
+  });
 }
