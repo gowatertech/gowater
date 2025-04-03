@@ -612,24 +612,6 @@ export default function OrderDetails() {
           <Button 
             variant="outline"
             size="sm"
-            onClick={handlePrint}
-            className={isMobile ? "flex-1" : ""}
-          >
-            <Printer className="h-4 w-4 mr-1" />
-            Imprimir
-          </Button>
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={handleDownload}
-            className={isMobile ? "flex-1" : ""}
-          >
-            <FileDown className="h-4 w-4 mr-1" />
-            PDF
-          </Button>
-          <Button 
-            variant="outline"
-            size="sm"
             onClick={() => setLocation("/orders/list")}
             className={isMobile ? "flex-1" : ""}
           >
