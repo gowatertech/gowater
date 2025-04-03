@@ -562,10 +562,9 @@ export default function OrdersList() {
         const doc = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
-          format: [80, 200], // 80mm de ancho x 200mm de alto (en vez de 297 para reducir páginas en blanco)
+          format: [80, 297], // 80mm de ancho (3 pulgadas) x altura automática
           hotfixes: ['px_scaling'], // Fix para escala de píxeles
           compress: false, // Evitar compresión que puede alterar el tamaño
-          putOnlyUsedFonts: true, // Optimización
         });
         
         // Agregar logo o nombre de la empresa
