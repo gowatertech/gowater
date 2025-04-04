@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, RotateCw, Compass, MapPin, Target, Navigation, Route as RouteIcon } from "lucide-react";
+import { AlertTriangle, RotateCw, Target } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline } from 'react-leaflet';
@@ -72,7 +72,7 @@ interface MapLocation {
   timestamp: Date;
 }
 
-// Componente para centar el mapa en la ubicación actual
+// Componente para centrar el mapa en la ubicación actual
 const LocationMarker = () => {
   const [position, setPosition] = useState<[number, number] | null>(null);
   const [locationFound, setLocationFound] = useState(false);
@@ -139,7 +139,7 @@ export default function MobileMap() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { user } = useCurrentUser();
-  const [mapCenter, setMapCenter] = useState<[number, number]>([19.075380, -70.128822]); // Centro inicial en el almacén principal AGUA HARRIS
+  const [mapCenter] = useState<[number, number]>([19.075380, -70.128822]); // Centro inicial en el almacén principal AGUA HARRIS
   const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
 
   // Consulta para obtener rutas activas
@@ -148,8 +148,8 @@ export default function MobileMap() {
     enabled: !!user
   });
   
-  // Consulta para obtener datos de conductores (la dejamos solo para mantener compatibilidad)
-  const { data: driversData, isLoading: loadingDrivers, error: driversError } = useQuery<Driver[]>({
+  // Consulta para obtener datos de conductores (desactivada)
+  const { data: driversData } = useQuery<Driver[]>({
     queryKey: ['/api/drivers/locations'],
     enabled: false // Desactivada porque no usamos ubicaciones reales
   });
@@ -183,7 +183,7 @@ export default function MobileMap() {
         }
       );
     }
-  }, []);
+  }, [toast]);
 
   // Función para convertir coordenadas string a array [lat, lng]
   const parseCoordinate = (coordStr: string): [number, number] | null => {
@@ -222,8 +222,7 @@ export default function MobileMap() {
   }, [activeRoutes]);
 
   // Si está cargando
-  const isLoading = loadingRoutes;
-  if (isLoading) {
+  if (loadingRoutes) {
     return (
       <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
         <MobileHeader 
@@ -244,8 +243,7 @@ export default function MobileMap() {
   }
 
   // Si hay error
-  const error = routeError;
-  if (error) {
+  if (routeError) {
     return (
       <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
         <MobileHeader 
@@ -286,6 +284,11 @@ export default function MobileMap() {
       />
       <main className="flex-1 flex flex-col pb-16">
         <div className="flex-1 relative">
+          {/* Nombre de la empresa en la parte superior izquierda */}
+          <div className="absolute top-3 left-3 z-[999] bg-white bg-opacity-80 px-3 py-2 rounded-lg shadow-md">
+            <h1 className="text-xl font-bold text-purple-700">AGUA HARRIS</h1>
+          </div>
+          
           <ResponsiveMapContainer fullHeight>
             <MapContainer 
               center={mapCenter} 
@@ -316,15 +319,7 @@ export default function MobileMap() {
                   iconSize: [40, 40],
                   iconAnchor: [20, 20],
                 })}
-              >
-                <Popup>
-                  <div>
-                    <p className="font-bold">Almacén Principal (Ruta 0)</p>
-                    <p className="text-xs font-medium text-purple-600">AGUA HARRIS</p>
-                    <p className="text-xs text-gray-500">Punto inicial de todas las rutas</p>
-                  </div>
-                </Popup>
-              </Marker>
+              />
               
               {/* Renderizar rutas activas y sus paradas */}
               {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route, routeIndex) => {
@@ -362,7 +357,6 @@ export default function MobileMap() {
                     {/* Mostrar marcadores para cada parada */}
                     {routePoints.map((point, index) => {
                       // Definir índice mostrado en el mapa
-                      // El almacén siempre será "0", las demás paradas comienzan en 1
                       const displayIndex = index === 0 ? 0 : index;
                       
                       // Convertir el color de la ruta en clase tailwind equivalente para los marcadores
@@ -376,14 +370,10 @@ export default function MobileMap() {
                         '#ef4444': 'bg-red-500',
                       };
                       
-                      // Almacén (Ruta 0) en color diferenciado, último punto (final) en rojo, resto del color de la ruta
+                      // Asignar color según la posición en la ruta
                       const color = index === 0 ? 'bg-purple-600' : 
                                    index === routePoints.length - 1 ? 'bg-red-500' : 
                                    (routeColor in routeColorClasses ? routeColorClasses[routeColor as keyof typeof routeColorClasses] : 'bg-blue-500');
-                      
-                      // Etiquetas descriptivas para puntos especiales
-                      const label = index === 0 ? 'Almacén Principal (Ruta 0)' : 
-                                   index === routePoints.length - 1 ? 'Final' : `Parada ${index}`;
                       
                       return (
                         <Marker 
@@ -399,23 +389,7 @@ export default function MobileMap() {
                             iconSize: [32, 32],
                             iconAnchor: [16, 16],
                           })}
-                        >
-                          <Popup>
-                            <div>
-                              <p className="font-bold">{label}</p>
-                              <p className="text-xs text-gray-500">
-                                {index === 0 ? (
-                                  <>
-                                    <span className="block font-medium text-purple-600">AGUA HARRIS</span>
-                                    <span className="block">Punto inicial de todas las rutas</span>
-                                  </>
-                                ) : (
-                                  <>Ruta: {route.name}</>
-                                )}
-                              </p>
-                            </div>
-                          </Popup>
-                        </Marker>
+                        />
                       );
                     })}
                   </React.Fragment>
