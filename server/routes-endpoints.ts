@@ -1521,18 +1521,17 @@ export function registerRoutesEndpoints(app: Express) {
       
       console.log(`Buscando ruta activa para el conductor ID: ${driverId}`);
       
-      // Buscar rutas en progreso asignadas al conductor
+      // Buscar rutas pendientes o en progreso asignadas al conductor
       const activeRoutes = await db
         .select()
         .from(routes)
         .where(
           and(
             eq(routes.driverId, driverId),
-            eq(routes.status, "in_progress")
+            inArray(routes.status, ["pending", "in_progress"])
           )
         )
-        .orderBy(desc(routes.date))
-        .limit(1);
+        .orderBy(desc(routes.date));
       
       console.log(`Rutas activas encontradas: ${activeRoutes.length}`);
       
@@ -1540,8 +1539,45 @@ export function registerRoutesEndpoints(app: Express) {
         return res.status(404).json({ error: "No hay rutas activas para este conductor" });
       }
       
-      // Devolver la ruta activa
-      res.json(activeRoutes[0]);
+      // Obtener los pedidos asociados a cada ruta
+      const routesWithOrders = await Promise.all(
+        activeRoutes.map(async (route) => {
+          // Contar los pedidos asociados a esta ruta
+          const orderCountResult = await db
+            .select({
+              count: sql`COUNT(*)`.mapWith(Number),
+            })
+            .from(orders)
+            .where(eq(orders.routeId, route.id));
+          
+          const orderCount = orderCountResult[0]?.count || 0;
+          
+          // Buscar todas las órdenes para esta ruta
+          const routeOrders = await db
+            .select({
+              id: orders.id,
+              routeId: orders.routeId,
+              customerId: orders.customerId,
+              status: orders.status,
+              total: orders.total,
+              customerName: customers.businessname,
+              customerAddress: customers.street,
+            })
+            .from(orders)
+            .leftJoin(customers, eq(orders.customerId, customers.id))
+            .where(eq(orders.routeId, route.id))
+            .limit(10); // Limitar para prevenir queries muy largas
+            
+          return {
+            ...route,
+            orderCount,
+            orders: routeOrders
+          };
+        })
+      );
+      
+      // Devolver todas las rutas activas con información de pedidos
+      res.json(routesWithOrders);
     } catch (error) {
       console.error("Error al obtener la ruta activa:", error);
       res.status(500).json({ error: String(error) });

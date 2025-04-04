@@ -36,6 +36,8 @@ interface Route {
   totalRevenue: number | null;
   deliverySequence: string[];
   stops: string[];
+  orderCount: number;
+  orders?: Order[];
   localStatus?: 'in_progress' | 'paused' | undefined;
 }
 
@@ -65,22 +67,23 @@ export default function MobilePendingRoutes() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [expandedRoutes, setExpandedRoutes] = useState<Record<number, boolean>>({});
   
-  // Consultar rutas pendientes
+  // Consultar rutas pendientes (versión actualizada)
   const { data: routes = [], isLoading: isLoadingRoutes, error: routesError } = useQuery<Route[]>({
-    queryKey: ["/api/routes", { status: 'pending' }],
-    queryFn: async ({ queryKey }) => {
-      const [endpoint, params] = queryKey;
-      const url = `${endpoint}?status=${params.status}`;
-      console.log("Consultando rutas pendientes:", url);
+    queryKey: ["/api/routes/active"],
+    queryFn: async () => {
+      const driverId = user?.id;
+      const url = `/api/routes/active${driverId ? `?driverId=${driverId}` : ''}`;
+      console.log("Consultando rutas pendientes y en progreso:", url);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('No se pudieron cargar las rutas pendientes');
       }
       const data = await response.json();
-      console.log(`Rutas pendientes cargadas: ${data.length}`);
+      console.log(`Rutas activas cargadas: ${data.length}`);
       return data;
     },
-    retry: 3
+    retry: 3,
+    enabled: !!user
   });
 
   // Consultar todas las órdenes disponibles
@@ -162,19 +165,24 @@ export default function MobilePendingRoutes() {
 
   // Al cargar las rutas y las órdenes, asignar órdenes a rutas
   useEffect(() => {
-    if (allAvailableRoutes.length > 0 && allOrders.length > 0) {
+    if (allAvailableRoutes.length > 0) {
       // Inicializar el objeto para almacenar las órdenes por ruta
       const routeOrders: Record<number, Order[]> = {};
       
-      // Para cada ruta disponible
+      // Para cada ruta disponible, usar los pedidos que vienen en la ruta
       allAvailableRoutes.forEach(route => {
-        // Filtrar órdenes que no tengan ruta asignada
-        const unassignedOrders = allOrders.filter(order => 
-          order.routeId === null && order.status === "pending"
-        );
-        
-        // Las órdenes pendientes siempre se muestran en las rutas disponibles
-        routeOrders[route.id] = unassignedOrders;
+        // Si la ruta tiene órdenes precargadas en la API, las usamos
+        if (route.orders && route.orders.length > 0) {
+          routeOrders[route.id] = route.orders;
+        } 
+        // Si no tiene órdenes precargadas, intentamos buscarlas en allOrders
+        else {
+          const routeOrdersFromAll = allOrders.filter(order => 
+            order.routeId === route.id && order.status === "pending"
+          );
+          
+          routeOrders[route.id] = routeOrdersFromAll;
+        }
       });
       
       // Actualizar el estado con las órdenes asignadas
@@ -300,8 +308,8 @@ export default function MobilePendingRoutes() {
                 </span>
               </div>
             </div>
-            <Badge variant={routeOrders.length > 0 ? "default" : "outline"}>
-              {routeOrders.length} pedidos
+            <Badge variant={(routeOrders.length > 0 || route.orderCount > 0) ? "default" : "outline"}>
+              {routeOrders.length || route.orderCount || 0} pedidos
             </Badge>
           </div>
           
