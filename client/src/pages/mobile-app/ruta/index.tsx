@@ -257,7 +257,11 @@ export default function DriverRoute() {
             : [];
             
           // Mapear el estado de la API al estado visual que necesitamos mostrar
-          let displayStatus = order.status || "pending";
+          // Guardamos el estado real tal como viene de la base de datos
+          const actualStatus = order.status || "pending";
+          
+          // Para la visualización en la interfaz
+          let displayStatus = actualStatus;
           
           // Si el estado es "in_transit", mostrarlo como "in_progress" en la interfaz 
           // (esta orden está en ruta pero aún no ha sido entregada)
@@ -389,7 +393,7 @@ export default function DriverRoute() {
   
   // Marcar parada como completada
   const handleMarkStopCompleted = (stop: RouteStop) => {
-    console.log("Estado actual de la parada:", stop.actualStatus);
+    console.log("Estado actual de la parada:", stop.status);
     
     // Implementar lógica para marcar parada completada
     toast({

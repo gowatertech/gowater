@@ -218,8 +218,8 @@ export function registerRoutesEndpoints(app: Express) {
           id: orders.id,
           routeId: orders.routeId,
           customerId: orders.customerId,
-          // Si el estado es "in_transit", lo cambiamos a "pending" para la UI
-          status: sql`CASE WHEN ${orders.status} = 'in_transit' THEN 'pending' ELSE ${orders.status} END`,
+          // Ya no cambiamos el estado de "in_transit" a "pending" para que la UI muestre el estado real
+          status: orders.status,
           total: orders.total,
           customerName: customers.businessname,
           customerAddress: customers.street,
