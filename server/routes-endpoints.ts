@@ -179,12 +179,15 @@ export function registerRoutesEndpoints(app: Express) {
       console.log("Obteniendo pedidos para la ruta:", routeDetails);
       
       // Buscar todas las órdenes para esta ruta, independientemente de su estado
+      // IMPORTANTE: Devolver todos los pedidos de la ruta como "pending" para simplificar la UI
+      // hasta que sean realmente entregados (delivered)
       let routeOrders = await db
         .select({
           id: orders.id,
           routeId: orders.routeId,
           customerId: orders.customerId,
-          status: orders.status,
+          // Si el estado es "in_transit", lo cambiamos a "pending" para la UI
+          status: sql`CASE WHEN ${orders.status} = 'in_transit' THEN 'pending' ELSE ${orders.status} END`,
           total: orders.total,
           customerName: customers.businessname,
           customerAddress: customers.street,
@@ -483,8 +486,11 @@ export function registerRoutesEndpoints(app: Express) {
         .where(eq(routes.id, routeId))
         .returning();
       
-      // Ahora, actualizar todos los pedidos asociados a esta ruta a estado "in_transit"
-      // para que no aparezcan en las listas de pedidos pendientes
+      // NOTA: Ya no actualizamos los pedidos a "in_transit"
+      // Los mantenemos como "pending" para que el conductor vea claramente cuáles debe entregar
+      // Esto simplifica la lógica y la interfaz de usuario
+      // Comentado el código anterior que cambiaba el estado:
+      /*
       await db
         .update(orders)
         .set({
@@ -496,6 +502,7 @@ export function registerRoutesEndpoints(app: Express) {
             eq(orders.status, "pending")  // Solo actualizamos los pedidos en estado pendiente
           )
         );
+      */
       
       console.log(`Ruta ${routeId} y sus pedidos asociados actualizados a estado "in_transit"`);
       
