@@ -1511,32 +1511,35 @@ export function registerRoutesEndpoints(app: Express) {
   // Endpoint para obtener la ruta activa de un conductor
   app.get("/api/routes/active", async (req: Request, res: Response) => {
     try {
-      // En un entorno real, obtendríamos el ID del conductor del usuario autenticado
-      // Por ahora lo simplificamos y asumimos que es el conductor con ID 2 (como en tu ejemplo)
-      const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : 2;
+      // Mantener compatibilidad con clientes que no envían el ID del conductor
+      // Si no viene el ID, devolver todas las rutas activas
+      const driverId = req.query.driverId ? parseInt(req.query.driverId as string) : null;
       
-      if (!driverId) {
-        return res.status(400).json({ error: "ID de conductor no proporcionado" });
-      }
+      console.log(`Buscando rutas activas${driverId ? ` para el conductor ID: ${driverId}` : ' (todas)'}`);
       
-      console.log(`Buscando ruta activa para el conductor ID: ${driverId}`);
-      
-      // Buscar rutas pendientes o en progreso asignadas al conductor
-      const activeRoutes = await db
+      // Construir la consulta base
+      let query = db
         .select()
         .from(routes)
         .where(
-          and(
-            eq(routes.driverId, driverId),
-            inArray(routes.status, ["pending", "in_progress"])
-          )
-        )
-        .orderBy(desc(routes.date));
+          inArray(routes.status, ["pending", "in_progress"])
+        );
+        
+      // Si se proporciona un ID de conductor, filtrar por él
+      if (driverId) {
+        query = query.where(eq(routes.driverId, driverId));
+      }
+      
+      // Ordenar por fecha descendente
+      query = query.orderBy(desc(routes.date));
+        
+      // Ejecutar la consulta
+      const activeRoutes = await query;
       
       console.log(`Rutas activas encontradas: ${activeRoutes.length}`);
       
       if (!activeRoutes || activeRoutes.length === 0) {
-        return res.status(404).json({ error: "No hay rutas activas para este conductor" });
+        return res.status(200).json([]); // Devolver arreglo vacío en lugar de error
       }
       
       // Obtener los pedidos asociados a cada ruta

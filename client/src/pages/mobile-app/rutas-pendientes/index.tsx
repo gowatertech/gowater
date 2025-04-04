@@ -89,7 +89,8 @@ export default function MobilePendingRoutes() {
   // Consultar todas las órdenes disponibles
   const { data: allOrders = [], isLoading: isLoadingOrders, error: ordersError } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
-    retry: 3
+    retry: 3,
+    enabled: !!user // Solo cargar órdenes cuando tengamos el usuario
   });
 
   // Variables para almacenar rutas por estado
