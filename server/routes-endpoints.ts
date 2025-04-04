@@ -1804,13 +1804,14 @@ export function registerRoutesEndpoints(app: Express) {
       // Paso 4: Generar factura con número secuencial
       let invoiceGenerated = false;
       let invoiceId = null;
+      let nextInvoiceNumber = 0;
       try {
         // Obtener el siguiente número de factura
         const lastInvoice = await db.query.invoices.findFirst({
           orderBy: [desc(invoices.invoiceNumber)]
         });
         
-        const nextInvoiceNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
+        nextInvoiceNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
         
         // Definir status basado en el método de pago
         const invoiceStatus = paymentMethod === "cash" ? "paid" : "pending";
@@ -1823,21 +1824,39 @@ export function registerRoutesEndpoints(app: Express) {
           validPaymentMethod = "cash"; // Default
         }
         
-        // Insertar la factura en la base de datos con los tipos correctos
-        const result = await db.insert(invoices).values([{
-          invoiceNumber: nextInvoiceNumber,
-          customerId: order.customerId,
-          total: amountPaid.toString(),
-          status: invoiceStatus,
-          paymentMethod: validPaymentMethod,
-          date: new Date(),
-          notes: `Pedido #${id} entregado`
-        }]).returning();
-        if (result && result.length > 0) {
-          invoiceId = result[0].id;
-          invoiceGenerated = true;
-          console.log(`Factura #${nextInvoiceNumber} generada para orden #${id}`);
-        }
+        // Usar db.transaction para asegurar que la operación sea atómica
+        await db.transaction(async (tx) => {
+          // Insertar la factura en la base de datos con los tipos correctos
+          const result = await tx.insert(invoices).values([{
+            invoiceNumber: nextInvoiceNumber,
+            customerId: order.customerId,
+            total: amountPaid.toString(),
+            status: invoiceStatus,
+            paymentMethod: validPaymentMethod,
+            date: new Date(),
+            notes: `Pedido #${id} entregado`
+          }]).returning();
+          
+          if (result && result.length > 0) {
+            invoiceId = result[0].id;
+            invoiceGenerated = true;
+            console.log(`Factura #${nextInvoiceNumber} generada para orden #${id}`);
+            
+            // Crear entradas para cada producto en la orden en invoice_items
+            if (order.products && Array.isArray(order.products)) {
+              for (const product of order.products) {
+                await tx.insert(invoiceItems).values({
+                  invoiceId: result[0].id,
+                  productId: product.productId,
+                  quantity: product.quantity,
+                  price: product.price,
+                  total: (parseFloat(product.price) * product.quantity).toString()
+                });
+              }
+              console.log(`Detalles de productos agregados a la factura #${nextInvoiceNumber}`);
+            }
+          }
+        });
       } catch (invoiceError) {
         console.error("Error al generar la factura:", invoiceError);
       }
