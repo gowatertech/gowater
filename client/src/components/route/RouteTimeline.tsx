@@ -182,7 +182,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                         
                         {/* Información adicional condensada */}
                         <div className="flex flex-wrap items-center text-xs text-muted-foreground gap-y-1">
-                          <span className="flex items-center max-w-full">
+                          <span className="flex items-center w-full relative pr-10">
                             <MapPin className="h-3 w-3 mr-0.5 flex-shrink-0" />
                             <span className="truncate">{stop.address}</span>
                             
@@ -190,7 +190,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-5 px-1.5 ml-1 text-[10px] text-blue-600 hover:text-blue-700"
+                                className="h-5 px-1.5 text-[10px] text-blue-600 hover:text-blue-700 absolute right-0"
                                 onClick={(e) => {
                                   e.stopPropagation(); // Evitar que se expanda la tarjeta
                                   onNavigateToLocation(stop.latitude, stop.longitude, stop.address);
