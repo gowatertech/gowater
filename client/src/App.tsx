@@ -1,3 +1,4 @@
+import React, { useEffect, lazy, Suspense } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -38,7 +39,6 @@ import RouteSettlementPage from "@/pages/routes/settlements";
 import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
 import RecurringOrders from "./pages/routes/RecurringOrders";
 import TrucksPage from "./pages/routes/trucks";
-import { useEffect } from "react";
 import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
@@ -51,6 +51,8 @@ import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
 import MobilePayments from "@/pages/mobile-app/payments";
+// Lazy loaded components
+const MobileMap = lazy(() => import("@/pages/mobile-app/mapa"));
 // El componente MobilePaymentsHistory no está disponible
 // import MobilePaymentsHistory from "@/pages/mobile-app/payments/history";
 
@@ -153,6 +155,11 @@ function Router() {
         <Route path="/mobile-app/envases" component={MobileBottleReturns} />
         <Route path="/mobile-app/pagos" component={MobilePayments} />
         <Route path="/mobile-app/payments" component={MobilePayments} />
+        <Route path="/mobile-app/mapa">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <MobileMap />
+          </Suspense>
+        </Route>
       </Switch>
     );
   }
