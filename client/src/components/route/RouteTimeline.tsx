@@ -173,7 +173,8 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                               "bg-gray-200 text-gray-500 border-gray-300/30"
                             }`}
                           >
-                            {isCompleted ? "Completada" : 
+                            {stop.isWarehouse && isCompleted ? "Despachado" : 
+                             isCompleted ? "Completada" : 
                              isCurrent ? "En progreso" : 
                              stop.status === "in_progress" ? "En progreso" : 
                              "Pendiente"}
