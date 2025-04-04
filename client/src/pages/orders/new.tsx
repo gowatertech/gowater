@@ -331,7 +331,8 @@ export default function NewOrder() {
           <div className="space-y-2 block md:hidden">
             <div className="text-sm font-medium">Productos</div>
             <div className="space-y-3">
-              {orderItems.map((item, index) => item.code || index === orderItems.length - 1 ? (
+              {orderItems.map((item, index) => {
+                return (
                 <Card key={index} className="p-3">
                   <div className="space-y-2">
                     <div className="space-y-1">
@@ -387,7 +388,8 @@ export default function NewOrder() {
                     </div>
                   </div>
                 </Card>
-              ) : null)}
+                );
+              })}
             </div>
           </div>
 
