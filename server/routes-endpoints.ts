@@ -1843,17 +1843,28 @@ export function registerRoutesEndpoints(app: Express) {
             console.log(`Factura #${nextInvoiceNumber} generada para orden #${id}`);
             
             // Crear entradas para cada producto en la orden en invoice_items
-            if (order.products && Array.isArray(order.products)) {
-              for (const product of order.products) {
-                await tx.insert(invoiceItems).values({
-                  invoiceId: result[0].id,
-                  productId: product.productId,
-                  quantity: product.quantity,
-                  price: product.price,
-                  total: (parseFloat(product.price) * product.quantity).toString()
-                });
+            // Obtener los items de la orden primero
+            const orderItems = await storage.listOrderItems(id);
+            console.log(`Items encontrados para la orden #${id}:`, orderItems);
+            
+            if (orderItems && orderItems.length > 0) {
+              for (const item of orderItems) {
+                // Obtener información detallada del producto
+                const product = await storage.getProduct(item.productId);
+                if (product) {
+                  await tx.insert(invoiceItems).values({
+                    invoiceId: result[0].id,
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    price: product.price,
+                    total: (parseFloat(product.price) * item.quantity).toString()
+                  });
+                  console.log(`Producto agregado a factura: ${product.name} x${item.quantity}`);
+                }
               }
               console.log(`Detalles de productos agregados a la factura #${nextInvoiceNumber}`);
+            } else {
+              console.warn(`No se encontraron items para la orden #${id}`);
             }
           }
         });
@@ -1877,8 +1888,8 @@ export function registerRoutesEndpoints(app: Express) {
             console.log(`Orden #${id} actualizada a estado "delivered" en la base de datos`);
           }
           
-          // Actualizamos manualmente los productos asociados a la orden
-          const orderProducts = order.products || [];
+          // Ya no necesitamos referenciar los productos asociados aquí
+          // const orderProducts = order.products || [];
           
           // Verificar si todas están entregadas (después de actualizar la orden actual)
           // Comprobamos nuevamente usando la consulta a la base de datos más reciente
