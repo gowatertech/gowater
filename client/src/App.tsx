@@ -16,8 +16,8 @@ import RouteDetails from "@/pages/routes/RouteDetails";
 import Users from "@/pages/users";
 import Payments from "@/pages/payments";
 import RegisterPayment from "@/pages/payments/register";
-import PaymentsList from "@/pages/pagos/lista";
-import PaymentsHistory from "@/pages/pagos/historial";
+import PaymentsList from "@/pages/payments/list";
+import PaymentsHistory from "@/pages/payments/history";
 import Billing from "@/pages/billing";
 import TutorialPage from "@/pages/tutorial";
 import Dashboard from "@/pages/dashboard";
@@ -50,9 +50,9 @@ import MobileDeliveries from "@/pages/mobile-app/entregas";
 import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
-import MobilePayments from "@/pages/mobile-app/pagos";
+import MobilePayments from "@/pages/mobile-app/payments";
 // El componente MobilePaymentsHistory no está disponible
-// import MobilePaymentsHistory from "@/pages/mobile-app/pagos/historial";
+// import MobilePaymentsHistory from "@/pages/mobile-app/payments/history";
 
 function Router() {
   const [location] = useLocation();
@@ -152,6 +152,7 @@ function Router() {
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
         <Route path="/mobile-app/envases" component={MobileBottleReturns} />
         <Route path="/mobile-app/pagos" component={MobilePayments} />
+        <Route path="/mobile-app/payments" component={MobilePayments} />
       </Switch>
     );
   }
@@ -166,7 +167,6 @@ function Router() {
         <Route path="/payments/register" component={RegisterPayment} />
         <Route path="/payments/list" component={PaymentsList} />
         <Route path="/payments/history" component={PaymentsHistory} />
-        <Route path="/pagos/historial" component={PaymentsHistory} />
         <Route path="/customers" component={Customers} />
 
         {/* Inventory Routes - Specific routes first */}

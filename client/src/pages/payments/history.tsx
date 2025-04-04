@@ -1,5 +1,5 @@
-// Importamos el componente historial.tsx desde pagos para mantener consistencia
-import PaymentsHistory from "../pagos/historial";
+// Exportamos el nuevo componente de historial
+import PaymentsHistory from "./history-new";
 
-// Re-exportamos el mismo componente para la ruta en inglés
+// Re-exportamos el mismo componente
 export default PaymentsHistory;
