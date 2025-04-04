@@ -1782,24 +1782,8 @@ export function registerRoutesEndpoints(app: Express) {
         console.log(`Orden #${id} ya estaba marcada como entregada`);
       }
       
-      // Paso 3: Registrar el pago
+      // El pago se registrará después de la factura
       let paymentRegistered = false;
-      try {
-        const payment = {
-          invoiceId: id, // Usando el ID de la orden como invoiceId temporal
-          amount: amountPaid.toString(),
-          paymentMethod: paymentMethod,
-          customerId: order.customerId,
-          reference: `Pago de pedido #${id}`,
-          notes: "Pago recibido al momento de la entrega"
-        };
-        
-        await storage.registerPayment(payment);
-        paymentRegistered = true;
-        console.log(`Pago registrado para orden #${id}: ${amountPaid} vía ${paymentMethod}`);
-      } catch (paymentError) {
-        console.error("Error al registrar el pago:", paymentError);
-      }
       
       // Paso 4: Generar factura con número secuencial
       let invoiceGenerated = false;
@@ -1863,6 +1847,24 @@ export function registerRoutesEndpoints(app: Express) {
                 }
               }
               console.log(`Detalles de productos agregados a la factura #${nextInvoiceNumber}`);
+              
+              // Registrar el pago ahora que tenemos un ID de factura válido
+              try {
+                const payment = {
+                  invoiceId: result[0].id, // Usar el ID de factura correcto
+                  amount: amountPaid.toString(),
+                  paymentMethod: paymentMethod,
+                  customerId: order.customerId,
+                  reference: `Pago de pedido #${id}`,
+                  notes: "Pago recibido al momento de la entrega"
+                };
+                
+                await tx.insert(payments).values(payment);
+                paymentRegistered = true;
+                console.log(`Pago registrado para factura #${result[0].id}: ${amountPaid} vía ${paymentMethod}`);
+              } catch (paymentError) {
+                console.error("Error al registrar el pago:", paymentError);
+              }
             } else {
               console.warn(`No se encontraron items para la orden #${id}`);
             }
