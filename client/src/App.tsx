@@ -216,7 +216,7 @@ function Router() {
 
 export default function App() {
   const [location] = useLocation();
-  const isMapPage = location === "/mobile-app/mapa";
+  const isMobileApp = location.startsWith("/mobile-app");
   
   return (
     <I18nextProvider i18n={i18n}>
@@ -224,7 +224,7 @@ export default function App() {
         <Router />
         <Toaster />
         <CenteredLogo size="medium" showName={true} companyName="GoWater" />
-        {!isMapPage && <CompanyFooter />}
+        {!isMobileApp && <CompanyFooter />}
         <DesignCredit />
       </QueryClientProvider>
     </I18nextProvider>
