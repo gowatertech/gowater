@@ -122,12 +122,8 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                     }`}>
                       {/* Mostrar el estado actual como tooltip para depuración */}
                       <span className="sr-only">Estado: {stop.status}</span>
-                      {isCompleted ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                      ) : isCurrent ? (
-                        <Clock className="h-3 w-3 text-blue-500" />
-                      ) : (
-                        <Circle className="h-3 w-3 text-gray-400" />
+                      {!stop.isWarehouse && (
+                        <span className="text-xs font-semibold">{stop.order}</span>
                       )}
                     </div>
                   )}
