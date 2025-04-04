@@ -18,6 +18,7 @@ interface RouteWithCustomerDetails extends Route {
     name: string;
     address: string;
   }>;
+  orders?: any[]; // Añadir soporte para pedidos si es necesario
 }
 
 interface RouteMapProps {
