@@ -60,6 +60,7 @@ const LocationMarker = () => {
 
   // Función para obtener ubicación actual
   const locateUser = () => {
+    // Al hacer clic en el botón sí hacemos flyTo porque es acción explícita del usuario
     map.locate({ setView: true, maxZoom: 16 });
   };
 
@@ -68,7 +69,7 @@ const LocationMarker = () => {
     locationfound(e) {
       setPosition([e.latlng.lat, e.latlng.lng]);
       setLocationFound(true);
-      map.flyTo(e.latlng, 16);
+      // Ya no hacemos flyTo automático para mantener el enfoque en el almacén
     },
     locationerror() {
       setLocationFound(false);
@@ -118,7 +119,7 @@ export default function MobileMap() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { user } = useCurrentUser();
-  const [mapCenter, setMapCenter] = useState<[number, number]>([18.735693, -70.162651]); // Centro inicial en República Dominicana
+  const [mapCenter, setMapCenter] = useState<[number, number]>([19.075380, -70.128822]); // Centro inicial en el almacén principal AGUA HARRIS
   const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
 
   // Consulta para obtener rutas activas
@@ -138,7 +139,7 @@ export default function MobileMap() {
     localStorage.setItem("darkMode", darkMode.toString());
   }, [darkMode]);
 
-  // Cargar la ubicación actual del usuario
+  // Cargar la ubicación actual del usuario, pero no centrar el mapa en ella
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -149,7 +150,8 @@ export default function MobileMap() {
             longitude,
             timestamp: new Date(position.timestamp)
           });
-          setMapCenter([latitude, longitude]);
+          // Ya no centramos el mapa en la ubicación del usuario
+          // para mantener el foco en el almacén principal
         },
         (error) => {
           console.error("Error obteniendo ubicación:", error);
