@@ -258,8 +258,31 @@ export default function MobileMap() {
               
               <LocationMarker />
               
+              {/* Marcador permanente para el almacén principal */}
+              <Marker 
+                position={[19.075380, -70.128822]}
+                icon={L.divIcon({
+                  className: 'custom-div-icon',
+                  html: `<div class="bg-purple-600 text-white w-10 h-10 flex items-center justify-center rounded-full shadow-lg border-2 border-white">
+                          <div class="h-8 w-8 flex items-center justify-center font-bold">
+                            0
+                          </div>
+                        </div>`,
+                  iconSize: [40, 40],
+                  iconAnchor: [20, 20],
+                })}
+              >
+                <Popup>
+                  <div>
+                    <p className="font-bold">Almacén Principal (Ruta 0)</p>
+                    <p className="text-xs font-medium text-purple-600">AGUA HARRIS</p>
+                    <p className="text-xs text-gray-500">Punto inicial de todas las rutas</p>
+                  </div>
+                </Popup>
+              </Marker>
+              
               {/* Renderizar rutas activas y sus paradas */}
-              {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route) => {
+              {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route, routeIndex) => {
                 if (!route.stops || !Array.isArray(route.stops)) return null;
                 
                 // Crear un array de coordenadas para la ruta
@@ -269,22 +292,52 @@ export default function MobileMap() {
                   if (point) routePoints.push(point);
                 });
                 
+                // Asignar un color diferente a cada ruta para distinguirlas mejor
+                const routeColors = [
+                  '#0ea5e9', // azul
+                  '#059669', // verde
+                  '#d97706', // naranja
+                  '#6366f1', // índigo
+                  '#8b5cf6', // violeta
+                  '#ec4899', // rosa
+                  '#ef4444', // rojo
+                ];
+                const routeColor = routeColors[routeIndex % routeColors.length];
+                
                 return (
                   <React.Fragment key={route.id}>
                     {/* Dibujar la línea de la ruta */}
                     {routePoints.length > 1 && (
                       <Polyline 
                         positions={routePoints}
-                        pathOptions={{ color: '#0ea5e9', weight: 4, opacity: 0.7 }} 
+                        pathOptions={{ color: routeColor, weight: 4, opacity: 0.7 }} 
                       />
                     )}
                     
                     {/* Mostrar marcadores para cada parada */}
                     {routePoints.map((point, index) => {
-                      // Último punto (final) en rojo, primer punto (inicio) en verde, resto en azul
-                      const color = index === 0 ? 'bg-green-500' : 
-                                   index === routePoints.length - 1 ? 'bg-red-500' : 'bg-blue-500';
-                      const label = index === 0 ? 'Inicio' : 
+                      // Definir índice mostrado en el mapa
+                      // El almacén siempre será "0", las demás paradas comienzan en 1
+                      const displayIndex = index === 0 ? 0 : index;
+                      
+                      // Convertir el color de la ruta en clase tailwind equivalente para los marcadores
+                      const routeColorClasses = {
+                        '#0ea5e9': 'bg-sky-500',
+                        '#059669': 'bg-emerald-600',
+                        '#d97706': 'bg-amber-600',
+                        '#6366f1': 'bg-indigo-500',
+                        '#8b5cf6': 'bg-violet-500',
+                        '#ec4899': 'bg-pink-500',
+                        '#ef4444': 'bg-red-500',
+                      };
+                      
+                      // Almacén (Ruta 0) en color diferenciado, último punto (final) en rojo, resto del color de la ruta
+                      const color = index === 0 ? 'bg-purple-600' : 
+                                   index === routePoints.length - 1 ? 'bg-red-500' : 
+                                   routeColorClasses[routeColor] || 'bg-blue-500';
+                      
+                      // Etiquetas descriptivas para puntos especiales
+                      const label = index === 0 ? 'Almacén Principal (Ruta 0)' : 
                                    index === routePoints.length - 1 ? 'Final' : `Parada ${index}`;
                       
                       return (
@@ -295,7 +348,7 @@ export default function MobileMap() {
                             className: 'custom-div-icon',
                             html: `<div class="${color} text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg">
                                     <div class="h-6 w-6 flex items-center justify-center">
-                                      ${index + 1}
+                                      ${displayIndex}
                                     </div>
                                   </div>`,
                             iconSize: [32, 32],
@@ -306,7 +359,14 @@ export default function MobileMap() {
                             <div>
                               <p className="font-bold">{label}</p>
                               <p className="text-xs text-gray-500">
-                                Ruta: {route.name}
+                                {index === 0 ? (
+                                  <>
+                                    <span className="block font-medium text-purple-600">AGUA HARRIS</span>
+                                    <span className="block">Punto inicial de todas las rutas</span>
+                                  </>
+                                ) : (
+                                  <>Ruta: {route.name}</>
+                                )}
                               </p>
                             </div>
                           </Popup>
