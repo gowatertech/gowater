@@ -93,13 +93,11 @@ export default function Billing() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("list");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([{
-    code: "",
-    description: "",
-    quantity: 0,
-    price: 0,
-    total: 0
-  }]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([
+    { code: "", description: "", quantity: 0, price: 0, total: 0 },
+    { code: "", description: "", quantity: 0, price: 0, total: 0 },
+    { code: "", description: "", quantity: 0, price: 0, total: 0 }
+  ]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit' | 'card'>('cash');
 
   // Consultas para obtener datos
@@ -162,6 +160,14 @@ export default function Billing() {
     enabled: !!selectedInvoice,
   });
 
+  // Función para agregar un nuevo producto vacío al arreglo
+  const addEmptyProduct = () => {
+    setOrderItems([
+      ...orderItems,
+      { code: "", description: "", quantity: 0, price: 0, total: 0 }
+    ]);
+  };
+
   const handleProductChange = (index: number, code: string) => {
     const product = products.find(p => p.id.toString() === code);
     if (!product) return;
@@ -176,14 +182,9 @@ export default function Billing() {
       total: parseFloat(product.price.toString())
     };
 
-    if (index === orderItems.length - 1 && code !== "") {
-      newItems.push({
-        code: "",
-        description: "",
-        quantity: 0,
-        price: 0,
-        total: 0
-      });
+    // Si este es el último elemento del arreglo, agregar uno nuevo
+    if (index === orderItems.length - 1) {
+      addEmptyProduct();
     }
 
     setOrderItems(newItems);
@@ -280,13 +281,11 @@ export default function Billing() {
       });
       setSelectedCustomer(null);
       setNotes("");
-      setOrderItems([{
-        code: "",
-        description: "",
-        quantity: 0,
-        price: 0,
-        total: 0
-      }]);
+      setOrderItems([
+        { code: "", description: "", quantity: 0, price: 0, total: 0 },
+        { code: "", description: "", quantity: 0, price: 0, total: 0 },
+        { code: "", description: "", quantity: 0, price: 0, total: 0 }
+      ]);
     },
     onError: (error: Error) => {
       toast({
@@ -1326,9 +1325,21 @@ export default function Billing() {
 
                 {/* Productos - Vista Móvil */}
                 <div className="space-y-2 block md:hidden">
-                  <div className="text-sm font-medium">Productos</div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm font-medium">Productos</div>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={addEmptyProduct}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar producto
+                    </Button>
+                  </div>
                   <div className="space-y-3">
-                    {orderItems.map((item, index) => item.code || index === orderItems.length - 1 ? (
+                    {orderItems.map((item, index) => (
                       <Card key={index} className="p-3">
                         <div className="space-y-2">
                           <div className="space-y-1">
@@ -1384,13 +1395,25 @@ export default function Billing() {
                           </div>
                         </div>
                       </Card>
-                    ) : null)}
+                    ))}
                   </div>
                 </div>
 
                 {/* Productos - Vista Desktop */}
                 <div className="space-y-2 hidden md:block">
-                  <div className="text-sm font-medium">Productos</div>
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm font-medium">Productos</div>
+                    <Button 
+                      type="button" 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={addEmptyProduct}
+                      className="h-7 px-2 text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Agregar producto
+                    </Button>
+                  </div>
                   <div className="border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader className="bg-muted/50">
