@@ -125,23 +125,57 @@ export default function DriverRoute() {
   useEffect(() => {
     const fetchActiveRoute = async () => {
       try {
-        const response = await apiRequest("/api/routes/active");
+        // Obtener el ID de la ruta de la URL si existe
+        const urlParams = new URLSearchParams(window.location.search);
+        const routeIdFromUrl = urlParams.get('routeId');
         
-        if (response && response.id) {
-          setActiveRouteId(response.id);
-          setRouteDetails(response);
-          fetchRouteStops(response.id);
+        if (routeIdFromUrl) {
+          // Si tenemos ID en la URL, cargar esa ruta específica
+          console.log(`Cargando ruta específica desde URL: ${routeIdFromUrl}`);
+          const routeResponse = await apiRequest(`/api/routes/${routeIdFromUrl}`);
+          
+          if (routeResponse && routeResponse.id) {
+            setActiveRouteId(routeResponse.id);
+            setRouteDetails(routeResponse);
+            fetchRouteStops(routeResponse.id);
+          } else {
+            throw new Error("No se pudo cargar la ruta especificada");
+          }
         } else {
-          setLoading(false);
-          toast({
-            title: "No hay ruta activa",
-            description: "No tienes una ruta asignada para hoy.",
-            variant: "destructive"
-          });
+          // Si no hay ID en la URL, intentar cargar la ruta activa
+          const activeRoutes = await apiRequest("/api/routes/active");
+          
+          if (Array.isArray(activeRoutes) && activeRoutes.length > 0) {
+            // Filtrar por rutas en progreso primero
+            const inProgressRoutes = activeRoutes.filter(r => r.status === 'in_progress');
+            
+            if (inProgressRoutes.length > 0) {
+              setActiveRouteId(inProgressRoutes[0].id);
+              setRouteDetails(inProgressRoutes[0]);
+              fetchRouteStops(inProgressRoutes[0].id);
+            } else if (activeRoutes.length > 0) {
+              // Si no hay en progreso, usar la primera ruta pendiente
+              setActiveRouteId(activeRoutes[0].id);
+              setRouteDetails(activeRoutes[0]);
+              fetchRouteStops(activeRoutes[0].id);
+            }
+          } else {
+            setLoading(false);
+            toast({
+              title: "No hay rutas activas",
+              description: "No hay rutas pendientes o en progreso asignadas.",
+              variant: "destructive"
+            });
+          }
         }
       } catch (error) {
         console.error("Error al cargar la ruta activa:", error);
         setLoading(false);
+        toast({
+          title: "Error al cargar la ruta",
+          description: "Hubo un problema al obtener los datos de la ruta.",
+          variant: "destructive"
+        });
       }
     };
     
