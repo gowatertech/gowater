@@ -251,9 +251,30 @@ export default function MobilePendingRoutes() {
         'Content-Type': 'application/json'
       }
     })
-    .then(response => {
-      if (response.ok) {
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
         console.log(`Ruta ${routeId} iniciada correctamente via API`);
+        
+        // Actualizar también los estados de los pedidos a "in_transit"
+        // Esto debería hacerlo el backend, pero lo hacemos también aquí
+        // para asegurar que la UI se actualice inmediatamente
+        fetch(`/api/routes/${routeId}/orders`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            status: 'in_transit'
+          })
+        })
+        .then(resp => {
+          console.log("Estado de pedidos actualizado a 'in_transit'");
+        })
+        .catch(err => {
+          console.error("Error al actualizar estado de pedidos:", err);
+        });
+        
         // Guardar el estado como 'in_progress' en localStorage
         localStorage.setItem(`routeStatus_${routeId}`, 'in_progress');
         // También guardar el estado general para compatibilidad

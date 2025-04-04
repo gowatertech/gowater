@@ -178,6 +178,38 @@ export function registerRoutesEndpoints(app: Express) {
       const routeDetails = route[0];
       console.log("Obteniendo pedidos para la ruta:", routeDetails);
       
+  // Endpoint para actualizar los pedidos de una ruta específica
+  app.patch("/api/routes/:id/orders", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ error: "Se requiere un estado para actualizar los pedidos" });
+      }
+      
+      // Actualizar todos los pedidos de la ruta al estado especificado
+      const updatedOrders = await db
+        .update(orders)
+        .set({
+          status: status
+        })
+        .where(eq(orders.routeId, routeId))
+        .returning();
+      
+      console.log(`${updatedOrders.length} pedidos de la ruta ${routeId} actualizados a estado "${status}"`);
+      
+      res.json({
+        success: true,
+        updatedCount: updatedOrders.length,
+        message: `${updatedOrders.length} pedidos actualizados`
+      });
+    } catch (error) {
+      console.error("Error al actualizar pedidos de la ruta:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+      
       // Buscar todas las órdenes para esta ruta, independientemente de su estado
       // IMPORTANTE: Devolver todos los pedidos de la ruta como "pending" para simplificar la UI
       // hasta que sean realmente entregados (delivered)
@@ -488,7 +520,7 @@ export function registerRoutesEndpoints(app: Express) {
       
       // Ahora, actualizar todos los pedidos asociados a esta ruta a estado "in_transit"
       // para marcar que están en proceso de entrega
-      await db
+      const updatedOrders = await db
         .update(orders)
         .set({
           status: "in_transit"  // Cambiamos de "pending" a "in_transit"
@@ -498,11 +530,18 @@ export function registerRoutesEndpoints(app: Express) {
             eq(orders.routeId, routeId),
             eq(orders.status, "pending")  // Solo actualizamos los pedidos en estado pendiente
           )
-        );
+        )
+        .returning();
+        
+      console.log(`${updatedOrders.length} pedidos actualizados a estado "in_transit"`);
       
       console.log(`Ruta ${routeId} y sus pedidos asociados actualizados a estado "in_transit"`);
       
-      res.json(updatedRoute);
+      res.json({
+        success: true,
+        route: updatedRoute,
+        updatedOrders: updatedOrders.length
+      });
     } catch (error) {
       console.error("Error al iniciar ruta:", error);
       res.status(500).json({ error: String(error) });
