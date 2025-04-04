@@ -5,7 +5,7 @@ import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema } from "@shared/schema";
 import { db } from './db';
-import { eq, and, sql, inArray } from 'drizzle-orm';
+import { eq, and, sql, inArray, desc } from 'drizzle-orm';
 import express from 'express';
 import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
 import { registerRouteSettlements } from "./routes/routeSettlements";
@@ -558,10 +558,22 @@ export async function registerRoutes(app: Express) {
   // Rutas
   app.get("/api/routes", async (req, res) => {
     try {
-      const allRoutes = await db
-        .select()
-        .from(routes);
-
+      console.log("GET /api/routes - Obteniendo todas las rutas");
+      
+      // Si se especifica un filtro de estado
+      const statusFilter = req.query.status ? req.query.status.toString() : null;
+      let query = db.select().from(routes);
+      
+      // Aplicar filtro si se especificó
+      if (statusFilter) {
+        console.log(`GET /api/routes - Filtrando por estado: ${statusFilter}`);
+        query = query.where(eq(routes.status, statusFilter as any));
+      }
+      
+      // Ordenar por fecha, más recientes primero
+      const allRoutes = await query.orderBy(desc(routes.date));
+      
+      console.log(`GET /api/routes - Total de rutas: ${allRoutes.length}`);
       res.json(allRoutes);
     } catch (error) {
       console.error("Error al obtener rutas:", error);

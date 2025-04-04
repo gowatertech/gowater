@@ -67,7 +67,19 @@ export default function MobilePendingRoutes() {
   
   // Consultar rutas pendientes
   const { data: routes = [], isLoading: isLoadingRoutes, error: routesError } = useQuery<Route[]>({
-    queryKey: ["/api/routes"],
+    queryKey: ["/api/routes", { status: 'pending' }],
+    queryFn: async ({ queryKey }) => {
+      const [endpoint, params] = queryKey;
+      const url = `${endpoint}?status=${params.status}`;
+      console.log("Consultando rutas pendientes:", url);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('No se pudieron cargar las rutas pendientes');
+      }
+      const data = await response.json();
+      console.log(`Rutas pendientes cargadas: ${data.length}`);
+      return data;
+    },
     retry: 3
   });
 
