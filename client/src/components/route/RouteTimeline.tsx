@@ -89,10 +89,11 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
         const showConnector = index < stops.length - 1;
         
         // Determinar colores y estado visual
-        const isCompleted = stop.status === "completed";
+        // Verificar si la parada está completada - lo que significa "delivered" en el status
+        const isCompleted = stop.status === "completed" || stop.status === "delivered";
         // Ya no forzamos que solo la primera parada sea la actual - permitimos cualquier parada activa
         const isCurrent = index === currentStopIndex && !isCompleted;
-        // Todas las paradas no completadas deberían mostrar botones de acción
+        // Todas las paradas no completadas o entregadas deberían mostrar botones de acción
         const isPending = !isCompleted;
         const isExpanded = expandedStopId === stop.id;
         
@@ -176,7 +177,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                             {stop.isWarehouse && isCompleted ? "Despachado" : 
                              isCompleted ? "Completada" : 
                              isCurrent ? "En progreso" : 
-                             stop.status === "in_progress" || stop.status === "in_transit" ? "En progreso" : 
+                             stop.status === "in_progress" || stop.status === "in_transit" || stop.status === "delivered" ? "En progreso" : 
                              "Pendiente"}
                           </Badge>
                         </div>

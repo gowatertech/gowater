@@ -285,6 +285,11 @@ export default function DriverRoute() {
             console.log(`Pedido ${order.id}: Cambiado a "in_progress" para la visualización`);
           }
           
+          // Para propósitos de debugging, loggear los estados de completado
+          if (displayStatus === "delivered") {
+            console.log(`Pedido ${order.id}: Está marcado como entregado en la base de datos`);
+          }
+          
           // Construir la parada
           return {
             id: order.id,
@@ -479,6 +484,11 @@ export default function DriverRoute() {
       // Utilizar la nueva función de API que usa el endpoint combinado
       const { processOrderDeliveryAndPayment } = await import('@/lib/api');
       
+      // Agregar información de debug más detallada
+      console.log(`Estado actual de la parada antes de procesarla: ${currentStopForPayment.status}`);
+      // Verificar si la parada tiene información del pedido con ID
+      console.log(`ID del pedido a procesar: ${currentStopForPayment.id}`);
+      
       // Llamar al nuevo endpoint combinado
       const result = await processOrderDeliveryAndPayment(
         currentStopForPayment.id,
@@ -494,10 +504,16 @@ export default function DriverRoute() {
         setRouteStops(prevStops => 
           prevStops.map(stop => 
             stop.id === currentStopForPayment.id 
-              ? { ...stop, status: "delivered" } 
+              ? { 
+                  ...stop, 
+                  status: "delivered",
+                  // No usar actualStatus ya que no está en la interfaz de RouteStop
+                } 
               : stop
           )
         );
+        
+        console.log("Estado de la parada actualizado a 'delivered' después de procesar el pago");
         
         // Mostrar mensaje de éxito para la entrega
         toast({
