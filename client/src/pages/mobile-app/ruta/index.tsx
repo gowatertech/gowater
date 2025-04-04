@@ -263,10 +263,14 @@ export default function DriverRoute() {
           // Para la visualización en la interfaz
           let displayStatus = actualStatus;
           
+          // Mostrar logs para depuración
+          console.log(`Pedido ${order.id}: Estado real API = ${actualStatus}`);
+          
           // Si el estado es "in_transit", mostrarlo como "in_progress" en la interfaz 
           // (esta orden está en ruta pero aún no ha sido entregada)
           if (displayStatus === "in_transit") {
             displayStatus = "in_progress";
+            console.log(`Pedido ${order.id}: Cambiado a "in_progress" para la visualización`);
           }
           
           // Construir la parada
