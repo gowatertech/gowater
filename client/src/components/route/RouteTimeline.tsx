@@ -121,6 +121,8 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                       stop.status === "in_progress" ? "border-yellow-500 bg-yellow-500/20" :
                       "border-gray-400 bg-gray-200"
                     }`}>
+                      {/* Mostrar el estado actual como tooltip para depuración */}
+                      <span className="sr-only">Estado: {stop.status}</span>
                       {isCompleted ? (
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       ) : isCurrent ? (

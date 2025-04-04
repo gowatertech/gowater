@@ -45,6 +45,24 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
 }
 
 /**
+ * Función para iniciar una ruta
+ * @param routeId ID de la ruta a iniciar
+ * @returns Objeto con resultado de la operación
+ */
+export async function startRoute(routeId: number) {
+  try {
+    const response = await apiRequest(`/api/routes/${routeId}/start`, {
+      method: 'POST'
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('Error al iniciar la ruta:', error);
+    throw error;
+  }
+}
+
+/**
  * Función para procesar entrega, pago y generar factura en un solo paso
  * @param orderId ID de la orden a procesar
  * @param paymentMethod Método de pago ('cash', 'credit', 'transfer')
