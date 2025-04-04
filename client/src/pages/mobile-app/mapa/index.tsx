@@ -24,7 +24,7 @@ const AutoZoom = ({ points }: { points: [number, number][] }) => {
       // Ajustar el mapa para mostrar todos los puntos con un padding
       map.fitBounds(bounds, {
         padding: [50, 50], // Padding alrededor de los límites
-        maxZoom: 11.5, // Zoom máximo para evitar acercamiento excesivo
+        maxZoom: 12, // Zoom máximo para evitar acercamiento excesivo
         animate: true
       });
     }
@@ -289,7 +289,7 @@ export default function MobileMap() {
           <ResponsiveMapContainer fullHeight>
             <MapContainer 
               center={mapCenter} 
-              zoom={11} 
+              zoom={12} 
               style={{ height: "100%", width: "100%" }}
               zoomControl={false}
             >
