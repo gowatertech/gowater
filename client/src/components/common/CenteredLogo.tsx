@@ -1,4 +1,5 @@
 import React from "react";
+import { useLocation } from "wouter";
 
 interface CenteredLogoProps {
   size?: "small" | "medium" | "large";
@@ -15,6 +16,12 @@ export function CenteredLogo({
   showName = true,
   companyName = "GoWater",
 }: CenteredLogoProps) {
+  const [location] = useLocation();
+  
+  // No mostrar el logo en rutas de la aplicación móvil
+  const isMobileApp = location.startsWith("/mobile-app");
+  if (isMobileApp) return null;
+  
   // Tamaños del logo basados en la prop size
   const logoSizes = {
     small: "h-12 w-12",
