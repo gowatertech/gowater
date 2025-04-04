@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import RouteTimeline from "@/components/route/RouteTimeline";
-import RouteDetailMap from "@/components/route/RouteDetailMap";
 import { useLocation } from "wouter";
 import { jsPDF } from "jspdf";
 import { 
@@ -35,8 +34,7 @@ import {
   BadgeDollarSign,
   PillBottle,
   Plus,
-  Minus,
-  Milestone
+  Minus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -667,36 +665,10 @@ export default function DriverRoute() {
             </CardContent>
           </Card>
         
-          {/* Mapa de la ruta */}
-          <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
-            <CardContent className="p-4">
-              <h2 className="text-lg font-bold mb-2 flex items-center">
-                <MapPin className="mr-2 h-5 w-5" />
-                Mapa de la Ruta
-              </h2>
-              <div className="rounded-md overflow-hidden h-64 mt-3">
-                {routeStops.length > 0 ? (
-                  <RouteDetailMap 
-                    stops={routeStops}
-                    currentStopIndex={currentStopIndex}
-                    className="h-full w-full"
-                  />
-                ) : (
-                  <div className="text-center py-10 text-muted-foreground">
-                    No hay paradas configuradas para esta ruta
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Lista de paradas */}
           <Card className={`mb-4 ${darkMode ? 'bg-gray-800 text-white border-gray-700' : ''}`}>
             <CardContent className="p-4">
-              <h2 className="text-lg font-bold mb-2 flex items-center">
-                <Milestone className="mr-2 h-5 w-5" />
-                Mi Ruta de Hoy
-              </h2>
+              <h2 className="text-lg font-bold mb-2">Mi Ruta de Hoy</h2>
               <p className="text-sm text-muted-foreground mb-4">
                 {new Date().toLocaleDateString('es-DO', {
                   weekday: 'long',

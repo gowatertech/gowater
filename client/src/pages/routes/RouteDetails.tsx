@@ -97,13 +97,6 @@ interface RouteDetails {
   deliverySequence: string[] | null; // Cambiado de number[] para compatibilidad
   estimatedDuration: number | null;
   actualDuration: number | null;
-  // Datos de los clientes para el mapa
-  customerNames?: string[];
-  customerDetails?: Array<{
-    id: number;
-    name: string;
-    address: string;
-  }>;
   totalDistance: number | null;
   completion: number | null;
   orderUpdates: string[] | null;

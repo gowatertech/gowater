@@ -1613,22 +1613,10 @@ export function registerRoutesEndpoints(app: Express) {
             .where(eq(orders.routeId, route.id))
             .limit(10); // Limitar para prevenir queries muy largas
             
-          // Obtener los nombres de los clientes en orden para el mapa
-          const customerNames = routeOrders.map(order => order.customerName || "Cliente sin nombre");
-          
-          // Obtener detalles de clientes para el mapa
-          const customerDetails = routeOrders.map(order => ({
-            id: order.customerId,
-            name: order.customerName || "Cliente sin nombre",
-            address: order.customerAddress || "Sin dirección"
-          }));
-          
           return {
             ...route,
             orderCount,
-            orders: routeOrders,
-            customerNames,
-            customerDetails
+            orders: routeOrders
           };
         })
       );

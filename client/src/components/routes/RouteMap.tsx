@@ -4,25 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { ResponsiveMapContainer } from '@/components/ui/responsive-map-container';
 
-// Definir interfaces extendidas para el caso de coordenadas como objetos
-interface LatLng {
-  lat: number | string;
-  lng: number | string;
-}
-
-// Extender la interfaz Route para incluir datos de clientes
-interface RouteWithCustomerDetails extends Route {
-  customerNames?: string[];
-  customerDetails?: Array<{
-    id: number;
-    name: string;
-    address: string;
-  }>;
-  orders?: any[]; // Añadir soporte para pedidos si es necesario
-}
-
 interface RouteMapProps {
-  route: RouteWithCustomerDetails;
+  route: Route;
   className?: string;
 }
 
@@ -55,12 +38,9 @@ export default function RouteMap({ route, className }: RouteMapProps) {
         if (isNaN(lat) || isNaN(lng)) return null;
         
         return [lat, lng];
-      } else if (stop && typeof stop === 'object') {
+      } else if (stop && typeof stop === 'object' && 'lat' in stop && 'lng' in stop) {
         // Manejar el caso donde stop es un objeto {lat, lng}
-        const latLngObj = stop as LatLng;
-        if ('lat' in latLngObj && 'lng' in latLngObj) {
-          return [parseFloat(latLngObj.lat.toString()), parseFloat(latLngObj.lng.toString())];
-        }
+        return [parseFloat(stop.lat), parseFloat(stop.lng)];
       }
       return null;
     } catch (error) {
@@ -105,33 +85,20 @@ export default function RouteMap({ route, className }: RouteMapProps) {
           {/* Mostrar marcadores para cada parada */}
           {stopCoordinates.map((position, index) => {
             // Crear un icono personalizado con el número de parada
-            // Mostrar '0' para el almacén y números de parada (1,2,3...) para las entregas
-            const iconNumber = index === 0 ? '0' : index.toString();
             const customIcon = new L.DivIcon({
-              html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-blue-600'} text-white rounded-full w-6 h-6 text-sm font-semibold">${iconNumber}</div>`,
+              html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-blue-600'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
               className: 'custom-number-icon',
               iconSize: [24, 24],
               iconAnchor: [12, 12]
             });
             
-            // Obtener info del cliente desde el objeto de ruta
+            // Determinar el tipo de parada
             let stopName = `Parada #${index + 1}`;
             let stopType = "Entrega";
-            let clientName = "";
-            let address = "";
             
             if (index === 0) {
               stopName = "Punto de inicio (Almacén)";
               stopType = "Salida";
-              clientName = "Almacén Principal";
-              address = "Punto de partida";
-            } else if (route.customerNames && Array.isArray(route.customerNames) && route.customerNames[index-1]) {
-              // Si hay nombres de clientes disponibles en la ruta, mostrarlos
-              clientName = route.customerNames[index-1];
-            } else if (route.customerDetails && Array.isArray(route.customerDetails) && route.customerDetails[index-1]) {
-              // Alternativa si hay detalles de cliente
-              clientName = route.customerDetails[index-1].name || "";
-              address = route.customerDetails[index-1].address || "";
             }
             
             return (
@@ -143,9 +110,7 @@ export default function RouteMap({ route, className }: RouteMapProps) {
                 <Popup>
                   <div>
                     <strong>{stopName}</strong>
-                    {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
-                    {address && <div><strong>Dirección:</strong> {address}</div>}
-                    <div><strong>Tipo:</strong> {stopType}</div>
+                    <div>Tipo: {stopType}</div>
                   </div>
                 </Popup>
               </Marker>
