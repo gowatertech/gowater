@@ -645,12 +645,49 @@ export async function registerRoutes(app: Express) {
         }
       }
       
+      // Obtener información de los clientes para cada parada de la ruta
+      let customerNames = [];
+      let customerDetails = [];
+      
+      if (route.deliverySequence && Array.isArray(route.deliverySequence)) {
+        // Omitir la primera entrada (índice 0) que suele ser el almacén
+        const customerIds = route.deliverySequence.slice(1);
+        
+        // Obtener detalles de los clientes en la secuencia
+        if (customerIds.length > 0) {
+          const customersData = await Promise.all(
+            customerIds.map(async (cId) => {
+              if (!cId || cId === "0") return null;
+              
+              const customerData = await db
+                .select({
+                  id: customers.id,
+                  name: customers.businessname,
+                  address: customers.street
+                })
+                .from(customers)
+                .where(eq(customers.id, parseInt(cId.toString())))
+                .limit(1);
+                
+              return customerData.length > 0 ? customerData[0] : null;
+            })
+          );
+          
+          // Filtrar valores nulos y asignar a los arrays
+          const validCustomers = customersData.filter(c => c !== null);
+          customerNames = validCustomers.map(c => c.name);
+          customerDetails = validCustomers;
+        }
+      }
+      
       // Devolver la ruta con información adicional
       res.json({
         ...route,
         driverName,
         assistantName,
-        truckDetails
+        truckDetails,
+        customerNames,
+        customerDetails
       });
     } catch (error) {
       console.error("Error al obtener detalles de ruta:", error);

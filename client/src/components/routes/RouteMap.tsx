@@ -4,8 +4,24 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { ResponsiveMapContainer } from '@/components/ui/responsive-map-container';
 
+// Definir interfaces extendidas para el caso de coordenadas como objetos
+interface LatLng {
+  lat: number | string;
+  lng: number | string;
+}
+
+// Extender la interfaz Route para incluir datos de clientes
+interface RouteWithCustomerDetails extends Route {
+  customerNames?: string[];
+  customerDetails?: Array<{
+    id: number;
+    name: string;
+    address: string;
+  }>;
+}
+
 interface RouteMapProps {
-  route: Route;
+  route: RouteWithCustomerDetails;
   className?: string;
 }
 
@@ -38,9 +54,12 @@ export default function RouteMap({ route, className }: RouteMapProps) {
         if (isNaN(lat) || isNaN(lng)) return null;
         
         return [lat, lng];
-      } else if (stop && typeof stop === 'object' && 'lat' in stop && 'lng' in stop) {
+      } else if (stop && typeof stop === 'object') {
         // Manejar el caso donde stop es un objeto {lat, lng}
-        return [parseFloat(stop.lat), parseFloat(stop.lng)];
+        const latLngObj = stop as LatLng;
+        if ('lat' in latLngObj && 'lng' in latLngObj) {
+          return [parseFloat(latLngObj.lat.toString()), parseFloat(latLngObj.lng.toString())];
+        }
       }
       return null;
     } catch (error) {
@@ -92,13 +111,24 @@ export default function RouteMap({ route, className }: RouteMapProps) {
               iconAnchor: [12, 12]
             });
             
-            // Determinar el tipo de parada
+            // Obtener info del cliente desde el objeto de ruta
             let stopName = `Parada #${index + 1}`;
             let stopType = "Entrega";
+            let clientName = "";
+            let address = "";
             
             if (index === 0) {
               stopName = "Punto de inicio (Almacén)";
               stopType = "Salida";
+              clientName = "Almacén Principal";
+              address = "Punto de partida";
+            } else if (route.customerNames && Array.isArray(route.customerNames) && route.customerNames[index-1]) {
+              // Si hay nombres de clientes disponibles en la ruta, mostrarlos
+              clientName = route.customerNames[index-1];
+            } else if (route.customerDetails && Array.isArray(route.customerDetails) && route.customerDetails[index-1]) {
+              // Alternativa si hay detalles de cliente
+              clientName = route.customerDetails[index-1].name || "";
+              address = route.customerDetails[index-1].address || "";
             }
             
             return (
@@ -110,7 +140,9 @@ export default function RouteMap({ route, className }: RouteMapProps) {
                 <Popup>
                   <div>
                     <strong>{stopName}</strong>
-                    <div>Tipo: {stopType}</div>
+                    {clientName && <div><strong>Cliente:</strong> {clientName}</div>}
+                    {address && <div><strong>Dirección:</strong> {address}</div>}
+                    <div><strong>Tipo:</strong> {stopType}</div>
                   </div>
                 </Popup>
               </Marker>
