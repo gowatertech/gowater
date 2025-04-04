@@ -57,15 +57,13 @@ export default function NewOrder() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [orderItems, setOrderItems] = useState<OrderItem[]>(() => 
-    Array.from({ length: 5 }, () => ({
-      code: "",
-      description: "",
-      quantity: 0,
-      price: 0,
-      total: 0
-    }))
-  );
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([
+    { code: "", description: "", quantity: 0, price: 0, total: 0 },
+    { code: "", description: "", quantity: 0, price: 0, total: 0 },
+    { code: "", description: "", quantity: 0, price: 0, total: 0 },
+    { code: "", description: "", quantity: 0, price: 0, total: 0 },
+    { code: "", description: "", quantity: 0, price: 0, total: 0 }
+  ]);
 
   // Consultas para obtener datos
   const { data: customers = [] } = useQuery<any[]>({
@@ -83,6 +81,14 @@ export default function NewOrder() {
     queryKey: ["/api/products"],
   });
 
+  // Función para agregar un nuevo producto vacío al arreglo
+  const addEmptyProduct = () => {
+    setOrderItems([
+      ...orderItems,
+      { code: "", description: "", quantity: 0, price: 0, total: 0 }
+    ]);
+  };
+
   // Manejo de cambios en productos y cantidades
   const handleProductChange = (index: number, code: string) => {
     const product = products?.find((p: any) => p.id.toString() === code);
@@ -97,6 +103,11 @@ export default function NewOrder() {
       total: parseFloat(product.price.toString())
     };
     setOrderItems(newItems);
+    
+    // Si este es el último elemento del arreglo, agregar uno nuevo
+    if (index === orderItems.length - 1) {
+      addEmptyProduct();
+    }
   };
 
   const handleQuantityChange = (index: number, quantity: number) => {
@@ -180,13 +191,13 @@ export default function NewOrder() {
       });
       setSelectedCustomer(null);
       setNotes("");
-      setOrderItems(Array.from({ length: 5 }, () => ({
-        code: "",
-        description: "",
-        quantity: 0,
-        price: 0,
-        total: 0
-      })));
+      setOrderItems([
+        { code: "", description: "", quantity: 0, price: 0, total: 0 },
+        { code: "", description: "", quantity: 0, price: 0, total: 0 },
+        { code: "", description: "", quantity: 0, price: 0, total: 0 },
+        { code: "", description: "", quantity: 0, price: 0, total: 0 },
+        { code: "", description: "", quantity: 0, price: 0, total: 0 }
+      ]);
       setLocation("/orders/list");
     },
     onError: (error: any) => {
@@ -329,7 +340,19 @@ export default function NewOrder() {
 
           {/* Productos - Vista Móvil */}
           <div className="space-y-2 block md:hidden">
-            <div className="text-sm font-medium">Productos</div>
+            <div className="flex justify-between items-center">
+              <div className="text-sm font-medium">Productos</div>
+              <Button 
+                type="button" 
+                size="sm" 
+                variant="outline" 
+                onClick={addEmptyProduct}
+                className="h-7 px-2 text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Agregar producto
+              </Button>
+            </div>
             <div className="space-y-3">
               {orderItems.map((item, index) => {
                 return (
@@ -395,7 +418,19 @@ export default function NewOrder() {
 
           {/* Productos - Vista Desktop */}
           <div className="space-y-2 hidden md:block">
-            <div className="text-sm font-medium">Productos</div>
+            <div className="flex justify-between items-center">
+              <div className="text-sm font-medium">Productos</div>
+              <Button 
+                type="button" 
+                size="sm" 
+                variant="outline" 
+                onClick={addEmptyProduct}
+                className="h-7 px-2 text-xs"
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Agregar producto
+              </Button>
+            </div>
             <div className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader className="bg-muted/50">
