@@ -256,6 +256,15 @@ export default function DriverRoute() {
               }))
             : [];
             
+          // Mapear el estado de la API al estado visual que necesitamos mostrar
+          let displayStatus = order.status || "pending";
+          
+          // Si el estado es "in_transit", mostrarlo como "pending" en la interfaz 
+          // (esta orden está en ruta pero aún no ha sido entregada)
+          if (displayStatus === "in_transit") {
+            displayStatus = "pending";
+          }
+          
           // Construir la parada
           return {
             id: order.id,
@@ -265,7 +274,7 @@ export default function DriverRoute() {
             address: order.address || `${order.customerAddress || ""} ${order.streetnumber || ""}`,
             latitude: lat,
             longitude: lng,
-            status: order.status || "pending",
+            status: displayStatus, // Usar el estado visual apropiado
             estimatedArrival: "Programado", // Placeholder
             estimatedDuration: 15, // Placeholder - minutos estimados en la parada
             distanceFromPrevious: (index === 0) ? 3.2 : (Math.random() * 5 + 1).toFixed(1),
