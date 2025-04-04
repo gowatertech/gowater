@@ -87,7 +87,8 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
         
         // Determinar colores y estado visual
         const isCompleted = stop.status === "completed";
-        const isCurrent = index === currentStopIndex;
+        // Forzar que solo la primera parada después del almacén sea la actual (índice 1)
+        const isCurrent = index === 1 && !isCompleted;
         const isPending = !isCompleted && !isCurrent;
         const isExpanded = expandedStopId === stop.id;
         
