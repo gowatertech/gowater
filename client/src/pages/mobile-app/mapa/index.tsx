@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, RotateCw, Compass, MapPin, Target, Navigation } from "lucide-react";
+import { AlertTriangle, RotateCw, Compass, MapPin, Target, Navigation, Route as RouteIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,30 @@ interface Driver {
   latitude: number | null;
   longitude: number | null;
   lastUpdateTime: string | null;
+}
+
+interface Route {
+  id: number;
+  name: string;
+  driverId: number;
+  status: string;
+  date: string;
+  deliverySequence: string[];
+  stops: string[];
+  totalDistance: string;
+  estimatedDuration: number;
+  orders?: Order[];
+}
+
+interface Order {
+  id: number;
+  routeId: number;
+  customerId: number;
+  status: string;
+  total: string;
+  customerName: string;
+  customerAddress: string;
+  coordinates: string;
 }
 
 interface MapLocation {
@@ -97,10 +121,16 @@ export default function MobileMap() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([18.735693, -70.162651]); // Centro inicial en República Dominicana
   const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
 
-  // Consulta para obtener datos de conductores
-  const { data: driversData, isLoading, error } = useQuery<Driver[]>({
-    queryKey: ['/api/drivers/locations'],
+  // Consulta para obtener rutas activas
+  const { data: activeRoutes, isLoading: loadingRoutes, error: routeError } = useQuery<Route[]>({
+    queryKey: ['/api/routes/active'],
     enabled: !!user
+  });
+  
+  // Consulta para obtener datos de conductores (la dejamos solo para mantener compatibilidad)
+  const { data: driversData, isLoading: loadingDrivers, error: driversError } = useQuery<Driver[]>({
+    queryKey: ['/api/drivers/locations'],
+    enabled: false // Desactivada porque no usamos ubicaciones reales
   });
 
   // Efecto para manejar el modo oscuro
@@ -133,7 +163,22 @@ export default function MobileMap() {
     }
   }, []);
 
+  // Función para convertir coordenadas string a array [lat, lng]
+  const parseCoordinate = (coordStr: string): [number, number] | null => {
+    if (!coordStr) return null;
+    
+    try {
+      const [lat, lng] = coordStr.split(',').map(Number);
+      if (isNaN(lat) || isNaN(lng)) return null;
+      return [lat, lng];
+    } catch (e) {
+      console.error("Error al parsear coordenadas:", coordStr, e);
+      return null;
+    }
+  };
+
   // Si está cargando
+  const isLoading = loadingRoutes;
   if (isLoading) {
     return (
       <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
@@ -155,6 +200,7 @@ export default function MobileMap() {
   }
 
   // Si hay error
+  const error = routeError;
   if (error) {
     return (
       <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
@@ -210,36 +256,64 @@ export default function MobileMap() {
               
               <LocationMarker />
               
-              {/* Renderizar marcadores de otros conductores si están disponibles */}
-              {driversData && Array.isArray(driversData) && driversData.map((driver: Driver) => (
-                driver.latitude && driver.longitude && (
-                  <Marker 
-                    key={driver.id}
-                    position={[driver.latitude, driver.longitude]}
-                    icon={L.divIcon({
-                      className: 'custom-div-icon',
-                      html: `<div class="bg-blue-500 text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg">
-                              <div class="h-6 w-6 flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M5 18H3c-.6 0-1-.4-1-1V7c0-.6.4-1 1-1h10c.6 0 1 .4 1 1v11"/><path d="M14 9h4l4 4v4c0 .6-.4 1-1 1h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-                              </div>
-                            </div>`,
-                      iconSize: [32, 32],
-                      iconAnchor: [16, 16],
+              {/* Renderizar rutas activas y sus paradas */}
+              {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route) => {
+                if (!route.stops || !Array.isArray(route.stops)) return null;
+                
+                // Crear un array de coordenadas para la ruta
+                const routePoints: [number, number][] = [];
+                route.stops.forEach((stopCoord) => {
+                  const point = parseCoordinate(stopCoord);
+                  if (point) routePoints.push(point);
+                });
+                
+                return (
+                  <React.Fragment key={route.id}>
+                    {/* Dibujar la línea de la ruta */}
+                    {routePoints.length > 1 && (
+                      <Polyline 
+                        positions={routePoints}
+                        pathOptions={{ color: '#0ea5e9', weight: 4, opacity: 0.7 }} 
+                      />
+                    )}
+                    
+                    {/* Mostrar marcadores para cada parada */}
+                    {routePoints.map((point, index) => {
+                      // Último punto (final) en rojo, primer punto (inicio) en verde, resto en azul
+                      const color = index === 0 ? 'bg-green-500' : 
+                                   index === routePoints.length - 1 ? 'bg-red-500' : 'bg-blue-500';
+                      const label = index === 0 ? 'Inicio' : 
+                                   index === routePoints.length - 1 ? 'Final' : `Parada ${index}`;
+                      
+                      return (
+                        <Marker 
+                          key={`${route.id}-stop-${index}`}
+                          position={point}
+                          icon={L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `<div class="${color} text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg">
+                                    <div class="h-6 w-6 flex items-center justify-center">
+                                      ${index + 1}
+                                    </div>
+                                  </div>`,
+                            iconSize: [32, 32],
+                            iconAnchor: [16, 16],
+                          })}
+                        >
+                          <Popup>
+                            <div>
+                              <p className="font-bold">{label}</p>
+                              <p className="text-xs text-gray-500">
+                                Ruta: {route.name}
+                              </p>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      );
                     })}
-                  >
-                    <Popup>
-                      <div>
-                        <p className="font-bold">{driver.name}</p>
-                        <p className="text-xs text-gray-500">
-                          Última actualización: {driver.lastUpdateTime ? 
-                            new Date(driver.lastUpdateTime).toLocaleString() : 
-                            'Desconocida'}
-                        </p>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )
-              ))}
+                  </React.Fragment>
+                );
+              })}
             </MapContainer>
           </ResponsiveMapContainer>
         </div>
