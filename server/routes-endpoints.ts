@@ -1869,10 +1869,27 @@ export function registerRoutesEndpoints(app: Express) {
             where: eq(orders.routeId, order.routeId)
           });
           
-          // Verificar si todas están entregadas
-          const allDelivered = routeOrders.every(o => o.id === id || o.status === "delivered");
+          // Primero marcamos esta orden como entregada en la base de datos si aún no lo está
+          if (order.status !== "delivered") {
+            await db.update(orders)
+              .set({ status: "delivered" })
+              .where(eq(orders.id, id));
+            console.log(`Orden #${id} actualizada a estado "delivered" en la base de datos`);
+          }
           
-          if (allDelivered) {
+          // Actualizamos manualmente los productos asociados a la orden
+          const orderProducts = order.products || [];
+          
+          // Verificar si todas están entregadas (después de actualizar la orden actual)
+          // Comprobamos nuevamente usando la consulta a la base de datos más reciente
+          const updatedOrders = await db.query.orders.findMany({
+            where: eq(orders.routeId, order.routeId)
+          });
+          
+          const allOrdersDelivered = updatedOrders.every(o => o.status === "delivered");
+            
+          // Si todas las órdenes están entregadas, marcar la ruta como completada
+          if (allOrdersDelivered) {
             console.log(`Todas las órdenes de la ruta ${order.routeId} han sido entregadas`);
             
             // Actualizar la ruta como completada
@@ -1882,11 +1899,14 @@ export function registerRoutesEndpoints(app: Express) {
             await db.update(routes)
               .set({ 
                 driverEndedAt: new Date(),
-                isCompleted: true
+                isCompleted: true,
+                status: "completed" // Aseguramos que el estado también se actualice
               })
               .where(eq(routes.id, order.routeId));
             
             console.log(`Ruta ${order.routeId} marcada como completada`);
+          } else {
+            console.log(`Aún quedan órdenes pendientes en la ruta ${order.routeId}`);
           }
         } catch (routeError) {
           console.error("Error al verificar/actualizar el estado de la ruta:", routeError);
