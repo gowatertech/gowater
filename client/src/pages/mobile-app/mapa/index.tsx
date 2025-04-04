@@ -12,6 +12,7 @@ import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 
 // Componente para ajustar automáticamente el zoom del mapa para mostrar todos los puntos
 const AutoZoom = ({ points }: { points: [number, number][] }) => {
@@ -157,6 +158,7 @@ export default function MobileMap() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { user } = useCurrentUser();
+  const { companyName } = useCompanySettings(); // Usamos el hook para obtener el nombre de la empresa
   const [mapCenter] = useState<[number, number]>([19.075380, -70.128822]); // Centro inicial en el almacén principal AGUA HARRIS
   const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
 
@@ -170,11 +172,6 @@ export default function MobileMap() {
   const { data: driversData } = useQuery<Driver[]>({
     queryKey: ['/api/drivers/locations'],
     enabled: false // Desactivada porque no usamos ubicaciones reales
-  });
-  
-  // Consulta para obtener la configuración (nombre de la empresa)
-  const { data: settings } = useQuery<Settings>({
-    queryKey: ['/api/settings'],
   });
 
   // Efecto para manejar el modo oscuro
@@ -253,7 +250,7 @@ export default function MobileMap() {
           showBackButton={true} 
           onBackButtonClick={() => setLocation("/mobile-app")}
           darkMode={darkMode}
-          companyName={settings?.name}
+          companyName={companyName}
         />
         <main className="flex-1 p-4 flex items-center justify-center">
           <div className="text-center">
@@ -275,7 +272,7 @@ export default function MobileMap() {
           showBackButton={true} 
           onBackButtonClick={() => setLocation("/mobile-app")}
           darkMode={darkMode}
-          companyName={settings?.name}
+          companyName={companyName}
         />
         <main className="flex-1 p-4">
           <div className="text-center py-10">
@@ -306,7 +303,7 @@ export default function MobileMap() {
         showBackButton={true} 
         onBackButtonClick={() => setLocation("/mobile-app")}
         darkMode={darkMode}
-        companyName={settings?.name}
+        companyName={companyName}
       />
       <main className="flex-1 flex flex-col pb-16">
         <div className="flex-1 relative">

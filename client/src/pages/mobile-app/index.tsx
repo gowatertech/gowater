@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentUser } from "@/hooks/use-current-user";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useQuery } from "@tanstack/react-query";
 
 // Componentes internos
@@ -77,6 +78,7 @@ export default function GoWaterDriverApp() {
   const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
   const { user, isLoading } = useCurrentUser();
+  const { companyName } = useCompanySettings();
   const [darkMode, setDarkMode] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   
@@ -230,6 +232,7 @@ export default function GoWaterDriverApp() {
         darkMode={darkMode} 
         onToggleDarkMode={toggleDarkMode} 
         onSyncData={refreshData}
+        companyName={companyName}
       />
 
       {/* Contenido principal */}

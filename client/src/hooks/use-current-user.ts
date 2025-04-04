@@ -3,7 +3,8 @@ import { create } from 'zustand';
 import { apiRequest } from '@/lib/queryClient';
 import { useState, useEffect } from 'react';
 
-type User = {
+// Exportamos el tipo User para poder usarlo en otros componentes
+export type User = {
   id: number;
   name: string;
   email: string;

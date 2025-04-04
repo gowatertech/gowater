@@ -1,14 +1,26 @@
 import React from "react";
-import { ArrowLeft, Bell, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Bell, Sun, Moon, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Definimos el tipo User internamente para evitar problemas de importación
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'admin' | 'driver' | 'assistant' | 'user';
+  createdAt: string;
+}
+
 interface MobileHeaderProps {
-  title: string;
+  title?: string;
   showBackButton?: boolean;
   onBackButtonClick?: () => void;
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
-  companyName?: string; // Añadido nombre de la empresa
+  companyName?: string;
+  // Propiedades para la versión alternativa
+  user?: User;
+  onSyncData?: () => Promise<void>;
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -17,8 +29,13 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   onBackButtonClick,
   darkMode = false,
   onToggleDarkMode,
-  companyName
+  companyName,
+  user,
+  onSyncData
 }) => {
+  // Determinar qué modo de cabecera mostrar
+  const isDetailView = !!title;
+  
   return (
     <header className={`sticky top-0 z-10 p-4 shadow-sm border-b ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
       <div className="flex items-center justify-between">
@@ -38,7 +55,13 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
             {companyName && (
               <h2 className="text-sm font-semibold text-primary">{companyName}</h2>
             )}
-            <h1 className="font-bold text-lg">{title}</h1>
+            {isDetailView ? (
+              // Modo detalle con título específico
+              <h1 className="font-bold text-lg">{title}</h1>
+            ) : (
+              // Modo principal con nombre de usuario
+              user && <h1 className="font-bold text-lg">GoWater Driver</h1>
+            )}
           </div>
         </div>
         
@@ -55,6 +78,17 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               ) : (
                 <Moon className="h-5 w-5" />
               )}
+            </Button>
+          )}
+          
+          {onSyncData && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onSyncData}
+              className="h-8 w-8"
+            >
+              <RefreshCw className="h-5 w-5" />
             </Button>
           )}
           
