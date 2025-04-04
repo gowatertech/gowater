@@ -199,6 +199,28 @@ export default function MobileMap() {
     }
   };
 
+  // Crear una colección de todos los puntos para el ajuste automático del zoom
+  const allMapPoints = useMemo(() => {
+    const points: [number, number][] = [
+      // Siempre incluir el almacén principal
+      [19.075380, -70.128822]
+    ];
+    
+    // Añadir todos los puntos de todas las rutas activas
+    if (activeRoutes && activeRoutes.length > 0) {
+      activeRoutes.forEach(route => {
+        if (route.stops && Array.isArray(route.stops)) {
+          route.stops.forEach(stopCoord => {
+            const point = parseCoordinate(stopCoord);
+            if (point) points.push(point);
+          });
+        }
+      });
+    }
+    
+    return points;
+  }, [activeRoutes]);
+
   // Si está cargando
   const isLoading = loadingRoutes;
   if (isLoading) {
@@ -252,28 +274,6 @@ export default function MobileMap() {
       </div>
     );
   }
-
-  // Crear una colección de todos los puntos para el ajuste automático del zoom
-  const allMapPoints = useMemo(() => {
-    const points: [number, number][] = [
-      // Siempre incluir el almacén principal
-      [19.075380, -70.128822]
-    ];
-    
-    // Añadir todos los puntos de todas las rutas activas
-    if (activeRoutes && activeRoutes.length > 0) {
-      activeRoutes.forEach(route => {
-        if (route.stops && Array.isArray(route.stops)) {
-          route.stops.forEach(stopCoord => {
-            const point = parseCoordinate(stopCoord);
-            if (point) points.push(point);
-          });
-        }
-      });
-    }
-    
-    return points;
-  }, [activeRoutes]);
 
   // Renderizar el mapa
   return (
