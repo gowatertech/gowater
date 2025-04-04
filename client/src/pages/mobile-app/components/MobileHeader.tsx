@@ -8,6 +8,7 @@ interface MobileHeaderProps {
   onBackButtonClick?: () => void;
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
+  companyName?: string; // Añadido nombre de la empresa
 }
 
 export const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -15,7 +16,8 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
   showBackButton = false,
   onBackButtonClick,
   darkMode = false,
-  onToggleDarkMode
+  onToggleDarkMode,
+  companyName
 }) => {
   return (
     <header className={`sticky top-0 z-10 p-4 shadow-sm border-b ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
@@ -31,7 +33,13 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h1 className="font-bold text-lg">{title}</h1>
+          
+          <div>
+            {companyName && (
+              <h2 className="text-sm font-semibold text-primary">{companyName}</h2>
+            )}
+            <h1 className="font-bold text-lg">{title}</h1>
+          </div>
         </div>
         
         <div className="flex items-center gap-2">

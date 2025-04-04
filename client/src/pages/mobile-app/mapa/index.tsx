@@ -72,6 +72,24 @@ interface MapLocation {
   timestamp: Date;
 }
 
+interface Settings {
+  id: number;
+  name: string;
+  logo: string;
+  rnc: string;
+  street: string;
+  streetNumber: string;
+  provinceId: number;
+  municipalityId: number;
+  contactPhone: string;
+  email: string;
+  country: string;
+  currency: string;
+  tax: string;
+  latitude: string;
+  longitude: string;
+}
+
 // Componente para centrar el mapa en la ubicación actual
 const LocationMarker = () => {
   const [position, setPosition] = useState<[number, number] | null>(null);
@@ -153,6 +171,11 @@ export default function MobileMap() {
     queryKey: ['/api/drivers/locations'],
     enabled: false // Desactivada porque no usamos ubicaciones reales
   });
+  
+  // Consulta para obtener la configuración (nombre de la empresa)
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+  });
 
   // Efecto para manejar el modo oscuro
   useEffect(() => {
@@ -230,6 +253,7 @@ export default function MobileMap() {
           showBackButton={true} 
           onBackButtonClick={() => setLocation("/mobile-app")}
           darkMode={darkMode}
+          companyName={settings?.name}
         />
         <main className="flex-1 p-4 flex items-center justify-center">
           <div className="text-center">
@@ -251,6 +275,7 @@ export default function MobileMap() {
           showBackButton={true} 
           onBackButtonClick={() => setLocation("/mobile-app")}
           darkMode={darkMode}
+          companyName={settings?.name}
         />
         <main className="flex-1 p-4">
           <div className="text-center py-10">
@@ -281,6 +306,7 @@ export default function MobileMap() {
         showBackButton={true} 
         onBackButtonClick={() => setLocation("/mobile-app")}
         darkMode={darkMode}
+        companyName={settings?.name}
       />
       <main className="flex-1 flex flex-col pb-16">
         <div className="flex-1 relative">
