@@ -104,8 +104,10 @@ export default function RouteMap({ route, className }: RouteMapProps) {
           {/* Mostrar marcadores para cada parada */}
           {stopCoordinates.map((position, index) => {
             // Crear un icono personalizado con el número de parada
+            // Mostrar '0' para el almacén y números de parada (1,2,3...) para las entregas
+            const iconNumber = index === 0 ? '0' : index.toString();
             const customIcon = new L.DivIcon({
-              html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-blue-600'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
+              html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-blue-600'} text-white rounded-full w-6 h-6 text-sm font-semibold">${iconNumber}</div>`,
               className: 'custom-number-icon',
               iconSize: [24, 24],
               iconAnchor: [12, 12]
