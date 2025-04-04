@@ -16,7 +16,8 @@ import {
   DollarSign,
   Recycle,
   Edit,
-  Eye
+  Eye,
+  Navigation
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ interface RouteTimelineProps {
   onRegisterBottleReturn: (orderId: number) => void;
   onEditOrder: (stop: RouteStop) => void;
   onViewOrderDetails: (stop: RouteStop) => void;
+  onNavigateToLocation?: (latitude: number, longitude: number, address: string) => void;
 }
 
 const formatCurrency = (value: number | string): string => {
@@ -60,7 +62,8 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
   onDeliverOrder,
   onRegisterBottleReturn,
   onEditOrder,
-  onViewOrderDetails
+  onViewOrderDetails,
+  onNavigateToLocation
 }) => {
   // Verificar si hay algún envase retornable en la orden
   const hasReturnableItems = (stop: RouteStop): boolean => {
@@ -182,6 +185,21 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                           <span className="flex items-center max-w-full">
                             <MapPin className="h-3 w-3 mr-0.5 flex-shrink-0" />
                             <span className="truncate">{stop.address}</span>
+                            
+                            {!stop.isWarehouse && onNavigateToLocation && (
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-5 px-1.5 ml-1 text-[10px] text-blue-600 hover:text-blue-700"
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Evitar que se expanda la tarjeta
+                                  onNavigateToLocation(stop.latitude, stop.longitude, stop.address);
+                                }}
+                              >
+                                <Navigation className="h-3 w-3 mr-0.5" />
+                                Ir
+                              </Button>
+                            )}
                           </span>
                           
                           {!stop.isWarehouse && (

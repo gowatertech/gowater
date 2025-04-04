@@ -121,6 +121,18 @@ export default function DriverRoute() {
   const [amountPaid, setAmountPaid] = useState<string>("");
   const [returnedBottlesCount, setReturnedBottlesCount] = useState<number>(0);
   
+  // Función para navegar a una ubicación
+  const handleNavigateToLocation = (latitude: number, longitude: number, address: string) => {
+    // Usamos la API de Google Maps para navegación
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
+    // Abrimos en una nueva pestaña
+    window.open(url, '_blank');
+    toast({
+      title: "Navegando a destino",
+      description: `Abriendo navegación a ${address}`,
+    });
+  };
+  
   // Cargar datos de la ruta activa
   useEffect(() => {
     const fetchActiveRoute = async () => {
@@ -698,6 +710,7 @@ export default function DriverRoute() {
                 onRegisterBottleReturn={handleBottleReturn}
                 onEditOrder={handleEditOrder}
                 onViewOrderDetails={handleViewOrderDetails}
+                onNavigateToLocation={handleNavigateToLocation}
                 currentStopIndex={currentStopIndex}
               />
             </CardContent>
