@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 
 /**
  * Definición de tipos para los settings
@@ -15,6 +16,11 @@ interface Settings {
  */
 export function CompanyFooter() {
   const [companyName, setCompanyName] = useState<string>("GoWater");
+  const [location] = useLocation();
+  
+  // No mostrar el footer en rutas de la aplicación móvil
+  const isMobileApp = location.startsWith("/mobile-app");
+  if (isMobileApp) return null;
 
   // Fetch settings para obtener el nombre de la empresa
   const { data: settings } = useQuery<Settings>({

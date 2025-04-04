@@ -215,16 +215,13 @@ function Router() {
 }
 
 export default function App() {
-  const [location] = useLocation();
-  const isMobileApp = location.startsWith("/mobile-app");
-  
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
         <Router />
         <Toaster />
         <CenteredLogo size="medium" showName={true} companyName="GoWater" />
-        {!isMobileApp && <CompanyFooter />}
+        <CompanyFooter />
         <DesignCredit />
       </QueryClientProvider>
     </I18nextProvider>
