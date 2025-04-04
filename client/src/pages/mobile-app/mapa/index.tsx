@@ -242,7 +242,7 @@ export default function MobileMap() {
         onBackButtonClick={() => setLocation("/mobile-app")}
         darkMode={darkMode}
       />
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col pb-16">
         <div className="flex-1 relative">
           <ResponsiveMapContainer fullHeight>
             <MapContainer 
