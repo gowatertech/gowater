@@ -71,9 +71,9 @@ export default function MobilePendingRoutes() {
   const { data: routes = [], isLoading: isLoadingRoutes, error: routesError } = useQuery<Route[]>({
     queryKey: ["/api/routes/active"],
     queryFn: async () => {
-      const driverId = user?.id;
-      const url = `/api/routes/active${driverId ? `?driverId=${driverId}` : ''}`;
-      console.log("Consultando rutas pendientes y en progreso:", url);
+      // Consultar todas las rutas activas sin filtrar por conductor
+      const url = `/api/routes/active`;
+      console.log("Consultando todas las rutas pendientes y en progreso:", url);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('No se pudieron cargar las rutas pendientes');
