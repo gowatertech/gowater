@@ -43,3 +43,37 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
     throw error;
   }
 }
+
+/**
+ * Función para procesar entrega, pago y generar factura en un solo paso
+ * @param orderId ID de la orden a procesar
+ * @param paymentMethod Método de pago ('cash', 'credit', 'transfer')
+ * @param amountPaid Monto pagado
+ * @param userId ID del usuario que procesa la operación (opcional)
+ * @returns Objeto con resultado de la operación
+ */
+export async function processOrderDeliveryAndPayment(
+  orderId: number,
+  paymentMethod: string,
+  amountPaid: number,
+  userId?: number
+) {
+  try {
+    const response = await apiRequest(
+      `/api/mobile/orders/${orderId}/deliver-and-invoice`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          paymentMethod,
+          amountPaid,
+          userId
+        }),
+      }
+    );
+    
+    return response;
+  } catch (error) {
+    console.error('Error al procesar entrega y pago:', error);
+    throw error;
+  }
+}

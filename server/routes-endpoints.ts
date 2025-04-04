@@ -1668,4 +1668,152 @@ export function registerRoutesEndpoints(app: Express) {
       res.status(500).json({ error: "Error al generar la factura" });
     }
   });
+  
+  // Nueva ruta para completar entrega, cobrar y generar factura en un solo paso
+  app.post("/api/mobile/orders/:id/deliver-and-invoice", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "ID de orden inválido" });
+      }
+      
+      const { paymentMethod, amountPaid, userId } = req.body;
+      
+      // Validar los datos de entrada
+      if (!paymentMethod || !amountPaid) {
+        return res.status(400).json({ error: "Método de pago y monto pagado son obligatorios" });
+      }
+      
+      console.log(`Procesando entrega, pago y factura para orden #${id}`, req.body);
+      
+      // Paso 1: Obtener la orden
+      const order = await storage.getOrder(id);
+      if (!order) {
+        return res.status(404).json({ error: "Orden no encontrada" });
+      }
+      
+      // Paso 2: Marcar como entregada si aún no lo está
+      let updatedOrder = order;
+      if (order.status !== "delivered") {
+        updatedOrder = await storage.updateOrderStatus(id, "delivered");
+        console.log(`Orden #${id} marcada como entregada`);
+      } else {
+        console.log(`Orden #${id} ya estaba marcada como entregada`);
+      }
+      
+      // Paso 3: Registrar el pago
+      let paymentRegistered = false;
+      try {
+        const payment = {
+          invoiceId: id, // Usando el ID de la orden como invoiceId temporal
+          amount: amountPaid.toString(),
+          paymentMethod: paymentMethod,
+          customerId: order.customerId,
+          reference: `Pago de pedido #${id}`,
+          notes: "Pago recibido al momento de la entrega"
+        };
+        
+        await storage.registerPayment(payment);
+        paymentRegistered = true;
+        console.log(`Pago registrado para orden #${id}: ${amountPaid} vía ${paymentMethod}`);
+      } catch (paymentError) {
+        console.error("Error al registrar el pago:", paymentError);
+      }
+      
+      // Paso 4: Generar factura con número secuencial
+      let invoiceGenerated = false;
+      let invoiceId = null;
+      try {
+        // Obtener el siguiente número de factura
+        const lastInvoice = await db.query.invoices.findFirst({
+          orderBy: [desc(invoices.invoiceNumber)]
+        });
+        
+        const nextInvoiceNumber = lastInvoice ? lastInvoice.invoiceNumber + 1 : 1;
+        
+        // Definir status basado en el método de pago
+        const invoiceStatus = paymentMethod === "cash" ? "paid" : "pending";
+        
+        // Método de pago validado según el esquema de la tabla
+        let validPaymentMethod: "cash" | "credit" | "card";
+        if (paymentMethod === "cash" || paymentMethod === "credit" || paymentMethod === "card") {
+          validPaymentMethod = paymentMethod;
+        } else {
+          validPaymentMethod = "cash"; // Default
+        }
+        
+        // Insertar la factura en la base de datos con los tipos correctos
+        const result = await db.insert(invoices).values([{
+          invoiceNumber: nextInvoiceNumber,
+          customerId: order.customerId,
+          total: amountPaid.toString(),
+          status: invoiceStatus,
+          paymentMethod: validPaymentMethod,
+          date: new Date(),
+          notes: `Pedido #${id} entregado`
+        }]).returning();
+        if (result && result.length > 0) {
+          invoiceId = result[0].id;
+          invoiceGenerated = true;
+          console.log(`Factura #${nextInvoiceNumber} generada para orden #${id}`);
+        }
+      } catch (invoiceError) {
+        console.error("Error al generar la factura:", invoiceError);
+      }
+      
+      // Paso 5: Actualizar ruta si es necesario
+      if (order.routeId) {
+        try {
+          // Obtener todas las órdenes de la ruta
+          const routeOrders = await db.query.orders.findMany({
+            where: eq(orders.routeId, order.routeId)
+          });
+          
+          // Verificar si todas están entregadas
+          const allDelivered = routeOrders.every(o => o.id === id || o.status === "delivered");
+          
+          if (allDelivered) {
+            console.log(`Todas las órdenes de la ruta ${order.routeId} han sido entregadas`);
+            
+            // Actualizar la ruta como completada
+            await storage.updateRouteStatus(order.routeId, "completed");
+            
+            // Actualizar la fecha de finalización y marcar como completada
+            await db.update(routes)
+              .set({ 
+                driverEndedAt: new Date(),
+                isCompleted: true
+              })
+              .where(eq(routes.id, order.routeId));
+            
+            console.log(`Ruta ${order.routeId} marcada como completada`);
+          }
+        } catch (routeError) {
+          console.error("Error al verificar/actualizar el estado de la ruta:", routeError);
+        }
+      }
+      
+      // Responder con todos los resultados
+      res.json({
+        success: true,
+        order: updatedOrder,
+        payment: {
+          registered: paymentRegistered,
+          amount: amountPaid,
+          method: paymentMethod
+        },
+        invoice: {
+          generated: invoiceGenerated,
+          invoiceId: invoiceId
+        }
+      });
+      
+    } catch (error: any) {
+      console.error("Error en el proceso de entrega y facturación:", error);
+      res.status(500).json({
+        error: "Error al procesar la entrega, pago y facturación",
+        details: error.message || String(error)
+      });
+    }
+  });
 }

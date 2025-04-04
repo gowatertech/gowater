@@ -395,28 +395,27 @@ export default function DriverRoute() {
       
       console.log("Procesando entrega y pago para:", currentStopForPayment);
       
-      // Realizar la actualización en el servidor
-      const paymentData = {
-        orderId: currentStopForPayment.id,
-        status: "delivered", 
-        paymentMethod: paymentMethod,
-        amountPaid: parseFloat(amountPaid),
-        paymentDate: new Date().toISOString(),
-        userId: user?.id || null
-      };
+      // Preparar los datos para el endpoint combinado
+      const amountPaidValue = parseFloat(amountPaid);
+      const userId = user?.id;
       
-      console.log("Enviando datos de pago:", paymentData);
+      console.log(`Llamando al nuevo endpoint con: ID ${currentStopForPayment.id}, método ${paymentMethod}, monto ${amountPaidValue}`);
       
-      // Actualizar el estado de la orden en el servidor
-      const response = await apiRequest(`/api/orders/${currentStopForPayment.id}/complete`, {
-        method: "POST",
-        body: JSON.stringify(paymentData)
-      });
+      // Utilizar la nueva función de API que usa el endpoint combinado
+      const { processOrderDeliveryAndPayment } = await import('@/lib/api');
       
-      console.log("Respuesta del servidor:", response);
+      // Llamar al nuevo endpoint combinado
+      const result = await processOrderDeliveryAndPayment(
+        currentStopForPayment.id,
+        paymentMethod,
+        amountPaidValue,
+        userId
+      );
       
-      if (response && response.success) {
-        // Actualizar estado local
+      console.log("Respuesta del servidor (nuevo endpoint):", result);
+      
+      if (result && result.success) {
+        // Actualizar estado local con la información de la orden actualizada
         setRouteStops(prevStops => 
           prevStops.map(stop => 
             stop.id === currentStopForPayment.id 
@@ -425,51 +424,29 @@ export default function DriverRoute() {
           )
         );
         
-        // Confirmar éxito
+        // Mostrar mensaje de éxito para la entrega
         toast({
           title: "¡Entrega completada!",
           description: `Pedido #${currentStopForPayment.id} entregado y cobrado correctamente.`,
           variant: "default",
         });
         
-        // Generar factura automáticamente
-        try {
-          const invoiceData = {
-            orderId: currentStopForPayment.id,
-            total: paymentData.amountPaid,
-            paymentMethod: paymentData.paymentMethod,
-            userId: user?.id || null
-          };
-          
-          const invoiceResponse = await apiRequest(`/api/invoices/generate`, {
-            method: "POST",
-            body: JSON.stringify(invoiceData)
+        // Mostrar mensaje de éxito para el pago
+        if (result.payment && result.payment.registered) {
+          toast({
+            title: "Pago registrado",
+            description: `Pago de RD$ ${result.payment.amount.toFixed(2)} registrado vía ${result.payment.method}.`,
+            variant: "default",
           });
-          
-          if (invoiceResponse && invoiceResponse.invoiceId) {
-            toast({
-              title: "Factura generada",
-              description: `Factura #${invoiceResponse.invoiceId} generada correctamente.`,
-            });
-          } else {
-            console.log("Simulando generación de factura");
-            // Simular la generación de factura si el endpoint no está disponible
-            setTimeout(() => {
-              toast({
-                title: "Factura generada",
-                description: `Factura #F-${currentStopForPayment.id}-${new Date().toISOString().slice(0, 10)}`,
-              });
-            }, 1000);
-          }
-        } catch (invoiceError) {
-          console.error("Error al generar factura:", invoiceError);
-          // Mostrar mensaje de factura simulada
-          setTimeout(() => {
-            toast({
-              title: "Factura generada",
-              description: `Factura #F-${currentStopForPayment.id}-${new Date().toISOString().slice(0, 10)}`,
-            });
-          }, 1000);
+        }
+        
+        // Mostrar mensaje de éxito para la factura
+        if (result.invoice && result.invoice.generated) {
+          toast({
+            title: "Factura generada",
+            description: `Factura #${result.invoice.invoiceId} generada correctamente.`,
+            variant: "default",
+          });
         }
       } else {
         // Fallback: actualizar solo en el front-end si falla la API
@@ -488,15 +465,17 @@ export default function DriverRoute() {
           variant: "default",
         });
         
+        // Mostrar mensaje informativo de factura
         setTimeout(() => {
           toast({
-            title: "Factura generada",
-            description: `Factura #F-${currentStopForPayment.id}-${new Date().toISOString().slice(0, 10)}`,
+            title: "Factura pendiente",
+            description: "La factura será generada cuando se restablezca la conexión.",
+            variant: "default",
           });
         }, 1000);
       }
     } catch (error) {
-      console.error("Error al procesar el pago:", error);
+      console.error("Error al procesar el pago y entrega:", error);
       
       // Fallback: actualizar solo en el front-end en caso de error
       setRouteStops(prevStops => 
@@ -508,17 +487,18 @@ export default function DriverRoute() {
       );
       
       toast({
-        title: "Entrega registrada localmente",
-        description: "La entrega se ha registrado localmente debido a un error de conexión.",
-        variant: "default",
+        title: "Error en el proceso",
+        description: "Hubo un problema al procesar la entrega. Se ha registrado localmente.",
+        variant: "destructive",
       });
       
+      // Después de un breve delay, mostrar un mensaje más específico
       setTimeout(() => {
         toast({
-          title: "Factura generada localmente",
-          description: `Factura #F-${currentStopForPayment.id}-${new Date().toISOString().slice(0, 10)}`,
+          title: "Intento de sincronización pendiente",
+          description: "Se intentará sincronizar automáticamente cuando mejore la conexión.",
         });
-      }, 1000);
+      }, 1500);
     }
   };
   
