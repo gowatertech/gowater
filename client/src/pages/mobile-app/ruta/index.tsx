@@ -274,7 +274,8 @@ export default function DriverRoute() {
             address: order.address || `${order.customerAddress || ""} ${order.streetnumber || ""}`,
             latitude: lat,
             longitude: lng,
-            status: displayStatus, // Usar el estado visual apropiado
+            actualStatus: order.status, // Estado real en la base de datos
+            status: displayStatus, // Estado visual para la interfaz
             estimatedArrival: "Programado", // Placeholder
             estimatedDuration: 15, // Placeholder - minutos estimados en la parada
             distanceFromPrevious: (index === 0) ? 3.2 : (Math.random() * 5 + 1).toFixed(1),
@@ -388,6 +389,8 @@ export default function DriverRoute() {
   
   // Marcar parada como completada
   const handleMarkStopCompleted = (stop: RouteStop) => {
+    console.log("Estado actual de la parada:", stop.actualStatus);
+    
     // Implementar lógica para marcar parada completada
     toast({
       title: "Parada completada",

@@ -486,11 +486,8 @@ export function registerRoutesEndpoints(app: Express) {
         .where(eq(routes.id, routeId))
         .returning();
       
-      // NOTA: Ya no actualizamos los pedidos a "in_transit"
-      // Los mantenemos como "pending" para que el conductor vea claramente cuáles debe entregar
-      // Esto simplifica la lógica y la interfaz de usuario
-      // Comentado el código anterior que cambiaba el estado:
-      /*
+      // Ahora, actualizar todos los pedidos asociados a esta ruta a estado "in_transit"
+      // para marcar que están en proceso de entrega
       await db
         .update(orders)
         .set({
@@ -502,7 +499,6 @@ export function registerRoutesEndpoints(app: Express) {
             eq(orders.status, "pending")  // Solo actualizamos los pedidos en estado pendiente
           )
         );
-      */
       
       console.log(`Ruta ${routeId} y sus pedidos asociados actualizados a estado "in_transit"`);
       
