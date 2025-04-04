@@ -526,8 +526,20 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         stops: optimizedRoute.map(customer => customer.coordinates || ""),
         // Añadir información calculada
         totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear a 2 decimales
-        estimatedDuration: estimatedDuration
+        estimatedDuration: estimatedDuration,
+        // Añadir IDs de órdenes si existen órdenes pendientes para los clientes seleccionados
+        orderIds: pendingOrders
+          .filter(order => 
+            // Filtrar solo las órdenes de los clientes seleccionados en la ruta
+            optimizedRoute.some(customer => 
+              customer.id !== 0 && // Excluir el depósito (ID 0)
+              customer.id === order.customerId
+            )
+          )
+          .map(order => order.id)
       };
+      
+      console.log("Enviando órdenes para la ruta:", routeData.orderIds);
       
       // Enviar los datos de la ruta al servidor
       const response = await apiRequest("POST", "/api/routes", routeData);

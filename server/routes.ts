@@ -729,10 +729,28 @@ export async function registerRoutes(app: Express) {
         });
       }
 
+      // Iniciar transacción para crear la ruta y asignar los pedidos
       const [route] = await db
         .insert(routes)
         .values(routeData)
         .returning();
+      
+      // Asignar pedidos a la ruta creada
+      if (route && req.body.orderIds && Array.isArray(req.body.orderIds) && req.body.orderIds.length > 0) {
+        console.log(`Asignando ${req.body.orderIds.length} pedidos a la ruta ${route.id}`);
+        
+        // Actualizar cada pedido para asignarlo a esta ruta
+        for (const orderId of req.body.orderIds) {
+          await db
+            .update(orders)
+            .set({ routeId: route.id })
+            .where(eq(orders.id, Number(orderId)));
+        }
+        
+        console.log(`Pedidos asignados a la ruta ${route.id}`);
+      } else {
+        console.log("No se proporcionaron IDs de pedidos para asignar a la ruta");
+      }
 
       res.json(route);
     } catch (error) {
