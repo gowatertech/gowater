@@ -165,7 +165,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                             className={`ml-2 px-2 py-0 text-xs ${
                               isCompleted ? "bg-gray-500/10 text-gray-500 border-gray-500/20" : 
                               isCurrent ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
-                              "bg-gray-200 text-gray-500 border-gray-300/30"
+                              "bg-gray-500/10 text-gray-500 border-gray-500/20"
                             }`}
                           >
                             {stop.isWarehouse && isCompleted ? "Despachado" : 

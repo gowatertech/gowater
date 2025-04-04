@@ -327,13 +327,22 @@ export default function DriverRoute() {
         
         console.log("Paradas ordenadas:", orderedStops);
         
-        // Actualizar el índice de la parada actual si no se ha establecido
-        if (currentStopIndex === -1 && orderedStops.length > 1) {
-          // Buscar la primera parada no completada después del almacén
-          for (let i = 1; i < orderedStops.length; i++) {
-            if (orderedStops[i].status !== "completed") {
-              setCurrentStopIndex(i);
-              break;
+        // Reset de la parada actual para asegurar orden correcto
+        setCurrentStopIndex(-1);
+        
+        // Actualizar el índice de la parada actual para que siempre sea la primera (1) después del almacén
+        if (orderedStops.length > 1) {
+          // Siempre establecer la primera parada después del almacén como la actual
+          // a menos que ya esté completada
+          if (orderedStops[1] && orderedStops[1].status !== "completed") {
+            setCurrentStopIndex(1);
+          } else {
+            // Si la primera está completada, buscar la primera no completada
+            for (let i = 2; i < orderedStops.length; i++) {
+              if (orderedStops[i].status !== "completed") {
+                setCurrentStopIndex(i);
+                break;
+              }
             }
           }
           
