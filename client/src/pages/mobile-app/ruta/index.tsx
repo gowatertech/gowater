@@ -259,10 +259,10 @@ export default function DriverRoute() {
           // Mapear el estado de la API al estado visual que necesitamos mostrar
           let displayStatus = order.status || "pending";
           
-          // Si el estado es "in_transit", mostrarlo como "pending" en la interfaz 
+          // Si el estado es "in_transit", mostrarlo como "in_progress" en la interfaz 
           // (esta orden está en ruta pero aún no ha sido entregada)
           if (displayStatus === "in_transit") {
-            displayStatus = "pending";
+            displayStatus = "in_progress";
           }
           
           // Construir la parada

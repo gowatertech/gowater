@@ -118,6 +118,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
                       isCompleted ? "border-green-500 bg-green-500/20" : 
                       isCurrent ? "border-blue-500 bg-blue-500/20" : 
+                      stop.status === "in_progress" ? "border-yellow-500 bg-yellow-500/20" :
                       "border-gray-400 bg-gray-200"
                     }`}>
                       {isCompleted ? (
@@ -137,6 +138,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                     className={`overflow-hidden border ${
                       isCompleted ? "border-green-500/30 bg-green-500/5" : 
                       isCurrent ? "border-blue-500/30 bg-blue-500/5" : 
+                      stop.status === "in_progress" ? "border-yellow-500/30 bg-yellow-500/5" :
                       "border-gray-200 bg-white"
                     } ${darkMode ? 'dark bg-gray-800 text-white' : ''}`}
                   >
@@ -167,10 +169,14 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                             className={`ml-2 px-2 py-0 text-xs ${
                               isCompleted ? "bg-green-500/10 text-green-500 border-green-500/20" : 
                               isCurrent ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
+                              stop.status === "in_progress" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
                               "bg-gray-200 text-gray-500 border-gray-300/30"
                             }`}
                           >
-                            {isCompleted ? "Completada" : isCurrent ? "En progreso" : "Pendiente"}
+                            {isCompleted ? "Completada" : 
+                             isCurrent ? "En progreso" : 
+                             stop.status === "in_progress" ? "En progreso" : 
+                             "Pendiente"}
                           </Badge>
                         </div>
                         
