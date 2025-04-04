@@ -116,10 +116,9 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                     </div>
                   ) : (
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
-                      isCompleted ? "border-green-500 bg-green-500/20" : 
+                      isCompleted ? "border-gray-500 bg-gray-700/20" : 
                       isCurrent ? "border-blue-500 bg-blue-500/20" : 
-                      stop.status === "in_progress" ? "border-yellow-500 bg-yellow-500/20" :
-                      "border-gray-400 bg-gray-200"
+                      "border-gray-500 bg-gray-700/20"
                     }`}>
                       {/* Mostrar el estado actual como tooltip para depuración */}
                       <span className="sr-only">Estado: {stop.status}</span>
@@ -138,10 +137,9 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                 <div className="flex-1">
                   <Card 
                     className={`overflow-hidden border ${
-                      isCompleted ? "border-green-500/30 bg-green-500/5" : 
+                      isCompleted ? "border-gray-500/30 bg-gray-700/5" : 
                       isCurrent ? "border-blue-500/30 bg-blue-500/5" : 
-                      stop.status === "in_progress" ? "border-yellow-500/30 bg-yellow-500/5" :
-                      "border-gray-200 bg-white"
+                      "border-gray-500/30 bg-gray-700/5"
                     } ${darkMode ? 'dark bg-gray-800 text-white' : ''}`}
                   >
                     {/* Encabezado de la parada */}
@@ -169,16 +167,15 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                           <Badge 
                             variant="outline" 
                             className={`ml-2 px-2 py-0 text-xs ${
-                              isCompleted ? "bg-green-500/10 text-green-500 border-green-500/20" : 
+                              isCompleted ? "bg-gray-500/10 text-gray-500 border-gray-500/20" : 
                               isCurrent ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
-                              stop.status === "in_progress" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
                               "bg-gray-200 text-gray-500 border-gray-300/30"
                             }`}
                           >
                             {stop.isWarehouse && isCompleted ? "Despachado" : 
                              isCompleted ? "Completada" : 
                              isCurrent ? "En progreso" : 
-                             stop.status === "in_progress" ? "En progreso" : 
+                             stop.status === "in_progress" || stop.status === "in_transit" ? "En progreso" : 
                              "Pendiente"}
                           </Badge>
                         </div>
