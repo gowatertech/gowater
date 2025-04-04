@@ -284,10 +284,7 @@ export default function MobileMap() {
       />
       <main className="flex-1 flex flex-col pb-16">
         <div className="flex-1 relative">
-          {/* Nombre de la empresa en la parte superior izquierda */}
-          <div className="absolute top-3 left-3 z-[999] bg-white bg-opacity-80 px-3 py-2 rounded-lg shadow-md">
-            <h1 className="text-xl font-bold text-purple-700">AGUA HARRIS</h1>
-          </div>
+          {/* Se eliminó el nombre de la empresa de la parte superior izquierda */}
           
           <ResponsiveMapContainer fullHeight>
             <MapContainer 
