@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, RotateCw, Compass, MapPin, Target, Navigation, Route as RouteIcon } from "lucide-react";
@@ -12,6 +12,26 @@ import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container
 import { MobileHeader } from "../components/MobileHeader";
 import { MobileFooter } from "../components/MobileFooter";
 import { useCurrentUser } from "@/hooks/use-current-user";
+
+// Componente para ajustar automáticamente el zoom del mapa para mostrar todos los puntos
+const AutoZoom = ({ points }: { points: [number, number][] }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (points && points.length > 1) {
+      // Crear los límites del mapa basados en los puntos
+      const bounds = L.latLngBounds(points);
+      // Ajustar el mapa para mostrar todos los puntos con un padding
+      map.fitBounds(bounds, {
+        padding: [50, 50], // Padding alrededor de los límites
+        maxZoom: 11.5, // Zoom máximo para evitar acercamiento excesivo
+        animate: true
+      });
+    }
+  }, [map, points]);
+  
+  return null;
+};
 
 // Definición de interfaces
 interface Driver {
@@ -233,6 +253,28 @@ export default function MobileMap() {
     );
   }
 
+  // Crear una colección de todos los puntos para el ajuste automático del zoom
+  const allMapPoints = useMemo(() => {
+    const points: [number, number][] = [
+      // Siempre incluir el almacén principal
+      [19.075380, -70.128822]
+    ];
+    
+    // Añadir todos los puntos de todas las rutas activas
+    if (activeRoutes && activeRoutes.length > 0) {
+      activeRoutes.forEach(route => {
+        if (route.stops && Array.isArray(route.stops)) {
+          route.stops.forEach(stopCoord => {
+            const point = parseCoordinate(stopCoord);
+            if (point) points.push(point);
+          });
+        }
+      });
+    }
+    
+    return points;
+  }, [activeRoutes]);
+
   // Renderizar el mapa
   return (
     <div className={`min-h-screen flex flex-col ${darkMode ? 'dark bg-gray-950 text-white' : ''}`}>
@@ -247,7 +289,7 @@ export default function MobileMap() {
           <ResponsiveMapContainer fullHeight>
             <MapContainer 
               center={mapCenter} 
-              zoom={13} 
+              zoom={11} 
               style={{ height: "100%", width: "100%" }}
               zoomControl={false}
             >
@@ -255,6 +297,9 @@ export default function MobileMap() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
+              
+              {/* Componente para ajustar automáticamente el zoom */}
+              <AutoZoom points={allMapPoints} />
               
               <LocationMarker />
               
@@ -321,7 +366,7 @@ export default function MobileMap() {
                       const displayIndex = index === 0 ? 0 : index;
                       
                       // Convertir el color de la ruta en clase tailwind equivalente para los marcadores
-                      const routeColorClasses = {
+                      const routeColorClasses: Record<string, string> = {
                         '#0ea5e9': 'bg-sky-500',
                         '#059669': 'bg-emerald-600',
                         '#d97706': 'bg-amber-600',
@@ -334,7 +379,7 @@ export default function MobileMap() {
                       // Almacén (Ruta 0) en color diferenciado, último punto (final) en rojo, resto del color de la ruta
                       const color = index === 0 ? 'bg-purple-600' : 
                                    index === routePoints.length - 1 ? 'bg-red-500' : 
-                                   routeColorClasses[routeColor] || 'bg-blue-500';
+                                   (routeColor in routeColorClasses ? routeColorClasses[routeColor as keyof typeof routeColorClasses] : 'bg-blue-500');
                       
                       // Etiquetas descriptivas para puntos especiales
                       const label = index === 0 ? 'Almacén Principal (Ruta 0)' : 
