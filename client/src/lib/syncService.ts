@@ -63,9 +63,68 @@ export function initSyncService() {
     // Emitir evento inicial
     const event = new CustomEvent(EVENTS.PENDING_ITEMS_CHANGED, { detail: { count } });
     eventTarget.dispatchEvent(event);
+    
+    // Registrar Background Sync si hay elementos pendientes
+    if (count > 0) {
+      registerBackgroundSync();
+    }
   });
   
+  // Escuchar mensajes desde el Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.action === 'sync-data') {
+        console.log('Mensaje recibido del Service Worker para sincronizar');
+        forceSyncNow().then(success => {
+          console.log('Sincronización iniciada por Service Worker:', success);
+        });
+      }
+    });
+  }
+  
+  // Solicitar permiso para notificaciones
+  requestNotificationPermission();
+  
   console.log('Servicio de sincronización inicializado');
+}
+
+// Solicitar permiso para notificaciones
+async function requestNotificationPermission() {
+  if ('Notification' in window) {
+    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      try {
+        const permission = await Notification.requestPermission();
+        console.log(`Permiso de notificaciones: ${permission}`);
+      } catch (error) {
+        console.error('Error al solicitar permiso de notificaciones:', error);
+      }
+    }
+  }
+}
+
+// Registrar Background Sync
+export async function registerBackgroundSync() {
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Verificar si la API sync está disponible en el registro
+      if (registration && 'sync' in registration) {
+        await (registration as any).sync.register('sync-pending-data');
+        console.log('Background sync registrado correctamente');
+        return true;
+      } else {
+        console.log('La API Sync no está disponible en este navegador');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error al registrar background sync:', error);
+      return false;
+    }
+  } else {
+    console.log('Background Sync no soportado en este navegador');
+    return false;
+  }
 }
 
 // Manejar cambios en el estado de la conexión
@@ -330,7 +389,7 @@ export async function apiRequestWithOfflineSupport(
           options.method === 'DELETE' ? SyncOperationType.DELETE :
           SyncOperationType.UPDATE;
         
-        await addToSyncQueue({
+        const result = await addToSyncQueue({
           endpoint,
           method: options.method as 'POST' | 'PUT' | 'PATCH' | 'DELETE',
           data: options.body,
@@ -338,6 +397,13 @@ export async function apiRequestWithOfflineSupport(
           entityId: options.entityId || 0,
           operationType
         });
+        
+        // Registrar background sync después de agregar a la cola
+        if (result) {
+          registerBackgroundSync().catch(err => {
+            console.warn('Error al registrar background sync:', err);
+          });
+        }
         
         // Si es una creación o actualización, también cachear localmente
         if (operationType !== SyncOperationType.DELETE && options.body) {
@@ -377,7 +443,7 @@ export async function apiRequestWithOfflineSupport(
         options.method === 'DELETE' ? SyncOperationType.DELETE :
         SyncOperationType.UPDATE;
       
-      await addToSyncQueue({
+      const result = await addToSyncQueue({
         endpoint,
         method: options.method as 'POST' | 'PUT' | 'PATCH' | 'DELETE',
         data: options.body,
@@ -385,6 +451,13 @@ export async function apiRequestWithOfflineSupport(
         entityId: options.entityId || 0,
         operationType
       });
+      
+      // Registrar background sync después de agregar a la cola
+      if (result) {
+        registerBackgroundSync().catch(err => {
+          console.warn('Error al registrar background sync:', err);
+        });
+      }
       
       // Si es una creación o actualización, también cachear localmente
       if (operationType !== SyncOperationType.DELETE && options.body) {

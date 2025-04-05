@@ -1,186 +1,132 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, WifiOff, CheckCircle, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { 
-  subscribeSyncEvent, 
-  EVENTS, 
-  getConnectionStatus,
-  forceSyncNow 
-} from '@/lib/syncService';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { CloudOff, RefreshCw, Cloud, CheckCircle } from 'lucide-react';
+import { EVENTS, subscribeSyncEvent, getConnectionStatus } from '@/lib/syncService';
+import SyncStatusModal from './SyncStatusModal';
 
 interface SyncIndicatorProps {
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
-  showCount?: boolean;
+  size?: "sm" | "md" | "lg";
   showTooltip?: boolean;
 }
 
-// Diferentes estados del indicador
-type SyncState = 'online' | 'offline' | 'syncing' | 'error';
-
-// Mapa de tamaños para íconos
-const sizeMap = {
-  sm: { icon: 14, text: 'text-xs' },
-  md: { icon: 18, text: 'text-sm' },
-  lg: { icon: 22, text: 'text-base' }
-};
-
-export function SyncIndicator({ 
-  className,
+const SyncIndicator: React.FC<SyncIndicatorProps> = ({ 
+  className = '',
   size = 'md',
-  showCount = false,
-  showTooltip = true
-}: SyncIndicatorProps) {
-  const [syncState, setSyncState] = useState<SyncState>('online');
-  const [pendingCount, setPendingCount] = useState(0);
-  const [syncError, setSyncError] = useState<string | null>(null);
+  showTooltip = true 
+}) => {
+  const [isOnline, setIsOnline] = useState(() => getConnectionStatus().isOnline);
+  const [pendingItems, setPendingItems] = useState(() => getConnectionStatus().pendingItemsCount);
+  const [syncing, setSyncing] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   
-  // Tamaño del ícono según la prop size
-  const { icon: iconSize, text: textSize } = sizeMap[size];
-  
-  // Iniciar el estado según la conectividad actual
   useEffect(() => {
-    // Obtener estado inicial
-    const { isOnline, pendingItemsCount } = getConnectionStatus();
-    setSyncState(isOnline ? 'online' : 'offline');
-    setPendingCount(pendingItemsCount);
-    
-    // Suscribirse a cambios en el estado de conexión
-    const unsubscribeConnectionChange = subscribeSyncEvent(
-      EVENTS.ONLINE_STATUS_CHANGED,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setSyncState(customEvent.detail.isOnline ? 'online' : 'offline');
+    // Suscribirse a cambios en el estado de la conexión
+    const unsubscribeOnlineStatus = subscribeSyncEvent(
+      EVENTS.ONLINE_STATUS_CHANGED, 
+      (event: Event) => {
+        const customEvent = event as CustomEvent;
+        setIsOnline(customEvent.detail.isOnline);
       }
     );
     
-    // Suscribirse a cambios en el estado de sincronización
-    const unsubscribeSyncStart = subscribeSyncEvent(
-      EVENTS.SYNC_STARTED,
-      () => {
-        setSyncState('syncing');
-        setSyncError(null);
+    // Suscribirse a cambios en elementos pendientes
+    const unsubscribePendingItems = subscribeSyncEvent(
+      EVENTS.PENDING_ITEMS_CHANGED,
+      (event: Event) => {
+        const customEvent = event as CustomEvent;
+        setPendingItems(customEvent.detail.count);
       }
+    );
+    
+    // Suscribirse a eventos de sincronización
+    const unsubscribeSyncStarted = subscribeSyncEvent(
+      EVENTS.SYNC_STARTED,
+      () => setSyncing(true)
     );
     
     const unsubscribeSyncComplete = subscribeSyncEvent(
       EVENTS.SYNC_COMPLETE,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setPendingCount(customEvent.detail.remainingItems);
-        setSyncState(navigator.onLine ? 'online' : 'offline');
-      }
+      () => setSyncing(false)
     );
     
     const unsubscribeSyncError = subscribeSyncEvent(
       EVENTS.SYNC_ERROR,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setSyncError(customEvent.detail.error);
-        setSyncState('error');
-      }
+      () => setSyncing(false)
     );
     
-    const unsubscribePendingChanged = subscribeSyncEvent(
-      EVENTS.PENDING_ITEMS_CHANGED,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setPendingCount(customEvent.detail.count);
-      }
-    );
-    
-    // Limpiar suscripciones
+    // Limpiar suscripciones al desmontar
     return () => {
-      unsubscribeConnectionChange();
-      unsubscribeSyncStart();
+      unsubscribeOnlineStatus();
+      unsubscribePendingItems();
+      unsubscribeSyncStarted();
       unsubscribeSyncComplete();
       unsubscribeSyncError();
-      unsubscribePendingChanged();
     };
   }, []);
   
-  // Determinar qué ícono mostrar según el estado
-  const renderIcon = () => {
-    switch (syncState) {
-      case 'offline':
-        return <WifiOff size={iconSize} className="text-amber-500" />;
-      case 'syncing':
-        return <Loader2 size={iconSize} className="text-blue-500 animate-spin" />;
-      case 'error':
-        return <AlertCircle size={iconSize} className="text-red-500" />;
-      case 'online':
-      default:
-        return pendingCount > 0 
-          ? <CheckCircle size={iconSize} className="text-gray-400" />
-          : <CheckCircle size={iconSize} className="text-green-500" />;
-    }
-  };
+  // Determinar qué ícono y color mostrar según el estado
+  let Icon: React.ElementType = CheckCircle;
+  let iconColor = 'text-green-500';
+  let tooltipText = 'Conectado y sincronizado';
   
-  // Determinar el texto del tooltip
-  const getTooltipText = () => {
-    switch (syncState) {
-      case 'offline':
-        return pendingCount > 0 
-          ? `Sin conexión (${pendingCount} cambios pendientes)`
-          : 'Sin conexión';
-      case 'syncing':
-        return 'Sincronizando datos...';
-      case 'error':
-        return `Error al sincronizar: ${syncError || 'Error desconocido'}`;
-      case 'online':
-      default:
-        return pendingCount > 0 
-          ? `En línea (${pendingCount} cambios pendientes)`
-          : 'Datos sincronizados';
-    }
-  };
-  
-  // Manejar clic para forzar sincronización manual
-  const handleClick = () => {
-    if (syncState !== 'syncing' && navigator.onLine) {
-      forceSyncNow();
-    }
-  };
-  
-  const indicator = (
-    <div 
-      className={cn(
-        'flex items-center cursor-pointer',
-        className
-      )}
-      onClick={handleClick}
-    >
-      {renderIcon()}
-      
-      {showCount && pendingCount > 0 && (
-        <span className={cn('ml-1', textSize)}>
-          {pendingCount}
-        </span>
-      )}
-    </div>
-  );
-  
-  // Envolver en tooltip si es necesario
-  if (showTooltip) {
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {indicator}
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{getTooltipText()}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
+  if (!isOnline) {
+    Icon = CloudOff;
+    iconColor = 'text-red-500';
+    tooltipText = 'Sin conexión';
+  } else if (syncing) {
+    Icon = RefreshCw;
+    iconColor = 'text-blue-500';
+    tooltipText = 'Sincronizando...';
+  } else if (pendingItems > 0) {
+    Icon = Cloud;
+    iconColor = 'text-yellow-500';
+    tooltipText = `${pendingItems} elemento(s) pendiente(s) de sincronizar`;
   }
   
-  return indicator;
-}
+  // Determinar el tamaño del icono según la prop size
+  const iconSizeMap = {
+    sm: 16,
+    md: 20,
+    lg: 24
+  };
+  
+  const iconSize = iconSizeMap[size];
+  
+  // Determinar el tamaño de la insignia según el tamaño del icono
+  const badgeClassMap = {
+    sm: 'h-3 w-3 text-[8px] -top-1 -right-1',
+    md: 'h-4 w-4 text-xs -top-2 -right-2',
+    lg: 'h-5 w-5 text-xs -top-2 -right-2'
+  };
+  
+  const badgeClass = badgeClassMap[size];
+
+  return (
+    <>
+      <div 
+        className={`relative cursor-pointer flex items-center ${className}`}
+        onClick={() => setShowModal(true)}
+        title={showTooltip ? tooltipText : undefined}
+      >
+        <Icon 
+          size={iconSize} 
+          className={`${iconColor} ${syncing ? 'animate-spin' : ''}`} 
+        />
+        {pendingItems > 0 && !syncing && (
+          <span className={`absolute bg-red-500 text-white rounded-full flex items-center justify-center ${badgeClass}`}>
+            {pendingItems > 9 ? '9+' : pendingItems}
+          </span>
+        )}
+      </div>
+      
+      {showModal && (
+        <SyncStatusModal 
+          isOpen={showModal} 
+          onClose={() => setShowModal(false)} 
+        />
+      )}
+    </>
+  );
+};
+
+export default SyncIndicator;

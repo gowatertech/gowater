@@ -1,351 +1,281 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { 
-  subscribeSyncEvent, 
-  EVENTS, 
-  getConnectionStatus,
-  forceSyncNow,
-  getPendingItemsCount
-} from '@/lib/syncService';
-import { 
-  Loader2, 
-  CheckCircle, 
-  XCircle, 
-  RefreshCw, 
-  WifiOff, 
-  Wifi
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { X, CheckCircle, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { EVENTS, subscribeSyncEvent, forceSyncNow, getConnectionStatus } from '@/lib/syncService';
 
 interface SyncStatusModalProps {
-  children: React.ReactNode;
+  isOpen?: boolean;
+  onClose?: () => void;
+  children?: React.ReactNode;
 }
 
-interface SyncItem {
-  id: number;
-  endpoint: string;
-  entityType: string;
-  operationType: string;
-  status: string;
-  timestamp: Date;
-  error?: string;
-}
-
-export function SyncStatusModal({ children }: SyncStatusModalProps) {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
-  const [syncItems, setSyncItems] = useState<SyncItem[]>([]);
-  const [syncProgress, setSyncProgress] = useState({
-    current: 0,
-    total: 0,
-    successful: 0,
-    failed: 0
-  });
-  const [open, setOpen] = useState(false);
+const SyncStatusModal: React.FC<SyncStatusModalProps> = ({ isOpen: propIsOpen, onClose, children }) => {
+  const [isOpen, setIsOpen] = useState(propIsOpen || false);
   
-  // Inicializar y suscribirse a eventos
+  // Si no se pasa onClose como prop, usamos este handler interno
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      setIsOpen(false);
+    }
+  };
+  const [syncState, setSyncState] = useState<{
+    inProgress: boolean;
+    completed: boolean;
+    error: boolean;
+    errorMessage: string;
+    totalItems: number;
+    successfulItems: number;
+    failedItems: number;
+    remainingItems: number;
+    latestItem?: any;
+  }>({
+    inProgress: false,
+    completed: false,
+    error: false,
+    errorMessage: '',
+    totalItems: 0,
+    successfulItems: 0,
+    failedItems: 0,
+    remainingItems: 0,
+  });
+  
+  const [connectionStatus] = useState(() => getConnectionStatus());
+  
+  // Actualizamos el estado local cuando cambia la prop
   useEffect(() => {
-    const { isOnline: online } = getConnectionStatus();
-    setIsOnline(online);
+    if (propIsOpen !== undefined) {
+      setIsOpen(propIsOpen);
+    }
+  }, [propIsOpen]);
+  
+  // Manejar el clic en el children para abrir el modal
+  const handleClick = () => {
+    setIsOpen(true);
+  };
+  
+  useEffect(() => {
+    if (!isOpen) return;
     
-    // Obtener el número de elementos pendientes
-    getPendingItemsCount().then(count => {
-      setPendingCount(count);
+    // Suscribirse a eventos de sincronización
+    const unsubscribeSyncStarted = subscribeSyncEvent(EVENTS.SYNC_STARTED, () => {
+      setSyncState(prev => ({
+        ...prev,
+        inProgress: true,
+        completed: false,
+        error: false,
+        errorMessage: '',
+      }));
     });
     
-    // Cambio de estado de conexión
-    const unsubscribeConnectionChange = subscribeSyncEvent(
-      EVENTS.ONLINE_STATUS_CHANGED,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setIsOnline(customEvent.detail.isOnline);
-      }
-    );
+    const unsubscribeItemSynced = subscribeSyncEvent(EVENTS.ITEM_SYNCED, (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { item, success, error, progress } = customEvent.detail;
+      
+      setSyncState(prev => ({
+        ...prev,
+        totalItems: progress.total,
+        successfulItems: progress.successful,
+        failedItems: progress.failed,
+        latestItem: item,
+      }));
+    });
     
-    // Inicio de sincronización
-    const unsubscribeSyncStart = subscribeSyncEvent(
-      EVENTS.SYNC_STARTED,
-      () => {
-        setIsSyncing(true);
-        setSyncProgress({
-          current: 0,
-          total: 0,
-          successful: 0,
-          failed: 0
-        });
-      }
-    );
+    const unsubscribeSyncComplete = subscribeSyncEvent(EVENTS.SYNC_COMPLETE, (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { totalItems, successfulItems, failedItems, remainingItems } = customEvent.detail;
+      
+      setSyncState(prev => ({
+        ...prev,
+        inProgress: false,
+        completed: true,
+        totalItems,
+        successfulItems,
+        failedItems,
+        remainingItems,
+      }));
+    });
     
-    // Sincronización de un elemento
-    const unsubscribeItemSynced = subscribeSyncEvent(
-      EVENTS.ITEM_SYNCED,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        const { item, success, error, progress } = customEvent.detail;
-        
-        // Actualizar la lista de elementos
-        setSyncItems(prev => {
-          const items = [...prev];
-          const index = items.findIndex(i => i.id === item.id);
-          
-          const updatedItem: SyncItem = {
-            id: item.id,
-            endpoint: item.endpoint,
-            entityType: item.entityType,
-            operationType: item.operationType,
-            status: success ? 'success' : 'error',
-            timestamp: new Date(),
-            error: error
-          };
-          
-          if (index >= 0) {
-            items[index] = updatedItem;
-          } else {
-            items.unshift(updatedItem);
-          }
-          
-          // Mantener solo los últimos 20 elementos
-          return items.slice(0, 20);
-        });
-        
-        // Actualizar el progreso
-        setSyncProgress(progress);
-      }
-    );
+    const unsubscribeSyncError = subscribeSyncEvent(EVENTS.SYNC_ERROR, (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { error } = customEvent.detail;
+      
+      setSyncState(prev => ({
+        ...prev,
+        inProgress: false,
+        completed: true,
+        error: true,
+        errorMessage: error,
+      }));
+    });
     
-    // Sincronización completada
-    const unsubscribeSyncComplete = subscribeSyncEvent(
-      EVENTS.SYNC_COMPLETE,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setIsSyncing(false);
-        setPendingCount(customEvent.detail.remainingItems);
-        setLastSyncTime(new Date());
-        
-        // Limpiar progreso después de un tiempo
-        setTimeout(() => {
-          setSyncProgress({
-            current: 0,
-            total: 0,
-            successful: 0,
-            failed: 0
-          });
-        }, 5000);
-      }
-    );
+    // Si no está sincronizando, iniciar sincronización automáticamente
+    forceSyncNow()
+      .then(() => console.log('Sincronización iniciada automáticamente'))
+      .catch(error => console.error('Error al iniciar sincronización:', error));
     
-    // Error de sincronización
-    const unsubscribeSyncError = subscribeSyncEvent(
-      EVENTS.SYNC_ERROR,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setIsSyncing(false);
-      }
-    );
-    
-    // Cambio en elementos pendientes
-    const unsubscribePendingChanged = subscribeSyncEvent(
-      EVENTS.PENDING_ITEMS_CHANGED,
-      (e: Event) => {
-        const customEvent = e as CustomEvent;
-        setPendingCount(customEvent.detail.count);
-      }
-    );
-    
+    // Limpiar suscripciones al desmontar
     return () => {
-      unsubscribeConnectionChange();
-      unsubscribeSyncStart();
+      unsubscribeSyncStarted();
       unsubscribeItemSynced();
       unsubscribeSyncComplete();
       unsubscribeSyncError();
-      unsubscribePendingChanged();
     };
-  }, []);
+  }, [isOpen]);
   
-  // Forzar sincronización manual
-  const handleSync = () => {
-    if (!isSyncing && isOnline) {
-      forceSyncNow();
-    }
-  };
-  
-  // Renderizar etiqueta según tipo de operación
-  const renderOperationBadge = (type: string) => {
-    switch (type.toLowerCase()) {
-      case 'create':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Crear</Badge>;
-      case 'update':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Actualizar</Badge>;
-      case 'delete':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Eliminar</Badge>;
-      default:
-        return <Badge variant="outline" className="bg-gray-100 text-gray-700 border-gray-200">{type}</Badge>;
-    }
-  };
-  
-  // Renderizar tarjeta de estado
-  const renderStatusCard = () => {
-    let icon;
-    let title;
-    let description;
-    let color;
+  // Calcular porcentaje de progreso
+  const progressPercentage = syncState.totalItems 
+    ? Math.round((syncState.successfulItems + syncState.failedItems) / syncState.totalItems * 100) 
+    : 0;
     
-    if (!isOnline) {
-      icon = <WifiOff className="w-8 h-8 text-amber-500" />;
-      title = "Sin conexión";
-      description = pendingCount > 0 
-        ? `${pendingCount} cambios pendientes de sincronización` 
-        : "No hay cambios pendientes";
-      color = "text-amber-700";
-    } else if (isSyncing) {
-      icon = <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />;
-      title = "Sincronizando";
-      description = `Procesando ${syncProgress.current} de ${syncProgress.total} cambios`;
-      color = "text-blue-700";
-    } else if (pendingCount > 0) {
-      icon = <CheckCircle className="w-8 h-8 text-gray-400" />;
-      title = "Conectado";
-      description = `${pendingCount} cambios pendientes de sincronización`;
-      color = "text-gray-700";
-    } else {
-      icon = <CheckCircle className="w-8 h-8 text-green-500" />;
-      title = "Sincronizado";
-      description = "Todos los cambios están actualizados";
-      color = "text-green-700";
-    }
-    
+  // Función para renderizar el contenido del modal
+  const renderModalContent = () => {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border">
-        <div className="flex items-center space-x-4">
-          {icon}
-          <div>
-            <h3 className={`font-medium ${color}`}>{title}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
+      <>
+        <div className="p-4">
+          {/* Estado de conexión */}
+          <div className="mb-4 flex items-center">
+            <div className={`w-3 h-3 rounded-full mr-2 ${connectionStatus.isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span>{connectionStatus.isOnline ? 'Conectado' : 'Desconectado'}</span>
+          </div>
+          
+          {/* Estado de sincronización */}
+          <div className="mb-4">
+            <div className="flex justify-between mb-1">
+              <span className="text-sm">Progreso</span>
+              <span className="text-sm">{progressPercentage}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+              <div 
+                className="bg-blue-600 h-2.5 rounded-full" 
+                style={{ width: `${progressPercentage}%` }}
+              ></div>
+            </div>
+          </div>
+          
+          {/* Información detallada */}
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between">
+              <span>Elementos totales:</span>
+              <span className="font-semibold">{syncState.totalItems}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Sincronizados correctamente:</span>
+              <span className="font-semibold text-green-600">{syncState.successfulItems}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Fallidos:</span>
+              <span className="font-semibold text-red-600">{syncState.failedItems}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Pendientes:</span>
+              <span className="font-semibold text-yellow-600">{syncState.remainingItems}</span>
+            </div>
+          </div>
+          
+          {/* Estado actual */}
+          <div className={`flex items-center p-3 rounded-lg mb-4 bg-opacity-10
+            ${syncState.inProgress ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:bg-opacity-20 dark:text-blue-300' : 
+            syncState.error ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:bg-opacity-20 dark:text-red-300' : 
+            syncState.completed ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:bg-opacity-20 dark:text-green-300' : 
+            'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}`}>
+            
+            {syncState.inProgress ? (
+              <>
+                <RefreshCw size={20} className="mr-2 animate-spin" />
+                <span>Sincronizando...</span>
+              </>
+            ) : syncState.error ? (
+              <>
+                <XCircle size={20} className="mr-2" />
+                <span>Error: {syncState.errorMessage}</span>
+              </>
+            ) : syncState.completed ? (
+              <>
+                <CheckCircle size={20} className="mr-2" />
+                <span>Sincronización completada</span>
+              </>
+            ) : (
+              <>
+                <AlertCircle size={20} className="mr-2" />
+                <span>Esperando...</span>
+              </>
+            )}
           </div>
         </div>
         
-        {isSyncing && syncProgress.total > 0 && (
-          <div className="mt-3">
-            <Progress 
-              value={(syncProgress.current / syncProgress.total) * 100} 
-              className="h-2" 
-            />
-            <div className="mt-1 flex justify-between text-xs text-gray-500">
-              <span>{syncProgress.successful} completados</span>
-              <span>{syncProgress.failed} errores</span>
-            </div>
-          </div>
-        )}
-      </div>
+        {/* Acciones */}
+        <div className="border-t dark:border-gray-700 p-4 flex justify-end">
+          <button 
+            onClick={() => forceSyncNow()}
+            disabled={syncState.inProgress || !connectionStatus.isOnline}
+            className="mr-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Sincronizar ahora
+          </button>
+          <button 
+            onClick={handleClose}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            Cerrar
+          </button>
+        </div>
+      </>
     );
   };
   
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
-      <SheetContent side="bottom" className="h-[80vh]">
-        <SheetHeader>
-          <SheetTitle>Estado de Sincronización</SheetTitle>
-          <SheetDescription>
-            Estado actual de la conexión y sincronización de datos
-          </SheetDescription>
-        </SheetHeader>
+  // Si hay children, renderizar un wrapper que abra el modal al hacer clic
+  if (children) {
+    return (
+      <>
+        <div onClick={handleClick}>
+          {children}
+        </div>
         
-        <div className="py-6 space-y-6">
-          {/* Panel de estado */}
-          <div className="mb-4">
-            {renderStatusCard()}
-          </div>
-          
-          {/* Botón de sincronización */}
-          <div className="flex justify-center">
-            <Button 
-              onClick={handleSync} 
-              disabled={!isOnline || isSyncing || pendingCount === 0}
-              className="flex items-center"
-            >
-              {isSyncing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-2 h-4 w-4" />
-              )}
-              Sincronizar ahora
-            </Button>
-          </div>
-          
-          <Separator />
-          
-          {/* Información de la última sincronización */}
-          <div className="text-sm text-center text-gray-500 dark:text-gray-400">
-            {lastSyncTime ? (
-              <p>Última sincronización: {lastSyncTime.toLocaleString()}</p>
-            ) : (
-              <p>Sin sincronizaciones recientes</p>
-            )}
-          </div>
-          
-          {/* Lista de actividad reciente */}
-          <div>
-            <h3 className="font-medium mb-2">Actividad reciente</h3>
-            
-            <div className="space-y-2 max-h-[30vh] overflow-y-auto pr-2">
-              {syncItems.length > 0 ? (
-                syncItems.map((item, index) => (
-                  <div 
-                    key={index} 
-                    className="border rounded-md p-3 text-sm bg-white dark:bg-gray-800"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium">{item.entityType}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {item.endpoint}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {renderOperationBadge(item.operationType)}
-                        {item.status === 'success' ? (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-500" />
-                        )}
-                      </div>
-                    </div>
-                    
-                    {item.error && (
-                      <div className="mt-2 text-xs text-red-500 bg-red-50 p-2 rounded">
-                        {item.error}
-                      </div>
-                    )}
-                    
-                    <div className="mt-2 text-xs text-gray-400">
-                      {new Date(item.timestamp).toLocaleString()}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-gray-500 py-6">
-                  No hay actividad reciente
-                </div>
-              )}
+        {isOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md">
+              <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+                <h2 className="text-xl font-semibold">Estado de sincronización</h2>
+                <button 
+                  onClick={handleClose} 
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              {/* Contenido del modal */}
+              {renderModalContent()}
             </div>
           </div>
+        )}
+      </>
+    );
+  }
+  
+  // Si no hay children y el modal está cerrado, no renderizar nada
+  if (!isOpen) return null;
+  
+  // Para el caso en que no hay children y el modal está abierto
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md">
+        <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
+          <h2 className="text-xl font-semibold">Estado de sincronización</h2>
+          <button 
+            onClick={handleClose} 
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <X size={24} />
+          </button>
         </div>
-      </SheetContent>
-    </Sheet>
+        
+        {/* Usamos la misma función para renderizar el contenido */}
+        {renderModalContent()}
+      </div>
+    </div>
   );
-}
+};
+
+export default SyncStatusModal;
