@@ -17,7 +17,8 @@ import {
   Truck,
   CheckCircle,
   MapPin,
-  RefreshCw
+  RefreshCw,
+  Database
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MobileHeader } from "./components/MobileHeader";
 import { MobileFooter } from "./components/MobileFooter";
 import { InstallPrompt } from "./components/InstallPrompt";
+import { OfflineBanner, SyncStatusModal } from "@/components/sync";
 
 // Interfaces para los datos
 interface Route {
@@ -226,6 +228,9 @@ export default function GoWaterDriverApp() {
       {/* Prompt de instalación */}
       {showInstallPrompt && <InstallPrompt onClose={() => setShowInstallPrompt(false)} />}
       
+      {/* Banner de modo sin conexión */}
+      <OfflineBanner sticky showDismiss />
+      
       {/* Cabecera móvil */}
       <MobileHeader 
         user={user} 
@@ -403,6 +408,20 @@ export default function GoWaterDriverApp() {
               </CardContent>
             </Card>
           )}
+          
+          {/* Botón de estado de sincronización */}
+          <div className="mt-6 text-center">
+            <SyncStatusModal>
+              <Button variant="outline" size="sm" className="text-xs">
+                <Database className="h-3 w-3 mr-1" />
+                Estado de sincronización
+              </Button>
+            </SyncStatusModal>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Todos los cambios se guardan automáticamente de manera local
+              y se sincronizan cuando hay conexión a internet.
+            </div>
+          </div>
         </div>
       </main>
 
