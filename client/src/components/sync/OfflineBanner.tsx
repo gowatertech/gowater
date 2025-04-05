@@ -1,71 +1,72 @@
 import React, { useEffect, useState } from 'react';
-import { CloudOff, RefreshCw } from 'lucide-react';
-import { EVENTS, subscribeSyncEvent, getConnectionStatus } from '@/lib/syncService';
+import { X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { subscribeSyncEvent, EVENTS, getConnectionStatus } from '@/lib/syncService';
 
 interface OfflineBannerProps {
   className?: string;
+  sticky?: boolean;
+  showDismiss?: boolean;
 }
 
-const OfflineBanner: React.FC<OfflineBannerProps> = ({ className = '' }) => {
-  const [isOnline, setIsOnline] = useState(() => getConnectionStatus().isOnline);
-  const [pendingItems, setPendingItems] = useState(() => getConnectionStatus().pendingItemsCount);
+export function OfflineBanner({ 
+  className,
+  sticky = false,
+  showDismiss = false
+}: OfflineBannerProps) {
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [dismissedByUser, setDismissedByUser] = useState(false);
   
   useEffect(() => {
-    // Suscribirse a cambios en el estado de conexión
-    const unsubscribeOnlineStatus = subscribeSyncEvent(
+    // Escuchar cambios en el estado de la conexión
+    const unsubscribe = subscribeSyncEvent(
       EVENTS.ONLINE_STATUS_CHANGED,
-      (event: Event) => {
-        const customEvent = event as CustomEvent;
-        setIsOnline(customEvent.detail.isOnline);
+      (e: Event) => {
+        const customEvent = e as CustomEvent;
+        setIsOffline(!customEvent.detail.isOnline);
       }
     );
     
-    // Suscribirse a cambios en elementos pendientes
-    const unsubscribePendingItems = subscribeSyncEvent(
-      EVENTS.PENDING_ITEMS_CHANGED,
-      (event: Event) => {
-        const customEvent = event as CustomEvent;
-        setPendingItems(customEvent.detail.count);
-      }
-    );
+    // Comprobar el estado actual
+    const { isOnline } = getConnectionStatus();
+    setIsOffline(!isOnline);
     
-    // Limpiar suscripciones al desmontar
     return () => {
-      unsubscribeOnlineStatus();
-      unsubscribePendingItems();
+      unsubscribe();
     };
   }, []);
   
-  // No mostrar nada si está online y no hay elementos pendientes
-  if (isOnline && pendingItems === 0) {
+  const handleDismiss = () => {
+    setDismissedByUser(true);
+  };
+  
+  // No mostrar si está online o si el usuario lo ha cerrado
+  if (!isOffline || (dismissedByUser && !sticky)) {
     return null;
   }
   
   return (
     <div 
-      className={`w-full px-4 py-2 text-sm flex items-center justify-center
-      ${isOnline 
-        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:bg-opacity-20 dark:text-yellow-300' 
-        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:bg-opacity-20 dark:text-red-300'
-      } ${className}`}
+      className={cn(
+        'bg-amber-100 dark:bg-amber-900 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-100 px-4 py-2 text-sm flex items-center justify-between',
+        sticky ? 'sticky top-0 z-50' : '',
+        className
+      )}
     >
-      {isOnline ? (
-        <>
-          <RefreshCw size={16} className="mr-2" />
-          <span>Tienes {pendingItems} operación(es) pendiente(s) de sincronizar</span>
-        </>
-      ) : (
-        <>
-          <CloudOff size={16} className="mr-2" />
-          <span>
-            Estás trabajando sin conexión. 
-            {pendingItems > 0 && ` Hay ${pendingItems} operación(es) pendiente(s) de sincronizar.`} 
-            Los cambios se guardarán cuando te conectes.
-          </span>
-        </>
+      <div className="flex items-center">
+        <div className="w-2 h-2 bg-amber-500 rounded-full mr-2 animate-pulse"></div>
+        <span>Modo sin conexión: Los cambios se guardarán cuando la conexión se restaure</span>
+      </div>
+      
+      {showDismiss && (
+        <button 
+          onClick={handleDismiss}
+          className="ml-2 text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100"
+          aria-label="Cerrar aviso"
+        >
+          <X size={16} />
+        </button>
       )}
     </div>
   );
-};
-
-export default OfflineBanner;
+}

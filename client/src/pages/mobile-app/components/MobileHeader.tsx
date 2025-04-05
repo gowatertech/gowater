@@ -105,22 +105,22 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({
           )}
           
           {/* Botón de Sincronización */}
-          <div className="relative">
+          <SyncStatusModal>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 relative"
               onClick={handleSync}
               disabled={isSyncing}
             >
               <RefreshCw className={`h-5 w-5 ${isSyncing ? 'animate-spin' : ''}`} />
+              <SyncIndicator 
+                size="sm" 
+                showTooltip={false} 
+                className="absolute -top-1 -right-1"
+              />
             </Button>
-            <SyncIndicator 
-              size="sm" 
-              showTooltip={false} 
-              className="absolute -top-1 -right-1"
-            />
-          </div>
+          </SyncStatusModal>
           
           <Button
             variant="ghost"

@@ -1,3 +1,3 @@
-export { default as SyncIndicator } from './SyncIndicator';
-export { default as OfflineBanner } from './OfflineBanner';
-export { default as SyncStatusModal } from './SyncStatusModal';
+export { SyncIndicator } from './SyncIndicator';
+export { OfflineBanner } from './OfflineBanner';
+export { SyncStatusModal } from './SyncStatusModal';

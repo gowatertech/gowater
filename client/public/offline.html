@@ -3,163 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sin conexión - GoWater Driver</title>
+  <title>GoWater Driver - Sin conexión</title>
   <style>
+    /* Estilos básicos */
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f4f5f7;
-      color: #333;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
       margin: 0;
       padding: 0;
+      color: #333;
+      background-color: #f8f9fa;
       display: flex;
       flex-direction: column;
       min-height: 100vh;
-      text-align: center;
-    }
-    
-    header {
-      background-color: #0891b2;
-      color: white;
-      padding: 1rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 2rem;
     }
     
-    .offline-icon {
+    .container {
+      max-width: 460px;
+      padding: 30px 20px;
+      text-align: center;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin: 0 auto;
+    }
+    
+    .logo {
       width: 100px;
       height: 100px;
-      margin-bottom: 1rem;
-      background-color: #e0f2fe;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    .offline-icon svg {
-      width: 60px;
-      height: 60px;
-      fill: #0891b2;
+      margin-bottom: 20px;
     }
     
     h1 {
-      font-size: 1.5rem;
-      margin-bottom: 1rem;
+      font-size: 24px;
+      margin-bottom: 15px;
+      color: #0077cc;
     }
     
     p {
-      margin-bottom: 1.5rem;
+      font-size: 16px;
       line-height: 1.5;
-      color: #666;
-      max-width: 600px;
+      margin-bottom: 25px;
+      color: #555;
     }
     
     .button {
-      background-color: #0891b2;
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #0077cc;
       color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 4px;
-      font-size: 1rem;
-      cursor: pointer;
       text-decoration: none;
+      border-radius: 5px;
+      font-weight: 500;
       transition: background-color 0.2s;
     }
     
     .button:hover {
-      background-color: #0e7490;
+      background-color: #005fa3;
     }
     
-    footer {
-      padding: 1rem;
-      background-color: #e0f2fe;
-      color: #0891b2;
-      font-size: 0.875rem;
+    .status-icon {
+      font-size: 60px;
+      margin-bottom: 15px;
+      color: #f39c12;
     }
     
-    @media (prefers-color-scheme: dark) {
-      body {
-        background-color: #1a1a1a;
-        color: #e0e0e0;
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #777;
+    }
+    
+    /* Indicadores de carga y animación */
+    @keyframes pulse {
+      0% {
+        opacity: 0.6;
       }
-      
-      p {
-        color: #b0b0b0;
+      50% {
+        opacity: 1;
       }
-      
-      .offline-icon {
-        background-color: #2a2a2a;
+      100% {
+        opacity: 0.6;
       }
-      
-      .offline-icon svg {
-        fill: #0891b2;
-      }
-      
-      footer {
-        background-color: #2a2a2a;
-      }
+    }
+    
+    .status-pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    .status-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      background-color: #f39c12;
+      border-radius: 50%;
+      margin: 0 5px;
+    }
+    
+    #connectionStatus {
+      font-size: 14px;
+      margin-top: 10px;
+      color: #777;
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>GoWater Driver</h1>
-  </header>
-  
-  <main>
-    <div class="offline-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="1" y1="1" x2="23" y2="23"></line>
-        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
-        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
-        <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
-        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
-        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
-        <line x1="12" y1="20" x2="12.01" y2="20"></line>
-      </svg>
+  <div class="container">
+    <div class="status-icon status-pulse">
+      📡
     </div>
     
-    <h1>No hay conexión a Internet</h1>
+    <h1>Sin conexión a Internet</h1>
     
-    <p>No se puede acceder a GoWater Driver en este momento porque no hay conexión a Internet. 
-       Algunas funciones pueden seguir disponibles. Verifica tu conexión y vuelve a intentarlo.</p>
+    <p>No podemos conectar con el servidor en este momento. Estamos trabajando en modo sin conexión.</p>
     
-    <a href="/" class="button">Intentar nuevamente</a>
-  </main>
-  
-  <footer>
-    <p>GoWater Driver - La aplicación de reparto de agua potable</p>
-  </footer>
+    <div class="status-container">
+      <div class="status-dot status-pulse"></div>
+      <div class="status-dot status-pulse" style="animation-delay: 0.5s;"></div>
+      <div class="status-dot status-pulse" style="animation-delay: 1s;"></div>
+    </div>
+    
+    <p id="connectionStatus">Comprobando conexión...</p>
+    
+    <a href="/" class="button">Volver a intentar</a>
+    
+    <div class="footer">
+      GoWater Driver - Versión Offline
+    </div>
+  </div>
   
   <script>
-    // Verificar periódicamente si hay conexión
+    // Comprobar el estado de la conexión cada 5 segundos
     function checkConnection() {
+      const status = document.getElementById('connectionStatus');
+      
       if (navigator.onLine) {
-        window.location.href = '/';
+        status.textContent = "Conexión detectada. Redirigiendo...";
+        // Esperar un momento antes de redirigir
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 2000);
+      } else {
+        status.textContent = "Esperando conexión...";
       }
     }
     
-    // Intentar reconectar cuando se detecte conexión
-    window.addEventListener('online', () => {
-      window.location.href = '/';
-    });
+    // Comprobar al cargar
+    checkConnection();
     
-    // Comprobar conexión cada 10 segundos
-    setInterval(checkConnection, 10000);
+    // Comprobar periódicamente
+    setInterval(checkConnection, 5000);
     
-    // Manejar clic en botón de reconexión
-    document.querySelector('.button').addEventListener('click', (e) => {
-      e.preventDefault();
-      window.location.href = '/';
-    });
+    // Evento de cambio de conexión
+    window.addEventListener('online', checkConnection);
   </script>
 </body>
 </html>
