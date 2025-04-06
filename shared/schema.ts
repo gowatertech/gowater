@@ -2,18 +2,7 @@ import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "dri
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Importar esquemas de pedidos recurrentes
-import {
-  recurringOrders,
-  recurringOrderItems,
-  recurringOrderExceptions,
-  recurringOrderHistory,
-  RecurringOrderItem,
-  InsertRecurringOrderItem,
-  RecurringOrderException,
-  InsertRecurringOrderException,
-  RecurringOrderHistory
-} from "./schema-recurring-orders";
+// Ya no se importan los esquemas de pedidos recurrentes
 
 // Users (drivers, admins, etc.)
 export const users = pgTable("users", {
@@ -263,7 +252,7 @@ export const orders = pgTable("orders", {
   cashCollected: decimal("cash_collected", { precision: 10, scale: 2 }).default("0.00"),
   driverCommission: decimal("driver_commission", { precision: 10, scale: 2 }).default("0.00"),
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).default("0.00"),
-  recurringOrderId: integer("recurring_order_id").references(() => recurringOrders.id),
+  // Campo recurrente eliminado
 });
 
 export const orderItems = pgTable("order_items", {
@@ -396,7 +385,7 @@ export const insertZoneSchema = z.object({
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
-// Nota: Los pedidos recurrentes ahora se definen en schema-recurring-orders.ts
+// Ya no se usan pedidos recurrentes
 
 // Warehouses
 export const warehouses = pgTable("warehouses", {
@@ -651,7 +640,6 @@ export type Sector = typeof sectors.$inferSelect;
 export type InsertSector = z.infer<typeof insertSectorSchema>;
 export type ReturnedBottle = typeof returnedBottles.$inferSelect;
 export type InsertReturnedBottle = z.infer<typeof insertReturnedBottleSchema>;
-// Nota: RecurringOrder e InsertRecurringOrder ahora están definidos en schema-recurring-orders.ts
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Invoice = typeof invoices.$inferSelect;

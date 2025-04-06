@@ -12,7 +12,7 @@ import { registerRouteSettlements } from "./routes/routeSettlements";
 import { registerDriverRoutes } from "./routes/driver";
 import { registerRoutesEndpoints } from "./routes-endpoints";
 import { registerDriversLocationsEndpoint } from "./routes/api/driversLocations";
-import { registerRecurringOrdersEndpoints } from "./recurring-orders-endpoints";
+
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
 
@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Registrar las rutas de carga de vehículo, cuadre y pedidos recurrentes
+  // Registrar las rutas de carga de vehículo y cuadre
   await registerVehicleLoadingRoutes(app);
   await registerRouteSettlements(app);
   await registerDriverRoutes(app);
@@ -40,8 +40,7 @@ export async function registerRoutes(app: Express) {
   // Registrar endpoint para ubicaciones de conductores
   registerDriversLocationsEndpoint(app);
   
-  // Registrar endpoints para pedidos recurrentes
-  registerRecurringOrdersEndpoints(app);
+
   
   // Endpoint para obtener el usuario actual
   app.get("/api/me", async (req, res) => {
@@ -66,7 +65,7 @@ export async function registerRoutes(app: Express) {
   // Registrar endpoints para rutas y pedidos
   registerRoutesEndpoints(app);
   
-  // Nota: Los endpoints para pedidos recurrentes ahora se gestionan en recurring-orders-endpoints.ts
+
 
   // Warehouses endpoints
   app.get("/api/warehouses", async (req, res) => {
