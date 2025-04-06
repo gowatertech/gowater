@@ -31,6 +31,8 @@ import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
 import ProductionRegistration from "@/pages/inventory/production";
+import RecurringOrdersPage from "@/pages/recurring-orders";
+import RecurringOrderForm from "@/pages/recurring-orders/[id]";
 import DriverView from "@/pages/drivers/DriverView";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
@@ -205,6 +207,11 @@ function Router() {
         <Route path="/bottles/balance" component={BalanceEnvases} />
         <Route path="/bottles/missing" component={Faltantes} />
         <Route path="/bottles/assign-responsibility" component={AsignarResponsabilidad} />
+
+        {/* Rutas para pedidos recurrentes */}
+        <Route path="/recurring-orders/new" component={RecurringOrderForm} />
+        <Route path="/recurring-orders/:id" component={RecurringOrderForm} />
+        <Route path="/recurring-orders" component={RecurringOrdersPage} />
 
         <Route component={NotFound} />
       </Switch>

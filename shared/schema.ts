@@ -2,8 +2,6 @@ import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "dri
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// Ya no se importan los esquemas de pedidos recurrentes
-
 // Users (drivers, admins, etc.)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -885,3 +883,81 @@ export type InsertRouteSettlement = {
   }>;
   cashDifference?: string;
 };
+
+// Recurring Orders - Pedidos Recurrentes
+export const recurringOrders = pgTable("recurring_orders", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  name: text("name").notNull(),
+  frequency: text("frequency", { 
+    enum: ["daily", "weekly", "biweekly", "monthly"] 
+  }).notNull(),
+  dayOfWeek: integer("day_of_week"), // 0 = domingo, 1 = lunes, etc. (para weekly y biweekly)
+  dayOfMonth: integer("day_of_month"), // 1-31 (para monthly)
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  lastGeneratedDate: timestamp("last_generated_date"),
+  nextGenerationDate: timestamp("next_generation_date"),
+  status: text("status", { 
+    enum: ["active", "paused", "completed", "cancelled"] 
+  }).notNull().default("active"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const recurringOrderItems = pgTable("recurring_order_items", {
+  id: serial("id").primaryKey(),
+  recurringOrderId: integer("recurring_order_id").notNull().references(() => recurringOrders.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+});
+
+export const recurringOrdersRelations = relations(recurringOrders, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [recurringOrders.customerId],
+    references: [customers.id],
+  }),
+  items: many(recurringOrderItems),
+}));
+
+export const recurringOrderItemsRelations = relations(recurringOrderItems, ({ one }) => ({
+  recurringOrder: one(recurringOrders, {
+    fields: [recurringOrderItems.recurringOrderId],
+    references: [recurringOrders.id],
+  }),
+  product: one(products, {
+    fields: [recurringOrderItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export const insertRecurringOrderSchema = z.object({
+  customerId: z.number({ required_error: "El cliente es requerido" }),
+  name: z.string().min(1, "El nombre es requerido"),
+  frequency: z.enum(["daily", "weekly", "biweekly", "monthly"], {
+    required_error: "La frecuencia es requerida",
+  }),
+  dayOfWeek: z.number().min(0).max(6).optional(),
+  dayOfMonth: z.number().min(1).max(31).optional(),
+  startDate: z.string().datetime("La fecha debe estar en formato ISO"),
+  endDate: z.string().datetime("La fecha debe estar en formato ISO").optional(),
+  totalAmount: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
+  paymentMethod: z.enum(["cash", "credit", "card"]),
+  notes: z.string().optional(),
+});
+
+export const insertRecurringOrderItemSchema = z.object({
+  recurringOrderId: z.number(),
+  productId: z.number(),
+  quantity: z.number().min(1, "La cantidad debe ser mayor a 0"),
+  price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+});
+
+export type RecurringOrder = typeof recurringOrders.$inferSelect;
+export type InsertRecurringOrder = z.infer<typeof insertRecurringOrderSchema>;
+export type RecurringOrderItem = typeof recurringOrderItems.$inferSelect;
+export type InsertRecurringOrderItem = z.infer<typeof insertRecurringOrderItemSchema>;

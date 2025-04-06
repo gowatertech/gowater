@@ -75,6 +75,7 @@ const sidebarItems = [
       { icon: FileStack, label: "Carga de Vehículo", href: "/routes/vehicle-loading" },
       { icon: ScrollText, label: "Cuadre de Vehículo", href: "/routes/vehicle-settlement" },
       { icon: ReceiptText, label: "Pedidos", href: "/orders" },
+      { icon: Calendar, label: "Pedidos Recurrentes", href: "/recurring-orders" },
     ],
   },
   {

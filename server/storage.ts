@@ -1,6 +1,7 @@
 import {
   users, customers, products, routes, orders, orderItems,
   settings as settingsTable, trucks, invoices, payments,
+  recurringOrders, recurringOrderItems,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -12,7 +13,9 @@ import {
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
   bottleReturns,
   type BottleReturn, type InsertBottleReturn,
-  type Payment, type InsertPayment, insertPaymentSchema
+  type Payment, type InsertPayment, insertPaymentSchema,
+  type RecurringOrder, type InsertRecurringOrder,
+  type RecurringOrderItem, type InsertRecurringOrderItem
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, inArray } from "drizzle-orm";
@@ -91,6 +94,22 @@ export interface IStorage {
   // Payments
   registerPayment(payment: InsertPayment): Promise<Payment>;
   getPaymentsByInvoice(invoiceId: number): Promise<Payment[]>;
+  
+  // Recurring Orders (Pedidos Recurrentes)
+  getRecurringOrder(id: number): Promise<RecurringOrder | undefined>;
+  createRecurringOrder(recurringOrder: InsertRecurringOrder): Promise<RecurringOrder>;
+  listRecurringOrders(): Promise<RecurringOrder[]>;
+  listCustomerRecurringOrders(customerId: number): Promise<RecurringOrder[]>;
+  updateRecurringOrder(id: number, data: Partial<InsertRecurringOrder>): Promise<RecurringOrder>;
+  updateRecurringOrderStatus(id: number, status: "active" | "paused" | "completed" | "cancelled"): Promise<RecurringOrder>;
+  deleteRecurringOrder(id: number): Promise<void>;
+  
+  // Recurring Order Items
+  createRecurringOrderItem(item: InsertRecurringOrderItem): Promise<RecurringOrderItem>;
+  listRecurringOrderItems(recurringOrderId: number): Promise<RecurringOrderItem[]>;
+  updateRecurringOrderItem(id: number, item: Partial<InsertRecurringOrderItem>): Promise<RecurringOrderItem>;
+  deleteRecurringOrderItem(id: number): Promise<void>;
+  generateOrderFromRecurring(recurringOrderId: number): Promise<Order>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -677,6 +696,68 @@ export class DatabaseStorage implements IStorage {
       console.error("Storage - getPaymentsByInvoice: Error al consultar pagos:", error);
       throw error;
     }
+  }
+
+  // Implementación de métodos para pedidos recurrentes a través del servicio
+  async getRecurringOrder(id: number): Promise<RecurringOrder | undefined> {
+    // Esto será implementado por el servicio de pedidos recurrentes
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.getRecurringOrder(id);
+  }
+
+  async createRecurringOrder(recurringOrder: InsertRecurringOrder): Promise<RecurringOrder> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.createRecurringOrder(recurringOrder);
+  }
+
+  async listRecurringOrders(): Promise<RecurringOrder[]> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.listRecurringOrders();
+  }
+
+  async listCustomerRecurringOrders(customerId: number): Promise<RecurringOrder[]> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.listCustomerRecurringOrders(customerId);
+  }
+
+  async updateRecurringOrder(id: number, data: Partial<InsertRecurringOrder>): Promise<RecurringOrder> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.updateRecurringOrder(id, data);
+  }
+
+  async updateRecurringOrderStatus(id: number, status: "active" | "paused" | "completed" | "cancelled"): Promise<RecurringOrder> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.updateRecurringOrderStatus(id, status);
+  }
+
+  async deleteRecurringOrder(id: number): Promise<void> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.deleteRecurringOrder(id);
+  }
+
+  async createRecurringOrderItem(item: InsertRecurringOrderItem): Promise<RecurringOrderItem> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.createRecurringOrderItem(item);
+  }
+
+  async listRecurringOrderItems(recurringOrderId: number): Promise<RecurringOrderItem[]> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.listRecurringOrderItems(recurringOrderId);
+  }
+
+  async updateRecurringOrderItem(id: number, item: Partial<InsertRecurringOrderItem>): Promise<RecurringOrderItem> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.updateRecurringOrderItem(id, item);
+  }
+
+  async deleteRecurringOrderItem(id: number): Promise<void> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.deleteRecurringOrderItem(id);
+  }
+
+  async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
+    const { recurringOrdersService } = await import('./recurring-orders');
+    return recurringOrdersService.generateOrderFromRecurring(recurringOrderId);
   }
 }
 
