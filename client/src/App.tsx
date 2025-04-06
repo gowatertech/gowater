@@ -37,7 +37,7 @@ import i18n from "./lib/i18n";
 import VehicleLoadingPage from "@/pages/routes/vehicle-loading";
 import RouteSettlementPage from "@/pages/routes/settlements";
 import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
-import RecurringOrders from "./pages/routes/RecurringOrders";
+import RecurringOrders from "./pages/recurring-orders";
 import TrucksPage from "./pages/routes/trucks";
 import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
@@ -189,7 +189,10 @@ function Router() {
         <Route path="/orders/status/:id" component={OrderStatus} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
-        <Route path="/routes/recurring-orders" component={RecurringOrders} />
+        <Route path="/recurring-orders/create" component={RecurringOrders} />
+        <Route path="/recurring-orders/edit/:id" component={RecurringOrders} />
+        <Route path="/recurring-orders/exceptions/:id" component={RecurringOrders} />
+        <Route path="/recurring-orders" component={RecurringOrders} />
         <Route path="/routes/trucks" component={TrucksPage} />
         <Route path="/routes/vehicle-loading" component={VehicleLoadingPage} />
         <Route path="/routes/:id" component={RouteDetails} />
