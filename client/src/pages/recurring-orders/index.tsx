@@ -358,9 +358,7 @@ export default function RecurringOrdersPage() {
 
   // Manejar la creación de nuevos pedidos recurrentes
   const handleCreateOrder = () => {
-    navigate("/recurring-orders/create");
-    // O alternativamente, abrir un formulario en el mismo componente:
-    // setIsCreating(true);
+    window.location.href = "/recurring-orders/create";
   };
 
   // Manejar la selección de un pedido para ver detalles
@@ -429,7 +427,7 @@ export default function RecurringOrdersPage() {
                     <Eye className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Ver detalles
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate(`/recurring-orders/edit/${order.id}`)}>
+                  <DropdownMenuItem onClick={() => window.location.href = `/recurring-orders/edit/${order.id}`}>
                     <Edit className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Editar
                   </DropdownMenuItem>
@@ -450,7 +448,7 @@ export default function RecurringOrdersPage() {
                     Cancelar
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate(`/recurring-orders/exceptions/${order.id}`)}>
+                  <DropdownMenuItem onClick={() => window.location.href = `/recurring-orders/exceptions/${order.id}`}>
                     <SkipForward className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Gestionar excepciones
                   </DropdownMenuItem>
@@ -692,7 +690,7 @@ export default function RecurringOrdersPage() {
             <div className="flex gap-2">
               <Button
                 variant="default"
-                onClick={() => navigate(`/recurring-orders/edit/${selectedOrder.id}`)}
+                onClick={() => window.location.href = `/recurring-orders/edit/${selectedOrder.id}`}
                 className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
               >
                 <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
