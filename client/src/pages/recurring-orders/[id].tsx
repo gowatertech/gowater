@@ -292,7 +292,7 @@ const RecurringOrderForm: React.FC = () => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('recurringOrders.basicInfo')}</CardTitle>
+              <CardTitle>{t('recurringOrders.recurringBasicInfo')}</CardTitle>
               <CardDescription>
                 {t('recurringOrders.basicInfoDescription')}
               </CardDescription>
@@ -333,7 +333,7 @@ const RecurringOrderForm: React.FC = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('recurringOrders.name')}</FormLabel>
+                      <FormLabel>{t('recurringOrders.orderName')}</FormLabel>
                       <FormControl>
                         <Input placeholder={t('recurringOrders.namePlaceholder')} {...field} />
                       </FormControl>
@@ -616,7 +616,7 @@ const RecurringOrderForm: React.FC = () => {
                         name={`items.${index}.productId`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{index === 0 ? t('recurringOrders.product') : <span className="sr-only">{t('recurringOrders.product')}</span>}</FormLabel>
+                            <FormLabel>{index === 0 ? t('recurringOrders.orderProduct') : <span className="sr-only">{t('recurringOrders.orderProduct')}</span>}</FormLabel>
                             <Select
                               disabled={isLoadingProducts}
                               onValueChange={(value) => {
@@ -627,7 +627,7 @@ const RecurringOrderForm: React.FC = () => {
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder={t('recurringOrders.selectProduct')} />
+                                  <SelectValue placeholder={t('recurringOrders.selectOrderProduct')} />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -649,7 +649,7 @@ const RecurringOrderForm: React.FC = () => {
                         name={`items.${index}.quantity`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{index === 0 ? t('recurringOrders.quantity') : <span className="sr-only">{t('recurringOrders.quantity')}</span>}</FormLabel>
+                            <FormLabel>{index === 0 ? t('recurringOrders.orderQuantity') : <span className="sr-only">{t('recurringOrders.orderQuantity')}</span>}</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -672,7 +672,7 @@ const RecurringOrderForm: React.FC = () => {
                         name={`items.${index}.price`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>{index === 0 ? t('recurringOrders.price') : <span className="sr-only">{t('recurringOrders.price')}</span>}</FormLabel>
+                            <FormLabel>{index === 0 ? t('recurringOrders.orderPrice') : <span className="sr-only">{t('recurringOrders.orderPrice')}</span>}</FormLabel>
                             <FormControl>
                               <Input
                                 type="text"
@@ -726,7 +726,7 @@ const RecurringOrderForm: React.FC = () => {
                       name="totalAmount"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t('recurringOrders.total')}</FormLabel>
+                          <FormLabel>{t('recurringOrders.orderTotal')}</FormLabel>
                           <FormControl>
                             <Input readOnly {...field} />
                           </FormControl>
