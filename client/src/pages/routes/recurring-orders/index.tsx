@@ -384,21 +384,22 @@ export default function RecurringOrdersPage() {
         key={order.id}
         className={`mb-2 ${isOverdue ? "border-red-300" : ""} ${isToday ? "border-green-300" : ""} ${order.status === "paused" ? "opacity-70" : ""}`}
       >
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-medium">{order.name}</h3>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 sm:gap-0">
+            {/* Información del pedido y cliente */}
+            <div className="flex-grow">
+              <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                <h3 className="font-medium text-sm sm:text-base">{order.name}</h3>
                 {isOverdue && order.status === "active" && (
-                  <Badge variant="destructive" className="text-xs">Atrasado</Badge>
+                  <Badge variant="destructive" className="text-[10px] sm:text-xs px-1 sm:px-2 h-4 sm:h-5">Atrasado</Badge>
                 )}
                 {isToday && order.status === "active" && (
-                  <Badge variant="default" className="text-xs bg-green-500">Hoy</Badge>
+                  <Badge variant="default" className="text-[10px] sm:text-xs px-1 sm:px-2 h-4 sm:h-5 bg-green-500">Hoy</Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">{order.customerName}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{order.customerName}</p>
               
-              <div className="flex gap-2 mt-2 flex-wrap">
+              <div className="flex flex-wrap gap-1 sm:gap-2 mt-1 sm:mt-2">
                 <FrequencyBadge 
                   frequency={order.frequency} 
                   frequencyDays={order.frequencyDays}
@@ -409,47 +410,48 @@ export default function RecurringOrdersPage() {
               </div>
             </div>
             
-            <div className="flex flex-col items-end">
-              <div className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{nextDate}</span>
+            {/* Fecha y acciones */}
+            <div className="flex justify-between items-center sm:flex-col sm:items-end w-full sm:w-auto mt-2 sm:mt-0">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <CalendarIcon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                <span className="text-xs sm:text-sm">{nextDate}</span>
               </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 mt-2">
-                    <MoreHorizontal className="h-4 w-4" />
+                  <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0">
+                    <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="text-xs sm:text-sm">
                   <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                   <DropdownMenuItem onClick={() => handleSelectOrder(order.id)}>
-                    <Eye className="mr-2 h-4 w-4" />
+                    <Eye className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Ver detalles
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate(`/routes/recurring-orders/edit/${order.id}`)}>
-                    <Edit className="mr-2 h-4 w-4" />
+                    <Edit className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Editar
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {order.status === "active" ? (
                     <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: "paused" })}>
-                      <Pause className="mr-2 h-4 w-4" />
+                      <Pause className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Pausar
                     </DropdownMenuItem>
                   ) : order.status === "paused" ? (
                     <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: "active" })}>
-                      <Play className="mr-2 h-4 w-4" />
+                      <Play className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Activar
                     </DropdownMenuItem>
                   ) : null}
                   <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ id: order.id, status: "cancelled" })}>
-                    <X className="mr-2 h-4 w-4" />
+                    <X className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Cancelar
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate(`/routes/recurring-orders/exceptions/${order.id}`)}>
-                    <SkipForward className="mr-2 h-4 w-4" />
+                    <SkipForward className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Gestionar excepciones
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -467,22 +469,22 @@ export default function RecurringOrdersPage() {
 
     return (
       <Dialog open={selectedOrderId !== null} onOpenChange={(open) => !open && setSelectedOrderId(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalles del Pedido Recurrente</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+          <DialogHeader className="mb-2 sm:mb-4">
+            <DialogTitle className="text-base sm:text-lg md:text-xl">Detalles del Pedido Recurrente</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               Información y configuración del pedido recurrente.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Información general */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Información General</CardTitle>
+                <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                  <CardTitle className="text-sm sm:text-base md:text-lg">Información General</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2 space-y-1 sm:space-y-2 text-xs sm:text-sm">
                   <div>
                     <h4 className="font-medium">Nombre</h4>
                     <p>{selectedOrder.name}</p>
@@ -503,10 +505,10 @@ export default function RecurringOrdersPage() {
               </Card>
 
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Programación</CardTitle>
+                <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                  <CardTitle className="text-sm sm:text-base md:text-lg">Programación</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2 space-y-1 sm:space-y-2 text-xs sm:text-sm">
                   <div>
                     <h4 className="font-medium">Frecuencia</h4>
                     <FrequencyBadge 
@@ -518,16 +520,16 @@ export default function RecurringOrdersPage() {
                   </div>
                   <div>
                     <h4 className="font-medium">Próxima entrega</h4>
-                    <p>{format(new Date(selectedOrder.nextDeliveryDate), "dd MMMM yyyy", { locale: es })}</p>
+                    <p>{format(new Date(selectedOrder.nextDeliveryDate), "dd MMM yyyy", { locale: es })}</p>
                   </div>
                   <div>
                     <h4 className="font-medium">Fecha de inicio</h4>
-                    <p>{format(new Date(selectedOrder.startDate), "dd MMMM yyyy", { locale: es })}</p>
+                    <p>{format(new Date(selectedOrder.startDate), "dd MMM yyyy", { locale: es })}</p>
                   </div>
                   {selectedOrder.endDate && (
                     <div>
                       <h4 className="font-medium">Fecha de finalización</h4>
-                      <p>{format(new Date(selectedOrder.endDate), "dd MMMM yyyy", { locale: es })}</p>
+                      <p>{format(new Date(selectedOrder.endDate), "dd MMM yyyy", { locale: es })}</p>
                     </div>
                   )}
                 </CardContent>
@@ -536,32 +538,32 @@ export default function RecurringOrdersPage() {
 
             {/* Productos */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Productos</CardTitle>
+              <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                <CardTitle className="text-sm sm:text-base md:text-lg">Productos</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+              <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2">
+                <div className="overflow-x-auto -mx-3 sm:-mx-4">
+                  <table className="w-full min-w-full text-xs sm:text-sm">
                     <thead className="border-b">
                       <tr>
-                        <th className="text-left font-medium py-2">Producto</th>
-                        <th className="text-center font-medium py-2">Cantidad</th>
-                        <th className="text-right font-medium py-2">Precio</th>
+                        <th className="text-left font-medium py-1.5 sm:py-2 px-3 sm:px-4">Producto</th>
+                        <th className="text-center font-medium py-1.5 sm:py-2 px-3 sm:px-4">Cantidad</th>
+                        <th className="text-right font-medium py-1.5 sm:py-2 px-3 sm:px-4">Precio</th>
                       </tr>
                     </thead>
                     <tbody>
                       {selectedOrder.items.map((item) => (
                         <tr key={item.id || `${item.productId}-${item.quantity}`} className="border-b">
-                          <td className="py-2">{item.productName}</td>
-                          <td className="text-center py-2">{item.quantity}</td>
-                          <td className="text-right py-2">
+                          <td className="py-1.5 sm:py-2 px-3 sm:px-4">{item.productName}</td>
+                          <td className="text-center py-1.5 sm:py-2 px-3 sm:px-4">{item.quantity}</td>
+                          <td className="text-right py-1.5 sm:py-2 px-3 sm:px-4">
                             {item.price ? `$${item.price}` : "-"}
                           </td>
                         </tr>
                       ))}
                       {selectedOrder.items.length === 0 && (
                         <tr>
-                          <td colSpan={3} className="text-center py-3 text-muted-foreground">
+                          <td colSpan={3} className="text-center py-3 text-muted-foreground px-3 sm:px-4">
                             No hay productos en este pedido recurrente
                           </td>
                         </tr>
@@ -574,36 +576,36 @@ export default function RecurringOrdersPage() {
 
             {/* Excepciones */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Excepciones</CardTitle>
+              <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                <CardTitle className="text-sm sm:text-base md:text-lg">Excepciones</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2">
                 {selectedOrder.exceptions.length === 0 ? (
-                  <div className="text-center py-3 text-muted-foreground">
+                  <div className="text-center py-3 text-muted-foreground text-xs sm:text-sm">
                     No hay excepciones configuradas
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-xs sm:text-sm">
                     {selectedOrder.exceptions.map((exception) => (
                       <div 
                         key={exception.id || exception.exceptionDate} 
-                        className="flex justify-between items-center border rounded-md p-2"
+                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0 border rounded-md p-2"
                       >
                         <div>
                           <div className="font-medium">
-                            {format(new Date(exception.exceptionDate), "dd MMMM yyyy", { locale: es })}
+                            {format(new Date(exception.exceptionDate), "dd MMM yyyy", { locale: es })}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-xs sm:text-sm text-muted-foreground">
                             {exception.exceptionType === "skip" && "Saltar entrega"}
                             {exception.exceptionType === "reschedule" && "Reprogramar"}
                             {exception.exceptionType === "modify" && "Modificar pedido"}
                           </div>
                         </div>
                         
-                        <div>
+                        <div className="mt-1 sm:mt-0">
                           {exception.exceptionType === "reschedule" && exception.newDate && (
-                            <Badge variant="outline">
-                              Nueva fecha: {format(new Date(exception.newDate), "dd/MM/yyyy")}
+                            <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 py-0.5">
+                              Nueva: {format(new Date(exception.newDate), "dd/MM/yy")}
                             </Badge>
                           )}
                         </div>
@@ -616,32 +618,33 @@ export default function RecurringOrdersPage() {
 
             {/* Historial */}
             <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Historial de Entregas</CardTitle>
+              <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2">
+                <CardTitle className="text-sm sm:text-base md:text-lg">Historial de Entregas</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 sm:p-4 pt-1 sm:pt-2">
                 {selectedOrder.history.length === 0 ? (
-                  <div className="text-center py-3 text-muted-foreground">
+                  <div className="text-center py-3 text-muted-foreground text-xs sm:text-sm">
                     No hay entregas registradas
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-xs sm:text-sm">
                     {selectedOrder.history.map((entry) => (
                       <div 
                         key={entry.id} 
-                        className="flex justify-between items-center border rounded-md p-2"
+                        className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 border rounded-md p-2"
                       >
                         <div>
                           <div className="font-medium">
-                            {format(new Date(entry.scheduledDate), "dd MMMM yyyy", { locale: es })}
+                            {format(new Date(entry.scheduledDate), "dd MMM yyyy", { locale: es })}
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            Generado: {format(new Date(entry.generatedDate), "dd/MM/yyyy HH:mm")}
+                          <div className="text-xs sm:text-sm text-muted-foreground">
+                            Generado: {format(new Date(entry.generatedDate), "dd/MM/yy HH:mm")}
                           </div>
                         </div>
                         
                         <div className="flex items-center gap-2">
                           <Badge 
+                            className="text-[10px] sm:text-xs px-1.5 py-0.5"
                             variant={
                               entry.status === "delivered" 
                                 ? "default" 
@@ -659,13 +662,13 @@ export default function RecurringOrdersPage() {
                             <Button 
                               variant="ghost" 
                               size="sm" 
-                              className="h-7" 
+                              className="h-6 sm:h-7 text-[10px] sm:text-xs" 
                               onClick={() => {
                                 // Navegar a la orden generada
                                 // navigate(`/orders/${entry.generatedOrderId}`);
                               }}
                             >
-                              <Eye className="h-3.5 w-3.5 mr-1" />
+                              <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                               Ver pedido
                             </Button>
                           )}
@@ -678,10 +681,11 @@ export default function RecurringOrdersPage() {
             </Card>
           </div>
 
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between mt-4 sm:mt-6 gap-2 flex-col sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setSelectedOrderId(null)}
+              className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
             >
               Cerrar
             </Button>
@@ -689,8 +693,9 @@ export default function RecurringOrdersPage() {
               <Button
                 variant="default"
                 onClick={() => navigate(`/routes/recurring-orders/edit/${selectedOrder.id}`)}
+                className="w-full sm:w-auto text-xs sm:text-sm h-8 sm:h-9"
               >
-                <Edit className="h-4 w-4 mr-1" />
+                <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 Editar
               </Button>
             </div>
@@ -702,40 +707,42 @@ export default function RecurringOrdersPage() {
 
   // Renderizado principal
   return (
-    <div className="container py-6">
-      <div className="flex flex-col gap-6">
+    <div className="container py-4 sm:py-6">
+      <div className="flex flex-col gap-4 sm:gap-6">
         {/* Cabecera */}
-        <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Pedidos Recurrentes</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Pedidos Recurrentes</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Gestiona entregas programadas para tus clientes habituales
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
             <Button 
               variant="default" 
               onClick={handleCreateOrder}
+              className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 flex-grow sm:flex-grow-0"
             >
-              <Plus className="mr-1 h-4 w-4" />
-              Nuevo Pedido Recurrente
+              <Plus className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="sm:inline">Nuevo Pedido</span>
             </Button>
             
             <Button 
               variant="outline" 
               onClick={handleGenerateOrders}
               disabled={isGenerating}
+              className="text-xs sm:text-sm px-2 sm:px-3 h-8 sm:h-9 flex-grow sm:flex-grow-0"
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  Procesando...
+                  <Loader2 className="mr-1 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                  <span className="sm:inline">Procesando...</span>
                 </>
               ) : (
                 <>
-                  <Repeat className="mr-1 h-4 w-4" />
-                  Generar Pedidos
+                  <Repeat className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="sm:inline">Generar Pedidos</span>
                 </>
               )}
             </Button>
@@ -743,19 +750,19 @@ export default function RecurringOrdersPage() {
         </div>
         
         {/* Filtros y búsqueda */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por nombre o cliente..."
-              className="pl-8"
+              className="pl-7 sm:pl-8 text-xs sm:text-sm h-8 sm:h-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           
           <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px] text-xs sm:text-sm h-8 sm:h-9">
               <SelectValue placeholder="Filtrar por estado" />
             </SelectTrigger>
             <SelectContent>
@@ -769,7 +776,7 @@ export default function RecurringOrdersPage() {
         
         {/* Pestañas y contenido */}
         <Tabs defaultValue="active" value={currentTab} onValueChange={(value) => setCurrentTab(value as any)}>
-          <TabsList>
+          <TabsList className="w-full grid grid-cols-3 h-8 sm:h-10 text-xs sm:text-sm">
             <TabsTrigger value="active">Activos</TabsTrigger>
             <TabsTrigger value="all">Todos</TabsTrigger>
             <TabsTrigger value="history">Historial</TabsTrigger>
