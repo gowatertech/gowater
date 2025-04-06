@@ -96,7 +96,7 @@ const formSchema = z.object({
   endDate: z.date().optional(),
   nextDeliveryDate: z.date({
     required_error: "La fecha de primera entrega es requerida",
-  }),
+  }).nullable().default(null),
   zoneId: z.string().optional(),
   notifyCustomer: z.boolean().default(false),
   notifyBefore: z.string().optional(),
@@ -209,7 +209,8 @@ export default function CreateRecurringOrderPage() {
       weekdays: weekdaysString,
       monthDays: monthDaysString,
       startDate: format(values.startDate, "yyyy-MM-dd"),
-      nextDeliveryDate: format(values.nextDeliveryDate, "yyyy-MM-dd"),
+      // Si nextDeliveryDate no está definido o es null, usar startDate
+      nextDeliveryDate: values.nextDeliveryDate ? format(values.nextDeliveryDate, "yyyy-MM-dd") : format(values.startDate, "yyyy-MM-dd"),
       endDate: values.endDate ? format(values.endDate, "yyyy-MM-dd") : undefined,
       zoneId: values.zoneId ? parseInt(values.zoneId) : undefined,
       notifyCustomer: values.notifyCustomer,
