@@ -178,7 +178,7 @@ export default function CreateRecurringOrderPage() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/recurring-orders'] });
       setIsSubmitting(false);
-      navigate("/recurring-orders");
+      window.location.href = "/recurring-orders";
     },
     onError: (error: Error) => {
       toast({
@@ -950,7 +950,7 @@ export default function CreateRecurringOrderPage() {
           <Button 
             variant="ghost" 
             className="mr-2" 
-            onClick={() => navigate("/recurring-orders")}
+            onClick={() => { window.location.href = "/recurring-orders" }}
           >
             <ArrowLeft className="mr-1 h-4 w-4" />
             Volver
