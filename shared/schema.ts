@@ -2,6 +2,19 @@ import { pgTable, text, serial, integer, timestamp, decimal, boolean } from "dri
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Importar esquemas de pedidos recurrentes
+import {
+  recurringOrders,
+  recurringOrderItems,
+  recurringOrderExceptions,
+  recurringOrderHistory,
+  RecurringOrderItem,
+  InsertRecurringOrderItem,
+  RecurringOrderException,
+  InsertRecurringOrderException,
+  RecurringOrderHistory
+} from "./schema-recurring-orders";
+
 // Users (drivers, admins, etc.)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -383,21 +396,7 @@ export const insertZoneSchema = z.object({
   coordinates: z.array(z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/)),
 });
 
-// Recurring Orders
-export const recurringOrders = pgTable("recurring_orders", {
-  id: serial("id").primaryKey(),
-  customerId: integer("customer_id").notNull().references(() => customers.id),
-  frequency: text("frequency", { enum: ["daily", "weekly", "biweekly", "monthly"] }).notNull(),
-  nextOrderDate: timestamp("next_order_date").notNull(),
-  isActive: boolean("is_active").notNull().default(true),
-});
-
-export const insertRecurringOrderSchema = z.object({
-  customerId: z.number(),
-  frequency: z.enum(["daily", "weekly", "biweekly", "monthly"]),
-  nextOrderDate: z.string().datetime(),
-  isActive: z.boolean().default(true),
-});
+// Nota: Los pedidos recurrentes ahora se definen en schema-recurring-orders.ts
 
 // Warehouses
 export const warehouses = pgTable("warehouses", {
@@ -652,8 +651,7 @@ export type Sector = typeof sectors.$inferSelect;
 export type InsertSector = z.infer<typeof insertSectorSchema>;
 export type ReturnedBottle = typeof returnedBottles.$inferSelect;
 export type InsertReturnedBottle = z.infer<typeof insertReturnedBottleSchema>;
-export type RecurringOrder = typeof recurringOrders.$inferSelect;
-export type InsertRecurringOrder = z.infer<typeof insertRecurringOrderSchema>;
+// Nota: RecurringOrder e InsertRecurringOrder ahora están definidos en schema-recurring-orders.ts
 export type Settings = typeof settings.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Invoice = typeof invoices.$inferSelect;
