@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { format, addMonths, addYears, isBefore, isValid } from "date-fns";
+import { Link, useLocation } from "wouter";
+import { format, addDays } from "date-fns";
 import { es } from "date-fns/locale";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -34,12 +34,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,27 +43,21 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 // Iconos
 import {
   ArrowLeft,
   Calendar as CalendarIcon,
   Check,
-  ChevronDown,
   ChevronRight,
-  CircleAlert,
-  Info,
   Loader2,
   Plus,
-  Repeat,
   Trash,
-  X,
 } from "lucide-react";
 
-// Tipos
+// Tipos para modelos
 type Customer = {
   id: number;
   businessname: string;
@@ -81,11 +69,10 @@ type Customer = {
 type Product = {
   id: number;
   name: string;
-  description?: string;
   price: string;
-  type: string;
-  category: string;
-  utype: string;
+  stock: number;
+  icon: string;
+  isReturnable: boolean;
 };
 
 type Zone = {
@@ -107,25 +94,27 @@ const formSchema = z.object({
     required_error: "La fecha de inicio es requerida",
   }),
   endDate: z.date().optional(),
-  nextDeliveryDate: z.date().optional(), // Agregado campo para próxima entrega
+  nextDeliveryDate: z.date({
+    required_error: "La fecha de primera entrega es requerida",
+  }),
   zoneId: z.string().optional(),
   notifyCustomer: z.boolean().default(false),
   notifyBefore: z.string().optional(),
   items: z.array(
     z.object({
       productId: z.string().min(1, "Debe seleccionar un producto"),
-      quantity: z.string().min(1, "La cantidad es requerida")
+      quantity: z.string().min(1, "La cantidad es requerida"),
+      price: z.string().optional()
     })
   ).min(1, "Debe agregar al menos un producto"),
 });
 
-// Esquema personalizado para control de errores en el frontend
+// Tipo para el formulario
 type FormValues = z.infer<typeof formSchema>;
 
 // Componente principal
 export default function CreateRecurringOrderPage() {
   const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -143,7 +132,7 @@ export default function CreateRecurringOrderPage() {
     queryKey: ['/api/zones'],
   });
 
-  // Configuración del formulario con React Hook Form
+  // Configuración del formulario con valores por defecto
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -155,17 +144,16 @@ export default function CreateRecurringOrderPage() {
       weekdays: ["1", "3", "5"], // Lunes, Miércoles, Viernes por defecto
       monthDays: ["1", "15"], // Días 1 y 15 por defecto
       startDate: new Date(),
-      nextDeliveryDate: new Date(), // La primera entrega por defecto es la misma fecha de inicio
+      nextDeliveryDate: new Date(),
       notifyCustomer: false,
       notifyBefore: "1",
-      items: [{ productId: "", quantity: "1" }],
+      items: [{ productId: "", quantity: "1", price: "" }],
     },
   });
 
   // Mutación para crear un pedido recurrente
   const createOrderMutation = useMutation({
     mutationFn: async (data: any) => {
-      setIsSubmitting(true);
       const response = await apiRequest("POST", "/api/recurring-orders", data);
       if (!response.ok) {
         const error = await response.json();
@@ -173,14 +161,13 @@ export default function CreateRecurringOrderPage() {
       }
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "Pedido recurrente creado",
         description: "El pedido recurrente se ha creado exitosamente.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/recurring-orders'] });
-      setIsSubmitting(false);
-      window.location.href = "/recurring-orders";
+      navigate("/recurring-orders");
     },
     onError: (error: Error) => {
       toast({
@@ -188,7 +175,6 @@ export default function CreateRecurringOrderPage() {
         title: "Error",
         description: error.message,
       });
-      setIsSubmitting(false);
     }
   });
 
@@ -198,6 +184,7 @@ export default function CreateRecurringOrderPage() {
     const formattedItems = values.items.map(item => ({
       productId: parseInt(item.productId),
       quantity: parseInt(item.quantity),
+      price: item.price || getProductPrice(parseInt(item.productId)),
     }));
 
     // Formatear los días de la semana o del mes según la frecuencia
@@ -222,9 +209,7 @@ export default function CreateRecurringOrderPage() {
       weekdays: weekdaysString,
       monthDays: monthDaysString,
       startDate: format(values.startDate, "yyyy-MM-dd"),
-      nextDeliveryDate: values.nextDeliveryDate 
-        ? format(values.nextDeliveryDate, "yyyy-MM-dd") 
-        : format(values.startDate, "yyyy-MM-dd"), // Usar la startDate como nextDeliveryDate si no se especifica
+      nextDeliveryDate: format(values.nextDeliveryDate, "yyyy-MM-dd"),
       endDate: values.endDate ? format(values.endDate, "yyyy-MM-dd") : undefined,
       zoneId: values.zoneId ? parseInt(values.zoneId) : undefined,
       notifyCustomer: values.notifyCustomer,
@@ -236,10 +221,16 @@ export default function CreateRecurringOrderPage() {
     createOrderMutation.mutate(recurringOrderData);
   };
 
+  // Función para obtener el precio de un producto por su ID
+  const getProductPrice = (productId: number): string => {
+    const product = products.find(p => p.id === productId);
+    return product ? product.price : "0.00";
+  };
+
   // Manejar añadir/eliminar productos
   const addItem = () => {
     const items = form.getValues("items");
-    form.setValue("items", [...items, { productId: "", quantity: "1" }]);
+    form.setValue("items", [...items, { productId: "", quantity: "1", price: "" }]);
   };
 
   const removeItem = (index: number) => {
@@ -264,13 +255,19 @@ export default function CreateRecurringOrderPage() {
         form.trigger(["name", "customerId"]);
         return;
       }
+    } else if (step === 2) {
+      // Validar fechas y configuración de frecuencia
+      form.trigger(["startDate", "nextDeliveryDate", "frequency"]);
+      if (form.formState.errors.startDate || form.formState.errors.nextDeliveryDate || form.formState.errors.frequency) {
+        return;
+      }
     }
     
-    setStep(step + 1);
+    setStep(prev => prev + 1);
   };
 
   const goToPreviousStep = () => {
-    setStep(step - 1);
+    setStep(prev => prev - 1);
   };
 
   // Componente para el selector de fecha
@@ -477,33 +474,29 @@ export default function CreateRecurringOrderPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Días de la semana</FormLabel>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-1">
                   {daysOfWeek.map((day, index) => (
-                    <div key={index} className="flex items-center space-x-2">
+                    <div key={index} className="flex items-center">
                       <Checkbox
+                        id={`weekday-${index}`}
                         checked={field.value?.includes(index.toString())}
                         onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
                           if (checked) {
-                            field.onChange([...(field.value || []), index.toString()]);
+                            field.onChange([...currentValues, index.toString()]);
                           } else {
-                            field.onChange(
-                              field.value?.filter((value) => value !== index.toString())
-                            );
+                            field.onChange(currentValues.filter(v => v !== index.toString()));
                           }
                         }}
-                        id={`day-${index}`}
                       />
-                      <label
-                        htmlFor={`day-${index}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
+                      <Label htmlFor={`weekday-${index}`} className="ml-2">
                         {day}
-                      </label>
+                      </Label>
                     </div>
                   ))}
                 </div>
                 <FormDescription>
-                  Seleccione los días de la semana en los que se realizará la entrega.
+                  Seleccione los días de la semana para las entregas.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -518,33 +511,29 @@ export default function CreateRecurringOrderPage() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Días del mes</FormLabel>
-                <div className="grid grid-cols-8 gap-2">
+                <div className="grid grid-cols-6 gap-1 pt-1">
                   {monthDaysOptions.map((day) => (
-                    <div key={day} className="flex items-center space-x-2">
+                    <div key={day} className="flex items-center">
                       <Checkbox
+                        id={`monthday-${day}`}
                         checked={field.value?.includes(day)}
                         onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
                           if (checked) {
-                            field.onChange([...(field.value || []), day]);
+                            field.onChange([...currentValues, day]);
                           } else {
-                            field.onChange(
-                              field.value?.filter((value) => value !== day)
-                            );
+                            field.onChange(currentValues.filter(v => v !== day));
                           }
                         }}
-                        id={`month-day-${day}`}
                       />
-                      <label
-                        htmlFor={`month-day-${day}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
+                      <Label htmlFor={`monthday-${day}`} className="ml-1 text-sm">
                         {day}
-                      </label>
+                      </Label>
                     </div>
                   ))}
                 </div>
                 <FormDescription>
-                  Seleccione los días del mes en los que se realizará la entrega.
+                  Seleccione los días del mes para las entregas.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -560,16 +549,16 @@ export default function CreateRecurringOrderPage() {
               <FormItem>
                 <FormLabel>Cada cuántos días</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="1" 
-                    max="90" 
-                    {...field} 
-                    placeholder="Ej. 10" 
+                  <Input
+                    type="number"
+                    min="1"
+                    max="365"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value)}
                   />
                 </FormControl>
                 <FormDescription>
-                  Especifique cada cuántos días se repetirá este pedido.
+                  Especifique cada cuántos días se debe realizar la entrega.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -642,7 +631,7 @@ export default function CreateRecurringOrderPage() {
                   />
                 </FormControl>
                 <FormDescription>
-                  Fecha hasta la cual estará activo el pedido recurrente.
+                  Fecha en la que terminará el pedido recurrente. Si no se especifica, continuará indefinidamente.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -650,59 +639,61 @@ export default function CreateRecurringOrderPage() {
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="notifyCustomer"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <FormLabel>Notificar al cliente</FormLabel>
-                <FormDescription>
-                  Enviar una notificación al cliente antes de cada entrega.
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        {form.watch("notifyCustomer") && (
+        <div className="space-y-3">
           <FormField
             control={form.control}
-            name="notifyBefore"
+            name="notifyCustomer"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Días de anticipación</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccione los días de anticipación" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="1">1 día antes</SelectItem>
-                    <SelectItem value="2">2 días antes</SelectItem>
-                    <SelectItem value="3">3 días antes</SelectItem>
-                    <SelectItem value="5">5 días antes</SelectItem>
-                    <SelectItem value="7">1 semana antes</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Cuántos días antes de la entrega se notificará al cliente.
-                </FormDescription>
-                <FormMessage />
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Notificar al cliente</FormLabel>
+                  <FormDescription>
+                    Enviar notificaciones al cliente antes de cada entrega.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </FormItem>
             )}
           />
-        )}
+
+          {form.watch("notifyCustomer") && (
+            <FormField
+              control={form.control}
+              name="notifyBefore"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Días de anticipación</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione los días" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="1">1 día antes</SelectItem>
+                      <SelectItem value="2">2 días antes</SelectItem>
+                      <SelectItem value="3">3 días antes</SelectItem>
+                      <SelectItem value="5">5 días antes</SelectItem>
+                      <SelectItem value="7">7 días antes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Con cuántos días de anticipación se notificará al cliente.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
       </div>
     );
   };
@@ -711,24 +702,25 @@ export default function CreateRecurringOrderPage() {
   const renderStep3 = () => {
     return (
       <div className="space-y-6">
-        <div>
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-medium">Productos</h3>
-            <Button 
-              type="button" 
-              variant="outline" 
-              size="sm" 
-              onClick={addItem}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Agregar Producto
-            </Button>
-          </div>
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-medium">Productos a incluir</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addItem}
+            className="flex items-center gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            Agregar Producto
+          </Button>
+        </div>
 
-          <div className="space-y-4">
-            {form.watch("items").map((_, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-8 gap-4 items-end border p-3 rounded-md">
-                <div className="md:col-span-5">
+        <div className="space-y-4">
+          {form.watch("items").map((_, index) => (
+            <Card key={index}>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name={`items.${index}.productId`}
@@ -736,18 +728,25 @@ export default function CreateRecurringOrderPage() {
                       <FormItem>
                         <FormLabel>Producto</FormLabel>
                         <Select
-                          onValueChange={field.onChange}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            // Autocompletar el precio si está disponible
+                            const product = products.find(p => p.id === parseInt(value));
+                            if (product) {
+                              form.setValue(`items.${index}.price`, product.price);
+                            }
+                          }}
                           defaultValue={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Seleccione un producto" />
+                              <SelectValue placeholder="Seleccione producto" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {isLoadingProducts ? (
                               <div className="flex justify-center p-2">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
                               </div>
                             ) : products.length === 0 ? (
                               <div className="p-2 text-center text-sm text-muted-foreground">
@@ -756,12 +755,7 @@ export default function CreateRecurringOrderPage() {
                             ) : (
                               products.map((product) => (
                                 <SelectItem key={product.id} value={product.id.toString()}>
-                                  <div className="flex flex-col">
-                                    <span>{product.name}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      ${product.price} - {product.category}
-                                    </span>
-                                  </div>
+                                  {product.name} - ${product.price}
                                 </SelectItem>
                               ))
                             )}
@@ -771,9 +765,7 @@ export default function CreateRecurringOrderPage() {
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <div className="md:col-span-2">
                   <FormField
                     control={form.control}
                     name={`items.${index}.quantity`}
@@ -781,140 +773,124 @@ export default function CreateRecurringOrderPage() {
                       <FormItem>
                         <FormLabel>Cantidad</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
-                            min="1" 
-                            {...field} 
+                          <Input
+                            type="number"
+                            min="1"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.price`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Precio Unitario</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.value)}
+                            placeholder="Precio del producto"
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Dejar vacío para usar el precio por defecto
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
-                <div className="flex justify-end md:col-span-1">
+                <div className="flex justify-end mt-4">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
+                    variant="outline"
+                    size="sm"
                     onClick={() => removeItem(index)}
-                    disabled={form.watch("items").length <= 1}
+                    className="flex items-center gap-1 text-destructive"
                   >
-                    <Trash className="h-4 w-4 text-muted-foreground" />
+                    <Trash className="h-4 w-4" />
+                    Eliminar
                   </Button>
                 </div>
-              </div>
-            ))}
-
-            {form.formState.errors.items && (
-              <p className="text-sm font-medium text-destructive">
-                {form.formState.errors.items.message}
-              </p>
-            )}
-          </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     );
   };
 
-  // Renderizado del paso de revisión
-  const renderReviewStep = () => {
+  // Renderizado del paso 4: Confirmación
+  const renderStep4 = () => {
     const values = form.getValues();
-    const selectedCustomer = customers.find(c => c.id.toString() === values.customerId);
-    const selectedZone = zones.find(z => z.id.toString() === values.zoneId);
-    const selectedItems = values.items.map(item => {
-      const product = products.find(p => p.id.toString() === item.productId);
-      return {
-        ...item,
-        productName: product?.name || "Producto desconocido",
-        price: product?.price || "0",
-      };
-    });
-
-    // Formatear detalles de frecuencia
-    let frequencyDetails = "";
+    let frequencyText = "";
+    
     switch (values.frequency) {
       case "daily":
-        frequencyDetails = "Todos los días";
+        frequencyText = "Diario";
         break;
       case "weekly":
-        if (values.weekdays && values.weekdays.length > 0) {
-          const days = values.weekdays.map(day => ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][parseInt(day)]);
-          frequencyDetails = `Semanal (${days.join(", ")})`;
-        } else {
-          frequencyDetails = "Semanal";
-        }
+        frequencyText = "Semanal";
         break;
       case "biweekly":
-        frequencyDetails = "Cada dos semanas";
+        frequencyText = "Quincenal";
         break;
       case "monthly":
-        if (values.monthDays && values.monthDays.length > 0) {
-          const days = values.monthDays.map(day => `día ${day}`);
-          frequencyDetails = `Mensual (${days.join(", ")})`;
-        } else {
-          frequencyDetails = "Mensual";
-        }
+        frequencyText = "Mensual";
         break;
       case "custom":
-        frequencyDetails = `Cada ${values.frequencyDays} días`;
+        frequencyText = `Cada ${values.frequencyDays} días`;
         break;
     }
 
+    // Calcular el total aproximado
+    let totalAmount = 0;
+    values.items.forEach(item => {
+      const product = products.find(p => p.id === parseInt(item.productId));
+      const price = item.price ? parseFloat(item.price) : (product ? parseFloat(product.price) : 0);
+      const quantity = parseInt(item.quantity) || 0;
+      totalAmount += price * quantity;
+    });
+
+    const getCustomerName = (id: string) => {
+      const customer = customers.find(c => c.id === parseInt(id));
+      return customer ? customer.businessname : "Cliente no encontrado";
+    };
+
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Información General</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="font-medium">Nombre</Label>
                 <p>{values.name}</p>
               </div>
               <div>
                 <Label className="font-medium">Cliente</Label>
-                <p>{selectedCustomer?.businessname || "Cliente no encontrado"}</p>
+                <p>{getCustomerName(values.customerId)}</p>
               </div>
-              {values.description && (
-                <div>
-                  <Label className="font-medium">Descripción</Label>
-                  <p>{values.description}</p>
-                </div>
-              )}
-              {selectedZone && (
-                <div className="flex items-center">
-                  <Label className="font-medium mr-2">Zona</Label>
-                  <div className="flex items-center">
-                    <div
-                      className="w-3 h-3 rounded-full mr-1"
-                      style={{ backgroundColor: selectedZone.color }}
-                    />
-                    <span>{selectedZone.name}</span>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Programación</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
               <div>
                 <Label className="font-medium">Frecuencia</Label>
-                <p>{frequencyDetails}</p>
+                <p>{frequencyText}</p>
               </div>
               <div>
-                <Label className="font-medium">Fecha de inicio</Label>
+                <Label className="font-medium">Inicio</Label>
                 <p>{format(values.startDate, "PPP", { locale: es })}</p>
               </div>
               <div>
                 <Label className="font-medium">Primera entrega</Label>
-                <p>{values.nextDeliveryDate ? format(values.nextDeliveryDate, "PPP", { locale: es }) : format(values.startDate, "PPP", { locale: es })}</p>
+                <p>{format(values.nextDeliveryDate, "PPP", { locale: es })}</p>
               </div>
               {values.endDate && (
                 <div>
@@ -930,178 +906,172 @@ export default function CreateRecurringOrderPage() {
                     : "Sin notificaciones"}
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Productos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="border-b">
-                  <tr>
-                    <th className="text-left font-medium py-2">Producto</th>
-                    <th className="text-center font-medium py-2">Cantidad</th>
-                    <th className="text-right font-medium py-2">Precio</th>
-                    <th className="text-right font-medium py-2">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {selectedItems.map((item, index) => {
-                    const subtotal = parseFloat(item.price) * parseInt(item.quantity);
-                    return (
-                      <tr key={index} className="border-b">
-                        <td className="py-2">{item.productName}</td>
-                        <td className="text-center py-2">{item.quantity}</td>
-                        <td className="text-right py-2">${item.price}</td>
-                        <td className="text-right py-2">${subtotal.toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={3} className="text-right font-medium py-2">Total:</td>
-                    <td className="text-right font-medium py-2">
-                      ${selectedItems.reduce((total, item) => {
-                        return total + parseFloat(item.price) * parseInt(item.quantity);
-                      }, 0).toFixed(2)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
             </div>
-          </CardContent>
-        </Card>
+
+            <div>
+              <Label className="font-medium">Descripción</Label>
+              <p className="text-sm text-muted-foreground">{values.description || "No se proporcionó descripción"}</p>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h4 className="font-medium mb-3">Productos</h4>
+              <div className="space-y-2">
+                {values.items.map((item, index) => {
+                  const product = products.find(p => p.id === parseInt(item.productId));
+                  const productName = product ? product.name : "Producto no encontrado";
+                  const price = item.price ? parseFloat(item.price) : (product ? parseFloat(product.price) : 0);
+                  const quantity = parseInt(item.quantity) || 0;
+                  
+                  return (
+                    <div key={index} className="flex justify-between items-center py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{productName}</span>
+                        <Badge variant="outline">{quantity} unidad{quantity !== 1 ? 'es' : ''}</Badge>
+                      </div>
+                      <div className="text-right">
+                        <div>${price.toFixed(2)} x {quantity}</div>
+                        <div className="font-medium">${(price * quantity).toFixed(2)}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              <div className="flex justify-between items-center mt-4 pt-2 border-t">
+                <span className="font-medium">Total aproximado por entrega</span>
+                <span className="font-bold text-lg">${totalAmount.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
 
-  // Renderizado principal
-  return (
-    <div className="container py-6">
-      <div className="flex flex-col gap-6">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            className="mr-2" 
-            onClick={() => { window.location.href = "/recurring-orders" }}
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Volver
-          </Button>
-          <h1 className="text-2xl font-bold tracking-tight">Crear Pedido Recurrente</h1>
-        </div>
+  // Renderizar el contenido según el paso actual
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return renderStep1();
+      case 2:
+        return renderStep2();
+      case 3:
+        return renderStep3();
+      case 4:
+        return renderStep4();
+      default:
+        return null;
+    }
+  };
 
-        <div className="grid grid-cols-1 gap-6">
-          {/* Barra de progreso */}
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col sm:flex-row w-full">
-              {[
-                "Información",
-                "Programación",
-                "Productos",
-                "Revisar"
-              ].map((label, index) => (
-                <div 
-                  key={index} 
-                  className="flex items-center"
-                  style={{ width: `${100 / 4}%` }}
-                >
-                  <div 
-                    className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                      step > index + 1 
-                        ? "bg-primary text-primary-foreground" 
-                        : step === index + 1 
-                          ? "bg-primary text-primary-foreground" 
-                          : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {step > index + 1 ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <span>{index + 1}</span>
-                    )}
-                  </div>
-                  <div 
-                    className={`h-1 ${
-                      index < 3 ? "block" : "hidden"
-                    } ${
-                      step > index + 1 ? "bg-primary" : "bg-muted"
-                    } flex-1 mx-2`}
-                  />
-                  <span className="text-sm hidden sm:block">{label}</span>
-                </div>
-              ))}
+  // Renderizar botones de navegación
+  const renderNavigation = () => {
+    return (
+      <div className="flex justify-between mt-8">
+        {step > 1 ? (
+          <Button type="button" variant="outline" onClick={goToPreviousStep}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Anterior
+          </Button>
+        ) : (
+          <Link href="/recurring-orders">
+            <Button type="button" variant="outline">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Cancelar
+            </Button>
+          </Link>
+        )}
+
+        {step < 4 ? (
+          <Button type="button" onClick={goToNextStep}>
+            Siguiente
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        ) : (
+          <Button 
+            type="submit"
+            disabled={createOrderMutation.isPending}
+            className="flex items-center"
+          >
+            {createOrderMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creando...
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Crear Pedido Recurrente
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  // Renderizar indicador de pasos
+  const renderStepIndicator = () => {
+    return (
+      <div className="flex items-center justify-center space-x-2 mb-8">
+        {[1, 2, 3, 4].map((stepNumber) => (
+          <div
+            key={stepNumber}
+            className={`w-2 h-2 rounded-full ${
+              stepNumber === step ? "bg-primary" : "bg-gray-300"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  // Renderizar el título del paso actual
+  const getStepTitle = () => {
+    switch (step) {
+      case 1:
+        return "Información Básica";
+      case 2:
+        return "Programación";
+      case 3:
+        return "Productos";
+      case 4:
+        return "Confirmación";
+      default:
+        return "";
+    }
+  };
+
+  return (
+    <div className="container py-6 max-w-4xl">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center">
+            <Link href="/recurring-orders">
+              <Button variant="ghost" size="icon" className="mr-2">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <div>
+              <CardTitle>Crear Pedido Recurrente</CardTitle>
+              <CardDescription>Configura un nuevo pedido con entregas programadas</CardDescription>
             </div>
           </div>
-
-          {/* Formulario */}
+          {renderStepIndicator()}
+          <h3 className="text-lg font-medium text-center">{getStepTitle()}</h3>
+        </CardHeader>
+        
+        <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
-                    {step === 1 && "Información Básica"}
-                    {step === 2 && "Programación"}
-                    {step === 3 && "Selección de Productos"}
-                    {step === 4 && "Revisar y Confirmar"}
-                  </CardTitle>
-                  <CardDescription>
-                    {step === 1 && "Complete la información general del pedido recurrente."}
-                    {step === 2 && "Configure la frecuencia y programación del pedido."}
-                    {step === 3 && "Seleccione los productos que se incluirán en cada entrega."}
-                    {step === 4 && "Revise toda la información antes de crear el pedido recurrente."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {step === 1 && renderStep1()}
-                  {step === 2 && renderStep2()}
-                  {step === 3 && renderStep3()}
-                  {step === 4 && renderReviewStep()}
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={goToPreviousStep}
-                    disabled={step === 1}
-                  >
-                    Anterior
-                  </Button>
-                  <div>
-                    {step < 4 ? (
-                      <Button
-                        type="button"
-                        onClick={goToNextStep}
-                      >
-                        Siguiente
-                      </Button>
-                    ) : (
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Creando...
-                          </>
-                        ) : (
-                          "Crear Pedido Recurrente"
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </CardFooter>
-              </Card>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              {renderStepContent()}
+              {renderNavigation()}
             </form>
           </Form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
