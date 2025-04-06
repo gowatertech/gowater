@@ -153,9 +153,28 @@ export function registerRecurringOrdersEndpoints(app: Express) {
       const validatedData = insertRecurringOrderSchema.parse(recurringOrderData);
       
       // Crear el pedido recurrente
-      const [newRecurringOrder] = await db
+      const newRecurringOrder = await db
         .insert(recurringOrders)
-        .values(validatedData)
+        .values({
+          name: validatedData.name,
+          customerId: validatedData.customerId,
+          description: validatedData.description,
+          frequency: validatedData.frequency,
+          frequencyDays: validatedData.frequencyDays,
+          weekdays: validatedData.weekdays,
+          monthDays: validatedData.monthDays,
+          status: validatedData.status || "active",
+          startDate: validatedData.startDate,
+          endDate: validatedData.endDate,
+          nextDeliveryDate: validatedData.nextDeliveryDate,
+          zoneId: validatedData.zoneId,
+          notifyCustomer: validatedData.notifyCustomer,
+          notifyBefore: validatedData.notifyBefore,
+          totalGeneratedOrders: 0,
+          lastGeneratedDate: null,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
 
       console.log("Pedido recurrente creado:", newRecurringOrder);
@@ -193,12 +212,39 @@ export function registerRecurringOrdersEndpoints(app: Express) {
       }
       
       // Devolver el pedido recurrente completo
-      const completeRecurringOrder = await db.query.recurringOrders.findFirst({
-        where: eq(recurringOrders.id, newRecurringOrder.id),
-        with: {
-          customer: true
-        }
-      });
+      // El arreglo de newRecurringOrder debería tener un solo elemento
+      const createdOrderId = Array.isArray(newRecurringOrder) && newRecurringOrder.length > 0
+        ? newRecurringOrder[0].id
+        : (newRecurringOrder as any).id;
+      
+      // Buscar el pedido recurrente completo con sus relaciones
+      const completeRecurringOrder = await db
+        .select({
+          id: recurringOrders.id,
+          name: recurringOrders.name,
+          customerId: recurringOrders.customerId,
+          customerName: customers.businessname,
+          description: recurringOrders.description,
+          frequency: recurringOrders.frequency,
+          frequencyDays: recurringOrders.frequencyDays,
+          weekdays: recurringOrders.weekdays,
+          monthDays: recurringOrders.monthDays,
+          status: recurringOrders.status,
+          startDate: recurringOrders.startDate,
+          endDate: recurringOrders.endDate,
+          nextDeliveryDate: recurringOrders.nextDeliveryDate,
+          zoneId: recurringOrders.zoneId,
+          notifyCustomer: recurringOrders.notifyCustomer,
+          notifyBefore: recurringOrders.notifyBefore,
+          totalGeneratedOrders: recurringOrders.totalGeneratedOrders,
+          lastGeneratedDate: recurringOrders.lastGeneratedDate,
+          createdAt: recurringOrders.createdAt,
+          updatedAt: recurringOrders.updatedAt
+        })
+        .from(recurringOrders)
+        .leftJoin(customers, eq(recurringOrders.customerId, customers.id))
+        .where(eq(recurringOrders.id, createdOrderId))
+        .limit(1);
       
       res.status(201).json(completeRecurringOrder);
     } catch (error) {

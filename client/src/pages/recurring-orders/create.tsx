@@ -914,7 +914,7 @@ export default function CreateRecurringOrderPage() {
               </div>
               <div>
                 <Label className="font-medium">Primera entrega</Label>
-                <p>{format(values.nextDeliveryDate, "PPP", { locale: es })}</p>
+                <p>{values.nextDeliveryDate ? format(values.nextDeliveryDate, "PPP", { locale: es }) : format(values.startDate, "PPP", { locale: es })}</p>
               </div>
               {values.endDate && (
                 <div>
