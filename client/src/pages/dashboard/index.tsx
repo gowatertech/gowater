@@ -1,8 +1,32 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { KPICard } from "@/components/dashboard/KPICard";
+import { ChartCard } from "@/components/dashboard/ChartCard";
+import { AlertCard } from "@/components/dashboard/AlertCard";
+import {
+  Activity,
+  TrendingUp,
+  AlertCircle,
+  DollarSign,
+  Package,
+  CheckCircle,
+  Calendar,
+  Clock,
+  Users,
+  Map,
+  Droplet,
+  Truck,
+  FileBarChart,
+  PieChart,
+  BarChart,
+  LineChart
+} from "lucide-react";
 
 // Colores consistentes para los gráficos
 const COLORS = {
@@ -11,7 +35,8 @@ const COLORS = {
   YELLOW: "#FFBB28",
   ORANGE: "#FF8042",
   RED: "#FF0000",
-  PURPLE: "#8884d8"
+  PURPLE: "#8884d8",
+  GREEN: "#4CAF50"
 };
 
 interface DashboardStats {
@@ -20,11 +45,28 @@ interface DashboardStats {
   pendingOrders: number;
   deliveredOrders: number;
   cancelledOrders: number;
+  dailySales: number;
+  weeklyTrend?: Array<{
+    day: string;
+    total: number;
+  }>;
 }
 
 interface PaymentStats {
   yearlyPayments: number;
   monthlyPayments: number;
+}
+
+interface RouteStats {
+  activeRoutes: number;
+  completedToday: number;
+  avgEfficiency: number;
+}
+
+interface BottleStats {
+  pendingReturns: number;
+  totalPendingQty: number;
+  overdueReturns: number;
 }
 
 interface ChartData {
@@ -35,8 +77,11 @@ interface ChartData {
 
 export default function Dashboard() {
   const { t } = useTranslation();
+  const [_, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("overview");
 
-  const { data: stats } = useQuery<DashboardStats>({
+  // Consultas para obtener los datos del dashboard
+  const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/dashboard/stats");
@@ -44,7 +89,7 @@ export default function Dashboard() {
     }
   });
 
-  const { data: paymentStats } = useQuery<PaymentStats>({
+  const { data: paymentStats, isLoading: paymentsLoading } = useQuery<PaymentStats>({
     queryKey: ["/api/dashboard/payments-stats"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/dashboard/payments-stats");
@@ -52,58 +97,24 @@ export default function Dashboard() {
     }
   });
 
-  // Datos para el gráfico de ventas y cobros
-  const salesData: ChartData[] = [
-    {
-      name: "Ventas",
-      value: stats?.totalSales || 0,
-      color: COLORS.BLUE
-    },
-    {
-      name: "Por Cobrar",
-      value: stats?.pendingPayments || 0,
-      color: COLORS.TURQUOISE
-    },
-    {
-      name: "Pedidos",
-      value: (stats?.pendingOrders || 0) + (stats?.deliveredOrders || 0) + (stats?.cancelledOrders || 0),
-      color: COLORS.YELLOW
+  // Consultas para obtener datos adicionales
+  const { data: routeStats, isLoading: routesLoading } = useQuery<RouteStats>({
+    queryKey: ["/api/dashboard/route-stats"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/dashboard/route-stats");
+      return response.json();
     }
-  ];
+  });
 
-  // Datos para el gráfico de pedidos
-  const ordersData: ChartData[] = [
-    {
-      name: "Entregados",
-      value: stats?.deliveredOrders || 0,
-      color: COLORS.TURQUOISE
-    },
-    {
-      name: "Pendientes",
-      value: stats?.pendingOrders || 0,
-      color: COLORS.ORANGE
-    },
-    {
-      name: "Cancelados",
-      value: stats?.cancelledOrders || 0,
-      color: COLORS.RED
+  const { data: bottleStats, isLoading: bottlesLoading } = useQuery<BottleStats>({
+    queryKey: ["/api/dashboard/bottle-stats"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/dashboard/bottle-stats");
+      return response.json();
     }
-  ];
+  });
 
-  // Datos para el gráfico de pagos
-  const paymentsData: ChartData[] = [
-    {
-      name: "Año",
-      value: paymentStats?.yearlyPayments || 0,
-      color: COLORS.BLUE
-    },
-    {
-      name: "Mes",
-      value: paymentStats?.monthlyPayments || 0,
-      color: COLORS.PURPLE
-    }
-  ];
-
+  // Función para formatear moneda
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-DO', {
       style: 'currency',
@@ -113,199 +124,317 @@ export default function Dashboard() {
     }).format(value);
   };
 
-  // Componente de tarjeta estadística reutilizable
-  const StatCard = ({ 
-    color, 
-    title, 
-    value, 
-    isCurrency = false,
-    icon: Icon = null 
-  }: { 
-    color: "blue" | "green" | "yellow" | "orange" | "red" | "purple"; 
-    title: string; 
-    value: string | number; 
-    isCurrency?: boolean;
-    icon?: any;
-  }) => {
-    // Mapas de clases para colores
-    const colorMap = {
-      blue: "bg-blue-500",
-      green: "bg-green-500",
-      yellow: "bg-yellow-500",
-      orange: "bg-orange-500",
-      red: "bg-red-500",
-      purple: "bg-purple-500"
-    };
-
-    const textColorMap = {
-      blue: "text-blue-600",
-      green: "text-green-600",
-      yellow: "text-yellow-600",
-      orange: "text-orange-600",
-      red: "text-red-600",
-      purple: "text-purple-600"
-    };
-
-    const iconColorMap = {
-      blue: "text-blue-500",
-      green: "text-green-500",
-      yellow: "text-yellow-500",
-      orange: "text-orange-500",
-      red: "text-red-500",
-      purple: "text-purple-500"
-    };
-
-    return (
-      <div className="relative overflow-hidden rounded-md border shadow-sm">
-        <div className={`absolute left-0 top-0 h-full w-1 ${colorMap[color]}`}></div>
-        <div className="p-2 pl-2.5">
-          <div className="flex items-center gap-1">
-            {Icon && <Icon className={`h-3 w-3 ${iconColorMap[color]}`} />}
-            <div className="text-xs font-normal text-gray-500">
-              {title}
-            </div>
-          </div>
-          <div className={`mt-1 text-base font-semibold ${textColorMap[color]}`}>
-            {isCurrency ? formatCurrency(value as number) : value}
-          </div>
-        </div>
-      </div>
-    );
+  // Función para navegar a otras secciones 
+  const navigateTo = (path: string) => {
+    navigate(path);
   };
 
-  // Componente de gráfico circular reutilizable
-  const ChartCard = ({ 
-    color, 
-    title, 
-    data, 
-    isCurrency = false,
-    icon: Icon = null 
-  }: { 
-    color: "blue" | "green" | "yellow" | "orange" | "red" | "purple"; 
-    title: string; 
-    data: ChartData[]; 
-    isCurrency?: boolean;
-    icon?: any;
-  }) => {
-    // Mapas de clases para colores
-    const colorMap = {
-      blue: "bg-blue-500",
-      green: "bg-green-500",
-      yellow: "bg-yellow-500",
-      orange: "bg-orange-500",
-      red: "bg-red-500",
-      purple: "bg-purple-500"
-    };
+  // Datos para los gráficos
+  const salesData: ChartData[] = [
+    {
+      name: t("Ventas"),
+      value: stats?.totalSales || 0,
+      color: COLORS.BLUE
+    },
+    {
+      name: t("Por Cobrar"),
+      value: stats?.pendingPayments || 0,
+      color: COLORS.TURQUOISE
+    },
+    {
+      name: t("Pedidos"),
+      value: (stats?.pendingOrders || 0) + (stats?.deliveredOrders || 0) + (stats?.cancelledOrders || 0),
+      color: COLORS.YELLOW
+    }
+  ];
 
-    const iconColorMap = {
-      blue: "text-blue-500",
-      green: "text-green-500",
-      yellow: "text-yellow-500",
-      orange: "text-orange-500",
-      red: "text-red-500",
-      purple: "text-purple-500"
-    };
+  const ordersData: ChartData[] = [
+    {
+      name: t("Entregados"),
+      value: stats?.deliveredOrders || 0,
+      color: COLORS.TURQUOISE
+    },
+    {
+      name: t("Pendientes"),
+      value: stats?.pendingOrders || 0,
+      color: COLORS.ORANGE
+    },
+    {
+      name: t("Cancelados"),
+      value: stats?.cancelledOrders || 0,
+      color: COLORS.RED
+    }
+  ];
 
-    return (
-      <div className="relative overflow-hidden rounded-md border shadow-sm">
-        <div className={`absolute left-0 top-0 h-full w-1 ${colorMap[color]}`}></div>
-        <div className="p-2 pl-2.5">
-          <div className="flex items-center gap-1 mb-1">
-            {Icon && <Icon className={`h-3 w-3 ${iconColorMap[color]}`} />}
-            <div className="text-xs font-normal text-gray-500">
-              {title}
-            </div>
-          </div>
-          <div className="space-y-1 mb-1">
-            {data.map((entry, index) => (
-              <div key={`legend-${index}`} className="flex items-center">
-                <div className="h-2.5 w-2.5 mr-1.5" style={{ backgroundColor: entry.color }} />
-                <span className="text-xs">
-                  {entry.name}: {isCurrency ? formatCurrency(entry.value) : entry.value}
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="h-[120px] md:h-[140px] lg:h-[180px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={20}
-                  outerRadius={35}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const paymentsData: ChartData[] = [
+    {
+      name: t("Año"),
+      value: paymentStats?.yearlyPayments || 0,
+      color: COLORS.BLUE
+    },
+    {
+      name: t("Mes"),
+      value: paymentStats?.monthlyPayments || 0,
+      color: COLORS.PURPLE
+    }
+  ];
+
+  // Datos para alertas
+  const alerts = [
+    {
+      id: "1",
+      type: "warning" as const,
+      message: t("Inventario bajo de producto Botellón 5L"),
+      action: {
+        label: t("Ver"),
+        onClick: () => navigateTo("/inventory")
+      }
+    },
+    {
+      id: "2",
+      type: "info" as const,
+      message: t(`${bottleStats?.overdueReturns || 0} envases pendientes de devolución vencidos`),
+      action: {
+        label: t("Revisar"),
+        onClick: () => navigateTo("/envases/faltantes")
+      }
+    }
+  ];
+
+  // Si hay una ruta activa, agregamos una alerta de información
+  if (routeStats?.activeRoutes) {
+    alerts.push({
+      id: "3",
+      type: "info" as const,
+      message: t(`${routeStats.activeRoutes} rutas activas en progreso`),
+      action: {
+        label: t("Ver Mapa"),
+        onClick: () => navigateTo("/routes/map")
+      }
+    });
+  }
 
   return (
-    <div className="space-y-2">
-      <h1 className="text-lg font-bold md:text-xl">{t("Panel de Control")}</h1>
-
-      {/* Tarjetas de estadísticas - reorganizadas para mejor visualización en móvil */}
-      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
-        <StatCard 
-          color="blue" 
-          title={t("Total Ventas")} 
-          value={stats?.totalSales || 0} 
-          isCurrency={true} 
-        />
-        <StatCard 
-          color="green" 
-          title={t("Cuentas por Cobrar")} 
-          value={stats?.pendingPayments || 0} 
-          isCurrency={true} 
-        />
-        <StatCard 
-          color="yellow" 
-          title={t("Pedidos Pendientes")} 
-          value={stats?.pendingOrders || 0} 
-        />
-        <StatCard 
-          color="orange" 
-          title={t("Entregados (Mes)")} 
-          value={stats?.deliveredOrders || 0} 
-        />
-        <StatCard 
-          color="red" 
-          title={t("Cancelados (Mes)")} 
-          value={stats?.cancelledOrders || 0} 
-        />
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">{t("Panel de Control")}</h1>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="sm" onClick={() => navigateTo("/reports")}>
+            <FileBarChart className="h-4 w-4 mr-1" />
+            {t("Reportes")}
+          </Button>
+        </div>
       </div>
 
-      {/* Gráficos circulares - reorganizados para responsividad */}
-      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
-        <ChartCard 
-          color="blue" 
-          title={t("Distribución de Ventas")} 
-          data={salesData} 
-          isCurrency={true} 
-        />
-        <ChartCard 
-          color="orange" 
-          title={t("Estado de Pedidos")} 
-          data={ordersData} 
-        />
-        <ChartCard 
-          color="purple" 
-          title={t("Pagos Realizados")} 
-          data={paymentsData} 
-          isCurrency={true} 
-        />
-      </div>
+      {/* Panel con pestañas para diferentes vistas */}
+      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid grid-cols-3 md:grid-cols-4 mb-4">
+          <TabsTrigger value="overview">{t("Resumen")}</TabsTrigger>
+          <TabsTrigger value="sales">{t("Ventas")}</TabsTrigger>
+          <TabsTrigger value="operations">{t("Operaciones")}</TabsTrigger>
+          <TabsTrigger value="resources" className="hidden md:block">{t("Recursos")}</TabsTrigger>
+        </TabsList>
+
+        {/* Contenido de la pestaña Resumen */}
+        <TabsContent value="overview" className="space-y-4">
+          {/* Tarjetas de KPI */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KPICard 
+              title={t("Ventas Hoy")}
+              value={formatCurrency(stats?.dailySales || 0)}
+              icon={<DollarSign className="h-5 w-5 text-primary" />}
+              trend="+12%"
+              trendUp={true}
+              onClick={() => navigateTo("/billing")}
+            />
+            <KPICard 
+              title={t("Pedidos Pendientes")}
+              value={stats?.pendingOrders || 0}
+              icon={<Package className="h-5 w-5 text-primary" />}
+              trend={"-3%"}
+              trendUp={false}
+              onClick={() => navigateTo("/orders")}
+            />
+            <KPICard 
+              title={t("Rutas Activas")}
+              value={routeStats?.activeRoutes || 0}
+              icon={<Map className="h-5 w-5 text-primary" />}
+              trend={"+2"}
+              trendUp={true}
+              onClick={() => navigateTo("/routes")}
+            />
+            <KPICard 
+              title={t("Envases Pendientes")}
+              value={bottleStats?.pendingReturns || 0}
+              icon={<Droplet className="h-5 w-5 text-primary" />}
+              trend={"+5"}
+              trendUp={false}
+              onClick={() => navigateTo("/envases/balance")}
+            />
+          </div>
+          
+          {/* Gráficos principales */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ChartCard
+              title={t("Distribución de Ventas")}
+              type="pie"
+              data={salesData}
+              formatter={formatCurrency}
+            />
+            
+            <ChartCard
+              title={t("Estado de Pedidos")}
+              type="bar"
+              data={ordersData}
+            />
+          </div>
+          
+          {/* Sección de alertas */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {t("Alertas y Acciones Pendientes")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AlertCard alerts={alerts} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Contenido de la pestaña Ventas */}
+        <TabsContent value="sales" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">{t("Resumen Financiero")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Ventas Totales")}</span>
+                    <span className="font-medium">{formatCurrency(stats?.totalSales || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Cuentas por Cobrar")}</span>
+                    <span className="font-medium">{formatCurrency(stats?.pendingPayments || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Pagos Anuales")}</span>
+                    <span className="font-medium">{formatCurrency(paymentStats?.yearlyPayments || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Pagos Mensuales")}</span>
+                    <span className="font-medium">{formatCurrency(paymentStats?.monthlyPayments || 0)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="md:col-span-2">
+              <ChartCard
+                title={t("Pagos Realizados")}
+                description={t("Comparativa anual y mensual")}
+                type="bar"
+                data={paymentsData}
+                formatter={formatCurrency}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => navigateTo("/billing")}>
+              {t("Ver todas las ventas")}
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* Contenido de la pestaña Operaciones */}
+        <TabsContent value="operations" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">{t("Resumen de Rutas")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Rutas Activas")}</span>
+                    <span className="font-medium">{routeStats?.activeRoutes || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Completadas Hoy")}</span>
+                    <span className="font-medium">{routeStats?.completedToday || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Eficiencia Promedio")}</span>
+                    <span className="font-medium">{routeStats?.avgEfficiency ? `${(routeStats.avgEfficiency * 100).toFixed(0)}%` : "N/A"}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="md:col-span-2">
+              <ChartCard
+                title={t("Estado de Pedidos")}
+                description={t("Distribución por estado")}
+                type="pie"
+                data={ordersData}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => navigateTo("/routes")}>
+              {t("Ver todas las rutas")}
+            </Button>
+          </div>
+        </TabsContent>
+
+        {/* Contenido de la pestaña Recursos */}
+        <TabsContent value="resources" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">{t("Resumen de Envases")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Envases Pendientes")}</span>
+                    <span className="font-medium">{bottleStats?.pendingReturns || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Cantidad Total Pendiente")}</span>
+                    <span className="font-medium">{bottleStats?.totalPendingQty || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">{t("Devoluciones Vencidas")}</span>
+                    <span className="font-medium text-red-500">{bottleStats?.overdueReturns || 0}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="md:col-span-2">
+              <ChartCard
+                title={t("Distribución de Ventas")}
+                description={t("Relación entre ventas y pedidos")}
+                type="pie"
+                data={salesData}
+                formatter={formatCurrency}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={() => navigateTo("/inventory")}>
+              {t("Ver inventario")}
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

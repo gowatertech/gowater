@@ -1113,10 +1113,12 @@ export async function registerRoutes(app: Express) {
   // Endpoints para estadísticas del dashboard
   app.get("/api/dashboard/stats", async (req, res) => {
     try {
-      // Obtener el año actual
+      // Obtener el año actual y fechas
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
-
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
       // Consulta para obtener el total de ventas del año actual
       const totalSales = await db
         .select({
@@ -1162,6 +1164,25 @@ export async function registerRoutes(app: Express) {
         })
         .from(orders)
         .where(eq(orders.status, "cancelled"));
+        
+      // Consulta para obtener ventas diarias (hoy)
+      const dailySales = await db
+        .select({
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(sql`DATE(date) = DATE(${today})`);
+        
+      // Consulta para obtener tendencia de ventas semanales
+      const weeklyTrend = await db
+        .select({
+          day: sql`DATE(date)`,
+          total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+        })
+        .from(invoices)
+        .where(sql`date >= CURRENT_DATE - INTERVAL '7 days'`)
+        .groupBy(sql`DATE(date)`)
+        .orderBy(sql`DATE(date)`);
 
       const stats = {
         totalSales: totalSales[0]?.total || 0,
@@ -1169,6 +1190,8 @@ export async function registerRoutes(app: Express) {
         pendingOrders: pendingOrders[0]?.count || 0,
         deliveredOrders: deliveredOrders[0]?.count || 0,
         cancelledOrders: cancelledOrders[0]?.count || 0,
+        dailySales: dailySales[0]?.total || 0,
+        weeklyTrend: weeklyTrend,
       };
 
       res.json(stats);
@@ -1214,6 +1237,105 @@ export async function registerRoutes(app: Express) {
       res.json(stats);
     } catch (error) {
       console.error("Error al obtener estadísticas de pagos:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para estadísticas de rutas
+  app.get("/api/dashboard/route-stats", async (req, res) => {
+    try {
+      // Obtener rutas activas
+      const activeRoutes = await db
+        .select({
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(routes)
+        .where(inArray(routes.status, ["pending", "in_progress"]));
+      
+      // Obtener rutas completadas hoy
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const completedTodayRoutes = await db
+        .select({
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(routes)
+        .where(
+          and(
+            eq(routes.status, "completed"),
+            sql`DATE(date) = DATE(${today})`
+          )
+        );
+
+      // Obtener estadísticas de eficiencia de rutas
+      const routeEfficiency = await db
+        .select({
+          avgEfficiency: sql`CASE 
+            WHEN AVG(CASE WHEN estimated_duration > 0 AND actual_duration > 0 
+                     THEN estimated_duration::float / actual_duration::float 
+                     ELSE NULL END) IS NULL THEN 0
+            ELSE AVG(CASE WHEN estimated_duration > 0 AND actual_duration > 0 
+                     THEN estimated_duration::float / actual_duration::float 
+                     ELSE NULL END)
+            END`.mapWith(Number),
+        })
+        .from(routes)
+        .where(eq(routes.status, "completed"));
+
+      const stats = {
+        activeRoutes: activeRoutes[0]?.count || 0,
+        completedToday: completedTodayRoutes[0]?.count || 0,
+        avgEfficiency: routeEfficiency[0]?.avgEfficiency || 0,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error al obtener estadísticas de rutas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para estadísticas de envases
+  app.get("/api/dashboard/bottle-stats", async (req, res) => {
+    try {
+      // Obtener envases pendientes de devolución
+      const pendingReturns = await db
+        .select({
+          count: sql`COUNT(*)`.mapWith(Number),
+          totalQty: sql`COALESCE(SUM(expected_quantity), 0)`.mapWith(Number),
+          returnedQty: sql`COALESCE(SUM(returned_quantity), 0)`.mapWith(Number),
+        })
+        .from(bottleReturns)
+        .where(
+          sql`expected_quantity > returned_quantity`
+        );
+      
+      // Envases con devolución vencida (más de 30 días)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const overdueReturns = await db
+        .select({
+          count: sql`COUNT(*)`.mapWith(Number),
+        })
+        .from(bottleReturns)
+        .where(
+          and(
+            sql`expected_quantity > returned_quantity`,
+            sql`return_date < ${thirtyDaysAgo}`
+          )
+        );
+
+      const stats = {
+        pendingReturns: pendingReturns[0]?.count || 0,
+        totalPendingQty: (pendingReturns[0]?.totalQty || 0) - (pendingReturns[0]?.returnedQty || 0),
+        overdueReturns: overdueReturns[0]?.count || 0,
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error("Error al obtener estadísticas de envases:", error);
       res.status(500).json({ error: String(error) });
     }
   });
