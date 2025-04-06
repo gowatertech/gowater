@@ -144,6 +144,11 @@ export function registerRecurringOrdersEndpoints(app: Express) {
       // Validar y extraer los datos del pedido recurrente
       const { items, exceptions, ...recurringOrderData } = req.body;
       
+      // Añadir nextDeliveryDate si no se proporcionó
+      if (!recurringOrderData.nextDeliveryDate) {
+        recurringOrderData.nextDeliveryDate = recurringOrderData.startDate;
+      }
+      
       // Validar el pedido recurrente con el esquema insertRecurringOrderSchema
       const validatedData = insertRecurringOrderSchema.parse(recurringOrderData);
       

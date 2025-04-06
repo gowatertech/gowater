@@ -107,6 +107,7 @@ const formSchema = z.object({
     required_error: "La fecha de inicio es requerida",
   }),
   endDate: z.date().optional(),
+  nextDeliveryDate: z.date().optional(), // Agregado campo para próxima entrega
   zoneId: z.string().optional(),
   notifyCustomer: z.boolean().default(false),
   notifyBefore: z.string().optional(),
@@ -154,6 +155,7 @@ export default function CreateRecurringOrderPage() {
       weekdays: ["1", "3", "5"], // Lunes, Miércoles, Viernes por defecto
       monthDays: ["1", "15"], // Días 1 y 15 por defecto
       startDate: new Date(),
+      nextDeliveryDate: new Date(), // La primera entrega por defecto es la misma fecha de inicio
       notifyCustomer: false,
       notifyBefore: "1",
       items: [{ productId: "", quantity: "1" }],
@@ -220,6 +222,9 @@ export default function CreateRecurringOrderPage() {
       weekdays: weekdaysString,
       monthDays: monthDaysString,
       startDate: format(values.startDate, "yyyy-MM-dd"),
+      nextDeliveryDate: values.nextDeliveryDate 
+        ? format(values.nextDeliveryDate, "yyyy-MM-dd") 
+        : format(values.startDate, "yyyy-MM-dd"), // Usar la startDate como nextDeliveryDate si no se especifica
       endDate: values.endDate ? format(values.endDate, "yyyy-MM-dd") : undefined,
       zoneId: values.zoneId ? parseInt(values.zoneId) : undefined,
       notifyCustomer: values.notifyCustomer,
@@ -582,12 +587,41 @@ export default function CreateRecurringOrderPage() {
                 <FormControl>
                   <DatePicker 
                     value={field.value} 
-                    onChange={field.onChange} 
+                    onChange={(date) => {
+                      field.onChange(date);
+                      // Actualizar también la fecha de primera entrega si no ha sido modificada manualmente
+                      const currentNextDate = form.getValues("nextDeliveryDate");
+                      const currentStartDate = form.getValues("startDate");
+                      if (currentNextDate && currentNextDate.getTime() === currentStartDate.getTime()) {
+                        form.setValue("nextDeliveryDate", date);
+                      }
+                    }} 
                     label="Fecha de inicio" 
                   />
                 </FormControl>
                 <FormDescription>
                   Fecha a partir de la cual comenzará el pedido recurrente.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="nextDeliveryDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Primera fecha de entrega</FormLabel>
+                <FormControl>
+                  <DatePicker 
+                    value={field.value} 
+                    onChange={field.onChange} 
+                    label="Primera fecha de entrega" 
+                  />
+                </FormControl>
+                <FormDescription>
+                  Fecha para la primera entrega (por defecto igual a la fecha de inicio).
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -875,8 +909,12 @@ export default function CreateRecurringOrderPage() {
                 <p>{frequencyDetails}</p>
               </div>
               <div>
-                <Label className="font-medium">Inicio</Label>
+                <Label className="font-medium">Fecha de inicio</Label>
                 <p>{format(values.startDate, "PPP", { locale: es })}</p>
+              </div>
+              <div>
+                <Label className="font-medium">Primera entrega</Label>
+                <p>{format(values.nextDeliveryDate, "PPP", { locale: es })}</p>
               </div>
               {values.endDate && (
                 <div>
