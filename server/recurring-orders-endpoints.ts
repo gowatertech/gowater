@@ -144,9 +144,10 @@ export function registerRecurringOrdersEndpoints(app: Express) {
       // Validar y extraer los datos del pedido recurrente
       const { items, exceptions, ...recurringOrderData } = req.body;
       
-      // Añadir nextDeliveryDate si no se proporcionó
+      // Añadir nextDeliveryDate si no se proporcionó o es null/undefined
       if (!recurringOrderData.nextDeliveryDate) {
         recurringOrderData.nextDeliveryDate = recurringOrderData.startDate;
+        console.log("nextDeliveryDate no proporcionado, usando startDate:", recurringOrderData.startDate);
       }
       
       // Validar el pedido recurrente con el esquema insertRecurringOrderSchema
@@ -167,7 +168,7 @@ export function registerRecurringOrdersEndpoints(app: Express) {
           status: "active",
           startDate: recurringOrderData.startDate,
           endDate: recurringOrderData.endDate || null,
-          nextDeliveryDate: recurringOrderData.nextDeliveryDate || recurringOrderData.startDate,
+          nextDeliveryDate: recurringOrderData.nextDeliveryDate ? recurringOrderData.nextDeliveryDate : recurringOrderData.startDate,
           zoneId: recurringOrderData.zoneId ? parseInt(recurringOrderData.zoneId.toString()) : null,
           notifyCustomer: recurringOrderData.notifyCustomer || false,
           notifyBefore: recurringOrderData.notifyBefore ? parseInt(recurringOrderData.notifyBefore.toString()) : null,
