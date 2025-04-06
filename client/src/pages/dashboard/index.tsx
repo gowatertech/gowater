@@ -216,33 +216,33 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{t("Panel de Control")}</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
+        <h1 className="text-xl sm:text-2xl font-bold">{t("Panel de Control")}</h1>
         <div className="flex space-x-2">
           <Button variant="outline" size="sm" onClick={() => navigateTo("/reports")}>
             <FileBarChart className="h-4 w-4 mr-1" />
-            {t("Reportes")}
+            <span className="hidden xs:inline">{t("Reportes")}</span>
           </Button>
         </div>
       </div>
 
       {/* Panel con pestañas para diferentes vistas */}
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-3 md:grid-cols-4 mb-4">
+        <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="overview">{t("Resumen")}</TabsTrigger>
           <TabsTrigger value="sales">{t("Ventas")}</TabsTrigger>
           <TabsTrigger value="operations">{t("Operaciones")}</TabsTrigger>
-          <TabsTrigger value="resources" className="hidden md:block">{t("Recursos")}</TabsTrigger>
+          <TabsTrigger value="resources">{t("Recursos")}</TabsTrigger>
         </TabsList>
 
         {/* Contenido de la pestaña Resumen */}
         <TabsContent value="overview" className="space-y-4">
           {/* Tarjetas de KPI */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <KPICard 
               title={t("Ventas Hoy")}
               value={formatCurrency(stats?.dailySales || 0)}
-              icon={<DollarSign className="h-5 w-5 text-primary" />}
+              icon={<DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
               trend="+12%"
               trendUp={true}
               onClick={() => navigateTo("/billing")}
@@ -250,7 +250,7 @@ export default function Dashboard() {
             <KPICard 
               title={t("Pedidos Pendientes")}
               value={stats?.pendingOrders || 0}
-              icon={<Package className="h-5 w-5 text-primary" />}
+              icon={<Package className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
               trend={"-3%"}
               trendUp={false}
               onClick={() => navigateTo("/orders")}
@@ -258,7 +258,7 @@ export default function Dashboard() {
             <KPICard 
               title={t("Rutas Activas")}
               value={routeStats?.activeRoutes || 0}
-              icon={<Map className="h-5 w-5 text-primary" />}
+              icon={<Map className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
               trend={"+2"}
               trendUp={true}
               onClick={() => navigateTo("/routes")}
@@ -266,7 +266,7 @@ export default function Dashboard() {
             <KPICard 
               title={t("Envases Pendientes")}
               value={bottleStats?.pendingReturns || 0}
-              icon={<Droplet className="h-5 w-5 text-primary" />}
+              icon={<Droplet className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />}
               trend={"+5"}
               trendUp={false}
               onClick={() => navigateTo("/envases/balance")}
@@ -280,24 +280,26 @@ export default function Dashboard() {
               type="pie"
               data={salesData}
               formatter={formatCurrency}
+              height={window.innerWidth < 768 ? 200 : 300}
             />
             
             <ChartCard
               title={t("Estado de Pedidos")}
               type="bar"
               data={ordersData}
+              height={window.innerWidth < 768 ? 200 : 300}
             />
           </div>
           
           {/* Sección de alertas */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                {t("Alertas y Acciones Pendientes")}
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium flex items-center gap-2">
+                <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">{t("Alertas y Acciones Pendientes")}</span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-3 sm:px-6">
               <AlertCard alerts={alerts} />
             </CardContent>
           </Card>
@@ -306,27 +308,27 @@ export default function Dashboard() {
         {/* Contenido de la pestaña Ventas */}
         <TabsContent value="sales" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
+            <Card className="h-auto md:h-full overflow-hidden">
+              <CardHeader className="pb-2 px-3 sm:px-6">
                 <CardTitle className="text-sm font-medium">{t("Resumen Financiero")}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Ventas Totales")}</span>
-                    <span className="font-medium">{formatCurrency(stats?.totalSales || 0)}</span>
+              <CardContent className="px-3 sm:px-6">
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Ventas Totales")}</span>
+                    <span className="font-medium text-sm sm:text-base">{formatCurrency(stats?.totalSales || 0)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Cuentas por Cobrar")}</span>
-                    <span className="font-medium">{formatCurrency(stats?.pendingPayments || 0)}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Cuentas por Cobrar")}</span>
+                    <span className="font-medium text-sm sm:text-base">{formatCurrency(stats?.pendingPayments || 0)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Pagos Anuales")}</span>
-                    <span className="font-medium">{formatCurrency(paymentStats?.yearlyPayments || 0)}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Pagos Anuales")}</span>
+                    <span className="font-medium text-sm sm:text-base">{formatCurrency(paymentStats?.yearlyPayments || 0)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Pagos Mensuales")}</span>
-                    <span className="font-medium">{formatCurrency(paymentStats?.monthlyPayments || 0)}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Pagos Mensuales")}</span>
+                    <span className="font-medium text-sm sm:text-base">{formatCurrency(paymentStats?.monthlyPayments || 0)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -343,8 +345,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={() => navigateTo("/billing")}>
+          <div className="flex justify-end mt-4">
+            <Button size="sm" className="text-xs sm:text-sm" onClick={() => navigateTo("/billing")}>
               {t("Ver todas las ventas")}
             </Button>
           </div>
@@ -353,23 +355,23 @@ export default function Dashboard() {
         {/* Contenido de la pestaña Operaciones */}
         <TabsContent value="operations" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
+            <Card className="h-auto md:h-full overflow-hidden">
+              <CardHeader className="pb-2 px-3 sm:px-6">
                 <CardTitle className="text-sm font-medium">{t("Resumen de Rutas")}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Rutas Activas")}</span>
-                    <span className="font-medium">{routeStats?.activeRoutes || 0}</span>
+              <CardContent className="px-3 sm:px-6">
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Rutas Activas")}</span>
+                    <span className="font-medium text-sm sm:text-base">{routeStats?.activeRoutes || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Completadas Hoy")}</span>
-                    <span className="font-medium">{routeStats?.completedToday || 0}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Completadas Hoy")}</span>
+                    <span className="font-medium text-sm sm:text-base">{routeStats?.completedToday || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Eficiencia Promedio")}</span>
-                    <span className="font-medium">{routeStats?.avgEfficiency ? `${(routeStats.avgEfficiency * 100).toFixed(0)}%` : "N/A"}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Eficiencia Promedio")}</span>
+                    <span className="font-medium text-sm sm:text-base">{routeStats?.avgEfficiency ? `${(routeStats.avgEfficiency * 100).toFixed(0)}%` : "N/A"}</span>
                   </div>
                 </div>
               </CardContent>
@@ -385,8 +387,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={() => navigateTo("/routes")}>
+          <div className="flex justify-end mt-4">
+            <Button size="sm" className="text-xs sm:text-sm" onClick={() => navigateTo("/routes")}>
               {t("Ver todas las rutas")}
             </Button>
           </div>
@@ -395,23 +397,23 @@ export default function Dashboard() {
         {/* Contenido de la pestaña Recursos */}
         <TabsContent value="resources" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader>
+            <Card className="h-auto md:h-full overflow-hidden">
+              <CardHeader className="pb-2 px-3 sm:px-6">
                 <CardTitle className="text-sm font-medium">{t("Resumen de Envases")}</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Envases Pendientes")}</span>
-                    <span className="font-medium">{bottleStats?.pendingReturns || 0}</span>
+              <CardContent className="px-3 sm:px-6">
+                <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Envases Pendientes")}</span>
+                    <span className="font-medium text-sm sm:text-base">{bottleStats?.pendingReturns || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Cantidad Total Pendiente")}</span>
-                    <span className="font-medium">{bottleStats?.totalPendingQty || 0}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Cantidad Total Pendiente")}</span>
+                    <span className="font-medium text-sm sm:text-base">{bottleStats?.totalPendingQty || 0}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">{t("Devoluciones Vencidas")}</span>
-                    <span className="font-medium text-red-500">{bottleStats?.overdueReturns || 0}</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">{t("Devoluciones Vencidas")}</span>
+                    <span className="font-medium text-sm sm:text-base text-red-500">{bottleStats?.overdueReturns || 0}</span>
                   </div>
                 </div>
               </CardContent>
@@ -428,8 +430,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="flex justify-end">
-            <Button onClick={() => navigateTo("/inventory")}>
+          <div className="flex justify-end mt-4">
+            <Button size="sm" className="text-xs sm:text-sm" onClick={() => navigateTo("/inventory")}>
               {t("Ver inventario")}
             </Button>
           </div>

@@ -48,17 +48,18 @@ export function AlertCard({ alerts }: AlertCardProps) {
         return (
           <li 
             key={alert.id}
-            className={`flex items-center justify-between p-2 ${bg} rounded-md`}
+            className={`flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 ${bg} rounded-md gap-2`}
           >
-            <div className="flex items-center gap-2">
-              <Icon className={`h-4 w-4 ${iconColor}`} />
-              <span className="text-sm">{alert.message}</span>
+            <div className="flex items-center gap-2 min-w-0">
+              <Icon className={`h-4 w-4 flex-shrink-0 ${iconColor}`} />
+              <span className="text-xs sm:text-sm truncate">{alert.message}</span>
             </div>
             
             {alert.action && (
               <Button 
                 variant="ghost" 
                 size="sm" 
+                className="self-end sm:self-auto mt-1 sm:mt-0 text-xs"
                 onClick={alert.action.onClick}
               >
                 {alert.action.label}

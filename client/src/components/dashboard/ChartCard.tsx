@@ -120,12 +120,12 @@ export function ChartCard({
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-2 px-3 sm:px-6">
+        <CardTitle className="text-sm sm:text-base font-medium">{title}</CardTitle>
+        {description && <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>}
       </CardHeader>
-      <CardContent>{renderChart()}</CardContent>
+      <CardContent className="px-2 sm:px-6 py-1">{renderChart()}</CardContent>
     </Card>
   );
 }
