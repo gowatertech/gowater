@@ -826,7 +826,7 @@ export default function RecurringOrdersPage() {
                 </p>
                 <Button variant="default" onClick={handleCreateOrder}>
                   <Plus className="mr-1 h-4 w-4" />
-                  Crear Pedido Recurrente
+                  Nuevo Pedido
                 </Button>
               </div>
             ) : (
