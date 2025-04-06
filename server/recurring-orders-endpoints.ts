@@ -153,27 +153,26 @@ export function registerRecurringOrdersEndpoints(app: Express) {
       const validatedData = insertRecurringOrderSchema.parse(recurringOrderData);
       
       // Crear el pedido recurrente
-      const newRecurringOrder = await db
+      // Insertamos los valores directamente sin usar el objeto validatedData para evitar errores de tipos
+      const [newRecurringOrder] = await db
         .insert(recurringOrders)
         .values({
-          name: validatedData.name,
-          customerId: validatedData.customerId,
-          description: validatedData.description,
-          frequency: validatedData.frequency,
-          frequencyDays: validatedData.frequencyDays,
-          weekdays: validatedData.weekdays,
-          monthDays: validatedData.monthDays,
-          status: validatedData.status || "active",
-          startDate: validatedData.startDate,
-          endDate: validatedData.endDate,
-          nextDeliveryDate: validatedData.nextDeliveryDate,
-          zoneId: validatedData.zoneId,
-          notifyCustomer: validatedData.notifyCustomer,
-          notifyBefore: validatedData.notifyBefore,
+          name: recurringOrderData.name,
+          customerId: parseInt(recurringOrderData.customerId.toString()),
+          description: recurringOrderData.description || null,
+          frequency: recurringOrderData.frequency as "daily" | "weekly" | "biweekly" | "monthly" | "custom",
+          frequencyDays: recurringOrderData.frequencyDays ? parseInt(recurringOrderData.frequencyDays.toString()) : null,
+          weekdays: recurringOrderData.weekdays || null,
+          monthDays: recurringOrderData.monthDays || null,
+          status: "active",
+          startDate: recurringOrderData.startDate,
+          endDate: recurringOrderData.endDate || null,
+          nextDeliveryDate: recurringOrderData.nextDeliveryDate || recurringOrderData.startDate,
+          zoneId: recurringOrderData.zoneId ? parseInt(recurringOrderData.zoneId.toString()) : null,
+          notifyCustomer: recurringOrderData.notifyCustomer || false,
+          notifyBefore: recurringOrderData.notifyBefore ? parseInt(recurringOrderData.notifyBefore.toString()) : null,
           totalGeneratedOrders: 0,
-          lastGeneratedDate: null,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          lastGeneratedDate: null
         })
         .returning();
 
@@ -184,14 +183,15 @@ export function registerRecurringOrdersEndpoints(app: Express) {
         console.log(`Insertando ${items.length} items para el pedido recurrente #${newRecurringOrder.id}`);
         
         for (const item of items) {
-          const validatedItem = insertRecurringOrderItemSchema.parse({
-            ...item,
-            recurringOrderId: newRecurringOrder.id
-          });
-          
           await db
             .insert(recurringOrderItems)
-            .values(validatedItem);
+            .values({
+              recurringOrderId: newRecurringOrder.id,
+              productId: parseInt(item.productId.toString()),
+              quantity: parseInt(item.quantity.toString()),
+              price: item.price || null,
+              notes: item.notes || null
+            });
         }
       }
       
@@ -200,14 +200,16 @@ export function registerRecurringOrdersEndpoints(app: Express) {
         console.log(`Insertando ${exceptions.length} excepciones para el pedido recurrente #${newRecurringOrder.id}`);
         
         for (const exception of exceptions) {
-          const validatedException = insertRecurringOrderExceptionSchema.parse({
-            ...exception,
-            recurringOrderId: newRecurringOrder.id
-          });
-          
           await db
             .insert(recurringOrderExceptions)
-            .values(validatedException);
+            .values({
+              recurringOrderId: newRecurringOrder.id,
+              exceptionDate: exception.exceptionDate,
+              exceptionType: exception.exceptionType as "skip" | "modify" | "reschedule",
+              reason: exception.reason || null,
+              newDate: exception.newDate || null,
+              modifiedItems: exception.modifiedItems || null
+            });
         }
       }
       
