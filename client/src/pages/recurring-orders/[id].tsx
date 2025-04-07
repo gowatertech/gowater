@@ -189,12 +189,12 @@ const RecurringOrderForm: React.FC = () => {
       // Preparar los datos para enviar al servidor
       const submitData = {
         ...data,
-        customerId: parseInt(String(data.customerId)) || 0,
-        dayOfWeek: data.dayOfWeek ? parseInt(String(data.dayOfWeek)) || 1 : 1,
-        dayOfMonth: data.dayOfMonth ? parseInt(String(data.dayOfMonth)) || 1 : 1,
+        customerId: Number(data.customerId),
+        dayOfWeek: data.dayOfWeek ? Number(data.dayOfWeek) : 1,
+        dayOfMonth: data.dayOfMonth ? Number(data.dayOfMonth) : 1,
         startDate: data.startDate.toISOString(),
         endDate: data.endDate ? data.endDate.toISOString() : null,
-        totalAmount: parseFloat(String(data.totalAmount)).toFixed(2),
+        totalAmount: parseFloat(data.totalAmount).toFixed(2),
       };
 
       let response;
@@ -268,8 +268,8 @@ const RecurringOrderForm: React.FC = () => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              productId: parseInt(String(item.productId)) || 0,
-              quantity: parseInt(String(item.quantity)) || 1,
+              productId: Number(item.productId),
+              quantity: Number(item.quantity),
               price: typeof item.price === 'string' ? item.price : parseFloat(String(item.price)).toFixed(2),
             }),
           });

@@ -59,9 +59,9 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       // Asegurar que los campos numéricos sean realmente números
       const validatedData = {
         ...req.body,
-        customerId: parseInt(String(req.body.customerId)) || 0,
-        dayOfWeek: req.body.dayOfWeek ? parseInt(String(req.body.dayOfWeek)) || 0 : null,
-        dayOfMonth: req.body.dayOfMonth ? parseInt(String(req.body.dayOfMonth)) || 0 : null,
+        customerId: Number(req.body.customerId) || 0,
+        dayOfWeek: req.body.dayOfWeek ? Number(req.body.dayOfWeek) || 0 : null,
+        dayOfMonth: req.body.dayOfMonth ? Number(req.body.dayOfMonth) || 0 : null,
       };
 
       console.log("Datos validados:", validatedData);
@@ -101,9 +101,9 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       // Asegurar que los campos numéricos sean números
       const validatedData = {
         ...req.body,
-        customerId: req.body.customerId ? parseInt(String(req.body.customerId)) || 0 : undefined,
-        dayOfWeek: req.body.dayOfWeek ? parseInt(String(req.body.dayOfWeek)) || 0 : undefined,
-        dayOfMonth: req.body.dayOfMonth ? parseInt(String(req.body.dayOfMonth)) || 0 : undefined
+        customerId: req.body.customerId ? Number(req.body.customerId) || 0 : undefined,
+        dayOfWeek: req.body.dayOfWeek ? Number(req.body.dayOfWeek) || 0 : undefined,
+        dayOfMonth: req.body.dayOfMonth ? Number(req.body.dayOfMonth) || 0 : undefined
       };
       
       const parseResult = partialSchema.safeParse(validatedData);
@@ -196,8 +196,8 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       const itemData = {
         ...req.body,
         recurringOrderId,
-        productId: parseInt(String(req.body.productId)) || 0,
-        quantity: parseInt(String(req.body.quantity)) || 1
+        productId: Number(req.body.productId) || 0,
+        quantity: Number(req.body.quantity) || 1
       };
 
       const parseResult = insertRecurringOrderItemSchema.safeParse(itemData);
@@ -242,8 +242,8 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       // Asegurar que los campos numéricos sean números
       const validatedData = {
         ...req.body,
-        productId: req.body.productId ? parseInt(String(req.body.productId)) || 0 : undefined,
-        quantity: req.body.quantity ? parseInt(String(req.body.quantity)) || 1 : undefined
+        productId: req.body.productId ? Number(req.body.productId) || 0 : undefined,
+        quantity: req.body.quantity ? Number(req.body.quantity) || 1 : undefined
       };
       
       const parseResult = partialSchema.safeParse(validatedData);
