@@ -1,0 +1,211 @@
+  const handleDownload = () => {
+    try {
+      // Verificar datos necesarios
+      if (!order || !companySettings) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo cargar la información necesaria para generar el PDF",
+        });
+        return;
+      }
+
+      // Mostramos un toast de carga
+      toast({
+        title: "Generando PDF",
+        description: "Por favor espere...",
+      });
+
+      // Asegurar que los datos son válidos
+      const orderId = order.id || 'N/A';
+      const orderDate = order.date ? new Date(order.date).toLocaleDateString() : 'Fecha no disponible';
+      const businessName = customer?.businessname || "Cliente";
+      const customerPhone = order.customerPhone || "No disponible";
+      const customerAddress = order.customerAddress || "No especificada";
+      const municipalityName = order.municipalityName || "No especificado";
+      const provinceName = order.provinceName || "No especificada";
+      const paymentMethod = order.paymentMethod === 'cash' ? 'Efectivo' : (order.paymentMethod || "No especificado");
+      const status = order.status === 'delivered' ? 'Entregado' : 
+                    order.status === 'pending' ? 'Pendiente' : 
+                    order.status === 'cancelled' ? 'Cancelado' : 'Desconocido';
+      let total = 0;
+      try {
+        total = parseFloat(order.total || "0");
+        if (isNaN(total)) total = 0;
+      } catch (e) {
+        console.error("Error calculando total:", e);
+      }
+      const notes = order.notes || "";
+
+      // Valores seguros para la empresa
+      const companyName = companySettings.name || 'Empresa';
+      const street = companySettings.street || '';
+      const streetNumber = companySettings.streetNumber || '';
+      const companyMunicipality = companySettings.municipalityName || "Cotuí";
+      const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
+      const phone = companySettings.contactPhone || "No disponible";
+      const email = companySettings.email || "No disponible";
+      const rnc = companySettings.rnc || "No disponible";
+
+      // Crear un PDF directamente usando jsPDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 297], // 80mm de ancho x altura automática
+        hotfixes: ['px_scaling'], // Fix para escala de píxeles
+      });
+      
+      // Configuración de fuentes
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      
+      // Encabezado: Nombre de la empresa
+      doc.text(companyName, 40, 10, { align: 'center' });
+      
+      // Información de la empresa
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      
+      // Escribir la información de la empresa
+      doc.text(`RNC: ${rnc}`, 40, 15, { align: 'center' });
+      doc.text(`${street} ${streetNumber}`, 40, 19, { align: 'center' });
+      doc.text(`${companyMunicipality}, ${companyProvince}`, 40, 23, { align: 'center' });
+      doc.text(`Tel: ${phone}`, 40, 27, { align: 'center' });
+      doc.text(`Email: ${email}`, 40, 31, { align: 'center' });
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, 34, 75, 34);
+      
+      // Detalles del pedido
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`PEDIDO #${orderId}`, 40, 38, { align: 'center' });
+      
+      // Información del cliente y pedido
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${orderDate}`, 15, 43);
+      doc.text(`Cliente: ${businessName}`, 15, 47);
+      doc.text(`Teléfono: ${customerPhone}`, 15, 51);
+      doc.text(`Dirección: ${customerAddress}`, 15, 55);
+      doc.text(`${municipalityName}, ${provinceName}`, 15, 59);
+      doc.text(`Método de pago: ${paymentMethod}`, 15, 63);
+      doc.text(`Estado: ${status}`, 15, 67);
+      
+      // Notas del pedido si existen
+      let yPosition = 71;
+      if (notes) {
+        doc.text(`Notas: ${notes}`, 15, yPosition);
+        yPosition += 8;
+      }
+      
+      // Otra línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, yPosition, 75, yPosition);
+      yPosition += 4;
+      
+      // Encabezado de productos
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text("DETALLE DE PRODUCTOS", 40, yPosition, { align: 'center' });
+      yPosition += 5;
+      
+      // Columnas de la tabla
+      doc.setFontSize(7);
+      doc.text("Producto", 5, yPosition);
+      doc.text("Cant.", 35, yPosition, { align: 'center' });
+      doc.text("Precio", 55, yPosition, { align: 'right' });
+      doc.text("Total", 75, yPosition, { align: 'right' });
+      yPosition += 2;
+      
+      // Línea bajo los encabezados
+      doc.setDrawColor(200);
+      doc.line(5, yPosition, 75, yPosition);
+      yPosition += 5;
+      
+      // Productos
+      doc.setFont('helvetica', 'normal');
+      
+      // Verificar y procesar orderItems 
+      if (Array.isArray(orderItems) && orderItems.length > 0) {
+        orderItems.forEach((item: any) => {
+          if (!item) return; // Saltar items nulos
+          
+          // Encontrar nombre del producto
+          const product = products?.find((p: any) => p?.id === item?.productId);
+          const productName = product?.name || "Producto";
+          
+          // Valores seguros para los cálculos
+          const quantity = item?.quantity || 0;
+          let price = 0;
+          try {
+            price = parseFloat(item?.price || "0");
+            if (isNaN(price)) price = 0;
+          } catch (e) {
+            console.error("Error al parsear precio:", e);
+          }
+          
+          const itemTotal = price * quantity;
+          
+          // Asegurar que el texto del producto no exceda el ancho disponible
+          let displayName = productName;
+          if (displayName.length > 18) {
+            displayName = displayName.substring(0, 16) + "...";
+          }
+          
+          doc.text(displayName, 5, yPosition);
+          doc.text(`${quantity}`, 35, yPosition, { align: 'center' });
+          doc.text(`RD$${price.toFixed(2)}`, 55, yPosition, { align: 'right' });
+          doc.text(`RD$${itemTotal.toFixed(2)}`, 75, yPosition, { align: 'right' });
+          
+          yPosition += 5;
+        });
+      } else {
+        // Si no hay items
+        doc.text("No hay productos para mostrar", 40, yPosition, { align: 'center' });
+        yPosition += 5;
+      }
+      
+      // Línea separadora
+      doc.setDrawColor(200);
+      doc.line(5, yPosition, 75, yPosition);
+      yPosition += 5;
+      
+      // Total
+      doc.setFont('helvetica', 'bold');
+      doc.text("TOTAL:", 60, yPosition, { align: 'right' });
+      doc.text(`RD$${total.toFixed(2)}`, 75, yPosition, { align: 'right' });
+      yPosition += 10;
+      
+      // Mensaje final
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text("¡Gracias por su compra!", 40, yPosition, { align: 'center' });
+      
+      try {
+        // Guardar PDF
+        doc.save(`Pedido-${orderId}.pdf`);
+      
+        // Notificar al usuario
+        toast({
+          title: "PDF generado",
+          description: `El archivo "Pedido-${orderId}.pdf" se ha descargado correctamente.`,
+        });
+      } catch (saveError) {
+        console.error("Error al guardar el PDF:", saveError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo guardar el archivo PDF."
+        });
+      }
+    } catch (error: any) {
+      console.error("Error en handleDownload:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Error al generar el PDF",
+      });
+    }
+  };

@@ -20,6 +20,11 @@ export const printOrderTicket = (
   toast: any
 ) => {
   try {
+    // Verificar que tengamos los datos necesarios
+    if (!order || !orderItems || !companySettings) {
+      throw new Error("Datos insuficientes para generar el ticket");
+    }
+
     // Notificar al usuario
     toast({
       title: "Generando ticket",
@@ -28,10 +33,10 @@ export const printOrderTicket = (
     
     // Generar el contenido HTML del ticket
     const printContent = document.createElement('div');
-    printContent.style.width = '74mm';
+    printContent.style.width = '80mm'; // Ancho estándar para tickets térmicos (3 pulgadas)
     printContent.style.boxSizing = 'border-box';
-    printContent.style.padding = '0';
-    printContent.style.margin = '0';
+    printContent.style.padding = '5mm';
+    printContent.style.margin = '0 auto';
     printContent.style.fontFamily = 'Arial, sans-serif';
     printContent.style.fontSize = '10px';
     
@@ -40,13 +45,23 @@ export const printOrderTicket = (
     header.style.textAlign = 'center';
     header.style.marginBottom = '10px';
     
+    // Asegurarse de que todos los valores existan antes de usarlos
+    const companyName = companySettings.name || 'Empresa';
+    const rnc = companySettings.rnc || '';
+    const street = companySettings.street || '';
+    const streetNumber = companySettings.streetNumber || '';
+    const municipalityName = companySettings.municipalityName || '';
+    const provinceName = companySettings.provinceName || '';
+    const contactPhone = companySettings.contactPhone || '';
+    const email = companySettings.email || '';
+    
     header.innerHTML = `
-      <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companySettings.name}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${companySettings.rnc}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.street} ${companySettings.streetNumber}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">${companySettings.municipalityName}, ${companySettings.provinceName}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${companySettings.contactPhone}</div>
-      <div style="font-size: 11px; margin-bottom: 2px;">Email: ${companySettings.email}</div>
+      <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${rnc}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">${street} ${streetNumber}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">${municipalityName}, ${provinceName}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
+      <div style="font-size: 11px; margin-bottom: 2px;">Email: ${email}</div>
     `;
     printContent.appendChild(header);
     
@@ -61,13 +76,27 @@ export const printOrderTicket = (
     orderInfo.style.marginBottom = '10px';
     orderInfo.style.fontSize = '11px';
     
+    // Asegurarse de que la fecha es válida
+    let formattedDate = '';
+    try {
+      formattedDate = new Date(order.date).toLocaleDateString();
+    } catch (e) {
+      formattedDate = 'Fecha no disponible';
+    }
+    
+    const businessname = customer?.businessname || "Cliente";
+    const customerPhone = order.customerPhone || "";
+    const customerAddress = order.customerAddress || "";
+    const orderMunicipalityName = order.municipalityName || "";
+    const orderProvinceName = order.provinceName || "";
+    
     orderInfo.innerHTML = `
-      <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order.id}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${new Date(order.date).toLocaleDateString()}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${order.customerPhone || ""}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${order.customerAddress}</div>
-      <div style="margin-bottom: 3px; padding-left: 15px;">${order.municipalityName || ""}, ${order.provinceName || ""}</div>
+      <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">PEDIDO #${order.id || 'N/A'}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${formattedDate}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${customerAddress}</div>
+      <div style="margin-bottom: 3px; padding-left: 15px;">${orderMunicipalityName}, ${orderProvinceName}</div>
     `;
     printContent.appendChild(orderInfo);
     
@@ -87,7 +116,8 @@ export const printOrderTicket = (
     table.style.borderCollapse = 'collapse';
     table.style.fontSize = '10px';
     
-    table.innerHTML = `
+    // Crear tabla HTML con validación de datos
+    let tableHtml = `
       <thead>
         <tr style="border-bottom: 1px solid #ddd;">
           <th style="text-align: left; padding: 3px;">Producto</th>
@@ -97,20 +127,32 @@ export const printOrderTicket = (
         </tr>
       </thead>
       <tbody>
-        ${orderItems.map((item: any) => {
-          const product = products.find((p: any) => p.id === item.productId);
-          const total = parseFloat(item.price) * item.quantity;
-          return `
-            <tr style="border-bottom: 1px solid #eee;">
-              <td style="text-align: left; padding: 3px;">${product?.name || "Producto"}</td>
-              <td style="text-align: center; padding: 3px;">${item.quantity}</td>
-              <td style="text-align: right; padding: 3px;">RD$${parseFloat(item.price).toFixed(2)}</td>
-              <td style="text-align: right; padding: 3px;">RD$${total.toFixed(2)}</td>
-            </tr>
-          `;
-        }).join('')}
-      </tbody>
     `;
+    
+    // Asegurarse de que orderItems es un array
+    if (Array.isArray(orderItems)) {
+      orderItems.forEach((item: any) => {
+        if (!item) return; // Saltar items nulos
+        
+        const product = products?.find((p: any) => p?.id === item?.productId);
+        const productName = product?.name || "Producto";
+        const quantity = item?.quantity || 0;
+        const price = parseFloat(item?.price || 0);
+        const total = price * quantity;
+        
+        tableHtml += `
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="text-align: left; padding: 3px;">${productName}</td>
+            <td style="text-align: center; padding: 3px;">${quantity}</td>
+            <td style="text-align: right; padding: 3px;">RD$${price.toFixed(2)}</td>
+            <td style="text-align: right; padding: 3px;">RD$${total.toFixed(2)}</td>
+          </tr>
+        `;
+      });
+    }
+    
+    tableHtml += `</tbody>`;
+    table.innerHTML = tableHtml;
     printContent.appendChild(table);
     
     // Separador antes de totales
@@ -119,10 +161,23 @@ export const printOrderTicket = (
     separator3.style.margin = '10px 0';
     printContent.appendChild(separator3);
     
-    // Calcular totales
-    const subtotal = parseFloat(order.subtotal || order.total);
-    const itbis = parseFloat(order.tax || '0');
-    const total = parseFloat(order.total);
+    // Calcular totales con validación
+    let subtotal = 0;
+    let itbis = 0;
+    let total = 0;
+    
+    try {
+      subtotal = parseFloat(order.subtotal || "0");
+      if (isNaN(subtotal)) subtotal = 0;
+      
+      itbis = parseFloat(order.tax || "0");
+      if (isNaN(itbis)) itbis = 0;
+      
+      total = parseFloat(order.total || "0");
+      if (isNaN(total)) total = 0;
+    } catch (e) {
+      console.error("Error calculando totales:", e);
+    }
     
     // Totales
     const totalsDiv = document.createElement('div');
@@ -170,21 +225,39 @@ export const printOrderTicket = (
     thankYouMsg.textContent = '¡Gracias por su compra!';
     printContent.appendChild(thankYouMsg);
     
-    // Crear un iframe para impresión (siguiendo el patrón que funciona en facturación)
+    // Crear un iframe para impresión
     const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
     document.body.appendChild(iframe);
     
+    // Asegurarse de que el iframe tiene un document válido
+    if (!iframe.contentWindow || !iframe.contentDocument) {
+      throw new Error("No se pudo crear el área de impresión");
+    }
+    
     // Escribir el contenido HTML en el iframe
-    iframe.contentDocument?.open();
-    iframe.contentDocument?.write(`
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(`
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Pedido #${order.id}</title>
+          <title>Pedido #${order.id || 'N/A'}</title>
+          <meta charset="utf-8">
           <style>
-            @media print {
-              body { margin: 0; padding: 0; }
-              @page { size: 80mm 297mm; margin: 0; }
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              width: 80mm;
             }
           </style>
         </head>
@@ -193,13 +266,17 @@ export const printOrderTicket = (
         </body>
       </html>
     `);
-    iframe.contentDocument?.close();
+    iframe.contentDocument.close();
     
-    // Imprimir después de que el iframe cargue
-    iframe.onload = () => {
+    // Dar tiempo para que el contenido se renderice antes de imprimir
+    setTimeout(() => {
       try {
-        iframe.contentWindow?.focus();
-        iframe.contentWindow?.print();
+        if (!iframe.contentWindow) {
+          throw new Error("No se pudo acceder al área de impresión");
+        }
+        
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
         
         // Notificar al usuario
         toast({
@@ -216,11 +293,11 @@ export const printOrderTicket = (
         toast({
           variant: "destructive",
           title: "Error de impresión",
-          description: "No se pudo enviar a la impresora",
+          description: "No se pudo enviar a la impresora: " + (printError instanceof Error ? printError.message : "Error desconocido"),
         });
         document.body.removeChild(iframe);
       }
-    };
+    }, 500);
     
   } catch (error: any) {
     console.error('Error en printOrderTicket:', error);
@@ -252,6 +329,11 @@ export const generateOrderPdf = (
   jsPDF: any
 ) => {
   try {
+    // Verificar datos necesarios
+    if (!order || !companySettings || !jsPDF) {
+      throw new Error("Faltan datos necesarios para generar el PDF");
+    }
+    
     // Notificar al usuario
     toast({
       title: "Generando PDF",
@@ -264,46 +346,69 @@ export const generateOrderPdf = (
       unit: 'mm',
       format: [80, 297], // 80mm de ancho x altura automática
       hotfixes: ['px_scaling'], // Fix para escala de píxeles
-      compress: false, // Evitar compresión que puede alterar el tamaño
     });
+    
+    // Valores seguros para datos que podrían ser null/undefined
+    const companyName = companySettings.name || 'Empresa';
+    const rnc = companySettings.rnc || '';
+    const street = companySettings.street || '';
+    const streetNumber = companySettings.streetNumber || '';
+    const companyMunicipality = companySettings.municipalityName || '';
+    const companyProvince = companySettings.provinceName || '';
+    const contactPhone = companySettings.contactPhone || '';
+    const email = companySettings.email || '';
     
     // Configuración de fuentes
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     
     // Encabezado: Nombre de la empresa
-    doc.text(companySettings.name, 40, 10, { align: 'center' });
+    doc.text(companyName, 40, 10, { align: 'center' });
     
     // Información de la empresa
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    const companyMunicipality = companySettings.municipalityName || "Cotuí";
-    const companyProvince = companySettings.provinceName || "Sánchez Ramírez";
     
     // Escribir la información de la empresa
-    doc.text(`RNC: ${companySettings.rnc}`, 40, 15, { align: 'center' });
-    doc.text(`${companySettings.street} ${companySettings.streetNumber}`, 40, 19, { align: 'center' });
+    doc.text(`RNC: ${rnc}`, 40, 15, { align: 'center' });
+    doc.text(`${street} ${streetNumber}`, 40, 19, { align: 'center' });
     doc.text(`${companyMunicipality}, ${companyProvince}`, 40, 23, { align: 'center' });
-    doc.text(`Tel: ${companySettings.contactPhone}`, 40, 27, { align: 'center' });
-    doc.text(`Email: ${companySettings.email}`, 40, 31, { align: 'center' });
+    doc.text(`Tel: ${contactPhone}`, 40, 27, { align: 'center' });
+    doc.text(`Email: ${email}`, 40, 31, { align: 'center' });
     
     // Línea separadora
     doc.setDrawColor(200);
     doc.line(5, 34, 75, 34);
     
+    // Datos seguros del pedido
+    const orderId = order.id || 'N/A';
+    const businessname = customer?.businessname || "Cliente";
+    const customerPhone = order.customerPhone || "";
+    const customerAddress = order.customerAddress || "";
+    const orderMunicipalityName = order.municipalityName || "";
+    const orderProvinceName = order.provinceName || "";
+    
     // Detalles del pedido
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`PEDIDO #${order.id}`, 40, 38, { align: 'center' });
+    doc.text(`PEDIDO #${orderId}`, 40, 38, { align: 'center' });
+    
+    // Asegurarse de que la fecha es válida
+    let formattedDate = '';
+    try {
+      formattedDate = new Date(order.date).toLocaleDateString();
+    } catch (e) {
+      formattedDate = 'Fecha no disponible';
+    }
     
     // Información del cliente y pedido
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha: ${new Date(order.date).toLocaleDateString()}`, 15, 43);
-    doc.text(`Cliente: ${customer?.businessname || "Cliente"}`, 15, 47);
-    doc.text(`Teléfono: ${order.customerPhone || ""}`, 15, 51);
-    doc.text(`Dirección: ${order.customerAddress}`, 15, 55);
-    doc.text(`${order.municipalityName || ""}, ${order.provinceName || ""}`, 15, 59);
+    doc.text(`Fecha: ${formattedDate}`, 15, 43);
+    doc.text(`Cliente: ${businessname}`, 15, 47);
+    doc.text(`Teléfono: ${customerPhone}`, 15, 51);
+    doc.text(`Dirección: ${customerAddress}`, 15, 55);
+    doc.text(`${orderMunicipalityName}, ${orderProvinceName}`, 15, 59);
     
     // Notas del pedido si existen
     let yPosition = 63;
@@ -339,33 +444,58 @@ export const generateOrderPdf = (
     // Productos
     doc.setFont('helvetica', 'normal');
     
-    orderItems.forEach((item: any) => {
-      const productName = products.find((p: any) => p.id === item.productId)?.name || "Producto";
-      const total = parseFloat(item.price) * item.quantity;
-      
-      // Asegurar que el texto del producto no exceda el ancho disponible
-      let displayName = productName;
-      if (productName.length > 18) {
-        displayName = productName.substring(0, 16) + "...";
-      }
-      
-      doc.text(displayName, 5, yPosition);
-      doc.text(`${item.quantity}`, 35, yPosition, { align: 'center' });
-      doc.text(`RD$${parseFloat(item.price).toFixed(2)}`, 55, yPosition, { align: 'right' });
-      doc.text(`RD$${total.toFixed(2)}`, 75, yPosition, { align: 'right' });
-      
+    // Asegurarse de que orderItems es un array válido
+    if (Array.isArray(orderItems) && orderItems.length > 0) {
+      orderItems.forEach((item: any) => {
+        if (!item) return; // Saltar items nulos
+        
+        const product = products?.find((p: any) => p?.id === item?.productId);
+        const productName = product?.name || "Producto";
+        const quantity = item?.quantity || 0;
+        const price = parseFloat(item?.price || 0);
+        const total = price * quantity;
+        
+        // Asegurar que el texto del producto no exceda el ancho disponible
+        let displayName = productName;
+        if (displayName.length > 18) {
+          displayName = displayName.substring(0, 16) + "...";
+        }
+        
+        doc.text(displayName, 5, yPosition);
+        doc.text(`${quantity}`, 35, yPosition, { align: 'center' });
+        doc.text(`RD$${price.toFixed(2)}`, 55, yPosition, { align: 'right' });
+        doc.text(`RD$${total.toFixed(2)}`, 75, yPosition, { align: 'right' });
+        
+        yPosition += 5;
+      });
+    } else {
+      // Si no hay items o no es un array
+      doc.text("No hay productos", 40, yPosition, { align: 'center' });
       yPosition += 5;
-    });
+    }
     
     // Línea separadora
     doc.setDrawColor(200);
     doc.line(5, yPosition, 75, yPosition);
     yPosition += 5;
     
-    // Calcular subtotal e ITBIS
-    const subtotal = parseFloat(order.subtotal || order.total);
-    const itbis = parseFloat(order.tax || '0');
-    const total = parseFloat(order.total);
+    // Calcular totales con validación
+    let subtotal = 0;
+    let itbis = 0;
+    let total = 0;
+    
+    try {
+      subtotal = parseFloat(order.subtotal || "0");
+      if (isNaN(subtotal)) subtotal = 0;
+      
+      itbis = parseFloat(order.tax || "0");
+      if (isNaN(itbis)) itbis = 0;
+      
+      total = parseFloat(order.total || "0");
+      if (isNaN(total)) total = 0;
+    } catch (e) {
+      console.error("Error calculando totales:", e);
+    }
     
     // Subtotal
     doc.setFont('helvetica', 'normal');
@@ -386,14 +516,23 @@ export const generateOrderPdf = (
     doc.setFontSize(8);
     doc.text("¡Gracias por su compra!", 40, yPosition, { align: 'center' });
     
-    // Guardar PDF
-    doc.save(`Pedido-${order.id}.pdf`);
+    try {
+      // Guardar PDF
+      doc.save(`Pedido-${orderId}.pdf`);
     
-    // Notificar al usuario
-    toast({
-      title: "PDF generado",
-      description: `El archivo "Pedido-${order.id}.pdf" se ha descargado correctamente.`,
-    });
+      // Notificar al usuario
+      toast({
+        title: "PDF generado",
+        description: `El archivo "Pedido-${orderId}.pdf" se ha descargado correctamente.`,
+      });
+    } catch (saveError) {
+      console.error("Error al guardar el PDF:", saveError);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo guardar el archivo PDF."
+      });
+    }
   } catch (error: any) {
     console.error("Error en generateOrderPdf:", error);
     toast({
