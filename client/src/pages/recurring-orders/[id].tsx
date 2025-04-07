@@ -34,8 +34,8 @@ const formSchema = z.object({
   dayOfMonth: z.number().nullable().optional(),
   startDate: z.date(),
   endDate: z.date().nullable().optional(),
-  paymentMethod: z.enum(['cash', 'credit', 'transfer']),
-  status: z.enum(['active', 'paused', 'completed', 'cancelled']),
+  paymentMethod: z.enum(['cash', 'credit', 'card']),
+  status: z.enum(['active', 'paused', 'completed', 'cancelled']).default('active'),
   totalAmount: z.string(),
   items: z.array(
     z.object({
@@ -609,10 +609,10 @@ const RecurringOrderForm: React.FC = () => {
                           </FormItem>
                           <FormItem className="flex items-center space-x-1 space-y-0">
                             <FormControl>
-                              <RadioGroupItem value="transfer" />
+                              <RadioGroupItem value="card" />
                             </FormControl>
                             <FormLabel className="font-normal">
-                              {t('transferPayment')}
+                              {t('cardPayment')}
                             </FormLabel>
                           </FormItem>
                         </RadioGroup>
