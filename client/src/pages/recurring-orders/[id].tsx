@@ -189,10 +189,12 @@ const RecurringOrderForm: React.FC = () => {
       // Preparar los datos para enviar al servidor
       const submitData = {
         ...data,
-        dayOfWeek: data.dayOfWeek ? parseInt(data.dayOfWeek) : 1,
-        dayOfMonth: data.dayOfMonth ? parseInt(data.dayOfMonth) : 1,
+        customerId: Number(data.customerId),
+        dayOfWeek: data.dayOfWeek ? Number(data.dayOfWeek) : 1,
+        dayOfMonth: data.dayOfMonth ? Number(data.dayOfMonth) : 1,
         startDate: data.startDate.toISOString(),
-        endDate: data.endDate ? data.endDate.toISOString() : "",
+        endDate: data.endDate ? data.endDate.toISOString() : null,
+        totalAmount: Number(data.totalAmount).toFixed(2),
       };
 
       let response;
@@ -266,9 +268,9 @@ const RecurringOrderForm: React.FC = () => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              productId: parseInt(item.productId),
-              quantity: parseInt(item.quantity),
-              price: item.price,
+              productId: Number(item.productId),
+              quantity: Number(item.quantity),
+              price: typeof item.price === 'string' ? item.price : Number(item.price).toFixed(2),
             }),
           });
         }
@@ -283,9 +285,9 @@ const RecurringOrderForm: React.FC = () => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                productId: parseInt(item.productId),
-                quantity: parseInt(item.quantity),
-                price: item.price,
+                productId: Number(item.productId),
+                quantity: Number(item.quantity),
+                price: typeof item.price === 'string' ? item.price : Number(item.price).toFixed(2),
               }),
             });
           } else {
@@ -296,9 +298,9 @@ const RecurringOrderForm: React.FC = () => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                productId: parseInt(item.productId),
-                quantity: parseInt(item.quantity),
-                price: item.price,
+                productId: Number(item.productId),
+                quantity: Number(item.quantity),
+                price: typeof item.price === 'string' ? item.price : Number(item.price).toFixed(2),
               }),
             });
           }
@@ -374,7 +376,7 @@ const RecurringOrderForm: React.FC = () => {
                       <FormLabel>{t('customer')}</FormLabel>
                       <Select
                         disabled={isLoadingCustomers}
-                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        onValueChange={(value) => field.onChange(Number(value))}
                         value={field.value ? field.value.toString() : undefined}
                       >
                         <FormControl>
@@ -446,7 +448,7 @@ const RecurringOrderForm: React.FC = () => {
                       <FormItem>
                         <FormLabel>{t('dayOfWeek')}</FormLabel>
                         <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          onValueChange={(value) => field.onChange(Number(value))}
                           value={field.value?.toString() || "1"}
                         >
                           <FormControl>
@@ -478,7 +480,7 @@ const RecurringOrderForm: React.FC = () => {
                       <FormItem>
                         <FormLabel>{t('dayOfMonth')}</FormLabel>
                         <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
+                          onValueChange={(value) => field.onChange(Number(value))}
                           value={field.value?.toString() || "1"}
                         >
                           <FormControl>
@@ -668,138 +670,107 @@ const RecurringOrderForm: React.FC = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>{t('productsTitle')}</CardTitle>
-              <CardDescription>
-                {t('productsDescription')}
-              </CardDescription>
+              <CardTitle>{t('itemsTitle')}</CardTitle>
+              <CardDescription>{t('itemsDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {fields.map((field, index) => (
-                  <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-5">
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.productId`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{index === 0 ? t('orderProduct') : <span className="sr-only">{t('orderProduct')}</span>}</FormLabel>
-                            <Select
-                              disabled={isLoadingProducts}
-                              onValueChange={(value) => {
-                                field.onChange(parseInt(value));
-                                handleProductChange(index, parseInt(value));
-                              }}
-                              value={field.value ? field.value.toString() : undefined}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={t('selectOrderProduct')} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {products && products.map((product: any) => (
-                                  <SelectItem key={product.id} value={product.id.toString()}>
-                                    {product.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                  <div key={field.id} className="flex flex-col space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">
+                        {t('itemNumber', { number: index + 1 })}
+                      </h4>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          remove(index);
+                          calculateTotal();
+                        }}
+                        disabled={fields.length === 1}
+                      >
+                        <Trash className="h-4 w-4" />
+                        <span className="sr-only">{t('removeItem')}</span>
+                      </Button>
                     </div>
-                    <div className="col-span-3">
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.quantity`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{index === 0 ? t('orderQuantity') : <span className="sr-only">{t('orderQuantity')}</span>}</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="1"
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(parseInt(e.target.value));
-                                  handleQuantityChange();
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <FormField
-                        control={form.control}
-                        name={`items.${index}.price`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{index === 0 ? t('orderPrice') : <span className="sr-only">{t('orderPrice')}</span>}</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="text"
-                                {...field}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value);
-                                  handleQuantityChange();
-                                }}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      {index > 0 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            remove(index);
-                            handleQuantityChange();
+                    <div className="grid grid-cols-12 gap-2">
+                      <div className="col-span-6">
+                        <Label htmlFor={`items.${index}.productId`}>
+                          {t('product')}
+                        </Label>
+                        <Select
+                          disabled={isLoadingProducts}
+                          value={form.getValues(`items.${index}.productId`).toString() || '0'}
+                          onValueChange={(value) => {
+                            form.setValue(`items.${index}.productId`, Number(value));
+                            handleProductChange(index, Number(value));
                           }}
                         >
-                          <Trash className="h-4 w-4" />
-                          <span className="sr-only">{t('removeProduct')}</span>
-                        </Button>
-                      )}
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('selectProduct')} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products && products.map((product: any) => (
+                              <SelectItem key={product.id} value={product.id.toString()}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label htmlFor={`items.${index}.quantity`}>
+                          {t('quantity')}
+                        </Label>
+                        <Input
+                          id={`items.${index}.quantity`}
+                          type="number"
+                          min="1"
+                          {...form.register(`items.${index}.quantity`, {
+                            valueAsNumber: true,
+                            onChange: handleQuantityChange,
+                          })}
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <Label htmlFor={`items.${index}.price`}>
+                          {t('price')}
+                        </Label>
+                        <Input
+                          id={`items.${index}.price`}
+                          type="text"
+                          readOnly
+                          {...form.register(`items.${index}.price`)}
+                        />
+                      </div>
                     </div>
+                    <Separator className="my-2" />
                   </div>
                 ))}
 
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => append({ productId: 0, quantity: 1, price: '0.00' })}
+                  size="sm"
                   className="mt-2"
+                  onClick={() => {
+                    append({ productId: 0, quantity: 1, price: '0.00' });
+                  }}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {t('addProduct')}
+                  <Plus className="mr-1 h-4 w-4" />
+                  {t('addItem')}
                 </Button>
 
-                <Separator className="my-4" />
-
-                <div className="flex justify-end">
+                <div className="mt-4 flex justify-end">
                   <div className="w-1/3">
-                    <FormField
-                      control={form.control}
-                      name="totalAmount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('orderTotal')}</FormLabel>
-                          <FormControl>
-                            <Input readOnly {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                    <Label htmlFor="totalAmount">{t('total')}</Label>
+                    <Input
+                      id="totalAmount"
+                      type="text"
+                      readOnly
+                      {...form.register('totalAmount')}
                     />
                   </div>
                 </div>
@@ -807,26 +778,15 @@ const RecurringOrderForm: React.FC = () => {
             </CardContent>
           </Card>
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end">
             <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLocation('/recurring-orders')}
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
-              {t('cancel')}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('saving')}
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  {t('save')}
-                </>
-              )}
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Save className="mr-2 h-4 w-4" />
+              {isNew ? t('createButton') : t('updateButton')}
             </Button>
           </div>
         </form>

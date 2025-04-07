@@ -20,32 +20,58 @@ class RecurringOrdersService {
 
   async createRecurringOrder(recurringOrder: InsertRecurringOrder): Promise<RecurringOrder> {
     try {
+      console.log("RecurringOrdersService.createRecurringOrder - Datos recibidos:", recurringOrder);
+      
+      if (!recurringOrder.customerId || recurringOrder.customerId <= 0) {
+        throw new Error("Se requiere un cliente válido");
+      }
+      
+      if (!recurringOrder.frequency) {
+        throw new Error("Se requiere una frecuencia válida");
+      }
+      
       const totalAmount = parseFloat(recurringOrder.totalAmount);
       if (isNaN(totalAmount)) {
         throw new Error("El monto total debe ser un número válido");
       }
 
+      // Asegurarse de que todos los campos numéricos sean números
+      const dayOfWeek = recurringOrder.dayOfWeek !== undefined ? 
+        (typeof recurringOrder.dayOfWeek === 'string' ? 
+          parseInt(recurringOrder.dayOfWeek) : recurringOrder.dayOfWeek) : null;
+      
+      const dayOfMonth = recurringOrder.dayOfMonth !== undefined ? 
+        (typeof recurringOrder.dayOfMonth === 'string' ? 
+          parseInt(recurringOrder.dayOfMonth) : recurringOrder.dayOfMonth) : null;
+
       const recurringOrderData = {
         ...recurringOrder,
+        dayOfWeek: dayOfWeek,
+        dayOfMonth: dayOfMonth,
         startDate: new Date(recurringOrder.startDate),
         endDate: recurringOrder.endDate ? new Date(recurringOrder.endDate) : null,
-        totalAmount: totalAmount.toString(),
+        totalAmount: totalAmount.toFixed(2), // Asegurar formato correcto
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      console.log("RecurringOrdersService.createRecurringOrder - Datos formateados:", recurringOrderData);
 
       // Calcular la próxima fecha de generación basada en la frecuencia
       const nextGenDate = this.calculateNextGenerationDate(
         new Date(recurringOrder.startDate), 
         recurringOrder.frequency,
-        recurringOrder.dayOfWeek,
-        recurringOrder.dayOfMonth
+        dayOfWeek,
+        dayOfMonth
       );
 
       // Añadir la fecha de próxima generación
       (recurringOrderData as any).nextGenerationDate = nextGenDate;
 
+      console.log("RecurringOrdersService.createRecurringOrder - Insertando en la base de datos");
       const [newRecurringOrder] = await db.insert(recurringOrders).values(recurringOrderData).returning();
+      console.log("RecurringOrdersService.createRecurringOrder - Orden creada:", newRecurringOrder);
+      
       return newRecurringOrder;
     } catch (error) {
       console.error('Error en createRecurringOrder:', error);

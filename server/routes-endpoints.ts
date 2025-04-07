@@ -54,8 +54,10 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Crear un nuevo pedido recurrente
   router.post("/api/recurring-orders", async (req, res) => {
     try {
+      console.log("Recibiendo solicitud para crear pedido recurrente:", req.body);
       const parseResult = insertRecurringOrderSchema.safeParse(req.body);
       if (!parseResult.success) {
+        console.error("Error de validación:", parseResult.error.format());
         return res.status(400).json({ 
           error: "Datos inválidos",
           details: parseResult.error.format() 
@@ -63,10 +65,14 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       }
 
       const newRecurringOrder = await storage.createRecurringOrder(parseResult.data);
+      console.log("Pedido recurrente creado:", newRecurringOrder);
       res.status(201).json(newRecurringOrder);
     } catch (error) {
       console.error("Error al crear pedido recurrente:", error);
-      res.status(500).json({ error: "Error al crear pedido recurrente" });
+      res.status(500).json({ 
+        error: "Error al crear pedido recurrente", 
+        message: error instanceof Error ? error.message : 'Error desconocido'
+      });
     }
   });
 
