@@ -55,7 +55,18 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   router.post("/api/recurring-orders", async (req, res) => {
     try {
       console.log("Recibiendo solicitud para crear pedido recurrente:", req.body);
-      const parseResult = insertRecurringOrderSchema.safeParse(req.body);
+
+      // Asegurar que los campos numéricos sean realmente números
+      const validatedData = {
+        ...req.body,
+        customerId: parseInt(String(req.body.customerId)) || 0,
+        dayOfWeek: req.body.dayOfWeek ? parseInt(String(req.body.dayOfWeek)) || 0 : null,
+        dayOfMonth: req.body.dayOfMonth ? parseInt(String(req.body.dayOfMonth)) || 0 : null,
+      };
+
+      console.log("Datos validados:", validatedData);
+      
+      const parseResult = insertRecurringOrderSchema.safeParse(validatedData);
       if (!parseResult.success) {
         console.error("Error de validación:", parseResult.error.format());
         return res.status(400).json({ 
@@ -86,7 +97,16 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
 
       // Usamos un schema extendido para validación parcial
       const partialSchema = insertRecurringOrderSchema.partial();
-      const parseResult = partialSchema.safeParse(req.body);
+      
+      // Asegurar que los campos numéricos sean números
+      const validatedData = {
+        ...req.body,
+        customerId: req.body.customerId ? parseInt(String(req.body.customerId)) || 0 : undefined,
+        dayOfWeek: req.body.dayOfWeek ? parseInt(String(req.body.dayOfWeek)) || 0 : undefined,
+        dayOfMonth: req.body.dayOfMonth ? parseInt(String(req.body.dayOfMonth)) || 0 : undefined
+      };
+      
+      const parseResult = partialSchema.safeParse(validatedData);
       
       if (!parseResult.success) {
         return res.status(400).json({ 
@@ -172,10 +192,12 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
         return res.status(404).json({ error: "Pedido recurrente no encontrado" });
       }
 
-      // Validar el item
+      // Validar el item y asegurar que los campos numéricos sean números
       const itemData = {
         ...req.body,
-        recurringOrderId
+        recurringOrderId,
+        productId: parseInt(String(req.body.productId)) || 0,
+        quantity: parseInt(String(req.body.quantity)) || 1
       };
 
       const parseResult = insertRecurringOrderItemSchema.safeParse(itemData);
@@ -216,7 +238,15 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
 
       // Validar los datos de actualización
       const partialSchema = insertRecurringOrderItemSchema.partial().omit({ recurringOrderId: true });
-      const parseResult = partialSchema.safeParse(req.body);
+      
+      // Asegurar que los campos numéricos sean números
+      const validatedData = {
+        ...req.body,
+        productId: req.body.productId ? parseInt(String(req.body.productId)) || 0 : undefined,
+        quantity: req.body.quantity ? parseInt(String(req.body.quantity)) || 1 : undefined
+      };
+      
+      const parseResult = partialSchema.safeParse(validatedData);
       
       if (!parseResult.success) {
         return res.status(400).json({ 
