@@ -150,13 +150,13 @@ const RecurringOrdersPage: React.FC = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-500">{t('recurringOrders.statusActive')}</Badge>;
+        return <Badge className="bg-green-500">{t('statusActive')}</Badge>;
       case 'paused':
-        return <Badge className="bg-yellow-500">{t('recurringOrders.statusPaused')}</Badge>;
+        return <Badge className="bg-yellow-500">{t('statusPaused')}</Badge>;
       case 'completed':
-        return <Badge className="bg-blue-500">{t('recurringOrders.statusCompleted')}</Badge>;
+        return <Badge className="bg-blue-500">{t('statusCompleted')}</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-500">{t('recurringOrders.statusCancelled')}</Badge>;
+        return <Badge className="bg-red-500">{t('statusCancelled')}</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -165,7 +165,7 @@ const RecurringOrdersPage: React.FC = () => {
   const getFrequencyText = (frequency: string, dayOfWeek?: number | null, dayOfMonth?: number | null) => {
     switch (frequency) {
       case 'daily':
-        return t('recurringOrders.frequencyDaily');
+        return t('frequencyDaily');
       case 'weekly':
         if (dayOfWeek !== undefined && dayOfWeek !== null) {
           const dayNames = [
@@ -177,9 +177,9 @@ const RecurringOrdersPage: React.FC = () => {
             t('days.friday'),
             t('days.saturday'),
           ];
-          return t('recurringOrders.frequencyWeekly', { day: dayNames[dayOfWeek] });
+          return t('frequencyWeekly', { day: dayNames[dayOfWeek] });
         }
-        return t('recurringOrders.frequencyWeekly', { day: '' });
+        return t('frequencyWeekly', { day: '' });
       case 'biweekly':
         if (dayOfWeek !== undefined && dayOfWeek !== null) {
           const dayNames = [
@@ -191,14 +191,14 @@ const RecurringOrdersPage: React.FC = () => {
             t('days.friday'),
             t('days.saturday'),
           ];
-          return t('recurringOrders.frequencyBiweekly', { day: dayNames[dayOfWeek] });
+          return t('frequencyBiweekly', { day: dayNames[dayOfWeek] });
         }
-        return t('recurringOrders.frequencyBiweekly', { day: '' });
+        return t('frequencyBiweekly', { day: '' });
       case 'monthly':
         if (dayOfMonth !== undefined && dayOfMonth !== null) {
-          return t('recurringOrders.frequencyMonthly', { day: dayOfMonth });
+          return t('frequencyMonthly', { day: dayOfMonth });
         }
-        return t('recurringOrders.frequencyMonthly', { day: '' });
+        return t('frequencyMonthly', { day: '' });
       default:
         return frequency;
     }
@@ -232,12 +232,12 @@ const RecurringOrdersPage: React.FC = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>{t('recurringOrders.name')}</TableHead>
-            <TableHead>{t('recurringOrders.customer')}</TableHead>
-            <TableHead>{t('recurringOrders.frequency')}</TableHead>
-            <TableHead>{t('recurringOrders.nextDate')}</TableHead>
-            <TableHead>{t('recurringOrders.status')}</TableHead>
-            <TableHead className="text-right">{t('recurringOrders.actions')}</TableHead>
+            <TableHead>{t('orderName')}</TableHead>
+            <TableHead>{t('customer')}</TableHead>
+            <TableHead>{t('frequency')}</TableHead>
+            <TableHead>{t('nextDate')}</TableHead>
+            <TableHead>{t('statusActive')}</TableHead>
+            <TableHead className="text-right">{t('common.actions')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -324,7 +324,7 @@ const RecurringOrdersPage: React.FC = () => {
         <CardHeader>
           <CardTitle>{t('recurringOrdersCardTitle')}</CardTitle>
           <CardDescription>
-            {t('recurringOrders.cardDescription')}
+            {t('recurringOrdersCardDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -337,16 +337,16 @@ const RecurringOrdersPage: React.FC = () => {
             <Tabs defaultValue="active">
               <TabsList className="mb-4">
                 <TabsTrigger value="active">
-                  {t('recurringOrders.statusActive')} ({activeOrders.length})
+                  {t('statusActive')} ({activeOrders.length})
                 </TabsTrigger>
                 <TabsTrigger value="paused">
-                  {t('recurringOrders.statusPaused')} ({pausedOrders.length})
+                  {t('statusPaused')} ({pausedOrders.length})
                 </TabsTrigger>
                 <TabsTrigger value="completed">
-                  {t('recurringOrders.statusCompleted')} ({completedOrders.length})
+                  {t('statusCompleted')} ({completedOrders.length})
                 </TabsTrigger>
                 <TabsTrigger value="cancelled">
-                  {t('recurringOrders.statusCancelled')} ({cancelledOrders.length})
+                  {t('statusCancelled')} ({cancelledOrders.length})
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="active">
