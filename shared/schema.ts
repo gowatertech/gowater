@@ -947,6 +947,7 @@ export const insertRecurringOrderSchema = z.object({
   endDate: z.string().datetime("La fecha debe estar en formato ISO").optional(),
   totalAmount: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   paymentMethod: z.enum(["cash", "credit", "card"]),
+  status: z.enum(["active", "paused", "completed", "cancelled"]).default("active"),
   notes: z.string().optional(),
 });
 
