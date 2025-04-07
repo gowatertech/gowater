@@ -189,8 +189,10 @@ const RecurringOrderForm: React.FC = () => {
       // Preparar los datos para enviar al servidor
       const submitData = {
         ...data,
+        dayOfWeek: data.dayOfWeek ? parseInt(data.dayOfWeek) : 1,
+        dayOfMonth: data.dayOfMonth ? parseInt(data.dayOfMonth) : 1,
         startDate: data.startDate.toISOString(),
-        endDate: data.endDate ? data.endDate.toISOString() : null,
+        endDate: data.endDate ? data.endDate.toISOString() : "",
       };
 
       let response;
@@ -226,7 +228,19 @@ const RecurringOrderForm: React.FC = () => {
         console.log("Actualizando pedido recurrente existente:", id);
         const { items, ...orderData } = submitData; // No actualizamos items en la entidad principal
         
-        response = await fetch(`/api/recurring-orders/${id}`, {
+        // Asegurar que el id sea un número para la actualización
+        const numericId = parseInt(id);
+        if (isNaN(numericId)) {
+          toast({
+            title: "Error",
+            description: "ID de pedido recurrente inválido",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
+        response = await fetch(`/api/recurring-orders/${numericId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -252,8 +266,8 @@ const RecurringOrderForm: React.FC = () => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              productId: item.productId,
-              quantity: item.quantity,
+              productId: parseInt(item.productId),
+              quantity: parseInt(item.quantity),
               price: item.price,
             }),
           });
@@ -269,8 +283,8 @@ const RecurringOrderForm: React.FC = () => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                productId: item.productId,
-                quantity: item.quantity,
+                productId: parseInt(item.productId),
+                quantity: parseInt(item.quantity),
                 price: item.price,
               }),
             });
@@ -282,8 +296,8 @@ const RecurringOrderForm: React.FC = () => {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                productId: item.productId,
-                quantity: item.quantity,
+                productId: parseInt(item.productId),
+                quantity: parseInt(item.quantity),
                 price: item.price,
               }),
             });
