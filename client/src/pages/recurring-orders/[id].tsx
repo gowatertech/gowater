@@ -284,7 +284,7 @@ const RecurringOrderForm: React.FC = () => {
           {t('common.back')}
         </Button>
         <h1 className="text-2xl font-bold">
-          {isNew ? t('recurringOrders.createTitle') : t('recurringOrders.editTitle')}
+          {isNew ? t('createTitle') : t('editTitle')}
         </h1>
       </div>
 
@@ -292,9 +292,9 @@ const RecurringOrderForm: React.FC = () => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('recurringOrders.recurringBasicInfo')}</CardTitle>
+              <CardTitle>{t('recurringBasicInfo')}</CardTitle>
               <CardDescription>
-                {t('recurringOrders.basicInfoDescription')}
+                {t('basicInfoDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
