@@ -245,8 +245,8 @@ const RecurringOrderForm: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/recurring-orders'] });
       
       toast({
-        title: isNew ? t('recurringOrders.createSuccess') : t('recurringOrders.updateSuccess'),
-        description: isNew ? t('recurringOrders.createSuccessDescription') : t('recurringOrders.updateSuccessDescription'),
+        title: isNew ? t('createSuccess') : t('updateSuccess'),
+        description: isNew ? t('createSuccessDescription') : t('updateSuccessDescription'),
       });
 
       // Redirigir a la lista de pedidos recurrentes
@@ -254,8 +254,8 @@ const RecurringOrderForm: React.FC = () => {
     } catch (error) {
       console.error('Error al guardar pedido recurrente:', error);
       toast({
-        title: t('recurringOrders.saveError'),
-        description: t('recurringOrders.saveErrorDescription'),
+        title: t('saveError'),
+        description: t('saveErrorDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -292,7 +292,7 @@ const RecurringOrderForm: React.FC = () => {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{t('recurringBasicInfo')}</CardTitle>
+              <CardTitle>{t('basicInfoTitle')}</CardTitle>
               <CardDescription>
                 {t('basicInfoDescription')}
               </CardDescription>
