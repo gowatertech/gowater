@@ -223,7 +223,7 @@ const RecurringOrderForm: React.FC = () => {
             });
           } else {
             // Crear nuevo item
-            await fetch(`/api/recurring-orders/${id}/items`, {
+            await fetch(`/api/recurring-orders/${savedOrder.id}/items`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
