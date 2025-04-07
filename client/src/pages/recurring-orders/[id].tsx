@@ -161,8 +161,11 @@ const RecurringOrderForm: React.FC = () => {
 
       let response;
       
-      if (isNew) {
+      console.log("Guardando pedido recurrente:", { isNew, id, submitData });
+      
+      if (id === 'new') {
         // Crear nuevo pedido recurrente
+        console.log("Creando nuevo pedido recurrente");
         response = await fetch('/api/recurring-orders', {
           method: 'POST',
           headers: {
@@ -172,6 +175,7 @@ const RecurringOrderForm: React.FC = () => {
         });
       } else {
         // Actualizar pedido recurrente existente
+        console.log("Actualizando pedido recurrente existente:", id);
         const { items, ...orderData } = submitData; // No actualizamos items en la entidad principal
         
         response = await fetch(`/api/recurring-orders/${id}`, {
@@ -190,7 +194,8 @@ const RecurringOrderForm: React.FC = () => {
       const savedOrder = await response.json();
 
       // Si es un nuevo pedido, necesitamos crear los items
-      if (isNew) {
+      if (id === 'new') {
+        console.log("Creando items para el nuevo pedido:", savedOrder.id);
         // Crear items para el nuevo pedido
         for (const item of data.items) {
           await fetch(`/api/recurring-orders/${savedOrder.id}/items`, {
