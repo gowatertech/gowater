@@ -100,6 +100,8 @@ const RecurringOrderForm: React.FC = () => {
       items: [{ productId: 0, quantity: 1, price: '0.00' }],
     },
   });
+  
+  console.log("Form initialized with isNew:", isNew, "id:", id);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
