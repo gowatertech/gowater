@@ -32,6 +32,14 @@ import { toast } from '@/hooks/use-toast';
 import { TableHeader, TableRow, TableHead, TableBody, TableCell, Table } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Extended type including joined relations
+interface RecurringOrderWithRelations extends RecurringOrder {
+  customer?: {
+    id: number;
+    name: string;
+  }
+}
+
 const RecurringOrdersPage: React.FC = () => {
   const { t } = useTranslation();
   const [, setLocation] = useLocation();
@@ -39,7 +47,7 @@ const RecurringOrdersPage: React.FC = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [generatingOrderId, setGeneratingOrderId] = useState<number | null>(null);
 
-  const { data: recurringOrders, isLoading } = useQuery({
+  const { data: recurringOrders, isLoading } = useQuery<RecurringOrderWithRelations[]>({
     queryKey: ['/api/recurring-orders'],
     retry: 1,
   });
@@ -60,14 +68,14 @@ const RecurringOrdersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/recurring-orders'] });
 
       toast({
-        title: t('recurringOrders.deleteSuccess'),
-        description: t('recurringOrders.deleteSuccessDescription'),
+        title: t('deleteSuccess'),
+        description: t('deleteSuccessDescription'),
       });
     } catch (error) {
       console.error('Error al eliminar pedido recurrente:', error);
       toast({
-        title: t('recurringOrders.deleteError'),
-        description: t('recurringOrders.deleteErrorDescription'),
+        title: t('deleteError'),
+        description: t('deleteErrorDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -90,14 +98,14 @@ const RecurringOrdersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/recurring-orders'] });
 
       toast({
-        title: t('recurringOrders.statusChangeSuccess'),
-        description: t('recurringOrders.statusChangeSuccessDescription'),
+        title: t('statusChangeSuccess'),
+        description: t('statusChangeSuccessDescription'),
       });
     } catch (error) {
       console.error('Error al cambiar estado del pedido recurrente:', error);
       toast({
-        title: t('recurringOrders.statusChangeError'),
-        description: t('recurringOrders.statusChangeErrorDescription'),
+        title: t('statusChangeError'),
+        description: t('statusChangeErrorDescription'),
         variant: 'destructive',
       });
     }
@@ -121,14 +129,14 @@ const RecurringOrdersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
 
       toast({
-        title: t('recurringOrders.generateSuccess'),
-        description: t('recurringOrders.generateSuccessDescription', { id: data.id }),
+        title: t('generateSuccess'),
+        description: t('generateSuccessDescription', { id: data.id }),
       });
     } catch (error) {
       console.error('Error al generar pedido:', error);
       toast({
-        title: t('recurringOrders.generateError'),
-        description: t('recurringOrders.generateErrorDescription'),
+        title: t('generateError'),
+        description: t('generateErrorDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -138,8 +146,8 @@ const RecurringOrdersPage: React.FC = () => {
 
   // Filtrar pedidos recurrentes por estado para las pestañas
   const getFilteredOrders = (status: 'active' | 'paused' | 'completed' | 'cancelled') => {
-    if (!recurringOrders) return [];
-    return recurringOrders.filter((order: RecurringOrder) => order.status === status);
+    if (!recurringOrders || !Array.isArray(recurringOrders)) return [];
+    return recurringOrders.filter((order: RecurringOrderWithRelations) => order.status === status);
   };
 
   const activeOrders = recurringOrders ? getFilteredOrders('active') : [];
@@ -212,7 +220,7 @@ const RecurringOrdersPage: React.FC = () => {
     }
   };
 
-  const renderOrdersList = (orders: RecurringOrder[]) => {
+  const renderOrdersList = (orders: RecurringOrderWithRelations[]) => {
     if (orders.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -241,13 +249,13 @@ const RecurringOrdersPage: React.FC = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.map((order: RecurringOrder) => (
+          {orders.map((order: RecurringOrderWithRelations) => (
             <TableRow key={order.id}>
               <TableCell className="font-medium">{order.name}</TableCell>
-              <TableCell>{order.customerName}</TableCell>
+              <TableCell>{order.customer ? order.customer.name : ''}</TableCell>
               <TableCell>{getFrequencyText(order.frequency, order.dayOfWeek, order.dayOfMonth)}</TableCell>
               <TableCell>
-                {order.nextGenerationDate ? formatDate(order.nextGenerationDate) : '-'}
+                {order.nextGenerationDate ? formatDate(order.nextGenerationDate.toString()) : '-'}
               </TableCell>
               <TableCell>{getStatusBadge(order.status)}</TableCell>
               <TableCell className="text-right">
@@ -270,25 +278,25 @@ const RecurringOrdersPage: React.FC = () => {
                       >
                         <PlayCircle className="mr-2 h-4 w-4" />
                         {generatingOrderId === order.id 
-                          ? t('recurringOrders.generating') 
-                          : t('recurringOrders.generateNow')}
+                          ? t('generating') 
+                          : t('generateNow')}
                       </DropdownMenuItem>
                     )}
                     {order.status === 'active' && (
                       <DropdownMenuItem onClick={() => handleChangeStatus(order.id, 'paused')}>
                         <Clock className="mr-2 h-4 w-4" />
-                        {t('recurringOrders.pause')}
+                        {t('pause')}
                       </DropdownMenuItem>
                     )}
                     {order.status === 'paused' && (
                       <DropdownMenuItem onClick={() => handleChangeStatus(order.id, 'active')}>
                         <PlayCircle className="mr-2 h-4 w-4" />
-                        {t('recurringOrders.activate')}
+                        {t('activate')}
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuItem onClick={() => handleChangeStatus(order.id, 'completed')}>
                       <CalendarDays className="mr-2 h-4 w-4" />
-                      {t('recurringOrders.complete')}
+                      {t('complete')}
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => {
@@ -369,9 +377,9 @@ const RecurringOrdersPage: React.FC = () => {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t('recurringOrders.confirmDelete')}</AlertDialogTitle>
+            <AlertDialogTitle>{t('confirmDelete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t('recurringOrders.confirmDeleteDescription')}
+              {t('confirmDeleteDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
