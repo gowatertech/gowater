@@ -281,7 +281,7 @@ const RecurringOrderForm: React.FC = () => {
           className="mr-2"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          {t('common.back')}
+          {t('back')}
         </Button>
         <h1 className="text-2xl font-bold">
           {isNew ? t('createTitle') : t('editTitle')}
@@ -700,7 +700,7 @@ const RecurringOrderForm: React.FC = () => {
                           }}
                         >
                           <Trash className="h-4 w-4" />
-                          <span className="sr-only">{t('common.remove')}</span>
+                          <span className="sr-only">{t('removeProduct')}</span>
                         </Button>
                       )}
                     </div>
@@ -746,18 +746,18 @@ const RecurringOrderForm: React.FC = () => {
               variant="outline"
               onClick={() => setLocation('/recurring-orders')}
             >
-              {t('common.cancel')}
+              {t('cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('common.saving')}
+                  {t('saving')}
                 </>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  {t('common.save')}
+                  {t('save')}
                 </>
               )}
             </Button>
