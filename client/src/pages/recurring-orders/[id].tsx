@@ -154,6 +154,38 @@ const RecurringOrderForm: React.FC = () => {
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
+      // Si el cliente o producto no está seleccionado, no continuar
+      if (data.customerId === 0) {
+        toast({
+          title: "Error",
+          description: "Por favor seleccione un cliente",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (data.items.some(item => item.productId === 0)) {
+        toast({
+          title: "Error",
+          description: "Por favor seleccione productos para todos los ítems",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Verificar el nombre del pedido
+      if (!data.name || data.name.trim() === '') {
+        toast({
+          title: "Error",
+          description: "Por favor ingrese un nombre para el pedido recurrente",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       // Preparar los datos para enviar al servidor
       const submitData = {
         ...data,
@@ -175,6 +207,20 @@ const RecurringOrderForm: React.FC = () => {
           },
           body: JSON.stringify(submitData),
         });
+
+        console.log("Respuesta al crear:", response.status, response.statusText);
+
+        if (response.status === 400) {
+          const errorData = await response.json();
+          console.error("Error de validación:", errorData);
+          toast({
+            title: "Error de validación",
+            description: JSON.stringify(errorData),
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
       } else {
         // Actualizar pedido recurrente existente
         console.log("Actualizando pedido recurrente existente:", id);
