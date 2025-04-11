@@ -323,7 +323,7 @@ export default function PaymentDashboard() {
       // Crear contenido para impresión de recibo
       const printContent = document.createElement('div');
       printContent.innerHTML = `
-        <div style="width: 80mm; padding: 5mm;">
+        <div style="width: 80mm; padding: 5mm; font-family: Arial, sans-serif;">
           <div style="text-align: center; margin-bottom: 10px;">
             <h2 style="font-size: 14px; margin: 0;">AGUA HARRIS</h2>
             <p style="font-size: 10px; margin: 5px 0;">Calle Duarte #112, Villa Altagracia</p>
@@ -368,12 +368,95 @@ export default function PaymentDashboard() {
         </div>
       `;
       
-      // Usar PrinterService para imprimir el recibo
-      await PrinterService.printDocument(printContent, {
+      // Obtener los datos de factura desde la API
+      // (Por ahora solo usamos el objeto payment directamente)
+      const printOptions = {
         title: `Recibo Pago #${payment.id}`,
-        size: [80, 0], // 80mm ancho, altura automática
-        margins: [0, 0, 0, 0] // sin márgenes
-      });
+        fileName: `recibo_pago_${payment.id}.pdf`
+      };
+      
+      // Imprimir usando el método para recibos de 80mm
+      if (PrinterService.isMobileDevice()) {
+        // En móviles usamos un método más directo
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: [80, 150], // Papel térmico estándar: 80mm de ancho
+          hotfixes: ['px_scaling']
+        });
+        
+        // Añadir contenido
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('AGUA HARRIS', 40, 10, { align: 'center' });
+        
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Calle Duarte #112, Villa Altagracia', 40, 15, { align: 'center' });
+        doc.text('RNC: 999999999', 40, 19, { align: 'center' });
+        
+        // Línea separadora
+        doc.setDrawColor(150);
+        doc.line(5, 22, 75, 22);
+        
+        // Título
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('RECIBO DE PAGO', 40, 27, { align: 'center' });
+        
+        // Datos del pago
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}`, 5, 35);
+        doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, 40);
+        doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, 45);
+        
+        // Método de pago
+        const metodoPago = 
+          (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+          (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+          (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+          (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
+        
+        doc.text(`Método: ${metodoPago}`, 5, 50);
+        
+        // Segunda línea separadora
+        doc.line(5, 55, 75, 55);
+        
+        // Total
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('TOTAL PAGADO:', 5, 62);
+        doc.text(`${formatCurrency(payment.amount)}`, 75, 62, { align: 'right' });
+        
+        // Notas (si hay)
+        if (payment.notes) {
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Notas:', 5, 70);
+          
+          // Dividir notas largas
+          const splitNotes = doc.splitTextToSize(payment.notes, 70);
+          doc.text(splitNotes, 5, 75);
+        }
+        
+        // Pie de página
+        doc.setFontSize(8);
+        doc.text('Gracias por su pago', 40, 100, { align: 'center' });
+        doc.text('www.aguaharris.com', 40, 105, { align: 'center' });
+        doc.text('Tel: 809-873-8333', 40, 110, { align: 'center' });
+        
+        // Imprimir
+        doc.autoPrint();
+        window.open(doc.output('bloburl'), '_blank');
+      } else {
+        // En escritorio usamos el método normal con soporte para estilos CSS
+        await PrinterService.printDocument(printContent, {
+          title: printOptions.title,
+          size: [80, 0], // 80mm de ancho, altura automática
+          margins: [5, 5, 5, 5] // márgenes reducidos
+        });
+      }
       
     } catch (error: any) {
       console.error('Error al imprimir pago individual:', error);
@@ -397,32 +480,83 @@ export default function PaymentDashboard() {
         return;
       }
       
-      // Datos del pago individual
-      const paymentData = {
-        title: "Recibo de Pago",
-        date: payment.date,
-        customer: payment.customerName,
-        invoiceNumber: payment.invoiceNumber,
-        paymentMethod: payment.method || payment.paymentMethod,
-        amount: payment.amount,
-        notes: payment.notes
-      };
+      // Generar PDF directamente en formato 80mm
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 150], // Ancho estándar para recibos térmicos
+        hotfixes: ['px_scaling']
+      });
       
+      // Añadir contenido
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('AGUA HARRIS', 40, 10, { align: 'center' });
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Calle Duarte #112, Villa Altagracia', 40, 15, { align: 'center' });
+      doc.text('RNC: 999999999', 40, 19, { align: 'center' });
+      
+      // Línea separadora
+      doc.setDrawColor(150);
+      doc.line(5, 22, 75, 22);
+      
+      // Título
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('RECIBO DE PAGO', 40, 27, { align: 'center' });
+      
+      // Datos del pago
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}`, 5, 35);
+      doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, 40);
+      doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, 45);
+      
+      // Método de pago
+      const metodoPago = 
+        (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+        (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+        (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+        (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
+      
+      doc.text(`Método: ${metodoPago}`, 5, 50);
+      
+      // Segunda línea separadora
+      doc.line(5, 55, 75, 55);
+      
+      // Total
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TOTAL PAGADO:', 5, 62);
+      doc.text(`${formatCurrency(payment.amount)}`, 75, 62, { align: 'right' });
+      
+      // Notas (si hay)
+      if (payment.notes) {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Notas:', 5, 70);
+        
+        // Dividir notas largas
+        const splitNotes = doc.splitTextToSize(payment.notes, 70);
+        doc.text(splitNotes, 5, 75);
+      }
+      
+      // Pie de página
+      doc.setFontSize(8);
+      doc.text('Gracias por su pago', 40, 100, { align: 'center' });
+      doc.text('www.aguaharris.com', 40, 105, { align: 'center' });
+      doc.text('Tel: 809-873-8333', 40, 110, { align: 'center' });
+      
+      // Guardar PDF
       const fileName = `recibo_${payment.id}_${format(new Date(payment.date), 'yyyy-MM-dd')}.pdf`;
+      doc.save(fileName);
       
-      // Generar PDF para recibo individual
-      await PrinterService.generatePDFDirect(
-        paymentData,
-        DocumentType.PAYMENT_RECEIPT,
-        {
-          title: "Recibo de Pago",
-          fileName,
-          size: [80, 0] // 80mm ancho, altura automática
-        },
-        {
-          items: [payment] // Solo incluimos un pago
-        }
-      );
+      toast({
+        title: "PDF generado",
+        description: `Se ha descargado el archivo "${fileName}"`,
+      });
       
     } catch (error: any) {
       console.error('Error al generar PDF de pago individual:', error);
