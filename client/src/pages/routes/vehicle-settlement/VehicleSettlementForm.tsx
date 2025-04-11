@@ -112,7 +112,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         productId: item.productId,
         loadedQuantity: item.quantity,
         returnedQuantity: 0,
-        soldQuantity: item.quantity,
+        soldQuantity: 0, // Iniciamos con 0 para que se calcule correctamente
         returnedContainers: 0,
         notes: "",
       };
@@ -224,11 +224,10 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         
         console.log(`Valor total de pedidos vendidos: $${totalProductsValue.toFixed(2)}`);
         
-        // A nivel informativo, también calculamos el detalle por productos
-        // pero solo para mostrar información, no para los cálculos
+        // Calculamos el detalle por productos para actualizar las cantidades vendidas
         const productSummary = new Map();
         
-        // Recorrer cada orden solo para recopilar estadísticas
+        // Recorrer cada orden para obtener cantidades reales vendidas
         for (const order of orders) {
           // Acceder a los items con verificación de tipo
           const orderItems = (order as any).items;
@@ -259,11 +258,30 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         
         // Convertir el mapa a un array para mostrarlo en consola
         productSoldDetails = Array.from(productSummary.values());
-        console.log("Resumen de productos vendidos (solo informativo):", productSoldDetails);
+        console.log("Resumen de productos vendidos:", productSoldDetails);
         
         // Calcular total de unidades vendidas
         totalProductsSold = productSoldDetails.reduce((sum: number, product: any) => sum + product.quantity, 0);
         console.log(`Total unidades vendidas: ${totalProductsSold} unidades`);
+        
+        // ACTUALIZAR CANTIDADES VENDIDAS en el formulario basado en los pedidos reales
+        // Obtenemos los productos cargados para buscar sus índices
+        const formItems = form.getValues().items;
+        
+        // Para cada producto de las órdenes, actualizamos la cantidad vendida en el formulario
+        formItems.forEach((formItem, index) => {
+          // Buscar si hay ventas de este producto en las órdenes
+          const productSoldInfo = productSoldDetails.find(
+            p => p.productId === formItem.productId
+          );
+          
+          if (productSoldInfo) {
+            // Si encontramos ventas, actualizamos la cantidad vendida
+            console.log(`Actualizando cantidad vendida para producto #${formItem.productId}: ${productSoldInfo.quantity}`);
+            form.setValue(`items.${index}.soldQuantity`, productSoldInfo.quantity);
+          }
+          // Si no hay ventas para este producto, queda en 0 (como se inicializó)
+        });
         
       } catch (error) {
         console.error("Error al calcular productos vendidos:", error);
@@ -417,12 +435,14 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   };
 
   // Actualizar campos calculados cuando cambian las cantidades
+  // IMPORTANTE: No calculamos automáticamente la cantidad vendida
+  // Este método solo registra los cambios
   const updateSoldQuantity = (index: number, returnedQuantity: number) => {
-    const loadedQuantity = form.getValues().items[index].loadedQuantity;
-    const soldQuantity = loadedQuantity - returnedQuantity;
+    // No modificamos soldQuantity automáticamente
+    // Ahora este valor se obtiene de las órdenes realmente entregadas
     
-    // Actualizar la cantidad vendida
-    form.setValue(`items.${index}.soldQuantity`, soldQuantity >= 0 ? soldQuantity : 0);
+    // Solo registramos el cambio de returnedQuantity
+    console.log(`Cantidad devuelta actualizada para producto #${index}: ${returnedQuantity}`);
     
     // No recalcular totales automáticamente para evitar recálculos excesivos
   };
@@ -736,11 +756,13 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                               <FormItem>
                                 <FormControl>
                                   <Input 
-                                    {...field}
+                                    // No pasamos {...field} para evitar eventos no deseados
+                                    name={field.name}
+                                    value={field.value}
                                     type="text"
                                     inputMode="numeric"
-                                    value={field.value}
                                     readOnly
+                                    disabled
                                     className="w-20 mx-auto text-center bg-gray-50"
                                   />
                                 </FormControl>
