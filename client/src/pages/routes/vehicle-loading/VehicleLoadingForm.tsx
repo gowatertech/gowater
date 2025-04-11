@@ -56,7 +56,8 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     resolver: zodResolver(insertVehicleLoadingSchema),
     defaultValues: {
       initialCash: "0.00",
-      items: []
+      items: [],
+      routeId: undefined
     }
   });
 
@@ -94,6 +95,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
         initialCash: values.initialCash.toString(),
         truckId: Number(values.truckId),
         driverId: Number(values.driverId),
+        routeId: values.routeId ? Number(values.routeId) : undefined,
         assistantId: values.assistantId ? Number(values.assistantId) : undefined,
         items: values.items.map(item => ({
           productId: Number(item.productId),
@@ -140,6 +142,34 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
         <div className="grid grid-cols-2 gap-2">
+          <FormField
+            control={form.control}
+            name="routeId"
+            render={({ field }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-xs">Ruta</FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Seleccionar ruta" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {routes.map((route) => (
+                      <SelectItem key={route.id} value={route.id.toString()} className="text-xs py-1">
+                        {route.name} ({new Date(route.date).toLocaleDateString()})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage className="text-[10px]" />
+              </FormItem>
+            )}
+          />
+
           <FormField
             control={form.control}
             name="truckId"
@@ -228,7 +258,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
             control={form.control}
             name="initialCash"
             render={({ field }) => (
-              <FormItem className="space-y-1">
+              <FormItem className="space-y-1 col-span-1">
                 <FormLabel className="text-xs">Efectivo Inicial (RD$)</FormLabel>
                 <FormControl>
                   <Input
