@@ -121,6 +121,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     
     let calculatedCreditSales = 0;
     let calculatedCashSales = 0;
+    let totalInvoiced = parseFloat(values.totalInvoiced) || 0; // Usar el valor actual del campo
     
     // Si tenemos órdenes relacionadas, usar esos datos para calcular
     if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
@@ -135,16 +136,19 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         .filter(order => order.paymentType === "credit")
         .reduce((sum, order) => sum + parseFloat(order.total), 0);
         
-      // Actualizar los valores del formulario
+      // Solo actualizar el crédito recibido automáticamente, no el efectivo
       form.setValue("totalCreditReceived", calculatedCreditSales.toFixed(2));
       
-      // El Total Facturado es la suma de todas las órdenes
-      totalSold = orders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+      // El Total Facturado es la suma de todas las órdenes - solo actualizarlo la primera vez
+      if (totalInvoiced === 0) {
+        totalInvoiced = orders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+        form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
+      }
+    } else if (totalInvoiced === 0) {
+      // Sólo si no hay totalInvoiced establecido todavía y no hay órdenes relacionadas
+      totalInvoiced = totalSold;
+      form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
     }
-    
-    // El Total Facturado y el Total Vendido son iguales (el monto total de productos vendidos)
-    const totalInvoiced = totalSold;
-    form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
     
     // Efectivo inicial de la carga
     const initialCash = parseFloat(loading.initialCash || "0");
