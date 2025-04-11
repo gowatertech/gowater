@@ -108,7 +108,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       }
     });
     
-    // Total facturado = suma de efectivo + crédito
+    // El Total Facturado y el Total Vendido son iguales (el monto total de productos vendidos)
     const totalInvoiced = totalSold;
     form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
     
@@ -191,12 +191,14 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     },
   });
 
-  // Funciones para calcular totales
+  // Funciones para calcular totales - Esta función no se usa actualmente, todo se calcula en calculateDifferences
   function calculateTotalInvoiced() {
     let total = 0;
     loading.items.forEach(item => {
       const price = parseFloat(item.product?.price || "0");
-      total += price * item.quantity;
+      // Usamos la cantidad vendida (totalSold), no la cantidad cargada (quantity)
+      const soldQuantity = (item.quantity || 0) - (item.returnedQuantity || 0);
+      total += price * soldQuantity;
     });
     return total.toFixed(2);
   }
@@ -411,6 +413,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                           value={(parseFloat(field.value) || 0).toFixed(2)}
                         />
                       </FormControl>
+                      <p className="text-xs text-gray-500 mt-1">Total de producto vendido (no devuelto)</p>
                       <FormMessage />
                     </FormItem>
                   )}
