@@ -657,13 +657,13 @@ export class PrinterService {
       formattedDate = 'Fecha no disponible';
     }
     
-    // Cliente
-    const customer = extraData.customer;
-    const businessName = customer?.businessname || payment.customerName || "Cliente";
-    const address = customer?.address || "";
-    const municipality = customer?.municipality || "Cotuí";
-    const province = customer?.province || "Sánchez Ramírez";
-    const phone = customer?.phone || "";
+    // Cliente - convertimos todos los valores a String para prevenir errores
+    const customer = extraData.customer || {};
+    const businessName = String(customer?.businessname || payment.customerName || "Cliente");
+    const address = String(customer?.address || "");
+    const municipality = String(customer?.municipality || "Cotuí");
+    const province = String(customer?.province || "Sánchez Ramírez");
+    const phone = String(customer?.phone || "");
     
     // Método de pago
     const paymentMethod = 
@@ -672,7 +672,7 @@ export class PrinterService {
       payment.method === 'check' ? 'Cheque' : 
       payment.method === 'card' ? 'Tarjeta' : 'No especificado';
     
-    // Añadir información del cliente
+    // Añadir información del cliente - aseguramos que todo sea string
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
     doc.text(`Dirección: ${address}, ${municipality}`, 10, yPos); yPos += 4;
@@ -1494,13 +1494,13 @@ export class PrinterService {
       }
       
       // Separador
-      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 10px 0;"></div>`;
+      printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
       
       // Monto
       const amount = parseFloat(payment.amount || 0);
       
       printContent.innerHTML += `
-        <div style="text-align: center; font-size: 14px; font-weight: bold; margin: 10px 0;">
+        <div style="text-align: center; font-size: 12px; font-weight: bold; margin: 5px 0;">
           MONTO PAGADO: RD$ ${amount.toFixed(2)}
         </div>
       `;
@@ -1508,8 +1508,8 @@ export class PrinterService {
       // Notas (si hay)
       if (payment.notes) {
         printContent.innerHTML += `
-          <div style="margin-top: 10px; font-size: 10px;">
-            <div style="font-weight: bold; margin-bottom: 3px;">Nota:</div>
+          <div style="margin-top: 5px; font-size: 8px;">
+            <div style="font-weight: bold; margin-bottom: 2px;">Nota:</div>
             <div>${payment.notes}</div>
           </div>
         `;
@@ -1517,16 +1517,16 @@ export class PrinterService {
       
       // Espacio para firma
       printContent.innerHTML += `
-        <div style="margin-top: 20px; text-align: center;">
-          <div style="margin-bottom: 15px;">____________________________</div>
-          <div>Firma</div>
+        <div style="margin-top: 15px; text-align: center;">
+          <div style="margin-bottom: 10px;">____________________________</div>
+          <div style="font-size: 9px;">Firma</div>
         </div>
       `;
       
       // Separador final
       printContent.innerHTML += `
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
-        <div style="text-align: center; margin-top: 10px; font-size: 11px;">
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
+        <div style="text-align: center; margin-top: 5px; font-size: 9px;">
           ¡Gracias por su compra!
         </div>
       `;
