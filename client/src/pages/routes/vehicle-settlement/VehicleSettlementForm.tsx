@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart4, Truck, Loader2, PillBottle } from "lucide-react";
-import type { VehicleLoading, Product, User, Truck as TruckType, BottleReturn } from "@shared/schema";
+import { BarChart4, Truck, Loader2, PillBottle, FileText, DollarSign, CreditCard } from "lucide-react";
+import type { VehicleLoading, Product, User, Truck as TruckType, BottleReturn, Route, Order } from "@shared/schema";
 
 // Esquema para validar formulario de cuadre
 const settlementSchema = z.object({
@@ -34,6 +34,7 @@ const settlementSchema = z.object({
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
   driver: User;
+  route?: Route;
   items: Array<{
     id: number;
     productId: number;
@@ -49,9 +50,10 @@ interface ExtendedBottleReturn extends BottleReturn {
   productName?: string;
 }
 
-// Extender la respuesta de la API para incluir los datos de devolución de envases
+// Extender la respuesta de la API para incluir los datos de devolución de envases y órdenes relacionadas
 interface SettlementResponse {
   loading: LoadingWithRelations;
+  relatedOrders: Order[];
   bottleReturns: ExtendedBottleReturn[];
 }
 
@@ -67,6 +69,9 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   const [calculatedTotals, setCalculatedTotals] = useState({
     cashDifference: "0.00",
     totalSold: "0.00",
+    cashSales: "0.00",
+    creditSales: "0.00",
+    expectedCash: "0.00",
   });
 
   // Preparar valores iniciales para el formulario
@@ -92,6 +97,12 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     defaultValues,
   });
   
+  // Cargar los datos de settlement incluyendo órdenes relacionadas
+  const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
+    queryKey: ["/api/route-settlements", loading.id],
+    enabled: !!loading.id,
+  });
+  
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
   const calculateDifferences = useCallback(() => {
     const values = form.getValues();
@@ -107,6 +118,29 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         totalSold += price * item.soldQuantity;
       }
     });
+    
+    let calculatedCreditSales = 0;
+    let calculatedCashSales = 0;
+    
+    // Si tenemos órdenes relacionadas, usar esos datos para calcular
+    if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
+      const orders = settlementData.relatedOrders;
+      
+      // Calcular ventas en efectivo y ventas a crédito basado en las órdenes
+      calculatedCashSales = orders
+        .filter(order => order.paymentType === "cash")
+        .reduce((sum, order) => sum + parseFloat(order.total), 0);
+        
+      calculatedCreditSales = orders
+        .filter(order => order.paymentType === "credit")
+        .reduce((sum, order) => sum + parseFloat(order.total), 0);
+        
+      // Actualizar los valores del formulario
+      form.setValue("totalCreditReceived", calculatedCreditSales.toFixed(2));
+      
+      // El Total Facturado es la suma de todas las órdenes
+      totalSold = orders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+    }
     
     // El Total Facturado y el Total Vendido son iguales (el monto total de productos vendidos)
     const totalInvoiced = totalSold;
@@ -126,14 +160,11 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     setCalculatedTotals({
       cashDifference,
       totalSold: totalSold.toFixed(2),
+      cashSales: calculatedCashSales.toFixed(2),
+      creditSales: calculatedCreditSales.toFixed(2),
+      expectedCash: expectedCash.toFixed(2),
     });
-  }, [form, loading.items, loading.initialCash]);
-
-  // Cargar los datos de devolución de envases
-  const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
-    queryKey: ["/api/route-settlements", loading.id],
-    enabled: !!loading.id,
-  });
+  }, [form, loading.items, loading.initialCash, settlementData]);
   
   // Efecto para actualizar los valores de envases devueltos cuando se carguen los datos
   useEffect(() => {

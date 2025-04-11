@@ -98,7 +98,7 @@ export async function registerRouteSettlements(app: Express) {
     try {
       const loadingId = parseInt(req.params.loadingId);
       
-      // Obtener la carga con sus items
+      // Obtener la carga con sus items y la ruta asociada
       const loading = await db.query.vehicleLoading.findFirst({
         where: eq(vehicleLoading.id, loadingId),
         with: {
@@ -108,7 +108,8 @@ export async function registerRouteSettlements(app: Express) {
             }
           },
           truck: true,
-          driver: true
+          driver: true,
+          route: true
         }
       });
 
@@ -121,8 +122,19 @@ export async function registerRouteSettlements(app: Express) {
 
       // Obtenemos las devoluciones de envases para las órdenes del conductor
       let bottleReturnData: any[] = [];
+      // Inicializar el array de órdenes relacionadas
+      let relatedOrders: any[] = [];
       
-      if (loading.driverId) {
+      // Si tenemos una ruta asociada a la carga, obtenemos sus órdenes
+      if (loading.routeId) {
+        relatedOrders = await db
+          .select()
+          .from(orders)
+          .where(eq(orders.routeId, loading.routeId))
+          .orderBy(orders.createdAt);
+      } 
+      // Si no hay ruta asociada, usar el enfoque anterior basado en el conductor
+      else if (loading.driverId) {
         // 1. Obtener las rutas asignadas al conductor desde que se creó la carga
         const driverRoutes = await db
           .select({
@@ -135,45 +147,46 @@ export async function registerRouteSettlements(app: Express) {
         
         if (routeIds.length > 0) {
           // 2. Obtener las órdenes asociadas a esas rutas
-          const routeOrders = await db
-            .select({
-              id: orders.id
-            })
+          relatedOrders = await db
+            .select()
             .from(orders)
-            .where(inArray(orders.routeId, routeIds));
-          
-          const orderIds = routeOrders.map(order => order.id);
-          
-          if (orderIds.length > 0) {
-            // 3. Obtener todas las devoluciones de envases para esas órdenes
-            const returns = await db
-              .select()
-              .from(bottleReturns)
-              .where(inArray(bottleReturns.orderId, orderIds));
-              
-            // 4. Para cada devolución, obtener el nombre del producto correspondiente
-            bottleReturnData = await Promise.all(
-              returns.map(async (bottleReturn) => {
-                // Buscar el producto por ID
-                const product = await db
-                  .select({ name: products.name })
-                  .from(products)
-                  .where(eq(products.id, bottleReturn.productId))
-                  .then(results => results[0]);
-                
-                // Devolver la devolución con el nombre del producto
-                return {
-                  ...bottleReturn,
-                  productName: product?.name || `Producto #${bottleReturn.productId}`
-                };
-              })
-            );
-          }
+            .where(inArray(orders.routeId, routeIds))
+            .orderBy(orders.createdAt);
         }
+      }
+      
+      // Obtener devoluciones de envases si hay órdenes relacionadas
+      if (relatedOrders.length > 0) {
+        const orderIds = relatedOrders.map(order => order.id);
+          
+        // Obtener todas las devoluciones de envases para esas órdenes
+        const returns = await db
+          .select()
+          .from(bottleReturns)
+          .where(inArray(bottleReturns.orderId, orderIds));
+              
+        // Para cada devolución, obtener el nombre del producto correspondiente
+        bottleReturnData = await Promise.all(
+          returns.map(async (bottleReturn) => {
+            // Buscar el producto por ID
+            const product = await db
+              .select({ name: products.name })
+              .from(products)
+              .where(eq(products.id, bottleReturn.productId))
+              .then(results => results[0]);
+                
+            // Devolver la devolución con el nombre del producto
+            return {
+              ...bottleReturn,
+              productName: product?.name || `Producto #${bottleReturn.productId}`
+            };
+          })
+        );
       }
 
       res.json({
         loading,
+        relatedOrders,
         bottleReturns: bottleReturnData
       });
     } catch (error) {
