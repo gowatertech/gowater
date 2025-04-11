@@ -107,7 +107,6 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   const calculateDifferences = useCallback(() => {
     const values = form.getValues();
     const totalCashReceived = parseFloat(values.totalCashReceived) || 0;
-    const totalCreditReceived = parseFloat(values.totalCreditReceived) || 0;
     
     // Total vendido basado en la cantidad vendida de cada producto
     let totalSold = 0;
@@ -136,7 +135,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         .filter(order => order.paymentType === "credit")
         .reduce((sum, order) => sum + parseFloat(order.total), 0);
         
-      // Solo actualizar el crédito recibido automáticamente, no el efectivo
+      // SIEMPRE establecer el crédito recibido automáticamente (es de solo lectura)
       form.setValue("totalCreditReceived", calculatedCreditSales.toFixed(2));
       
       // El Total Facturado es la suma de todas las órdenes - solo actualizarlo la primera vez
@@ -152,6 +151,9 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     
     // Efectivo inicial de la carga
     const initialCash = parseFloat(loading.initialCash || "0");
+    
+    // Obtener el valor actualizado de totalCreditReceived
+    const totalCreditReceived = parseFloat(form.getValues().totalCreditReceived) || 0;
     
     // Calcular monto total en efectivo que se debería recibir
     // Esto es: Efectivo Inicial + Efectivo Vendido (Total Facturado - Crédito Otorgado)
@@ -401,33 +403,13 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                           {...field} 
                           type="text" 
                           inputMode="decimal"
-                          onBlur={(e) => {
-                            // Formatear el valor para mostrar dos decimales
-                            const value = e.target.value.trim();
-                            // Si no hay punto decimal, añadir .00
-                            let formattedValue;
-                            if (value && !value.includes('.')) {
-                              formattedValue = parseFloat(value).toFixed(2);
-                            } else {
-                              formattedValue = (parseFloat(value) || 0).toFixed(2);
-                            }
-                            e.target.value = formattedValue;
-                            field.onChange(formattedValue);
-                            handleChange();
-                          }}
-                          onChange={(e) => {
-                            // Permitir solo números y un punto decimal
-                            const value = e.target.value.replace(/[^\d.]/g, '');
-                            // Prevenir múltiples puntos decimales
-                            const parts = value.split('.');
-                            const newValue = parts.length > 2 
-                              ? parts[0] + '.' + parts.slice(1).join('') 
-                              : value;
-                            field.onChange(newValue);
-                            handleChange();
-                          }}
+                          className="bg-gray-50"
+                          readOnly
+                          // Garantiza que siempre se muestre con dos decimales en UI
+                          value={(parseFloat(field.value) || 0).toFixed(2)}
                         />
                       </FormControl>
+                      <p className="text-xs text-gray-500 mt-1">Total de ventas a crédito (calculado automáticamente)</p>
                       <FormMessage />
                     </FormItem>
                   )}
