@@ -640,13 +640,13 @@ export class PrinterService {
   ): number {
     // Título
     let yPos = startY;
-    doc.setFontSize(14);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`RECIBO DE PAGO #${payment.id || 'N/A'}`, 105, yPos, { align: 'center' });
-    yPos += 8;
+    doc.text(`RECIBO DE PAGO #${payment.id || 'N/A'}`, 40, yPos, { align: 'center' });
+    yPos += 5;
     
     // Datos del cliente y pago
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     
     // Fecha
@@ -672,45 +672,18 @@ export class PrinterService {
       payment.method === 'check' ? 'Cheque' : 
       payment.method === 'card' ? 'Tarjeta' : 'No especificado';
     
-    // Diseño de dos columnas para información
-    const col1X = 20;
-    const col2X = 120;
-    
-    // Columna izquierda - Información del cliente
-    doc.setFont('helvetica', 'bold');
-    doc.text("INFORMACIÓN DEL CLIENTE", col1X, yPos);
-    yPos += 6;
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Cliente: ${businessName}`, col1X, yPos); yPos += 5;
-    doc.text(`Dirección: ${address}`, col1X, yPos); yPos += 5;
-    doc.text(`${municipality}, ${province}`, col1X, yPos); yPos += 5;
-    doc.text(`Teléfono: ${phone}`, col1X, yPos); yPos += 5;
-    
-    // Regresa a la posición inicial para la columna derecha
-    let rightColY = yPos - 21;
-    
-    // Columna derecha - Información del pago
-    doc.setFont('helvetica', 'bold');
-    doc.text("INFORMACIÓN DEL PAGO", col2X, rightColY);
-    rightColY += 6;
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha: ${formattedDate}`, col2X, rightColY); rightColY += 5;
-    doc.text(`Método: ${paymentMethod}`, col2X, rightColY); rightColY += 5;
-    
-    if (payment.invoiceNumber) {
-      doc.text(`Factura #: ${payment.invoiceNumber}`, col2X, rightColY);
-      rightColY += 5;
-    }
-    
-    // Avanzamos a la posición más baja entre ambas columnas
-    yPos = Math.max(yPos, rightColY) + 5;
+    // Añadir información del cliente
+    doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
+    doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
+    doc.text(`Dirección: ${address}, ${municipality}`, 10, yPos); yPos += 4;
+    doc.text(`Provincia: ${province}`, 10, yPos); yPos += 4;
+    doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
     
     // Línea separadora
+    yPos += 2;
     doc.setDrawColor(200);
-    doc.line(20, yPos, 190, yPos);
-    yPos += 8;
+    doc.line(5, yPos, 75, yPos);
+    yPos += 5;
     
     // Encabezado de detalles
     doc.setFontSize(9);
@@ -743,49 +716,34 @@ export class PrinterService {
     doc.line(5, yPos, 75, yPos);
     yPos += 5;
     
-    // Monto total en formato destacado
+    // Monto total
     const amount = parseFloat(payment.amount || 0);
     
-    doc.setFontSize(14);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("DETALLE DE PAGO", 105, yPos, { align: 'center' });
-    yPos += 8;
-    
-    // Usar una tabla para mejor visualización
-    doc.setFontSize(12);
-    doc.text("MONTO PAGADO:", 60, yPos, { align: 'right' });
-    doc.text(`RD$${amount.toFixed(2)}`, 150, yPos, { align: 'right' });
+    doc.text(`MONTO PAGADO: RD$${amount.toFixed(2)}`, 75, yPos, { align: 'right' });
     yPos += 10;
-    
-    // Línea separadora
-    doc.setDrawColor(200);
-    doc.line(20, yPos, 190, yPos);
-    yPos += 8;
     
     // Notas (si hay)
     if (payment.notes) {
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text("NOTAS:", 20, yPos);
-      yPos += 6;
+      doc.setFontSize(8);
+      doc.text("Nota:", 5, yPos);
+      yPos += 4;
       
       // Dividir notas en líneas si son muy largas
-      const maxWidth = 170; // Ancho máximo en mm para notas en tamaño carta
+      const maxWidth = 70; // Ancho máximo en mm para notas
       const splitNotes = doc.splitTextToSize(payment.notes, maxWidth);
       
-      doc.text(splitNotes, 20, yPos);
-      yPos += splitNotes.length * 6;
+      doc.text(splitNotes, 5, yPos);
+      yPos += splitNotes.length * 4;
     }
     
     // Línea para firma
-    yPos += 20;
-    doc.setFontSize(10);
+    yPos += 10;
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text("RECIBIDO POR:", 55, yPos, { align: 'right' });
-    doc.text("___________________________", 130, yPos, { align: 'center' });
-    yPos += 15;
-    doc.text("FIRMA Y SELLO:", 55, yPos, { align: 'right' });
-    doc.text("___________________________", 130, yPos, { align: 'center' });
+    doc.text("Firma: _______________________", 40, yPos, { align: 'center' });
     
     return yPos;
   }
@@ -1599,7 +1557,7 @@ export class PrinterService {
         DocumentType.PAYMENT,
         {
           title: `Recibo de Pago #${payment.id || 'N/A'}`,
-          size: [210, 297], // Tamaño carta estándar (A4)
+          size: [80, 200], // Formato 80mm (formato de ticket)
           fileName: `ReciboPago-${payment.id || 'N/A'}.pdf`
         },
         {
