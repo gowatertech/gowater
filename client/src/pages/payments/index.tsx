@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PrinterService, DocumentType } from "@/services/PrinterService";
+import { useToast } from "@/hooks/use-toast";
 import {
   CalendarDays,
   CheckCircle,
@@ -16,7 +18,9 @@ import {
   Calendar,
   FileStack,
   ArrowUpDown,
-  Filter
+  Filter,
+  Printer,
+  FileDown
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useTranslation } from "react-i18next";
@@ -78,12 +82,14 @@ interface PaymentsStats {
 
 export default function PaymentDashboard() {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [location, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [filters, setFilters] = useState({
     method: "all" as "all" | "cash" | "card" | "transfer"
   });
+  const printContentRef = useRef<HTMLDivElement>(null);
 
   console.log("Fetching data from /api/payments");
   // Consulta para obtener pagos
@@ -214,9 +220,159 @@ export default function PaymentDashboard() {
 
     return <Badge variant={variant}>{label}</Badge>;
   };
+  
+  // Función para imprimir la lista de pagos
+  const handlePrint = async () => {
+    try {
+      // Verificar que tenemos datos para imprimir
+      if (!filteredPayments || filteredPayments.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No hay datos de pagos para imprimir",
+        });
+        return;
+      }
+      
+      // Crear contenido para imprimir
+      const printContent = document.createElement('div');
+      printContent.innerHTML = `
+        <div style="padding: 20px;">
+          <h1 style="text-align: center; font-size: 18px; margin-bottom: 10px;">Pagos Recientes</h1>
+          <p style="text-align: center; margin-bottom: 20px;">Total: ${formatCurrency(paymentsStats.totalMonth)} (este mes)</p>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f3f4f6;">
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Fecha</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Cliente</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Factura</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Método</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredPayments.slice(0, 15).map(payment => `
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 8px;">${format(new Date(payment.date), 'dd/MM/yyyy')}</td>
+                  <td style="padding: 8px;">${payment.customerName || '-'}</td>
+                  <td style="padding: 8px;">${payment.invoiceNumber || '-'}</td>
+                  <td style="padding: 8px;">${
+                    (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+                    (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+                    (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+                    (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro'
+                  }</td>
+                  <td style="padding: 8px; text-align: right;">${formatCurrency(payment.amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      // Usar PrinterService para imprimir
+      await PrinterService.printDocument(printContent, {
+        title: "Pagos Recientes",
+        size: [210, 297], // A4
+        margins: [10, 10, 10, 10]
+      });
+      
+    } catch (error: any) {
+      console.error('Error en handlePrint:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo imprimir el documento",
+      });
+    }
+  };
+  
+  // Función para generar PDF de pagos
+  const handleGeneratePDF = async () => {
+    try {
+      // Verificar que tenemos los datos necesarios
+      if (!filteredPayments || filteredPayments.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No hay datos para generar el PDF",
+        });
+        return;
+      }
+      
+      // Usar el servicio para generar PDF
+      const paymentData = {
+        title: "Pagos Recientes",
+        date: new Date().toISOString(),
+        totalAmount: paymentsStats.totalMonth,
+        totalCount: filteredPayments.length
+      };
+      
+      const fileName = `pagos_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      
+      // Generar PDF usando el servicio centralizado
+      await PrinterService.generatePDFDirect(
+        paymentData,
+        DocumentType.PAYMENT,
+        {
+          title: "Pagos Recientes",
+          fileName,
+          size: [210, 297] // A4
+        },
+        {
+          items: filteredPayments.slice(0, 15) // Limitamos a 15 elementos para no sobrecargar el PDF
+        }
+      );
+      
+    } catch (error: any) {
+      console.error('Error en handleGeneratePDF:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo generar el PDF",
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto p-2 md:p-4">
+      {/* Contenido imprimible (oculto) */}
+      <div ref={printContentRef} className="hidden">
+        <div style={{padding: "20px"}}>
+          <h1 style={{textAlign: "center", fontSize: "18px", marginBottom: "10px"}}>Pagos Recientes</h1>
+          <p style={{textAlign: "center", marginBottom: "20px"}}>Total: {formatCurrency(paymentsStats.totalMonth)} (este mes)</p>
+          
+          <table style={{width: "100%", borderCollapse: "collapse"}}>
+            <thead>
+              <tr style={{backgroundColor: "#f3f4f6"}}>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Fecha</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Cliente</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Factura</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Método</th>
+                <th style={{textAlign: "right", padding: "8px", borderBottom: "1px solid #ddd"}}>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPayments.slice(0, 15).map(payment => (
+                <tr key={payment.id} style={{borderBottom: "1px solid #eee"}}>
+                  <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy')}</td>
+                  <td style={{padding: "8px"}}>{payment.customerName || '-'}</td>
+                  <td style={{padding: "8px"}}>{payment.invoiceNumber || '-'}</td>
+                  <td style={{padding: "8px"}}>
+                    {(payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+                    (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+                    (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+                    (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro'}
+                  </td>
+                  <td style={{padding: "8px", textAlign: "right"}}>{formatCurrency(payment.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
       <div className="flex flex-col space-y-4">
         {/* Encabezado */}
         <div className="flex justify-between items-center">
@@ -335,14 +491,34 @@ export default function PaymentDashboard() {
                 <FileStack className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg">Pagos Recientes</CardTitle>
               </div>
-              <Button 
-                size="sm" 
-                variant="outline"
-                className="h-8 text-xs w-full sm:w-auto"
-                onClick={() => setLocation("/payments/history")}
-              >
-                Ver Historial Completo
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={handlePrint}
+                >
+                  <Printer className="h-3.5 w-3.5 mr-1" />
+                  <span className="hidden sm:inline">Imprimir</span>
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={handleGeneratePDF}
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="h-8 text-xs w-full sm:w-auto"
+                  onClick={() => setLocation("/payments/history")}
+                >
+                  Ver Historial Completo
+                </Button>
+              </div>
             </div>
             <CardDescription className="text-xs sm:text-sm mt-1">
               Últimos pagos registrados en el sistema
