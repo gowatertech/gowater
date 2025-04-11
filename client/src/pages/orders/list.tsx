@@ -207,7 +207,7 @@ export default function OrdersList() {
     }
   };
   
-  // Función para generar PDF del pedido
+  // Función para generar PDF del pedido usando PrinterService
   const handleGeneratePdf = async (orderId: number) => {
     try {
       // Primero obtener los detalles del pedido
@@ -237,8 +237,8 @@ export default function OrdersList() {
       // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
       
-      // Llamar al servicio para generar PDF
-      generateOrderPdf(order, orderItems, customer, companySettings, products, toast, jsPDF);
+      // Usar el servicio PrinterService centralizado para generar PDF
+      await PrinterService.generateOrderPDF(order, orderItems, customer, companySettings, products);
     } catch (error: any) {
       console.error('Error en handleGeneratePdf:', error);
       toast({
@@ -249,7 +249,6 @@ export default function OrdersList() {
     }
   };
 
-  // Función para descargar el pedido como PDF
   // Función para descargar el pedido como PDF utilizando el servicio PrinterService
   const handleDownload = async (orderId: number) => {
     try {
@@ -286,8 +285,8 @@ export default function OrdersList() {
       // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
       
-      // Llamar al servicio para generar PDF
-      generateOrderPdf(order, orderItems, customer, companySettings, products, toast, jsPDF);
+      // Usar el servicio PrinterService centralizado para generar PDF
+      await PrinterService.generateOrderPDF(order, orderItems, customer, companySettings, products);
     } catch (error: any) {
       console.error("Error en handleDownload:", error);
       toast({

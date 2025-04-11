@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useLocation } from "wouter";
+import { PrinterService, DocumentType } from "@/services/PrinterService";
 import { 
   CheckCircle, 
   XCircle, 
@@ -20,7 +21,8 @@ import {
   AlertCircle,
   DownloadCloud,
   Printer,
-  ArrowLeft
+  ArrowLeft,
+  FileDown
 } from "lucide-react";
 
 import {
@@ -292,6 +294,123 @@ export default function PaymentsHistory() {
 
     return <Badge variant={variant}>{label}</Badge>;
   };
+  
+  // Referencia al contenido que se va a imprimir
+  const printContentRef = useRef<HTMLDivElement>(null);
+  
+  // Función para imprimir la lista de pagos usando PrinterService
+  const handlePrint = async () => {
+    try {
+      // Verificar que tenemos el contenido a imprimir
+      if (!printContentRef.current) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se puede generar la impresión",
+        });
+        return;
+      }
+      
+      // Crear copia del contenido para impresión
+      const printContent = document.createElement('div');
+      printContent.innerHTML = `
+        <div style="padding: 20px;">
+          <h1 style="text-align: center; font-size: 18px; margin-bottom: 10px;">Historial de Pagos</h1>
+          <p style="text-align: center; margin-bottom: 20px;">Total: ${formatCurrency(paymentsStats.totalAmount)} - ${paymentsStats.totalCount} transacciones</p>
+          
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #f3f4f6;">
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Fecha</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Cliente</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Factura</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Método</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredPayments.map(payment => `
+                <tr style="border-bottom: 1px solid #eee;">
+                  <td style="padding: 8px;">${format(new Date(payment.date), 'dd/MM/yyyy')}</td>
+                  <td style="padding: 8px;">${payment.customerName}</td>
+                  <td style="padding: 8px;">${payment.invoiceNumber}</td>
+                  <td style="padding: 8px;">${
+                    payment.paymentMethod === 'cash' ? 'Efectivo' :
+                    payment.paymentMethod === 'card' ? 'Tarjeta' :
+                    payment.paymentMethod === 'credit' ? 'Crédito' :
+                    payment.paymentMethod === 'transfer' ? 'Transferencia' : 'Otro'
+                  }</td>
+                  <td style="padding: 8px; text-align: right;">${formatCurrency(payment.amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      
+      // Usar PrinterService para imprimir
+      await PrinterService.printDocument(printContent, {
+        title: "Historial de Pagos",
+        size: [210, 297], // A4
+        margins: [10, 10, 10, 10]
+      });
+      
+    } catch (error: any) {
+      console.error('Error en handlePrint:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo imprimir el documento",
+      });
+    }
+  };
+  
+  // Función para generar PDF del historial de pagos
+  const handleGeneratePDF = async () => {
+    try {
+      // Verificar que tenemos los datos necesarios
+      if (!filteredPayments || filteredPayments.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No hay datos para generar el PDF",
+        });
+        return;
+      }
+      
+      // Usar el servicio para generar PDF
+      const paymentData = {
+        title: "Historial de Pagos",
+        date: new Date().toISOString(),
+        totalAmount: paymentsStats.totalAmount,
+        totalCount: paymentsStats.totalCount
+      };
+      
+      const fileName = `pagos_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+      
+      // Generar PDF usando el servicio centralizado
+      await PrinterService.generatePDFDirect(
+        paymentData,
+        DocumentType.PAYMENT,
+        {
+          title: "Historial de Pagos",
+          fileName,
+          size: [210, 297] // A4
+        },
+        {
+          items: filteredPayments
+        }
+      );
+      
+    } catch (error: any) {
+      console.error('Error en handleGeneratePDF:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo generar el PDF",
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto px-2 sm:px-4 pb-16">
@@ -333,13 +452,19 @@ export default function PaymentsHistory() {
               variant="outline" 
               size="sm" 
               className="flex items-center gap-1 text-xs"
-              onClick={() => {
-                // Implementar la función de imprimir
-                window.print();
-              }}
+              onClick={handlePrint}
             >
               <Printer className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Imprimir</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 text-xs"
+              onClick={handleGeneratePDF}
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">PDF</span>
             </Button>
             <Button 
               variant="outline" 
