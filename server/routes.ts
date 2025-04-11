@@ -537,9 +537,12 @@ export async function registerRoutes(app: Express) {
   app.get("/api/routes", async (req, res) => {
     try {
       console.log("GET /api/routes - Obteniendo todas las rutas");
+      console.log("Query params:", req.query);
       
       // Si se especifica un filtro de estado
       let statusFilter = req.query.status;
+      console.log("Tipo de statusFilter:", typeof statusFilter, "Valor:", statusFilter);
+      
       let query = db.select().from(routes);
       
       // Aplicar filtro si se especificó
@@ -549,6 +552,11 @@ export async function registerRoutes(app: Express) {
           // Es un array de estados (por ejemplo: ["pending", "in_progress"])
           console.log(`GET /api/routes - Filtrando por estados: ${statusFilter.join(', ')}`);
           query = query.where(inArray(routes.status, statusFilter as any[]));
+        } else if (typeof statusFilter === 'string' && statusFilter.includes(',')) {
+          // Es una string con valores separados por comas - convertir a array
+          const statusArray = statusFilter.split(',');
+          console.log(`GET /api/routes - Filtrando por estados: ${statusArray.join(', ')}`);
+          query = query.where(inArray(routes.status, statusArray as any[]));
         } else {
           // Es un solo estado (string)
           statusFilter = statusFilter.toString();
