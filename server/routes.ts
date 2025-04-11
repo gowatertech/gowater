@@ -539,13 +539,22 @@ export async function registerRoutes(app: Express) {
       console.log("GET /api/routes - Obteniendo todas las rutas");
       
       // Si se especifica un filtro de estado
-      const statusFilter = req.query.status ? req.query.status.toString() : null;
+      let statusFilter = req.query.status;
       let query = db.select().from(routes);
       
       // Aplicar filtro si se especificó
       if (statusFilter) {
-        console.log(`GET /api/routes - Filtrando por estado: ${statusFilter}`);
-        query = query.where(eq(routes.status, statusFilter as any));
+        // Verificar si es un array o un valor único
+        if (Array.isArray(statusFilter)) {
+          // Es un array de estados (por ejemplo: ["pending", "in_progress"])
+          console.log(`GET /api/routes - Filtrando por estados: ${statusFilter.join(', ')}`);
+          query = query.where(inArray(routes.status, statusFilter as any[]));
+        } else {
+          // Es un solo estado (string)
+          statusFilter = statusFilter.toString();
+          console.log(`GET /api/routes - Filtrando por estado: ${statusFilter}`);
+          query = query.where(eq(routes.status, statusFilter as any));
+        }
       }
       
       // Ordenar por fecha, más recientes primero

@@ -82,8 +82,9 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     queryKey: ["/api/products"],
   });
   
+  // Cargar solo rutas activas (con estado pending o in_progress)
   const { data: routes = [] } = useQuery<Route[]>({
-    queryKey: ["/api/routes", { status: "pending" }],
+    queryKey: ["/api/routes", { status: ["pending", "in_progress"] }],
   });
 
   const onSubmit = async (values: InsertVehicleLoading) => {
