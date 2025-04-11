@@ -482,7 +482,7 @@ export class PrinterService {
     let yPos = startY;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`PEDIDO #${order.id || 'N/A'}`, 40, yPos, { align: 'center' });
+    doc.text(`PEDIDO #${String(order.id || 'N/A')}`, 40, yPos, { align: 'center' });
     yPos += 5;
     
     // Datos del cliente y pedido
@@ -497,15 +497,15 @@ export class PrinterService {
       formattedDate = 'Fecha no disponible';
     }
     
-    // Cliente
-    const customer = extraData.customer;
-    const businessName = customer?.businessname || order.customerName || "Cliente";
-    const address = customer?.address || order.customerAddress || "";
-    const municipality = customer?.municipality || order.municipalityName || "Cotuí";
-    const province = customer?.province || order.provinceName || "Sánchez Ramírez";
-    const phone = customer?.phone || order.customerPhone || "";
+    // Cliente - convertimos todos los valores a String para prevenir errores
+    const customer = extraData.customer || {};
+    const businessName = String(customer?.businessname || order.customerName || "Cliente");
+    const address = String(customer?.address || order.customerAddress || "");
+    const municipality = String(customer?.municipality || order.municipalityName || "Cotuí");
+    const province = String(customer?.province || order.provinceName || "Sánchez Ramírez");
+    const phone = String(customer?.phone || order.customerPhone || "");
     
-    // Añadir información del cliente
+    // Añadir información del cliente - aseguramos que todo sea string
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
     doc.text(`Dirección: ${address}, ${municipality}`, 10, yPos); yPos += 4;
