@@ -469,58 +469,17 @@ export default function PaymentDashboard() {
     }
   };
   
-  // Función para generar PDF de un pago individual (formato 80mm)
+  // Función para generar un pago individual (formato 80mm) con previsualización HTML
   const handleSinglePaymentPDF = async (payment: Payment) => {
     try {
       if (!payment) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "No se puede generar el PDF del pago",
+          description: "No se puede generar el recibo del pago",
         });
         return;
       }
-      
-      // Generar PDF directamente en formato 80mm para impresora térmica
-      const doc = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: [80, 120], // Ancho estándar para impresoras térmicas
-        hotfixes: ['px_scaling']
-      });
-      
-      // Configuración de página para impresión térmica
-      doc.setProperties({
-        title: `Recibo de Pago #${payment.id || 'N/A'}`,
-        subject: 'Recibo de Pago',
-        creator: 'AGUA HARRIS',
-      });
-      
-      // Añadir contenido
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('AGUA HARRIS', 40, 10, { align: 'center' });
-      
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Calle Duarte #112, Villa Altagracia', 40, 15, { align: 'center' });
-      doc.text('RNC: 999999999', 40, 19, { align: 'center' });
-      
-      // Línea separadora
-      doc.setDrawColor(150);
-      doc.line(5, 22, 75, 22);
-      
-      // Título
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('RECIBO DE PAGO', 40, 27, { align: 'center' });
-      
-      // Datos del pago
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`Fecha: ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}`, 5, 35);
-      doc.text(`Cliente: ${payment.customerName || 'N/A'}`, 5, 40);
-      doc.text(`Factura #: ${payment.invoiceNumber || 'N/A'}`, 5, 45);
       
       // Método de pago
       const metodoPago = 
@@ -529,56 +488,222 @@ export default function PaymentDashboard() {
         (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
         (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro';
       
-      doc.text(`Método: ${metodoPago}`, 5, 50);
-      
-      // Segunda línea separadora
-      doc.line(5, 55, 75, 55);
-      
-      // Total
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('TOTAL PAGADO:', 5, 62);
-      doc.text(`${formatCurrency(payment.amount)}`, 75, 62, { align: 'right' });
-      
-      // Notas (si hay)
-      let yPos = 70;
-      if (payment.notes) {
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Notas:', 5, yPos);
-        yPos += 5;
-        
-        // Dividir notas largas
-        const splitNotes = doc.splitTextToSize(payment.notes, 70);
-        doc.text(splitNotes, 5, yPos);
-        yPos += splitNotes.length * 4 + 5;
-      } else {
-        yPos += 10;
+      // Crear ventana de previsualización
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo abrir la ventana de previsualización. Verifica que no estén bloqueados los popups.",
+        });
+        return;
       }
       
-      // Pie de página
-      doc.setFontSize(8);
-      doc.text('Gracias por su pago', 40, yPos, { align: 'center' });
-      yPos += 5;
-      doc.text('www.aguaharris.com', 40, yPos, { align: 'center' });
-      yPos += 5;
-      doc.text('Tel: 809-873-8333', 40, yPos, { align: 'center' });
+      // Establecer el contenido HTML con un formato fijo de 80mm
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Recibo de Pago #${payment.id || 'N/A'}</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            /* Estilos generales */
+            body {
+              font-family: Arial, sans-serif;
+              margin: 0;
+              padding: 0;
+              background-color: #f0f0f0;
+              display: flex;
+              justify-content: center;
+              padding: 20px;
+            }
+            
+            /* Contenedor del recibo con ancho fijo de 80mm */
+            .receipt {
+              width: 80mm;
+              background: white;
+              box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+              padding: 5mm;
+              box-sizing: border-box;
+            }
+            
+            /* Cabecera */
+            .header {
+              text-align: center;
+              margin-bottom: 10px;
+            }
+            
+            .header h1 {
+              font-size: 14px;
+              margin: 0;
+              padding: 0;
+            }
+            
+            .header p {
+              font-size: 10px;
+              margin: 5px 0;
+              padding: 0;
+            }
+            
+            /* Título */
+            .title {
+              text-align: center;
+              margin: 10px 0;
+              border-bottom: 1px dashed #000;
+              padding-bottom: 5px;
+            }
+            
+            .title h2 {
+              font-size: 12px;
+              margin: 0;
+            }
+            
+            /* Contenido */
+            .content {
+              font-size: 10px;
+              margin-bottom: 10px;
+            }
+            
+            .content p {
+              margin: 4px 0;
+            }
+            
+            /* Total */
+            .total {
+              border-top: 1px dashed #000;
+              padding-top: 5px;
+              margin-bottom: 10px;
+            }
+            
+            .total table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            
+            .total td {
+              font-size: 12px;
+              font-weight: bold;
+            }
+            
+            .total td:last-child {
+              text-align: right;
+            }
+            
+            /* Notas */
+            .notes {
+              font-size: 9px;
+              margin-bottom: 10px;
+            }
+            
+            /* Pie de página */
+            .footer {
+              text-align: center;
+              margin-top: 15px;
+              font-size: 9px;
+            }
+            
+            .footer p {
+              margin: 5px 0;
+            }
+            
+            /* Estilos específicos para impresión */
+            @media print {
+              @page {
+                size: 80mm auto;
+                margin: 0;
+              }
+              
+              body {
+                background-color: white;
+                padding: 0;
+              }
+              
+              .receipt {
+                width: 80mm;
+                box-shadow: none;
+                padding: 0 5mm;
+              }
+              
+              .print-button {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="header">
+              <h1>AGUA HARRIS</h1>
+              <p>Calle Duarte #112, Villa Altagracia</p>
+              <p>RNC: 999999999</p>
+            </div>
+            
+            <div class="title">
+              <h2>RECIBO DE PAGO</h2>
+            </div>
+            
+            <div class="content">
+              <p><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</p>
+              <p><strong>Cliente:</strong> ${payment.customerName || 'N/A'}</p>
+              <p><strong>Factura #:</strong> ${payment.invoiceNumber || 'N/A'}</p>
+              <p><strong>Método:</strong> ${metodoPago}</p>
+            </div>
+            
+            <div class="total">
+              <table>
+                <tr>
+                  <td>TOTAL PAGADO:</td>
+                  <td>${formatCurrency(payment.amount)}</td>
+                </tr>
+              </table>
+            </div>
+            
+            ${payment.notes ? `
+            <div class="notes">
+              <p><strong>Notas:</strong> ${payment.notes}</p>
+            </div>` : ''}
+            
+            <div class="footer">
+              <p>Gracias por su pago</p>
+              <p>www.aguaharris.com</p>
+              <p>Tel: 809-873-8333</p>
+            </div>
+            
+            <div class="print-button" style="text-align: center; margin-top: 20px;">
+              <button onclick="window.print();" style="padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                Imprimir Recibo
+              </button>
+            </div>
+          </div>
+          
+          <script>
+            // Imprimir automáticamente después de cargar
+            window.onload = function() {
+              // Dar tiempo para que los estilos se apliquen correctamente
+              setTimeout(function() {
+                window.print();
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `);
       
-      // Abrir preview en nueva ventana (esto se ve mejor como 80mm)
-      doc.autoPrint();
-      window.open(doc.output('bloburl'), '_blank');
+      // Cerrar el documento
+      printWindow.document.close();
       
       toast({
-        title: "PDF generado",
-        description: `Se ha abierto una nueva ventana con el recibo`,
+        title: "Recibo generado",
+        description: "Se ha abierto una nueva ventana con el recibo",
       });
       
     } catch (error: any) {
-      console.error('Error al generar PDF de pago individual:', error);
+      console.error('Error al generar recibo de pago individual:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "No se pudo generar el PDF del recibo",
+        description: error.message || "No se pudo generar el recibo",
       });
     }
   };
