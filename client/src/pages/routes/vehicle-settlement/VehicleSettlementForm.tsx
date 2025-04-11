@@ -77,19 +77,25 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   // Preparar valores iniciales para el formulario
   const defaultValues = {
     vehicleLoadingId: loading.id,
+    // Siempre inicializar explícitamente en 0.00 para evitar valores predeterminados extraños
     totalCashReceived: "0.00",
     totalCreditReceived: "0.00",
     totalInvoiced: "0.00",
     notes: "",
-    items: loading.items.map(item => ({
-      productId: item.productId,
-      loadedQuantity: item.quantity,
-      returnedQuantity: 0,
-      soldQuantity: item.quantity,
-      returnedContainers: 0,
-      notes: "",
-    })),
+    items: loading.items.map(item => {
+      console.log(`Inicializando item ${item.productId}: ${item.product?.name} - cantidad=${item.quantity}`);
+      return {
+        productId: item.productId,
+        loadedQuantity: item.quantity,
+        returnedQuantity: 0,
+        soldQuantity: item.quantity,
+        returnedContainers: 0,
+        notes: "",
+      };
+    }),
   };
+  
+  console.log("Valores iniciales del formulario:", defaultValues);
 
   // Inicializar formulario con validación
   const form = useForm<z.infer<typeof settlementSchema>>({
@@ -121,6 +127,12 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   const calculateDifferences = useCallback(() => {
     console.log("=================== INICIO CÁLCULO ===================");
     console.log("calculateDifferences called");
+    
+    // SOLUCIÓN: Reiniciar valores calculados para evitar valores precargados
+    form.setValue("totalInvoiced", "0.00");
+    form.setValue("totalCreditReceived", "0.00");
+    
+    // Continuar con el cálculo normal
     const values = form.getValues();
     console.log("Form values completo:", JSON.stringify(values, null, 2));
     const totalCashReceived = parseFloat(values.totalCashReceived) || 0;
