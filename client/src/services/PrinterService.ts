@@ -18,7 +18,8 @@ export type PrintOptions = {
 export enum DocumentType {
   INVOICE = 'invoice',
   ORDER = 'order',
-  PAYMENT = 'payment'
+  PAYMENT = 'payment',
+  PAYMENT_RECEIPT = 'payment_receipt'
 }
 
 /**
@@ -256,6 +257,10 @@ export class PrinterService {
           break;
         case DocumentType.PAYMENT:
           yPos = this.addPaymentContent(doc, data, extraData, yPos);
+          break;
+        case DocumentType.PAYMENT_RECEIPT:
+          // Para recibos de pagos individuales, formato 80mm
+          yPos = this.addPaymentReceiptContent(doc, data, extraData, yPos);
           break;
       }
       
@@ -738,6 +743,94 @@ export class PrinterService {
     return yPos;
   }
 
+  /**
+   * Añade contenido específico para recibos de pago individual (formato 80mm)
+   */
+  private static addPaymentReceiptContent(
+    doc: jsPDF, 
+    payment: any, 
+    extraData: { 
+      settings?: any, 
+      customer?: any,
+      items?: any[]
+    }, 
+    startY: number
+  ): number {
+    // Título
+    let yPos = startY;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`RECIBO DE PAGO`, 40, yPos, { align: 'center' });
+    yPos += 5;
+    
+    // Datos del pago
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    
+    // Fecha
+    let formattedDate = '';
+    try {
+      formattedDate = new Date(payment.date).toLocaleDateString();
+    } catch (e) {
+      formattedDate = 'Fecha no disponible';
+    }
+    
+    // Método de pago
+    const paymentMethod = 
+      payment.paymentMethod === 'cash' ? 'Efectivo' : 
+      payment.paymentMethod === 'transfer' ? 'Transferencia' : 
+      payment.paymentMethod === 'check' ? 'Cheque' : 
+      payment.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
+    
+    // Información básica del pago
+    doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
+    
+    if (payment.customerName) {
+      doc.text(`Cliente: ${payment.customerName}`, 10, yPos);
+      yPos += 4;
+    }
+    
+    if (payment.invoiceNumber) {
+      doc.text(`Factura #: ${payment.invoiceNumber}`, 10, yPos);
+      yPos += 4;
+    }
+    
+    doc.text(`Método de pago: ${paymentMethod}`, 10, yPos);
+    yPos += 4;
+    
+    // Línea separadora
+    yPos += 2;
+    doc.setDrawColor(200);
+    doc.line(5, yPos, 75, yPos);
+    yPos += 5;
+    
+    // Monto total en grande y destacado
+    const amount = parseFloat(payment.amount || 0);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`MONTO PAGADO:`, 10, yPos);
+    doc.text(`RD$${amount.toFixed(2)}`, 75, yPos, { align: 'right' });
+    yPos += 8;
+    
+    // Notas (si hay)
+    if (payment.notes) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text("Nota:", 10, yPos);
+      yPos += 4;
+      
+      // Dividir notas en líneas si son muy largas
+      const maxWidth = 65; // Ancho máximo en mm para notas
+      const splitNotes = doc.splitTextToSize(payment.notes, maxWidth);
+      
+      doc.text(splitNotes, 10, yPos);
+      yPos += splitNotes.length * 4;
+    }
+    
+    return yPos;
+  }
+  
   // ----- MÉTODOS ESPECÍFICOS PARA CADA TIPO DE DOCUMENTO -----
 
   /**

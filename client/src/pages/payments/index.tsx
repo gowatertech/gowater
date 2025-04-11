@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, createRef, RefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PrinterService, DocumentType } from "@/services/PrinterService";
 import { useToast } from "@/hooks/use-toast";
@@ -307,6 +307,132 @@ export default function PaymentDashboard() {
       });
     }
   };
+  
+  // Función para imprimir un pago individual (formato 80mm)
+  const handleSinglePaymentPrint = async (payment: Payment) => {
+    try {
+      if (!payment) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se puede imprimir el pago",
+        });
+        return;
+      }
+      
+      // Crear contenido para impresión de recibo
+      const printContent = document.createElement('div');
+      printContent.innerHTML = `
+        <div style="width: 80mm; padding: 5mm;">
+          <div style="text-align: center; margin-bottom: 10px;">
+            <h2 style="font-size: 14px; margin: 0;">AGUA HARRIS</h2>
+            <p style="font-size: 10px; margin: 5px 0;">Calle Duarte #112, Villa Altagracia</p>
+            <p style="font-size: 10px; margin: 5px 0;">RNC: 999999999</p>
+          </div>
+          
+          <div style="margin-bottom: 10px; border-bottom: 1px dashed #000; padding-bottom: 5px;">
+            <h3 style="font-size: 12px; margin: 0; text-align: center;">RECIBO DE PAGO</h3>
+          </div>
+          
+          <div style="font-size: 10px; margin-bottom: 10px;">
+            <p style="margin: 4px 0;"><strong>Fecha:</strong> ${format(new Date(payment.date), 'dd/MM/yyyy HH:mm')}</p>
+            <p style="margin: 4px 0;"><strong>Cliente:</strong> ${payment.customerName || 'N/A'}</p>
+            <p style="margin: 4px 0;"><strong>Factura #:</strong> ${payment.invoiceNumber || 'N/A'}</p>
+            <p style="margin: 4px 0;"><strong>Método:</strong> ${
+              (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
+              (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
+              (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
+              (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro'
+            }</p>
+          </div>
+          
+          <div style="margin-bottom: 10px; border-top: 1px dashed #000; padding-top: 5px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="font-size: 12px;"><strong>TOTAL PAGADO:</strong></td>
+                <td style="font-size: 12px; text-align: right;"><strong>${formatCurrency(payment.amount)}</strong></td>
+              </tr>
+            </table>
+          </div>
+          
+          ${payment.notes ? `
+          <div style="margin-bottom: 10px; font-size: 9px;">
+            <p><strong>Notas:</strong> ${payment.notes}</p>
+          </div>` : ''}
+          
+          <div style="text-align: center; margin-top: 15px; font-size: 9px;">
+            <p style="margin: 0;">Gracias por su pago</p>
+            <p style="margin: 5px 0;">www.aguaharris.com</p>
+            <p style="margin: 5px 0;">Tel: 809-873-8333</p>
+          </div>
+        </div>
+      `;
+      
+      // Usar PrinterService para imprimir el recibo
+      await PrinterService.printDocument(printContent, {
+        title: `Recibo Pago #${payment.id}`,
+        size: [80, 0], // 80mm ancho, altura automática
+        margins: [0, 0, 0, 0] // sin márgenes
+      });
+      
+    } catch (error: any) {
+      console.error('Error al imprimir pago individual:', error);
+      toast({
+        variant: "destructive",
+        title: "Error de impresión",
+        description: error.message || "No se pudo imprimir el recibo",
+      });
+    }
+  };
+  
+  // Función para generar PDF de un pago individual (formato 80mm)
+  const handleSinglePaymentPDF = async (payment: Payment) => {
+    try {
+      if (!payment) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se puede generar el PDF del pago",
+        });
+        return;
+      }
+      
+      // Datos del pago individual
+      const paymentData = {
+        title: "Recibo de Pago",
+        date: payment.date,
+        customer: payment.customerName,
+        invoiceNumber: payment.invoiceNumber,
+        paymentMethod: payment.method || payment.paymentMethod,
+        amount: payment.amount,
+        notes: payment.notes
+      };
+      
+      const fileName = `recibo_${payment.id}_${format(new Date(payment.date), 'yyyy-MM-dd')}.pdf`;
+      
+      // Generar PDF para recibo individual
+      await PrinterService.generatePDFDirect(
+        paymentData,
+        DocumentType.PAYMENT_RECEIPT,
+        {
+          title: "Recibo de Pago",
+          fileName,
+          size: [80, 0] // 80mm ancho, altura automática
+        },
+        {
+          items: [payment] // Solo incluimos un pago
+        }
+      );
+      
+    } catch (error: any) {
+      console.error('Error al generar PDF de pago individual:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo generar el PDF del recibo",
+      });
+    }
+  };
 
   return (
     <div className="container mx-auto p-2 md:p-4">
@@ -598,55 +724,81 @@ export default function PaymentDashboard() {
                           {formatCurrency(payment.amount)}
                         </TableCell>
                         <TableCell className="py-1.5">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                                <FileText className="h-3 w-3" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>Detalles del Pago</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-3 text-sm">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Factura No.</p>
-                                    <p className="font-medium">#{payment.invoiceNumber}</p>
+                          <div className="flex items-center space-x-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSinglePaymentPrint(payment);
+                              }}
+                              title="Imprimir"
+                            >
+                              <Printer className="h-3 w-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSinglePaymentPDF(payment);
+                              }}
+                              title="Generar PDF"
+                            >
+                              <FileDown className="h-3 w-3" />
+                            </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                                  <FileText className="h-3 w-3" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Detalles del Pago</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-3 text-sm">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Factura No.</p>
+                                      <p className="font-medium">#{payment.invoiceNumber}</p>
+                                    </div>
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Cliente</p>
+                                      <p className="font-medium">{payment.customerName}</p>
+                                    </div>
                                   </div>
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Cliente</p>
-                                    <p className="font-medium">{payment.customerName}</p>
+                                  
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Monto</p>
+                                      <p className="font-semibold">{formatCurrency(payment.amount)}</p>
+                                    </div>
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Método de Pago</p>
+                                      <p className="font-medium">
+                                        <PaymentMethodBadge method={payment.method || payment.paymentMethod} />
+                                      </p>
+                                    </div>
                                   </div>
+                                  
+                                  <div className="bg-muted/30 rounded p-2">
+                                    <p className="text-xs text-muted-foreground">Fecha</p>
+                                    <p className="font-medium">{format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
+                                  </div>
+                                  
+                                  {payment.notes && (
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Notas</p>
+                                      <p>{payment.notes}</p>
+                                    </div>
+                                  )}
                                 </div>
-                                
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Monto</p>
-                                    <p className="font-semibold">{formatCurrency(payment.amount)}</p>
-                                  </div>
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Método de Pago</p>
-                                    <p className="font-medium">
-                                      <PaymentMethodBadge method={payment.method || payment.paymentMethod} />
-                                    </p>
-                                  </div>
-                                </div>
-                                
-                                <div className="bg-muted/30 rounded p-2">
-                                  <p className="text-xs text-muted-foreground">Fecha</p>
-                                  <p className="font-medium">{format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
-                                </div>
-                                
-                                {payment.notes && (
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Notas</p>
-                                    <p>{payment.notes}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
@@ -699,59 +851,85 @@ export default function PaymentDashboard() {
                         
                         <div className="flex justify-between items-center">
                           <div className="text-base font-bold">{formatCurrency(payment.amount)}</div>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="h-7 text-xs px-2"
-                              >
-                                Ver detalles
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-md">
-                              <DialogHeader>
-                                <DialogTitle>Detalles del Pago</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-3 text-sm">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Factura No.</p>
-                                    <p className="font-medium">#{payment.invoiceNumber}</p>
+                          <div className="flex items-center gap-1.5">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSinglePaymentPrint(payment);
+                              }}
+                              title="Imprimir"
+                            >
+                              <Printer className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSinglePaymentPDF(payment);
+                              }}
+                              title="Generar PDF"
+                            >
+                              <FileDown className="h-3.5 w-3.5" />
+                            </Button>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-7 text-xs px-2"
+                                >
+                                  Ver detalles
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Detalles del Pago</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-3 text-sm">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Factura No.</p>
+                                      <p className="font-medium">#{payment.invoiceNumber}</p>
+                                    </div>
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Cliente</p>
+                                      <p className="font-medium">{payment.customerName}</p>
+                                    </div>
                                   </div>
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Cliente</p>
-                                    <p className="font-medium">{payment.customerName}</p>
+                                  
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Monto</p>
+                                      <p className="font-semibold">{formatCurrency(payment.amount)}</p>
+                                    </div>
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Método de Pago</p>
+                                      <p className="font-medium">
+                                        <PaymentMethodBadge method={payment.method || payment.paymentMethod} />
+                                      </p>
+                                    </div>
                                   </div>
+                                  
+                                  <div className="bg-muted/30 rounded p-2">
+                                    <p className="text-xs text-muted-foreground">Fecha</p>
+                                    <p className="font-medium">{format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
+                                  </div>
+                                  
+                                  {payment.notes && (
+                                    <div className="bg-muted/30 rounded p-2">
+                                      <p className="text-xs text-muted-foreground">Notas</p>
+                                      <p>{payment.notes}</p>
+                                    </div>
+                                  )}
                                 </div>
-                                
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Monto</p>
-                                    <p className="font-semibold">{formatCurrency(payment.amount)}</p>
-                                  </div>
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Método de Pago</p>
-                                    <p className="font-medium">
-                                      <PaymentMethodBadge method={payment.method || payment.paymentMethod} />
-                                    </p>
-                                  </div>
-                                </div>
-                                
-                                <div className="bg-muted/30 rounded p-2">
-                                  <p className="text-xs text-muted-foreground">Fecha</p>
-                                  <p className="font-medium">{format(new Date(payment.date), 'dd/MM/yyyy HH:mm', { locale: es })}</p>
-                                </div>
-                                
-                                {payment.notes && (
-                                  <div className="bg-muted/30 rounded p-2">
-                                    <p className="text-xs text-muted-foreground">Notas</p>
-                                    <p>{payment.notes}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
