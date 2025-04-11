@@ -177,17 +177,29 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     
     // Si tenemos órdenes relacionadas, usar esos datos para calcular el crédito
     if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
-      const orders = settlementData.relatedOrders;
-      console.log("Órdenes relacionadas encontradas:", orders.length);
-      console.log("Órdenes detalladas:", orders.map(order => ({
+      // CORRECCIÓN: Filtrar solo órdenes entregadas y que pertenezcan a la ruta
+      const orders = settlementData.relatedOrders.filter(order => {
+        // Verificar si la orden está entregada (status === "delivered")
+        const isDelivered = order.status === "delivered";
+        
+        // Verificar si la orden pertenece a la ruta (si loading.routeId existe)
+        const belongsToRoute = loading.routeId ? (order.routeId === loading.routeId) : true;
+        
+        return isDelivered && belongsToRoute;
+      });
+      
+      console.log("Órdenes ENTREGADAS y de la RUTA encontradas:", orders.length);
+      console.log("Órdenes filtradas detalladas:", orders.map(order => ({
         id: order.id,
+        status: order.status,
+        routeId: order.routeId,
         total: order.total,
         paymentMethod: order.paymentMethod
       })));
       
-      // Calcular ventas en efectivo y ventas a crédito basado en las órdenes
+      // Calcular ventas en efectivo y ventas a crédito basado en las órdenes filtradas
       const cashOrders = orders.filter(order => order.paymentMethod === "cash");
-      console.log("Órdenes en efectivo:", cashOrders.length, cashOrders);
+      console.log("Órdenes en efectivo (entregadas):", cashOrders.length, cashOrders);
       
       calculatedCashSales = cashOrders.reduce((sum, order) => {
         console.log(`  - Orden #${order.id}: ${order.total}`);
@@ -196,7 +208,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       console.log("Total ventas en efectivo calculado:", calculatedCashSales);
         
       const creditOrders = orders.filter(order => order.paymentMethod === "credit");
-      console.log("Órdenes a crédito:", creditOrders.length, creditOrders);
+      console.log("Órdenes a crédito (entregadas):", creditOrders.length, creditOrders);
       
       calculatedCreditSales = creditOrders.reduce((sum, order) => {
         console.log(`  - Orden #${order.id}: ${order.total}`);
