@@ -119,23 +119,44 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
   const calculateDifferences = useCallback(() => {
+    console.log("=================== INICIO CÁLCULO ===================");
     console.log("calculateDifferences called");
     const values = form.getValues();
-    console.log("Form values:", values);
+    console.log("Form values completo:", JSON.stringify(values, null, 2));
     const totalCashReceived = parseFloat(values.totalCashReceived) || 0;
     console.log("totalCashReceived:", totalCashReceived);
     
+    // Registrar detalles de los productos cargados
+    console.log("Productos cargados (loading.items):", loading.items.map(item => ({
+      id: item.id,
+      productId: item.productId,
+      product: item.product ? {
+        id: item.product.id,
+        name: item.product.name,
+        price: item.product.price
+      } : null,
+      quantity: item.quantity,
+      returnedQuantity: item.returnedQuantity
+    })));
+    
     // Total vendido basado en la cantidad vendida de cada producto
     let totalSold = 0;
+    console.log("Cálculo detallado de totalSold:");
     values.items.forEach(item => {
       const product = loading.items.find(p => p.productId === item.productId)?.product;
       if (product) {
         const price = parseFloat(product.price || "0");
-        totalSold += price * item.soldQuantity;
-        console.log(`Product ${product.name} (${item.productId}): price ${price} * quantity ${item.soldQuantity} = ${price * item.soldQuantity}`);
+        const itemSoldValue = price * item.soldQuantity;
+        totalSold += itemSoldValue;
+        console.log(`Producto: ${product.name} (ID: ${item.productId})`);
+        console.log(`  - Precio: ${price}`);
+        console.log(`  - Cantidad vendida: ${item.soldQuantity}`);
+        console.log(`  - Valor vendido: ${itemSoldValue}`);
+      } else {
+        console.log(`¡ADVERTENCIA! No se encontró el producto con ID ${item.productId}`);
       }
     });
-    console.log("Total sold calculated:", totalSold);
+    console.log("Total vendido calculado (suma de todos los productos):", totalSold);
     
     let calculatedCreditSales = 0;
     let calculatedCashSales = 0;
@@ -145,27 +166,53 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     // Si tenemos órdenes relacionadas, usar esos datos para calcular el crédito
     if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
       const orders = settlementData.relatedOrders;
+      console.log("Órdenes relacionadas encontradas:", orders.length);
+      console.log("Órdenes detalladas:", orders.map(order => ({
+        id: order.id,
+        total: order.total,
+        paymentMethod: order.paymentMethod
+      })));
       
       // Calcular ventas en efectivo y ventas a crédito basado en las órdenes
-      calculatedCashSales = orders
-        .filter(order => order.paymentMethod === "cash")
-        .reduce((sum, order) => sum + parseFloat(order.total), 0);
+      const cashOrders = orders.filter(order => order.paymentMethod === "cash");
+      console.log("Órdenes en efectivo:", cashOrders.length, cashOrders);
+      
+      calculatedCashSales = cashOrders.reduce((sum, order) => {
+        console.log(`  - Orden #${order.id}: ${order.total}`);
+        return sum + parseFloat(order.total);
+      }, 0);
+      console.log("Total ventas en efectivo calculado:", calculatedCashSales);
         
-      calculatedCreditSales = orders
-        .filter(order => order.paymentMethod === "credit")
-        .reduce((sum, order) => sum + parseFloat(order.total), 0);
+      const creditOrders = orders.filter(order => order.paymentMethod === "credit");
+      console.log("Órdenes a crédito:", creditOrders.length, creditOrders);
+      
+      calculatedCreditSales = creditOrders.reduce((sum, order) => {
+        console.log(`  - Orden #${order.id}: ${order.total}`);
+        return sum + parseFloat(order.total);
+      }, 0);
+      console.log("Total ventas a crédito calculado:", calculatedCreditSales);
         
       // Establecer el crédito recibido automáticamente (es de solo lectura)
+      console.log("Estableciendo totalCreditReceived a:", calculatedCreditSales.toFixed(2));
       form.setValue("totalCreditReceived", calculatedCreditSales.toFixed(2));
       
       // Inicializar el Total Facturado solo la primera vez - nunca cambiarlo después
       if (totalInvoiced === 0) {
         const newTotalInvoiced = orders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+        console.log("Estableciendo totalInvoiced (primera vez) a:", newTotalInvoiced.toFixed(2));
         form.setValue("totalInvoiced", newTotalInvoiced.toFixed(2));
+      } else {
+        console.log("totalInvoiced ya tiene un valor:", totalInvoiced, "- no se modificará");
       }
-    } else if (totalInvoiced === 0) {
-      // Inicializar Total Facturado solo si no hay un valor y no hay órdenes relacionadas
-      form.setValue("totalInvoiced", totalSold.toFixed(2));
+    } else {
+      console.log("No hay órdenes relacionadas disponibles");
+      if (totalInvoiced === 0) {
+        // Inicializar Total Facturado solo si no hay un valor y no hay órdenes relacionadas
+        console.log("Estableciendo totalInvoiced basado en totalSold:", totalSold.toFixed(2));
+        form.setValue("totalInvoiced", totalSold.toFixed(2));
+      } else {
+        console.log("totalInvoiced ya tiene un valor:", totalInvoiced, "- no se modificará");
+      }
     }
     
     // Efectivo inicial de la carga
