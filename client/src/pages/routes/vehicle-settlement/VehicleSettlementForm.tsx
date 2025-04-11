@@ -257,8 +257,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     // Actualizar la cantidad vendida
     form.setValue(`items.${index}.soldQuantity`, soldQuantity >= 0 ? soldQuantity : 0);
     
-    // Recalcular totales
-    calculateDifferences();
+    // No recalcular totales automáticamente para evitar recálculos excesivos
   };
 
   const onSubmit = (data: z.infer<typeof settlementSchema>) => {
@@ -372,6 +371,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                             }
                             e.target.value = formattedValue;
                             field.onChange(formattedValue);
+                            // Solo calcular cuando se complete la entrada
                             handleChange();
                           }}
                           onChange={(e) => {
@@ -383,7 +383,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                               ? parts[0] + '.' + parts.slice(1).join('') 
                               : value;
                             field.onChange(newValue);
-                            handleChange();
+                            // No calcular en cada cambio
                           }}
                         />
                       </FormControl>
@@ -466,6 +466,20 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                     </p>
                     <p className="text-xs text-gray-500 mt-1">(Inicial + Ventas en efectivo)</p>
                   </div>
+                </div>
+                
+                {/* Botón para calcular manualmente */}
+                <div className="mt-3 flex justify-center">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => calculateDifferences()}
+                    className="flex items-center gap-1"
+                  >
+                    <Calculator className="h-4 w-4" />
+                    Calcular Totales
+                  </Button>
                 </div>
               </div>
             </div>
@@ -565,8 +579,10 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                                         const maxValue = form.getValues().items[index].soldQuantity;
                                         const validValue = Math.min(intValue, maxValue);
                                         field.onChange(validValue);
-                                        handleChange();
+                                        // No calcular en cada cambio
                                       }}
+                                      // Calcular solo cuando se complete la entrada
+                                      onBlur={() => handleChange()}
                                       className="w-20 mx-auto text-center"
                                     />
                                   </FormControl>
