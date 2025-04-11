@@ -1334,22 +1334,62 @@ export class PrinterService {
    */
   static async generateOrderPDF(order: any, items: any[], customer: any, settings: any, products: any[]): Promise<void> {
     try {
+      // Crear copias seguras de los datos para evitar problemas de mutación y tipo
+      const orderCopy = {
+        ...order,
+        id: String(order?.id || 'N/A'),
+        date: order?.date,
+        total: String(order?.total || '0'),
+        subtotal: String(order?.subtotal || '0'),
+        tax: String(order?.tax || '0'),
+        notes: order?.notes || ''
+      };
+      
+      const safeItems = items?.map(item => ({
+        ...item,
+        productId: Number(item?.productId || 0),
+        quantity: Number(item?.quantity || 0),
+        price: String(item?.price || '0')
+      })) || [];
+      
+      const safeCustomer = customer ? {
+        ...customer,
+        id: Number(customer?.id || 0),
+        businessname: String(customer?.businessname || 'Cliente'),
+        phone: String(customer?.phone || ''),
+        address: String(customer?.address || '')
+      } : null;
+      
+      const safeSettings = settings ? { ...settings } : {};
+      
+      const safeProducts = products?.map(product => ({
+        ...product,
+        id: Number(product?.id || 0),
+        name: String(product?.name || 'Producto'),
+        price: String(product?.price || '0')
+      })) || [];
+      
       // Usar generación directa para consistencia en móvil y escritorio
       await this.generatePDFDirect(
-        order,
+        orderCopy,
         DocumentType.ORDER,
         {
-          title: `Pedido #${order.id || 'N/A'}`,
+          title: `Pedido #${orderCopy.id}`,
           size: [80, 297],
-          fileName: `Pedido-${order.id || 'N/A'}.pdf`
+          fileName: `Pedido-${orderCopy.id}.pdf`
         },
         {
-          settings,
-          customer,
-          items,
-          products
+          settings: safeSettings,
+          customer: safeCustomer,
+          items: safeItems,
+          products: safeProducts
         }
       );
+      
+      toast({
+        title: "PDF generado",
+        description: "El PDF se ha generado correctamente",
+      });
     } catch (error: any) {
       console.error('Error en generateOrderPDF:', error);
       toast({
