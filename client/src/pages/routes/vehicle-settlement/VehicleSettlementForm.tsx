@@ -101,16 +101,21 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
     queryKey: ["/api/route-settlements", loading.id],
     enabled: !!loading.id,
-    onSuccess: (data) => {
-      console.log("Settlement data loaded:", data);
-      if (data?.relatedOrders) {
-        console.log("Related orders:", data.relatedOrders);
-        console.log("Orders total:", data.relatedOrders.reduce((sum, order) => sum + parseFloat(order.total), 0).toFixed(2));
-        console.log("Cash orders:", data.relatedOrders.filter(order => order.paymentMethod === "cash"));
-        console.log("Credit orders:", data.relatedOrders.filter(order => order.paymentMethod === "credit"));
+  });
+  
+  // Usar useEffect para rastrear los datos cuando se cargan
+  useEffect(() => {
+    if (settlementData) {
+      console.log("Settlement data loaded:", settlementData);
+      if (settlementData.relatedOrders) {
+        console.log("Related orders:", settlementData.relatedOrders);
+        const total = settlementData.relatedOrders.reduce((sum: number, order: any) => sum + parseFloat(order.total), 0);
+        console.log("Orders total:", total.toFixed(2));
+        console.log("Cash orders:", settlementData.relatedOrders.filter((order: any) => order.paymentMethod === "cash"));
+        console.log("Credit orders:", settlementData.relatedOrders.filter((order: any) => order.paymentMethod === "credit"));
       }
     }
-  });
+  }, [settlementData]);
   
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
   const calculateDifferences = useCallback(() => {
@@ -373,12 +378,33 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                       <FormLabel>Efectivo Recibido (RD$)</FormLabel>
                       <FormControl>
                         <Input 
-                          {...field} 
+                          // No pasamos todos los props del field para tener más control
+                          name={field.name}
+                          ref={field.ref}
+                          value={field.value}
                           type="text" 
                           inputMode="decimal"
+                          onFocus={(e) => {
+                            console.log("onFocus totalCashReceived - valor actual:", e.target.value);
+                            // Si el valor es 0.00, limpiar el campo para facilitar la entrada
+                            if (e.target.value === "0.00") {
+                              e.target.value = "";
+                              field.onChange("");
+                            }
+                          }}
                           onBlur={(e) => {
+                            console.log("onBlur totalCashReceived - valor antes de formatear:", e.target.value);
                             // Formatear el valor para mostrar dos decimales
                             const value = e.target.value.trim();
+                            // Si está vacío, usar 0.00
+                            if (!value) {
+                              const formattedValue = "0.00";
+                              e.target.value = formattedValue;
+                              field.onChange(formattedValue);
+                              console.log("Campo vacío, estableciendo a:", formattedValue);
+                              return;
+                            }
+                            
                             // Si no hay punto decimal, añadir .00
                             let formattedValue;
                             if (value && !value.includes('.')) {
@@ -386,11 +412,13 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                             } else {
                               formattedValue = (parseFloat(value) || 0).toFixed(2);
                             }
+                            console.log("Valor formateado:", formattedValue);
                             e.target.value = formattedValue;
                             field.onChange(formattedValue);
                             // NO calcular automáticamente - dejarlo para el botón
                           }}
                           onChange={(e) => {
+                            console.log("onChange totalCashReceived - valor original:", e.target.value);
                             // Permitir solo números y un punto decimal
                             const value = e.target.value.replace(/[^\d.]/g, '');
                             // Prevenir múltiples puntos decimales
@@ -398,6 +426,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                             const newValue = parts.length > 2 
                               ? parts[0] + '.' + parts.slice(1).join('') 
                               : value;
+                            console.log("onChange totalCashReceived - nuevo valor:", newValue);
                             field.onChange(newValue);
                             // No calcular en cada cambio
                           }}
