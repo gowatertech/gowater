@@ -481,12 +481,19 @@ export default function PaymentDashboard() {
         return;
       }
       
-      // Generar PDF directamente en formato 80mm
+      // Generar PDF directamente en formato 80mm para impresora térmica
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: [80, 150], // Ancho estándar para recibos térmicos
+        format: [80, 120], // Ancho estándar para impresoras térmicas
         hotfixes: ['px_scaling']
+      });
+      
+      // Configuración de página para impresión térmica
+      doc.setProperties({
+        title: `Recibo de Pago #${payment.id || 'N/A'}`,
+        subject: 'Recibo de Pago',
+        creator: 'AGUA HARRIS',
       });
       
       // Añadir contenido
@@ -534,29 +541,36 @@ export default function PaymentDashboard() {
       doc.text(`${formatCurrency(payment.amount)}`, 75, 62, { align: 'right' });
       
       // Notas (si hay)
+      let yPos = 70;
       if (payment.notes) {
         doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.text('Notas:', 5, 70);
+        doc.text('Notas:', 5, yPos);
+        yPos += 5;
         
         // Dividir notas largas
         const splitNotes = doc.splitTextToSize(payment.notes, 70);
-        doc.text(splitNotes, 5, 75);
+        doc.text(splitNotes, 5, yPos);
+        yPos += splitNotes.length * 4 + 5;
+      } else {
+        yPos += 10;
       }
       
       // Pie de página
       doc.setFontSize(8);
-      doc.text('Gracias por su pago', 40, 100, { align: 'center' });
-      doc.text('www.aguaharris.com', 40, 105, { align: 'center' });
-      doc.text('Tel: 809-873-8333', 40, 110, { align: 'center' });
+      doc.text('Gracias por su pago', 40, yPos, { align: 'center' });
+      yPos += 5;
+      doc.text('www.aguaharris.com', 40, yPos, { align: 'center' });
+      yPos += 5;
+      doc.text('Tel: 809-873-8333', 40, yPos, { align: 'center' });
       
-      // Guardar PDF
-      const fileName = `recibo_${payment.id}_${format(new Date(payment.date), 'yyyy-MM-dd')}.pdf`;
-      doc.save(fileName);
+      // Abrir preview en nueva ventana (esto se ve mejor como 80mm)
+      doc.autoPrint();
+      window.open(doc.output('bloburl'), '_blank');
       
       toast({
         title: "PDF generado",
-        description: `Se ha descargado el archivo "${fileName}"`,
+        description: `Se ha abierto una nueva ventana con el recibo`,
       });
       
     } catch (error: any) {
