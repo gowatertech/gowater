@@ -101,12 +101,24 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
     queryKey: ["/api/route-settlements", loading.id],
     enabled: !!loading.id,
+    onSuccess: (data) => {
+      console.log("Settlement data loaded:", data);
+      if (data?.relatedOrders) {
+        console.log("Related orders:", data.relatedOrders);
+        console.log("Orders total:", data.relatedOrders.reduce((sum, order) => sum + parseFloat(order.total), 0).toFixed(2));
+        console.log("Cash orders:", data.relatedOrders.filter(order => order.paymentMethod === "cash"));
+        console.log("Credit orders:", data.relatedOrders.filter(order => order.paymentMethod === "credit"));
+      }
+    }
   });
   
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
   const calculateDifferences = useCallback(() => {
+    console.log("calculateDifferences called");
     const values = form.getValues();
+    console.log("Form values:", values);
     const totalCashReceived = parseFloat(values.totalCashReceived) || 0;
+    console.log("totalCashReceived:", totalCashReceived);
     
     // Total vendido basado en la cantidad vendida de cada producto
     let totalSold = 0;
@@ -115,8 +127,10 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       if (product) {
         const price = parseFloat(product.price || "0");
         totalSold += price * item.soldQuantity;
+        console.log(`Product ${product.name} (${item.productId}): price ${price} * quantity ${item.soldQuantity} = ${price * item.soldQuantity}`);
       }
     });
+    console.log("Total sold calculated:", totalSold);
     
     let calculatedCreditSales = 0;
     let calculatedCashSales = 0;
