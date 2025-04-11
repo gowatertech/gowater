@@ -209,15 +209,26 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         paymentMethod: order.paymentMethod
       })));
       
-      // NUEVO: Calcular la cantidad de productos vendidos por cada tipo de producto
-      // y el valor total de esos productos
+      // NUEVO: Tomamos directamente la suma de los pedidos para el valor total,
+      // en lugar de multiplicar cantidad por precio 
       try {
         console.log("Calculando productos vendidos por tipo...");
         
-        // Crear un mapa de productos por ID para sumar cantidades
+        // Sumar directamente los totales de los pedidos para obtener el valor total vendido
+        totalProductsValue = orders.reduce((sum, order) => {
+          return sum + parseFloat(order.total || "0");
+        }, 0);
+        
+        // Asignar el valor total directamente de la suma de pedidos
+        totalSold = totalProductsValue;
+        
+        console.log(`Valor total de pedidos vendidos: $${totalProductsValue.toFixed(2)}`);
+        
+        // A nivel informativo, también calculamos el detalle por productos
+        // pero solo para mostrar información, no para los cálculos
         const productSummary = new Map();
         
-        // Recorrer cada orden
+        // Recorrer cada orden solo para recopilar estadísticas
         for (const order of orders) {
           // Acceder a los items con verificación de tipo
           const orderItems = (order as any).items;
@@ -226,25 +237,20 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             for (const item of orderItems) {
               const productId = item.productId;
               const quantity = item.quantity || 0;
-              const price = item.unitPrice || 0;
-              const total = price * quantity;
               
               // Si ya existe este producto en el mapa, actualizar cantidades
               if (productSummary.has(productId)) {
                 const current = productSummary.get(productId);
                 productSummary.set(productId, {
                   ...current,
-                  quantity: current.quantity + quantity,
-                  total: current.total + total
+                  quantity: current.quantity + quantity
                 });
               } else {
                 // Si es la primera vez que vemos este producto
                 productSummary.set(productId, {
                   productId,
                   productName: item.productName || `Producto #${productId}`,
-                  quantity,
-                  price,
-                  total
+                  quantity
                 });
               }
             }
@@ -253,20 +259,16 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         
         // Convertir el mapa a un array para mostrarlo en consola
         productSoldDetails = Array.from(productSummary.values());
-        console.log("Resumen de productos vendidos:", productSoldDetails);
+        console.log("Resumen de productos vendidos (solo informativo):", productSoldDetails);
         
-        // Calcular totales
+        // Calcular total de unidades vendidas
         totalProductsSold = productSoldDetails.reduce((sum: number, product: any) => sum + product.quantity, 0);
-        totalProductsValue = productSoldDetails.reduce((sum: number, product: any) => sum + product.total, 0);
+        console.log(`Total unidades vendidas: ${totalProductsSold} unidades`);
         
-        // Asignar el valor total de productos vendidos a totalSold para compatibilidad
-        totalSold = totalProductsValue;
-        
-        console.log(`Total productos vendidos: ${totalProductsSold} unidades`);
-        console.log(`Valor total de productos vendidos: $${totalProductsValue.toFixed(2)}`);
       } catch (error) {
         console.error("Error al calcular productos vendidos:", error);
         totalSold = 0;
+        totalProductsValue = 0;
       }
       
       // Calcular ventas en efectivo y ventas a crédito basado en las órdenes filtradas
