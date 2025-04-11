@@ -1,13 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>Sistema de Gestión GoWater</title>
-    <meta name="description" content="Sistema de gestión para facturación, inventario, pedidos y clientes" />
+    <title>Sistema de Recibos de Pago</title>
+    <style>
+      @media print {
+        @page {
+          size: 80mm auto;
+          margin: 0mm;
+        }
+        
+        body {
+          width: 80mm;
+          margin: 0;
+          padding: 0;
+        }
+        
+        .receipt-container {
+          width: 80mm;
+          max-width: 80mm;
+        }
+        
+        .no-print {
+          display: none !important;
+        }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>
 </html>
