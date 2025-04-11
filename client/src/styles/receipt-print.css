@@ -1,0 +1,43 @@
+/* Print-specific styling for 80mm thermal receipts */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  body {
+    width: 80mm;
+    margin: 0;
+    padding: 0;
+    font-size: 10px;
+    line-height: 1.2;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .receipt-container {
+    width: 80mm;
+    max-width: 80mm;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure no page breaks within payment items */
+  .payment-item {
+    page-break-inside: avoid;
+  }
+  
+  /* Hide scrollbars when printing */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Non-print styling for receipt preview */
+.w-80mm {
+  width: 302px; /* 80mm ≈ 302px */
+}
