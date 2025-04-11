@@ -5,14 +5,8 @@ import { useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-// @ts-ignore
-import { jsPDF } from "jspdf";
-// @ts-ignore
-import 'jspdf-autotable';
-// @ts-ignore
-import html2canvas from "html2canvas";
-// Importamos nuestro servicio de impresión
-import { printOrderTicket, generateOrderPdf } from "./PrinterService";
+// Importamos nuestro servicio de impresión centralizado
+import { PrinterService } from "@/services/PrinterService";
 
 // Iconos
 import { 
@@ -171,7 +165,7 @@ export default function OrdersList() {
     }
   };
   
-  // Función para generar e imprimir el ticket usando el nuevo servicio
+  // Función para generar e imprimir el ticket usando el servicio centralizado PrinterService
   const handlePrint = async (orderId: number) => {
     try {
       // Primero obtener los detalles del pedido
@@ -201,8 +195,8 @@ export default function OrdersList() {
       // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
       
-      // Llamar al servicio de impresión
-      printOrderTicket(order, orderItems, customer, companySettings, products, toast);
+      // Usar el servicio PrinterService centralizado
+      await PrinterService.printOrder(order, orderItems, customer, companySettings, products);
     } catch (error: any) {
       console.error('Error en handlePrint:', error);
       toast({
