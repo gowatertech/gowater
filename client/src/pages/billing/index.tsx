@@ -431,11 +431,18 @@ export default function Billing() {
   // Funciones para imprimir y PDF
   const printInvoice = async (invoice: InvoiceWithDetails) => {
     try {
-      // Seleccionar la factura para obtener sus detalles
-      setSelectedInvoice(invoice);
+      // Mostrar mensaje de carga
+      toast({
+        title: "Preparando impresión",
+        description: "Por favor espere...",
+      });
+      
+      // Cargar los detalles sin cambiar el estado de selectedInvoice
+      // Usamos un objeto temporal para no modificar el estado
+      const tempInvoice = { ...invoice };
       
       // Esperar a que se carguen los detalles (asincrónico)
-      const itemsResponse = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+      const itemsResponse = await apiRequest("GET", `/api/invoices/${tempInvoice.id}/items`);
       if (!itemsResponse.ok) {
         throw new Error('Error al cargar detalles de la factura');
       }
@@ -443,7 +450,7 @@ export default function Billing() {
       
       // Usar el servicio PrinterService para imprimir
       await PrinterService.printInvoice(
-        invoice, 
+        tempInvoice, 
         settings, 
         customers, 
         items
@@ -460,17 +467,17 @@ export default function Billing() {
 
   const generatePDF = async (invoice: InvoiceWithDetails) => {
     try {
-      // Seleccionar la factura para obtener sus detalles
-      setSelectedInvoice(invoice);
-      
       // Mostrar mensaje de carga
       toast({
         title: "Generando PDF",
         description: "Por favor espere...",
       });
       
+      // Usamos un objeto temporal para no modificar el estado
+      const tempInvoice = { ...invoice };
+      
       // Obtener los detalles de la factura
-      const itemsResponse = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+      const itemsResponse = await apiRequest("GET", `/api/invoices/${tempInvoice.id}/items`);
       if (!itemsResponse.ok) {
         throw new Error('Error al cargar detalles de la factura');
       }
@@ -478,7 +485,7 @@ export default function Billing() {
       
       // Usar el servicio PrinterService para generar el PDF
       await PrinterService.generateInvoicePDF(
-        invoice, 
+        tempInvoice, 
         settings, 
         customers, 
         items

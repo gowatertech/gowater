@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useState, useMemo, useRef, createRef, RefObject } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { jsPDF } from 'jspdf';
 import { PrinterService, DocumentType } from "@/services/PrinterService";
 import { useToast } from "@/hooks/use-toast";
 import {
