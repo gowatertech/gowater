@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { AlertCard } from "@/components/dashboard/AlertCard";
+import { TestPrinterButton } from "@/test-button";
 import {
   Activity,
   TrendingUp,
@@ -219,6 +220,7 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
         <h1 className="text-xl sm:text-2xl font-bold">{t("Panel de Control")}</h1>
         <div className="flex space-x-2">
+          <TestPrinterButton />
           <Button variant="outline" size="sm" onClick={() => navigateTo("/reports")}>
             <FileBarChart className="h-4 w-4 mr-1" />
             <span className="hidden xs:inline">{t("Reportes")}</span>
