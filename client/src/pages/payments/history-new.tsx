@@ -311,48 +311,11 @@ export default function PaymentsHistory() {
         return;
       }
       
-      // Crear copia del contenido para impresión
-      const printContent = document.createElement('div');
-      printContent.innerHTML = `
-        <div style="padding: 20px;">
-          <h1 style="text-align: center; font-size: 18px; margin-bottom: 10px;">Historial de Pagos</h1>
-          <p style="text-align: center; margin-bottom: 20px;">Total: ${formatCurrency(paymentsStats.totalAmount)} - ${paymentsStats.totalCount} transacciones</p>
-          
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background-color: #f3f4f6;">
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Fecha</th>
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Cliente</th>
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Factura</th>
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Método</th>
-                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredPayments.map(payment => `
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 8px;">${format(new Date(payment.date), 'dd/MM/yyyy')}</td>
-                  <td style="padding: 8px;">${payment.customerName}</td>
-                  <td style="padding: 8px;">${payment.invoiceNumber}</td>
-                  <td style="padding: 8px;">${
-                    payment.paymentMethod === 'cash' ? 'Efectivo' :
-                    payment.paymentMethod === 'card' ? 'Tarjeta' :
-                    payment.paymentMethod === 'credit' ? 'Crédito' :
-                    payment.paymentMethod === 'transfer' ? 'Transferencia' : 'Otro'
-                  }</td>
-                  <td style="padding: 8px; text-align: right;">${formatCurrency(payment.amount)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-      
-      // Usar PrinterService para imprimir
-      await PrinterService.printDocument(printContent, {
+      // Usar PrinterService para imprimir el contenido referenciado
+      await PrinterService.printDocument(printContentRef.current, {
         title: "Historial de Pagos",
-        size: [210, 297], // A4
-        margins: [10, 10, 10, 10]
+        size: [210, 297], // A4 - tamaño en mm
+        margins: [10, 10, 10, 10] // márgenes en mm [top, right, bottom, left]
       });
       
     } catch (error: any) {
@@ -414,6 +377,42 @@ export default function PaymentsHistory() {
 
   return (
     <div className="container mx-auto px-2 sm:px-4 pb-16">
+      {/* Contenido imprimible (oculto) */}
+      <div ref={printContentRef} className="hidden">
+        <div style={{padding: "20px"}}>
+          <h1 style={{textAlign: "center", fontSize: "18px", marginBottom: "10px"}}>Historial de Pagos</h1>
+          <p style={{textAlign: "center", marginBottom: "20px"}}>Total: {formatCurrency(paymentsStats.totalAmount)} - {paymentsStats.totalCount} transacciones</p>
+          
+          <table style={{width: "100%", borderCollapse: "collapse"}}>
+            <thead>
+              <tr style={{backgroundColor: "#f3f4f6"}}>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Fecha</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Cliente</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Factura</th>
+                <th style={{textAlign: "left", padding: "8px", borderBottom: "1px solid #ddd"}}>Método</th>
+                <th style={{textAlign: "right", padding: "8px", borderBottom: "1px solid #ddd"}}>Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPayments.map(payment => (
+                <tr key={payment.id} style={{borderBottom: "1px solid #eee"}}>
+                  <td style={{padding: "8px"}}>{format(new Date(payment.date), 'dd/MM/yyyy')}</td>
+                  <td style={{padding: "8px"}}>{payment.customerName}</td>
+                  <td style={{padding: "8px"}}>{payment.invoiceNumber}</td>
+                  <td style={{padding: "8px"}}>
+                    {payment.paymentMethod === 'cash' ? 'Efectivo' :
+                    payment.paymentMethod === 'card' ? 'Tarjeta' :
+                    payment.paymentMethod === 'credit' ? 'Crédito' :
+                    payment.paymentMethod === 'transfer' ? 'Transferencia' : 'Otro'}
+                  </td>
+                  <td style={{padding: "8px", textAlign: "right"}}>{formatCurrency(payment.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
       <div className="flex flex-col space-y-4">
         {/* Encabezado con título y estadísticas */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
