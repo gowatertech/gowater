@@ -4,11 +4,31 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { PrinterService } from '@/services/PrinterService';
+import { useQuery } from '@tanstack/react-query';
 
 export function TestPrintOrder({ orderId = 33 }: { orderId?: number }) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean, message: string } | null>(null);
+  
+  // Cargar datos usando react-query para verificar la disponibilidad
+  const { data: orderData, error: orderError } = useQuery({
+    queryKey: [`/api/orders/${orderId}`],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest("GET", `/api/orders/${orderId}`);
+        if (!response.ok) {
+          throw new Error(`Error al cargar el pedido: ${await response.text()}`);
+        }
+        return await response.json();
+      } catch (error) {
+        console.error("Error cargando el pedido:", error);
+        throw error;
+      }
+    },
+    retry: 1,
+    enabled: !!orderId
+  });
 
   const handlePrintTest = async () => {
     setIsLoading(true);
@@ -178,10 +198,25 @@ export function TestPrintOrder({ orderId = 33 }: { orderId?: number }) {
     <div className="space-y-4 p-4 border rounded-lg">
       <h2 className="text-lg font-semibold">Prueba de Impresión y PDF - Pedido #{orderId}</h2>
       
+      {orderError ? (
+        <div className="p-3 rounded-md bg-red-50 text-red-800">
+          <p>Error al verificar la disponibilidad del pedido: {orderError instanceof Error ? orderError.message : 'Error desconocido'}</p>
+          <p className="mt-2 text-sm">Verifique que el servidor esté disponible y que el pedido #{orderId} exista.</p>
+        </div>
+      ) : orderData ? (
+        <div className="p-3 rounded-md bg-green-50 text-green-800">
+          <p>Pedido #{orderId} disponible. Cliente: {orderData.customerName || 'No especificado'}</p>
+        </div>
+      ) : (
+        <div className="p-3 rounded-md bg-yellow-50 text-yellow-800">
+          <p>Verificando disponibilidad del pedido #{orderId}...</p>
+        </div>
+      )}
+      
       <div className="flex flex-col sm:flex-row gap-2">
         <Button 
           onClick={handlePrintTest} 
-          disabled={isLoading}
+          disabled={isLoading || !!orderError}
           className="w-full sm:w-auto"
         >
           Imprimir Pedido #{orderId}
@@ -189,7 +224,7 @@ export function TestPrintOrder({ orderId = 33 }: { orderId?: number }) {
         
         <Button 
           onClick={handlePdfTest} 
-          disabled={isLoading}
+          disabled={isLoading || !!orderError}
           variant="outline"
           className="w-full sm:w-auto"
         >
