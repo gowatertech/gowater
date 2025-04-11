@@ -1407,6 +1407,34 @@ export class PrinterService {
    */
   static async printPayment(payment: any, customer: any, settings: any): Promise<void> {
     try {
+      // Sanitizar datos del pago para evitar errores
+      const paymentData = {
+        id: payment?.id || 'N/A',
+        date: payment?.date || new Date().toISOString(),
+        amount: payment?.amount || '0',
+        method: payment?.method || 'cash',
+        paymentMethod: payment?.paymentMethod || payment?.method || 'cash',
+        customerName: payment?.customerName || 'Cliente',
+        invoiceId: payment?.invoiceId || '',
+        reference: payment?.reference || '',
+        notes: payment?.notes || ''
+      };
+
+      // Sanitizar datos del cliente
+      const customerData = customer ? {
+        businessname: customer?.businessname || 'Cliente',
+        phone: customer?.phone || '',
+        address: customer?.address || '',
+        municipality: customer?.municipality || '',
+        province: customer?.province || ''
+      } : {
+        businessname: 'Cliente',
+        phone: '',
+        address: '',
+        municipality: '',
+        province: ''
+      };
+
       // Crear contenido HTML para impresión
       const printContent = document.createElement('div');
       printContent.className = 'payment-print-content';
@@ -1551,20 +1579,51 @@ export class PrinterService {
    */
   static async generatePaymentPDF(payment: any, customer: any, settings: any): Promise<void> {
     try {
-      // Usar generación directa para consistencia
+      // Copiar y sanitizar el pago para evitar errores con valores nulos o undefined
+      const paymentCopy = {
+        id: Number(payment?.id || 0),
+        date: payment?.date || new Date().toISOString(),
+        amount: String(payment?.amount || '0'),
+        method: String(payment?.method || 'cash'),
+        customerName: String(payment?.customerName || 'Cliente'),
+        invoiceNumber: String(payment?.invoiceNumber || ''),
+        invoiceId: payment?.invoiceId ? Number(payment.invoiceId) : undefined,
+        reference: String(payment?.reference || ''),
+        notes: String(payment?.notes || '')
+      };
+
+      // Sanitizar datos del cliente
+      const customerCopy = customer ? {
+        id: Number(customer?.id || 0),
+        businessname: String(customer?.businessname || 'Cliente'),
+        phone: String(customer?.phone || ''),
+        address: String(customer?.address || ''),
+        municipality: String(customer?.municipality || ''),
+        province: String(customer?.province || '')
+      } : null;
+      
+      // Sanitizar configuración
+      const safeSettings = settings ? { ...settings } : {};
+      
+      // Usar generación directa para consistencia en todos los dispositivos
       await this.generatePDFDirect(
-        payment,
+        paymentCopy,
         DocumentType.PAYMENT,
         {
-          title: `Recibo de Pago #${payment.id || 'N/A'}`,
+          title: `Recibo de Pago #${paymentCopy.id || 'N/A'}`,
           size: [80, 200], // Formato 80mm (formato de ticket)
-          fileName: `ReciboPago-${payment.id || 'N/A'}.pdf`
+          fileName: `ReciboPago-${paymentCopy.id || 'N/A'}.pdf`
         },
         {
-          settings,
-          customer
+          settings: safeSettings,
+          customer: customerCopy
         }
       );
+      
+      toast({
+        title: "PDF generado",
+        description: "El PDF se ha generado correctamente",
+      });
     } catch (error: any) {
       console.error('Error en generatePaymentPDF:', error);
       toast({

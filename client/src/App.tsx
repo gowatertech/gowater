@@ -44,6 +44,7 @@ import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
 import TestPage from "@/pages/test-page";
+import TestPrintPayment from "@/pages/test-print-payment";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -214,8 +215,9 @@ function Router() {
         <Route path="/recurring-orders/:id" component={RecurringOrderForm} />
         <Route path="/recurring-orders" component={RecurringOrdersPage} />
         
-        {/* Página de prueba de impresión */}
+        {/* Páginas de prueba de impresión */}
         <Route path="/test-print" component={TestPage} />
+        <Route path="/test-print-payment" component={TestPrintPayment} />
 
         <Route component={NotFound} />
       </Switch>
