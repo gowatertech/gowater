@@ -5,8 +5,7 @@ import { type Customer, type Product, type Invoice } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import { PrinterService } from "@/services/PrinterService";
 
 // Componentes UI
 import { Input } from "@/components/ui/input";
