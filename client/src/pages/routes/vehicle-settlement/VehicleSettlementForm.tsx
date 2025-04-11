@@ -108,19 +108,26 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       }
     });
     
-    // Actualizar el valor facturado con lo que realmente se vendió
+    // Total facturado = suma de efectivo + crédito
     const totalInvoiced = totalSold;
     form.setValue("totalInvoiced", totalInvoiced.toFixed(2));
     
-    // Diferencia entre lo recibido (efectivo + crédito) y lo facturado
-    // Si es positivo, hay un sobrante. Si es negativo, hay un faltante.
-    const cashDifference = (totalCashReceived + totalCreditReceived - totalInvoiced).toFixed(2);
+    // Efectivo inicial de la carga
+    const initialCash = parseFloat(loading.initialCash || "0");
+    
+    // Calcular monto total en efectivo que se debería recibir
+    // Esto es: Efectivo Inicial + Efectivo Vendido (Total Facturado - Crédito Otorgado)
+    const expectedCash = initialCash + (totalInvoiced - totalCreditReceived);
+    
+    // Diferencia de efectivo = Lo que se debería recibir - Lo que realmente se recibió
+    // Si es negativo, hay un faltante. Si es positivo, hay un sobrante.
+    const cashDifference = (totalCashReceived - expectedCash).toFixed(2);
     
     setCalculatedTotals({
       cashDifference,
       totalSold: totalSold.toFixed(2),
     });
-  }, [form, loading.items]);
+  }, [form, loading.items, loading.initialCash]);
 
   // Cargar los datos de devolución de envases
   const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
@@ -164,7 +171,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("POST", "/api/route-settlements", data);
+      return await apiRequest("POST", "/api/route-settlements", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-loading"] });
@@ -412,16 +419,26 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
 
               {/* Mostrar las diferencias calculadas */}
               <div className="mt-4 p-3 border border-gray-200 rounded bg-gray-50">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Diferencia de Efectivo</p>
                     <p className={`font-medium ${parseFloat(calculatedTotals.cashDifference) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                       RD$ {calculatedTotals.cashDifference}
                     </p>
+                    <p className="text-xs text-gray-500 mt-1">(Efectivo recibido - Efectivo esperado)</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Total Vendido (calculado)</p>
+                    <p className="text-sm text-gray-600">Producto Vendido</p>
                     <p className="font-medium">RD$ {calculatedTotals.totalSold}</p>
+                    <p className="text-xs text-gray-500 mt-1">Igual al Total Facturado</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Efectivo Esperado</p>
+                    <p className="font-medium">
+                      RD$ {(parseFloat(loading.initialCash || "0") + 
+                      (parseFloat(calculatedTotals.totalSold) - parseFloat(form.getValues().totalCreditReceived))).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">(Inicial + Ventas en efectivo)</p>
                   </div>
                 </div>
               </div>
