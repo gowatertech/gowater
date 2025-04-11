@@ -262,6 +262,9 @@ export class PrinterService {
           // Para recibos de pagos individuales, formato 80mm
           yPos = this.addPaymentReceiptContent(doc, data, extraData, yPos);
           break;
+        default:
+          console.warn(`Tipo de documento no soportado: ${type}`);
+          break;
       }
       
       // Mensaje final (para todos los tipos)
