@@ -429,444 +429,73 @@ export default function Billing() {
   };
 
   // Funciones para imprimir y PDF
-  const printInvoice = (invoice: InvoiceWithDetails) => {
-    // Seleccionar la factura para obtener sus detalles
-    setSelectedInvoice(invoice);
-    // Mostramos un toast de carga
-    toast({
-      title: "Preparando impresión",
-      description: "Por favor espere...",
-    });
-
-    // Utilizamos un timeout para dar tiempo a que se carguen los detalles de la factura
-    setTimeout(() => {
-      const printContent = document.createElement('div');
-      printContent.className = 'print-content';
-      printContent.style.width = '80mm'; // Ancho para impresora térmica
-      printContent.style.padding = '10px';
-      printContent.style.fontFamily = 'Arial, sans-serif';
+  const printInvoice = async (invoice: InvoiceWithDetails) => {
+    try {
+      // Seleccionar la factura para obtener sus detalles
+      setSelectedInvoice(invoice);
       
-      // Encabezado de la empresa con información completa
-      const header = document.createElement('div');
-      header.style.textAlign = 'center';
-      header.style.marginBottom = '10px';
-      header.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">${settings?.street || ''} ${settings?.streetNumber || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">${settings?.municipalityId ? 'Cotuí' : ''}, ${settings?.provinceId ? 'Sánchez Ramírez' : ''}, ${settings?.country || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 5px;">RNC: ${settings?.rnc || ''}</div>
-      `;
-      printContent.appendChild(header);
-
-      // Separador
-      const separator = document.createElement('div');
-      separator.style.borderBottom = '1px dashed #000';
-      separator.style.margin = '10px 0';
-      printContent.appendChild(separator);
-      
-      // Título de factura
-      const title = document.createElement('div');
-      title.style.textAlign = 'center';
-      title.style.fontSize = '14px';
-      title.style.fontWeight = 'bold';
-      title.style.margin = '10px 0';
-      title.textContent = 'FACTURA';
-      printContent.appendChild(title);
-      
-      // Información de la factura
-      const invoiceInfo = document.createElement('div');
-      invoiceInfo.style.marginBottom = '10px';
-      invoiceInfo.style.fontSize = '11px';
-      
-      const customer = customers.find((c: Customer) => c.id === invoice.customerId);
-      invoiceInfo.innerHTML = `
-        <div style="margin-bottom: 5px;"><strong>Factura #:</strong> ${invoice.id}</div>
-        <div style="margin-bottom: 5px;"><strong>Fecha:</strong> ${new Date(invoice.date).toLocaleDateString()}</div>
-        <div style="margin-bottom: 5px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-        <div style="margin-bottom: 5px;"><strong>Dirección:</strong> ${customer?.address || ""}, ${customer?.municipality || "Cotuí"}</div>
-        <div style="margin-bottom: 5px;"><strong>Provincia:</strong> ${customer?.province || "Sánchez Ramírez"}</div>
-        <div style="margin-bottom: 5px;"><strong>Teléfono:</strong> ${customer?.phone || ""}</div>
-        <div style="margin-bottom: 5px;"><strong>Método de pago:</strong> ${
-          invoice.paymentMethod === 'cash' ? 'Efectivo' : 
-          invoice.paymentMethod === 'credit' ? 'Crédito' : 
-          invoice.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado'
-        }</div>
-      `;
-      printContent.appendChild(invoiceInfo);
-      
-      // Otro separador
-      const separator2 = document.createElement('div');
-      separator2.style.borderBottom = '1px dashed #000';
-      separator2.style.margin = '10px 0';
-      printContent.appendChild(separator2);
-      
-      // Tabla de productos
-      const productTable = document.createElement('table');
-      productTable.style.width = '100%';
-      productTable.style.borderCollapse = 'collapse';
-      productTable.style.marginBottom = '10px';
-      productTable.style.fontSize = '11px';
-      
-      // Cabecera de la tabla
-      productTable.innerHTML = `
-        <thead>
-          <tr style="border-bottom: 1px solid #ddd; text-align: left;">
-            <th style="padding: 5px; text-align: left;">Producto</th>
-            <th style="padding: 5px; text-align: right;">Cant.</th>
-            <th style="padding: 5px; text-align: right;">Precio</th>
-            <th style="padding: 5px; text-align: right;">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${invoiceDetails.map((item: any) => {
-            const product = products.find((p: Product) => p.id === item.productId);
-            return `
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 5px; text-align: left;">${product?.name || "Producto"}</td>
-                <td style="padding: 5px; text-align: right;">${item.quantity}</td>
-                <td style="padding: 5px; text-align: right;">${parseFloat(item.price).toFixed(2)}</td>
-                <td style="padding: 5px; text-align: right;">${parseFloat(item.total).toFixed(2)}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      `;
-      printContent.appendChild(productTable);
-      
-      // Cálculo de totales
-      const subtotal = invoiceDetails.reduce((sum: number, item: any) => sum + parseFloat(item.total || "0"), 0);
-      const tax = subtotal * 0.18;
-      const total = subtotal + tax;
-      
-      // Resumen de totales
-      const totalsSection = document.createElement('div');
-      totalsSection.style.marginTop = '10px';
-      totalsSection.style.fontSize = '11px';
-      totalsSection.style.textAlign = 'right';
-      totalsSection.innerHTML = `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-          <span>Subtotal:</span>
-          <span>RD$ ${subtotal.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-          <span>ITBIS (18%):</span>
-          <span>RD$ ${tax.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 5px;">
-          <span>Total:</span>
-          <span>RD$ ${total.toFixed(2)}</span>
-        </div>
-      `;
-      printContent.appendChild(totalsSection);
-      
-      // Información de pagos si es una factura parcialmente pagada o pagada
-      if (invoice.totalPaid && parseFloat(invoice.totalPaid) > 0) {
-        const paymentInfo = document.createElement('div');
-        paymentInfo.style.marginTop = '10px';
-        paymentInfo.style.fontSize = '11px';
-        paymentInfo.style.textAlign = 'right';
-        paymentInfo.innerHTML = `
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>Pagado:</span>
-            <span>RD$ ${parseFloat(invoice.totalPaid).toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold;">
-            <span>Pendiente:</span>
-            <span>RD$ ${parseFloat(invoice.pendingAmount || "0").toFixed(2)}</span>
-          </div>
-        `;
-        printContent.appendChild(paymentInfo);
+      // Esperar a que se carguen los detalles (asincrónico)
+      const itemsResponse = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+      if (!itemsResponse.ok) {
+        throw new Error('Error al cargar detalles de la factura');
       }
+      const items = await itemsResponse.json();
       
-      // Notas
-      if (invoice.notes) {
-        const notesSection = document.createElement('div');
-        notesSection.style.marginTop = '15px';
-        notesSection.style.fontSize = '11px';
-        notesSection.innerHTML = `
-          <div style="font-weight: bold; margin-bottom: 5px;">Nota de la Factura:</div>
-          <div style="font-style: italic;">${invoice.notes}</div>
-        `;
-        printContent.appendChild(notesSection);
-      } else {
-        // Siempre mostrar el título "Nota de la Factura" aunque esté vacío
-        const notesSection = document.createElement('div');
-        notesSection.style.marginTop = '15px';
-        notesSection.style.fontSize = '11px';
-        notesSection.innerHTML = `
-          <div style="font-weight: bold; margin-bottom: 5px;">Nota de la Factura:</div>
-        `;
-        printContent.appendChild(notesSection);
-      }
-      
-      // Mensaje de agradecimiento
-      const thankYouMsg = document.createElement('div');
-      thankYouMsg.style.textAlign = 'center';
-      thankYouMsg.style.marginTop = '20px';
-      thankYouMsg.style.fontSize = '11px';
-      thankYouMsg.textContent = 'Gracias por su compra';
-      printContent.appendChild(thankYouMsg);
-      
-      // Crear un iframe para la impresión
-      const printFrame = document.createElement('iframe');
-      printFrame.style.display = 'none';
-      document.body.appendChild(printFrame);
-      
-      printFrame.contentDocument?.open();
-      printFrame.contentDocument?.write(`
-        <html>
-          <head>
-            <title>Factura #${invoice.id}</title>
-            <style>
-              @media print {
-                body { margin: 0; padding: 0; }
-                @page { size: 80mm 297mm; margin: 0; }
-              }
-            </style>
-          </head>
-          <body>
-            ${printContent.outerHTML}
-          </body>
-        </html>
-      `);
-      printFrame.contentDocument?.close();
-      
-      // Imprimir después de que el iframe cargue
-      printFrame.onload = () => {
-        printFrame.contentWindow?.focus();
-        printFrame.contentWindow?.print();
-        
-        // Eliminar el iframe después de imprimir
-        setTimeout(() => {
-          document.body.removeChild(printFrame);
-        }, 1000);
-      };
-    }, 500);
+      // Usar el servicio PrinterService para imprimir
+      await PrinterService.printInvoice(
+        invoice, 
+        settings, 
+        customers, 
+        items
+      );
+    } catch (error: any) {
+      console.error('Error al imprimir factura:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo imprimir la factura",
+      });
+    }
   };
 
-  const generatePDF = (invoice: InvoiceWithDetails) => {
-    // Seleccionar la factura para obtener sus detalles
-    setSelectedInvoice(invoice);
-    
-    toast({
-      title: "Generando PDF",
-      description: "Por favor espere...",
-    });
-    
-    // Utilizamos un timeout para dar tiempo a que se carguen los detalles de la factura
-    setTimeout(() => {
-      // Crear un div temporal para el PDF
-      const pdfContent = document.createElement('div');
-      pdfContent.id = 'pdf-content';
-      pdfContent.style.width = '80mm'; // Ancho para impresora térmica
-      pdfContent.style.padding = '10px';
-      pdfContent.style.fontFamily = 'Arial, sans-serif';
-      pdfContent.style.position = 'absolute';
-      pdfContent.style.left = '-9999px';
-      document.body.appendChild(pdfContent);
+  const generatePDF = async (invoice: InvoiceWithDetails) => {
+    try {
+      // Seleccionar la factura para obtener sus detalles
+      setSelectedInvoice(invoice);
       
-      // Encabezado de la empresa
-      const header = document.createElement('div');
-      header.style.textAlign = 'center';
-      header.style.marginBottom = '20px';
-      header.innerHTML = `
-        <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${settings?.name || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">${settings?.street || ''} ${settings?.streetNumber || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">${settings?.municipalityId ? 'Cotuí' : ''}, ${settings?.provinceId ? 'Sánchez Ramírez' : ''}, ${settings?.country || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${settings?.contactPhone || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 2px;">Email: ${settings?.email || ''}</div>
-        <div style="font-size: 11px; margin-bottom: 5px;">RNC: ${settings?.rnc || ''}</div>
-      `;
-      pdfContent.appendChild(header);
-      
-      // Separador
-      const separator = document.createElement('div');
-      separator.style.borderBottom = '1px solid #000';
-      separator.style.margin = '10px 0 20px';
-      pdfContent.appendChild(separator);
-      
-      // Título de factura
-      const title = document.createElement('div');
-      title.style.textAlign = 'center';
-      title.style.fontSize = '18px';
-      title.style.fontWeight = 'bold';
-      title.style.margin = '20px 0';
-      title.textContent = 'FACTURA';
-      pdfContent.appendChild(title);
-      
-      // Información de la factura
-      const invoiceInfo = document.createElement('div');
-      invoiceInfo.style.marginBottom = '20px';
-      invoiceInfo.style.fontSize = '14px';
-      
-      const customer = customers.find((c: Customer) => c.id === invoice.customerId);
-      invoiceInfo.innerHTML = `
-        <div style="margin-bottom: 8px;"><strong>Factura #:</strong> ${invoice.id}</div>
-        <div style="margin-bottom: 8px;"><strong>Fecha:</strong> ${new Date(invoice.date).toLocaleDateString()}</div>
-        <div style="margin-bottom: 8px;"><strong>Cliente:</strong> ${customer?.businessname || "Cliente"}</div>
-        <div style="margin-bottom: 8px;"><strong>Dirección:</strong> ${customer?.address || ""}, ${customer?.municipality || "Cotuí"}</div>
-        <div style="margin-bottom: 8px;"><strong>Provincia:</strong> ${customer?.province || "Sánchez Ramírez"}</div>
-        <div style="margin-bottom: 8px;"><strong>Teléfono:</strong> ${customer?.phone || ""}</div>
-        <div style="margin-bottom: 8px;"><strong>Método de pago:</strong> ${
-          invoice.paymentMethod === 'cash' ? 'Efectivo' : 
-          invoice.paymentMethod === 'credit' ? 'Crédito' : 
-          invoice.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado'
-        }</div>
-      `;
-      pdfContent.appendChild(invoiceInfo);
-      
-      // Otro separador
-      const separator2 = document.createElement('div');
-      separator2.style.borderBottom = '1px solid #000';
-      separator2.style.margin = '10px 0 20px';
-      pdfContent.appendChild(separator2);
-      
-      // Tabla de productos
-      const productTable = document.createElement('table');
-      productTable.style.width = '100%';
-      productTable.style.borderCollapse = 'collapse';
-      productTable.style.marginBottom = '20px';
-      productTable.style.fontSize = '14px';
-      
-      // Cabecera de la tabla
-      productTable.innerHTML = `
-        <thead>
-          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
-            <th style="padding: 8px; text-align: left;">Producto</th>
-            <th style="padding: 8px; text-align: right;">Cant.</th>
-            <th style="padding: 8px; text-align: right;">Precio</th>
-            <th style="padding: 8px; text-align: right;">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${invoiceDetails.map((item: any) => {
-            const product = products.find((p: Product) => p.id === item.productId);
-            return `
-              <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 8px; text-align: left;">${product?.name || "Producto"}</td>
-                <td style="padding: 8px; text-align: right;">${item.quantity}</td>
-                <td style="padding: 8px; text-align: right;">${parseFloat(item.price).toFixed(2)}</td>
-                <td style="padding: 8px; text-align: right;">${parseFloat(item.total).toFixed(2)}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      `;
-      pdfContent.appendChild(productTable);
-      
-      // Cálculo de totales
-      const subtotal = invoiceDetails.reduce((sum: number, item: any) => sum + parseFloat(item.total || "0"), 0);
-      const tax = subtotal * 0.18;
-      const total = subtotal + tax;
-      
-      // Resumen de totales
-      const totalsSection = document.createElement('div');
-      totalsSection.style.marginTop = '20px';
-      totalsSection.style.fontSize = '14px';
-      totalsSection.style.textAlign = 'right';
-      totalsSection.innerHTML = `
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-          <span style="width: 150px; text-align: left;">Subtotal:</span>
-          <span style="width: 100px; text-align: right;">RD$ ${subtotal.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-          <span style="width: 150px; text-align: left;">ITBIS (18%):</span>
-          <span style="width: 100px; text-align: right;">RD$ ${tax.toFixed(2)}</span>
-        </div>
-        <div style="display: flex; justify-content: flex-end; font-weight: bold; margin-bottom: 8px;">
-          <span style="width: 150px; text-align: left;">Total:</span>
-          <span style="width: 100px; text-align: right;">RD$ ${total.toFixed(2)}</span>
-        </div>
-      `;
-      pdfContent.appendChild(totalsSection);
-      
-      // Información de pagos si es una factura parcialmente pagada o pagada
-      if (invoice.totalPaid && parseFloat(invoice.totalPaid) > 0) {
-        const paymentInfo = document.createElement('div');
-        paymentInfo.style.marginTop = '20px';
-        paymentInfo.style.fontSize = '14px';
-        paymentInfo.style.textAlign = 'right';
-        paymentInfo.innerHTML = `
-          <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
-            <span style="width: 150px; text-align: left;">Pagado:</span>
-            <span style="width: 100px; text-align: right;">RD$ ${parseFloat(invoice.totalPaid).toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: flex-end; margin-bottom: 8px; font-weight: bold;">
-            <span style="width: 150px; text-align: left;">Pendiente:</span>
-            <span style="width: 100px; text-align: right;">RD$ ${parseFloat(invoice.pendingAmount || "0").toFixed(2)}</span>
-          </div>
-        `;
-        pdfContent.appendChild(paymentInfo);
-      }
-      
-      // Notas
-      if (invoice.notes) {
-        const notesSection = document.createElement('div');
-        notesSection.style.marginTop = '30px';
-        notesSection.style.fontSize = '14px';
-        notesSection.innerHTML = `
-          <div style="font-weight: bold; margin-bottom: 8px;">Nota de la Factura:</div>
-          <div style="font-style: italic;">${invoice.notes}</div>
-        `;
-        pdfContent.appendChild(notesSection);
-      } else {
-        // Siempre mostrar el título "Nota de la Factura" aunque esté vacío
-        const notesSection = document.createElement('div');
-        notesSection.style.marginTop = '30px';
-        notesSection.style.fontSize = '14px';
-        notesSection.innerHTML = `
-          <div style="font-weight: bold; margin-bottom: 8px;">Nota de la Factura:</div>
-        `;
-        pdfContent.appendChild(notesSection);
-      }
-      
-      // Mensaje de agradecimiento
-      const thankYouMsg = document.createElement('div');
-      thankYouMsg.style.textAlign = 'center';
-      thankYouMsg.style.marginTop = '40px';
-      thankYouMsg.style.fontSize = '14px';
-      thankYouMsg.textContent = 'Gracias por su compra';
-      pdfContent.appendChild(thankYouMsg);
-      
-      // Generar PDF usando html2canvas y jsPDF
-      html2canvas(pdfContent).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: [80, 200] // 80mm de ancho (3 pulgadas) x 200mm de alto
-        });
-        
-        const imgWidth = 80; // Ancho de impresora térmica en mm
-        const pageHeight = 200; // Altura aproximada en mm
-        const imgHeight = canvas.height * imgWidth / canvas.width;
-        let heightLeft = imgHeight;
-        let position = 0;
-        
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-        
-        // Si el contenido es más largo que una página, agregar más páginas
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-        }
-        
-        pdf.save(`Factura-${invoice.id}.pdf`);
-        
-        // Eliminar el div temporal
-        document.body.removeChild(pdfContent);
-        
-        toast({
-          title: "¡Listo!",
-          description: "PDF generado exitosamente",
-        });
+      // Mostrar mensaje de carga
+      toast({
+        title: "Generando PDF",
+        description: "Por favor espere...",
       });
-    }, 500);
+      
+      // Obtener los detalles de la factura
+      const itemsResponse = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+      if (!itemsResponse.ok) {
+        throw new Error('Error al cargar detalles de la factura');
+      }
+      const items = await itemsResponse.json();
+      
+      // Usar el servicio PrinterService para generar el PDF
+      await PrinterService.generateInvoicePDF(
+        invoice, 
+        settings, 
+        customers, 
+        items
+      );
+      
+      toast({
+        title: "¡Listo!",
+        description: "PDF generado exitosamente",
+      });
+    } catch (error: any) {
+      console.error('Error al generar PDF:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo generar el PDF",
+      });
+    }
   };
 
   // Calcular totales para estadísticas
