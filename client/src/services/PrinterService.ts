@@ -1408,11 +1408,12 @@ export class PrinterService {
       // Crear contenido HTML para impresión
       const printContent = document.createElement('div');
       printContent.className = 'payment-print-content';
-      printContent.style.width = '80mm';
+      // Usamos un formato de página carta estándar en lugar de 80mm
+      printContent.style.width = '210mm';
       printContent.style.boxSizing = 'border-box';
-      printContent.style.padding = '5mm';
+      printContent.style.padding = '10mm';
       printContent.style.fontFamily = 'Arial, sans-serif';
-      printContent.style.fontSize = '10px';
+      printContent.style.fontSize = '12px';
       
       // Encabezado con datos de la empresa
       const companyName = settings?.name || 'Empresa';
@@ -1425,15 +1426,15 @@ export class PrinterService {
       const email = settings?.email || '';
       
       printContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 10px;">
-          <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">RNC: ${rnc}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">${street} ${streetNumber}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">${municipalityName}, ${provinceName}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
-          <div style="font-size: 11px; margin-bottom: 2px;">Email: ${email}</div>
+        <div style="text-align: center; margin-bottom: 15px;">
+          <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
+          <div style="font-size: 12px; margin-bottom: 2px;">RNC: ${rnc}</div>
+          <div style="font-size: 12px; margin-bottom: 2px;">${street} ${streetNumber}</div>
+          <div style="font-size: 12px; margin-bottom: 2px;">${municipalityName}, ${provinceName}</div>
+          <div style="font-size: 12px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
+          <div style="font-size: 12px; margin-bottom: 2px;">Email: ${email}</div>
         </div>
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="border-top: 1px solid #000; margin: 10px 0;"></div>
       `;
       
       // Información del pago
@@ -1531,7 +1532,7 @@ export class PrinterService {
       // Imprimir usando el método genérico
       await this.printDocument(printContent, {
         title: `Recibo de Pago #${payment.id || 'N/A'}`,
-        size: [80, 200],
+        size: [210, 297], // Tamaño carta estándar (A4)
       });
     } catch (error: any) {
       console.error('Error en printPayment:', error);
