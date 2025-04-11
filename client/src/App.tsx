@@ -43,6 +43,7 @@ import TrucksPage from "./pages/routes/trucks";
 import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
+import TestPage from "@/pages/test-page";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -212,6 +213,9 @@ function Router() {
         <Route path="/recurring-orders/new" component={RecurringOrderForm} />
         <Route path="/recurring-orders/:id" component={RecurringOrderForm} />
         <Route path="/recurring-orders" component={RecurringOrdersPage} />
+        
+        {/* Página de prueba de impresión */}
+        <Route path="/test-print" component={TestPage} />
 
         <Route component={NotFound} />
       </Switch>
