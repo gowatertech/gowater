@@ -129,11 +129,11 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       
       // Calcular ventas en efectivo y ventas a crédito basado en las órdenes
       calculatedCashSales = orders
-        .filter(order => order.paymentType === "cash")
+        .filter(order => order.paymentMethod === "cash")
         .reduce((sum, order) => sum + parseFloat(order.total), 0);
         
       calculatedCreditSales = orders
-        .filter(order => order.paymentType === "credit")
+        .filter(order => order.paymentMethod === "credit")
         .reduce((sum, order) => sum + parseFloat(order.total), 0);
         
       // Establecer el crédito recibido automáticamente (es de solo lectura)
