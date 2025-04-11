@@ -1410,12 +1410,12 @@ export class PrinterService {
       // Crear contenido HTML para impresión
       const printContent = document.createElement('div');
       printContent.className = 'payment-print-content';
-      // Usamos un formato de página carta estándar en lugar de 80mm
-      printContent.style.width = '210mm';
+      // Usamos un formato de ticket 80mm
+      printContent.style.width = '80mm';
       printContent.style.boxSizing = 'border-box';
-      printContent.style.padding = '10mm';
+      printContent.style.padding = '5mm';
       printContent.style.fontFamily = 'Arial, sans-serif';
-      printContent.style.fontSize = '12px';
+      printContent.style.fontSize = '10px';
       
       // Encabezado con datos de la empresa
       const companyName = settings?.name || 'Empresa';
@@ -1428,15 +1428,15 @@ export class PrinterService {
       const email = settings?.email || '';
       
       printContent.innerHTML = `
-        <div style="text-align: center; margin-bottom: 15px;">
-          <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">${companyName}</div>
-          <div style="font-size: 12px; margin-bottom: 2px;">RNC: ${rnc}</div>
-          <div style="font-size: 12px; margin-bottom: 2px;">${street} ${streetNumber}</div>
-          <div style="font-size: 12px; margin-bottom: 2px;">${municipalityName}, ${provinceName}</div>
-          <div style="font-size: 12px; margin-bottom: 2px;">Tel: ${contactPhone}</div>
-          <div style="font-size: 12px; margin-bottom: 2px;">Email: ${email}</div>
+        <div style="text-align: center; margin-bottom: 10px;">
+          <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${companyName}</div>
+          <div style="font-size: 10px; margin-bottom: 1px;">RNC: ${rnc}</div>
+          <div style="font-size: 10px; margin-bottom: 1px;">${street} ${streetNumber}</div>
+          <div style="font-size: 10px; margin-bottom: 1px;">${municipalityName}, ${provinceName}</div>
+          <div style="font-size: 10px; margin-bottom: 1px;">Tel: ${contactPhone}</div>
+          <div style="font-size: 10px; margin-bottom: 1px;">Email: ${email}</div>
         </div>
-        <div style="border-top: 1px solid #000; margin: 10px 0;"></div>
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
       `;
       
       // Información del pago
@@ -1461,35 +1461,35 @@ export class PrinterService {
         payment.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
       
       printContent.innerHTML += `
-        <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 5px;">RECIBO DE PAGO #${payment.id || 'N/A'}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Fecha:</strong> ${formattedDate}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Cliente:</strong> ${businessname}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Teléfono:</strong> ${customerPhone}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Dirección:</strong> ${customerAddress}</div>
-        <div style="margin-bottom: 3px; padding-left: 15px;">${customerMunicipality}, ${customerProvince}</div>
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px;">RECIBO DE PAGO #${payment.id || 'N/A'}</div>
+        <div style="margin-bottom: 2px; font-size: 9px;"><strong>Fecha:</strong> ${formattedDate}</div>
+        <div style="margin-bottom: 2px; font-size: 9px;"><strong>Cliente:</strong> ${businessname}</div>
+        <div style="margin-bottom: 2px; font-size: 9px;"><strong>Teléfono:</strong> ${customerPhone}</div>
+        <div style="margin-bottom: 2px; font-size: 9px;"><strong>Dirección:</strong> ${customerAddress}</div>
+        <div style="margin-bottom: 2px; font-size: 9px;">${customerMunicipality}, ${customerProvince}</div>
+        <div style="border-top: 1px dashed #000; margin: 5px 0;"></div>
       `;
       
       // Detalles del pago
       printContent.innerHTML += `
-        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">DETALLES DEL PAGO</div>
+        <div style="text-align: center; font-weight: bold; font-size: 10px; margin-bottom: 4px;">DETALLES DEL PAGO</div>
       `;
       
       // Datos de factura/s
       if (payment.invoiceId) {
         printContent.innerHTML += `
-          <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Factura:</strong> #${payment.invoiceId}</div>
+          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Factura:</strong> #${payment.invoiceId}</div>
         `;
       }
       
       // Método y referencia
       printContent.innerHTML += `
-        <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Método:</strong> ${paymentMethod}</div>
+        <div style="margin-bottom: 2px; font-size: 9px;"><strong>Método:</strong> ${paymentMethod}</div>
       `;
       
       if (payment.reference) {
         printContent.innerHTML += `
-          <div style="margin-bottom: 3px; padding-left: 15px;"><strong>Referencia:</strong> ${payment.reference}</div>
+          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Referencia:</strong> ${payment.reference}</div>
         `;
       }
       
@@ -1534,7 +1534,7 @@ export class PrinterService {
       // Imprimir usando el método genérico
       await this.printDocument(printContent, {
         title: `Recibo de Pago #${payment.id || 'N/A'}`,
-        size: [210, 297], // Tamaño carta estándar (A4)
+        size: [80, 200], // Tamaño ticket 80mm
       });
     } catch (error: any) {
       console.error('Error en printPayment:', error);
