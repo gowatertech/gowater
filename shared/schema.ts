@@ -209,6 +209,28 @@ export const routes = pgTable("routes", {
   comments: text("comments")  // Campo para comentarios al completar rutas
 });
 
+// Relaciones para rutas
+export const routesRelations = relations(routes, ({ one, many }) => ({
+  driver: one(users, {
+    fields: [routes.driverId],
+    references: [users.id],
+  }),
+  assistant: one(users, {
+    fields: [routes.assistantId],
+    references: [users.id],
+  }),
+  truck: one(trucks, {
+    fields: [routes.truckId],
+    references: [trucks.id],
+  }),
+  zone: one(zones, {
+    fields: [routes.zoneId],
+    references: [zones.id],
+  }),
+  vehicleLoadings: many(vehicleLoading),
+  orders: many(orders),
+}));
+
 export const insertRouteSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   driverId: z.number({ required_error: "Se requiere un conductor" }),
@@ -260,6 +282,30 @@ export const orderItems = pgTable("order_items", {
   quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
 });
+
+// Relaciones para pedidos
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  customer: one(customers, {
+    fields: [orders.customerId],
+    references: [customers.id],
+  }),
+  route: one(routes, {
+    fields: [orders.routeId],
+    references: [routes.id],
+  }),
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
+}));
 
 export const insertOrderSchema = z.object({
   customerId: z.number(),

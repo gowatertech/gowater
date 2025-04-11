@@ -1,11 +1,11 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVehicleLoadingSchema } from "@shared/schema";
-import type { InsertVehicleLoading, Product, User, Truck } from "@shared/schema";
+import type { InsertVehicleLoading, Product, User, Truck, Route, Order } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, X, Truck as TruckIcon, Route as RouteIcon } from "lucide-react";
 
 import {
   Form,
@@ -79,6 +79,10 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+  
+  const { data: routes = [] } = useQuery<Route[]>({
+    queryKey: ["/api/routes", { status: "pending" }],
   });
 
   const onSubmit = async (values: InsertVehicleLoading) => {
