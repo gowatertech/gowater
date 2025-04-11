@@ -27,6 +27,8 @@ const settlementSchema = z.object({
     returnedQuantity: z.number(),
     soldQuantity: z.number(),
     returnedContainers: z.number(),
+    productDifference: z.number().optional(), // Diferencia entre cargado-devuelto y vendido
+    containersDifference: z.number().optional(), // Diferencia entre envases que deberían devolverse y los realmente devueltos
     notes: z.string().optional(),
   })),
 });
@@ -114,6 +116,8 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         returnedQuantity: 0,
         soldQuantity: 0, // Iniciamos con 0 para que se calcule correctamente
         returnedContainers: 0,
+        productDifference: 0, // Diferencia entre cargado-devuelto y vendido
+        containersDifference: 0, // Diferencia entre envases devueltos y vendidos
         notes: "",
       };
     }),
@@ -279,6 +283,24 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             // Si encontramos ventas, actualizamos la cantidad vendida
             console.log(`Actualizando cantidad vendida para producto #${formItem.productId}: ${productSoldInfo.quantity}`);
             form.setValue(`items.${index}.soldQuantity`, productSoldInfo.quantity);
+            
+            // Calcular diferencia de productos: (cargado - devuelto) - vendido
+            const loadedQuantity = formItem.loadedQuantity;
+            const returnedQuantity = formItem.returnedQuantity;
+            const soldQuantity = productSoldInfo.quantity;
+            const productDifference = (loadedQuantity - returnedQuantity) - soldQuantity;
+            console.log(`Diferencia de producto #${formItem.productId}: ${productDifference}`);
+            form.setValue(`items.${index}.productDifference`, productDifference);
+            
+            // Calcular diferencia de envases si el producto es retornable
+            // Esto es: envases que deberían devolverse (soldQuantity) - envases realmente devueltos
+            const product = loading.items.find(item => item.productId === formItem.productId)?.product;
+            if (product?.isReturnable) {
+              const returnedContainers = formItem.returnedContainers;
+              const containersDifference = soldQuantity - returnedContainers;
+              console.log(`Diferencia de envases para producto #${formItem.productId}: ${containersDifference}`);
+              form.setValue(`items.${index}.containersDifference`, containersDifference);
+            }
           }
           // Si no hay ventas para este producto, queda en 0 (como se inicializó)
         });
@@ -706,7 +728,9 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                       <th className="px-4 py-2 text-center">Cargado</th>
                       <th className="px-4 py-2 text-center">Devuelto</th>
                       <th className="px-4 py-2 text-center">Vendido</th>
+                      <th className="px-4 py-2 text-center">Diferencia Producto</th>
                       <th className="px-4 py-2 text-center">Envases Devueltos</th>
+                      <th className="px-4 py-2 text-center">Diferencia Envases</th>
                       <th className="px-4 py-2 text-center">¿Retornable?</th>
                     </tr>
                   </thead>
@@ -771,6 +795,33 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                           />
                         </td>
                         <td className="px-4 py-2 text-center">
+                          <FormField
+                            control={form.control}
+                            name={`items.${index}.productDifference`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input 
+                                    name={field.name}
+                                    value={field.value}
+                                    type="text"
+                                    inputMode="numeric"
+                                    readOnly
+                                    disabled
+                                    className={`w-20 mx-auto text-center ${
+                                      parseInt(field.value) !== 0 
+                                        ? parseInt(field.value) > 0 
+                                          ? 'bg-green-50 text-green-700' 
+                                          : 'bg-red-50 text-red-700'
+                                        : 'bg-gray-50'
+                                    }`}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-center">
                           {item.product?.isReturnable ? (
                             <FormField
                               control={form.control}
@@ -799,6 +850,37 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                                     />
                                   </FormControl>
                                   <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          {item.product?.isReturnable ? (
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.containersDifference`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormControl>
+                                    <Input 
+                                      name={field.name}
+                                      value={field.value}
+                                      type="text"
+                                      inputMode="numeric"
+                                      readOnly
+                                      disabled
+                                      className={`w-20 mx-auto text-center ${
+                                        parseInt(field.value) !== 0 
+                                          ? parseInt(field.value) > 0 
+                                            ? 'bg-red-50 text-red-700' 
+                                            : 'bg-green-50 text-green-700'
+                                          : 'bg-gray-50'
+                                      }`}
+                                    />
+                                  </FormControl>
                                 </FormItem>
                               )}
                             />
