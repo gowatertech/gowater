@@ -638,11 +638,24 @@ export class PrinterService {
     }, 
     startY: number
   ): number {
+    // Sanitizamos los datos para prevenir errores
+    const safePayment = {
+      id: String(payment?.id || 'N/A'),
+      date: payment?.date || new Date().toISOString(),
+      amount: String(payment?.amount || '0'),
+      method: String(payment?.method || 'cash'),
+      paymentMethod: String(payment?.paymentMethod || payment?.method || 'cash'),
+      customerName: String(payment?.customerName || 'Cliente'),
+      invoiceId: payment?.invoiceId ? String(payment.invoiceId) : '',
+      reference: String(payment?.reference || ''),
+      notes: String(payment?.notes || '')
+    };
+    
     // Título
     let yPos = startY;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(`RECIBO DE PAGO #${payment.id || 'N/A'}`, 40, yPos, { align: 'center' });
+    doc.text(`RECIBO DE PAGO #${safePayment.id}`, 40, yPos, { align: 'center' });
     yPos += 5;
     
     // Datos del cliente y pago
@@ -652,32 +665,36 @@ export class PrinterService {
     // Fecha
     let formattedDate = '';
     try {
-      formattedDate = new Date(payment.date).toLocaleDateString();
+      formattedDate = new Date(safePayment.date).toLocaleDateString();
     } catch (e) {
       formattedDate = 'Fecha no disponible';
     }
     
     // Cliente - convertimos todos los valores a String para prevenir errores
     const customer = extraData.customer || {};
-    const businessName = String(customer?.businessname || payment.customerName || "Cliente");
+    const businessName = String(customer?.businessname || safePayment.customerName);
     const address = String(customer?.address || "");
-    const municipality = String(customer?.municipality || "Cotuí");
-    const province = String(customer?.province || "Sánchez Ramírez");
+    const municipality = String(customer?.municipality || "");
+    const province = String(customer?.province || "");
     const phone = String(customer?.phone || "");
     
     // Método de pago
     const paymentMethod = 
-      payment.method === 'cash' ? 'Efectivo' : 
-      payment.method === 'bank_transfer' ? 'Transferencia' : 
-      payment.method === 'check' ? 'Cheque' : 
-      payment.method === 'card' ? 'Tarjeta' : 'No especificado';
+      safePayment.paymentMethod === 'cash' ? 'Efectivo' : 
+      safePayment.paymentMethod === 'bank_transfer' ? 'Transferencia' : 
+      safePayment.paymentMethod === 'check' ? 'Cheque' : 
+      safePayment.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
     
     // Añadir información del cliente - aseguramos que todo sea string
     doc.text(`Fecha: ${formattedDate}`, 10, yPos); yPos += 4;
     doc.text(`Cliente: ${businessName}`, 10, yPos); yPos += 4;
-    doc.text(`Dirección: ${address}, ${municipality}`, 10, yPos); yPos += 4;
-    doc.text(`Provincia: ${province}`, 10, yPos); yPos += 4;
-    doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
+    doc.text(`Dirección: ${address}${municipality ? `, ${municipality}` : ''}`, 10, yPos); yPos += 4;
+    if (province) {
+      doc.text(`Provincia: ${province}`, 10, yPos); yPos += 4;
+    }
+    if (phone) {
+      doc.text(`Teléfono: ${phone}`, 10, yPos); yPos += 4;
+    }
     
     // Línea separadora
     yPos += 2;
@@ -696,8 +713,8 @@ export class PrinterService {
     doc.setFont('helvetica', 'normal');
     
     // Datos de factura/s
-    if (payment.invoiceId) {
-      doc.text(`Factura: #${payment.invoiceId}`, 10, yPos);
+    if (safePayment.invoiceId) {
+      doc.text(`Factura: #${safePayment.invoiceId}`, 10, yPos);
       yPos += 4;
     }
     
@@ -705,8 +722,8 @@ export class PrinterService {
     doc.text(`Método de pago: ${paymentMethod}`, 10, yPos);
     yPos += 4;
     
-    if (payment.reference) {
-      doc.text(`Referencia: ${payment.reference}`, 10, yPos);
+    if (safePayment.reference) {
+      doc.text(`Referencia: ${safePayment.reference}`, 10, yPos);
       yPos += 4;
     }
     
@@ -717,7 +734,7 @@ export class PrinterService {
     yPos += 5;
     
     // Monto total
-    const amount = parseFloat(payment.amount || 0);
+    const amount = parseFloat(safePayment.amount || 0);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
@@ -725,7 +742,7 @@ export class PrinterService {
     yPos += 10;
     
     // Notas (si hay)
-    if (payment.notes) {
+    if (safePayment.notes) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.text("Nota:", 5, yPos);
@@ -733,7 +750,7 @@ export class PrinterService {
       
       // Dividir notas en líneas si son muy largas
       const maxWidth = 70; // Ancho máximo en mm para notas
-      const splitNotes = doc.splitTextToSize(payment.notes, maxWidth);
+      const splitNotes = doc.splitTextToSize(safePayment.notes, maxWidth);
       
       doc.text(splitNotes, 5, yPos);
       yPos += splitNotes.length * 4;
@@ -1470,26 +1487,27 @@ export class PrinterService {
       // Información del pago
       let formattedDate = '';
       try {
-        formattedDate = new Date(payment.date).toLocaleDateString();
+        formattedDate = new Date(paymentData.date).toLocaleDateString();
       } catch (e) {
         formattedDate = 'Fecha no disponible';
       }
       
-      const businessname = customer?.businessname || "Cliente";
-      const customerPhone = customer?.phone || "";
-      const customerAddress = customer?.address || "";
-      const customerMunicipality = customer?.municipality || "";
-      const customerProvince = customer?.province || "";
+      // Datos del cliente (ya sanitizados)
+      const businessname = customerData.businessname;
+      const customerPhone = customerData.phone;
+      const customerAddress = customerData.address;
+      const customerMunicipality = customerData.municipality;
+      const customerProvince = customerData.province;
       
       // Método de pago
       const paymentMethod = 
-        payment.paymentMethod === 'cash' ? 'Efectivo' : 
-        payment.paymentMethod === 'bank_transfer' ? 'Transferencia' : 
-        payment.paymentMethod === 'check' ? 'Cheque' : 
-        payment.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
+        paymentData.paymentMethod === 'cash' ? 'Efectivo' : 
+        paymentData.paymentMethod === 'bank_transfer' ? 'Transferencia' : 
+        paymentData.paymentMethod === 'check' ? 'Cheque' : 
+        paymentData.paymentMethod === 'card' ? 'Tarjeta' : 'No especificado';
       
       printContent.innerHTML += `
-        <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px;">RECIBO DE PAGO #${payment.id || 'N/A'}</div>
+        <div style="text-align: center; font-weight: bold; font-size: 12px; margin-bottom: 5px;">RECIBO DE PAGO #${paymentData.id}</div>
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Fecha:</strong> ${formattedDate}</div>
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Cliente:</strong> ${businessname}</div>
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Teléfono:</strong> ${customerPhone}</div>
@@ -1504,9 +1522,9 @@ export class PrinterService {
       `;
       
       // Datos de factura/s
-      if (payment.invoiceId) {
+      if (paymentData.invoiceId) {
         printContent.innerHTML += `
-          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Factura:</strong> #${payment.invoiceId}</div>
+          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Factura:</strong> #${paymentData.invoiceId}</div>
         `;
       }
       
@@ -1515,9 +1533,9 @@ export class PrinterService {
         <div style="margin-bottom: 2px; font-size: 9px;"><strong>Método:</strong> ${paymentMethod}</div>
       `;
       
-      if (payment.reference) {
+      if (paymentData.reference) {
         printContent.innerHTML += `
-          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Referencia:</strong> ${payment.reference}</div>
+          <div style="margin-bottom: 2px; font-size: 9px;"><strong>Referencia:</strong> ${paymentData.reference}</div>
         `;
       }
       
@@ -1525,7 +1543,7 @@ export class PrinterService {
       printContent.innerHTML += `<div style="border-top: 1px dashed #000; margin: 5px 0;"></div>`;
       
       // Monto
-      const amount = parseFloat(payment.amount || 0);
+      const amount = parseFloat(paymentData.amount || 0);
       
       printContent.innerHTML += `
         <div style="text-align: center; font-size: 12px; font-weight: bold; margin: 5px 0;">
@@ -1534,11 +1552,11 @@ export class PrinterService {
       `;
       
       // Notas (si hay)
-      if (payment.notes) {
+      if (paymentData.notes) {
         printContent.innerHTML += `
           <div style="margin-top: 5px; font-size: 8px;">
             <div style="font-weight: bold; margin-bottom: 2px;">Nota:</div>
-            <div>${payment.notes}</div>
+            <div>${paymentData.notes}</div>
           </div>
         `;
       }
@@ -1561,7 +1579,7 @@ export class PrinterService {
       
       // Imprimir usando el método genérico
       await this.printDocument(printContent, {
-        title: `Recibo de Pago #${payment.id || 'N/A'}`,
+        title: `Recibo de Pago #${paymentData.id}`,
         size: [80, 200], // Tamaño ticket 80mm
       });
     } catch (error: any) {
