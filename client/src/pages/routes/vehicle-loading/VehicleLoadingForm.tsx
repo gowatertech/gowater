@@ -94,6 +94,21 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
   const routes = allRoutes.filter(route => 
     route.status === "pending" || route.status === "in_progress"
   );
+  
+  // Precargar el conductor cuando se selecciona una ruta
+  const handleRouteChange = (routeId: number) => {
+    // Buscar la ruta seleccionada
+    const selectedRoute = routes.find(route => route.id === routeId);
+    if (selectedRoute && selectedRoute.driverId) {
+      // Actualizar el campo del conductor con el valor de la ruta
+      form.setValue("driverId", selectedRoute.driverId);
+      
+      // Actualizar el campo del ayudante si existe en la ruta
+      if (selectedRoute.assistantId) {
+        form.setValue("assistantId", selectedRoute.assistantId);
+      }
+    }
+  };
 
   const onSubmit = async (values: InsertVehicleLoading) => {
     try {
@@ -158,7 +173,11 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
               <FormItem className="space-y-1">
                 <FormLabel className="text-xs">Ruta</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
+                  onValueChange={(value) => {
+                    const routeId = Number(value);
+                    field.onChange(routeId);
+                    handleRouteChange(routeId);
+                  }}
                   value={field.value?.toString()}
                 >
                   <FormControl>
