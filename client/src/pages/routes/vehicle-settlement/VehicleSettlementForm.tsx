@@ -456,14 +456,13 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Producto Vendido</p>
-                    <p className="font-medium">RD$ {calculatedTotals.totalSold}</p>
+                    <p className="font-medium">RD$ {form.getValues().totalInvoiced}</p>
                     <p className="text-xs text-gray-500 mt-1">Igual al Total Facturado</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Efectivo Esperado</p>
                     <p className="font-medium">
-                      RD$ {(parseFloat(loading.initialCash || "0") + 
-                      (parseFloat(calculatedTotals.totalSold) - parseFloat(form.getValues().totalCreditReceived))).toFixed(2)}
+                      RD$ {calculatedTotals.expectedCash}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">(Inicial + Ventas en efectivo)</p>
                   </div>
