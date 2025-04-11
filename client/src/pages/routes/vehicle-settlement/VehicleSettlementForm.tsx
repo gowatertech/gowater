@@ -50,11 +50,35 @@ interface ExtendedBottleReturn extends BottleReturn {
   productName?: string;
 }
 
+// Definir la estructura de un ítem de orden
+interface OrderItem {
+  id: number;
+  productId: number;
+  productName?: string;
+  quantity: number;
+  unitPrice?: number;
+  total?: number;
+}
+
+// Extender las órdenes para incluir detalles de ítems
+interface ExtendedOrder extends Order {
+  items?: OrderItem[];
+}
+
 // Extender la respuesta de la API para incluir los datos de devolución de envases y órdenes relacionadas
 interface SettlementResponse {
   loading: LoadingWithRelations;
-  relatedOrders: Order[];
+  relatedOrders: ExtendedOrder[];
   bottleReturns: ExtendedBottleReturn[];
+}
+
+// Interfaz para el resumen de productos vendidos
+interface ProductSoldSummary {
+  productId: number;
+  productName: string;
+  quantity: number;
+  price: number;
+  total: number;
 }
 
 interface SettlementFormProps {
@@ -151,24 +175,12 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       returnedQuantity: item.returnedQuantity
     })));
     
-    // Total vendido basado en la cantidad vendida de cada producto
-    let totalSold = 0;
-    console.log("Cálculo detallado de totalSold:");
-    values.items.forEach(item => {
-      const product = loading.items.find(p => p.productId === item.productId)?.product;
-      if (product) {
-        const price = parseFloat(product.price || "0");
-        const itemSoldValue = price * item.soldQuantity;
-        totalSold += itemSoldValue;
-        console.log(`Producto: ${product.name} (ID: ${item.productId})`);
-        console.log(`  - Precio: ${price}`);
-        console.log(`  - Cantidad vendida: ${item.soldQuantity}`);
-        console.log(`  - Valor vendido: ${itemSoldValue}`);
-      } else {
-        console.log(`¡ADVERTENCIA! No se encontró el producto con ID ${item.productId}`);
-      }
-    });
-    console.log("Total vendido calculado (suma de todos los productos):", totalSold);
+    // Variable para almacenar el total de productos vendidos por tipo de producto
+    // La inicializamos para calcularla más tarde cuando tengamos las órdenes filtradas
+    let totalProductsSold = 0;
+    let totalProductsValue = 0;
+    let productSoldDetails = [];
+    let totalSold = 0; // Esta variable se usará para mantener compatibilidad con el código existente
     
     let calculatedCreditSales = 0;
     let calculatedCashSales = 0;
@@ -196,6 +208,66 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         total: order.total,
         paymentMethod: order.paymentMethod
       })));
+      
+      // NUEVO: Calcular la cantidad de productos vendidos por cada tipo de producto
+      // y el valor total de esos productos
+      try {
+        console.log("Calculando productos vendidos por tipo...");
+        
+        // Crear un mapa de productos por ID para sumar cantidades
+        const productSummary = new Map();
+        
+        // Recorrer cada orden
+        for (const order of orders) {
+          // Acceder a los items con verificación de tipo
+          const orderItems = (order as any).items;
+          
+          if (orderItems && Array.isArray(orderItems)) {
+            for (const item of orderItems) {
+              const productId = item.productId;
+              const quantity = item.quantity || 0;
+              const price = item.unitPrice || 0;
+              const total = price * quantity;
+              
+              // Si ya existe este producto en el mapa, actualizar cantidades
+              if (productSummary.has(productId)) {
+                const current = productSummary.get(productId);
+                productSummary.set(productId, {
+                  ...current,
+                  quantity: current.quantity + quantity,
+                  total: current.total + total
+                });
+              } else {
+                // Si es la primera vez que vemos este producto
+                productSummary.set(productId, {
+                  productId,
+                  productName: item.productName || `Producto #${productId}`,
+                  quantity,
+                  price,
+                  total
+                });
+              }
+            }
+          }
+        }
+        
+        // Convertir el mapa a un array para mostrarlo en consola
+        productSoldDetails = Array.from(productSummary.values());
+        console.log("Resumen de productos vendidos:", productSoldDetails);
+        
+        // Calcular totales
+        totalProductsSold = productSoldDetails.reduce((sum: number, product: any) => sum + product.quantity, 0);
+        totalProductsValue = productSoldDetails.reduce((sum: number, product: any) => sum + product.total, 0);
+        
+        // Asignar el valor total de productos vendidos a totalSold para compatibilidad
+        totalSold = totalProductsValue;
+        
+        console.log(`Total productos vendidos: ${totalProductsSold} unidades`);
+        console.log(`Valor total de productos vendidos: $${totalProductsValue.toFixed(2)}`);
+      } catch (error) {
+        console.error("Error al calcular productos vendidos:", error);
+        totalSold = 0;
+      }
       
       // Calcular ventas en efectivo y ventas a crédito basado en las órdenes filtradas
       const cashOrders = orders.filter(order => order.paymentMethod === "cash");
