@@ -697,6 +697,7 @@ export const vehicleLoading = pgTable("vehicle_loading", {
   truckId: integer("truck_id").notNull().references(() => trucks.id),
   driverId: integer("driver_id").notNull().references(() => users.id),
   assistantId: integer("assistant_id").references(() => users.id),
+  routeId: integer("route_id").references(() => routes.id),
   status: text("status", {
     enum: ["pending", "in_progress", "completed", "cancelled"]
   }).notNull().default("pending"),
@@ -729,6 +730,10 @@ export const vehicleLoadingRelations = relations(vehicleLoading, ({ one, many })
     fields: [vehicleLoading.assistantId],
     references: [users.id],
   }),
+  route: one(routes, {
+    fields: [vehicleLoading.routeId],
+    references: [routes.id],
+  }),
   items: many(vehicleLoadingItems),
 }));
 
@@ -748,6 +753,7 @@ export const insertVehicleLoadingSchema = z.object({
   truckId: z.number(),
   driverId: z.number(),
   assistantId: z.number().optional(),
+  routeId: z.number().optional(),
   initialCash: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   notes: z.string().optional(),
   items: z.array(z.object({
