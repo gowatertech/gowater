@@ -168,13 +168,15 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   
   // Efecto para actualizar los valores de envases devueltos cuando se carguen los datos
   useEffect(() => {
-    if (settlementData && settlementData.bottleReturns && settlementData.bottleReturns.length > 0) {
+    // Usamos la variable existente settlementData (declarada en línea 101)
+    const bottleReturnsData = settlementData?.bottleReturns;
+    if (bottleReturnsData && bottleReturnsData.length > 0) {
       // Para cada item en el formulario, buscamos si hay datos de devolución para ese producto
       const formItems = form.getValues().items;
       let updated = false;
       
       formItems.forEach((item, index) => {
-        const returnData = settlementData.bottleReturns.filter(
+        const returnData = bottleReturnsData.filter(
           (br: ExtendedBottleReturn) => br.productId === item.productId
         );
         
