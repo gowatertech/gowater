@@ -234,48 +234,21 @@ export default function PaymentDashboard() {
         return;
       }
       
-      // Crear contenido para imprimir
-      const printContent = document.createElement('div');
-      printContent.innerHTML = `
-        <div style="padding: 20px;">
-          <h1 style="text-align: center; font-size: 18px; margin-bottom: 10px;">Pagos Recientes</h1>
-          <p style="text-align: center; margin-bottom: 20px;">Total: ${formatCurrency(paymentsStats.totalMonth)} (este mes)</p>
-          
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background-color: #f3f4f6;">
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Fecha</th>
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Cliente</th>
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Factura</th>
-                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Método</th>
-                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredPayments.slice(0, 15).map(payment => `
-                <tr style="border-bottom: 1px solid #eee;">
-                  <td style="padding: 8px;">${format(new Date(payment.date), 'dd/MM/yyyy')}</td>
-                  <td style="padding: 8px;">${payment.customerName || '-'}</td>
-                  <td style="padding: 8px;">${payment.invoiceNumber || '-'}</td>
-                  <td style="padding: 8px;">${
-                    (payment.method || payment.paymentMethod) === 'cash' ? 'Efectivo' :
-                    (payment.method || payment.paymentMethod) === 'card' ? 'Tarjeta' :
-                    (payment.method || payment.paymentMethod) === 'credit' ? 'Crédito' :
-                    (payment.method || payment.paymentMethod) === 'transfer' ? 'Transferencia' : 'Otro'
-                  }</td>
-                  <td style="padding: 8px; text-align: right;">${formatCurrency(payment.amount)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
+      // Verificar que existe la referencia al contenido imprimible
+      if (!printContentRef.current) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se puede generar la impresión",
+        });
+        return;
+      }
       
-      // Usar PrinterService para imprimir
-      await PrinterService.printDocument(printContent, {
+      // Usar PrinterService para imprimir el contenido referenciado
+      await PrinterService.printDocument(printContentRef.current, {
         title: "Pagos Recientes",
-        size: [210, 297], // A4
-        margins: [10, 10, 10, 10]
+        size: [210, 297], // A4 - tamaño en mm
+        margins: [10, 10, 10, 10] // márgenes en mm [top, right, bottom, left]
       });
       
     } catch (error: any) {
