@@ -201,16 +201,19 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         }
       });
       
-      // Si se actualizó algún valor, recalcular totales
-      if (updated) {
-        calculateDifferences();
-      }
+      // NO recalcular automáticamente, el usuario debe usar el botón
+      // if (updated) {
+      //   calculateDifferences();
+      // }
     }
   }, [settlementData, form, calculateDifferences]);
   
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/route-settlements", data);
+      return await apiRequest("/api/route-settlements", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vehicle-loading"] });
@@ -371,8 +374,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                             }
                             e.target.value = formattedValue;
                             field.onChange(formattedValue);
-                            // Solo calcular cuando se complete la entrada
-                            handleChange();
+                            // NO calcular automáticamente - dejarlo para el botón
                           }}
                           onChange={(e) => {
                             // Permitir solo números y un punto decimal
@@ -581,8 +583,8 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                                         field.onChange(validValue);
                                         // No calcular en cada cambio
                                       }}
-                                      // Calcular solo cuando se complete la entrada
-                                      onBlur={() => handleChange()}
+                                      // NO calcular automáticamente - dejarlo para el botón
+                                      onBlur={() => {}}
                                       className="w-20 mx-auto text-center"
                                     />
                                   </FormControl>
