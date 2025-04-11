@@ -1,19 +1,70 @@
-import * as React from "react"
+import { useState, useEffect } from "react";
 
-const MOBILE_BREAKPOINT = 768
+export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl"
+
+const BREAKPOINTS = {
+  xs: 480,
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280
+}
+
+export function useBreakpoint(breakpoint: Breakpoint = "md") {
+  const [isBelow, setIsBelow] = useState<boolean | undefined>(undefined)
+
+  useEffect(() => {
+    const breakpointValue = BREAKPOINTS[breakpoint]
+    const mql = window.matchMedia(`(max-width: ${breakpointValue - 1}px)`)
+
+    const onChange = () => {
+      setIsBelow(window.innerWidth < breakpointValue)
+    }
+
+    mql.addEventListener("change", onChange)
+    setIsBelow(window.innerWidth < breakpointValue)
+
+    return () => mql.removeEventListener("change", onChange)
+  }, [breakpoint])
+
+  return {
+    isBelow,
+    isAbove: isBelow === undefined ? undefined : !isBelow
+  }
+}
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
 
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-  return !!isMobile
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Llamada inicial para establecer el valor correcto
+    handleResize();
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  return isMobile;
+}
+
+export function useIsTablet() {
+  const { isBelow: isBelowLg } = useBreakpoint("lg")
+  const { isBelow: isBelowMd } = useBreakpoint("md")
+  return !!isBelowLg && !isBelowMd
+}
+
+export function useIsDesktop() {
+  const { isAbove } = useBreakpoint("lg")
+  return !!isAbove
 }
