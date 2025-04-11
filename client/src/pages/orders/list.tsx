@@ -168,40 +168,59 @@ export default function OrdersList() {
   // Función para generar e imprimir el ticket usando el servicio centralizado PrinterService
   const handlePrint = async (orderId: number) => {
     try {
-      // Primero obtener los detalles del pedido
+      toast({
+        title: "Imprimiendo pedido",
+        description: "Procesando...",
+      });
+      
+      // Primero obtener los detalles del pedido con manejo adecuado de errores
       const response = await apiRequest("GET", `/api/orders/${orderId}`);
       if (!response.ok) {
-        throw new Error('Error al cargar el pedido');
+        throw new Error('Error al cargar el pedido: ' + await response.text());
       }
       const order = await response.json();
       
-      // Obtener los items del pedido
+      // Obtener los items del pedido con manejo adecuado de errores
       const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
       if (!itemsResponse.ok) {
-        throw new Error('Error al cargar los items del pedido');
+        throw new Error('Error al cargar los items del pedido: ' + await itemsResponse.text());
       }
       const orderItems = await itemsResponse.json();
       
       // Verificar que tengamos la configuración de la empresa
       if (!companySettings) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo cargar la información de la empresa",
-        });
-        return;
+        throw new Error('No se pudo cargar la configuración de la empresa');
       }
       
       // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
+      if (!customer) {
+        console.warn(`Cliente no encontrado para el ID ${order.customerId}`);
+      }
       
-      // Usar el servicio PrinterService centralizado
-      await PrinterService.printOrder(order, orderItems, customer, companySettings, products);
+      // Verificar los productos
+      if (!products || products.length === 0) {
+        console.warn('Lista de productos no disponible');
+      }
+      
+      // Usar el servicio PrinterService centralizado con manejo de errores mejorado
+      await PrinterService.printOrder(
+        {...order},  // Usar copia para evitar problemas de mutabilidad
+        orderItems || [], 
+        customer || {}, 
+        {...companySettings}, 
+        products || []
+      );
+      
+      toast({
+        title: "Éxito",
+        description: "Pedido enviado a impresión",
+      });
     } catch (error: any) {
       console.error('Error en handlePrint:', error);
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error de impresión",
         description: error.message || "Error al generar el ticket",
       });
     }
@@ -210,91 +229,69 @@ export default function OrdersList() {
   // Función para generar PDF del pedido usando PrinterService
   const handleGeneratePdf = async (orderId: number) => {
     try {
-      // Primero obtener los detalles del pedido
+      toast({
+        title: "Generando PDF",
+        description: "Procesando...",
+      });
+      
+      // Primero obtener los detalles del pedido con manejo adecuado de errores
       const response = await apiRequest("GET", `/api/orders/${orderId}`);
       if (!response.ok) {
-        throw new Error('Error al cargar el pedido');
+        throw new Error('Error al cargar el pedido: ' + await response.text());
       }
       const order = await response.json();
       
-      // Obtener los items del pedido
+      // Obtener los items del pedido con manejo adecuado de errores
       const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
       if (!itemsResponse.ok) {
-        throw new Error('Error al cargar los items del pedido');
+        throw new Error('Error al cargar los items del pedido: ' + await itemsResponse.text());
       }
       const orderItems = await itemsResponse.json();
       
       // Verificar que tengamos la configuración de la empresa
       if (!companySettings) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo cargar la información de la empresa",
-        });
-        return;
+        throw new Error('No se pudo cargar la configuración de la empresa');
       }
       
       // Buscar el cliente asociado
       const customer = customers?.find((c: any) => c.id === order.customerId);
+      if (!customer) {
+        console.warn(`Cliente no encontrado para el ID ${order.customerId}`);
+      }
       
-      // Usar el servicio PrinterService centralizado para generar PDF
-      await PrinterService.generateOrderPDF(order, orderItems, customer, companySettings, products);
+      // Verificar los productos
+      if (!products || products.length === 0) {
+        console.warn('Lista de productos no disponible');
+      }
+      
+      // Usar el servicio PrinterService centralizado con manejo de errores mejorado
+      await PrinterService.generateOrderPDF(
+        {...order},  // Usar copia para evitar problemas de mutabilidad
+        orderItems || [], 
+        customer || {}, 
+        {...companySettings}, 
+        products || []
+      );
+      
+      toast({
+        title: "Éxito",
+        description: "PDF generado correctamente",
+      });
     } catch (error: any) {
       console.error('Error en handleGeneratePdf:', error);
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error de PDF",
         description: error.message || "Error al generar el PDF",
       });
     }
   };
 
   // Función para descargar el pedido como PDF utilizando el servicio PrinterService
+  // (Esta función es redundante con handleGeneratePdf pero se mantiene para compatibilidad)
   const handleDownload = async (orderId: number) => {
-    try {
-      // Mostrar toast de carga
-      toast({
-        title: "Generando PDF",
-        description: "Preparando documento...",
-      });
-
-      // Primero obtener los detalles del pedido
-      const response = await apiRequest("GET", `/api/orders/${orderId}`);
-      if (!response.ok) {
-        throw new Error('Error al cargar el pedido');
-      }
-      const order = await response.json();
-      
-      // Obtener los items del pedido
-      const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
-      if (!itemsResponse.ok) {
-        throw new Error('Error al cargar los items del pedido');
-      }
-      const orderItems = await itemsResponse.json();
-      
-      // Verificar que tengamos la configuración de la empresa
-      if (!companySettings) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo cargar la información de la empresa",
-        });
-        return;
-      }
-      
-      // Buscar el cliente asociado
-      const customer = customers?.find((c: any) => c.id === order.customerId);
-      
-      // Usar el servicio PrinterService centralizado para generar PDF
-      await PrinterService.generateOrderPDF(order, orderItems, customer, companySettings, products);
-    } catch (error: any) {
-      console.error("Error en handleDownload:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Error al generar el documento",
-      });
-    }
+    // Simplemente llamamos a la función de generación de PDF mejorada
+    await handleGeneratePdf(orderId);
   };
 
   return (
