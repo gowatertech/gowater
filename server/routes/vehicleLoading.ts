@@ -4,6 +4,45 @@ import { db } from "../db";
 import { vehicleLoading, vehicleLoadingItems, products } from "@shared/schema";
 
 export async function registerVehicleLoadingRoutes(app: Express) {
+  // Asignar ruta a una carga
+  app.patch("/api/vehicle-loading/:id/assign-route", async (req: Request, res: Response) => {
+    try {
+      const loadingId = parseInt(req.params.id);
+      const { routeId } = req.body;
+      
+      if (!routeId || isNaN(Number(routeId))) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+
+      // Verificar si la carga existe
+      const loading = await db.query.vehicleLoading.findFirst({
+        where: eq(vehicleLoading.id, loadingId)
+      });
+      
+      if (!loading) {
+        return res.status(404).json({ error: "Carga no encontrada" });
+      }
+      
+      // Solo permitir asignar rutas a cargas en estado "pending"
+      if (loading.status !== "pending") {
+        return res.status(400).json({ 
+          error: "Solo se pueden asignar rutas a cargas en estado pendiente",
+          status: loading.status
+        });
+      }
+      
+      // Actualizar la carga con el ID de la ruta
+      const [updatedLoading] = await db.update(vehicleLoading)
+        .set({ routeId: Number(routeId) })
+        .where(eq(vehicleLoading.id, loadingId))
+        .returning();
+      
+      res.status(200).json(updatedLoading);
+    } catch (error) {
+      console.error("Error asignando ruta a la carga:", error);
+      res.status(500).json({ error: "Error al asignar ruta a la carga" });
+    }
+  });
   // Delete vehicle loading and its items
   app.delete("/api/vehicle-loading/:id", async (req: Request, res: Response) => {
     try {

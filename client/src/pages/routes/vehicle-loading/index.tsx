@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -73,6 +74,8 @@ export default function VehicleLoadingPage() {
   const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showAssignRouteDialog, setShowAssignRouteDialog] = useState(false);
+  const [loadingForRoute, setLoadingForRoute] = useState<number | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -82,6 +85,38 @@ export default function VehicleLoadingPage() {
     retry: 1,
     refetchOnWindowFocus: false,
   });
+  
+  // Mutation para asignar una ruta a una carga
+  const { mutate: assignRouteMutation, isPending: isAssigningRoute } = useMutation({
+    mutationFn: async ({ loadingId, routeId }: { loadingId: number, routeId: number }) => {
+      return await apiRequest(`/api/vehicle-loading/${loadingId}/assign-route`, {
+        method: "PATCH",
+        body: JSON.stringify({ routeId })
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vehicle-loading"] });
+      toast({
+        title: "Ruta asignada",
+        description: "La ruta ha sido asignada correctamente a la carga",
+      });
+      setShowAssignRouteDialog(false);
+    },
+    onError: (error: any) => {
+      console.error("Error al asignar ruta:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo asignar la ruta a la carga. Intente nuevamente.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleAssignRoute = (routeId: number) => {
+    if (loadingForRoute) {
+      assignRouteMutation({ loadingId: loadingForRoute, routeId });
+    }
+  };
   
   // Función para eliminar una carga
   const deleteLoading = async (id: number) => {
