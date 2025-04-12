@@ -607,58 +607,86 @@ export async function registerRoutes(app: Express) {
       
       console.log(`GET /api/routes/${routeId}/orders - Obteniendo órdenes para la ruta`);
       
-      // Obtener las órdenes de la ruta especificada
+      // Usemos una consulta más simple para evitar errores de NULL
       const routeOrders = await db
-        .select({
-          id: orders.id,
-          customerId: orders.customerId,
-          total: orders.total,
-          status: orders.status,
-          paymentMethod: orders.paymentMethod,
-          date: orders.date,
-          notes: orders.notes,
-          estimatedDeliveryTime: orders.estimatedDeliveryTime,
-          actualDeliveryTime: orders.actualDeliveryTime,
-          deliverySequence: orders.deliverySequence,
-          deliveryCoordinates: orders.deliveryCoordinates,
-          customerName: customers.businessname,
-          street: customers.street,
-          streetnumber: customers.streetnumber,
-          coordinates: customers.coordinates,
-          latitude: customers.latitude,
-          longitude: customers.longitude
-        })
+        .select()
         .from(orders)
-        .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(eq(orders.routeId, routeId));
         
       console.log(`GET /api/routes/${routeId}/orders - Se encontraron ${routeOrders.length} órdenes`);
       
-      // Para cada orden, obtener sus productos
-      const ordersWithProducts = await Promise.all(
+      // Para cada orden, obtener la información del cliente y los productos
+      const ordersWithDetails = await Promise.all(
         routeOrders.map(async (order) => {
-          const products = await db
-            .select({
-              id: orderItems.id,
-              orderId: orderItems.orderId,
-              productId: orderItems.productId,
-              quantity: orderItems.quantity,
-              price: orderItems.price,
-              name: products.name,
-              isReturnable: products.isReturnable
-            })
+          // Obtener los datos del cliente
+          let customerData = null;
+          if (order.customerId) {
+            const customerResult = await db
+              .select()
+              .from(customers)
+              .where(eq(customers.id, order.customerId))
+              .limit(1);
+              
+            if (customerResult.length > 0) {
+              customerData = customerResult[0];
+            }
+          }
+
+          // Obtener los productos de la orden
+          const orderProductItems = await db
+            .select()
             .from(orderItems)
-            .leftJoin(products, eq(orderItems.productId, products.id))
             .where(eq(orderItems.orderId, order.id));
             
+          // Para cada ítem, obtener información del producto
+          const productsWithDetails = await Promise.all(
+            orderProductItems.map(async (item) => {
+              const productResult = await db
+                .select()
+                .from(products)
+                .where(eq(products.id, item.productId))
+                .limit(1);
+                
+              const productInfo = productResult.length > 0 ? productResult[0] : null;
+              
+              return {
+                id: item.id,
+                orderId: item.orderId,
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+                name: productInfo?.name || 'Producto desconocido',
+                isReturnable: productInfo?.isReturnable || false
+              };
+            })
+          );
+            
           return {
-            ...order,
-            products
+            id: order.id,
+            customerId: order.customerId,
+            total: order.total,
+            status: order.status,
+            paymentMethod: order.paymentMethod,
+            date: order.date,
+            notes: order.notes,
+            estimatedDeliveryTime: order.estimatedDeliveryTime,
+            actualDeliveryTime: order.actualDeliveryTime,
+            deliverySequence: order.deliverySequence,
+            deliveryCoordinates: order.deliveryCoordinates,
+            // Datos del cliente
+            customerName: customerData?.businessname || 'Cliente',
+            street: customerData?.street || '',
+            streetnumber: customerData?.streetnumber || '',
+            coordinates: customerData?.coordinates || null,
+            latitude: customerData?.latitude || null,
+            longitude: customerData?.longitude || null,
+            // Productos
+            products: productsWithDetails
           };
         })
       );
       
-      res.json(ordersWithProducts);
+      res.json(ordersWithDetails);
     } catch (error) {
       console.error(`Error al obtener órdenes de la ruta ${req.params.id}:`, error);
       res.status(500).json({ error: String(error) });
