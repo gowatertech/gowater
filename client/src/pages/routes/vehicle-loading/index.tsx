@@ -1,15 +1,27 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Plus, Truck, AlertCircle, Calendar, Clock, MapPin, 
   User as UserIcon, // Renombrar el icono para evitar conflicto 
-  DollarSign, Package, FileText, Tag, ClipboardList, Database
+  DollarSign, Package, FileText, Tag, ClipboardList, Database,
+  Trash2, AlertTriangle
 } from "lucide-react";
 import type { VehicleLoading, Product, User, Truck as TruckType } from "@shared/schema";
 import { VehicleLoadingForm } from "./VehicleLoadingForm";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
@@ -58,12 +70,56 @@ const getLabelColor = (label: string) => {
 export default function VehicleLoadingPage() {
   const [showForm, setShowForm] = useState(false);
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
+  const [deleteLoadingId, setDeleteLoadingId] = useState<number | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: loadings = [], isLoading, error } = useQuery<LoadingWithRelations[]>({
     queryKey: ["/api/vehicle-loading"],
     retry: 1,
     refetchOnWindowFocus: false,
   });
+  
+  // Función para eliminar una carga
+  const deleteLoading = async (id: number) => {
+    if (!id) return;
+    
+    try {
+      setIsDeleting(true);
+      const response = await fetch(`/api/vehicle-loading/${id}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al eliminar la carga');
+      }
+      
+      // Actualizar datos
+      queryClient.invalidateQueries({ queryKey: ['/api/vehicle-loading'] });
+      
+      toast({
+        title: "Carga eliminada",
+        description: "La carga ha sido eliminada correctamente",
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Error al eliminar la carga:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al eliminar la carga",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setDeleteLoadingId(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -105,6 +161,43 @@ export default function VehicleLoadingPage() {
 
   return (
     <div className="space-y-3 p-2">
+      {/* Diálogo de confirmación para eliminar */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Confirmar eliminación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="flex items-center gap-2 text-amber-600 mb-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-medium">Esta acción no se puede deshacer.</span>
+              </div>
+              <p>¿Estás seguro de que deseas eliminar esta carga de vehículo?</p>
+              <p className="mt-2 text-sm text-gray-600">Solo se pueden eliminar cargas en estado "Pendiente".</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteLoading(deleteLoadingId!);
+              }}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Sí, eliminar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">

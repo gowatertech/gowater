@@ -1,9 +1,43 @@
 import { Express, Request, Response } from "express";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "../db";
 import { vehicleLoading, vehicleLoadingItems, products } from "@shared/schema";
 
 export async function registerVehicleLoadingRoutes(app: Express) {
+  // Delete vehicle loading and its items
+  app.delete("/api/vehicle-loading/:id", async (req: Request, res: Response) => {
+    try {
+      const loadingId = parseInt(req.params.id);
+      
+      // Verificar si la carga existe
+      const loading = await db.query.vehicleLoading.findFirst({
+        where: eq(vehicleLoading.id, loadingId)
+      });
+      
+      if (!loading) {
+        return res.status(404).json({ error: "Carga no encontrada" });
+      }
+      
+      // Solo permitir eliminar cargas en estado "pending"
+      if (loading.status !== "pending") {
+        return res.status(400).json({ 
+          error: "Solo se pueden eliminar cargas en estado pendiente",
+          status: loading.status
+        });
+      }
+      
+      // Primero eliminar los items de la carga
+      await db.delete(vehicleLoadingItems).where(eq(vehicleLoadingItems.loadingId, loadingId));
+      
+      // Luego eliminar la carga
+      await db.delete(vehicleLoading).where(eq(vehicleLoading.id, loadingId));
+      
+      res.status(200).json({ success: true, message: "Carga eliminada correctamente" });
+    } catch (error) {
+      console.error("Error deleting vehicle loading:", error);
+      res.status(500).json({ error: "Error al eliminar la carga" });
+    }
+  });
   // Get all vehicle loadings
   app.get("/api/vehicle-loading", async (_req: Request, res: Response) => {
     try {
