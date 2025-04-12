@@ -135,6 +135,23 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
     queryKey: ["/api/route-settlements", loading.id],
     enabled: !!loading.id,
+    onSuccess: (data) => {
+      console.log("DATOS RECIBIDOS DEL API:", JSON.stringify(data, null, 2));
+      console.log("Órdenes relacionadas:", data.relatedOrders?.length || 0);
+      
+      // Revisar cada orden para ver si tiene items
+      if (data.relatedOrders && data.relatedOrders.length > 0) {
+        data.relatedOrders.forEach((order: any, index: number) => {
+          console.log(`Orden #${index+1} (ID: ${order.id}):`, {
+            routeId: order.routeId,
+            total: order.total,
+            status: order.status,
+            items: order.items ? `${order.items.length} items` : "NO TIENE ITEMS",
+            products: order.products ? `${order.products.length} products` : "NO TIENE PRODUCTS",
+          });
+        });
+      }
+    }
   });
   
   // Usar useEffect para rastrear los datos cuando se cargan
