@@ -596,6 +596,75 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Endpoint para obtener las órdenes asociadas a una ruta específica
+  app.get("/api/routes/:id/orders", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      
+      if (isNaN(routeId)) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+      
+      console.log(`GET /api/routes/${routeId}/orders - Obteniendo órdenes para la ruta`);
+      
+      // Obtener las órdenes de la ruta especificada
+      const routeOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
+          status: orders.status,
+          paymentMethod: orders.paymentMethod,
+          date: orders.date,
+          notes: orders.notes,
+          estimatedDeliveryTime: orders.estimatedDeliveryTime,
+          actualDeliveryTime: orders.actualDeliveryTime,
+          deliverySequence: orders.deliverySequence,
+          deliveryCoordinates: orders.deliveryCoordinates,
+          customerName: customers.businessname,
+          street: customers.street,
+          streetnumber: customers.streetnumber,
+          coordinates: customers.coordinates,
+          latitude: customers.latitude,
+          longitude: customers.longitude
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(eq(orders.routeId, routeId));
+        
+      console.log(`GET /api/routes/${routeId}/orders - Se encontraron ${routeOrders.length} órdenes`);
+      
+      // Para cada orden, obtener sus productos
+      const ordersWithProducts = await Promise.all(
+        routeOrders.map(async (order) => {
+          const products = await db
+            .select({
+              id: orderItems.id,
+              orderId: orderItems.orderId,
+              productId: orderItems.productId,
+              quantity: orderItems.quantity,
+              price: orderItems.price,
+              name: products.name,
+              isReturnable: products.isReturnable
+            })
+            .from(orderItems)
+            .leftJoin(products, eq(orderItems.productId, products.id))
+            .where(eq(orderItems.orderId, order.id));
+            
+          return {
+            ...order,
+            products
+          };
+        })
+      );
+      
+      res.json(ordersWithProducts);
+    } catch (error) {
+      console.error(`Error al obtener órdenes de la ruta ${req.params.id}:`, error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.get("/api/routes/:id", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
