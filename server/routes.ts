@@ -252,6 +252,70 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para obtener pedidos pendientes por zona
+  app.get("/api/zones/:id/pending-orders", async (req, res) => {
+    try {
+      const zoneId = parseInt(req.params.id);
+      
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
+      
+      console.log(`GET /api/zones/${zoneId}/pending-orders - Buscando pedidos pendientes`);
+      
+      // Primero obtenemos los clientes de la zona
+      const zoneCustomers = await db
+        .select({
+          id: customers.id,
+        })
+        .from(customers)
+        .where(eq(customers.zoneid, zoneId));
+      
+      if (zoneCustomers.length === 0) {
+        console.log(`No hay clientes en la zona ${zoneId}`);
+        return res.json([]);
+      }
+      
+      // Extraemos los IDs de clientes
+      const customerIds = zoneCustomers.map(customer => customer.id);
+      
+      console.log(`Clientes encontrados en zona ${zoneId}:`, customerIds);
+      
+      // Ahora buscamos todas las órdenes pendientes para esos clientes y que no estén asignadas a una ruta
+      const pendingOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
+          date: orders.date,
+          estimatedDeliveryTime: orders.estimatedDeliveryTime,
+          status: orders.status,
+          notes: orders.notes,
+          deliveryCoordinates: orders.deliveryCoordinates,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+          customerAddressNumber: customers.streetnumber,
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(
+          and(
+            inArray(orders.customerId, customerIds),
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`
+          )
+        )
+        .orderBy(orders.date);
+      
+      console.log(`Encontrados ${pendingOrders.length} pedidos pendientes para la zona ${zoneId}`);
+      
+      res.json(pendingOrders);
+    } catch (error) {
+      console.error(`Error al obtener pedidos pendientes para la zona ${req.params.id}:`, error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   app.post("/api/zones", async (req, res) => {
     const result = insertZoneSchema.safeParse(req.body);
