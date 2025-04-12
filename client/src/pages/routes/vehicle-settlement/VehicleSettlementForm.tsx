@@ -183,7 +183,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     // La inicializamos para calcularla más tarde cuando tengamos las órdenes filtradas
     let totalProductsSold = 0;
     let totalProductsValue = 0;
-    let productSoldDetails = [];
+    let productSoldDetails: Array<{productId: number; productName: string; quantity: number}> = [];
     let totalSold = 0; // Esta variable se usará para mantener compatibilidad con el código existente
     
     let calculatedCreditSales = 0;
@@ -466,6 +466,14 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     // Solo registramos el cambio de returnedQuantity
     console.log(`Cantidad devuelta actualizada para producto #${index}: ${returnedQuantity}`);
     
+    // Actualizar la diferencia de productos al cambiar la cantidad devuelta
+    const formItem = form.getValues().items[index];
+    const loadedQuantity = formItem.loadedQuantity;
+    const soldQuantity = formItem.soldQuantity;
+    const productDifference = (loadedQuantity - returnedQuantity) - soldQuantity;
+    console.log(`Actualizando diferencia de producto #${index}: ${productDifference}`);
+    form.setValue(`items.${index}.productDifference`, productDifference);
+    
     // No recalcular totales automáticamente para evitar recálculos excesivos
   };
 
@@ -728,9 +736,27 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                       <th className="px-4 py-2 text-center">Cargado</th>
                       <th className="px-4 py-2 text-center">Devuelto</th>
                       <th className="px-4 py-2 text-center">Vendido</th>
-                      <th className="px-4 py-2 text-center">Diferencia Producto</th>
+                      <th className="px-4 py-2 text-center">
+                        <div className="relative group cursor-help">
+                          <span>Diferencia Producto</span>
+                          <div className="hidden group-hover:block absolute z-10 w-60 p-2 bg-white border border-gray-200 rounded shadow-lg text-xs text-gray-700 left-1/2 transform -translate-x-1/2">
+                            (Cargado - Devuelto) - Vendido. <br/>
+                            <span className="text-green-600">Valor positivo:</span> Hay más productos registrados como disponibles que lo realmente vendido. <br/>
+                            <span className="text-red-600">Valor negativo:</span> Hay menos productos disponibles que lo reportado como vendido.
+                          </div>
+                        </div>
+                      </th>
                       <th className="px-4 py-2 text-center">Envases Devueltos</th>
-                      <th className="px-4 py-2 text-center">Diferencia Envases</th>
+                      <th className="px-4 py-2 text-center">
+                        <div className="relative group cursor-help">
+                          <span>Diferencia Envases</span>
+                          <div className="hidden group-hover:block absolute z-10 w-60 p-2 bg-white border border-gray-200 rounded shadow-lg text-xs text-gray-700 left-1/2 transform -translate-x-1/2">
+                            Vendido - Envases Devueltos. <br/>
+                            <span className="text-red-600">Valor positivo:</span> Hay envases vendidos que no fueron devueltos. <br/>
+                            <span className="text-green-600">Valor negativo:</span> Se devolvieron más envases de los reportados como vendidos.
+                          </div>
+                        </div>
+                      </th>
                       <th className="px-4 py-2 text-center">¿Retornable?</th>
                     </tr>
                   </thead>
@@ -809,8 +835,8 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                                     readOnly
                                     disabled
                                     className={`w-20 mx-auto text-center ${
-                                      parseInt(field.value) !== 0 
-                                        ? parseInt(field.value) > 0 
+                                      Number(field.value || 0) !== 0 
+                                        ? Number(field.value || 0) > 0 
                                           ? 'bg-green-50 text-green-700' 
                                           : 'bg-red-50 text-red-700'
                                         : 'bg-gray-50'
@@ -842,7 +868,12 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                                         const maxValue = form.getValues().items[index].soldQuantity;
                                         const validValue = Math.min(intValue, maxValue);
                                         field.onChange(validValue);
-                                        // No calcular en cada cambio
+                                        
+                                        // Actualizar la diferencia de envases
+                                        const soldQuantity = form.getValues().items[index].soldQuantity;
+                                        const containersDifference = soldQuantity - validValue;
+                                        console.log(`Actualizando diferencia de envases para producto #${index}: ${containersDifference}`);
+                                        form.setValue(`items.${index}.containersDifference`, containersDifference);
                                       }}
                                       // NO calcular automáticamente - dejarlo para el botón
                                       onBlur={() => {}}
@@ -873,8 +904,8 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                                       readOnly
                                       disabled
                                       className={`w-20 mx-auto text-center ${
-                                        parseInt(field.value) !== 0 
-                                          ? parseInt(field.value) > 0 
+                                        Number(field.value || 0) !== 0 
+                                          ? Number(field.value || 0) > 0 
                                             ? 'bg-red-50 text-red-700' 
                                             : 'bg-green-50 text-green-700'
                                           : 'bg-gray-50'
