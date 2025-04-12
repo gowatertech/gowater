@@ -54,6 +54,7 @@ export interface IStorage {
   updateRouteStatus(id: number, status: "pending" | "in_progress" | "completed", currentLocation?: string): Promise<Route>;
   updateRouteProgress(id: number, currentLocation: string, lastUpdate: Date): Promise<Route>;
   updateOrderDeliveryTimes(routeId: number, updates: Partial<Order>[]): Promise<Order[]>;
+  deleteRoute(id: number): Promise<Route | undefined>;
 
   // Orders
   getOrder(id: number): Promise<Order | undefined>;
@@ -303,6 +304,42 @@ export class DatabaseStorage implements IStorage {
     }
 
     return updatedOrders;
+  }
+  
+  async deleteRoute(id: number): Promise<Route | undefined> {
+    try {
+      // Primero, verificamos si la ruta existe
+      const [existingRoute] = await db
+        .select()
+        .from(routes)
+        .where(eq(routes.id, id))
+        .limit(1);
+      
+      if (!existingRoute) {
+        console.log(`No se encontró la ruta con ID ${id} para eliminar`);
+        return undefined;
+      }
+      
+      // Si hay órdenes asociadas a esta ruta, las desvinculamos
+      await db
+        .update(orders)
+        .set({ routeId: null })
+        .where(eq(orders.routeId, id));
+      
+      console.log(`Órdenes desvinculadas de la ruta ${id}`);
+      
+      // Eliminamos la ruta
+      const [deletedRoute] = await db
+        .delete(routes)
+        .where(eq(routes.id, id))
+        .returning();
+      
+      console.log(`Ruta ${id} eliminada correctamente`);
+      return deletedRoute;
+    } catch (error) {
+      console.error(`Error al eliminar la ruta ${id}:`, error);
+      throw error;
+    }
   }
 
   // Orders
