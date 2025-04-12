@@ -64,42 +64,19 @@ export function createMobileApiEndpoints(): Router {
       console.log(`Orden ${orderId} actualizada a estado 'delivered'`);
       
       // 3. Crear la factura para esta orden
-      // Generar número de factura (formato: INV-YYYYMMDD-XXXX)
       const today = new Date();
-      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
       
-      // Obtener el último número de factura para generar uno nuevo
-      const latestInvoices = await db
-        .select()
-        .from(invoices)
-        .orderBy(desc(invoices.id))
-        .limit(1);
-      
-      let lastInvoiceNumber = 0;
-      if (latestInvoices.length > 0) {
-        const lastInvoice = latestInvoices[0];
-        if (lastInvoice.invoiceNumber && typeof lastInvoice.invoiceNumber === 'string') {
-          const parts = lastInvoice.invoiceNumber.split('-');
-          if (parts.length === 3) {
-            lastInvoiceNumber = parseInt(parts[2]) || 0;
-          }
-        }
-      }
-      
-      const newInvoiceNumber = `INV-${dateStr}-${(lastInvoiceNumber + 1).toString().padStart(4, '0')}`;
-      
-      // Crear la factura
+      // Crear la factura - el número de factura se generará automáticamente
       const [invoice] = await db
         .insert(invoices)
         .values({
           customerId: order.customerId,
-          invoiceNumber: newInvoiceNumber,
+          // No se especifica invoiceNumber porque es un serial en la base de datos
           date: today,
           total: order.total,
           status: paymentMethod === 'credit' ? 'pending' : 'paid',
-          dueDate: today, // Para pagos al contado, la fecha de vencimiento es la misma
+          paymentMethod: paymentMethod,
           notes: `Factura generada desde entrega en ruta ${order.routeId || 'N/A'}`,
-          tax: "0.00", // Por defecto sin impuestos
         })
         .returning();
       
@@ -136,10 +113,10 @@ export function createMobileApiEndpoints(): Router {
           .insert(payments)
           .values({
             invoiceId: invoice.id,
+            customerId: order.customerId,
             amount: amountPaid.toString(),
-            method: 'cash',
+            paymentMethod: 'cash',
             date: today,
-            receivedBy: userId ? userId.toString() : null,
             notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`,
           })
           .returning();
