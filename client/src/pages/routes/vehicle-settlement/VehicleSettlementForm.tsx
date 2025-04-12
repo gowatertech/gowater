@@ -72,6 +72,12 @@ interface SettlementResponse {
   loading: LoadingWithRelations;
   relatedOrders: ExtendedOrder[];
   bottleReturns: ExtendedBottleReturn[];
+  productSummary?: Array<{
+    productId: number;
+    productName: string;
+    quantity: number;
+    total: number;
+  }>;
 }
 
 // Interfaz para el resumen de productos vendidos
@@ -134,25 +140,46 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   // Cargar los datos de settlement incluyendo órdenes relacionadas
   const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
     queryKey: ["/api/route-settlements", loading.id],
-    enabled: !!loading.id,
-    onSuccess: (data) => {
-      console.log("DATOS RECIBIDOS DEL API:", JSON.stringify(data, null, 2));
-      console.log("Órdenes relacionadas:", data.relatedOrders?.length || 0);
+    enabled: !!loading.id
+  });
+  
+  // Verificar si los datos fueron cargados y mostrar información relevante
+  useEffect(() => {
+    if (settlementData) {
+      console.log("DATOS RECIBIDOS DEL API:", JSON.stringify(settlementData, null, 2));
+      
+      // Verificar si tenemos resumen de productos
+      if (settlementData.productSummary && settlementData.productSummary.length > 0) {
+        console.log("✅ RESUMEN DE PRODUCTOS VENDIDOS:", settlementData.productSummary);
+        console.log("Total de tipos de productos:", settlementData.productSummary.length);
+        
+        // Calcular totales
+        const totalUnits = settlementData.productSummary.reduce((sum: number, product: any) => 
+          sum + product.quantity, 0);
+        const totalValue = settlementData.productSummary.reduce((sum: number, product: any) => 
+          sum + product.total, 0);
+          
+        console.log(`Total unidades vendidas: ${totalUnits}`);
+        console.log(`Valor total vendido: $${totalValue.toFixed(2)}`);
+      } else {
+        console.log("❌ No se encontró resumen de productos");
+      }
+      
+      console.log("Órdenes relacionadas:", settlementData.relatedOrders?.length || 0);
       
       // Revisar cada orden para ver si tiene items
-      if (data.relatedOrders && data.relatedOrders.length > 0) {
-        data.relatedOrders.forEach((order: any, index: number) => {
+      if (settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
+        settlementData.relatedOrders.forEach((order: any, index: number) => {
           console.log(`Orden #${index+1} (ID: ${order.id}):`, {
             routeId: order.routeId,
             total: order.total,
             status: order.status,
-            items: order.items ? `${order.items.length} items` : "NO TIENE ITEMS",
-            products: order.products ? `${order.products.length} products` : "NO TIENE PRODUCTS",
+            items: order.items ? `${order.items.length} items` : "NO TIENE ITEMS"
           });
         });
       }
     }
-  });
+  }, [settlementData]);
   
   // Usar useEffect para rastrear los datos cuando se cargan
   useEffect(() => {

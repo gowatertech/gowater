@@ -127,46 +127,120 @@ export async function registerRouteSettlements(app: Express) {
       
       // Si tenemos una ruta asociada a la carga, obtenemos sus órdenes
       if (loading.routeId) {
-        // Obtener las órdenes para la ruta específica
+        console.log(`Buscando órdenes para la ruta ID: ${loading.routeId}`);
+        
+        // 1. Obtener todas las órdenes de la ruta
         const ordersData = await db
           .select()
           .from(orders)
-          .where(eq(orders.routeId, loading.routeId))
-          .orderBy(orders.createdAt);
+          .where(eq(orders.routeId, loading.routeId));
         
-        // Para cada orden, obtener sus productos (items)
-        relatedOrders = await Promise.all(ordersData.map(async (order) => {
-          // Consultar los items de esta orden
-          const orderItems = await db
+        console.log(`Encontradas ${ordersData.length} órdenes para la ruta ${loading.routeId}`);
+        
+        // 2. Obtener todos los items de todas las órdenes de una vez
+        const orderIds = ordersData.map(order => order.id);
+        
+        if (orderIds.length > 0) {
+          console.log(`Buscando items para ${orderIds.length} órdenes (IDs: ${orderIds.join(', ')})`);
+          
+          const allOrderItems = await db
             .select()
             .from(schema.orderItems)
-            .where(eq(schema.orderItems.orderId, order.id));
+            .where(inArray(schema.orderItems.orderId, orderIds));
           
-          // Para cada item, obtener la información del producto
-          const itemsWithProductInfo = await Promise.all(orderItems.map(async (item) => {
-            const productData = await db
-              .select()
-              .from(products)
-              .where(eq(products.id, item.productId))
-              .limit(1);
+          console.log(`Encontrados ${allOrderItems.length} items en total para todas las órdenes`);
+          
+          // 3. Obtener todos los productos de una vez para evitar consultas individuales
+          const productIds = [...new Set(allOrderItems.map(item => item.productId))];
+          
+          const productsData = await db
+            .select()
+            .from(products)
+            .where(inArray(products.id, productIds));
+          
+          console.log(`Datos de ${productsData.length} productos recuperados`);
+          
+          // 4. Crear mapa de productos para acceso rápido
+          const productsMap = new Map();
+          for (const product of productsData) {
+            productsMap.set(product.id, product);
+          }
+          
+          // 5. Agrupar items por orden
+          const orderItemsMap = new Map();
+          for (const item of allOrderItems) {
+            if (!orderItemsMap.has(item.orderId)) {
+              orderItemsMap.set(item.orderId, []);
+            }
             
-            const product = productData.length > 0 ? productData[0] : null;
-            
-            return {
+            // Adjuntar información del producto al item
+            const product = productsMap.get(item.productId);
+            const itemWithProduct = {
               ...item,
-              name: product?.name || `Producto #${item.productId}`,
-              isReturnable: product?.isReturnable || false
+              productName: product?.name || `Producto #${item.productId}`,
+              isReturnable: product?.isReturnable || false,
+              product: product || null
             };
-          }));
+            
+            orderItemsMap.get(item.orderId).push(itemWithProduct);
+          }
           
-          // Retornar la orden con sus items
-          return {
-            ...order,
-            items: itemsWithProductInfo  // Incluir los items en la orden
-          };
-        }));
-        
-        console.log(`Obtenidas ${relatedOrders.length} órdenes relacionadas con la ruta ${loading.routeId}`);
+          // 6. Construir órdenes completas con sus items
+          relatedOrders = ordersData.map(order => {
+            return {
+              ...order,
+              items: orderItemsMap.get(order.id) || []
+            };
+          });
+          
+          console.log(`Órdenes procesadas con sus items: ${relatedOrders.length}`);
+          
+          // 7. Generar resumen de ventas por producto
+          const productSummary = [];
+          const productQuantityMap = new Map();
+          
+          // Recorrer todas las órdenes y sus items
+          for (const order of relatedOrders) {
+            if (order.items && order.items.length > 0) {
+              for (const item of order.items) {
+                const productId = item.productId;
+                const quantity = Number(item.quantity) || 0;
+                const price = Number(item.price) || 0;
+                
+                if (!productQuantityMap.has(productId)) {
+                  const product = productsMap.get(productId);
+                  productQuantityMap.set(productId, {
+                    productId,
+                    productName: product?.name || `Producto #${productId}`,
+                    quantity: 0,
+                    total: 0
+                  });
+                }
+                
+                const currentData = productQuantityMap.get(productId);
+                currentData.quantity += quantity;
+                currentData.total += quantity * price;
+                
+                productQuantityMap.set(productId, currentData);
+              }
+            }
+          }
+          
+          // Convertir el mapa a un array para la respuesta
+          for (const productData of productQuantityMap.values()) {
+            productSummary.push(productData);
+          }
+          
+          console.log("Resumen de ventas por producto:", productSummary);
+          
+          // Añadir el resumen a la respuesta
+          relatedOrders.forEach(order => {
+            // Solo mostrar algunos campos para depuración
+            console.log(`Orden #${order.id}: ${order.status}, total=${order.total}, items=${order.items.length}`);
+          });
+        } else {
+          console.log("No se encontraron órdenes para esta ruta");
+        }
       } 
       // Si no hay ruta asociada, usar el enfoque anterior basado en el conductor
       else if (loading.driverId) {
@@ -253,10 +327,55 @@ export async function registerRouteSettlements(app: Express) {
         );
       }
 
+      // Crear un resumen de productos vendidos para facilitar el cuadre
+      const productSummary = [];
+      const productMap = new Map();
+            
+      // Recorrer todas las órdenes y sus items
+      for (const order of relatedOrders) {
+        // Solo incluir órdenes entregadas o completadas
+        if (["delivered", "completed"].includes(order.status) || 
+            (order.status && order.status.includes("deliver"))) {
+              
+          // Procesar los items de la orden si existen
+          if (order.items && Array.isArray(order.items)) {
+            for (const item of order.items) {
+              const productId = item.productId;
+              const quantity = Number(item.quantity) || 0;
+              const price = Number(item.price) || 0;
+                    
+              // Si es la primera vez que vemos este producto
+              if (!productMap.has(productId)) {
+                productMap.set(productId, {
+                  productId,
+                  productName: item.productName || item.name || `Producto #${productId}`,
+                  quantity: 0,
+                  total: 0
+                });
+              }
+                    
+              // Actualizar la cantidad y el total
+              const product = productMap.get(productId);
+              product.quantity += quantity;
+              product.total += quantity * price;
+              productMap.set(productId, product);
+            }
+          }
+        }
+      }
+            
+      // Convertir el mapa a un array para la respuesta
+      for (const product of productMap.values()) {
+        productSummary.push(product);
+      }
+            
+      console.log("Resumen final de ventas:", productSummary);
+            
       res.json({
         loading,
         relatedOrders,
-        bottleReturns: bottleReturnData
+        bottleReturns: bottleReturnData,
+        productSummary  // Incluir el resumen en la respuesta
       });
     } catch (error) {
       console.error("Error al obtener cuadre de vehículo:", error);
