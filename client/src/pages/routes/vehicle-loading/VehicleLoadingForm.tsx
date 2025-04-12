@@ -129,13 +129,13 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
       const productMap = new Map<number, GroupedProduct>();
       
       orders.forEach(order => {
-        // Verificar que la orden tenga ítems y que sea un array
-        const orderItems = (order as any).items;
-        if (orderItems && Array.isArray(orderItems)) {
-          orderItems.forEach((item: OrderItem) => {
+        // Verificar que la orden tenga productos y que sea un array
+        const orderProducts = (order as any).products;
+        if (orderProducts && Array.isArray(orderProducts)) {
+          orderProducts.forEach((item: any) => {
             const productId = item.productId;
             const quantity = item.quantity || 0;
-            const productName = products.find(p => p.id === productId)?.name || `Producto #${productId}`;
+            const productName = products.find(p => p.id === productId)?.name || item.name || `Producto #${productId}`;
             
             if (productMap.has(productId)) {
               // Actualizar cantidad si el producto ya existe
