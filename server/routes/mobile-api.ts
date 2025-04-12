@@ -120,12 +120,16 @@ export function createMobileApiEndpoints(): Router {
       
       // Crear los items de la factura basados en los items de la orden
       for (const item of items) {
+        // Calcular el total y asegurarnos de que tiene 2 decimales exactos
+        const totalAmount = parseFloat(item.price) * item.quantity;
+        const formattedTotal = totalAmount.toFixed(2);
+        
         const invoiceItemData = {
           invoiceId: invoice.id,
           productId: item.productId,
           quantity: item.quantity,
           price: item.price,
-          total: (parseFloat(item.price) * item.quantity).toString(),
+          total: formattedTotal,
         };
         
         // Validar datos con el esquema
