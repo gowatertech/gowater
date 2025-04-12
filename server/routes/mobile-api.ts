@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { db } from '../db';
-import { orders, invoices, invoiceItems, payments } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { orders, invoices, invoiceItems, payments, orderItems } from '@shared/schema';
+import { eq, and, desc } from 'drizzle-orm';
 
 /**
  * Crea y registra los endpoints específicos para la aplicación móvil
@@ -78,9 +78,11 @@ export function createMobileApiEndpoints(): Router {
       let lastInvoiceNumber = 0;
       if (latestInvoices.length > 0) {
         const lastInvoice = latestInvoices[0];
-        const parts = lastInvoice.invoiceNumber.split('-');
-        if (parts.length === 3) {
-          lastInvoiceNumber = parseInt(parts[2]) || 0;
+        if (lastInvoice.invoiceNumber && typeof lastInvoice.invoiceNumber === 'string') {
+          const parts = lastInvoice.invoiceNumber.split('-');
+          if (parts.length === 3) {
+            lastInvoiceNumber = parseInt(parts[2]) || 0;
+          }
         }
       }
       
@@ -108,13 +110,13 @@ export function createMobileApiEndpoints(): Router {
       console.log(`Factura ${invoice.invoiceNumber} creada para la orden ${orderId}`);
       
       // 4. Obtener los items de la orden y crear los items de la factura
-      const orderItems = await db
+      const items = await db
         .select()
-        .from(orders)
-        .where(eq(orders.id, orderId));
+        .from(orderItems)
+        .where(eq(orderItems.orderId, orderId));
       
       // Crear los items de la factura basados en los items de la orden
-      for (const item of orderItems) {
+      for (const item of items) {
         await db
           .insert(invoiceItems)
           .values({

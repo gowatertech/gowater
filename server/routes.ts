@@ -41,6 +41,8 @@ export async function registerRoutes(app: Express) {
   // Registrar endpoint para ubicaciones de conductores
   registerDriversLocationsEndpoint(app);
   
+  // Registrar endpoints de la API móvil
+  registerMobileApiEndpoints(app);
 
   
   // Endpoint para obtener el usuario actual
