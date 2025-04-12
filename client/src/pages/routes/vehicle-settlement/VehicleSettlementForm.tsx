@@ -193,13 +193,20 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     
     // Si tenemos órdenes relacionadas, usar esos datos para calcular el crédito
     if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
-      // CORRECCIÓN: Filtrar solo órdenes entregadas y que pertenezcan a la ruta
+      // CORRECCIÓN: Filtrar órdenes considerando diferentes estados que indican entrega y comprobar la ruta
       const orders = settlementData.relatedOrders.filter(order => {
-        // Verificar si la orden está entregada (status === "delivered")
-        const isDelivered = order.status === "delivered";
+        // Verificar si la orden está entregada (status puede ser "delivered", "completed", etc.)
+        // Consideramos válidos los estados: delivered, completed, y si el estado es null/undefined pero tiene total
+        const isDelivered = order.status === "delivered" || 
+                           order.status === "completed" || 
+                           (order.status && order.status.includes("deliver")) ||
+                           (!order.status && parseFloat(order.total || "0") > 0);
         
         // Verificar si la orden pertenece a la ruta (si loading.routeId existe)
+        // Si no hay routeId en la carga, consideramos válidas todas las órdenes del conductor
         const belongsToRoute = loading.routeId ? (order.routeId === loading.routeId) : true;
+        
+        console.log(`Orden #${order.id}: status=${order.status}, total=${order.total}, isDelivered=${isDelivered}, belongsToRoute=${belongsToRoute}`);
         
         return isDelivered && belongsToRoute;
       });
