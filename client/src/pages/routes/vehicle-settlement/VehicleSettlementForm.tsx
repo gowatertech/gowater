@@ -193,18 +193,28 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     
     // Si tenemos órdenes relacionadas, usar esos datos para calcular el crédito
     if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
-      // CORRECCIÓN: Filtrar órdenes considerando diferentes estados que indican entrega y comprobar la ruta
+      // CORRECCIÓN: Filtrar órdenes relacionadas con la ruta exacta de la carga
+      // Si hay una ruta asociada a la carga, solo incluimos las órdenes de esa ruta
       const orders = settlementData.relatedOrders.filter(order => {
-        // Verificar si la orden está entregada (status puede ser "delivered", "completed", etc.)
-        // Consideramos válidos los estados: delivered, completed, y si el estado es null/undefined pero tiene total
+        // Verificar si la orden está entregada o completada
         const isDelivered = order.status === "delivered" || 
                            order.status === "completed" || 
                            (order.status && order.status.includes("deliver")) ||
                            (!order.status && parseFloat(order.total || "0") > 0);
         
-        // Verificar si la orden pertenece a la ruta (si loading.routeId existe)
-        // Si no hay routeId en la carga, consideramos válidas todas las órdenes del conductor
-        const belongsToRoute = loading.routeId ? (order.routeId === loading.routeId) : true;
+        // IMPORTANTE: Verificar si la orden pertenece EXACTAMENTE a la ruta asociada a la carga
+        let belongsToRoute = false;
+        
+        if (loading.routeId) {
+          // Si la carga tiene routeId, solo incluir órdenes de esa ruta específica
+          belongsToRoute = order.routeId === loading.routeId;
+          console.log(`Orden #${order.id}: pertenece a ruta #${order.routeId}, carga.routeId=${loading.routeId}, coincide=${belongsToRoute}`);
+        } else {
+          // Si no hay routeId en la carga, verificar si la orden pertenece a alguna de las rutas
+          // del conductor que realizó esta carga (mismo enfoque que usa el backend)
+          belongsToRoute = true; // De momento asumimos que todas las órdenes son del mismo conductor
+          console.log(`Orden #${order.id}: no hay rutaId en carga, asumiendo que pertenece al conductor, belongsToRoute=${belongsToRoute}`);
+        }
         
         console.log(`Orden #${order.id}: status=${order.status}, total=${order.total}, isDelivered=${isDelivered}, belongsToRoute=${belongsToRoute}`);
         
@@ -337,18 +347,15 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       }, 0);
       console.log("Total ventas a crédito calculado:", calculatedCreditSales);
         
-      // Establecer el crédito recibido automáticamente (es de solo lectura)
+      // SIEMPRE establecer el crédito recibido y total facturado basado en pedidos reales
+      // Esta modificación asegura que los valores sean correctos independientemente del estado previo
       console.log("Estableciendo totalCreditReceived a:", calculatedCreditSales.toFixed(2));
       form.setValue("totalCreditReceived", calculatedCreditSales.toFixed(2));
       
-      // Inicializar el Total Facturado solo la primera vez - nunca cambiarlo después
-      if (totalInvoiced === 0) {
-        const newTotalInvoiced = orders.reduce((sum, order) => sum + parseFloat(order.total), 0);
-        console.log("Estableciendo totalInvoiced (primera vez) a:", newTotalInvoiced.toFixed(2));
-        form.setValue("totalInvoiced", newTotalInvoiced.toFixed(2));
-      } else {
-        console.log("totalInvoiced ya tiene un valor:", totalInvoiced, "- no se modificará");
-      }
+      // Calcular total facturado como la suma de todos los pedidos (efectivo + crédito)
+      const newTotalInvoiced = calculatedCashSales + calculatedCreditSales;
+      console.log("Estableciendo totalInvoiced a:", newTotalInvoiced.toFixed(2));
+      form.setValue("totalInvoiced", newTotalInvoiced.toFixed(2));
     } else {
       console.log("No hay órdenes relacionadas disponibles");
       if (totalInvoiced === 0) {
