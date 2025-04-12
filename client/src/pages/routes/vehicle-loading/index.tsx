@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
+import { AssignRouteDialog } from "./AssignRouteDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -196,6 +197,15 @@ export default function VehicleLoadingPage() {
 
   return (
     <div className="space-y-3 p-2">
+      {/* Diálogo de asignación de ruta */}
+      <AssignRouteDialog
+        open={showAssignRouteDialog}
+        onOpenChange={setShowAssignRouteDialog}
+        loadingId={loadingForRoute}
+        onAssign={handleAssignRoute}
+        isAssigning={isAssigningRoute}
+      />
+      
       {/* Diálogo de confirmación para eliminar */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
@@ -337,14 +347,30 @@ export default function VehicleLoadingPage() {
                     <Truck className="h-4 w-4 text-primary" />
                     <CardTitle className="text-base">Carga #{selectedLoading.loadingNumber}</CardTitle>
                   </div>
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedLoadingId(null)}
-                    className="h-7"
-                  >
-                    Volver
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {selectedLoading.status === "pending" && !selectedLoading.routeId && (
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        className="h-7"
+                        onClick={() => {
+                          setLoadingForRoute(selectedLoading.id);
+                          setShowAssignRouteDialog(true);
+                        }}
+                      >
+                        <MapPin className="h-3.5 w-3.5 mr-1 text-blue-600" />
+                        Asignar Ruta
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedLoadingId(null)}
+                      className="h-7"
+                    >
+                      Volver
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-3 pt-0">
@@ -489,16 +515,29 @@ export default function VehicleLoadingPage() {
                         }}
                       >
                         {loading.status === "pending" && (
-                          <div 
-                            className="delete-btn absolute top-2 right-2 z-10 p-1 bg-red-100 hover:bg-red-200 rounded-full cursor-pointer transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteLoadingId(loading.id);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                            title="Eliminar carga"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
+                          <div className="absolute top-2 right-2 z-10 flex space-x-1">
+                            <div 
+                              className="assign-route-btn p-1 bg-blue-100 hover:bg-blue-200 rounded-full cursor-pointer transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLoadingForRoute(loading.id);
+                                setShowAssignRouteDialog(true);
+                              }}
+                              title="Asignar ruta"
+                            >
+                              <MapPin className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div 
+                              className="delete-btn p-1 bg-red-100 hover:bg-red-200 rounded-full cursor-pointer transition-colors"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteLoadingId(loading.id);
+                                setIsDeleteDialogOpen(true);
+                              }}
+                              title="Eliminar carga"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </div>
                           </div>
                         )}
                         <div className="p-2.5 pb-1.5">
