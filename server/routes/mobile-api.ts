@@ -97,8 +97,8 @@ export function createMobileApiEndpoints(): Router {
         await db
           .insert(invoiceItems)
           .values({
-            invoiceId: invoice.id,
-            productId: item.productId,
+            invoice_id: invoice.id,
+            product_id: item.productId,
             quantity: item.quantity,
             price: item.price,
             total: (parseFloat(item.price) * item.quantity).toString(),
@@ -112,10 +112,10 @@ export function createMobileApiEndpoints(): Router {
         const [payment] = await db
           .insert(payments)
           .values({
-            invoiceId: invoice.id,
-            customerId: order.customerId,
+            invoice_id: invoice.id,
+            customer_id: order.customerId,
             amount: amountPaid.toString(),
-            paymentMethod: 'cash',
+            payment_method: 'cash',
             date: today,
             notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`,
           })
