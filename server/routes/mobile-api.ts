@@ -70,9 +70,12 @@ export function createMobileApiEndpoints(): Router {
       const today = new Date();
       
       // Preparar datos para la factura según el esquema de validación
+      // Asegurarnos de que el total tenga exactamente 2 decimales
+      const formattedTotal = parseFloat(order.total).toFixed(2);
+      
       const invoiceData = {
         customerId: order.customerId,
-        total: order.total,
+        total: formattedTotal,
         status: paymentMethod === 'credit' ? 'pending' : 'paid',
         paymentMethod: paymentMethod,
         notes: `Factura generada desde entrega en ruta ${order.routeId || 'N/A'}`
@@ -144,10 +147,13 @@ export function createMobileApiEndpoints(): Router {
       
       // 5. Si es pago en efectivo, registrar el pago
       if (paymentMethod === 'cash') {
+        // Formatear el monto para asegurar que tiene 2 decimales exactos
+        const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
+        
         const paymentData = {
           invoiceId: invoice.id,
           customerId: order.customerId,
-          amount: amountPaid.toString(),
+          amount: formattedAmount,
           paymentMethod: 'cash',
           notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`
         };
