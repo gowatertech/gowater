@@ -577,6 +577,25 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para obtener una ruta por ID
+  // Endpoint para obtener rutas activas (pending o in_progress)
+  app.get("/api/routes/active", async (req, res) => {
+    try {
+      console.log("GET /api/routes/active - Obteniendo rutas activas");
+      
+      const activeRoutes = await db
+        .select()
+        .from(routes)
+        .where(inArray(routes.status, ["pending", "in_progress"]))
+        .orderBy(routes.date);
+      
+      console.log(`GET /api/routes/active - Retornando ${activeRoutes.length} rutas activas`);
+      res.json(activeRoutes);
+    } catch (error) {
+      console.error("Error al obtener rutas activas:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
   app.get("/api/routes/:id", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
