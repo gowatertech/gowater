@@ -207,7 +207,8 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         
         if (loading.routeId) {
           // Si la carga tiene routeId, solo incluir órdenes de esa ruta específica
-          belongsToRoute = order.routeId === loading.routeId;
+          // Comparar como números para evitar problemas de tipo string vs number
+          belongsToRoute = Number(order.routeId) === Number(loading.routeId);
           console.log(`Orden #${order.id}: pertenece a ruta #${order.routeId}, carga.routeId=${loading.routeId}, coincide=${belongsToRoute}`);
         } else {
           // Si no hay routeId en la carga, verificar si la orden pertenece a alguna de las rutas
@@ -250,10 +251,11 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         
         // Recorrer cada orden para obtener cantidades reales vendidas
         for (const order of orders) {
-          // Acceder a los items con verificación de tipo
-          const orderItems = (order as any).items;
+          // Acceder a los items o products con verificación de tipo
+          // Los datos pueden venir como 'items' o como 'products' según el endpoint
+          const orderItems = (order as any).items || (order as any).products || [];
           
-          if (orderItems && Array.isArray(orderItems)) {
+          if (Array.isArray(orderItems)) {
             for (const item of orderItems) {
               const productId = item.productId;
               const quantity = item.quantity || 0;
