@@ -82,13 +82,29 @@ export function createMobileApiEndpoints(): Router {
       const validInvoiceData = insertInvoiceSchema.parse(invoiceData);
       
       // Crear la factura - el número de factura se generará automáticamente
-      const [invoice] = await db
-        .insert(invoices)
-        .values({
-          ...validInvoiceData,
-          date: today, // La fecha se agrega manualmente porque no está en el esquema
-        })
-        .returning();
+      // Usamos una transacción para evitar conflictos de números de factura
+      const [invoice] = await db.transaction(async (tx) => {
+        // Obtener el último número de factura
+        const lastInvoice = await tx
+          .select({ maxNumber: invoices.invoiceNumber })
+          .from(invoices)
+          .orderBy(desc(invoices.invoiceNumber))
+          .limit(1);
+        
+        // Insertar nueva factura con número incremental
+        const nextInvoiceNumber = lastInvoice.length > 0 ? lastInvoice[0].maxNumber + 1 : 1;
+
+        console.log(`Generando nueva factura con número: ${nextInvoiceNumber}`);
+        
+        return tx
+          .insert(invoices)
+          .values({
+            ...validInvoiceData,
+            date: today, // La fecha se agrega manualmente porque no está en el esquema
+            invoiceNumber: nextInvoiceNumber, // Asignar número manualmente
+          })
+          .returning();
+      });
       
       if (!invoice) {
         return res.status(500).json({ error: "Error al crear la factura" });
@@ -161,7 +177,20 @@ export function createMobileApiEndpoints(): Router {
       
     } catch (error) {
       console.error(`Error al procesar entrega y facturación de orden ${req.params.id}:`, error);
-      res.status(500).json({ error: String(error) });
+      
+      // Verificar si el error está relacionado con números de factura duplicados
+      const errorStr = String(error);
+      if (errorStr.includes("duplicate key value") && errorStr.includes("invoices_invoice_number_key")) {
+        return res.status(500).json({ 
+          error: "Error en la generación de número de factura. Intente nuevamente.", 
+          details: "Se detectó un conflicto con un número de factura existente." 
+        });
+      }
+      
+      res.status(500).json({ 
+        error: "Error al procesar la entrega y facturación", 
+        details: String(error) 
+      });
     }
   });
 
