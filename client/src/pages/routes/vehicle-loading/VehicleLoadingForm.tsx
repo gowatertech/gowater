@@ -1,11 +1,11 @@
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertVehicleLoadingSchema } from "@shared/schema";
-import type { InsertVehicleLoading, Product, User, Truck, Route, Order } from "@shared/schema";
+import type { InsertVehicleLoading, Product, User, Truck, Route, Order, OrderItem } from "@shared/schema";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { Plus, X, Truck as TruckIcon, Route as RouteIcon } from "lucide-react";
+import { Plus, X, Truck as TruckIcon, Route as RouteIcon, Info, RefreshCw } from "lucide-react";
 
 import {
   Form,
@@ -27,6 +27,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -47,10 +55,19 @@ interface VehicleLoadingFormProps {
   onSuccess?: () => void;
 }
 
+// Tipo para los productos agrupados por ruta
+interface GroupedProduct {
+  productId: number;
+  productName: string;
+  totalQuantity: number;
+}
+
 export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingRouteOrders, setIsLoadingRouteOrders] = useState(false);
+  const [routeProducts, setRouteProducts] = useState<GroupedProduct[]>([]);
 
   const form = useForm<InsertVehicleLoading>({
     resolver: zodResolver(insertVehicleLoadingSchema),
@@ -61,7 +78,7 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     }
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "items"
   });
@@ -95,8 +112,82 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     route.status === "pending" || route.status === "in_progress"
   );
   
+  // Función para obtener los pedidos de una ruta específica
+  const getRouteOrders = async (routeId: number) => {
+    try {
+      setIsLoadingRouteOrders(true);
+      const response = await fetch(`/api/routes/${routeId}/orders`);
+      
+      if (!response.ok) {
+        throw new Error('Error al obtener las órdenes de la ruta');
+      }
+      
+      const orders: Order[] = await response.json();
+      console.log("Pedidos de la ruta:", orders);
+      
+      // Agrupar productos de todos los pedidos
+      const productMap = new Map<number, GroupedProduct>();
+      
+      orders.forEach(order => {
+        // Verificar que la orden tenga ítems y que sea un array
+        const orderItems = (order as any).items;
+        if (orderItems && Array.isArray(orderItems)) {
+          orderItems.forEach((item: OrderItem) => {
+            const productId = item.productId;
+            const quantity = item.quantity || 0;
+            const productName = products.find(p => p.id === productId)?.name || `Producto #${productId}`;
+            
+            if (productMap.has(productId)) {
+              // Actualizar cantidad si el producto ya existe
+              const existing = productMap.get(productId)!;
+              existing.totalQuantity += quantity;
+              productMap.set(productId, existing);
+            } else {
+              // Añadir nuevo producto al mapa
+              productMap.set(productId, {
+                productId,
+                productName,
+                totalQuantity: quantity
+              });
+            }
+          });
+        }
+      });
+      
+      // Convertir el mapa a un array
+      const groupedProducts = Array.from(productMap.values());
+      console.log("Productos agrupados por ruta:", groupedProducts);
+      
+      // Guardar los productos agrupados
+      setRouteProducts(groupedProducts);
+      
+      // Preparar los items para el formulario
+      const formItems = groupedProducts.map(product => ({
+        productId: product.productId,
+        quantity: product.totalQuantity
+      }));
+      
+      // Reemplazar los items actuales con los nuevos
+      replace(formItems);
+      
+      toast({
+        title: "Productos cargados",
+        description: `Se han cargado ${groupedProducts.length} productos de la ruta seleccionada`,
+      });
+    } catch (error) {
+      console.error("Error al cargar órdenes de la ruta:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron cargar los productos de la ruta",
+      });
+    } finally {
+      setIsLoadingRouteOrders(false);
+    }
+  };
+  
   // Precargar el conductor cuando se selecciona una ruta
-  const handleRouteChange = (routeId: number) => {
+  const handleRouteChange = async (routeId: number) => {
     // Buscar la ruta seleccionada
     const selectedRoute = routes.find(route => route.id === routeId);
     if (selectedRoute && selectedRoute.driverId) {
@@ -107,6 +198,9 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
       if (selectedRoute.assistantId) {
         form.setValue("assistantId", selectedRoute.assistantId);
       }
+      
+      // Cargar los productos de los pedidos de esta ruta
+      await getRouteOrders(routeId);
     }
   };
 
@@ -310,7 +404,20 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
 
         <div className="space-y-2 pt-1">
           <div className="flex justify-between items-center py-1">
-            <h3 className="text-sm font-semibold">Productos a Cargar</h3>
+            <div className="flex items-center">
+              <h3 className="text-sm font-semibold">Productos a Cargar</h3>
+              {isLoadingRouteOrders && (
+                <div className="flex items-center ml-2">
+                  <Loader2 className="h-3 w-3 animate-spin text-primary mr-1" />
+                  <span className="text-xs text-muted-foreground">Cargando productos de la ruta...</span>
+                </div>
+              )}
+              {routeProducts.length > 0 && !isLoadingRouteOrders && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  {routeProducts.length} productos de ruta
+                </Badge>
+              )}
+            </div>
             <Button
               type="button"
               onClick={() => append({ productId: 0, quantity: 1 })}
@@ -322,6 +429,36 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
               Agregar Producto
             </Button>
           </div>
+
+          {/* Resumen de productos de ruta cuando se han cargado */}
+          {routeProducts.length > 0 && form.getValues().routeId && (
+            <div className="mb-2 p-2 bg-primary/5 border border-primary/10 rounded-md">
+              <div className="flex items-center mb-1">
+                <RouteIcon className="h-3.5 w-3.5 text-primary mr-1" />
+                <span className="text-xs font-medium">Productos de la ruta seleccionada</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">
+                Los siguientes productos se han cargado automáticamente según los pedidos de la ruta:
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {routeProducts.map(product => (
+                  <TooltipProvider key={product.productId}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="secondary" className="text-[10px] py-0">
+                          {product.productName}: {product.totalQuantity}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        <p>ID: {product.productId}</p>
+                        <p>Cantidad total: {product.totalQuantity}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             {fields.map((field, index) => (
