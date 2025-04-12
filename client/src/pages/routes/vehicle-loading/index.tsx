@@ -440,10 +440,30 @@ export default function VehicleLoadingPage() {
               return (
                 <Card 
                   key={loading.id} 
-                  className="p-0 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-                  onClick={() => setSelectedLoadingId(loading.id)}
+                  className="p-0 hover:shadow-md transition-shadow overflow-hidden"
                 >
-                  <div className="flex flex-col border-l-4 border-l-blue-500">
+                  <div 
+                    className="flex flex-col border-l-4 border-l-blue-500 relative"
+                    onClick={(e) => {
+                      // Evitar que el clic en el botón de eliminar active el clic en la tarjeta
+                      if (!(e.target as HTMLElement).closest('.delete-btn')) {
+                        setSelectedLoadingId(loading.id);
+                      }
+                    }}
+                  >
+                    {loading.status === "pending" && (
+                      <div 
+                        className="delete-btn absolute top-2 right-2 z-10 p-1 bg-red-100 hover:bg-red-200 rounded-full cursor-pointer transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteLoadingId(loading.id);
+                          setIsDeleteDialogOpen(true);
+                        }}
+                        title="Eliminar carga"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </div>
+                    )}
                     <div className="p-2.5 pb-1.5">
                       <div className="flex justify-between items-center mb-1">
                         <span className="font-medium text-sm">Carga #{loading.loadingNumber}</span>
