@@ -961,7 +961,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                           </div>
                           <div className="text-[10px] text-muted-foreground flex items-center mt-0.5">
                             <Calendar className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
-                            {new Date(order.createdAt).toLocaleDateString("es-ES", {
+                            {new Date(order.date || new Date()).toLocaleDateString("es-ES", {
                               day: '2-digit',
                               month: '2-digit',
                               year: 'numeric'
@@ -974,32 +974,22 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                             ${typeof order.total === 'string' ? parseFloat(order.total).toFixed(2) : order.total.toFixed(2)}
                           </Badge>
                           <div className="text-[9px] mt-0.5 text-muted-foreground">
-                            {order.products.reduce((acc, p) => acc + p.quantity, 0)} productos
+                            1 pedido
                           </div>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent className="p-0">
                       <div className="p-2 pt-0">
-                        <div className="text-[10px] font-medium text-muted-foreground mb-1">Productos:</div>
-                        <ScrollArea className="h-[60px] w-full rounded-md border p-1">
-                          <div className="space-y-0.5">
-                            {order.products.map((product, idx) => (
-                              <div key={idx} className="flex justify-between text-[10px]">
-                                <div className="flex items-center">
-                                  <Package className="h-2.5 w-2.5 mr-0.5 text-primary" />
-                                  {product.name}
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Badge variant="outline" className="h-4 px-1 text-[9px]">
-                                    {product.quantity} unid.
-                                  </Badge>
-                                  <span className="text-gray-600">${typeof product.price === 'string' ? parseFloat(product.price).toFixed(2) : product.price.toFixed(2)}</span>
-                                </div>
-                              </div>
-                            ))}
+                        <div className="text-[10px] font-medium text-muted-foreground mb-1">Detalles:</div>
+                        <div className="h-[60px] w-full rounded-md border p-2 flex flex-col justify-center">
+                          <div className="text-center text-[11px]">
+                            <span className="font-medium">Información del pedido</span>
+                            <div className="mt-1 text-[10px] text-muted-foreground">
+                              {order.notes || "Sin notas adicionales"}
+                            </div>
                           </div>
-                        </ScrollArea>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
