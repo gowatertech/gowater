@@ -12,6 +12,7 @@ import { registerRouteSettlements } from "./routes/routeSettlements";
 import { registerDriverRoutes } from "./routes/driver";
 import { registerRoutesEndpoints } from "./routes-endpoints";
 import { registerDriversLocationsEndpoint } from "./routes/api/driversLocations";
+import { registerMobileApiEndpoints } from "./routes/mobile-api";
 
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
