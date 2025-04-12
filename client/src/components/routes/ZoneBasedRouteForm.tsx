@@ -87,18 +87,14 @@ interface PendingOrder {
   id: number;
   customerId: number;
   status: string;
-  total: number;
+  total: string | number; // Puede venir como string desde el backend
   customerName: string;
   customerAddress: string;
-  customerPhone: string;
-  coordinates?: string;
-  createdAt: string;
-  products: {
-    productId: number;
-    name: string;
-    quantity: number;
-    price: number;
-  }[];
+  customerAddressNumber: string;
+  notes?: string;
+  date?: string; // Fecha de creación del pedido
+  estimatedDeliveryTime?: string | null;
+  deliveryCoordinates?: string | null;
 }
 
 interface Truck {
