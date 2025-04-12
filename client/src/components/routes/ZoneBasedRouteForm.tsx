@@ -121,6 +121,16 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
     queryKey: ["/api/users?role=driver"],
+    onSuccess: (data) => {
+      // Si hay conductores y no hay un conductor seleccionado, selecciona el primero automáticamente
+      if (Array.isArray(data) && data.length > 0 && !form?.getValues("driverId")) {
+        try {
+          form?.setValue("driverId", data[0].id);
+        } catch (error) {
+          console.error("Error setting default driver:", error);
+        }
+      }
+    }
   });
   
   // Fetch assistants
