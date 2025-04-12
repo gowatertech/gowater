@@ -772,6 +772,37 @@ export async function registerRoutes(app: Express) {
     }
   });
   
+  // Endpoint para eliminar una ruta por ID
+  app.delete("/api/routes/:id", async (req, res) => {
+    try {
+      const routeId = parseInt(req.params.id);
+      
+      if (isNaN(routeId)) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+      
+      console.log(`DELETE /api/routes/${routeId} - Eliminando ruta`);
+      
+      // Llamar al método de almacenamiento para eliminar la ruta
+      const deletedRoute = await storage.deleteRoute(routeId);
+      
+      if (!deletedRoute) {
+        return res.status(404).json({ error: "Ruta no encontrada" });
+      }
+      
+      console.log(`Ruta ${routeId} eliminada con éxito`);
+      
+      // Retornar la información de la ruta eliminada
+      res.json({
+        message: "Ruta eliminada exitosamente",
+        route: deletedRoute
+      });
+    } catch (error) {
+      console.error(`Error al eliminar la ruta ${req.params.id}:`, error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Endpoint para optimizar ruta
   app.post("/api/routes/optimize", async (req, res) => {
     try {
