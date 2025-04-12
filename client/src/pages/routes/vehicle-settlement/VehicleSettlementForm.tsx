@@ -204,6 +204,14 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     form.setValue("totalInvoiced", "0.00");
     form.setValue("totalCreditReceived", "0.00");
     
+    // PRUEBA: Mostrar claramente cuando no hay órdenes
+    toast({
+      title: "Calculando totales",
+      description: settlementData?.relatedOrders?.length 
+        ? `Se encontraron ${settlementData.relatedOrders.length} órdenes relacionadas` 
+        : "No se encontraron órdenes relacionadas con esta carga"
+    });
+    
     // Continuar con el cálculo normal
     const values = form.getValues();
     console.log("Form values completo:", JSON.stringify(values, null, 2));
