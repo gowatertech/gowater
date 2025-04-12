@@ -494,6 +494,14 @@ export default function VehicleLoadingPage() {
                               <DollarSign className="h-3 w-3 mr-1 text-gray-500" />
                               <span className="text-gray-600">RD$ {parseFloat(loading.initialCash).toFixed(2)}</span>
                             </div>
+                            <div className="flex items-center col-span-2">
+                              <MapPin className="h-3 w-3 mr-1 text-gray-500" />
+                              <span className="text-gray-600 truncate">
+                                {loading.routeId ? 
+                                  `Ruta #${loading.routeId}` : 
+                                  <span className="text-amber-500 font-medium">Sin ruta asignada</span>}
+                              </span>
+                            </div>
                           </div>
                         </div>
                         
