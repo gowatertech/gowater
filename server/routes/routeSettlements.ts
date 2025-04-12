@@ -127,11 +127,46 @@ export async function registerRouteSettlements(app: Express) {
       
       // Si tenemos una ruta asociada a la carga, obtenemos sus órdenes
       if (loading.routeId) {
-        relatedOrders = await db
+        // Obtener las órdenes para la ruta específica
+        const ordersData = await db
           .select()
           .from(orders)
           .where(eq(orders.routeId, loading.routeId))
           .orderBy(orders.createdAt);
+        
+        // Para cada orden, obtener sus productos (items)
+        relatedOrders = await Promise.all(ordersData.map(async (order) => {
+          // Consultar los items de esta orden
+          const orderItems = await db
+            .select()
+            .from(schema.orderItems)
+            .where(eq(schema.orderItems.orderId, order.id));
+          
+          // Para cada item, obtener la información del producto
+          const itemsWithProductInfo = await Promise.all(orderItems.map(async (item) => {
+            const productData = await db
+              .select()
+              .from(products)
+              .where(eq(products.id, item.productId))
+              .limit(1);
+            
+            const product = productData.length > 0 ? productData[0] : null;
+            
+            return {
+              ...item,
+              name: product?.name || `Producto #${item.productId}`,
+              isReturnable: product?.isReturnable || false
+            };
+          }));
+          
+          // Retornar la orden con sus items
+          return {
+            ...order,
+            items: itemsWithProductInfo  // Incluir los items en la orden
+          };
+        }));
+        
+        console.log(`Obtenidas ${relatedOrders.length} órdenes relacionadas con la ruta ${loading.routeId}`);
       } 
       // Si no hay ruta asociada, usar el enfoque anterior basado en el conductor
       else if (loading.driverId) {
@@ -147,11 +182,45 @@ export async function registerRouteSettlements(app: Express) {
         
         if (routeIds.length > 0) {
           // 2. Obtener las órdenes asociadas a esas rutas
-          relatedOrders = await db
+          const ordersData = await db
             .select()
             .from(orders)
             .where(inArray(orders.routeId, routeIds))
             .orderBy(orders.createdAt);
+          
+          // Para cada orden, obtener sus productos (items)
+          relatedOrders = await Promise.all(ordersData.map(async (order) => {
+            // Consultar los items de esta orden
+            const orderItems = await db
+              .select()
+              .from(schema.orderItems)
+              .where(eq(schema.orderItems.orderId, order.id));
+            
+            // Para cada item, obtener la información del producto
+            const itemsWithProductInfo = await Promise.all(orderItems.map(async (item) => {
+              const productData = await db
+                .select()
+                .from(products)
+                .where(eq(products.id, item.productId))
+                .limit(1);
+              
+              const product = productData.length > 0 ? productData[0] : null;
+              
+              return {
+                ...item,
+                name: product?.name || `Producto #${item.productId}`,
+                isReturnable: product?.isReturnable || false
+              };
+            }));
+            
+            // Retornar la orden con sus items
+            return {
+              ...order,
+              items: itemsWithProductInfo  // Incluir los items en la orden
+            };
+          }));
+          
+          console.log(`Obtenidas ${relatedOrders.length} órdenes relacionadas con el conductor ${loading.driverId}`);
         }
       }
       
