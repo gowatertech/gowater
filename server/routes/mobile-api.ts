@@ -1,6 +1,9 @@
 import express, { Router } from 'express';
 import { db } from '../db';
-import { orders, invoices, invoiceItems, payments, orderItems } from '@shared/schema';
+import { 
+  orders, invoices, invoiceItems, payments, orderItems,
+  insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
+} from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
 /**
@@ -66,17 +69,24 @@ export function createMobileApiEndpoints(): Router {
       // 3. Crear la factura para esta orden
       const today = new Date();
       
+      // Preparar datos para la factura según el esquema de validación
+      const invoiceData = {
+        customerId: order.customerId,
+        total: order.total,
+        status: paymentMethod === 'credit' ? 'pending' : 'paid',
+        paymentMethod: paymentMethod,
+        notes: `Factura generada desde entrega en ruta ${order.routeId || 'N/A'}`
+      };
+      
+      // Validar datos con el esquema
+      const validInvoiceData = insertInvoiceSchema.parse(invoiceData);
+      
       // Crear la factura - el número de factura se generará automáticamente
       const [invoice] = await db
         .insert(invoices)
         .values({
-          customerId: order.customerId,
-          // No se especifica invoiceNumber porque es un serial en la base de datos
-          date: today,
-          total: order.total,
-          status: paymentMethod === 'credit' ? 'pending' : 'paid',
-          paymentMethod: paymentMethod,
-          notes: `Factura generada desde entrega en ruta ${order.routeId || 'N/A'}`,
+          ...validInvoiceData,
+          date: today, // La fecha se agrega manualmente porque no está en el esquema
         })
         .returning();
       
@@ -94,30 +104,42 @@ export function createMobileApiEndpoints(): Router {
       
       // Crear los items de la factura basados en los items de la orden
       for (const item of items) {
+        const invoiceItemData = {
+          invoiceId: invoice.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          total: (parseFloat(item.price) * item.quantity).toString(),
+        };
+        
+        // Validar datos con el esquema
+        const validInvoiceItemData = insertInvoiceItemSchema.parse(invoiceItemData);
+        
         await db
           .insert(invoiceItems)
-          .values({
-            invoice_id: invoice.id,
-            product_id: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-            total: (parseFloat(item.price) * item.quantity).toString(),
-          });
+          .values(validInvoiceItemData);
       }
       
       console.log(`Items de factura creados para la factura ${invoice.invoiceNumber}`);
       
       // 5. Si es pago en efectivo, registrar el pago
       if (paymentMethod === 'cash') {
+        const paymentData = {
+          invoiceId: invoice.id,
+          customerId: order.customerId,
+          amount: amountPaid.toString(),
+          paymentMethod: 'cash',
+          notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`
+        };
+        
+        // Validar datos con el esquema
+        const validPaymentData = insertPaymentSchema.parse(paymentData);
+        
         const [payment] = await db
           .insert(payments)
           .values({
-            invoice_id: invoice.id,
-            customer_id: order.customerId,
-            amount: amountPaid.toString(),
-            payment_method: 'cash',
-            date: today,
-            notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`,
+            ...validPaymentData,
+            date: today, // La fecha se agrega manualmente porque no está en el esquema
           })
           .returning();
         
