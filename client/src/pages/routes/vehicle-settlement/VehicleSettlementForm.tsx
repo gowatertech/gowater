@@ -153,6 +153,10 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       console.log("Total órdenes encontradas:", data.totalOrdersFound);
       console.log("Mensaje de advertencia:", data.warningMessage);
       console.log("Órdenes relacionadas:", data.relatedOrders?.length || 0);
+      
+      // Depuración adicional: mostrar el objeto relatedOrders completo
+      console.log("Raw relatedOrders:", JSON.stringify(data.relatedOrders));
+      
       if (data.relatedOrders && data.relatedOrders.length > 0) {
         console.log("Detalle de órdenes:", data.relatedOrders.map(o => ({
           id: o.id, 
@@ -161,12 +165,24 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
           customerId: o.customerId,
           routeId: o.routeId
         })));
+        
+        // Calcular información automáticamente al cargar datos
+        setTimeout(() => {
+          calculateDifferences();
+        }, 500);
+      } else {
+        console.log("⚠️ No se encontraron órdenes relacionadas en la respuesta");
       }
       console.log("Resumen de productos:", data.productSummary);
       console.log("============================================");
     },
     onError: (error) => {
       console.error("Error al cargar datos de settlement:", error);
+      toast({
+        title: "Error al cargar datos",
+        description: "No se pudieron cargar los datos de cuadre. Intenta nuevamente.",
+        variant: "destructive"
+      });
     }
   });
   
