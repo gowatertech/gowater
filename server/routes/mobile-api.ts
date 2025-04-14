@@ -83,20 +83,15 @@ export function createMobileApiEndpoints(): Router {
         })
         .where(eq(routes.id, routeId));
       
-      // 4. También completar la carga de vehículo relacionada con esta ruta
+      // 4. NO completamos la carga de vehículo relacionada con esta ruta
+      // Solo verificamos si existe para informar en los logs
       const relatedLoading = await db.query.vehicleLoading.findFirst({
         where: eq(vehicleLoading.routeId, routeId),
       });
       
       if (relatedLoading) {
-        console.log(`Completando carga de vehículo #${relatedLoading.id} relacionada con la ruta`);
-        
-        await db.update(vehicleLoading)
-          .set({
-            status: "completed",
-            completedAt: new Date()
-          })
-          .where(eq(vehicleLoading.id, relatedLoading.id));
+        console.log(`Se encontró carga de vehículo #${relatedLoading.id} relacionada con la ruta, pero NO se marcará como completada.`);
+        console.log(`La carga de vehículo se completará solo cuando se realice el cuadre correspondiente.`);
       }
       
       // 5. Obtener la ruta actualizada para devolver en la respuesta
@@ -106,7 +101,7 @@ export function createMobileApiEndpoints(): Router {
       
       return res.status(200).json({
         success: true,
-        message: "¡Ruta completada exitosamente! Ahora puede ver el cuadre de vehículo en el sistema.",
+        message: "¡Ruta completada exitosamente! Recuerde que debe realizar el cuadre de vehículo para finalizar el proceso.",
         route: updatedRoute
       });
       

@@ -27,7 +27,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         .update(vehicleLoading)
         .set({
           status: 'completed',
-          completedAt: new Date()
+          completedAt: new Date().toISOString()
         })
         .where(eq(vehicleLoading.id, loadingId));
       
@@ -207,7 +207,6 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   app.post("/api/vehicle-loading", async (req: Request, res: Response) => {
     try {
       const [loading] = await db.insert(vehicleLoading).values({
-        date: new Date(),
         truckId: req.body.truckId,
         driverId: req.body.driverId,
         assistantId: req.body.assistantId,
@@ -215,7 +214,6 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         status: "pending",
         initialCash: req.body.initialCash,
         notes: req.body.notes,
-        createdAt: new Date(),
       }).returning();
 
       if (req.body.items && req.body.items.length > 0) {
