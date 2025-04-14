@@ -408,6 +408,17 @@ export default function VehicleLoadingPage() {
                         </p>
                         <p className="font-medium text-sm">RD$ {parseFloat(selectedLoading.initialCash).toFixed(2)}</p>
                       </div>
+                      {selectedLoading.route && (
+                        <div className="border-l-4 border-l-teal-500 pl-2 col-span-2">
+                          <p className="text-xs text-gray-500 flex items-center">
+                            <MapPin className="h-3 w-3 mr-1 text-teal-500" />
+                            Ruta Asignada
+                          </p>
+                          <p className="font-medium text-sm">
+                            ID: {selectedLoading.route.id} - {selectedLoading.route.name}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
 

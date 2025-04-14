@@ -130,6 +130,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
           },
           truck: true,
           driver: true,
+          route: true,
         },
         orderBy: (vehicleLoading, { desc }) => [desc(vehicleLoading.date)]
       });
@@ -154,6 +155,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
           },
           truck: true,
           driver: true,
+          route: true,
         },
         orderBy: (vehicleLoading, { desc }) => [desc(vehicleLoading.date)]
       });
@@ -178,6 +180,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
           },
           truck: true,
           driver: true,
+          route: true,
         }
       });
 
@@ -228,6 +231,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
           },
           truck: true,
           driver: true,
+          route: true,
         }
       });
 
