@@ -106,6 +106,14 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         });
       }
       
+      // No permitir eliminar cargas con ruta asignada
+      if (loading.routeId) {
+        return res.status(400).json({ 
+          error: "No se puede eliminar esta carga porque tiene una ruta asignada",
+          routeId: loading.routeId
+        });
+      }
+      
       // Primero eliminar los items de la carga
       await db.delete(vehicleLoadingItems).where(eq(vehicleLoadingItems.loadingId, loadingId));
       

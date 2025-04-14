@@ -222,7 +222,7 @@ export default function VehicleLoadingPage() {
                 <span className="font-medium">Esta acción no se puede deshacer.</span>
               </div>
               <p>¿Estás seguro de que deseas eliminar esta carga de vehículo?</p>
-              <p className="mt-2 text-sm text-gray-600">Solo se pueden eliminar cargas en estado "Pendiente".</p>
+              <p className="mt-2 text-sm text-gray-600">Solo se pueden eliminar cargas en estado "Pendiente" y que no tengan una ruta asignada.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -516,7 +516,7 @@ export default function VehicleLoadingPage() {
                           }
                         }}
                       >
-                        {loading.status === "pending" && (
+                        {loading.status === "pending" && !loading.routeId && (
                           <div className="absolute top-2 right-2 z-10 flex space-x-1">
                             <div 
                               className="delete-btn p-1 bg-red-100 hover:bg-red-200 rounded-full cursor-pointer transition-colors"
