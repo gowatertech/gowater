@@ -63,6 +63,15 @@ export function registerCompleteRouteEndpoint(app: Express) {
         })
         .where(eq(routes.id, routeId));
       
+      // 3.1 También marcar todas las órdenes de la ruta como completadas
+      // Esto es crucial para que el cuadre de vehículo pueda encontrarlas
+      console.log("Actualizando estado de todas las órdenes de la ruta a completed...");
+      await db.update(orders)
+        .set({
+          status: "completed"
+        })
+        .where(eq(orders.routeId, routeId));
+      
       // 4. También completar la carga de vehículo relacionada con esta ruta
       const relatedLoading = await db.query.vehicleLoading.findFirst({
         where: eq(vehicleLoading.routeId, routeId),

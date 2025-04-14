@@ -129,11 +129,15 @@ export async function registerRouteSettlements(app: Express) {
       if (loading.routeId) {
         console.log(`Buscando órdenes para la ruta ID: ${loading.routeId}`);
         
-        // 1. Obtener todas las órdenes de la ruta
+        // 1. Obtener todas las órdenes de la ruta que estén completadas/entregadas
         const ordersData = await db
           .select()
           .from(orders)
-          .where(eq(orders.routeId, loading.routeId));
+          .where(and(
+            eq(orders.routeId, loading.routeId),
+            // Verificar que el status sea "delivered" o "completed" (compatibilidad con ambos términos)
+            sql`(LOWER(${orders.status}) = 'delivered' OR LOWER(${orders.status}) = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
+          ));
         
         // Forzar a mostrar más detalles para depuración
         console.log(`Encontradas ${ordersData.length} órdenes para la ruta ${loading.routeId}`);
@@ -161,7 +165,9 @@ export async function registerRouteSettlements(app: Express) {
             .where(
               and(
                 gte(orders.date, startOfDay),
-                lt(orders.date, endOfDay)
+                lt(orders.date, endOfDay),
+                // Filtrar también por estado para obtener solo órdenes completadas
+                sql`(LOWER(${orders.status}) = 'delivered' OR LOWER(${orders.status}) = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
               )
             );
           
