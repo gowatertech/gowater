@@ -348,20 +348,6 @@ export default function VehicleLoadingPage() {
                     <CardTitle className="text-base">Carga #{selectedLoading.loadingNumber}</CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    {selectedLoading.status === "pending" && !selectedLoading.routeId && (
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        className="h-7"
-                        onClick={() => {
-                          setLoadingForRoute(selectedLoading.id);
-                          setShowAssignRouteDialog(true);
-                        }}
-                      >
-                        <MapPin className="h-3.5 w-3.5 mr-1 text-blue-600" />
-                        Asignar Ruta
-                      </Button>
-                    )}
                     <Button 
                       variant="ghost"
                       size="sm"
@@ -516,17 +502,6 @@ export default function VehicleLoadingPage() {
                       >
                         {loading.status === "pending" && (
                           <div className="absolute top-2 right-2 z-10 flex space-x-1">
-                            <div 
-                              className="assign-route-btn p-1 bg-blue-100 hover:bg-blue-200 rounded-full cursor-pointer transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLoadingForRoute(loading.id);
-                                setShowAssignRouteDialog(true);
-                              }}
-                              title="Asignar ruta"
-                            >
-                              <MapPin className="h-4 w-4 text-blue-600" />
-                            </div>
                             <div 
                               className="delete-btn p-1 bg-red-100 hover:bg-red-200 rounded-full cursor-pointer transition-colors"
                               onClick={(e) => {
