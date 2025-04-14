@@ -143,6 +143,9 @@ export async function registerRouteSettlements(app: Express) {
         
         // 1. Obtener todas las órdenes de la ruta que estén completadas/entregadas
         console.log("Ejecutando consulta principal con filtro por estado 'delivered' o 'completed':");
+        console.log(`Buscando órdenes para route_id=${loading.routeId} con status='delivered' o 'completed'`);
+        
+        // Verificamos cómo se llama correctamente el campo en la base de datos
         const ordersData = await db
           .select()
           .from(orders)
