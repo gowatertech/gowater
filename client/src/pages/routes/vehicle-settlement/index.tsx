@@ -214,21 +214,10 @@ export default function VehicleSettlementPage() {
                 <p className="font-medium text-sm">RD$ {parseFloat(selectedLoading.initialCash).toFixed(2)}</p>
               </div>
             </div>
-            {/* Visualización directa del API para depuración */}
-            <div className="mb-4">
-              <h3 className="text-lg font-medium mb-2">Datos Directos de API (Depuración)</h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <DebugApiView loadingId={selectedLoading.id} />
-              </div>
-            </div>
-            
-            {/* Formulario original (oculto temporalmente para depuración) */}
-            <div className="opacity-50 pointer-events-none">
-              <VehicleSettlementForm 
-                loading={selectedLoading}
-                onSuccess={() => setSelectedLoadingId(null)}
-              />
-            </div>
+            <VehicleSettlementForm 
+              loading={selectedLoading}
+              onSuccess={() => setSelectedLoadingId(null)}
+            />
           </CardContent>
         </Card>
       ) : (

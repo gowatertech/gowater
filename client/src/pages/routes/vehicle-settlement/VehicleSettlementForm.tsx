@@ -144,9 +144,11 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   });
   
   // Cargar los datos de settlement incluyendo órdenes relacionadas
-  const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
+  const { data: settlementData, isLoading: isLoadingSettlementData, isError, error } = useQuery<SettlementResponse>({
     queryKey: ["/api/route-settlements", loading.id],
     enabled: !!loading.id,
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
   
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
@@ -405,21 +407,12 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       console.log("▶️ Devoluciones de envases:", settlementData.bottleReturns?.length || 0);
       console.log("▶️ Resumen de productos:", settlementData.productSummary?.length || 0);
       
-      // ALERTA: Verificar en tiempo real si hay datos
-      alert(`DATOS API: ${JSON.stringify({
-        ordenes: settlementData.relatedOrders?.length || 0,
-        bottleReturns: settlementData.bottleReturns?.length || 0,
-        productSummary: settlementData.productSummary?.length || 0
-      })}`);
-      
-      // Verificación adicional con un llamado directo a API
-      fetch(`/api/route-settlements/${loading.id}`)
-        .then(response => response.json())
-        .then(data => {
-          alert(`API DIRECTA: ${data.relatedOrders?.length || 0} órdenes encontradas`);
-          console.log("API DIRECTA:", data);
-        })
-        .catch(err => console.error("Error API directa:", err));
+      // Mostrar notificación con un resumen de los datos recibidos
+      toast({
+        title: "Datos cargados",
+        description: `Se encontraron ${settlementData.relatedOrders?.length || 0} órdenes y ${settlementData.productSummary?.length || 0} productos.`,
+        duration: 5000
+      });
       
       // Si hay órdenes relacionadas, mostrar detalles para depuración
       if (settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
