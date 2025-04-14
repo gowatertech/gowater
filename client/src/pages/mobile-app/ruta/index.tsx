@@ -521,9 +521,9 @@ export default function DriverRoute() {
           description: "La ruta ha sido marcada como completada exitosamente."
         });
         
-        // Redirigir a la lista de rutas en progreso después de una pausa
+        // Redirigir a la página de inicio después de una pausa
         setTimeout(() => {
-          setLocation("/mobile-app/rutas-en-progreso");
+          setLocation("/mobile-app");
         }, 2000);
       } else {
         throw new Error(response?.message || "Error al completar la ruta");
