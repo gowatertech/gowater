@@ -200,11 +200,12 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     console.log("=================== INICIO CÁLCULO ===================");
     console.log("calculateDifferences called");
     
-    // SOLUCIÓN: Reiniciar valores calculados para evitar valores precargados
-    form.setValue("totalInvoiced", "0.00");
-    form.setValue("totalCreditReceived", "0.00");
+    // Valores iniciales para limpiar el formulario antes de recalcular
+    const cleanValues = {
+      totalInvoiced: "0.00",
+      totalCreditReceived: "0.00",
+    };
     
-    // PRUEBA: Mostrar claramente cuando no hay órdenes
     toast({
       title: "Calculando totales",
       description: settlementData?.relatedOrders?.length 
@@ -231,80 +232,62 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       returnedQuantity: item.returnedQuantity
     })));
     
-    // Variable para almacenar el total de productos vendidos por tipo de producto
-    // La inicializamos para calcularla más tarde cuando tengamos las órdenes filtradas
+    // Variables para los cálculos
     let totalProductsSold = 0;
     let totalProductsValue = 0;
     let productSoldDetails: Array<{productId: number; productName: string; quantity: number}> = [];
-    let totalSold = 0; // Esta variable se usará para mantener compatibilidad con el código existente
+    let totalSold = 0;
     
     let calculatedCreditSales = 0;
     let calculatedCashSales = 0;
-    // Obtener el valor actual de totalInvoiced, no modificarlo después
-    const totalInvoiced = parseFloat(values.totalInvoiced) || 0;
     
     // Si tenemos órdenes relacionadas, usar esos datos para calcular el crédito
     if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
       // CORRECCIÓN: Filtrar órdenes relacionadas con la ruta exacta de la carga
-      // Si hay una ruta asociada a la carga, solo incluimos las órdenes de esa ruta
       const orders = settlementData.relatedOrders.filter(order => {
-        // Verificar si la orden está entregada o completada
-        const isDelivered = order.status === "delivered" || 
-                           order.status === "completed" || 
-                           (order.status && order.status.includes("deliver")) ||
+        // Verificar si la orden está entregada o completada (status es case-insensitive)
+        const orderStatus = (order.status || "").toLowerCase();
+        const isDelivered = orderStatus === "delivered" || 
+                           orderStatus === "completed" || 
+                           orderStatus.includes("deliver") ||
                            (!order.status && parseFloat(order.total || "0") > 0);
         
-        // IMPORTANTE: Verificar si la orden pertenece EXACTAMENTE a la ruta asociada a la carga
+        // Verificar si la orden pertenece a la ruta asociada a la carga
         let belongsToRoute = false;
         
         if (loading.routeId) {
-          // Si la carga tiene routeId, solo incluir órdenes de esa ruta específica
           // Comparar como números para evitar problemas de tipo string vs number
           belongsToRoute = Number(order.routeId) === Number(loading.routeId);
-          console.log(`Orden #${order.id}: pertenece a ruta #${order.routeId}, carga.routeId=${loading.routeId}, coincide=${belongsToRoute}`);
+          console.log(`Orden #${order.id}: ruta=${order.routeId}, carga.routeId=${loading.routeId}, coincide=${belongsToRoute}`);
         } else {
-          // Si no hay routeId en la carga, verificar si la orden pertenece a alguna de las rutas
-          // del conductor que realizó esta carga (mismo enfoque que usa el backend)
-          belongsToRoute = true; // De momento asumimos que todas las órdenes son del mismo conductor
-          console.log(`Orden #${order.id}: no hay rutaId en carga, asumiendo que pertenece al conductor, belongsToRoute=${belongsToRoute}`);
+          // Si no hay routeId, buscar órdenes del mismo conductor
+          belongsToRoute = true;
+          console.log(`Orden #${order.id}: no hay ruta en carga, se asume que es del conductor`);
         }
         
-        console.log(`Orden #${order.id}: status=${order.status}, total=${order.total}, isDelivered=${isDelivered}, belongsToRoute=${belongsToRoute}`);
+        console.log(`Orden #${order.id}: status=${order.status}, total=${order.total}, entregada=${isDelivered}, de la ruta=${belongsToRoute}`);
         
         return isDelivered && belongsToRoute;
       });
       
-      console.log("Órdenes ENTREGADAS y de la RUTA encontradas:", orders.length);
-      console.log("Órdenes filtradas detalladas:", orders.map(order => ({
-        id: order.id,
-        status: order.status,
-        routeId: order.routeId,
-        total: order.total,
-        paymentMethod: order.paymentMethod
-      })));
+      console.log(`Órdenes filtradas (entregadas y de la ruta): ${orders.length}`);
       
-      // NUEVO: Tomamos directamente la suma de los pedidos para el valor total,
-      // en lugar de multiplicar cantidad por precio 
       try {
-        console.log("Calculando productos vendidos por tipo...");
-        
-        // Sumar directamente los totales de los pedidos para obtener el valor total vendido
+        // Sumar totales de pedidos para obtener el valor total vendido
         totalProductsValue = orders.reduce((sum, order) => {
           return sum + parseFloat(order.total || "0");
         }, 0);
         
-        // Asignar el valor total directamente de la suma de pedidos
+        // Asignar valor total
         totalSold = totalProductsValue;
-        
         console.log(`Valor total de pedidos vendidos: $${totalProductsValue.toFixed(2)}`);
         
-        // Calculamos el detalle por productos para actualizar las cantidades vendidas
+        // Crear resumen de productos vendidos por tipo
         const productSummary = new Map();
         
-        // Recorrer cada orden para obtener cantidades reales vendidas
+        // Recorrer cada orden para obtener cantidades vendidas por producto
         for (const order of orders) {
-          // Acceder a los items o products con verificación de tipo
-          // Los datos pueden venir como 'items' o como 'products' según el endpoint
+          // Unificar acceso a items (pueden venir como 'items' o 'products')
           const orderItems = (order as any).items || (order as any).products || [];
           
           if (Array.isArray(orderItems)) {
@@ -312,7 +295,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
               const productId = item.productId;
               const quantity = item.quantity || 0;
               
-              // Si ya existe este producto en el mapa, actualizar cantidades
+              // Actualizar o crear entrada en el mapa
               if (productSummary.has(productId)) {
                 const current = productSummary.get(productId);
                 productSummary.set(productId, {
@@ -320,7 +303,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                   quantity: current.quantity + quantity
                 });
               } else {
-                // Si es la primera vez que vemos este producto
+                // Nueva entrada para este producto
                 productSummary.set(productId, {
                   productId,
                   productName: item.productName || `Producto #${productId}`,
@@ -331,49 +314,51 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
           }
         }
         
-        // Convertir el mapa a un array para mostrarlo en consola
+        // Generar array con el resumen de productos
         productSoldDetails = Array.from(productSummary.values());
         console.log("Resumen de productos vendidos:", productSoldDetails);
         
-        // Calcular total de unidades vendidas
+        // Total de unidades vendidas
         totalProductsSold = productSoldDetails.reduce((sum: number, product: any) => sum + product.quantity, 0);
         console.log(`Total unidades vendidas: ${totalProductsSold} unidades`);
         
-        // ACTUALIZAR CANTIDADES VENDIDAS en el formulario basado en los pedidos reales
-        // Obtenemos los productos cargados para buscar sus índices
+        // ACTUALIZAR CANTIDADES VENDIDAS en el formulario basado en órdenes reales
         const formItems = form.getValues().items;
         
-        // Para cada producto de las órdenes, actualizamos la cantidad vendida en el formulario
+        // Para cada producto cargado, actualizar datos del formulario
         formItems.forEach((formItem, index) => {
-          // Buscar si hay ventas de este producto en las órdenes
+          // Buscar info de ventas para este producto
           const productSoldInfo = productSoldDetails.find(
             p => p.productId === formItem.productId
           );
           
           if (productSoldInfo) {
-            // Si encontramos ventas, actualizamos la cantidad vendida
-            console.log(`Actualizando cantidad vendida para producto #${formItem.productId}: ${productSoldInfo.quantity}`);
-            form.setValue(`items.${index}.soldQuantity`, productSoldInfo.quantity);
+            // Actualizar cantidad vendida desde órdenes
+            const soldQuantity = productSoldInfo.quantity;
+            console.log(`Producto #${formItem.productId}: vendido=${soldQuantity} unidades`);
+            form.setValue(`items.${index}.soldQuantity`, soldQuantity);
             
             // Calcular diferencia de productos: (cargado - devuelto) - vendido
             const loadedQuantity = formItem.loadedQuantity;
             const returnedQuantity = formItem.returnedQuantity;
-            const soldQuantity = productSoldInfo.quantity;
             const productDifference = (loadedQuantity - returnedQuantity) - soldQuantity;
-            console.log(`Diferencia de producto #${formItem.productId}: ${productDifference}`);
+            console.log(`Diferencia producto #${formItem.productId}: ${productDifference}`);
             form.setValue(`items.${index}.productDifference`, productDifference);
             
-            // Calcular diferencia de envases si el producto es retornable
-            // Esto es: envases que deberían devolverse (soldQuantity) - envases realmente devueltos
+            // Calcular diferencia de envases para productos retornables
             const product = loading.items.find(item => item.productId === formItem.productId)?.product;
             if (product?.isReturnable) {
               const returnedContainers = formItem.returnedContainers;
               const containersDifference = soldQuantity - returnedContainers;
-              console.log(`Diferencia de envases para producto #${formItem.productId}: ${containersDifference}`);
+              console.log(`Diferencia envases producto #${formItem.productId}: ${containersDifference}`);
               form.setValue(`items.${index}.containersDifference`, containersDifference);
             }
+          } else {
+            // Si no se encontraron ventas para este producto, mantener en cero
+            console.log(`Producto #${formItem.productId}: sin ventas registradas`);
+            form.setValue(`items.${index}.soldQuantity`, 0);
+            form.setValue(`items.${index}.productDifference`, formItem.loadedQuantity - formItem.returnedQuantity);
           }
-          // Si no hay ventas para este producto, queda en 0 (como se inicializó)
         });
         
       } catch (error) {
@@ -382,67 +367,71 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         totalProductsValue = 0;
       }
       
-      // Calcular ventas en efectivo y ventas a crédito basado en las órdenes filtradas
-      const cashOrders = orders.filter(order => order.paymentMethod === "cash");
-      console.log("Órdenes en efectivo (entregadas):", cashOrders.length, cashOrders);
+      // Calcular ventas en efectivo y crédito
+      const cashOrders = orders.filter(order => 
+        (order.paymentMethod || "").toLowerCase() === "cash" || 
+        (order.paymentMethod || "").toLowerCase() === "efectivo"
+      );
+      console.log(`Órdenes en efectivo: ${cashOrders.length}`);
       
       calculatedCashSales = cashOrders.reduce((sum, order) => {
         console.log(`  - Orden #${order.id}: ${order.total}`);
-        return sum + parseFloat(order.total);
+        return sum + parseFloat(order.total || "0");
       }, 0);
-      console.log("Total ventas en efectivo calculado:", calculatedCashSales);
+      console.log(`Total ventas en efectivo: ${calculatedCashSales.toFixed(2)}`);
         
-      const creditOrders = orders.filter(order => order.paymentMethod === "credit");
-      console.log("Órdenes a crédito (entregadas):", creditOrders.length, creditOrders);
+      const creditOrders = orders.filter(order => 
+        (order.paymentMethod || "").toLowerCase() === "credit" || 
+        (order.paymentMethod || "").toLowerCase() === "credito" || 
+        (order.paymentMethod || "").toLowerCase() === "crédito"
+      );
+      console.log(`Órdenes a crédito: ${creditOrders.length}`);
       
       calculatedCreditSales = creditOrders.reduce((sum, order) => {
         console.log(`  - Orden #${order.id}: ${order.total}`);
-        return sum + parseFloat(order.total);
+        return sum + parseFloat(order.total || "0");
       }, 0);
-      console.log("Total ventas a crédito calculado:", calculatedCreditSales);
+      console.log(`Total ventas a crédito: ${calculatedCreditSales.toFixed(2)}`);
         
-      // SIEMPRE establecer el crédito recibido y total facturado basado en pedidos reales
-      // Esta modificación asegura que los valores sean correctos independientemente del estado previo
-      console.log("Estableciendo totalCreditReceived a:", calculatedCreditSales.toFixed(2));
+      // Establecer totales en el formulario basados en los cálculos
+      console.log(`Estableciendo crédito recibido: ${calculatedCreditSales.toFixed(2)}`);
       form.setValue("totalCreditReceived", calculatedCreditSales.toFixed(2));
       
-      // Calcular total facturado como la suma de todos los pedidos (efectivo + crédito)
+      // Total facturado = ventas efectivo + ventas crédito
       const newTotalInvoiced = calculatedCashSales + calculatedCreditSales;
-      console.log("Estableciendo totalInvoiced a:", newTotalInvoiced.toFixed(2));
+      console.log(`Estableciendo total facturado: ${newTotalInvoiced.toFixed(2)}`);
       form.setValue("totalInvoiced", newTotalInvoiced.toFixed(2));
     } else {
       console.log("No hay órdenes relacionadas disponibles");
-      if (totalInvoiced === 0) {
-        // Inicializar Total Facturado solo si no hay un valor y no hay órdenes relacionadas
-        console.log("Estableciendo totalInvoiced basado en totalSold:", totalSold.toFixed(2));
-        form.setValue("totalInvoiced", totalSold.toFixed(2));
-      } else {
-        console.log("totalInvoiced ya tiene un valor:", totalInvoiced, "- no se modificará");
-      }
+      form.setValue("totalInvoiced", "0.00");
+      form.setValue("totalCreditReceived", "0.00");
     }
     
+    // Recalcular totales finales
     // Efectivo inicial de la carga
     const initialCash = parseFloat(loading.initialCash || "0");
     
-    // Obtener el valor actualizado de totalCreditReceived
+    // Obtener valores actualizados del formulario
+    const totalInvoiced = parseFloat(form.getValues().totalInvoiced) || 0;
     const totalCreditReceived = parseFloat(form.getValues().totalCreditReceived) || 0;
     
-    // Calcular monto total en efectivo que se debería recibir
-    // Esto es: Efectivo Inicial + Efectivo Vendido (Total Facturado - Crédito Otorgado)
+    // Calcular efectivo esperado: Efectivo Inicial + (Total Facturado - Crédito)
     const expectedCash = initialCash + (totalInvoiced - totalCreditReceived);
     
-    // Diferencia de efectivo = Lo que se debería recibir - Lo que realmente se recibió
-    // Si es negativo, hay un faltante. Si es positivo, hay un sobrante.
+    // Diferencia de efectivo = Recibido - Esperado
     const cashDifference = (totalCashReceived - expectedCash).toFixed(2);
     
+    // Actualizar estado para mostrar en UI
     setCalculatedTotals({
       cashDifference,
-      totalSold: totalSold.toFixed(2),
+      totalSold: totalInvoiced.toFixed(2),
       cashSales: calculatedCashSales.toFixed(2),
       creditSales: calculatedCreditSales.toFixed(2),
       expectedCash: expectedCash.toFixed(2),
     });
-  }, [form, loading.items, loading.initialCash, settlementData]);
+    
+    console.log("=================== FIN CÁLCULO ===================");
+  }, [form, loading.items, loading.initialCash, loading.routeId, settlementData]);
   
   // Efecto para actualizar los valores de envases devueltos cuando se carguen los datos
   useEffect(() => {

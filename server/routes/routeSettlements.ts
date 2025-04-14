@@ -359,11 +359,11 @@ export async function registerRouteSettlements(app: Express) {
             
       // Recorrer todas las órdenes y sus items
       for (const order of relatedOrders) {
-        // Solo incluir órdenes entregadas o completadas (o cualquier orden si hay emergencia)
-        // Nuevo: incluir órdenes incluso si no están entregadas (TEMPORAL para pruebas - QUITAR EN PRODUCCIÓN)
-        if (["delivered", "completed"].includes(order.status) || 
-            (order.status && order.status.includes("deliver")) ||
-            true) { // <-- QUITAR EN PRODUCCIÓN - Esto permite incluir todas las órdenes
+        // Solo incluir órdenes entregadas o completadas
+        const orderStatus = (order.status || "").toLowerCase();
+        if (orderStatus === "delivered" || 
+            orderStatus === "completed" || 
+            orderStatus.includes("deliver")) {
               
           // Procesar los items de la orden si existen
           if (order.items && Array.isArray(order.items)) {
