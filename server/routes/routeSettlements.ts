@@ -129,14 +129,27 @@ export async function registerRouteSettlements(app: Express) {
       if (loading.routeId) {
         console.log(`Buscando órdenes para la ruta ID: ${loading.routeId}`);
         
+        // Primero verificamos todas las órdenes de la ruta para depuración
+        console.log("Haciendo consulta para TODAS las órdenes de la ruta, sin filtrar por estado:");
+        const allRouteOrders = await db
+          .select()
+          .from(orders)
+          .where(eq(orders.routeId, loading.routeId));
+        
+        console.log(`La ruta ${loading.routeId} tiene ${allRouteOrders.length} órdenes en total (todos los estados):`);
+        allRouteOrders.forEach(order => {
+          console.log(`  Orden #${order.id}: status="${order.status}", routeId=${order.routeId}`);
+        });
+        
         // 1. Obtener todas las órdenes de la ruta que estén completadas/entregadas
+        console.log("Ejecutando consulta principal con filtro por estado 'delivered' o 'completed':");
         const ordersData = await db
           .select()
           .from(orders)
           .where(and(
             eq(orders.routeId, loading.routeId),
             // Verificar que el status sea "delivered" o "completed" (compatibilidad con ambos términos)
-            sql`(LOWER(${orders.status}) = 'delivered' OR LOWER(${orders.status}) = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
+            sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed')`
           ));
         
         // Forzar a mostrar más detalles para depuración
@@ -167,7 +180,7 @@ export async function registerRouteSettlements(app: Express) {
                 gte(orders.date, startOfDay),
                 lt(orders.date, endOfDay),
                 // Filtrar también por estado para obtener solo órdenes completadas
-                sql`(LOWER(${orders.status}) = 'delivered' OR LOWER(${orders.status}) = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
+                sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed')`
               )
             );
           
@@ -436,9 +449,7 @@ export async function registerRouteSettlements(app: Express) {
       for (const order of relatedOrders) {
         // Solo incluir órdenes entregadas o completadas
         const orderStatus = (order.status || "").toLowerCase();
-        const isValidStatus = orderStatus === "delivered" || 
-                             orderStatus === "completed" || 
-                             orderStatus.includes("deliver");
+        const isValidStatus = orderStatus === "delivered" || orderStatus === "completed";
         
         console.log(`DEBUG - Orden #${order.id}: status=${order.status}, isValidStatus=${isValidStatus}`);
         
@@ -495,7 +506,7 @@ export async function registerRouteSettlements(app: Express) {
         productSummary,  // Incluir el resumen en la respuesta
         totalOrdersFound: relatedOrders.length,
         warningMessage: relatedOrders.length === 0 
-          ? "No se encontraron órdenes completadas relacionadas con esta carga. Verifique que todas las órdenes estén marcadas como 'completed'."
+          ? "No se encontraron órdenes completadas relacionadas con esta carga. Verifique que todas las órdenes estén marcadas como 'delivered'."
           : null
       });
     } catch (error) {
@@ -516,7 +527,7 @@ function generateProductSummary(orders: any[]): any[] {
   for (const order of orders) {
     // Verificar si la orden está completada
     const orderStatus = (order.status || '').toLowerCase();
-    if (orderStatus === 'completed' || orderStatus === 'delivered' || orderStatus.includes('deliver')) {
+    if (orderStatus === 'completed' || orderStatus === 'delivered') {
       if (order.items && order.items.length > 0) {
         for (const item of order.items) {
           const productId = item.productId;
