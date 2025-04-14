@@ -77,7 +77,13 @@ interface SettlementResponse {
     productName: string;
     quantity: number;
     total: number;
+    price?: number;
+    isReturnable?: boolean;
+    orderCount?: number;
+    paymentTypes?: string[];
   }>;
+  totalOrdersFound?: number;
+  warningMessage?: string;
 }
 
 // Interfaz para el resumen de productos vendidos
@@ -154,12 +160,21 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       totalCreditReceived: "0.00",
     };
     
-    toast({
-      title: "Calculando totales",
-      description: settlementData?.relatedOrders?.length 
-        ? `Se encontraron ${settlementData.relatedOrders.length} órdenes relacionadas` 
-        : "No se encontraron órdenes relacionadas con esta carga"
-    });
+    // Verificar si hay un mensaje de advertencia del backend
+    if (settlementData?.warningMessage) {
+      toast({
+        title: "Advertencia",
+        description: settlementData.warningMessage,
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Calculando totales",
+        description: settlementData?.relatedOrders?.length 
+          ? `Se encontraron ${settlementData.relatedOrders.length} órdenes completadas` 
+          : "No se encontraron órdenes completadas para esta carga"
+      });
+    }
     
     // Continuar con el cálculo normal
     const values = form.getValues();
@@ -588,7 +603,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       </CardHeader>
       <CardContent>
         {/* Información de la carga */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-gray-600">Fecha</p>
@@ -596,17 +611,118 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             </div>
             <div>
               <p className="text-sm text-gray-600">Conductor</p>
-              <p className="font-medium">{loading.driver?.name}</p>
+              <p className="font-medium">{loading.driver?.firstName} {loading.driver?.lastName}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Vehículo</p>
-              <p className="font-medium">{loading.truck?.plate}</p>
+              <p className="font-medium">{loading.truck?.licensePlate}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Efectivo Inicial</p>
               <p className="font-medium">RD$ {loading.initialCash}</p>
             </div>
           </div>
+        </div>
+        
+        {/* Resumen del Cuadre */}
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-semibold flex items-center">
+              <FileText className="h-5 w-5 mr-2" />
+              Resumen de órdenes
+            </h3>
+            <Button
+              type="button"
+              onClick={calculateDifferences}
+              className="flex items-center h-8 px-3 text-xs"
+              variant="outline"
+            >
+              <Calculator className="h-4 w-4 mr-1" /> Recalcular
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+            <div className="bg-white p-3 rounded border flex flex-col justify-between">
+              <div className="text-sm text-gray-500">Órdenes relacionadas</div>
+              <div className="text-2xl font-bold text-center">
+                {settlementData?.relatedOrders?.length || 0}
+              </div>
+              <div className="text-xs text-gray-500 text-right">
+                {settlementData?.relatedOrders?.length > 0 ? "Órdenes encontradas" : "No hay órdenes"}
+              </div>
+            </div>
+            
+            <div className="bg-white p-3 rounded border flex flex-col justify-between">
+              <div className="text-sm text-gray-500">Total Facturado</div>
+              <div className="text-2xl font-bold text-center text-green-600">
+                RD$ {calculatedTotals.totalSold || "0.00"}
+              </div>
+              <div className="text-xs flex justify-between">
+                <span className="text-gray-500">Efectivo: RD$ {calculatedTotals.cashSales || "0.00"}</span>
+                <span className="text-gray-500">Crédito: RD$ {calculatedTotals.creditSales || "0.00"}</span>
+              </div>
+            </div>
+            
+            <div className={`bg-white p-3 rounded border flex flex-col justify-between ${
+              parseFloat(calculatedTotals.cashDifference || "0") < 0 
+                ? "border-red-300" 
+                : parseFloat(calculatedTotals.cashDifference || "0") > 0 
+                  ? "border-yellow-300" 
+                  : "border-green-300"
+            }`}>
+              <div className="text-sm text-gray-500">Diferencia de Efectivo</div>
+              <div className={`text-2xl font-bold text-center ${
+                parseFloat(calculatedTotals.cashDifference || "0") < 0 
+                  ? "text-red-600" 
+                  : parseFloat(calculatedTotals.cashDifference || "0") > 0 
+                    ? "text-yellow-600" 
+                    : "text-green-600"
+              }`}>
+                RD$ {calculatedTotals.cashDifference || "0.00"}
+              </div>
+              <div className="text-xs text-gray-500 text-right">
+                Esperado: RD$ {calculatedTotals.expectedCash || "0.00"}
+              </div>
+            </div>
+          </div>
+          
+          {settlementData?.warningMessage && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mt-2">
+              <p className="text-yellow-700 text-sm">
+                ⚠️ {settlementData.warningMessage}
+              </p>
+            </div>
+          )}
+          
+          {/* Resumen de productos vendidos */}
+          {settlementData?.productSummary && settlementData.productSummary.length > 0 && (
+            <div className="mt-4 border-t pt-3">
+              <h4 className="text-sm font-medium mb-2 flex items-center">
+                <BarChart4 className="h-4 w-4 mr-1" /> 
+                Resumen de productos vendidos
+              </h4>
+              <div className="bg-white rounded border overflow-hidden">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-2 py-1 text-left">Producto</th>
+                      <th className="px-2 py-1 text-center">Cantidad</th>
+                      <th className="px-2 py-1 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {settlementData.productSummary.map((product, idx) => (
+                      <tr key={`product-summary-${product.productId}`} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
+                        <td className="px-2 py-1">{product.productName}</td>
+                        <td className="px-2 py-1 text-center">{product.quantity}</td>
+                        <td className="px-2 py-1 text-right">RD$ {product.total.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
         {isLoadingSettlementData ? (
