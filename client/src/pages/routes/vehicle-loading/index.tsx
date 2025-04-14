@@ -28,6 +28,11 @@ import {
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
   driver: User;
+  route?: {
+    id: number;
+    name: string;
+    [key: string]: any;
+  };
   items: Array<{
     id: number;
     productId: number;
