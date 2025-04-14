@@ -146,7 +146,28 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   // Cargar los datos de settlement incluyendo órdenes relacionadas
   const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
     queryKey: ["/api/route-settlements", loading.id],
-    enabled: !!loading.id
+    enabled: !!loading.id,
+    onSuccess: (data) => {
+      console.log("=== DETALLE DE RESPUESTA DEL ENDPOINT ===");
+      console.log("ID de carga:", loading.id);
+      console.log("Total órdenes encontradas:", data.totalOrdersFound);
+      console.log("Mensaje de advertencia:", data.warningMessage);
+      console.log("Órdenes relacionadas:", data.relatedOrders?.length || 0);
+      if (data.relatedOrders && data.relatedOrders.length > 0) {
+        console.log("Detalle de órdenes:", data.relatedOrders.map(o => ({
+          id: o.id, 
+          status: o.status,
+          total: o.total,
+          customerId: o.customerId,
+          routeId: o.routeId
+        })));
+      }
+      console.log("Resumen de productos:", data.productSummary);
+      console.log("============================================");
+    },
+    onError: (error) => {
+      console.error("Error al cargar datos de settlement:", error);
+    }
   });
   
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
