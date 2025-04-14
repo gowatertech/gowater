@@ -4,6 +4,47 @@ import { db } from "../db";
 import { vehicleLoading, vehicleLoadingItems, products } from "@shared/schema";
 
 export async function registerVehicleLoadingRoutes(app: Express) {
+  // Endpoint para completar una carga (marcarla como completada)
+  app.post("/api/vehicle-loading/:id/complete", async (req: Request, res: Response) => {
+    try {
+      const loadingId = parseInt(req.params.id);
+      
+      if (!loadingId || isNaN(loadingId)) {
+        return res.status(400).json({ error: 'ID de carga inválido' });
+      }
+      
+      // Verificar si la carga existe
+      const loading = await db.query.vehicleLoading.findFirst({
+        where: eq(vehicleLoading.id, loadingId)
+      });
+      
+      if (!loading) {
+        return res.status(404).json({ error: 'Carga no encontrada' });
+      }
+      
+      // Actualizar el estado de la carga a "completed"
+      await db
+        .update(vehicleLoading)
+        .set({
+          status: 'completed',
+          completedAt: new Date()
+        })
+        .where(eq(vehicleLoading.id, loadingId));
+      
+      console.log(`Carga #${loadingId} marcada como completada`);
+      
+      res.json({
+        success: true,
+        message: `Carga #${loadingId} marcada como completada exitosamente`
+      });
+    } catch (error) {
+      console.error('Error al completar la carga:', error);
+      res.status(500).json({ 
+        error: 'Error al completar la carga',
+        details: String(error)
+      });
+    }
+  });
   // Asignar ruta a una carga
   app.patch("/api/vehicle-loading/:id/assign-route", async (req: Request, res: Response) => {
     try {

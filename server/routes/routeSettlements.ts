@@ -1,5 +1,5 @@
 import { Express, Request, Response } from "express";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, gte, lt, sql } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "@shared/schema";
 import { vehicleLoading, vehicleLoadingItems, routes, orders, bottleReturns, products } from "@shared/schema";
@@ -135,7 +135,61 @@ export async function registerRouteSettlements(app: Express) {
           .from(orders)
           .where(eq(orders.routeId, loading.routeId));
         
+        // Forzar a mostrar más detalles para depuración
         console.log(`Encontradas ${ordersData.length} órdenes para la ruta ${loading.routeId}`);
+        
+        // Imprimir detalles de cada orden para verificar si están correctas
+        if (ordersData.length > 0) {
+          console.log("DETALLES DE ÓRDENES ENCONTRADAS:");
+          ordersData.forEach(order => {
+            console.log(`  Orden #${order.id}: status=${order.status}, total=${order.total}, paymentMethod=${order.paymentMethod}`);
+          });
+        } else {
+          console.log("⚠️ IMPORTANTE: No se encontraron órdenes para la ruta especificada");
+          console.log("Probando consulta alternativa para buscar órdenes válidas...");
+          
+          // Intentar una búsqueda alternativa - todas las órdenes del mismo día de la carga
+          const loadingDate = new Date(loading.date);
+          const startOfDay = new Date(loadingDate.getFullYear(), loadingDate.getMonth(), loadingDate.getDate());
+          const endOfDay = new Date(loadingDate.getFullYear(), loadingDate.getMonth(), loadingDate.getDate() + 1);
+          
+          console.log(`Buscando órdenes entre ${startOfDay.toISOString()} y ${endOfDay.toISOString()}`);
+          
+          const alternativeOrdersData = await db
+            .select()
+            .from(orders)
+            .where(
+              and(
+                gte(orders.date, startOfDay),
+                lt(orders.date, endOfDay)
+              )
+            );
+          
+          console.log(`Encontradas ${alternativeOrdersData.length} órdenes alternativas`);
+          
+          if (alternativeOrdersData.length > 0) {
+            console.log("ÓRDENES ALTERNATIVAS:");
+            alternativeOrdersData.forEach(order => {
+              console.log(`  Orden #${order.id}: status=${order.status}, total=${order.total}, routeId=${order.routeId}, paymentMethod=${order.paymentMethod}`);
+            });
+            
+            // Usar estas órdenes en lugar de las originales si no hay órdenes originales
+            if (ordersData.length === 0) {
+              console.log("Usando órdenes alternativas en lugar de las originales");
+              // Filtrar solo órdenes entregadas o completadas
+              const validOrders = alternativeOrdersData.filter(order => {
+                const status = (order.status || "").toLowerCase();
+                return status === "delivered" || status === "completed" || status.includes("deliver");
+              });
+              
+              if (validOrders.length > 0) {
+                console.log(`Usando ${validOrders.length} órdenes alternativas válidas`);
+                // Usar estas órdenes
+                ordersData.push(...validOrders);
+              }
+            }
+          }
+        }
         
         // 2. Obtener todos los items de todas las órdenes de una vez
         const orderIds = ordersData.map(order => order.id);
