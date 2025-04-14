@@ -516,21 +516,7 @@ export default function VehicleLoadingPage() {
                           }
                         }}
                       >
-                        {loading.status === "pending" && !loading.routeId && (
-                          <div className="absolute top-2 right-2 z-10 flex space-x-1">
-                            <div 
-                              className="delete-btn p-1 bg-red-100 hover:bg-red-200 rounded-full cursor-pointer transition-colors"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeleteLoadingId(loading.id);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                              title="Eliminar carga"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </div>
-                          </div>
-                        )}
+                        {/* Icono de borrar eliminado a solicitud del cliente */}
                         <div className="p-2.5 pb-1.5">
                           <div className="flex justify-between items-center mb-1">
                             <span className="font-medium text-sm">Carga #{loading.loadingNumber}</span>
