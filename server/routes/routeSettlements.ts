@@ -502,13 +502,41 @@ export async function registerRouteSettlements(app: Express) {
             
       console.log("Resumen final de ventas:", productSummary);
             
+      // Verificamos que todos los datos estén en un formato adecuado para JSON
+      const safeRelatedOrders = relatedOrders.map(order => {
+        // Asegurarse de que todos los campos sean serializables
+        return {
+          ...order,
+          items: Array.isArray(order.items) ? order.items : [], // Asegurar que items sea un array
+          total: String(order.total || 0),  // Convertir total a string si no lo es
+          status: String(order.status || ''), // Convertir status a string
+          routeId: Number(order.routeId || 0), // Asegurar que routeId sea número
+          customerId: Number(order.customerId || 0) // Asegurar que customerId sea número
+        };
+      });
+      
+      // Asegurarnos que productSummary sea un array válido
+      const safeProductSummary = Array.isArray(productSummary) ? 
+        productSummary : 
+        (typeof productSummary === 'object' && productSummary !== null) ? 
+          Object.values(productSummary) : 
+          [];
+      
+      // Si hay órdenes pero no hay resumen de productos, hacer un log
+      if (safeRelatedOrders.length > 0 && safeProductSummary.length === 0) {
+        console.log("⚠️ ADVERTENCIA: Hay órdenes pero no se generó resumen de productos");
+      }
+      
+      // Log para depuración
+      console.log(`Enviando respuesta: ${safeRelatedOrders.length} órdenes, ${safeProductSummary.length} productos en resumen`);
+      
       res.json({
         loading,
-        relatedOrders,
-        bottleReturns: bottleReturnData,
-        productSummary,  // Incluir el resumen en la respuesta
-        totalOrdersFound: relatedOrders.length,
-        warningMessage: relatedOrders.length === 0 
+        relatedOrders: safeRelatedOrders,
+        bottleReturns: bottleReturnData || [],
+        productSummary: safeProductSummary,
+        totalOrdersFound: safeRelatedOrders.length,
+        warningMessage: safeRelatedOrders.length === 0 
           ? "No se encontraron órdenes completadas relacionadas con esta carga. Verifique que todas las órdenes estén marcadas como 'delivered'."
           : null
       });
@@ -559,7 +587,25 @@ function generateProductSummary(orders: any[]): any[] {
           
           // Registrar el tipo de pago (efectivo/crédito) si está disponible
           if (order.paymentMethod) {
-            current.paymentTypes.add(order.paymentMethod.toLowerCase());
+            if (!current.paymentTypes) {
+              // Si paymentTypes no existe o no es un Set, crearlo
+              current.paymentTypes = new Set();
+            }
+            
+            try {
+              // Intentar agregar el tipo de pago con manejo de errores
+              current.paymentTypes.add(order.paymentMethod.toLowerCase());
+              console.log(`Tipo de pago agregado: ${order.paymentMethod.toLowerCase()}`);
+            } catch (err) {
+              console.error("Error al agregar tipo de pago:", err);
+              // Convertir a array si hay problema con el Set
+              current.paymentTypes = [order.paymentMethod.toLowerCase()];
+            }
+          } else {
+            // Si no hay método de pago, asegurarse de que paymentTypes sea al menos un array vacío
+            if (!current.paymentTypes) {
+              current.paymentTypes = new Set();
+            }
           }
           
           productSummary.set(productId, current);
@@ -571,18 +617,41 @@ function generateProductSummary(orders: any[]): any[] {
   // Convertir el mapa a un array para la respuesta y formatear campos
   const result: any[] = [];
   productSummary.forEach(product => {
+    // Tratar los paymentTypes con más seguridad para evitar errores
+    let paymentTypesArray = [];
+    try {
+      // Intentar convertir el Set a array
+      if (product.paymentTypes) {
+        if (Array.isArray(product.paymentTypes)) {
+          // Ya es un array
+          paymentTypesArray = product.paymentTypes;
+        } else if (product.paymentTypes instanceof Set) {
+          // Es un Set, convertir a array
+          paymentTypesArray = Array.from(product.paymentTypes);
+        } else {
+          // Es otro tipo, intentar crear un array
+          console.log(`Tipo desconocido de paymentTypes: ${typeof product.paymentTypes}`);
+          paymentTypesArray = [];
+        }
+      }
+    } catch (err) {
+      console.error("Error al convertir paymentTypes a array:", err);
+      paymentTypesArray = [];
+    }
+
     result.push({
       productId: product.productId,
       productName: product.productName,
       quantity: product.quantity,
-      total: parseFloat(product.total.toFixed(2)),
-      isReturnable: product.isReturnable,
-      price: product.price,
-      orderCount: product.orderCount,
-      // Convertir el Set a array
-      paymentTypes: Array.from(product.paymentTypes)
+      total: parseFloat((product.total || 0).toFixed(2)),
+      isReturnable: product.isReturnable || false,
+      price: product.price || 0,
+      orderCount: product.orderCount || 0,
+      // Usar el array calculado
+      paymentTypes: paymentTypesArray
     });
   });
   
+  console.log("Resumen de productos procesado:", result);
   return result;
 }
