@@ -57,35 +57,30 @@ export function registerCompleteRouteEndpoint(app: Express) {
       await db.update(routes)
         .set({
           status: "completed",
-          endTime: new Date().toISOString(),
-          driverEndedAt: new Date().toISOString(),
+          endTime: new Date(),
+          driverEndedAt: new Date(),
           isCompleted: true
         })
         .where(eq(routes.id, routeId));
       
       // 3.1 También marcar todas las órdenes de la ruta como completadas
       // Esto es crucial para que el cuadre de vehículo pueda encontrarlas
-      console.log("Actualizando estado de todas las órdenes de la ruta a completed...");
+      console.log("Actualizando estado de todas las órdenes de la ruta a delivered...");
       await db.update(orders)
         .set({
-          status: "completed"
+          status: "delivered" // Usamos "delivered" que es un valor válido para órdenes
         })
         .where(eq(orders.routeId, routeId));
       
-      // 4. También completar la carga de vehículo relacionada con esta ruta
+      // 4. NO completamos la carga de vehículo relacionada con esta ruta
+      // Solo verificamos si existe para informar en los logs
       const relatedLoading = await db.query.vehicleLoading.findFirst({
         where: eq(vehicleLoading.routeId, routeId),
       });
       
       if (relatedLoading) {
-        console.log(`Completando carga de vehículo #${relatedLoading.id} relacionada con la ruta`);
-        
-        await db.update(vehicleLoading)
-          .set({
-            status: "completed",
-            completedAt: new Date().toISOString()
-          })
-          .where(eq(vehicleLoading.id, relatedLoading.id));
+        console.log(`Se encontró carga de vehículo #${relatedLoading.id} relacionada con la ruta, pero NO se marcará como completada.`);
+        console.log(`La carga de vehículo se completará solo cuando se realice el cuadre correspondiente.`);
       }
       
       // 5. Obtener la ruta actualizada para devolver en la respuesta
@@ -95,7 +90,7 @@ export function registerCompleteRouteEndpoint(app: Express) {
       
       return res.status(200).json({
         success: true,
-        message: "Ruta completada exitosamente",
+        message: "Ruta completada exitosamente. Recuerde que debe realizar el cuadre de vehículo para finalizar el proceso.",
         route: updatedRoute
       });
       
