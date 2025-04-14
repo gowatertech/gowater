@@ -353,6 +353,20 @@ export default function VehicleLoadingPage() {
                     <CardTitle className="text-base">Carga #{selectedLoading.loadingNumber}</CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
+                    {!selectedLoading.routeId && selectedLoading.status === "pending" && (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setLoadingForRoute(selectedLoading.id);
+                          setShowAssignRouteDialog(true);
+                        }}
+                        className="h-7 text-xs flex items-center"
+                      >
+                        <MapPin className="h-3 w-3 mr-1" />
+                        Asignar Ruta
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost"
                       size="sm"
@@ -516,16 +530,32 @@ export default function VehicleLoadingPage() {
                           }
                         }}
                       >
-                        {/* Icono de borrar eliminado a solicitud del cliente */}
                         <div className="p-2.5 pb-1.5">
                           <div className="flex justify-between items-center mb-1">
                             <span className="font-medium text-sm">Carga #{loading.loadingNumber}</span>
-                            <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(loading.status)}`}>
-                              {loading.status === "completed" ? "Completado" :
-                              loading.status === "in_progress" ? "En Progreso" :
-                              loading.status === "cancelled" ? "Cancelado" :
-                              "Pendiente"}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              {!loading.routeId && loading.status === "pending" && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-6 px-2 text-xs flex items-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLoadingForRoute(loading.id);
+                                    setShowAssignRouteDialog(true);
+                                  }}
+                                >
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  Asignar
+                                </Button>
+                              )}
+                              <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(loading.status)}`}>
+                                {loading.status === "completed" ? "Completado" :
+                                loading.status === "in_progress" ? "En Progreso" :
+                                loading.status === "cancelled" ? "Cancelado" :
+                                "Pendiente"}
+                              </span>
+                            </div>
                           </div>
                           
                           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart4, Truck, Loader2, PillBottle, FileText, DollarSign, CreditCard, Calculator } from "lucide-react";
+import { BarChart4, Truck, Loader2, PillBottle, FileText, DollarSign, CreditCard, Calculator, MapPin } from "lucide-react";
 import type { VehicleLoading, Product, User, Truck as TruckType, BottleReturn, Route, Order } from "@shared/schema";
 
 // Esquema para validar formulario de cuadre
