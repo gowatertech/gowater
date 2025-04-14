@@ -674,10 +674,10 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             <div className="bg-white p-3 rounded border flex flex-col justify-between">
               <div className="text-sm text-gray-500">Órdenes relacionadas</div>
               <div className="text-2xl font-bold text-center">
-                {settlementData && 'relatedOrders' in settlementData && Array.isArray(settlementData.relatedOrders) ? settlementData.relatedOrders.length : 0}
+                {settlementData?.relatedOrders?.length || 0}
               </div>
               <div className="text-xs text-gray-500 text-right">
-                {settlementData && 'relatedOrders' in settlementData && Array.isArray(settlementData.relatedOrders) && settlementData.relatedOrders.length > 0 
+                {settlementData?.relatedOrders?.length > 0 
                   ? "Órdenes encontradas" 
                   : "No hay órdenes" }
               </div>
@@ -726,7 +726,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
           )}
           
           {/* Resumen de productos vendidos */}
-          {settlementData?.productSummary && settlementData.productSummary.length > 0 && (
+          {settlementData?.productSummary?.length > 0 && (
             <div className="mt-4 border-t pt-3">
               <h4 className="text-sm font-medium mb-2 flex items-center">
                 <BarChart4 className="h-4 w-4 mr-1" /> 
@@ -742,7 +742,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                     </tr>
                   </thead>
                   <tbody>
-                    {settlementData.productSummary.map((product, idx) => (
+                    {settlementData?.productSummary?.map((product, idx) => (
                       <tr key={`product-summary-${product.productId}`} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
                         <td className="px-2 py-1">{product.productName}</td>
                         <td className="px-2 py-1 text-center">{product.quantity}</td>
@@ -761,14 +761,14 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             <Loader2 className="w-8 h-8 animate-spin text-primary mr-2" />
             <span>Cargando datos de devoluciones...</span>
           </div>
-        ) : settlementData?.bottleReturns && settlementData.bottleReturns.length > 0 ? (
+        ) : settlementData?.bottleReturns?.length > 0 ? (
           <div className="mb-6 border border-primary/20 bg-primary/5 p-4 rounded-lg">
             <div className="flex items-center mb-2">
               <PillBottle className="h-5 w-5 text-primary mr-2" />
               <h3 className="text-lg font-medium">Devoluciones de Envases Registradas</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Se encontraron {settlementData.bottleReturns.length} devoluciones de envases registradas por el conductor.
+              Se encontraron {settlementData?.bottleReturns?.length || 0} devoluciones de envases registradas por el conductor.
             </p>
             <div className="overflow-x-auto max-h-40">
               <table className="w-full text-sm">
@@ -782,7 +782,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                   </tr>
                 </thead>
                 <tbody>
-                  {settlementData.bottleReturns.map((bottleReturn: ExtendedBottleReturn) => (
+                  {settlementData?.bottleReturns?.map((bottleReturn: ExtendedBottleReturn) => (
                     <tr key={bottleReturn.id} className="border-b border-primary/10">
                       <td className="px-2 py-1">{bottleReturn.productName || `Producto #${bottleReturn.productId}`}</td>
                       <td className="px-2 py-1 text-center">{bottleReturn.expectedQuantity}</td>
