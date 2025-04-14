@@ -211,6 +211,7 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         truckId: req.body.truckId,
         driverId: req.body.driverId,
         assistantId: req.body.assistantId,
+        routeId: req.body.routeId,
         status: "pending",
         initialCash: req.body.initialCash,
         notes: req.body.notes,

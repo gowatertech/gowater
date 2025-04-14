@@ -353,20 +353,6 @@ export default function VehicleLoadingPage() {
                     <CardTitle className="text-base">Carga #{selectedLoading.loadingNumber}</CardTitle>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!selectedLoading.routeId && selectedLoading.status === "pending" && (
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setLoadingForRoute(selectedLoading.id);
-                          setShowAssignRouteDialog(true);
-                        }}
-                        className="h-7 text-xs flex items-center"
-                      >
-                        <MapPin className="h-3 w-3 mr-1" />
-                        Asignar Ruta
-                      </Button>
-                    )}
                     <Button 
                       variant="ghost"
                       size="sm"
