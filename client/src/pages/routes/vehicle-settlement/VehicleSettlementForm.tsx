@@ -147,43 +147,6 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   const { data: settlementData, isLoading: isLoadingSettlementData } = useQuery<SettlementResponse>({
     queryKey: ["/api/route-settlements", loading.id],
     enabled: !!loading.id,
-    onSuccess: (data) => {
-      console.log("=== DETALLE DE RESPUESTA DEL ENDPOINT ===");
-      console.log("ID de carga:", loading.id);
-      console.log("Total órdenes encontradas:", data.totalOrdersFound);
-      console.log("Mensaje de advertencia:", data.warningMessage);
-      console.log("Órdenes relacionadas:", data.relatedOrders?.length || 0);
-      
-      // Depuración adicional: mostrar el objeto relatedOrders completo
-      console.log("Raw relatedOrders:", JSON.stringify(data.relatedOrders));
-      
-      if (data.relatedOrders && data.relatedOrders.length > 0) {
-        console.log("Detalle de órdenes:", data.relatedOrders.map(o => ({
-          id: o.id, 
-          status: o.status,
-          total: o.total,
-          customerId: o.customerId,
-          routeId: o.routeId
-        })));
-        
-        // Calcular información automáticamente al cargar datos
-        setTimeout(() => {
-          calculateDifferences();
-        }, 500);
-      } else {
-        console.log("⚠️ No se encontraron órdenes relacionadas en la respuesta");
-      }
-      console.log("Resumen de productos:", data.productSummary);
-      console.log("============================================");
-    },
-    onError: (error) => {
-      console.error("Error al cargar datos de settlement:", error);
-      toast({
-        title: "Error al cargar datos",
-        description: "No se pudieron cargar los datos de cuadre. Intenta nuevamente.",
-        variant: "destructive"
-      });
-    }
   });
   
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
@@ -441,6 +404,22 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
       console.log("▶️ Órdenes relacionadas:", settlementData.relatedOrders?.length || 0);
       console.log("▶️ Devoluciones de envases:", settlementData.bottleReturns?.length || 0);
       console.log("▶️ Resumen de productos:", settlementData.productSummary?.length || 0);
+      
+      // ALERTA: Verificar en tiempo real si hay datos
+      alert(`DATOS API: ${JSON.stringify({
+        ordenes: settlementData.relatedOrders?.length || 0,
+        bottleReturns: settlementData.bottleReturns?.length || 0,
+        productSummary: settlementData.productSummary?.length || 0
+      })}`);
+      
+      // Verificación adicional con un llamado directo a API
+      fetch(`/api/route-settlements/${loading.id}`)
+        .then(response => response.json())
+        .then(data => {
+          alert(`API DIRECTA: ${data.relatedOrders?.length || 0} órdenes encontradas`);
+          console.log("API DIRECTA:", data);
+        })
+        .catch(err => console.error("Error API directa:", err));
       
       // Si hay órdenes relacionadas, mostrar detalles para depuración
       if (settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
@@ -702,10 +681,12 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             <div className="bg-white p-3 rounded border flex flex-col justify-between">
               <div className="text-sm text-gray-500">Órdenes relacionadas</div>
               <div className="text-2xl font-bold text-center">
-                {(settlementData?.relatedOrders && settlementData.relatedOrders.length) || 0}
+                {settlementData && 'relatedOrders' in settlementData && Array.isArray(settlementData.relatedOrders) ? settlementData.relatedOrders.length : 0}
               </div>
               <div className="text-xs text-gray-500 text-right">
-                {(settlementData?.relatedOrders && settlementData.relatedOrders.length > 0) ? "Órdenes encontradas" : "No hay órdenes"}
+                {settlementData && 'relatedOrders' in settlementData && Array.isArray(settlementData.relatedOrders) && settlementData.relatedOrders.length > 0 
+                  ? "Órdenes encontradas" 
+                  : "No hay órdenes" }
               </div>
             </div>
             
