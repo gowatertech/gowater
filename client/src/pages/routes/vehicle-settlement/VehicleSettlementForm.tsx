@@ -599,12 +599,20 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Cuadre de Vehículo - Carga #{loading.loadingNumber}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Cuadre de Vehículo - Carga #{loading.loadingNumber}</CardTitle>
+          {loading.routeId && (
+            <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium flex items-center">
+              <MapPin className="h-3 w-3 mr-1" />
+              Ruta #{loading.routeId} {loading.route?.name && `- ${loading.route.name}`}
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {/* Información de la carga */}
         <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
               <p className="text-sm text-gray-600">Fecha</p>
               <p className="font-medium">{new Date(loading.date).toLocaleDateString()}</p>
@@ -620,6 +628,18 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             <div>
               <p className="text-sm text-gray-600">Efectivo Inicial</p>
               <p className="font-medium">RD$ {loading.initialCash}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Ruta</p>
+              <p className="font-medium">
+                {loading.routeId ? (
+                  <span className="text-blue-600">
+                    #{loading.routeId} {loading.route?.name && `- ${loading.route.name}`}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">Sin ruta asignada</span>
+                )}
+              </p>
             </div>
           </div>
         </div>
