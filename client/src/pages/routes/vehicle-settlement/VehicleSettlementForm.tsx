@@ -384,7 +384,29 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   // Verificar si los datos fueron cargados y mostrar información relevante
   useEffect(() => {
     if (settlementData) {
-      console.log("DATOS RECIBIDOS DEL API:", JSON.stringify(settlementData, null, 2));
+      // Hacemos una depuración detallada para ver exactamente qué estamos recibiendo
+      console.log("👇 DATOS DE API COMPLETOS:", JSON.stringify(settlementData, null, 2));
+      console.log("▶️ Órdenes relacionadas:", settlementData.relatedOrders?.length || 0);
+      console.log("▶️ Devoluciones de envases:", settlementData.bottleReturns?.length || 0);
+      console.log("▶️ Resumen de productos:", settlementData.productSummary?.length || 0);
+      
+      // Si hay órdenes relacionadas, mostrar detalles para depuración
+      if (settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
+        console.log("➡️ ÓRDENES ENCONTRADAS:");
+        settlementData.relatedOrders.forEach((order, index) => {
+          console.log(`   Orden #${order.id}: status=${order.status}, route=${order.routeId}, total=${order.total}`);
+          if (order.items && order.items.length > 0) {
+            console.log(`      Items: ${order.items.length}`);
+            order.items.forEach(item => {
+              console.log(`         Item: ${item.productId}, cantidad: ${item.quantity}`);
+            });
+          } else {
+            console.log("      ❌ Sin items");
+          }
+        });
+      } else {
+        console.log("⚠️ NO SE ENCONTRARON ÓRDENES RELACIONADAS");
+      }
       
       // Verificar si tenemos resumen de productos
       if (settlementData.productSummary && settlementData.productSummary.length > 0) {
@@ -414,7 +436,6 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         toast({
           title: "Datos insuficientes",
           description: "No se encontraron detalles de productos vendidos para esta carga",
-          variant: "destructive",
         });
       }
       

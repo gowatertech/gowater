@@ -164,6 +164,7 @@ export async function registerRouteSettlements(app: Express) {
           const productsMap = new Map();
           for (const product of productsData) {
             productsMap.set(product.id, product);
+            console.log(`Producto ID: ${product.id}, Nombre: ${product.name}, Precio: ${product.price}`);
           }
           
           // 5. Agrupar items por orden
@@ -171,16 +172,25 @@ export async function registerRouteSettlements(app: Express) {
           for (const item of allOrderItems) {
             if (!orderItemsMap.has(item.orderId)) {
               orderItemsMap.set(item.orderId, []);
+              console.log(`Creando array para Orden ID: ${item.orderId}`);
             }
             
             // Adjuntar información del producto al item
             const product = productsMap.get(item.productId);
+            
+            if (!product) {
+              console.log(`⚠️ ADVERTENCIA: No se encontró información del producto ID ${item.productId}`);
+            }
+            
             const itemWithProduct = {
               ...item,
               productName: product?.name || `Producto #${item.productId}`,
+              price: product?.price || "0.00",
               isReturnable: product?.isReturnable || false,
               product: product || null
             };
+            
+            console.log(`Item de Orden ${item.orderId}: productId=${item.productId}, cantidad=${item.quantity}, nombre=${itemWithProduct.productName}, precio=${itemWithProduct.price}`);
             
             orderItemsMap.get(item.orderId).push(itemWithProduct);
           }
@@ -274,11 +284,13 @@ export async function registerRouteSettlements(app: Express) {
           // Si el único ID es el falso (999999), buscar por driverId directamente
           if (routeIds.length === 1 && routeIds[0] === 999999) {
             console.log(`Buscando órdenes directamente por conductor ID: ${loading.driverId}`);
+            // Nota: No existe el campo driverId o createdAt en el schema, esto requerirá actualización del schema
             ordersData = await db
               .select()
               .from(orders)
-              .where(eq(orders.driverId, loading.driverId))
-              .orderBy(orders.createdAt);
+              // No podemos usar driverId o createdAt hasta actualizar el schema
+              .where(sql`driver_id = ${loading.driverId}`)
+              .orderBy(sql`created_at`);
           } else {
             // Buscar normalmente por routeId usando la cláusula IN
             ordersData = await db
@@ -356,21 +368,33 @@ export async function registerRouteSettlements(app: Express) {
       // Crear un resumen de productos vendidos para facilitar el cuadre
       const productSummary = [];
       const productMap = new Map();
+      
+      console.log("DEBUG - Generando resumen de productos vendidos");
+      console.log(`DEBUG - Total de órdenes a procesar: ${relatedOrders.length}`);
             
       // Recorrer todas las órdenes y sus items
       for (const order of relatedOrders) {
         // Solo incluir órdenes entregadas o completadas
         const orderStatus = (order.status || "").toLowerCase();
-        if (orderStatus === "delivered" || 
-            orderStatus === "completed" || 
-            orderStatus.includes("deliver")) {
+        const isValidStatus = orderStatus === "delivered" || 
+                             orderStatus === "completed" || 
+                             orderStatus.includes("deliver");
+        
+        console.log(`DEBUG - Orden #${order.id}: status=${order.status}, isValidStatus=${isValidStatus}`);
+        
+        if (isValidStatus) {
+          console.log(`DEBUG - ✅ Procesando orden #${order.id} (${orderStatus})`);
               
           // Procesar los items de la orden si existen
           if (order.items && Array.isArray(order.items)) {
+            console.log(`DEBUG - La orden #${order.id} tiene ${order.items.length} items`);
+            
             for (const item of order.items) {
               const productId = item.productId;
               const quantity = Number(item.quantity) || 0;
               const price = Number(item.price) || 0;
+              
+              console.log(`DEBUG - Item: producto=${productId}, cantidad=${quantity}, precio=${price}`);
                     
               // Si es la primera vez que vemos este producto
               if (!productMap.has(productId)) {
@@ -386,16 +410,21 @@ export async function registerRouteSettlements(app: Express) {
               const product = productMap.get(productId);
               product.quantity += quantity;
               product.total += quantity * price;
+              console.log(`DEBUG - Actualizado producto ${productId}: cantidad=${product.quantity}, total=${product.total}`);
               productMap.set(productId, product);
             }
+          } else {
+            console.log(`DEBUG - ⚠️ La orden #${order.id} no tiene items o no son un array`);
           }
+        } else {
+          console.log(`DEBUG - ❌ Orden #${order.id} ignorada por status=${orderStatus}`);
         }
       }
             
       // Convertir el mapa a un array para la respuesta
-      for (const product of productMap.values()) {
+      productMap.forEach(product => {
         productSummary.push(product);
-      }
+      });
             
       console.log("Resumen final de ventas:", productSummary);
             
