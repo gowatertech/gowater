@@ -143,58 +143,6 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     enabled: !!loading.id
   });
   
-  // Verificar si los datos fueron cargados y mostrar información relevante
-  useEffect(() => {
-    if (settlementData) {
-      console.log("DATOS RECIBIDOS DEL API:", JSON.stringify(settlementData, null, 2));
-      
-      // Verificar si tenemos resumen de productos
-      if (settlementData.productSummary && settlementData.productSummary.length > 0) {
-        console.log("✅ RESUMEN DE PRODUCTOS VENDIDOS:", settlementData.productSummary);
-        console.log("Total de tipos de productos:", settlementData.productSummary.length);
-        
-        // Calcular totales
-        const totalUnits = settlementData.productSummary.reduce((sum: number, product: any) => 
-          sum + product.quantity, 0);
-        const totalValue = settlementData.productSummary.reduce((sum: number, product: any) => 
-          sum + product.total, 0);
-          
-        console.log(`Total unidades vendidas: ${totalUnits}`);
-        console.log(`Valor total vendido: $${totalValue.toFixed(2)}`);
-      } else {
-        console.log("❌ No se encontró resumen de productos");
-      }
-      
-      console.log("Órdenes relacionadas:", settlementData.relatedOrders?.length || 0);
-      
-      // Revisar cada orden para ver si tiene items
-      if (settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
-        settlementData.relatedOrders.forEach((order: any, index: number) => {
-          console.log(`Orden #${index+1} (ID: ${order.id}):`, {
-            routeId: order.routeId,
-            total: order.total,
-            status: order.status,
-            items: order.items ? `${order.items.length} items` : "NO TIENE ITEMS"
-          });
-        });
-      }
-    }
-  }, [settlementData]);
-  
-  // Usar useEffect para rastrear los datos cuando se cargan
-  useEffect(() => {
-    if (settlementData) {
-      console.log("Settlement data loaded:", settlementData);
-      if (settlementData.relatedOrders) {
-        console.log("Related orders:", settlementData.relatedOrders);
-        const total = settlementData.relatedOrders.reduce((sum: number, order: any) => sum + parseFloat(order.total), 0);
-        console.log("Orders total:", total.toFixed(2));
-        console.log("Cash orders:", settlementData.relatedOrders.filter((order: any) => order.paymentMethod === "cash"));
-        console.log("Credit orders:", settlementData.relatedOrders.filter((order: any) => order.paymentMethod === "credit"));
-      }
-    }
-  }, [settlementData]);
-  
   // Manejador para calcular diferencias y ajustes (definido con useCallback para evitar dependencias cíclicas)
   const calculateDifferences = useCallback(() => {
     console.log("=================== INICIO CÁLCULO ===================");
@@ -248,9 +196,9 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         // Verificar si la orden está entregada o completada (status es case-insensitive)
         const orderStatus = (order.status || "").toLowerCase();
         const isDelivered = orderStatus === "delivered" || 
-                           orderStatus === "completed" || 
-                           orderStatus.includes("deliver") ||
-                           (!order.status && parseFloat(order.total || "0") > 0);
+                         orderStatus === "completed" || 
+                         orderStatus.includes("deliver") ||
+                         (!order.status && parseFloat(order.total || "0") > 0);
         
         // Verificar si la orden pertenece a la ruta asociada a la carga
         let belongsToRoute = false;
@@ -431,11 +379,64 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     });
     
     console.log("=================== FIN CÁLCULO ===================");
-  }, [form, loading.items, loading.initialCash, loading.routeId, settlementData]);
+  }, [form, loading.items, loading.initialCash, loading.routeId, settlementData, toast]);
+  
+  // Verificar si los datos fueron cargados y mostrar información relevante
+  useEffect(() => {
+    if (settlementData) {
+      console.log("DATOS RECIBIDOS DEL API:", JSON.stringify(settlementData, null, 2));
+      
+      // Verificar si tenemos resumen de productos
+      if (settlementData.productSummary && settlementData.productSummary.length > 0) {
+        console.log("✅ RESUMEN DE PRODUCTOS VENDIDOS:", settlementData.productSummary);
+        console.log("Total de tipos de productos:", settlementData.productSummary.length);
+        
+        // Calcular totales
+        const totalUnits = settlementData.productSummary.reduce((sum: number, product: any) => 
+          sum + product.quantity, 0);
+        const totalValue = settlementData.productSummary.reduce((sum: number, product: any) => 
+          sum + product.total, 0);
+          
+        console.log(`Total unidades vendidas: ${totalUnits}`);
+        console.log(`Valor total vendido: $${totalValue.toFixed(2)}`);
+
+        // Ejecutar el cálculo de diferencias automáticamente cuando se cargan los datos
+        // Esto automatiza el proceso para el supervisor
+        setTimeout(() => {
+          calculateDifferences();
+          toast({
+            title: "Datos cargados",
+            description: "Se han calculado automáticamente los totales basados en las órdenes entregadas",
+          });
+        }, 500); // Pequeño retraso para asegurar que todos los datos estén disponibles
+      } else {
+        console.log("❌ No se encontró resumen de productos");
+        toast({
+          title: "Datos insuficientes",
+          description: "No se encontraron detalles de productos vendidos para esta carga",
+          variant: "destructive",
+        });
+      }
+      
+      console.log("Órdenes relacionadas:", settlementData.relatedOrders?.length || 0);
+      
+      // Revisar cada orden para ver si tiene items
+      if (settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
+        settlementData.relatedOrders.forEach((order: any, index: number) => {
+          console.log(`Orden #${index+1} (ID: ${order.id}):`, {
+            routeId: order.routeId,
+            total: order.total,
+            status: order.status,
+            items: order.items ? `${order.items.length} items` : "NO TIENE ITEMS"
+          });
+        });
+      }
+    }
+  }, [settlementData, calculateDifferences, toast]);
   
   // Efecto para actualizar los valores de envases devueltos cuando se carguen los datos
   useEffect(() => {
-    // Usamos la variable existente settlementData (declarada en línea 101)
+    // Usamos la variable existente settlementData (declarada anteriormente)
     const bottleReturnsData = settlementData?.bottleReturns;
     if (bottleReturnsData && bottleReturnsData.length > 0) {
       // Para cada item en el formulario, buscamos si hay datos de devolución para ese producto
@@ -462,12 +463,19 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
         }
       });
       
-      // NO recalcular automáticamente, el usuario debe usar el botón
-      // if (updated) {
-      //   calculateDifferences();
-      // }
+      // Para la automatización completa, recalcular si hay actualizaciones
+      if (updated) {
+        // Ejecutar con un pequeño retraso para asegurar que todos los valores estén actualizados
+        setTimeout(() => {
+          calculateDifferences();
+          toast({
+            title: "Devoluciones actualizadas",
+            description: "Se han actualizado las devoluciones de envases registradas por el conductor",
+          });
+        }, 600);
+      }
     }
-  }, [settlementData, form, calculateDifferences]);
+  }, [settlementData, form, calculateDifferences, toast]);
   
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
@@ -507,20 +515,15 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   }
 
   // handleChange utiliza calculateDifferences que ya está definido con useCallback
-
   const handleChange = () => {
     // Calcular las diferencias cuando cambian los valores
     calculateDifferences();
   };
 
   // Actualizar campos calculados cuando cambian las cantidades
-  // IMPORTANTE: No calculamos automáticamente la cantidad vendida
-  // Este método solo registra los cambios
+  // Este método ahora actualiza la diferencia de productos inmediatamente cuando cambia una cantidad
   const updateSoldQuantity = (index: number, returnedQuantity: number) => {
-    // No modificamos soldQuantity automáticamente
-    // Ahora este valor se obtiene de las órdenes realmente entregadas
-    
-    // Solo registramos el cambio de returnedQuantity
+    // No modificamos soldQuantity automáticamente (se obtiene de las órdenes)
     console.log(`Cantidad devuelta actualizada para producto #${index}: ${returnedQuantity}`);
     
     // Actualizar la diferencia de productos al cambiar la cantidad devuelta
@@ -531,7 +534,17 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     console.log(`Actualizando diferencia de producto #${index}: ${productDifference}`);
     form.setValue(`items.${index}.productDifference`, productDifference);
     
-    // No recalcular totales automáticamente para evitar recálculos excesivos
+    // También actualizar la diferencia de envases si corresponde (para productos retornables)
+    const product = loading.items.find(item => item.productId === formItem.productId)?.product;
+    if (product?.isReturnable) {
+      form.setValue(`items.${index}.containersDifference`, soldQuantity - returnedQuantity);
+    }
+    
+    // Recalcular totales automáticamente para una mejor experiencia
+    // Añadido pequeño retraso para permitir que se actualice el formulario
+    setTimeout(() => {
+      calculateDifferences();
+    }, 300);
   };
 
   const onSubmit = (data: z.infer<typeof settlementSchema>) => {
@@ -667,7 +680,8 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                             console.log("Valor formateado:", formattedValue);
                             e.target.value = formattedValue;
                             field.onChange(formattedValue);
-                            // NO calcular automáticamente - dejarlo para el botón
+                            // Calcular automáticamente cuando el usuario termina de editar
+                            calculateDifferences();
                           }}
                           onChange={(e) => {
                             console.log("onChange totalCashReceived - valor original:", e.target.value);
@@ -680,7 +694,6 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                               : value;
                             console.log("onChange totalCashReceived - nuevo valor:", newValue);
                             field.onChange(newValue);
-                            // No calcular en cada cambio
                           }}
                         />
                       </FormControl>
@@ -787,238 +800,219 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
               
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-2 text-left">Producto</th>
-                      <th className="px-4 py-2 text-center">Cargado</th>
-                      <th className="px-4 py-2 text-center">Devuelto</th>
-                      <th className="px-4 py-2 text-center">Vendido</th>
-                      <th className="px-4 py-2 text-center">
-                        <div className="relative group cursor-help">
-                          <span>Diferencia Producto</span>
-                          <div className="hidden group-hover:block absolute z-10 w-60 p-2 bg-white border border-gray-200 rounded shadow-lg text-xs text-gray-700 left-1/2 transform -translate-x-1/2">
-                            (Cargado - Devuelto) - Vendido. <br/>
-                            <span className="text-green-600">Valor positivo:</span> Hay más productos registrados como disponibles que lo realmente vendido. <br/>
-                            <span className="text-red-600">Valor negativo:</span> Hay menos productos disponibles que lo reportado como vendido.
-                          </div>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-center">Envases Devueltos</th>
-                      <th className="px-4 py-2 text-center">
-                        <div className="relative group cursor-help">
-                          <span>Diferencia Envases</span>
-                          <div className="hidden group-hover:block absolute z-10 w-60 p-2 bg-white border border-gray-200 rounded shadow-lg text-xs text-gray-700 left-1/2 transform -translate-x-1/2">
-                            Vendido - Envases Devueltos. <br/>
-                            <span className="text-red-600">Valor positivo:</span> Hay envases vendidos que no fueron devueltos. <br/>
-                            <span className="text-green-600">Valor negativo:</span> Se devolvieron más envases de los reportados como vendidos.
-                          </div>
-                        </div>
-                      </th>
-                      <th className="px-4 py-2 text-center">¿Retornable?</th>
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-2 py-2 text-left">Producto</th>
+                      <th className="px-2 py-2 text-center">Cargado</th>
+                      <th className="px-2 py-2 text-center">Devuelto</th>
+                      <th className="px-2 py-2 text-center">Vendido</th>
+                      <th className="px-2 py-2 text-center">Diferencia</th>
+                      <th className="px-2 py-2 text-center">Envases Dev.</th>
+                      <th className="px-2 py-2 text-center">Dif. Envases</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {loading.items.map((item, index) => (
-                      <tr key={item.id} className="border-b">
-                        <td className="px-4 py-2">
-                          {item.product?.name}
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          {item.quantity}
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.returnedQuantity`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input 
-                                    {...field}
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={field.value}
-                                    onChange={(e) => {
-                                      // Solo permitir números enteros
-                                      const value = e.target.value.replace(/\D/g, '');
-                                      const intValue = parseInt(value) || 0;
-                                      // Validar que no exceda el máximo
-                                      const validValue = Math.min(intValue, item.quantity);
-                                      field.onChange(validValue);
-                                      updateSoldQuantity(index, validValue);
-                                    }}
-                                    className="w-20 mx-auto text-center"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.soldQuantity`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input 
-                                    // No pasamos {...field} para evitar eventos no deseados
-                                    name={field.name}
-                                    value={field.value}
-                                    type="text"
-                                    inputMode="numeric"
-                                    readOnly
-                                    disabled
-                                    className="w-20 mx-auto text-center bg-gray-50"
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.productDifference`}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormControl>
-                                  <Input 
-                                    name={field.name}
-                                    value={field.value}
-                                    type="text"
-                                    inputMode="numeric"
-                                    readOnly
-                                    disabled
-                                    className={`w-20 mx-auto text-center ${
-                                      Number(field.value || 0) !== 0 
-                                        ? Number(field.value || 0) > 0 
-                                          ? 'bg-green-50 text-green-700' 
-                                          : 'bg-red-50 text-red-700'
-                                        : 'bg-gray-50'
-                                    }`}
-                                  />
-                                </FormControl>
-                              </FormItem>
-                            )}
-                          />
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          {item.product?.isReturnable ? (
+                    {form.getValues().items.map((item, index) => {
+                      const product = loading.items.find(i => i.productId === item.productId)?.product;
+                      const isReturnable = product?.isReturnable || false;
+                      
+                      return (
+                        <tr key={item.productId} className="border-b hover:bg-gray-50">
+                          <td className="px-2 py-2">
+                            <div className="font-medium">{product?.name || `Producto #${item.productId}`}</div>
+                            <div className="text-xs text-gray-500">{isReturnable ? 'Envase retornable' : 'No retornable'}</div>
+                          </td>
+                          <td className="px-2 py-2 text-center">
                             <FormField
                               control={form.control}
-                              name={`items.${index}.returnedContainers`}
+                              name={`items.${index}.loadedQuantity`}
                               render={({ field }) => (
-                                <FormItem>
+                                <FormItem className="m-0">
                                   <FormControl>
-                                    <Input 
+                                    <Input
                                       {...field}
-                                      type="text"
-                                      inputMode="numeric"
-                                      value={field.value}
-                                      onChange={(e) => {
-                                        // Solo permitir números enteros
-                                        const value = e.target.value.replace(/\D/g, '');
-                                        const intValue = parseInt(value) || 0;
-                                        // Validar que no exceda el máximo
-                                        const maxValue = form.getValues().items[index].soldQuantity;
-                                        const validValue = Math.min(intValue, maxValue);
-                                        field.onChange(validValue);
-                                        
-                                        // Actualizar la diferencia de envases
-                                        const soldQuantity = form.getValues().items[index].soldQuantity;
-                                        const containersDifference = soldQuantity - validValue;
-                                        console.log(`Actualizando diferencia de envases para producto #${index}: ${containersDifference}`);
-                                        form.setValue(`items.${index}.containersDifference`, containersDifference);
-                                      }}
-                                      // NO calcular automáticamente - dejarlo para el botón
-                                      onBlur={() => {}}
-                                      className="w-20 mx-auto text-center"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          {item.product?.isReturnable ? (
-                            <FormField
-                              control={form.control}
-                              name={`items.${index}.containersDifference`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <Input 
-                                      name={field.name}
-                                      value={field.value}
-                                      type="text"
-                                      inputMode="numeric"
+                                      type="number"
+                                      min="0"
+                                      className="w-20 m-auto text-center"
                                       readOnly
                                       disabled
-                                      className={`w-20 mx-auto text-center ${
-                                        Number(field.value || 0) !== 0 
-                                          ? Number(field.value || 0) > 0 
-                                            ? 'bg-red-50 text-red-700' 
-                                            : 'bg-green-50 text-green-700'
-                                          : 'bg-gray-50'
-                                      }`}
+                                      value={field.value}
                                     />
                                   </FormControl>
                                 </FormItem>
                               )}
                             />
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          {item.product?.isReturnable ? "Sí" : "No"}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.returnedQuantity`}
+                              render={({ field }) => (
+                                <FormItem className="m-0">
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="number"
+                                      min="0"
+                                      className="w-20 m-auto text-center"
+                                      onChange={(e) => {
+                                        const value = parseInt(e.target.value) || 0;
+                                        field.onChange(value);
+                                        updateSoldQuantity(index, value);
+                                      }}
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.soldQuantity`}
+                              render={({ field }) => (
+                                <FormItem className="m-0">
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="number"
+                                      className="w-20 m-auto text-center bg-gray-50"
+                                      readOnly
+                                      disabled
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <FormField
+                              control={form.control}
+                              name={`items.${index}.productDifference`}
+                              render={({ field }) => (
+                                <FormItem className="m-0">
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="number"
+                                      className={`w-20 m-auto text-center ${field.value != 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50'}`}
+                                      readOnly
+                                      disabled
+                                    />
+                                  </FormControl>
+                                </FormItem>
+                              )}
+                            />
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            {isReturnable ? (
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.returnedContainers`}
+                                render={({ field }) => (
+                                  <FormItem className="m-0">
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        type="number"
+                                        min="0"
+                                        className="w-20 m-auto text-center"
+                                        onChange={(e) => {
+                                          const value = parseInt(e.target.value) || 0;
+                                          field.onChange(value);
+                                          
+                                          // Cuando cambian los envases devueltos, actualizar la diferencia de envases
+                                          const soldQuantity = form.getValues().items[index].soldQuantity;
+                                          form.setValue(`items.${index}.containersDifference`, soldQuantity - value);
+                                          
+                                          // Recalcular totales
+                                          calculateDifferences();
+                                        }}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            {isReturnable ? (
+                              <FormField
+                                control={form.control}
+                                name={`items.${index}.containersDifference`}
+                                render={({ field }) => (
+                                  <FormItem className="m-0">
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        type="number"
+                                        className={`w-20 m-auto text-center ${field.value != 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50'}`}
+                                        readOnly
+                                        disabled
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* Notas */}
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notas</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="Observaciones sobre el cuadre de vehículo"
-                      rows={3}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Sección de Notas y Comentarios */}
+            <div className="border p-4 rounded-md">
+              <h3 className="text-lg font-medium mb-4">Notas y Comentarios</h3>
+              
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Comentarios (opcional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Añadir comentarios sobre el cuadre, justificaciones de diferencias, etc." 
+                        className="min-h-24"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            {/* Botones */}
-            <div className="flex justify-end gap-2">
+            {/* Botones de acción */}
+            <div className="flex justify-end space-x-2">
               <Button
                 type="button"
                 variant="outline"
-                onClick={onSuccess}
+                onClick={() => {
+                  toast({
+                    title: "Operación cancelada",
+                    description: "No se realizaron cambios en el sistema",
+                  });
+                  onSuccess();
+                }}
               >
                 Cancelar
               </Button>
               <Button 
-                type="submit"
+                type="submit" 
                 disabled={isPending}
+                className="flex items-center gap-2"
               >
-                {isPending ? "Procesando..." : "Registrar Cuadre"}
+                {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Completar Cuadre
               </Button>
             </div>
           </form>
