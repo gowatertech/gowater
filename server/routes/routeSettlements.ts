@@ -2,7 +2,7 @@ import { Express, Request, Response } from "express";
 import { eq, and, inArray, gte, lt, sql } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "@shared/schema";
-import { vehicleLoading, vehicleLoadingItems, routes, orders, bottleReturns, products } from "@shared/schema";
+import { vehicleLoading, vehicleLoadingItems, routes, orders, bottleReturns, products, orderItems } from "@shared/schema";
 
 export async function registerRouteSettlements(app: Express) {
   // Crear nuevo cuadre de vehículo
@@ -492,7 +492,11 @@ export async function registerRouteSettlements(app: Express) {
         loading,
         relatedOrders,
         bottleReturns: bottleReturnData,
-        productSummary  // Incluir el resumen en la respuesta
+        productSummary,  // Incluir el resumen en la respuesta
+        totalOrdersFound: relatedOrders.length,
+        warningMessage: relatedOrders.length === 0 
+          ? "No se encontraron órdenes completadas relacionadas con esta carga. Verifique que todas las órdenes estén marcadas como 'completed'."
+          : null
       });
     } catch (error) {
       console.error("Error al obtener cuadre de vehículo:", error);
@@ -502,4 +506,69 @@ export async function registerRouteSettlements(app: Express) {
       });
     }
   });
+}
+
+// Función auxiliar para generar resumen de productos vendidos de forma optimizada
+function generateProductSummary(orders: any[]): any[] {
+  const productSummary = new Map();
+  
+  // Calcular totales por producto de todas las órdenes completadas
+  for (const order of orders) {
+    // Verificar si la orden está completada
+    const orderStatus = (order.status || '').toLowerCase();
+    if (orderStatus === 'completed' || orderStatus === 'delivered' || orderStatus.includes('deliver')) {
+      if (order.items && order.items.length > 0) {
+        for (const item of order.items) {
+          const productId = item.productId;
+          const productName = item.productName || item.name || `Producto #${productId}`;
+          const quantity = Number(item.quantity) || 0;
+          const price = Number(item.price) || 0;
+          const isReturnable = item.isReturnable || false;
+          
+          if (!productSummary.has(productId)) {
+            productSummary.set(productId, {
+              productId,
+              productName,
+              quantity: 0,
+              total: 0,
+              isReturnable,
+              price,
+              orderCount: 0, // Contador de órdenes donde aparece este producto
+              paymentTypes: new Set() // Tipos de pago asociados a este producto
+            });
+          }
+          
+          const current = productSummary.get(productId);
+          current.quantity += quantity;
+          current.total += quantity * price;
+          current.orderCount++;
+          
+          // Registrar el tipo de pago (efectivo/crédito) si está disponible
+          if (order.paymentMethod) {
+            current.paymentTypes.add(order.paymentMethod.toLowerCase());
+          }
+          
+          productSummary.set(productId, current);
+        }
+      }
+    }
+  }
+  
+  // Convertir el mapa a un array para la respuesta y formatear campos
+  const result: any[] = [];
+  productSummary.forEach(product => {
+    result.push({
+      productId: product.productId,
+      productName: product.productName,
+      quantity: product.quantity,
+      total: parseFloat(product.total.toFixed(2)),
+      isReturnable: product.isReturnable,
+      price: product.price,
+      orderCount: product.orderCount,
+      // Convertir el Set a array
+      paymentTypes: Array.from(product.paymentTypes)
+    });
+  });
+  
+  return result;
 }
