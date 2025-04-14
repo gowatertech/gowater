@@ -611,11 +611,11 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             </div>
             <div>
               <p className="text-sm text-gray-600">Conductor</p>
-              <p className="font-medium">{loading.driver?.firstName} {loading.driver?.lastName}</p>
+              <p className="font-medium">{loading.driver?.name}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Vehículo</p>
-              <p className="font-medium">{loading.truck?.licensePlate}</p>
+              <p className="font-medium">{loading.truck?.plate}</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Efectivo Inicial</p>
@@ -645,10 +645,10 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             <div className="bg-white p-3 rounded border flex flex-col justify-between">
               <div className="text-sm text-gray-500">Órdenes relacionadas</div>
               <div className="text-2xl font-bold text-center">
-                {settlementData?.relatedOrders?.length || 0}
+                {(settlementData?.relatedOrders && settlementData.relatedOrders.length) || 0}
               </div>
               <div className="text-xs text-gray-500 text-right">
-                {settlementData?.relatedOrders?.length > 0 ? "Órdenes encontradas" : "No hay órdenes"}
+                {(settlementData?.relatedOrders && settlementData.relatedOrders.length > 0) ? "Órdenes encontradas" : "No hay órdenes"}
               </div>
             </div>
             
