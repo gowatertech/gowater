@@ -109,11 +109,13 @@ export default function DriverRoute() {
   const [expandedStopId, setExpandedStopId] = useState<number | null>(null);
   const [currentStopIndex, setCurrentStopIndex] = useState<number>(-1);
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [isCompletingRoute, setIsCompletingRoute] = useState(false);
   
   // Estados para diálogos
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showEditOrderDialog, setShowEditOrderDialog] = useState(false);
   const [showBottleReturnDialog, setShowBottleReturnDialog] = useState(false);
+  const [showCompleteRouteDialog, setShowCompleteRouteDialog] = useState(false);
   const [currentStopForPayment, setCurrentStopForPayment] = useState<RouteStop | null>(null);
   const [currentStopForEdit, setCurrentStopForEdit] = useState<RouteStop | null>(null);
   const [currentOrderIdForBottleReturn, setCurrentOrderIdForBottleReturn] = useState<number | null>(null);
@@ -460,6 +462,84 @@ export default function DriverRoute() {
     }
   };
   
+  // Función para completar toda la ruta
+  const handleCompleteRoute = () => {
+    // Verificar si hay paradas pendientes
+    const pendingStops = routeStops.filter(stop => {
+      if (stop.isWarehouse) return false; // Ignorar el almacén
+      return stop.status !== "completed" && stop.status !== "delivered";
+    });
+    
+    if (pendingStops.length > 0) {
+      toast({
+        title: "No se puede completar la ruta",
+        description: `Hay ${pendingStops.length} paradas pendientes por entregar.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setShowCompleteRouteDialog(true);
+  };
+  
+  // Función que completa la ruta en el servidor
+  const confirmCompleteRoute = async () => {
+    if (!activeRouteId) return;
+    
+    try {
+      setIsCompletingRoute(true);
+      setShowCompleteRouteDialog(false);
+      
+      // Mostrar toast mientras se procesa
+      toast({
+        title: "Completando ruta",
+        description: "Actualizando el estado de la ruta..."
+      });
+      
+      console.log("Completando ruta:", activeRouteId);
+      
+      // Llamar al endpoint para completar la ruta
+      const response = await apiRequest(`/api/mobile/routes/${activeRouteId}/complete`, {
+        method: "POST"
+      });
+      
+      console.log("Respuesta del servidor:", response);
+      
+      if (response && response.success) {
+        // Actualizar el estado local
+        if (routeDetails) {
+          setRouteDetails({
+            ...routeDetails,
+            status: "completed",
+            isCompleted: true
+          });
+        }
+        
+        // Mostrar mensaje de éxito
+        toast({
+          title: "¡Ruta completada!",
+          description: "La ruta ha sido marcada como completada exitosamente."
+        });
+        
+        // Redirigir a la lista de rutas en progreso después de una pausa
+        setTimeout(() => {
+          setLocation("/mobile-app/rutas-en-progreso");
+        }, 2000);
+      } else {
+        throw new Error(response?.message || "Error al completar la ruta");
+      }
+    } catch (error) {
+      console.error("Error al completar la ruta:", error);
+      toast({
+        title: "Error al completar la ruta",
+        description: String(error),
+        variant: "destructive"
+      });
+    } finally {
+      setIsCompletingRoute(false);
+    }
+  };
+  
   // Completar pago y entrega
   const completePaymentAndDelivery = async () => {
     if (!currentStopForPayment) return;
@@ -729,6 +809,28 @@ export default function DriverRoute() {
                 onNavigateToLocation={handleNavigateToLocation}
                 currentStopIndex={currentStopIndex}
               />
+              
+              {/* Botón para completar la ruta - se muestra solo si la ruta no está completada */}
+              {routeDetails && routeDetails.status !== 'completed' && !routeDetails.isCompleted && (
+                <div className="mt-6 pt-4 border-t border-border">
+                  <Button 
+                    onClick={handleCompleteRoute}
+                    disabled={isCompletingRoute}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 flex items-center justify-center gap-2"
+                  >
+                    {isCompletingRoute ? (
+                      <RotateCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle className="h-5 w-5" />
+                    )}
+                    {isCompletingRoute ? "Completando ruta..." : "Completar Ruta"}
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center mt-2">
+                    Al completar la ruta, confirma que todas las paradas están entregadas
+                    y se generará el cuadre de vehículo.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -886,6 +988,71 @@ export default function DriverRoute() {
               className="flex-1 py-1 h-10"
             >
               Confirmar pago y entrega
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Diálogo de confirmación para completar ruta */}
+      <Dialog open={showCompleteRouteDialog} onOpenChange={setShowCompleteRouteDialog}>
+        <DialogContent className={`sm:max-w-md max-h-[90vh] overflow-y-auto ${darkMode ? 'dark bg-gray-900 text-white border-gray-700' : ''}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Completar Ruta
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Confirme que desea marcar esta ruta como completada
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-1 space-y-4">
+            <div className="bg-yellow-500/10 rounded-lg p-3 border border-yellow-500/20">
+              <p className="text-sm text-yellow-600 dark:text-yellow-400">
+                Una vez completada la ruta, no podrá realizar más entregas en ella.
+                El sistema generará el cuadre de vehículo correspondiente.
+              </p>
+            </div>
+            
+            <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20 flex items-start gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                  Esta acción confirmará que:
+                </p>
+                <ul className="text-xs text-green-600 dark:text-green-400 mt-1 list-disc pl-4 space-y-1">
+                  <li>Todas las entregas han sido completadas</li>
+                  <li>Ha terminado su jornada de reparto</li>
+                  <li>El vehículo retorna al almacén</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="sticky bottom-0 bg-background pt-2 pb-0 mt-3 border-t border-border flex flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowCompleteRouteDialog(false)}
+              className="flex-1 py-1 h-10"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={confirmCompleteRoute}
+              className="flex-1 py-1 h-10 bg-green-600 hover:bg-green-700"
+              disabled={isCompletingRoute}
+            >
+              {isCompletingRoute ? (
+                <>
+                  <RotateCw className="h-4 w-4 animate-spin mr-2" />
+                  Procesando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Confirmar y completar
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
