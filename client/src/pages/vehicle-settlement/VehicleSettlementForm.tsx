@@ -1122,7 +1122,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                       {...field}
                                       type="number"
                                       min="0"
-                                      className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${readOnly ? "bg-gray-50" : ""}`}
+                                      className={`w-12 xs:w-14 sm:w-16 m-auto text-center text-[10px] xs:text-xs sm:text-sm ${readOnly ? "bg-gray-50" : ""}`}
                                       readOnly={readOnly}
                                       disabled={readOnly}
                                       onChange={!readOnly ? (e) => {
@@ -1165,7 +1165,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                     <Input
                                       {...field}
                                       type="number"
-                                      className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${field.value != 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50'}`}
+                                      className={`w-12 xs:w-14 sm:w-16 m-auto text-center text-[10px] xs:text-xs sm:text-sm ${field.value != 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50'}`}
                                       readOnly
                                       disabled
                                     />
@@ -1186,7 +1186,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                         {...field}
                                         type="number"
                                         min="0"
-                                        className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${readOnly ? "bg-gray-50" : ""}`}
+                                        className={`w-12 xs:w-14 sm:w-16 m-auto text-center text-[10px] xs:text-xs sm:text-sm ${readOnly ? "bg-gray-50" : ""}`}
                                         readOnly={readOnly}
                                         disabled={readOnly}
                                         onChange={!readOnly ? (e) => {
@@ -1220,7 +1220,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                       <Input
                                         {...field}
                                         type="number"
-                                        className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${
+                                        className={`w-12 xs:w-14 sm:w-16 m-auto text-center text-[10px] xs:text-xs sm:text-sm ${
                                           (typeof field.value === 'number' && field.value > 0)
                                           ? "bg-yellow-50 text-yellow-600" 
                                           : (typeof field.value === 'number' && field.value < 0)
