@@ -477,8 +477,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         name: data.name,
         date: new Date(data.date),
         driverId: Number(data.driverId),
-        assistantId: data.assistantId ? Number(data.assistantId) : null,
-        truckId: data.truckId ? Number(data.truckId) : null,
+        assistantId: data.assistantId && data.assistantId !== "null" ? Number(data.assistantId) : null,
+        truckId: data.truckId && data.truckId !== "null" ? Number(data.truckId) : null,
         zoneId: Number(data.zoneId || selectedZone),
         status: "pending",
         isCompleted: false,
@@ -983,7 +983,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="" className="text-xs">Ninguno</SelectItem>
+                                  <SelectItem value="null" className="text-xs">Ninguno</SelectItem>
                                   {isLoadingAssistants ? (
                                     <div className="p-1">
                                       <Skeleton className="h-4 w-full" />
@@ -1026,6 +1026,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
+                                  <SelectItem value="null" className="text-xs">Ninguno</SelectItem>
                                   {isLoadingTrucks ? (
                                     <div className="p-1">
                                       <Skeleton className="h-4 w-full" />
