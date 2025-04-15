@@ -813,20 +813,20 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                 <span className="truncate">Resumen de productos vendidos</span>
               </h4>
               <div className="bg-white rounded border overflow-hidden overflow-x-auto">
-                <table className="min-w-full text-xs sm:text-sm w-full">
+                <table className="min-w-full text-[10px] xs:text-xs sm:text-sm w-full">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-2 py-1 text-left">Producto</th>
-                      <th className="px-2 py-1 text-center">Cantidad</th>
-                      <th className="px-2 py-1 text-right">Total</th>
+                      <th className="px-1 sm:px-2 py-1 text-left">Producto</th>
+                      <th className="px-1 sm:px-2 py-1 text-center w-16 sm:w-20">Cantidad</th>
+                      <th className="px-1 sm:px-2 py-1 text-right w-20 sm:w-24">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {settlementData?.productSummary?.map((product, idx) => (
                       <tr key={`product-summary-${product.productId}`} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
-                        <td className="px-2 py-1 truncate max-w-[150px] sm:max-w-none">{product.productName}</td>
-                        <td className="px-2 py-1 text-center">{product.quantity}</td>
-                        <td className="px-2 py-1 text-right">RD$ {product.total.toFixed(2)}</td>
+                        <td className="px-1 sm:px-2 py-1 truncate max-w-[100px] xs:max-w-[120px] sm:max-w-none">{product.productName}</td>
+                        <td className="px-1 sm:px-2 py-1 text-center">{product.quantity}</td>
+                        <td className="px-1 sm:px-2 py-1 text-right">RD$ {product.total.toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -851,24 +851,24 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
               Se encontraron {settlementData?.bottleReturns?.length || 0} devoluciones de envases registradas por el conductor.
             </p>
             <div className="overflow-x-auto max-h-36 sm:max-h-40 border rounded">
-              <table className="min-w-full w-full text-xs sm:text-sm bg-white">
+              <table className="min-w-full w-full text-[10px] xs:text-xs sm:text-sm bg-white">
                 <thead className="bg-primary/10 sticky top-0">
                   <tr>
-                    <th className="px-2 py-1 text-left">Producto</th>
-                    <th className="px-2 py-1 text-center w-16 sm:w-20">Esperados</th>
-                    <th className="px-2 py-1 text-center w-16 sm:w-20">Devueltos</th>
-                    <th className="px-2 py-1 text-center w-16 sm:w-20">Pendientes</th>
-                    <th className="px-2 py-1 text-right w-20 sm:w-24">Depósito</th>
+                    <th className="px-1 sm:px-2 py-1 text-left">Producto</th>
+                    <th className="px-1 sm:px-2 py-1 text-center w-14 sm:w-16 md:w-20">Esperados</th>
+                    <th className="px-1 sm:px-2 py-1 text-center w-14 sm:w-16 md:w-20">Devueltos</th>
+                    <th className="px-1 sm:px-2 py-1 text-center w-14 sm:w-16 md:w-20">Pendientes</th>
+                    <th className="px-1 sm:px-2 py-1 text-right w-16 sm:w-20 md:w-24">Depósito</th>
                   </tr>
                 </thead>
                 <tbody>
                   {settlementData?.bottleReturns?.map((bottleReturn: ExtendedBottleReturn) => (
                     <tr key={bottleReturn.id} className="border-b border-primary/10 hover:bg-gray-50">
-                      <td className="px-2 py-1 truncate max-w-[120px] sm:max-w-none">{bottleReturn.productName || `Producto #${bottleReturn.productId}`}</td>
-                      <td className="px-2 py-1 text-center">{bottleReturn.expectedQuantity}</td>
-                      <td className="px-2 py-1 text-center">{bottleReturn.returnedQuantity}</td>
-                      <td className="px-2 py-1 text-center">{bottleReturn.pendingQuantity}</td>
-                      <td className="px-2 py-1 text-right">RD$ {parseFloat(bottleReturn.depositAmount || "0").toFixed(2)}</td>
+                      <td className="px-1 sm:px-2 py-1 truncate max-w-[80px] xs:max-w-[100px] sm:max-w-none">{bottleReturn.productName || `Producto #${bottleReturn.productId}`}</td>
+                      <td className="px-1 sm:px-2 py-1 text-center">{bottleReturn.expectedQuantity}</td>
+                      <td className="px-1 sm:px-2 py-1 text-center">{bottleReturn.returnedQuantity}</td>
+                      <td className="px-1 sm:px-2 py-1 text-center">{bottleReturn.pendingQuantity}</td>
+                      <td className="px-1 sm:px-2 py-1 text-right">RD$ {parseFloat(bottleReturn.depositAmount || "0").toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1067,16 +1067,16 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
               </h3>
               
               <div className="overflow-x-auto rounded border">
-                <table className="min-w-[800px] w-full text-xs sm:text-sm">
+                <table className="min-w-[700px] w-full text-[10px] xs:text-xs sm:text-sm">
                   <thead className="bg-gray-100 sticky top-0">
                     <tr className="border-b">
-                      <th className="px-2 py-1 sm:py-2 text-left">Producto</th>
-                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Cargado</th>
-                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Devuelto</th>
-                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Vendido</th>
-                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Diferencia</th>
-                      <th className="px-2 py-1 sm:py-2 text-center w-20 sm:w-24">Envases Dev.</th>
-                      <th className="px-2 py-1 sm:py-2 text-center w-20 sm:w-24">Dif. Envases</th>
+                      <th className="px-1 sm:px-2 py-1 sm:py-2 text-left">Producto</th>
+                      <th className="px-1 sm:px-2 py-1 sm:py-2 text-center w-14 sm:w-16 md:w-20">Cargado</th>
+                      <th className="px-1 sm:px-2 py-1 sm:py-2 text-center w-14 sm:w-16 md:w-20">Devuelto</th>
+                      <th className="px-1 sm:px-2 py-1 sm:py-2 text-center w-14 sm:w-16 md:w-20">Vendido</th>
+                      <th className="px-1 sm:px-2 py-1 sm:py-2 text-center w-14 sm:w-16 md:w-20">Diferencia</th>
+                      <th className="px-1 sm:px-2 py-1 sm:py-2 text-center w-16 sm:w-20 md:w-24">Env. Dev.</th>
+                      <th className="px-1 sm:px-2 py-1 sm:py-2 text-center w-16 sm:w-20 md:w-24">Dif. Env.</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1086,9 +1086,9 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                       
                       return (
                         <tr key={item.productId} className="border-b hover:bg-gray-50">
-                          <td className="px-2 py-1 sm:py-2">
-                            <div className="font-medium text-xs sm:text-sm truncate max-w-[120px] sm:max-w-[200px]">{product?.name || `Producto #${item.productId}`}</div>
-                            <div className="text-[10px] sm:text-xs text-gray-500">{isReturnable ? 'Envase retornable' : 'No retornable'}</div>
+                          <td className="px-1 sm:px-2 py-1 sm:py-2">
+                            <div className="font-medium text-[10px] xs:text-xs sm:text-sm truncate max-w-[80px] xs:max-w-[120px] sm:max-w-[200px]">{product?.name || `Producto #${item.productId}`}</div>
+                            <div className="text-[8px] xs:text-[10px] sm:text-xs text-gray-500">{isReturnable ? 'Envase retornable' : 'No retornable'}</div>
                           </td>
                           <td className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                             <FormField
@@ -1101,7 +1101,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                       {...field}
                                       type="number"
                                       min="0"
-                                      className="w-14 sm:w-16 m-auto text-center text-xs sm:text-sm"
+                                      className="w-12 xs:w-14 sm:w-16 m-auto text-center text-[10px] xs:text-xs sm:text-sm"
                                       readOnly
                                       disabled
                                       value={field.value}
@@ -1146,7 +1146,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                     <Input
                                       {...field}
                                       type="number"
-                                      className="w-14 sm:w-16 m-auto text-center text-xs sm:text-sm bg-gray-50"
+                                      className="w-12 xs:w-14 sm:w-16 m-auto text-center text-[10px] xs:text-xs sm:text-sm bg-gray-50"
                                       readOnly
                                       disabled
                                     />
