@@ -130,9 +130,9 @@ export default function VehicleSettlementPage() {
     <div className="space-y-3 p-2">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Calculator className="h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold">Cuadre de Vehículo</h1>
+        <div className="flex items-center gap-1">
+          <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+          <h1 className="text-lg sm:text-xl font-bold">Cuadre de Vehículo</h1>
         </div>
         
         {(selectedLoadingId || selectedSettlementId) && (
@@ -143,9 +143,10 @@ export default function VehicleSettlementPage() {
               setSelectedLoadingId(null);
               setSelectedSettlementId(null);
             }}
-            className="h-8"
+            className="h-7 sm:h-8 text-xs sm:text-sm flex items-center gap-1"
           >
-            Volver a la lista
+            <span className="hidden sm:inline">Volver a la lista</span>
+            <span className="sm:hidden">Volver</span>
           </Button>
         )}
       </div>
@@ -216,17 +217,19 @@ export default function VehicleSettlementPage() {
 
       {/* Lista de cargas o formulario de cuadre o detalle de cuadre completado */}
       {selectedSettlementId ? (
-        <Card className="p-3 overflow-hidden">
-          <CardHeader className="p-3 pb-2 flex flex-row justify-between">
-            <div className="flex items-center gap-1.5">
-              <CheckSquare className="h-4 w-4 text-green-600" />
-              <CardTitle className="text-base">Detalle de Cuadre #{selectedSettlement?.loadingNumber}</CardTitle>
+        <Card className="p-2 sm:p-3 overflow-hidden">
+          <CardHeader className="p-2 sm:p-3 pb-1 sm:pb-2 flex flex-row justify-between items-center">
+            <div className="flex items-center gap-1">
+              <CheckSquare className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base truncate">
+                Detalle de Cuadre #{selectedSettlement?.loadingNumber}
+              </CardTitle>
             </div>
-            <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+            <Badge variant="outline" className="text-xs text-green-700 border-green-200 bg-green-50 whitespace-nowrap">
               Completado
             </Badge>
           </CardHeader>
-          <CardContent className="p-3 pt-0">
+          <CardContent className="p-2 sm:p-3 pt-0">
             {/* Convertir selectedSettlement a formato LoadingWithRelations para pasar al formulario */}
             {selectedSettlement && (
               <VehicleSettlementForm 
@@ -260,42 +263,44 @@ export default function VehicleSettlementPage() {
           </CardContent>
         </Card>
       ) : selectedLoading ? (
-        <Card className="p-3 overflow-hidden">
-          <CardHeader className="p-3 pb-2 flex flex-row justify-between">
-            <div className="flex items-center gap-1.5">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Cuadre para Vehículo #{selectedLoading.loadingNumber}</CardTitle>
+        <Card className="p-2 sm:p-3 overflow-hidden">
+          <CardHeader className="p-2 sm:p-3 pb-1 sm:pb-2 flex flex-row justify-between items-center">
+            <div className="flex items-center gap-1">
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
+              <CardTitle className="text-sm sm:text-base truncate">
+                Cuadre para Vehículo #{selectedLoading.loadingNumber}
+              </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-50 p-2 mb-3 rounded-lg text-xs">
-              <div className="border-l-4 border-l-blue-500 pl-2">
+          <CardContent className="p-2 sm:p-3 pt-0">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 md:grid-cols-4 bg-gray-50 p-1.5 sm:p-2 mb-2 sm:mb-3 rounded-lg text-xs">
+              <div className="border-l-4 border-l-blue-500 pl-1.5 sm:pl-2">
                 <p className="text-xs text-gray-500 flex items-center">
                   <Calendar className="h-3 w-3 mr-1 text-blue-500" />
                   Fecha
                 </p>
-                <p className="font-medium text-sm">{new Date(selectedLoading.date).toLocaleDateString()}</p>
+                <p className="font-medium text-xs sm:text-sm">{new Date(selectedLoading.date).toLocaleDateString()}</p>
               </div>
-              <div className="border-l-4 border-l-green-500 pl-2">
+              <div className="border-l-4 border-l-green-500 pl-1.5 sm:pl-2">
                 <p className="text-xs text-gray-500 flex items-center">
                   <UserIcon className="h-3 w-3 mr-1 text-green-500" />
                   Conductor
                 </p>
-                <p className="font-medium text-sm">{selectedLoading.driver?.name}</p>
+                <p className="font-medium text-xs sm:text-sm truncate">{selectedLoading.driver?.name}</p>
               </div>
-              <div className="border-l-4 border-l-purple-500 pl-2">
+              <div className="border-l-4 border-l-purple-500 pl-1.5 sm:pl-2">
                 <p className="text-xs text-gray-500 flex items-center">
                   <Truck className="h-3 w-3 mr-1 text-purple-500" />
                   Vehículo
                 </p>
-                <p className="font-medium text-sm">{selectedLoading.truck?.plate}</p>
+                <p className="font-medium text-xs sm:text-sm">{selectedLoading.truck?.plate}</p>
               </div>
-              <div className="border-l-4 border-l-amber-500 pl-2">
+              <div className="border-l-4 border-l-amber-500 pl-1.5 sm:pl-2">
                 <p className="text-xs text-gray-500 flex items-center">
                   <BanknoteIcon className="h-3 w-3 mr-1 text-amber-500" />
                   Efectivo Inicial
                 </p>
-                <p className="font-medium text-sm">RD$ {parseFloat(selectedLoading.initialCash).toFixed(2)}</p>
+                <p className="font-medium text-xs sm:text-sm">RD$ {parseFloat(selectedLoading.initialCash).toFixed(2)}</p>
               </div>
             </div>
             <VehicleSettlementForm 
