@@ -149,7 +149,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const {
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders
-  } = useQuery<PendingOrder[]>({
+  } = useQuery<OrderWithCustomer[]>({
     queryKey: [`/api/zones/${selectedZone}/pending-orders`],
     queryFn: async () => {
       if (!selectedZone) return [];
@@ -160,7 +160,17 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       }
       const data = await response.json();
       console.log("Pending orders data:", data);
-      return data;
+      
+      // Transformar los datos para que coincidan con el formato esperado por el componente
+      return data.map((order: any) => ({
+        ...order,
+        // Asegurarnos de que cada pedido tenga una propiedad coordinates
+        coordinates: order.deliveryCoordinates || null,
+        // Agregar customerAddress completo con número (para mostrar en la vista)
+        customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
+        // Inicializar un array vacío de productos (opcional, ya que hemos agregado la verificación)
+        products: []
+      }));
     },
     enabled: !!selectedZone,
   });
