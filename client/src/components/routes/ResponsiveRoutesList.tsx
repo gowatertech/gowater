@@ -28,11 +28,10 @@ import { Zone, Route } from "@shared/schema";
 
 interface ResponsiveRoutesListProps {
   routes: Route[];
-  zones: Zone[];
   isActive?: boolean; // si es true, solo muestra rutas activas, si es false, completadas
 }
 
-export function ResponsiveRoutesList({ routes, zones, isActive = true }: ResponsiveRoutesListProps) {
+export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRoutesListProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
