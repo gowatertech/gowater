@@ -748,6 +748,11 @@ export const vehicleLoading = pgTable("vehicle_loading", {
     enum: ["pending", "in_progress", "completed", "cancelled"]
   }).notNull().default("pending"),
   initialCash: decimal("initial_cash", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  // Campos para cuadre
+  cashTotal: decimal("cash_total", { precision: 10, scale: 2 }).default("0.00"),
+  transferTotal: decimal("transfer_total", { precision: 10, scale: 2 }).default("0.00"),
+  totalInvoiced: decimal("total_invoiced", { precision: 10, scale: 2 }).default("0.00"),
+  difference: decimal("difference", { precision: 10, scale: 2 }).default("0.00"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { mode: 'string' }).notNull().defaultNow(),
   completedAt: timestamp("completed_at", { mode: 'string' }),
