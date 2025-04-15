@@ -615,9 +615,12 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   };
   
   // Filtrar clientes de la zona que tienen pedidos pendientes
-  const customersWithPendingOrders = zoneCustomers.filter((customer: Customer) => 
-    pendingOrders.some(order => order.customerId === customer.id)
-  );
+  // Asegurarnos de que tenemos arreglos válidos para evitar errores
+  const safeZoneCustomers = Array.isArray(zoneCustomers) ? zoneCustomers : [];
+  const safePendingOrders = Array.isArray(pendingOrders) ? pendingOrders : [];
+  
+  // Mostrar todos los clientes en la pestaña Clientes en lugar de solo los que tienen pedidos pendientes
+  const customersWithPendingOrders = safeZoneCustomers;
   
   // Filtrar clientes por búsqueda (solo entre los que tienen pedidos pendientes)
   const filteredZoneCustomers = searchQuery 
