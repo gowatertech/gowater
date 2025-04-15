@@ -6,11 +6,13 @@ import {
   Calculator, Truck, AlertCircle, Calendar, Clock, 
   User as UserIcon, // Renombrar el icono para evitar conflicto
   DollarSign, Package, CheckCircle, BanknoteIcon, TrendingDown, 
-  TrendingUp, FileText, Tag, ClipboardList, BarChart3
+  TrendingUp, FileText, Tag, ClipboardList, BarChart3, 
+  HistoryIcon, ListChecks, RouteIcon, BadgeCheck, FilterIcon
 } from "lucide-react";
-import type { VehicleLoading, Product, User, Truck as TruckType } from "@shared/schema";
+import type { VehicleLoading, Product, User, Truck as TruckType, Route } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import VehicleSettlementForm from "./VehicleSettlementForm";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DebugApiView from "./DebugApiView";
 
 interface LoadingWithRelations extends VehicleLoading {
@@ -24,6 +26,17 @@ interface LoadingWithRelations extends VehicleLoading {
     notes: string | null;
     product: Product;
   }>;
+  route?: {
+    id: number;
+    name: string;
+  } | null;
+}
+
+interface CompletedLoadingWithStats extends LoadingWithRelations {
+  stats: {
+    orderCount: number;
+    totalSales: string;
+  };
 }
 
 const getStatusColor = (status: string) => {
@@ -43,13 +56,33 @@ const getStatusColor = (status: string) => {
 
 export default function VehicleSettlementPage() {
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("pending");
 
   // Obtener solo cargas pendientes
-  const { data: loadings = [], isLoading, error } = useQuery<LoadingWithRelations[]>({
+  const { 
+    data: loadings = [], 
+    isLoading: isLoadingPending, 
+    error: errorPending 
+  } = useQuery<LoadingWithRelations[]>({
     queryKey: ["/api/vehicle-loading/pending"],
     retry: 1,
     refetchOnWindowFocus: false,
   });
+  
+  // Obtener cargas completadas (cuadres)
+  const {
+    data: completedSettlements = { settlements: [], totalCount: 0 },
+    isLoading: isLoadingCompleted,
+    error: errorCompleted
+  } = useQuery<{ settlements: CompletedLoadingWithStats[], totalCount: number }>({
+    queryKey: ["/api/route-settlements"],
+    retry: 1,
+    refetchOnWindowFocus: false,
+    enabled: activeTab === "completed",
+  });
+
+  const isLoading = isLoadingPending || (isLoadingCompleted && activeTab === "completed");
+  const error = errorPending || (errorCompleted && activeTab === "completed");
 
   if (isLoading) {
     return (
@@ -221,69 +254,153 @@ export default function VehicleSettlementPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {loadings.length === 0 ? (
-            <div className="col-span-full text-center py-4">
-              <p className="text-gray-500 text-sm">No hay cargas pendientes para cuadrar</p>
-            </div>
-          ) : (
-            loadings.map((loading) => {
-              const stats = getLoadingStats(loading);
-              return (
-                <Card 
-                  key={loading.id} 
-                  className="p-0 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-                  onClick={() => setSelectedLoadingId(loading.id)}
-                >
-                  <div className="flex flex-col border-l-4 border-l-amber-500">
-                    <div className="p-2.5 pb-1.5">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium text-sm">Carga #{loading.loadingNumber}</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(loading.status)}`}>
-                          Pendiente por Cuadrar
-                        </span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                        <div className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                          <span className="text-gray-600">{new Date(loading.date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <UserIcon className="h-3 w-3 mr-1 text-gray-500" />
-                          <span className="text-gray-600 truncate">{loading.driver?.name || loading.driverId}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Truck className="h-3 w-3 mr-1 text-gray-500" />
-                          <span className="text-gray-600">{loading.truck?.plate || loading.truckId}</span>
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="h-3 w-3 mr-1 text-gray-500" />
-                          <span className="text-gray-600">RD$ {parseFloat(loading.initialCash).toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-gray-50 p-2 border-t border-gray-100 grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <p className="text-xs text-gray-500">Productos</p>
-                        <p className="font-medium">{stats.totalProducts}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Cantidad</p>
-                        <p className="font-medium">{stats.totalItems}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500">Valor Total</p>
-                        <p className="font-medium">RD$ {stats.totalValue}</p>
-                      </div>
-                    </div>
+        <>
+          {/* Pestañas para seleccionar entre pendientes y completados */}
+          <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-2 w-full mb-2">
+              <TabsTrigger value="pending" className="flex items-center gap-1.5">
+                <ClipboardList className="h-4 w-4" />
+                Pendientes ({loadings.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="flex items-center gap-1.5">
+                <CheckCircle className="h-4 w-4" />
+                Completados ({completedSettlements.totalCount})
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="pending" className="mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {loadings.length === 0 ? (
+                  <div className="col-span-full text-center py-4">
+                    <p className="text-gray-500 text-sm">No hay cargas pendientes para cuadrar</p>
                   </div>
-                </Card>
-              );
-            })
-          )}
-        </div>
+                ) : (
+                  loadings.map((loading) => {
+                    const stats = getLoadingStats(loading);
+                    return (
+                      <Card 
+                        key={loading.id} 
+                        className="p-0 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+                        onClick={() => setSelectedLoadingId(loading.id)}
+                      >
+                        <div className="flex flex-col border-l-4 border-l-amber-500">
+                          <div className="p-2.5 pb-1.5">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-medium text-sm">Carga #{loading.loadingNumber}</span>
+                              <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(loading.status)}`}>
+                                Pendiente por Cuadrar
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                              <div className="flex items-center">
+                                <Calendar className="h-3 w-3 mr-1 text-gray-500" />
+                                <span className="text-gray-600">{new Date(loading.date).toLocaleDateString()}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <UserIcon className="h-3 w-3 mr-1 text-gray-500" />
+                                <span className="text-gray-600 truncate">{loading.driver?.name || loading.driverId}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <Truck className="h-3 w-3 mr-1 text-gray-500" />
+                                <span className="text-gray-600">{loading.truck?.plate || loading.truckId}</span>
+                              </div>
+                              <div className="flex items-center">
+                                <DollarSign className="h-3 w-3 mr-1 text-gray-500" />
+                                <span className="text-gray-600">RD$ {parseFloat(loading.initialCash).toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-2 border-t border-gray-100 grid grid-cols-3 gap-2 text-xs">
+                            <div>
+                              <p className="text-xs text-gray-500">Productos</p>
+                              <p className="font-medium">{stats.totalProducts}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Cantidad</p>
+                              <p className="font-medium">{stats.totalItems}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Valor Total</p>
+                              <p className="font-medium">RD$ {stats.totalValue}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="completed" className="mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {completedSettlements.settlements.length === 0 ? (
+                  <div className="col-span-full text-center py-4">
+                    <p className="text-gray-500 text-sm">No hay cuadres completados para mostrar</p>
+                  </div>
+                ) : (
+                  completedSettlements.settlements.map((settlement) => (
+                    <Card 
+                      key={settlement.id} 
+                      className="p-0 hover:shadow-md transition-shadow overflow-hidden"
+                    >
+                      <div className="flex flex-col border-l-4 border-l-green-500">
+                        <div className="p-2.5 pb-1.5">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="font-medium text-sm">Carga #{settlement.loadingNumber}</span>
+                            <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(settlement.status)}`}>
+                              Completado
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                            <div className="flex items-center">
+                              <Calendar className="h-3 w-3 mr-1 text-gray-500" />
+                              <span className="text-gray-600">{new Date(settlement.date).toLocaleDateString()}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Clock className="h-3 w-3 mr-1 text-gray-500" />
+                              <span className="text-gray-600 truncate">
+                                {settlement.completedAt 
+                                  ? new Date(settlement.completedAt).toLocaleDateString() 
+                                  : 'Sin fecha de cuadre'}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <UserIcon className="h-3 w-3 mr-1 text-gray-500" />
+                              <span className="text-gray-600 truncate">{settlement.driver?.name || settlement.driverId}</span>
+                            </div>
+                            <div className="flex items-center">
+                              <RouteIcon className="h-3 w-3 mr-1 text-gray-500" />
+                              <span className="text-gray-600">{settlement.route?.name || 'Sin ruta asignada'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-gray-50 p-2 border-t border-gray-100 grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <p className="text-xs text-gray-500">Órdenes</p>
+                            <p className="font-medium">{settlement.stats.orderCount}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Total Vendido</p>
+                            <p className="font-medium">RD$ {Number(settlement.stats.totalSales).toFixed(2)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500">Vehículo</p>
+                            <p className="font-medium">{settlement.truck?.plate || 'N/A'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </>
       )}
     </div>
   );

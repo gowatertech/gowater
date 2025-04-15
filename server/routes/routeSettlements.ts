@@ -1,10 +1,86 @@
 import { Express, Request, Response } from "express";
-import { eq, and, inArray, gte, lt, sql } from "drizzle-orm";
+import { eq, and, inArray, gte, lt, sql, desc } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "@shared/schema";
 import { vehicleLoading, vehicleLoadingItems, routes, orders, bottleReturns, products, orderItems } from "@shared/schema";
 
 export async function registerRouteSettlements(app: Express) {
+  
+  // Obtener lista de cuadres de vehículos completados
+  app.get("/api/route-settlements", async (req: Request, res: Response) => {
+    try {
+      // Obtener todas las cargas que tienen estado "completed"
+      const completedLoads = await db.query.vehicleLoading.findMany({
+        where: eq(vehicleLoading.status, "completed"),
+        with: {
+          driver: true,
+          truck: true,
+          route: true
+        },
+        orderBy: [
+          desc(vehicleLoading.completedAt)
+        ]
+      });
+      
+      // Obtener estadísticas básicas para cada cuadre
+      const loadingIdsWithCompletedOrders = completedLoads.map(loading => {
+        if (loading.routeId) {
+          return loading.routeId;
+        }
+        return null;
+      }).filter(id => id !== null);
+      
+      // Contar órdenes y sumar totales para cada ruta
+      const routeStats = new Map();
+      
+      if (loadingIdsWithCompletedOrders.length > 0) {
+        const ordersData = await db
+          .select({
+            routeId: orders.routeId,
+            count: sql`count(*)`,
+            total: sql`sum(${orders.total})`
+          })
+          .from(orders)
+          .where(inArray(orders.routeId, loadingIdsWithCompletedOrders as number[]))
+          .groupBy(orders.routeId);
+        
+        // Almacenar las estadísticas por ruta
+        for (const order of ordersData) {
+          if (order.routeId) {
+            routeStats.set(order.routeId, {
+              orderCount: Number(order.count) || 0,
+              totalSales: order.total || "0.00"
+            });
+          }
+        }
+      }
+      
+      // Añadir estadísticas a cada carga completada
+      const completedLoadsWithStats = completedLoads.map(loading => {
+        let stats = { orderCount: 0, totalSales: "0.00" };
+        
+        if (loading.routeId && routeStats.has(loading.routeId)) {
+          stats = routeStats.get(loading.routeId);
+        }
+        
+        return {
+          ...loading,
+          stats
+        };
+      });
+      
+      res.json({
+        settlements: completedLoadsWithStats,
+        totalCount: completedLoadsWithStats.length
+      });
+    } catch (error) {
+      console.error("Error al obtener lista de cuadres:", error);
+      res.status(500).json({
+        error: "Error interno del servidor",
+        message: String(error)
+      });
+    }
+  });
   // Crear nuevo cuadre de vehículo
   app.post("/api/route-settlements", async (req: Request, res: Response) => {
     try {
