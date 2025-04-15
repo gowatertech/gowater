@@ -149,8 +149,8 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
   // Cargar los datos de settlement incluyendo órdenes relacionadas
   const { data: settlementData, isLoading: isLoadingSettlementData, isError, error } = useQuery<SettlementResponse>({
     queryKey: [`/api/route-settlements/${loading.id}`],
-    // No hacer consultas API si estamos en modo readOnly
-    enabled: !!loading.id && !readOnly,
+    // Siempre permitir las consultas a la API, incluso en modo readOnly para mostrar todos los datos
+    enabled: !!loading.id,
     retry: 2,
     refetchOnWindowFocus: false,
   });
