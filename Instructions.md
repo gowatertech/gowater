@@ -1,121 +1,103 @@
-# Instrucciones para Corregir la Cronología de Entregas en la App Móvil
+# Análisis del Problema en la Creación de Rutas
 
-## Problemas Identificados
+## Problema Identificado
+El problema actual ocurre durante el proceso de creación de rutas:
 
-Después de analizar el código de la aplicación móvil, he identificado los siguientes problemas relacionados con la cronología de entrega:
+1. Después de seleccionar una zona, no se muestran los clientes que tienen pedidos pendientes (activos).
+2. Este problema impide la creación efectiva de rutas ya que no se pueden seleccionar los pedidos a incluir en la ruta.
 
-1. **Orden de paradas**: Las paradas no mantienen su orden original cuando cambian de estado (entregado, devuelto, etc.)
-2. **Visualización de entregas completadas**: Cuando una parada se marca como entregada, no se aplica correctamente el estilo opaco
-3. **Estado de "devuelto"**: No existe un estado visual para indicar que una entrega fue devuelta/rechazada
+## Archivos y Funciones Involucradas
 
-## Archivos Relevantes
+### Frontend (Componentes de React)
+1. **PendingOrdersRouteForm.tsx** - Componente principal para la creación de rutas basadas en pedidos pendientes
+   - Función `useQuery` para `/api/zones/${selectedZone}/pending-orders`
+   - Manejo de estado con `selectedZone` y `pendingOrders`
+   
+2. **ZoneBasedRouteForm.tsx** - Componente alternativo para creación de rutas basadas en zonas
+   - También realiza consultas a `/api/zones/${selectedZone}/pending-orders`
+   - Usa un formato similar para mostrar los pedidos pendientes
 
-Los archivos clave para este problema son:
+### Backend (API)
+1. **routes.ts** - Contiene el endpoint `/api/zones/:id/pending-orders`
+   - Busca clientes en la zona seleccionada
+   - Obtiene pedidos pendientes para esos clientes
+   - Filtra pedidos que tengan estado "pending" y que no estén asignados a una ruta
 
-- `client/src/components/route/RouteTimeline.tsx`: Componente principal que renderiza la cronología de entregas
-- `client/src/pages/mobile-app/ruta/index.tsx`: Página que muestra la ruta activa y gestiona las paradas
-- `client/src/types/route.ts`: Define las interfaces de datos para la ruta y paradas
+## Posibles Causas del Problema
 
-## Razones del Problema
+Basado en el análisis del código y los logs observados, he identificado las siguientes posibles causas:
 
-1. En el componente `RouteTimeline.tsx`, cuando se renderiza una parada con estado "completed" o "delivered", no se mantiene su posición original en la secuencia, ya que el estilo visual puede estar alterando el flujo del documento.
+1. **Problemas en el endpoint de API**:
+   - El endpoint `/api/zones/:id/pending-orders` puede estar retornando un arreglo vacío aunque existan pedidos pendientes.
+   - La consulta SQL puede estar filtrando incorrectamente los pedidos.
+   - La condición `sql\`${orders.routeId} IS NULL\`` puede estar causando problemas si los datos tienen un formato diferente al esperado.
 
-2. La opacidad de las paradas completadas no se implementa correctamente:
-   - En la línea ~142-145 se aplican estilos condicionales, pero no se reduce la opacidad para estados completados
-   - La visualización de "devuelto" no está implementada en absoluto, solo se manejan estados "completed" y "delivered"
+2. **Problemas en el componente frontend**:
+   - El componente puede estar utilizando un queryKey incorrecto que no se actualiza cuando cambia la zona.
+   - El estado `selectedZone` puede no estar actualizándose correctamente.
+   - La visualización condicional puede estar ocultando los pedidos aunque existan.
 
-3. El cálculo del `currentStopIndex` en `ruta/index.tsx` no considera correctamente las paradas completadas, lo que puede estar afectando la visualización del orden.
+3. **Problema de sincronización de datos**:
+   - Los pedidos pueden existir pero no estar marcados correctamente como "pending" o tener un routeId asignado.
 
-## Plan de Solución
+## Análisis de Logs
 
-### 1. Modificar el Componente RouteTimeline
-
-Actualizar `client/src/components/route/RouteTimeline.tsx` para:
-
-1. Asegurar que las paradas siempre mantengan su posición original en la secuencia, independientemente de su estado
-2. Aplicar estilos de opacidad para las paradas completadas sin alterar su posición
-3. Agregar soporte para visualizar un estado de "devuelto" con su propio estilo distintivo
-
-```jsx
-// Modificación en el estilo de la tarjeta de parada
-<Card 
-  className={`overflow-hidden border ${
-    isCompleted ? "border-gray-500/30 bg-gray-700/5 opacity-70" : // Añadir opacity-70
-    stop.status === "cancelled" ? "border-red-500/30 bg-red-500/5" : // Estilo para devuelto/rechazado
-    isCurrent ? "border-blue-500/30 bg-blue-500/5" : 
-    "border-gray-500/30 bg-gray-700/5"
-  } ${darkMode ? 'dark bg-gray-800 text-white' : ''}`}
->
+En los logs del servidor, observamos:
+```
+GET /api/zones/1/pending-orders - Buscando pedidos pendientes
+Clientes encontrados en zona 1: [ 6, 3, 1, 5, 2, 7 ]
+Encontrados 2 pedidos pendientes para la zona 1
 ```
 
-### 2. Actualizar la Interfaz RouteStop
+Esto indica que el servidor encuentra correctamente los pedidos pendientes (2) para la zona seleccionada (ID 1). Los clientes 6, 3, 1, 5, 2, y 7 están en esta zona, y hay 2 pedidos pendientes encontrados.
 
-Modificar `client/src/types/route.ts` para incluir explícitamente el estado "returned":
+Sin embargo, parece que estos pedidos no se muestran en la interfaz de usuario después de la selección de zona.
 
-```typescript
-// Modificar la interfaz RouteStop
-export interface RouteStop {
-  // ...
-  status: "pending" | "in_progress" | "completed" | "cancelled" | "delivered" | "returned";
-  // ...
-}
-```
+## Plan de Acción para Solucionar el Problema
 
-### 3. Mejorar la Lógica de Ordenamiento en la Página de Ruta
+1. **Verificar la estructura de la respuesta API**:
+   - Confirmar que los datos retornados por el endpoint `/api/zones/:id/pending-orders` tienen el formato correcto esperado por el frontend.
+   - Revisar si hay campos faltantes o mal nombrados en la respuesta.
 
-En `client/src/pages/mobile-app/ruta/index.tsx`, actualizar el código para:
+2. **Corregir el queryKey en el componente frontend**:
+   - Asegurar que el componente `PendingOrdersRouteForm` usa el queryKey correcto.
+   - El queryKey actual `["/api/zones/pending-orders", selectedZone]` no coincide exactamente con la URL `/api/zones/${selectedZone}/pending-orders`.
 
-1. Asegurar que las paradas siempre se muestran en el orden correcto, independientemente de su estado
-2. Implementar un estado de pedido devuelto cuando corresponda
-3. Mejorar la visualización para hacer más evidente la parada actual vs. las completadas
+3. **Comparar las implementaciones de ambos componentes**:
+   - Revisar las diferencias entre `PendingOrdersRouteForm` y `ZoneBasedRouteForm`.
+   - Si uno funciona correctamente y el otro no, identificar las diferencias clave.
+
+4. **Verificar el flujo de datos entre pestañas**:
+   - Asegurar que al cambiar de la pestaña "zone" a "orders" los datos se mantienen.
+   - Comprobar que el evento `onClick={() => setSelectedTab("orders")}` no está reiniciando los datos.
+
+5. **Implementar mejor manejo de errores y logging**:
+   - Agregar más logs para ver si los datos llegan correctamente al frontend.
+   - Mostrar mensajes de error más descriptivos si falla la consulta.
+
+## Solución Propuesta
+
+La solución más probable basada en el análisis es corregir el queryKey en el componente `PendingOrdersRouteForm.tsx`:
 
 ```javascript
-// Actualizar cómo se determina el estado visual de la parada
-const displayStatus = order.status === "cancelled" ? "returned" : actualStatus;
+// ACTUAL (posiblemente incorrecto)
+queryKey: ["/api/zones/pending-orders", selectedZone],
 
-// Asegurar que la opacidad no afecte el orden
-// Esto se debe implementar en la parte donde se construyen las paradas
+// PROPUESTO
+queryKey: [`/api/zones/${selectedZone}/pending-orders`],
+// o alternativamente:
+queryKey: ["/api/zones", selectedZone, "pending-orders"],
 ```
 
-### 4. Asegurar el Mantenimiento del Orden
+También es recomendable agregar más logging en el componente para verificar:
+1. Cuándo se actualiza `selectedZone`
+2. Si los datos retornados por la API están llegando correctamente
+3. Si hay algún error que no se está mostrando
 
-Modificar la función `fetchRouteStops` en `ruta/index.tsx` para garantizar que siempre se respeta el orden de las paradas según la secuencia de entrega definida, sin importar el estado de cada parada:
+## Próximos Pasos
 
-```javascript
-// Asegurar que este código siempre mantenga el orden correcto
-if (routeDetails && routeDetails.deliverySequence && routeDetails.deliverySequence.length > 0) {
-  console.log("Usando secuencia de entrega:", routeDetails.deliverySequence);
-  
-  // Mapa para buscar rápidamente las paradas por ID
-  const stopsMap = new Map();
-  customerStops.forEach(stop => stopsMap.set(stop.id.toString(), stop));
-  
-  // Primero siempre va el almacén, luego las paradas en el orden indicado
-  orderedStops = [warehouseStop];
-  
-  // Añadir el resto de paradas en el orden indicado
-  for (let i = 1; i < routeDetails.deliverySequence.length; i++) {
-    const stopId = routeDetails.deliverySequence[i];
-    if (stopId !== "0") { // El almacén ya está incluido
-      const stop = stopsMap.get(stopId);
-      if (stop) {
-        orderedStops.push(stop);
-      }
-    }
-  }
-  
-  // Si alguna parada no está en la secuencia, añadirla al final
-  customerStops.forEach(stop => {
-    if (!routeDetails.deliverySequence.includes(stop.id.toString())) {
-      orderedStops.push(stop);
-    }
-  });
-}
-```
+1. Implementar los cambios propuestos
+2. Probar la funcionalidad de selección de zona y visualización de pedidos pendientes
+3. Verificar el flujo completo de creación de rutas para asegurar que todas las partes funcionan correctamente juntas
 
-## Implementación Paso a Paso
-
-1. Comenzar modificando el componente `RouteTimeline.tsx` para agregar la opacidad a las paradas completadas sin alterar su posición.
-2. Actualizar la interfaz `RouteStop` para incluir el estado "returned".
-3. Modificar la lógica en `ruta/index.tsx` para mapear correctamente el estado "cancelled" a "returned" para visualización.
-4. Probar los cambios para verificar que las paradas mantienen su orden original y se visualizan correctamente cuando cambian de estado.
+Esta solución debería permitir que después de seleccionar una zona, los clientes con pedidos activos se muestren correctamente, permitiendo el flujo normal de creación de rutas.
