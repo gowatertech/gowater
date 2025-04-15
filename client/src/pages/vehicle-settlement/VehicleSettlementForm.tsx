@@ -116,22 +116,24 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
   // Preparar valores iniciales para el formulario
   const defaultValues = {
     vehicleLoadingId: loading.id,
-    // Siempre inicializar explícitamente en 0.00 para evitar valores predeterminados extraños
-    totalCashReceived: "0.00",
-    totalCreditReceived: "0.00",
-    totalInvoiced: "0.00",
-    notes: "",
+    // Si estamos en modo readOnly, usar los valores almacenados, de lo contrario iniciar en 0.00
+    totalCashReceived: readOnly && loading.cashTotal ? loading.cashTotal : "0.00",
+    totalCreditReceived: readOnly && loading.transferTotal ? loading.transferTotal : "0.00",
+    totalInvoiced: readOnly && loading.totalInvoiced ? loading.totalInvoiced : "0.00",
+    notes: readOnly && loading.notes ? loading.notes : "",
     items: loading.items.map(item => {
       console.log(`Inicializando item ${item.productId}: ${item.product?.name} - cantidad=${item.quantity}`);
       return {
         productId: item.productId,
         loadedQuantity: item.quantity,
-        returnedQuantity: 0,
-        soldQuantity: 0, // Iniciamos con 0 para que se calcule correctamente
-        returnedContainers: 0,
-        productDifference: 0, // Diferencia entre cargado-devuelto y vendido
-        containersDifference: 0, // Diferencia entre envases devueltos y vendidos
-        notes: "",
+        returnedQuantity: readOnly && item.returnedQuantity ? item.returnedQuantity : 0,
+        soldQuantity: readOnly && item.quantity && item.returnedQuantity 
+          ? item.quantity - (item.returnedQuantity || 0) 
+          : 0, // Si es en modo lectura, calcular, sino iniciar en 0
+        returnedContainers: readOnly && typeof item.returnedContainers !== 'undefined' ? item.returnedContainers : 0,
+        productDifference: 0, // Se calculará después
+        containersDifference: 0, // Se calculará después
+        notes: readOnly && item.notes ? item.notes : "",
       };
     }),
   };
@@ -147,7 +149,8 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
   // Cargar los datos de settlement incluyendo órdenes relacionadas
   const { data: settlementData, isLoading: isLoadingSettlementData, isError, error } = useQuery<SettlementResponse>({
     queryKey: [`/api/route-settlements/${loading.id}`],
-    enabled: !!loading.id,
+    // No hacer consultas API si estamos en modo readOnly
+    enabled: !!loading.id && !readOnly,
     retry: 2,
     refetchOnWindowFocus: false,
   });
@@ -1146,7 +1149,9 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                     <FormControl>
                       <Textarea 
                         placeholder="Añadir comentarios sobre el cuadre, justificaciones de diferencias, etc." 
-                        className="min-h-24"
+                        className={`min-h-24 ${readOnly ? "bg-gray-50" : ""}`}
+                        readOnly={readOnly}
+                        disabled={readOnly}
                         {...field}
                       />
                     </FormControl>
@@ -1162,23 +1167,32 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  toast({
-                    title: "Operación cancelada",
-                    description: "No se realizaron cambios en el sistema",
-                  });
+                  if (readOnly) {
+                    toast({
+                      title: "Vista cerrada",
+                      description: "Volviendo a la lista de cuadres"
+                    });
+                  } else {
+                    toast({
+                      title: "Operación cancelada",
+                      description: "No se realizaron cambios en el sistema",
+                    });
+                  }
                   onSuccess();
                 }}
               >
-                Cancelar
+                {readOnly ? "Volver" : "Cancelar"}
               </Button>
-              <Button 
-                type="submit" 
-                disabled={isPending}
-                className="flex items-center gap-2"
-              >
-                {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Completar Cuadre
-              </Button>
+              {!readOnly && (
+                <Button 
+                  type="submit" 
+                  disabled={isPending}
+                  className="flex items-center gap-2"
+                >
+                  {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Completar Cuadre
+                </Button>
+              )}
             </div>
           </form>
         </Form>

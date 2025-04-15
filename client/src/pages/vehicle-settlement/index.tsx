@@ -227,97 +227,21 @@ export default function VehicleSettlementPage() {
             </Badge>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-50 p-2 mb-3 rounded-lg text-xs">
-              <div className="border-l-4 border-l-blue-500 pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <Calendar className="h-3 w-3 mr-1 text-blue-500" />
-                  Fecha Carga
-                </p>
-                <p className="font-medium text-sm">{selectedSettlement && new Date(selectedSettlement.date).toLocaleDateString()}</p>
-              </div>
-              <div className="border-l-4 border-l-green-500 pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <Clock className="h-3 w-3 mr-1 text-green-500" />
-                  Fecha Cuadre
-                </p>
-                <p className="font-medium text-sm">
-                  {selectedSettlement?.completedAt 
-                    ? new Date(selectedSettlement.completedAt).toLocaleDateString() 
-                    : 'Sin fecha'}
-                </p>
-              </div>
-              <div className="border-l-4 border-l-purple-500 pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <Truck className="h-3 w-3 mr-1 text-purple-500" />
-                  Vehículo
-                </p>
-                <p className="font-medium text-sm">{selectedSettlement?.truck?.plate || 'N/A'}</p>
-              </div>
-              <div className="border-l-4 border-l-amber-500 pl-2">
-                <p className="text-xs text-gray-500 flex items-center">
-                  <UserIcon className="h-3 w-3 mr-1 text-amber-500" />
-                  Conductor
-                </p>
-                <p className="font-medium text-sm">{selectedSettlement?.driver?.name || 'N/A'}</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-              <Card className="p-3">
-                <CardTitle className="text-sm mb-3 flex items-center gap-1.5">
-                  <ShoppingBag className="h-4 w-4 text-gray-500" /> 
-                  Resumen de Ventas
-                </CardTitle>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center pb-1 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Total Órdenes:</span>
-                    <span className="font-medium">{selectedSettlement?.stats.orderCount || 0}</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-1 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Total Vendido:</span>
-                    <span className="font-medium">RD$ {selectedSettlement ? Number(selectedSettlement.stats.totalSales).toFixed(2) : '0.00'}</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-1 border-b border-gray-100">
-                    <span className="text-sm text-gray-600">Ruta:</span>
-                    <span className="font-medium">{selectedSettlement?.route?.name || 'Sin ruta asignada'}</span>
-                  </div>
-                </div>
-              </Card>
-              
-              <Card className="p-3 bg-green-50">
-                <CardTitle className="text-sm mb-3 flex items-center gap-1.5">
-                  <DollarSign className="h-4 w-4 text-green-600" /> 
-                  Resumen de Cuadre
-                </CardTitle>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center pb-1 border-b border-green-100">
-                    <span className="text-sm text-gray-600">Efectivo:</span>
-                    <span className="font-medium">
-                      RD$ {selectedSettlement?.cashTotal ? Number(selectedSettlement.cashTotal).toFixed(2) : '0.00'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pb-1 border-b border-green-100">
-                    <span className="text-sm text-gray-600">Crédito:</span>
-                    <span className="font-medium">
-                      RD$ {selectedSettlement?.transferTotal ? Number(selectedSettlement.transferTotal).toFixed(2) : '0.00'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pb-1 border-b border-green-100">
-                    <span className="text-sm text-gray-600">Diferencia:</span>
-                    <span className={`font-medium ${selectedSettlement?.difference && parseFloat(selectedSettlement.difference) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      RD$ {selectedSettlement?.difference ? Number(selectedSettlement.difference).toFixed(2) : '0.00'}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-            
-            <div className="mt-3">
-              <span className="text-xs text-gray-500 block mb-1">Notas:</span>
-              <div className="bg-gray-50 p-2 rounded-md text-sm min-h-[40px]">
-                {selectedSettlement?.notes || 'Sin notas adicionales'}
-              </div>
-            </div>
+            {/* Convertir selectedSettlement a formato LoadingWithRelations para pasar al formulario */}
+            {selectedSettlement && (
+              <VehicleSettlementForm 
+                loading={{
+                  ...selectedSettlement,
+                  // Establecer valores predeterminados para campos que puedan faltar
+                  items: selectedSettlement.items || [],
+                  // Eliminar campos adicionales de CompletedLoadingWithStats que no existan en LoadingWithRelations
+                  stats: undefined,
+                  // Asegurar que se propagan correctamente los datos de la ruta 
+                }}
+                onSuccess={() => setSelectedSettlementId(null)}
+                readOnly={true}
+              />
+            )}
           </CardContent>
         </Card>
       ) : selectedLoading ? (
