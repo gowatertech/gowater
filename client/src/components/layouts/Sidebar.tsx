@@ -39,6 +39,7 @@ import {
   BarChart3,
   ScrollText,
   LucideProps,
+  Target,
 } from "lucide-react";
 
 // Colores más modernos con un esquema basado en tonos gradientes
@@ -70,6 +71,7 @@ const sidebarItems = [
     description: "Logística y distribución", 
     subItems: [
       { icon: MapPin, label: "Rutas", href: "/routes" },
+      { icon: Target, label: "Zonas", href: "/zones" },
       { icon: CircleUser, label: "Vista del Chofer", href: "/drivers" },
       { icon: Truck, label: "Vehículos", href: "/routes/trucks" },
       { icon: FileStack, label: "Carga de Vehículo", href: "/vehicle-loading" },
