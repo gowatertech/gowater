@@ -788,7 +788,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
         ) : null}
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={readOnly ? (e) => e.preventDefault() : form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Sección de Efectivo y Crédito */}
             <div className="border p-4 rounded-md">
               <h3 className="text-lg font-medium mb-4">Totales de Facturación</h3>
@@ -807,15 +807,18 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                           value={field.value}
                           type="text" 
                           inputMode="decimal"
-                          onFocus={(e) => {
+                          readOnly={readOnly}
+                          disabled={readOnly}
+                          className={readOnly ? "bg-gray-50" : ""}
+                          onFocus={!readOnly ? (e) => {
                             console.log("onFocus totalCashReceived - valor actual:", e.target.value);
                             // Si el valor es 0.00, limpiar el campo para facilitar la entrada
                             if (e.target.value === "0.00") {
                               e.target.value = "";
                               field.onChange("");
                             }
-                          }}
-                          onBlur={(e) => {
+                          } : undefined}
+                          onBlur={!readOnly ? (e) => {
                             console.log("onBlur totalCashReceived - valor antes de formatear:", e.target.value);
                             // Formatear el valor para mostrar dos decimales
                             const value = e.target.value.trim();
@@ -840,8 +843,8 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                             field.onChange(formattedValue);
                             // Calcular automáticamente cuando el usuario termina de editar
                             calculateDifferences();
-                          }}
-                          onChange={(e) => {
+                          } : undefined}
+                          onChange={!readOnly ? (e) => {
                             console.log("onChange totalCashReceived - valor original:", e.target.value);
                             // Permitir solo números y un punto decimal
                             const value = e.target.value.replace(/[^\d.]/g, '');
@@ -852,7 +855,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                               : value;
                             console.log("onChange totalCashReceived - nuevo valor:", newValue);
                             field.onChange(newValue);
-                          }}
+                          } : undefined}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1012,12 +1015,14 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                       {...field}
                                       type="number"
                                       min="0"
-                                      className="w-20 m-auto text-center"
-                                      onChange={(e) => {
+                                      className={`w-20 m-auto text-center ${readOnly ? "bg-gray-50" : ""}`}
+                                      readOnly={readOnly}
+                                      disabled={readOnly}
+                                      onChange={!readOnly ? (e) => {
                                         const value = parseInt(e.target.value) || 0;
                                         field.onChange(value);
                                         updateSoldQuantity(index, value);
-                                      }}
+                                      } : undefined}
                                     />
                                   </FormControl>
                                 </FormItem>
@@ -1074,8 +1079,10 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                         {...field}
                                         type="number"
                                         min="0"
-                                        className="w-20 m-auto text-center"
-                                        onChange={(e) => {
+                                        className={`w-20 m-auto text-center ${readOnly ? "bg-gray-50" : ""}`}
+                                        readOnly={readOnly}
+                                        disabled={readOnly}
+                                        onChange={!readOnly ? (e) => {
                                           const value = parseInt(e.target.value) || 0;
                                           field.onChange(value);
                                           
@@ -1085,7 +1092,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                           
                                           // Recalcular totales
                                           calculateDifferences();
-                                        }}
+                                        } : undefined}
                                       />
                                     </FormControl>
                                   </FormItem>
