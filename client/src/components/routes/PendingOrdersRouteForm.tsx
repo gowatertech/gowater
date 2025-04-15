@@ -818,24 +818,27 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                 </div>
                               </div>
                               
-                              <div className="mt-1">
-                                <h5 className="text-[10px] font-medium mb-0.5">Productos:</h5>
-                                <div className="grid gap-0.5">
-                                  {order.products.map((product, idx) => (
-                                    <div key={idx} className="text-[10px] flex justify-between">
-                                      <div className="flex items-center">
-                                        <Package className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
-                                        <span className="truncate max-w-[140px]">
-                                          {product.quantity} x {product.name}
+                              {/* Solo mostrar productos si existen en el objeto order */}
+                              {order.products && Array.isArray(order.products) && order.products.length > 0 ? (
+                                <div className="mt-1">
+                                  <h5 className="text-[10px] font-medium mb-0.5">Productos:</h5>
+                                  <div className="grid gap-0.5">
+                                    {order.products.map((product, idx) => (
+                                      <div key={idx} className="text-[10px] flex justify-between">
+                                        <div className="flex items-center">
+                                          <Package className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
+                                          <span className="truncate max-w-[140px]">
+                                            {product.quantity} x {product.name}
+                                          </span>
+                                        </div>
+                                        <span className="text-muted-foreground">
+                                          {formatCurrency(Number(product.price) * product.quantity)}
                                         </span>
                                       </div>
-                                      <span className="text-muted-foreground">
-                                        {formatCurrency(Number(product.price) * product.quantity)}
-                                      </span>
-                                    </div>
-                                  ))}
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
+                              ) : null}
                             </div>
                           </div>
                         </div>
