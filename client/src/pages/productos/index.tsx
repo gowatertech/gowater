@@ -188,6 +188,29 @@ export default function Productos() {
       });
     },
   });
+  
+  // Mutación para actualizar comisiones de todos los productos
+  const updateAllCommissionsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/products/update-all-commission");
+      if (!res.ok) throw new Error("Error al actualizar comisiones");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Comisiones actualizadas",
+        description: data.message || `Se han actualizado las comisiones de todos los productos`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudieron actualizar las comisiones",
+      });
+    },
+  });
 
   const onSubmit = (data: any) => {
     createMutation.mutate(data);
@@ -216,6 +239,13 @@ export default function Productos() {
       deleteMutation.mutate(id);
     }
   };
+  
+  // Función para actualizar comisiones en todos los productos
+  const handleUpdateAllCommissions = () => {
+    if (window.confirm("¿Estás seguro de que deseas actualizar todos los productos para que tengan comisión? Esta acción establecerá 'Comisión = S' para todos los productos.")) {
+      updateAllCommissionsMutation.mutate();
+    }
+  };
 
   if (isLoading) {
     return <div className="p-8">Loading...</div>;
@@ -225,17 +255,26 @@ export default function Productos() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{t("products")}</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              {t("newProduct")}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{t("newProduct")}</DialogTitle>
-            </DialogHeader>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleUpdateAllCommissions}
+            disabled={updateAllCommissionsMutation.isPending}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {updateAllCommissionsMutation.isPending ? "Actualizando..." : "Actualizar Comisiones"}
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                {t("newProduct")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{t("newProduct")}</DialogTitle>
+              </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -391,6 +430,7 @@ export default function Productos() {
             </Form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Table>
