@@ -7,7 +7,8 @@ import {
   User as UserIcon, // Renombrar el icono para evitar conflicto
   DollarSign, Package, CheckCircle, BanknoteIcon, TrendingDown, 
   TrendingUp, FileText, Tag, ClipboardList, BarChart3, 
-  HistoryIcon, ListChecks, RouteIcon, BadgeCheck, FilterIcon
+  History as HistoryIcon, ListCheck as ListChecks, Route as RouteIcon,
+  BadgeCheck, Filter as FilterIcon
 } from "lucide-react";
 import type { VehicleLoading, Product, User, Truck as TruckType, Route } from "@shared/schema";
 import { Loader2 } from "lucide-react";
@@ -26,10 +27,7 @@ interface LoadingWithRelations extends VehicleLoading {
     notes: string | null;
     product: Product;
   }>;
-  route?: {
-    id: number;
-    name: string;
-  } | null;
+  route?: Route | null;
 }
 
 interface CompletedLoadingWithStats extends LoadingWithRelations {
@@ -373,7 +371,7 @@ export default function VehicleSettlementPage() {
                               <span className="text-gray-600 truncate">{settlement.driver?.name || settlement.driverId}</span>
                             </div>
                             <div className="flex items-center">
-                              <RouteIcon className="h-3 w-3 mr-1 text-gray-500" />
+                              <FileText className="h-3 w-3 mr-1 text-gray-500" />
                               <span className="text-gray-600">{settlement.route?.name || 'Sin ruta asignada'}</span>
                             </div>
                           </div>
