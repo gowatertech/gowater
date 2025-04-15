@@ -231,12 +231,25 @@ export default function VehicleSettlementPage() {
             {selectedSettlement && (
               <VehicleSettlementForm 
                 loading={{
-                  ...selectedSettlement,
-                  // Establecer valores predeterminados para campos que puedan faltar
+                  // Extraer sólo las propiedades que existen en LoadingWithRelations
+                  id: selectedSettlement.id,
+                  date: selectedSettlement.date,
+                  loadingNumber: selectedSettlement.loadingNumber,
+                  truckId: selectedSettlement.truckId,
+                  driverId: selectedSettlement.driverId,
+                  assistantId: selectedSettlement.assistantId,
+                  initialCash: selectedSettlement.initialCash,
+                  status: selectedSettlement.status,
+                  routeId: selectedSettlement.routeId,
+                  cashTotal: selectedSettlement.cashTotal,
+                  transferTotal: selectedSettlement.transferTotal,
+                  totalInvoiced: selectedSettlement.totalInvoiced,
+                  difference: selectedSettlement.difference,
+                  notes: selectedSettlement.notes,
                   items: selectedSettlement.items || [],
-                  // Eliminar campos adicionales de CompletedLoadingWithStats que no existan en LoadingWithRelations
-                  stats: undefined,
-                  // Asegurar que se propagan correctamente los datos de la ruta 
+                  truck: selectedSettlement.truck,
+                  driver: selectedSettlement.driver,
+                  route: selectedSettlement.route
                 }}
                 onSuccess={() => setSelectedSettlementId(null)}
                 readOnly={true}

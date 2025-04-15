@@ -130,7 +130,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
         soldQuantity: readOnly && item.quantity && item.returnedQuantity 
           ? item.quantity - (item.returnedQuantity || 0) 
           : 0, // Si es en modo lectura, calcular, sino iniciar en 0
-        returnedContainers: readOnly && typeof item.returnedContainers !== 'undefined' ? item.returnedContainers : 0,
+        returnedContainers: readOnly && (item as any).returnedContainers ? (item as any).returnedContainers : 0,
         productDifference: 0, // Se calculará después
         containersDifference: 0, // Se calculará después
         notes: readOnly && item.notes ? item.notes : "",
@@ -306,7 +306,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
             // Calcular diferencia de envases para productos retornables
             const product = loading.items.find(item => item.productId === formItem.productId)?.product;
             if (product?.isReturnable) {
-              const returnedContainers = formItem.returnedContainers;
+              const returnedContainers = formItem.returnedContainers || 0;
               const containersDifference = soldQuantity - returnedContainers;
               console.log(`Diferencia envases producto #${formItem.productId}: ${containersDifference}`);
               form.setValue(`items.${index}.containersDifference`, containersDifference);
@@ -495,6 +495,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
           
           // Actualizamos el valor en el formulario
           if (totalReturned > 0) {
+            // Actualizamos el campo de envases retornados
             form.setValue(`items.${index}.returnedContainers`, totalReturned);
             updated = true;
           }
@@ -653,14 +654,16 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
               <FileText className="h-5 w-5 mr-2" />
               Resumen de órdenes
             </h3>
-            <Button
-              type="button"
-              onClick={calculateDifferences}
-              className="flex items-center h-8 px-3 text-xs"
-              variant="outline"
-            >
-              <Calculator className="h-4 w-4 mr-1" /> Recalcular
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                onClick={calculateDifferences}
+                className="flex items-center h-8 px-3 text-xs"
+                variant="outline"
+              >
+                <Calculator className="h-4 w-4 mr-1" /> Recalcular
+              </Button>
+            )}
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
