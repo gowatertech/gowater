@@ -24,7 +24,7 @@ import {
 import { Truck, Calendar, MapPin, Eye, ArrowRight, X, Route as RouteIcon } from "lucide-react";
 
 // Tipos
-import { Zone, Route } from "@shared/schema";
+import { Route } from "@shared/schema";
 
 interface ResponsiveRoutesListProps {
   routes: Route[];
@@ -74,12 +74,12 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
   }
 
   // Formatear fecha
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     try {
-      const date = new Date(dateString);
+      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
       return format(date, 'dd MMM yyyy', { locale: es });
     } catch (e) {
-      return dateString;
+      return String(dateString);
     }
   };
 
@@ -112,15 +112,6 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
             </div>
             
             <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-              {route.zoneId && (
-                <div className="flex items-center">
-                  <MapPin className="h-3 w-3 text-muted-foreground mr-1" />
-                  <span className="text-muted-foreground">
-                    {zones.find(z => z.id === route.zoneId)?.name || "Zona"}
-                  </span>
-                </div>
-              )}
-              
               {route.stops && (
                 <div className="flex items-center">
                   <RouteIcon className="h-3 w-3 text-muted-foreground mr-1" />
@@ -183,7 +174,6 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
               <TableHead className="w-[60px]">{t("ID")}</TableHead>
               <TableHead>{t("Nombre")}</TableHead>
               <TableHead>{t("Fecha")}</TableHead>
-              <TableHead>{t("Zona")}</TableHead>
               <TableHead className="text-center">{t("Paradas")}</TableHead>
               <TableHead className="text-center">{t("Distancia")}</TableHead>
               <TableHead className="text-center">{t("Estado")}</TableHead>
@@ -196,19 +186,6 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
                 <TableCell className="font-medium">#{route.id}</TableCell>
                 <TableCell>{route.name || `-`}</TableCell>
                 <TableCell>{formatDate(route.date)}</TableCell>
-                <TableCell>
-                  {route.zoneId ? (
-                    <div className="flex items-center gap-1">
-                      <div 
-                        className="w-3 h-3 rounded-full"
-                        style={{ 
-                          backgroundColor: zones.find(z => z.id === route.zoneId)?.color || '#ccc' 
-                        }}
-                      />
-                      <span>{zones.find(z => z.id === route.zoneId)?.name || "-"}</span>
-                    </div>
-                  ) : "-"}
-                </TableCell>
                 <TableCell className="text-center">
                   {route.stops ? route.stops.length : "-"}
                 </TableCell>
