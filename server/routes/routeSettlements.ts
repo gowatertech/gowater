@@ -146,6 +146,16 @@ export async function registerRouteSettlements(app: Express) {
         console.log(`Buscando órdenes para route_id=${loading.routeId} con status='delivered' o 'completed'`);
         
         // Verificamos cómo se llama correctamente el campo en la base de datos
+        // Obtener la ruta primero para asegurarnos que existe y tiene el ID correcto
+        const routeData = await db
+          .select()
+          .from(routes)
+          .where(eq(routes.id, loading.routeId))
+          .limit(1);
+        
+        console.log(`Verificación de ruta: ${routeData.length > 0 ? `Encontrada ruta #${routeData[0].id}` : 'Ruta no encontrada'}`);
+        
+        // Obtener órdenes con un routeId que coincida exactamente con la ruta de la carga
         const ordersData = await db
           .select()
           .from(orders)
@@ -292,9 +302,21 @@ export async function registerRouteSettlements(app: Express) {
           
           // 6. Construir órdenes completas con sus items
           relatedOrders = ordersData.map(order => {
+            const orderItems = orderItemsMap.get(order.id) || [];
+            console.log(`Orden #${order.id} tiene ${orderItems.length} items y routeId=${order.routeId}`);
+            
+            // Asegurarse que el routeId sea un número
+            let routeId = order.routeId;
+            if (routeId !== null && routeId !== undefined) {
+              if (typeof routeId === 'string') {
+                routeId = parseInt(routeId, 10) || null;
+              }
+            }
+            
             return {
               ...order,
-              items: orderItemsMap.get(order.id) || []
+              routeId: routeId,
+              items: orderItems
             };
           });
           
