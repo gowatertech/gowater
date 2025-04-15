@@ -1794,7 +1794,8 @@ export async function registerRoutes(app: Express) {
           stock: products.stock,
           icon: products.icon,
           isReturnable: products.isReturnable,
-          depositAmount: products.depositAmount
+          depositAmount: products.depositAmount,
+          hasCommission: products.hasCommission
         })
         .from(products)
         .orderBy(products.name);
