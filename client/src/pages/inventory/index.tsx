@@ -210,7 +210,8 @@ export default function Inventory() {
         // Asegurarnos de que icon sea una cadena o null, nunca undefined
         icon: data.icon || null,
         isReturnable: !!data.isReturnable,
-        depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00"
+        depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00",
+        hasCommission: !!data.hasCommission
       };
       
       const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
@@ -457,6 +458,7 @@ export default function Inventory() {
                         <TableHead className="py-0.5 px-1 w-[60px] text-center">Stock</TableHead>
                         <TableHead className="py-0.5 px-1 w-[60px] text-center">Retornable</TableHead>
                         <TableHead className="py-0.5 px-1 w-[80px] text-center">Depósito</TableHead>
+                        <TableHead className="py-0.5 px-1 w-[60px] text-center">Comisión</TableHead>
                         <TableHead className="py-0.5 px-1 w-[70px] text-center">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
