@@ -36,9 +36,9 @@ import RecurringOrderForm from "@/pages/recurring-orders/[id]";
 import DriverView from "@/pages/drivers/DriverView";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
-import VehicleLoadingPage from "@/pages/routes/vehicle-loading";
+import VehicleLoadingPage from "@/pages/vehicle-loading";
 import RouteSettlementPage from "@/pages/routes/settlements";
-import VehicleSettlementPage from "./pages/routes/vehicle-settlement";
+import VehicleSettlementPage from "./pages/vehicle-settlement";
 import TrucksPage from "./pages/routes/trucks";
 import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
@@ -191,9 +191,9 @@ function Router() {
         <Route path="/orders/details/:id" component={OrderDetails} />
         <Route path="/orders/status/:id" component={OrderStatus} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
-        <Route path="/routes/vehicle-settlement" component={VehicleSettlementPage} />
+        <Route path="/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/trucks" component={TrucksPage} />
-        <Route path="/routes/vehicle-loading" component={VehicleLoadingPage} />
+        <Route path="/vehicle-loading" component={VehicleLoadingPage} />
         <Route path="/routes/:id" component={RouteDetails} />
         <Route path="/routes" component={Routes} />
         <Route path="/users" component={Users} />
