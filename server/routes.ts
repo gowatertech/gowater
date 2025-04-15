@@ -1888,6 +1888,57 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Endpoint para actualizar todos los productos existentes, estableciendo hasCommission = true
+  app.post("/api/products/update-all-commission", async (req, res) => {
+    try {
+      console.log("POST /api/products/update-all-commission - Iniciando actualización de comisiones");
+      
+      // Obtener todos los productos
+      const allProducts = await db.select().from(products);
+      console.log(`Encontrados ${allProducts.length} productos para actualizar.`);
+      
+      // Contador para productos actualizados
+      let updatedCount = 0;
+      let alreadyUpdatedCount = 0;
+      
+      // Actualizar cada producto
+      for (const product of allProducts) {
+        // Solo actualizar si hasCommission no está establecido como true
+        if (product.hasCommission !== true) {
+          const result = await db
+            .update(products)
+            .set({ hasCommission: true })
+            .where(eq(products.id, product.id))
+            .returning();
+          
+          if (result.length > 0) {
+            updatedCount++;
+            console.log(`Producto ID ${product.id} (${product.name}) actualizado a hasCommission = true (S)`);
+          }
+        } else {
+          alreadyUpdatedCount++;
+          console.log(`Producto ID ${product.id} (${product.name}) ya tiene hasCommission = true (S)`);
+        }
+      }
+      
+      console.log(`Proceso completado. Se actualizaron ${updatedCount} productos. ${alreadyUpdatedCount} productos ya tenían hasCommission = true`);
+      
+      res.json({ 
+        success: true, 
+        message: `Se actualizaron ${updatedCount} productos. ${alreadyUpdatedCount} productos ya tenían hasCommission = true`,
+        totalProducts: allProducts.length,
+        updatedProducts: updatedCount,
+        alreadyUpdatedProducts: alreadyUpdatedCount
+      });
+    } catch (error) {
+      console.error("Error durante la actualización de comisiones:", error);
+      res.status(500).json({ 
+        success: false,
+        error: String(error) 
+      });
+    }
+  });
 
   // Pagos
   app.get("/api/payments", async (req, res) => {

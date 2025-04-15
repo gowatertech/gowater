@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { PlusCircle, Pencil, Trash } from "lucide-react";
+import { PlusCircle, Pencil, Trash, RefreshCw } from "lucide-react";
 
 import {
   Table,
