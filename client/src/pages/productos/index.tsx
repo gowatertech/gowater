@@ -91,6 +91,7 @@ export default function Productos() {
       icon: "",
       isReturnable: false,
       depositAmount: "0.00",
+      hasCommission: true,
     },
   });
 
@@ -103,6 +104,7 @@ export default function Productos() {
       icon: "",
       isReturnable: false,
       depositAmount: "0.00",
+      hasCommission: true,
     },
   });
 
@@ -203,7 +205,8 @@ export default function Productos() {
       stock: product.stock,
       icon: product.icon || undefined, // Handle null case
       isReturnable: product.isReturnable ?? false,
-      depositAmount: product.depositAmount?.toString() || "0.00"
+      depositAmount: product.depositAmount?.toString() || "0.00",
+      hasCommission: product.hasCommission ?? true
     });
     setIsEditDialogOpen(true);
   };
@@ -354,6 +357,26 @@ export default function Productos() {
                         Monto del depósito para los envases retornables
                       </FormDescription>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="hasCommission"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Comisión (S/N)</FormLabel>
+                        <FormDescription className="text-xs">
+                          Indica si este producto genera comisión para el vendedor
+                        </FormDescription>
+                      </div>
                     </FormItem>
                   )}
                 />
@@ -555,6 +578,26 @@ export default function Productos() {
                       Monto del depósito para los envases retornables
                     </FormDescription>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="hasCommission"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>Comisión (S/N)</FormLabel>
+                      <FormDescription className="text-xs">
+                        Indica si este producto genera comisión para el vendedor
+                      </FormDescription>
+                    </div>
                   </FormItem>
                 )}
               />
