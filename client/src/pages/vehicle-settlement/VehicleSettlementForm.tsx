@@ -36,7 +36,7 @@ const settlementSchema = z.object({
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
   driver: User;
-  route?: Route;
+  route?: Route | null;
   items: Array<{
     id: number;
     productId: number;
