@@ -292,16 +292,20 @@ export default function VehicleSettlementPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center pb-1 border-b border-green-100">
                     <span className="text-sm text-gray-600">Efectivo:</span>
-                    <span className="font-medium">RD$ {selectedSettlement?.cashTotal || '0.00'}</span>
+                    <span className="font-medium">
+                      RD$ {selectedSettlement?.cashTotal ? Number(selectedSettlement.cashTotal).toFixed(2) : '0.00'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center pb-1 border-b border-green-100">
-                    <span className="text-sm text-gray-600">Transferencias:</span>
-                    <span className="font-medium">RD$ {selectedSettlement?.transferTotal || '0.00'}</span>
+                    <span className="text-sm text-gray-600">Crédito:</span>
+                    <span className="font-medium">
+                      RD$ {selectedSettlement?.transferTotal ? Number(selectedSettlement.transferTotal).toFixed(2) : '0.00'}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center pb-1 border-b border-green-100">
                     <span className="text-sm text-gray-600">Diferencia:</span>
                     <span className={`font-medium ${selectedSettlement?.difference && parseFloat(selectedSettlement.difference) < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      RD$ {selectedSettlement?.difference || '0.00'}
+                      RD$ {selectedSettlement?.difference ? Number(selectedSettlement.difference).toFixed(2) : '0.00'}
                     </span>
                   </div>
                 </div>
