@@ -43,6 +43,7 @@ export const products = pgTable("products", {
   icon: text("icon"),
   isReturnable: boolean("is_returnable").notNull().default(false),
   depositAmount: decimal("deposit_amount", { precision: 10, scale: 2 }).default("0.00"),
+  hasCommission: boolean("has_commission").notNull().default(true),
 });
 
 export const insertProductSchema = z.object({
@@ -52,6 +53,7 @@ export const insertProductSchema = z.object({
   icon: z.string().optional(),
   isReturnable: z.boolean().default(false),
   depositAmount: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  hasCommission: z.boolean().default(true),
 });
 
 // Provincias y Municipios
