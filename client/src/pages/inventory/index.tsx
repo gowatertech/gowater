@@ -179,7 +179,8 @@ export default function Inventory() {
         price: Number(data.price).toFixed(2),
         stock: Number(data.stock),
         isReturnable: !!data.isReturnable,
-        depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00"
+        depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00",
+        hasCommission: !!data.hasCommission
       };
       const res = await apiRequest("POST", "/api/products", formattedData);
       return res.json();
