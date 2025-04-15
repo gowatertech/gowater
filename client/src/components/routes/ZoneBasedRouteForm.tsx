@@ -176,7 +176,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders
   } = useQuery<PendingOrder[]>({
-    queryKey: ["/api/zones", selectedZone, "pending-orders"],
+    queryKey: ["/api/zones/pending-orders", selectedZone],
     queryFn: async () => {
       if (!selectedZone) return [];
       console.log(`Fetching pending orders for zone ${selectedZone}`);
@@ -562,7 +562,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       });
       // Invalidate queries to refresh lists
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/zones/pending-orders", selectedZone] });
       // Reset form and state
       form.reset();
       setSelectedZone(null);
