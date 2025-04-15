@@ -54,7 +54,6 @@ const getStatusColor = (status: string) => {
 
 export default function VehicleSettlementPage() {
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<string>("pending");
 
   // Obtener solo cargas pendientes
   const { 
@@ -76,11 +75,10 @@ export default function VehicleSettlementPage() {
     queryKey: ["/api/route-settlements"],
     retry: 1,
     refetchOnWindowFocus: false,
-    enabled: activeTab === "completed",
   });
 
-  const isLoading = isLoadingPending || (isLoadingCompleted && activeTab === "completed");
-  const error = errorPending || (errorCompleted && activeTab === "completed");
+  const isLoading = isLoadingPending || isLoadingCompleted;
+  const error = errorPending || errorCompleted;
 
   if (isLoading) {
     return (
@@ -253,27 +251,25 @@ export default function VehicleSettlementPage() {
         </Card>
       ) : (
         <>
-          {/* Pestañas para seleccionar entre pendientes y completados */}
-          <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-2 w-full mb-2">
-              <TabsTrigger value="pending" className="flex items-center gap-1.5">
-                <ClipboardList className="h-4 w-4" />
-                Pendientes ({loadings.length})
-              </TabsTrigger>
-              <TabsTrigger value="completed" className="flex items-center gap-1.5">
-                <CheckCircle className="h-4 w-4" />
-                Completados ({completedSettlements.totalCount})
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="pending" className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {loadings.length === 0 ? (
-                  <div className="col-span-full text-center py-4">
-                    <p className="text-gray-500 text-sm">No hay cargas pendientes para cuadrar</p>
-                  </div>
-                ) : (
-                  loadings.map((loading) => {
+          {/* Lista única de cuadres */}
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-sm font-semibold flex items-center gap-1.5">
+              <ListChecks className="h-4 w-4 text-primary" />
+              Todos los Cuadres ({loadings.length + completedSettlements.totalCount})
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {loadings.length === 0 && completedSettlements.settlements.length === 0 ? (
+              <div className="col-span-full text-center py-4">
+                <p className="text-gray-500 text-sm">No hay cuadres para mostrar</p>
+              </div>
+            ) : (
+              <>
+                {/* Ordenar los cuadres pendientes por fecha más reciente */}
+                {[...loadings]
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((loading) => {
                     const stats = getLoadingStats(loading);
                     return (
                       <Card 
@@ -284,9 +280,9 @@ export default function VehicleSettlementPage() {
                         <div className="flex flex-col border-l-4 border-l-amber-500">
                           <div className="p-2.5 pb-1.5">
                             <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium text-sm">Carga #{loading.loadingNumber}</span>
-                              <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(loading.status)}`}>
-                                Pendiente por Cuadrar
+                              <span className="font-medium text-sm text-amber-700">Carga #{loading.loadingNumber}</span>
+                              <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                Pendiente
                               </span>
                             </div>
                             
@@ -327,19 +323,12 @@ export default function VehicleSettlementPage() {
                         </div>
                       </Card>
                     );
-                  })
-                )}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="completed" className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {completedSettlements.settlements.length === 0 ? (
-                  <div className="col-span-full text-center py-4">
-                    <p className="text-gray-500 text-sm">No hay cuadres completados para mostrar</p>
-                  </div>
-                ) : (
-                  completedSettlements.settlements.map((settlement) => (
+                  })}
+
+                {/* Ordenar los cuadres completados por fecha más reciente */}
+                {[...completedSettlements.settlements]
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((settlement) => (
                     <Card 
                       key={settlement.id} 
                       className="p-0 hover:shadow-md transition-shadow overflow-hidden"
@@ -347,8 +336,8 @@ export default function VehicleSettlementPage() {
                       <div className="flex flex-col border-l-4 border-l-green-500">
                         <div className="p-2.5 pb-1.5">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium text-sm">Carga #{settlement.loadingNumber}</span>
-                            <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(settlement.status)}`}>
+                            <span className="font-medium text-sm text-green-700">Carga #{settlement.loadingNumber}</span>
+                            <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                               Completado
                             </span>
                           </div>
@@ -393,11 +382,10 @@ export default function VehicleSettlementPage() {
                         </div>
                       </div>
                     </Card>
-                  ))
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
+                  ))}
+              </>
+            )}
+          </div>
         </>
       )}
     </div>
