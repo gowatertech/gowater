@@ -19,7 +19,7 @@ import DebugApiView from "./DebugApiView";
 
 interface LoadingWithRelations extends VehicleLoading {
   truck: TruckType;
-  driver: User;
+  driver: UserType;
   items: Array<{
     id: number;
     productId: number;
@@ -31,7 +31,7 @@ interface LoadingWithRelations extends VehicleLoading {
   route?: Route | null;
 }
 
-interface CompletedLoadingWithStats extends LoadingWithRelations {
+interface CompletedLoadingWithStats extends Omit<LoadingWithRelations, 'notes'> {
   stats: {
     orderCount: number;
     totalSales: string;
@@ -40,7 +40,7 @@ interface CompletedLoadingWithStats extends LoadingWithRelations {
   transferTotal?: string;
   difference?: string;
   completedAt?: string;
-  notes?: string;
+  notes?: string | null;
 }
 
 const getStatusColor = (status: string) => {
@@ -255,7 +255,7 @@ export default function VehicleSettlementPage() {
               </div>
               <div className="border-l-4 border-l-amber-500 pl-2">
                 <p className="text-xs text-gray-500 flex items-center">
-                  <User className="h-3 w-3 mr-1 text-amber-500" />
+                  <UserIcon className="h-3 w-3 mr-1 text-amber-500" />
                   Conductor
                 </p>
                 <p className="font-medium text-sm">{selectedSettlement?.driver?.name || 'N/A'}</p>
