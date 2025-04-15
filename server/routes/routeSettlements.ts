@@ -15,7 +15,12 @@ export async function registerRouteSettlements(app: Express) {
         with: {
           driver: true,
           truck: true,
-          route: true
+          route: true,
+          items: {
+            with: {
+              product: true
+            }
+          }
         },
         orderBy: [
           desc(vehicleLoading.completedAt)
