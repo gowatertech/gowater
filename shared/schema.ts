@@ -819,8 +819,7 @@ export type VehicleLoading = typeof vehicleLoading.$inferSelect;
 export type InsertVehicleLoading = z.infer<typeof insertVehicleLoadingSchema>;
 export type VehicleLoadingItem = typeof vehicleLoadingItems.$inferSelect;
 
-// Route Settlement (Cuadre de Ruta) - Comentado hasta implementación futura
-/*
+// Route Settlement (Cuadre de Ruta)
 export const routeSettlements = pgTable("route_settlements", {
   id: serial("id").primaryKey(),
   vehicleLoadingId: integer("vehicle_loading_id").notNull().references(() => vehicleLoading.id),
@@ -849,10 +848,8 @@ export const routeSettlementItems = pgTable("route_settlement_items", {
   returnedContainers: integer("returned_containers").default(0),
   notes: text("notes"),
 });
-*/
 
-// Add relations - Comentados hasta implementación futura
-/*
+// Add relations
 export const routeSettlementsRelations = relations(routeSettlements, ({ one, many }) => ({
   vehicleLoading: one(vehicleLoading, {
     fields: [routeSettlements.vehicleLoadingId],
@@ -895,7 +892,6 @@ export type RouteSettlement = typeof routeSettlements.$inferSelect;
 export type InsertRouteSettlement = z.infer<typeof insertRouteSettlementSchema>;
 export type RouteSettlementItem = typeof routeSettlementItems.$inferSelect;
 export type InsertRouteSettlementItem = z.infer<typeof insertRouteSettlementSchema["shape"]["items"]["element"]>;
-*/
 
 // Tipos temporales para mantener compatibilidad hasta implementación completa
 export type RouteSettlement = {
