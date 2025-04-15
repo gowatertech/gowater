@@ -1155,7 +1155,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                               )}
                             />
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                             <FormField
                               control={form.control}
                               name={`items.${index}.productDifference`}
@@ -1165,7 +1165,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                     <Input
                                       {...field}
                                       type="number"
-                                      className={`w-20 m-auto text-center ${field.value != 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50'}`}
+                                      className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${field.value != 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50'}`}
                                       readOnly
                                       disabled
                                     />
@@ -1174,7 +1174,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                               )}
                             />
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                             {isReturnable ? (
                               <FormField
                                 control={form.control}
@@ -1186,7 +1186,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                         {...field}
                                         type="number"
                                         min="0"
-                                        className={`w-20 m-auto text-center ${readOnly ? "bg-gray-50" : ""}`}
+                                        className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${readOnly ? "bg-gray-50" : ""}`}
                                         readOnly={readOnly}
                                         disabled={readOnly}
                                         onChange={!readOnly ? (e) => {
@@ -1209,7 +1209,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                               <span className="text-gray-400">-</span>
                             )}
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                             {isReturnable ? (
                               <FormField
                                 control={form.control}
@@ -1220,7 +1220,13 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                       <Input
                                         {...field}
                                         type="number"
-                                        className={`w-20 m-auto text-center ${field.value != 0 ? 'bg-red-50 text-red-600' : 'bg-gray-50'}`}
+                                        className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${
+                                          (typeof field.value === 'number' && field.value > 0)
+                                          ? "bg-yellow-50 text-yellow-600" 
+                                          : (typeof field.value === 'number' && field.value < 0)
+                                            ? "bg-blue-50 text-blue-600" 
+                                            : "bg-green-50 text-green-600"
+                                        }`}
                                         readOnly
                                         disabled
                                       />
@@ -1241,35 +1247,42 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
             </div>
 
             {/* Sección de Notas y Comentarios */}
-            <div className="border p-4 rounded-md">
-              <h3 className="text-lg font-medium mb-4">Notas y Comentarios</h3>
+            <div className="border p-3 sm:p-4 rounded-md">
+              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 flex items-center">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 flex-shrink-0 text-primary/70" />
+                <span>Notas y Comentarios</span>
+              </h3>
               
               <FormField
                 control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Comentarios (opcional)</FormLabel>
+                    <FormLabel className="text-xs sm:text-sm">
+                      Comentarios (opcional)
+                    </FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Añadir comentarios sobre el cuadre, justificaciones de diferencias, etc." 
-                        className={`min-h-24 ${readOnly ? "bg-gray-50" : ""}`}
+                        className={`min-h-20 sm:min-h-24 text-xs sm:text-sm ${readOnly ? "bg-gray-50" : ""}`}
                         readOnly={readOnly}
                         disabled={readOnly}
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />
                   </FormItem>
                 )}
               />
             </div>
 
             {/* Botones de acción */}
-            <div className="flex justify-end space-x-2">
+            <div className="flex justify-end space-x-2 mt-4 pb-2">
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
+                className="text-xs sm:text-sm h-8 sm:h-10"
                 onClick={() => {
                   if (readOnly) {
                     toast({
@@ -1291,9 +1304,10 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                 <Button 
                   type="submit" 
                   disabled={isPending}
-                  className="flex items-center gap-2"
+                  size="sm"
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm h-8 sm:h-10"
                 >
-                  {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {isPending && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />}
                   Completar Cuadre
                 </Button>
               )}
