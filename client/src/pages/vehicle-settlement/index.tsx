@@ -36,11 +36,11 @@ interface CompletedLoadingWithStats extends Omit<LoadingWithRelations, 'notes'> 
     orderCount: number;
     totalSales: string;
   };
-  cashTotal?: string;
-  transferTotal?: string;
-  difference?: string;
-  completedAt?: string | null;
-  notes?: string | null;
+  cashTotal: string | null;
+  transferTotal: string | null;
+  difference: string | null;
+  completedAt: string | null;
+  notes: string | null;
 }
 
 const getStatusColor = (status: string) => {
@@ -241,15 +241,17 @@ export default function VehicleSettlementPage() {
                   initialCash: selectedSettlement.initialCash,
                   status: selectedSettlement.status,
                   routeId: selectedSettlement.routeId,
-                  cashTotal: selectedSettlement.cashTotal,
-                  transferTotal: selectedSettlement.transferTotal,
-                  totalInvoiced: selectedSettlement.totalInvoiced,
-                  difference: selectedSettlement.difference,
-                  notes: selectedSettlement.notes,
+                  cashTotal: selectedSettlement.cashTotal || null,
+                  transferTotal: selectedSettlement.transferTotal || null,
+                  totalInvoiced: selectedSettlement.totalInvoiced || null,
+                  difference: selectedSettlement.difference || null,
+                  notes: selectedSettlement.notes || null,
                   items: selectedSettlement.items || [],
                   truck: selectedSettlement.truck,
                   driver: selectedSettlement.driver,
-                  route: selectedSettlement.route
+                  route: selectedSettlement.route,
+                  createdAt: selectedSettlement.createdAt || new Date().toISOString(),
+                  completedAt: selectedSettlement.completedAt || null
                 }}
                 onSuccess={() => setSelectedSettlementId(null)}
                 readOnly={true}

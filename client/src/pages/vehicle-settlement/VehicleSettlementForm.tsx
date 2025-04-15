@@ -945,19 +945,21 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                   </div>
                 </div>
                 
-                {/* Botón para calcular manualmente */}
-                <div className="mt-3 flex justify-center">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => calculateDifferences()}
-                    className="flex items-center gap-1"
-                  >
-                    <Calculator className="h-4 w-4" />
-                    Calcular Totales
-                  </Button>
-                </div>
+                {/* Botón para calcular manualmente (solo visible si no es modo lectura) */}
+                {!readOnly && (
+                  <div className="mt-3 flex justify-center">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => calculateDifferences()}
+                      className="flex items-center gap-1"
+                    >
+                      <Calculator className="h-4 w-4" />
+                      Calcular Totales
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
