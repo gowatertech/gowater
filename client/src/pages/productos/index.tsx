@@ -402,6 +402,7 @@ export default function Productos() {
             <TableHead>{t("stock")}</TableHead>
             <TableHead>Retornable</TableHead>
             <TableHead>Depósito</TableHead>
+            <TableHead>Comisión</TableHead>
             <TableHead>{t("actions")}</TableHead>
           </TableRow>
         </TableHeader>
@@ -430,6 +431,7 @@ export default function Productos() {
                     ? `RD$ ${parseFloat(product.depositAmount?.toString() || '0').toFixed(2)}` 
                     : 'N/A'}
                 </TableCell>
+                <TableCell>{product.hasCommission !== false ? 'S' : 'N'}</TableCell>
                 <TableCell className="space-x-2">
                   <Button
                     variant="ghost"
