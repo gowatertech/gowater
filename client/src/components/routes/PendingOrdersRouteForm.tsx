@@ -875,7 +875,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                         Optimizando...
                       </>
                     ) : (
-                      'Generar Ruta'
+                      'Optimizar Ruta'
                     )}
                   </Button>
                 </div>
