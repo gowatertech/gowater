@@ -1188,7 +1188,14 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                     <Popup>
                                       <div className="text-xs">
                                         <strong>{point.businessname}</strong><br />
-                                        {index === 0 ? 'Almacén (Parada 0)' : `Parada ${index}`}
+                                        {index === 0 
+                                          ? 'Almacén (Parada 0)' 
+                                          : index === 1 
+                                            ? 'Parada 1'
+                                            : index === 2
+                                              ? 'Parada 2'
+                                              : `Parada ${index}`
+                                        }
                                       </div>
                                     </Popup>
                                   </Marker>
