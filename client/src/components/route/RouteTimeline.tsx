@@ -139,7 +139,8 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                 <div className="flex-1">
                   <Card 
                     className={`overflow-hidden border ${
-                      isCompleted ? "border-gray-500/30 bg-gray-700/5" : 
+                      isCompleted ? "border-gray-500/30 bg-gray-700/5 opacity-70" : 
+                      stop.status === "cancelled" || stop.status === "returned" ? "border-red-500/30 bg-red-500/5" : 
                       isCurrent ? "border-blue-500/30 bg-blue-500/5" : 
                       "border-gray-500/30 bg-gray-700/5"
                     } ${darkMode ? 'dark bg-gray-800 text-white' : ''}`}
@@ -170,12 +171,14 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                             variant="outline" 
                             className={`ml-2 px-2 py-0 text-xs ${
                               isCompleted ? "bg-gray-500/10 text-gray-500 border-gray-500/20" : 
+                              stop.status === "cancelled" || stop.status === "returned" ? "bg-red-500/10 text-red-500 border-red-500/20" :
                               isCurrent ? "bg-blue-500/10 text-blue-500 border-blue-500/20" : 
                               "bg-gray-500/10 text-gray-500 border-gray-500/20"
                             }`}
                           >
                             {stop.isWarehouse && isCompleted ? "Despachado" : 
                              isCompleted ? "Completada" : 
+                             stop.status === "cancelled" || stop.status === "returned" ? "Devuelto" :
                              isCurrent ? "En progreso" : 
                              stop.status === "in_progress" || stop.status === "in_transit" || stop.status === "delivered" ? "En progreso" : 
                              "Pendiente"}

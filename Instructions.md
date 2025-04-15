@@ -1,94 +1,121 @@
-# Instrucciones para Separar la Gestión de Zonas en Menú Principal
+# Instrucciones para Corregir la Cronología de Entregas en la App Móvil
 
-## Análisis del Problema
+## Problemas Identificados
 
-Después de revisar el código del proyecto, he encontrado que actualmente la gestión de zonas está integrada dentro del módulo de rutas (`/routes`), donde las zonas aparecen como una pestaña dentro de ese módulo. El cliente necesita separar esta funcionalidad para que "Zonas" sea una opción independiente en el menú principal de la aplicación.
+Después de analizar el código de la aplicación móvil, he identificado los siguientes problemas relacionados con la cronología de entrega:
 
-## Archivos y Componentes Relacionados
+1. **Orden de paradas**: Las paradas no mantienen su orden original cuando cambian de estado (entregado, devuelto, etc.)
+2. **Visualización de entregas completadas**: Cuando una parada se marca como entregada, no se aplica correctamente el estilo opaco
+3. **Estado de "devuelto"**: No existe un estado visual para indicar que una entrega fue devuelta/rechazada
 
-### Estructura de Navegación Principal
-- `client/src/components/layouts/Sidebar.tsx`: Contiene el menú principal de la aplicación
-- `client/src/App.tsx`: Define las rutas principales de la aplicación
+## Archivos Relevantes
 
-### Componentes de Zona Existentes
-- `client/src/pages/routes/index.tsx`: Contiene la gestión de zonas como una pestaña
-- `client/src/components/routes/ResponsiveZonesList.tsx`: Componente para listar zonas
-- `client/src/pages/routes/ZoneMap.tsx`: Componente para visualizar mapa de zonas
-- `client/src/components/map/ZonePolygons.tsx`: Componente para renderizar polígonos de zonas en mapas
+Los archivos clave para este problema son:
 
-### Endpoints de API para Zonas
-- `server/routes.ts`: Contiene los endpoints para gestionar zonas
-- `/api/zones`: Obtener todas las zonas
-- `/api/zones/:id`: Obtener, actualizar o eliminar una zona específica
-- `/api/zones/:id/pending-orders`: Obtener pedidos pendientes por zona
-- `/api/customers/by-zone`: Obtener clientes por zona
+- `client/src/components/route/RouteTimeline.tsx`: Componente principal que renderiza la cronología de entregas
+- `client/src/pages/mobile-app/ruta/index.tsx`: Página que muestra la ruta activa y gestiona las paradas
+- `client/src/types/route.ts`: Define las interfaces de datos para la ruta y paradas
 
-### Esquema de Datos
-- `shared/schema.ts`: Define el esquema de la tabla de zonas y tipos relacionados
+## Razones del Problema
 
-## Plan de Implementación
+1. En el componente `RouteTimeline.tsx`, cuando se renderiza una parada con estado "completed" o "delivered", no se mantiene su posición original en la secuencia, ya que el estilo visual puede estar alterando el flujo del documento.
 
-### 1. Crear Nueva Página para Zonas
+2. La opacidad de las paradas completadas no se implementa correctamente:
+   - En la línea ~142-145 se aplican estilos condicionales, pero no se reduce la opacidad para estados completados
+   - La visualización de "devuelto" no está implementada en absoluto, solo se manejan estados "completed" y "delivered"
 
-1. Crear un nuevo archivo `client/src/pages/zones/index.tsx` con la funcionalidad de gestión de zonas
-   - Migrar el código relacionado con zonas desde `routes/index.tsx`
-   - Incluir las funcionalidades de listar, crear, editar y eliminar zonas
+3. El cálculo del `currentStopIndex` en `ruta/index.tsx` no considera correctamente las paradas completadas, lo que puede estar afectando la visualización del orden.
 
-2. Crear componentes adicionales según sea necesario:
-   - `client/src/pages/zones/ZoneMap.tsx` (migrado desde rutas)
-   - `client/src/pages/zones/CreateZoneDialog.tsx`
-   - `client/src/pages/zones/EditZoneDialog.tsx`
+## Plan de Solución
 
-### 2. Actualizar la Navegación Principal
+### 1. Modificar el Componente RouteTimeline
 
-1. Modificar `client/src/components/layouts/Sidebar.tsx`:
-   - Agregar una nueva entrada para "Zonas" en el menú principal
-   - Apuntar a la nueva ruta `/zones`
+Actualizar `client/src/components/route/RouteTimeline.tsx` para:
 
-2. Actualizar `client/src/App.tsx`:
-   - Registrar la nueva ruta `/zones` para el componente de zonas
+1. Asegurar que las paradas siempre mantengan su posición original en la secuencia, independientemente de su estado
+2. Aplicar estilos de opacidad para las paradas completadas sin alterar su posición
+3. Agregar soporte para visualizar un estado de "devuelto" con su propio estilo distintivo
 
-### 3. Limpiar la Página de Rutas
+```jsx
+// Modificación en el estilo de la tarjeta de parada
+<Card 
+  className={`overflow-hidden border ${
+    isCompleted ? "border-gray-500/30 bg-gray-700/5 opacity-70" : // Añadir opacity-70
+    stop.status === "cancelled" ? "border-red-500/30 bg-red-500/5" : // Estilo para devuelto/rechazado
+    isCurrent ? "border-blue-500/30 bg-blue-500/5" : 
+    "border-gray-500/30 bg-gray-700/5"
+  } ${darkMode ? 'dark bg-gray-800 text-white' : ''}`}
+>
+```
 
-1. Modificar `client/src/pages/routes/index.tsx`:
-   - Eliminar la pestaña de zonas y todo el código relacionado
-   - Actualizar los enlaces a zonas para que apunten a la nueva página
-   - Asegurar que se mantenga la funcionalidad de selección de zonas para crear rutas
+### 2. Actualizar la Interfaz RouteStop
 
-### 4. Mantener la Relación entre Rutas y Zonas
+Modificar `client/src/types/route.ts` para incluir explícitamente el estado "returned":
 
-1. Garantizar que la funcionalidad de "Crear ruta basada en zona" siga funcionando:
-   - Añadir enlaces desde la página de zonas a la creación de rutas
-   - Mantener la capacidad de seleccionar zonas al crear rutas
+```typescript
+// Modificar la interfaz RouteStop
+export interface RouteStop {
+  // ...
+  status: "pending" | "in_progress" | "completed" | "cancelled" | "delivered" | "returned";
+  // ...
+}
+```
 
-### 5. Pruebas
+### 3. Mejorar la Lógica de Ordenamiento en la Página de Ruta
 
-1. Verificar que todas las funcionalidades de gestión de zonas funcionan correctamente:
-   - Listado de zonas
-   - Creación de zonas
-   - Edición de zonas
-   - Eliminación de zonas
-   - Visualización en mapa
+En `client/src/pages/mobile-app/ruta/index.tsx`, actualizar el código para:
 
-2. Comprobar que la creación de rutas basadas en zonas sigue funcionando
+1. Asegurar que las paradas siempre se muestran en el orden correcto, independientemente de su estado
+2. Implementar un estado de pedido devuelto cuando corresponda
+3. Mejorar la visualización para hacer más evidente la parada actual vs. las completadas
 
-## Razones del Problema Actual
+```javascript
+// Actualizar cómo se determina el estado visual de la parada
+const displayStatus = order.status === "cancelled" ? "returned" : actualStatus;
 
-Actualmente, la gestión de zonas está integrada como una pestaña dentro del módulo de rutas porque:
+// Asegurar que la opacidad no afecte el orden
+// Esto se debe implementar en la parte donde se construyen las paradas
+```
 
-1. Existe una estrecha relación funcional entre zonas y rutas (las rutas se crean basadas en zonas)
-2. La implementación inicial probablemente buscó simplicidad agrupando funcionalidades relacionadas
-3. No se anticipó la necesidad de una gestión separada de zonas como función principal
+### 4. Asegurar el Mantenimiento del Orden
 
-## Beneficios de la Separación
+Modificar la función `fetchRouteStops` en `ruta/index.tsx` para garantizar que siempre se respeta el orden de las paradas según la secuencia de entrega definida, sin importar el estado de cada parada:
 
-1. Mejor organización de la aplicación con módulos independientes y enfocados
-2. Mayor visibilidad para la funcionalidad de gestión de zonas
-3. Interfaz más intuitiva para los usuarios que necesitan trabajar principalmente con zonas
-4. Escalabilidad para añadir más funcionalidades específicas de zonas en el futuro
+```javascript
+// Asegurar que este código siempre mantenga el orden correcto
+if (routeDetails && routeDetails.deliverySequence && routeDetails.deliverySequence.length > 0) {
+  console.log("Usando secuencia de entrega:", routeDetails.deliverySequence);
+  
+  // Mapa para buscar rápidamente las paradas por ID
+  const stopsMap = new Map();
+  customerStops.forEach(stop => stopsMap.set(stop.id.toString(), stop));
+  
+  // Primero siempre va el almacén, luego las paradas en el orden indicado
+  orderedStops = [warehouseStop];
+  
+  // Añadir el resto de paradas en el orden indicado
+  for (let i = 1; i < routeDetails.deliverySequence.length; i++) {
+    const stopId = routeDetails.deliverySequence[i];
+    if (stopId !== "0") { // El almacén ya está incluido
+      const stop = stopsMap.get(stopId);
+      if (stop) {
+        orderedStops.push(stop);
+      }
+    }
+  }
+  
+  // Si alguna parada no está en la secuencia, añadirla al final
+  customerStops.forEach(stop => {
+    if (!routeDetails.deliverySequence.includes(stop.id.toString())) {
+      orderedStops.push(stop);
+    }
+  });
+}
+```
 
-## Posibles Desafíos
+## Implementación Paso a Paso
 
-1. Mantener la consistencia en la relación entre zonas y rutas
-2. Asegurar que todas las referencias a componentes y estados se actualicen correctamente
-3. Garantizar que la navegación entre módulos sea fluida y lógica para el usuario
+1. Comenzar modificando el componente `RouteTimeline.tsx` para agregar la opacidad a las paradas completadas sin alterar su posición.
+2. Actualizar la interfaz `RouteStop` para incluir el estado "returned".
+3. Modificar la lógica en `ruta/index.tsx` para mapear correctamente el estado "cancelled" a "returned" para visualización.
+4. Probar los cambios para verificar que las paradas mantienen su orden original y se visualizan correctamente cuando cambian de estado.

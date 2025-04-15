@@ -6,7 +6,8 @@ export interface RouteStop {
   address: string;
   latitude: number;
   longitude: number;
-  status: "pending" | "in_progress" | "completed" | "cancelled" | "delivered";
+  status: "pending" | "in_progress" | "completed" | "cancelled" | "delivered" | "returned" | "in_transit";
+  actualStatus?: string; // Estado real en la base de datos
   estimatedArrival: string;
   estimatedDuration: number;
   distanceFromPrevious: number | string;
