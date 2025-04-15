@@ -733,19 +733,23 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     <Select
                       onValueChange={(value) => {
                         field.onChange(Number(value));
-                        setSelectedZone(Number(value));
                         
-                        // Automáticamente mostrar los clientes después de seleccionar la zona
-                        setTimeout(() => {
-                          // Generate an automatic name for the route
-                          const selectedZoneObj = zones && Array.isArray(zones) ? zones.find((z: any) => z.id === Number(value)) : null;
-                          if (selectedZoneObj) {
-                            const today = new Date().toLocaleDateString("en-US").replace(/\//g, "-");
-                            form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
-                            // Cambiar automáticamente a la tab de clientes
-                            setSelectedTab("customers");
-                          }
-                        }, 500);
+                        const zoneIdValue = Number(value);
+                        setSelectedZone(zoneIdValue);
+                        
+                        // Generate an automatic name for the route
+                        const selectedZoneObj = zones && Array.isArray(zones) 
+                          ? zones.find((z: any) => z.id === zoneIdValue) 
+                          : null;
+                          
+                        if (selectedZoneObj) {
+                          const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+                          form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
+                          
+                          // No cambiamos automáticamente a la pestaña "customers"
+                          // para evitar la pantalla en blanco. El usuario debe hacer clic en la pestaña.
+                          // setSelectedTab("customers");
+                        }
                       }}
                       value={field.value ? String(field.value) : ""}
                     >
