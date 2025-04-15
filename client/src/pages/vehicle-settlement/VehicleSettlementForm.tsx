@@ -145,7 +145,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
   
   // Cargar los datos de settlement incluyendo órdenes relacionadas
   const { data: settlementData, isLoading: isLoadingSettlementData, isError, error } = useQuery<SettlementResponse>({
-    queryKey: ["/api/route-settlements", loading.id],
+    queryKey: [`/api/route-settlements/${loading.id}`],
     enabled: !!loading.id,
     retry: 2,
     refetchOnWindowFocus: false,
