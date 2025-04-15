@@ -98,10 +98,11 @@ interface ProductSoldSummary {
 interface SettlementFormProps {
   loading: LoadingWithRelations;
   onSuccess: () => void;
+  readOnly?: boolean;
 }
 
 // Exportación por defecto y por nombre para mayor flexibilidad
-export default function VehicleSettlementForm({ loading, onSuccess }: SettlementFormProps) {
+export default function VehicleSettlementForm({ loading, onSuccess, readOnly = false }: SettlementFormProps) {
   const { toast } = useToast();
   
   const [calculatedTotals, setCalculatedTotals] = useState({
