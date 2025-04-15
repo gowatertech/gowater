@@ -77,7 +77,8 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
   
   // Determinar el color y estado de la parada
   const getStopStatusColor = (status: string, index: number, currentIndex: number): string => {
-    if (status === "completed") return "text-green-500";
+    if (status === "completed" || status === "delivered") return "text-green-500";
+    if (status === "cancelled" || status === "returned") return "text-red-500";
     if (index === currentIndex) return "text-blue-500";
     return "text-gray-400";
   };
@@ -89,8 +90,9 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
         const showConnector = index < stops.length - 1;
         
         // Determinar colores y estado visual
-        // Verificar si la parada está completada - lo que significa "delivered" en el status
+        // Verificar si la parada está completada - lo que significa "delivered" o "completed" en el status
         const isCompleted = stop.status === "completed" || stop.status === "delivered";
+        const isReturned = stop.status === "cancelled" || stop.status === "returned";
         // Ya no forzamos que solo la primera parada sea la actual - permitimos cualquier parada activa
         const isCurrent = index === currentStopIndex && !isCompleted;
         // Todas las paradas no completadas o entregadas deberían mostrar botones de acción
@@ -103,7 +105,9 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
             {showConnector && (
               <div 
                 className={`absolute left-3 top-6 w-0.5 h-full ${
-                  isCompleted ? "bg-green-500" : (index < currentStopIndex ? "bg-green-500" : "bg-gray-300")
+                  isCompleted ? "bg-green-500" : 
+                  isReturned ? "bg-red-500" :
+                  (index < currentStopIndex ? "bg-green-500" : "bg-gray-300")
                 }`}
                 style={{ height: "calc(100% - 1.5rem)" }}
               />
@@ -123,6 +127,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                   ) : (
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
                       isCompleted ? "border-gray-500 bg-gray-700/20" : 
+                      isReturned ? "border-red-500 bg-red-500/20" :
                       isCurrent ? "border-blue-500 bg-blue-500/20" : 
                       "border-gray-500 bg-gray-700/20"
                     }`}>

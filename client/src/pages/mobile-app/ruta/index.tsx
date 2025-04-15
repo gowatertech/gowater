@@ -350,37 +350,36 @@ export default function DriverRoute() {
         
         console.log("Paradas ordenadas:", orderedStops);
         
-        // Reset de la parada actual para asegurar orden correcto
-        setCurrentStopIndex(-1);
+        // Determinar qué parada está actualmente en progreso
+        // NOTA: Ya no alteramos el orden de las paradas, solo determinamos cuál es la actual
+        let currentIdx = -1;
         
-        // Actualizar el índice de la parada actual para que siempre sea la primera (1) después del almacén
         if (orderedStops.length > 1) {
-          // Siempre establecer la primera parada después del almacén como la actual
-          // a menos que ya esté completada, entregada o devuelta
-          const completedOrDeliveredStatuses = ["completed", "delivered", "returned"];
+          // Estos estados indican que una parada ya ha sido procesada
+          const completedStatuses = ["completed", "delivered", "returned", "cancelled"];
           
-          if (orderedStops[1] && !completedOrDeliveredStatuses.includes(orderedStops[1].status)) {
-            setCurrentStopIndex(1);
-          } else {
-            // Si la primera está completada/entregada/devuelta, buscar la primera no completada
-            for (let i = 2; i < orderedStops.length; i++) {
-              if (!completedOrDeliveredStatuses.includes(orderedStops[i].status)) {
-                setCurrentStopIndex(i);
-                break;
-              }
+          // Buscar la primera parada no completada después del almacén
+          for (let i = 1; i < orderedStops.length; i++) {
+            if (!completedStatuses.includes(orderedStops[i].status)) {
+              currentIdx = i;
+              break;
             }
           }
           
-          // Si todas están completadas/entregadas/devueltas, usar la última
-          if (currentStopIndex === -1) {
-            setCurrentStopIndex(orderedStops.length - 1);
+          // Si todas están completadas, usar la última como la actual (pero sin alterar su orden)
+          if (currentIdx === -1) {
+            currentIdx = orderedStops.length - 1;
           }
         }
+        
+        // Establecer el índice de la parada actual
+        setCurrentStopIndex(currentIdx);
       } else {
         console.warn("No se recibió una respuesta de array válida de la API, usando solo el almacén");
       }
       
       // Actualizar estado con las paradas
+      // Aplicar las paradas en el orden original
       setRouteStops(orderedStops);
       setLoading(false);
     } catch (error) {
