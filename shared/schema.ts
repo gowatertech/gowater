@@ -893,49 +893,8 @@ export type InsertRouteSettlement = z.infer<typeof insertRouteSettlementSchema>;
 export type RouteSettlementItem = typeof routeSettlementItems.$inferSelect;
 export type InsertRouteSettlementItem = z.infer<typeof insertRouteSettlementSchema["shape"]["items"]["element"]>;
 
-// Tipos temporales para mantener compatibilidad hasta implementación completa
-export type RouteSettlement = {
-  id: number;
-  vehicleLoadingId: number;
-  settlementDate: string;
-  totalCashReceived: string;
-  totalCreditReceived: string;
-  totalInvoiced: string;
-  cashDifference: string;
-  status: "pending" | "completed" | "with_differences";
-  notes: string | null;
-  createdAt: string;
-  completedAt: string | null;
-};
-
-export type RouteSettlementItem = {
-  id: number;
-  settlementId: number;
-  productId: number;
-  loadedQuantity: number;
-  returnedQuantity: number;
-  soldQuantity: number;
-  difference: number;
-  returnedContainers: number;
-  notes: string | null;
-};
-
-export type InsertRouteSettlement = {
-  vehicleLoadingId: number;
-  totalCashReceived: string;
-  totalCreditReceived: string;
-  totalInvoiced: string;
-  notes?: string;
-  items: Array<{
-    productId: number;
-    loadedQuantity: number;
-    returnedQuantity: number;
-    soldQuantity: number;
-    returnedContainers: number;
-    notes?: string;
-  }>;
-  cashDifference?: string;
-};
+// Tipos compatibles para asegurar retrocompatibilidad en el código existente
+// Ahora estos ya no son necesarios ya que se utilizan los tipos derivados de las tablas
 
 // Recurring Orders - Pedidos Recurrentes
 export const recurringOrders = pgTable("recurring_orders", {

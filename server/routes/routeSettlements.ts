@@ -2,7 +2,11 @@ import { Express, Request, Response } from "express";
 import { eq, and, inArray, gte, lt, sql, desc } from "drizzle-orm";
 import { db } from "../db";
 import * as schema from "@shared/schema";
-import { vehicleLoading, vehicleLoadingItems, routes, orders, bottleReturns, products, orderItems } from "@shared/schema";
+import { 
+  vehicleLoading, vehicleLoadingItems, routes, orders, 
+  bottleReturns, products, orderItems, 
+  routeSettlements, routeSettlementItems 
+} from "@shared/schema";
 
 export async function registerRouteSettlements(app: Express) {
   
@@ -136,7 +140,45 @@ export async function registerRouteSettlements(app: Express) {
           ));
       }
 
-      // 4. Obtener la carga actualizada con todos sus items
+      // 4. Crear un nuevo registro en la tabla routeSettlements
+      const currentDate = new Date().toISOString();
+      const [newSettlement] = await db
+        .insert(routeSettlements)
+        .values({
+          vehicleLoadingId,
+          settlementDate: currentDate,
+          totalCashReceived,
+          totalCreditReceived,
+          totalInvoiced,
+          cashDifference: cashDifference || "0.00",
+          status: "completed",
+          notes: notes || null,
+          createdAt: currentDate,
+          completedAt: currentDate
+        })
+        .returning();
+
+      if (!newSettlement || !newSettlement.id) {
+        throw new Error("No se pudo crear el registro de cuadre");
+      }
+
+      // 5. Insertar los items del cuadre en routeSettlementItems
+      for (const item of items) {
+        await db
+          .insert(routeSettlementItems)
+          .values({
+            settlementId: newSettlement.id,
+            productId: item.productId,
+            loadedQuantity: item.loadedQuantity,
+            returnedQuantity: item.returnedQuantity,
+            soldQuantity: item.soldQuantity,
+            difference: item.loadedQuantity - item.returnedQuantity - item.soldQuantity,
+            returnedContainers: item.returnedContainers || 0,
+            notes: item.notes || null
+          });
+      }
+
+      // 6. Obtener la carga actualizada con todos sus items
       const updatedLoading = await db.query.vehicleLoading.findFirst({
         where: eq(vehicleLoading.id, vehicleLoadingId),
         with: {
@@ -150,20 +192,23 @@ export async function registerRouteSettlements(app: Express) {
         }
       });
 
-      // 5. Responder con la carga actualizada
+      // 7. Obtener el registro del cuadre creado con sus items
+      const createdSettlement = await db.query.routeSettlements.findFirst({
+        where: eq(routeSettlements.id, newSettlement.id),
+        with: {
+          items: {
+            with: {
+              product: true
+            }
+          }
+        }
+      });
+
+      // 8. Responder con la carga actualizada y el cuadre creado
       res.json({
         message: "Cuadre de vehículo completado exitosamente",
         loading: updatedLoading,
-        settlement: {
-          vehicleLoadingId,
-          totalCashReceived,
-          totalCreditReceived,
-          totalInvoiced,
-          cashDifference,
-          notes,
-          settlementDate: new Date().toISOString(),
-          status: "completed"
-        }
+        settlement: createdSettlement
       });
     } catch (error) {
       console.error("Error al procesar cuadre de vehículo:", error);
