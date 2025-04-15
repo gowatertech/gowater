@@ -155,6 +155,7 @@ export default function Inventory() {
       icon: "",
       isReturnable: false,
       depositAmount: "0.00",
+      hasCommission: true,
     },
   });
 
@@ -167,6 +168,7 @@ export default function Inventory() {
       icon: "",
       isReturnable: false,
       depositAmount: "0.00",
+      hasCommission: true,
     },
   });
 
@@ -297,7 +299,8 @@ export default function Inventory() {
       icon: product.icon || "",
       // Campos para productos retornables
       isReturnable: product.isReturnable ?? false,
-      depositAmount: product.depositAmount?.toString() || "0.00"
+      depositAmount: product.depositAmount?.toString() || "0.00",
+      hasCommission: product.hasCommission ?? true
     };
     
     editForm.reset(formValues);
@@ -411,7 +414,8 @@ export default function Inventory() {
                         stock: 0,
                         icon: "",
                         isReturnable: false,
-                        depositAmount: "0.00"
+                        depositAmount: "0.00",
+                        hasCommission: true
                       });
                       setActiveTab("form");
                     }}
@@ -507,6 +511,9 @@ export default function Inventory() {
                                 {product.isReturnable 
                                   ? `RD$ ${parseFloat(product.depositAmount?.toString() || '0').toFixed(2)}` 
                                   : 'N/A'}
+                              </TableCell>
+                              <TableCell className="py-1 px-1 text-center">
+                                {product.hasCommission ? 'S' : 'N'}
                               </TableCell>
                               <TableCell className="py-1 px-1">
                                 <div className="flex justify-center space-x-1">
@@ -700,6 +707,25 @@ export default function Inventory() {
                             </FormItem>
                           );
                         }}
+                      />
+                      <FormField
+                        control={editingProduct ? editForm.control : form.control}
+                        name="hasCommission"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2 space-y-0 py-1">
+                            <FormControl>
+                              <Checkbox
+                                className="h-3.5 w-3.5"
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormLabel className="text-[10px] cursor-pointer">
+                              Producto con Comisión (S/N)
+                            </FormLabel>
+                            <FormMessage className="text-[9px]" />
+                          </FormItem>
+                        )}
                       />
                     </div>
 
