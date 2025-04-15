@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart4, Truck, Loader2, PillBottle, FileText, DollarSign, CreditCard, Calculator, MapPin } from "lucide-react";
+import { BarChart4, Truck, Loader2, PillBottle, FileText, DollarSign, CreditCard, Calculator, MapPin, Coins, Package, Receipt } from "lucide-react";
 import type { VehicleLoading, Product, User, Truck as TruckType, BottleReturn, Route, Order } from "@shared/schema";
 
 // Esquema para validar formulario de cuadre
@@ -1060,20 +1060,23 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
             </div>
 
             {/* Sección de Productos */}
-            <div className="border p-4 rounded-md">
-              <h3 className="text-lg font-medium mb-4">Productos y Envases</h3>
+            <div className="border p-3 sm:p-4 rounded-md">
+              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 flex items-center">
+                <Package className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 flex-shrink-0 text-primary/70" />
+                <span>Productos y Envases</span>
+              </h3>
               
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
+              <div className="overflow-x-auto rounded border">
+                <table className="min-w-[800px] w-full text-xs sm:text-sm">
+                  <thead className="bg-gray-100 sticky top-0">
                     <tr className="border-b">
-                      <th className="px-2 py-2 text-left">Producto</th>
-                      <th className="px-2 py-2 text-center">Cargado</th>
-                      <th className="px-2 py-2 text-center">Devuelto</th>
-                      <th className="px-2 py-2 text-center">Vendido</th>
-                      <th className="px-2 py-2 text-center">Diferencia</th>
-                      <th className="px-2 py-2 text-center">Envases Dev.</th>
-                      <th className="px-2 py-2 text-center">Dif. Envases</th>
+                      <th className="px-2 py-1 sm:py-2 text-left">Producto</th>
+                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Cargado</th>
+                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Devuelto</th>
+                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Vendido</th>
+                      <th className="px-2 py-1 sm:py-2 text-center w-16 sm:w-20">Diferencia</th>
+                      <th className="px-2 py-1 sm:py-2 text-center w-20 sm:w-24">Envases Dev.</th>
+                      <th className="px-2 py-1 sm:py-2 text-center w-20 sm:w-24">Dif. Envases</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1083,11 +1086,11 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                       
                       return (
                         <tr key={item.productId} className="border-b hover:bg-gray-50">
-                          <td className="px-2 py-2">
-                            <div className="font-medium">{product?.name || `Producto #${item.productId}`}</div>
-                            <div className="text-xs text-gray-500">{isReturnable ? 'Envase retornable' : 'No retornable'}</div>
+                          <td className="px-2 py-1 sm:py-2">
+                            <div className="font-medium text-xs sm:text-sm truncate max-w-[120px] sm:max-w-[200px]">{product?.name || `Producto #${item.productId}`}</div>
+                            <div className="text-[10px] sm:text-xs text-gray-500">{isReturnable ? 'Envase retornable' : 'No retornable'}</div>
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                             <FormField
                               control={form.control}
                               name={`items.${index}.loadedQuantity`}
@@ -1098,7 +1101,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                       {...field}
                                       type="number"
                                       min="0"
-                                      className="w-20 m-auto text-center"
+                                      className="w-14 sm:w-16 m-auto text-center text-xs sm:text-sm"
                                       readOnly
                                       disabled
                                       value={field.value}
@@ -1108,7 +1111,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                               )}
                             />
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                             <FormField
                               control={form.control}
                               name={`items.${index}.returnedQuantity`}
@@ -1119,7 +1122,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                       {...field}
                                       type="number"
                                       min="0"
-                                      className={`w-20 m-auto text-center ${readOnly ? "bg-gray-50" : ""}`}
+                                      className={`w-14 sm:w-16 m-auto text-center text-xs sm:text-sm ${readOnly ? "bg-gray-50" : ""}`}
                                       readOnly={readOnly}
                                       disabled={readOnly}
                                       onChange={!readOnly ? (e) => {
@@ -1133,7 +1136,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                               )}
                             />
                           </td>
-                          <td className="px-2 py-2 text-center">
+                          <td className="px-1 sm:px-2 py-1 sm:py-2 text-center">
                             <FormField
                               control={form.control}
                               name={`items.${index}.soldQuantity`}
@@ -1143,7 +1146,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                                     <Input
                                       {...field}
                                       type="number"
-                                      className="w-20 m-auto text-center bg-gray-50"
+                                      className="w-14 sm:w-16 m-auto text-center text-xs sm:text-sm bg-gray-50"
                                       readOnly
                                       disabled
                                     />
