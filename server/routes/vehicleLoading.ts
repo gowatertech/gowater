@@ -206,26 +206,39 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   // Create new vehicle loading with items
   app.post("/api/vehicle-loading", async (req: Request, res: Response) => {
     try {
+      // Validar y verificar los campos antes de crear la carga
+      console.log("POST /api/vehicle-loading - Body recibido:", req.body);
+
+      // Asegurarse de que routeId sea un número o null (no undefined)
+      const routeId = req.body.routeId !== undefined && req.body.routeId !== null 
+        ? Number(req.body.routeId) 
+        : null;
+      
+      console.log(`routeId recibido: ${req.body.routeId}, convertido a: ${routeId}`);
+      
       const [loading] = await db.insert(vehicleLoading).values({
-        truckId: req.body.truckId,
-        driverId: req.body.driverId,
-        assistantId: req.body.assistantId,
-        routeId: req.body.routeId,
+        truckId: Number(req.body.truckId),
+        driverId: Number(req.body.driverId),
+        assistantId: req.body.assistantId ? Number(req.body.assistantId) : null,
+        routeId: routeId,
         status: "pending",
         initialCash: req.body.initialCash,
         notes: req.body.notes,
       }).returning();
 
+      console.log(`Carga creada con ID: ${loading.id}, routeId: ${loading.routeId}`);
+
       if (req.body.items && req.body.items.length > 0) {
         const itemsToInsert = req.body.items.map((item: any) => ({
           loadingId: loading.id,
-          productId: item.productId,
-          quantity: item.quantity,
+          productId: Number(item.productId),
+          quantity: Number(item.quantity),
           returnedQuantity: 0,
           notes: item.notes,
         }));
 
         await db.insert(vehicleLoadingItems).values(itemsToInsert).returning();
+        console.log(`Insertados ${itemsToInsert.length} productos en la carga ${loading.id}`);
       }
 
       const completeLoading = await db.query.vehicleLoading.findFirst({
