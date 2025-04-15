@@ -422,12 +422,67 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
       console.log("▶️ Devoluciones de envases:", settlementData.bottleReturns?.length || 0);
       console.log("▶️ Resumen de productos:", settlementData.productSummary?.length || 0);
       
-      // Mostrar notificación con un resumen de los datos recibidos
-      toast({
-        title: "Datos cargados",
-        description: `Se encontraron ${settlementData.relatedOrders?.length || 0} órdenes y ${settlementData.productSummary?.length || 0} productos.`,
-        duration: 5000
-      });
+      // Verificar si hay un registro de cuadre guardado en la tabla route_settlements
+      if (settlementData.settlementRecord && readOnly) {
+        console.log("✅ ENCONTRADO REGISTRO DE CUADRE EN LA NUEVA TABLA:", settlementData.settlementRecord);
+        console.log("ID del cuadre:", settlementData.settlementRecord.id);
+        console.log("Fecha del cuadre:", settlementData.settlementRecord.settlementDate);
+        console.log("Total efectivo recibido:", settlementData.settlementRecord.totalCashReceived);
+        console.log("Total crédito recibido:", settlementData.settlementRecord.totalCreditReceived);
+        console.log("Total facturado:", settlementData.settlementRecord.totalInvoiced);
+        console.log("Diferencia de efectivo:", settlementData.settlementRecord.cashDifference);
+        console.log("Items del cuadre:", settlementData.settlementRecord.items.length);
+        
+        // Si estamos en modo lectura y tenemos datos de cuadre guardados,
+        // actualizamos el formulario con estos datos
+        if (readOnly) {
+          // Usar los datos del settlement guardado en lugar de los datos de la carga
+          form.setValue("totalCashReceived", settlementData.settlementRecord.totalCashReceived);
+          form.setValue("totalCreditReceived", settlementData.settlementRecord.totalCreditReceived);
+          form.setValue("totalInvoiced", settlementData.settlementRecord.totalInvoiced);
+          form.setValue("notes", settlementData.settlementRecord.notes || "");
+          
+          // Actualizar los items del formulario con los datos guardados
+          settlementData.settlementRecord.items.forEach((item, index) => {
+            // Buscar el índice correspondiente en el formulario
+            const formItemIndex = form.getValues().items.findIndex(i => i.productId === item.productId);
+            if (formItemIndex !== -1) {
+              // Actualizar los valores del item
+              form.setValue(`items.${formItemIndex}.loadedQuantity`, item.loadedQuantity);
+              form.setValue(`items.${formItemIndex}.returnedQuantity`, item.returnedQuantity);
+              form.setValue(`items.${formItemIndex}.soldQuantity`, item.soldQuantity);
+              form.setValue(`items.${formItemIndex}.returnedContainers`, item.returnedContainers);
+              form.setValue(`items.${formItemIndex}.productDifference`, item.difference);
+            }
+          });
+          
+          // Actualizar los totales calculados para mostrar en la UI
+          setCalculatedTotals({
+            cashDifference: settlementData.settlementRecord.cashDifference,
+            totalSold: settlementData.settlementRecord.totalInvoiced,
+            cashSales: (parseFloat(settlementData.settlementRecord.totalInvoiced) - 
+                        parseFloat(settlementData.settlementRecord.totalCreditReceived)).toFixed(2),
+            creditSales: settlementData.settlementRecord.totalCreditReceived,
+            expectedCash: (parseFloat(loading.initialCash || "0") + 
+                          (parseFloat(settlementData.settlementRecord.totalInvoiced) - 
+                           parseFloat(settlementData.settlementRecord.totalCreditReceived))).toFixed(2)
+          });
+          
+          // No necesitamos calcular diferencias si ya tenemos los datos guardados
+          toast({
+            title: "Datos del cuadre cargados",
+            description: "Se han cargado los datos del cuadre guardado en la base de datos",
+            duration: 3000
+          });
+        }
+      } else {
+        // Si no hay datos guardados o no estamos en modo lectura, mostrar notificación normal
+        toast({
+          title: "Datos cargados",
+          description: `Se encontraron ${settlementData.relatedOrders?.length || 0} órdenes y ${settlementData.productSummary?.length || 0} productos.`,
+          duration: 5000
+        });
+      }
       
       // Si hay órdenes relacionadas, mostrar detalles para depuración
       if (settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
@@ -462,14 +517,16 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
         console.log(`Valor total vendido: $${totalValue.toFixed(2)}`);
 
         // Ejecutar el cálculo de diferencias automáticamente cuando se cargan los datos
-        // Esto automatiza el proceso para el supervisor
-        setTimeout(() => {
-          calculateDifferences();
-          toast({
-            title: "Datos cargados",
-            description: "Se han calculado automáticamente los totales basados en las órdenes entregadas",
-          });
-        }, 500); // Pequeño retraso para asegurar que todos los datos estén disponibles
+        // Pero solo si no estamos en modo de lectura o no hay datos de settlement guardados
+        if (!readOnly || !settlementData.settlementRecord) {
+          setTimeout(() => {
+            calculateDifferences();
+            toast({
+              title: "Datos cargados",
+              description: "Se han calculado automáticamente los totales basados en las órdenes entregadas",
+            });
+          }, 500); // Pequeño retraso para asegurar que todos los datos estén disponibles
+        }
       } else {
         console.log("❌ No se encontró resumen de productos");
         toast({
@@ -496,6 +553,11 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
   
   // Efecto para actualizar los valores de envases devueltos cuando se carguen los datos
   useEffect(() => {
+    // Si estamos en modo de lectura y tenemos datos de cuadre guardados, no actualizamos
+    if (readOnly && settlementData?.settlementRecord) {
+      return;
+    }
+    
     // Usamos la variable existente settlementData (declarada anteriormente)
     const bottleReturnsData = settlementData?.bottleReturns;
     if (bottleReturnsData && bottleReturnsData.length > 0) {
@@ -525,7 +587,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
       });
       
       // Para la automatización completa, recalcular si hay actualizaciones
-      if (updated) {
+      if (updated && !readOnly) {
         // Ejecutar con un pequeño retraso para asegurar que todos los valores estén actualizados
         setTimeout(() => {
           calculateDifferences();
@@ -536,7 +598,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
         }, 600);
       }
     }
-  }, [settlementData, form, calculateDifferences, toast]);
+  }, [settlementData, form, calculateDifferences, toast, readOnly]);
   
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: any) => {
