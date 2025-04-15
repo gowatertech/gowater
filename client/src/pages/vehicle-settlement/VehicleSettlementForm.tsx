@@ -684,41 +684,41 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>Cuadre de Vehículo - Carga #{loading.loadingNumber}</CardTitle>
+    <Card className="max-w-full overflow-hidden">
+      <CardHeader className="px-3 sm:px-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg whitespace-normal">Cuadre de Vehículo - Carga #{loading.loadingNumber}</CardTitle>
           {loading.routeId && (
-            <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium flex items-center">
-              <MapPin className="h-3 w-3 mr-1" />
-              Ruta #{loading.routeId} {loading.route?.name && `- ${loading.route.name}`}
+            <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium flex items-center self-start sm:self-auto">
+              <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="truncate">Ruta #{loading.routeId} {loading.route?.name && `- ${loading.route.name}`}</span>
             </div>
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-3 sm:px-6">
         {/* Información de la carga */}
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div>
-              <p className="text-sm text-gray-600">Fecha</p>
-              <p className="font-medium">{new Date(loading.date).toLocaleDateString()}</p>
+        <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg border overflow-x-auto">
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 min-w-[300px]">
+            <div className="p-2 bg-white rounded shadow-sm">
+              <p className="text-xs sm:text-sm text-gray-600">Fecha</p>
+              <p className="font-medium text-sm sm:text-base truncate">{new Date(loading.date).toLocaleDateString()}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Conductor</p>
-              <p className="font-medium">{loading.driver?.name}</p>
+            <div className="p-2 bg-white rounded shadow-sm">
+              <p className="text-xs sm:text-sm text-gray-600">Conductor</p>
+              <p className="font-medium text-sm sm:text-base truncate">{loading.driver?.name}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Vehículo</p>
-              <p className="font-medium">{loading.truck?.plate}</p>
+            <div className="p-2 bg-white rounded shadow-sm">
+              <p className="text-xs sm:text-sm text-gray-600">Vehículo</p>
+              <p className="font-medium text-sm sm:text-base truncate">{loading.truck?.plate}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Efectivo Inicial</p>
-              <p className="font-medium">RD$ {loading.initialCash}</p>
+            <div className="p-2 bg-white rounded shadow-sm">
+              <p className="text-xs sm:text-sm text-gray-600">Efectivo Inicial</p>
+              <p className="font-medium text-sm sm:text-base truncate">RD$ {loading.initialCash}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Ruta</p>
-              <p className="font-medium">
+            <div className="p-2 bg-white rounded shadow-sm">
+              <p className="text-xs sm:text-sm text-gray-600">Ruta</p>
+              <p className="font-medium text-sm sm:text-base truncate">
                 {loading.routeId ? (
                   <span className="text-blue-600">
                     #{loading.routeId} {loading.route?.name && `- ${loading.route.name}`}
@@ -732,28 +732,28 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
         </div>
         
         {/* Resumen del Cuadre */}
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold flex items-center">
-              <FileText className="h-5 w-5 mr-2" />
-              Resumen de órdenes
+        <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg border">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+            <h3 className="text-base sm:text-lg font-semibold flex items-center">
+              <FileText className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="truncate">Resumen de órdenes</span>
             </h3>
             {!readOnly && (
               <Button
                 type="button"
                 onClick={calculateDifferences}
-                className="flex items-center h-8 px-3 text-xs"
+                className="flex items-center h-8 px-3 text-xs w-full sm:w-auto"
                 variant="outline"
               >
-                <Calculator className="h-4 w-4 mr-1" /> Recalcular
+                <Calculator className="h-4 w-4 mr-1 flex-shrink-0" /> Recalcular
               </Button>
             )}
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-            <div className="bg-white p-3 rounded border flex flex-col justify-between">
-              <div className="text-sm text-gray-500">Órdenes relacionadas</div>
-              <div className="text-2xl font-bold text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-2">
+            <div className="bg-white p-3 rounded border shadow-sm flex flex-col justify-between min-h-[100px]">
+              <div className="text-xs sm:text-sm text-gray-500">Órdenes relacionadas</div>
+              <div className="text-xl sm:text-2xl font-bold text-center my-1">
                 {settlementData?.relatedOrders?.length || 0}
               </div>
               <div className="text-xs text-gray-500 text-right">
@@ -763,26 +763,26 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
               </div>
             </div>
             
-            <div className="bg-white p-3 rounded border flex flex-col justify-between">
-              <div className="text-sm text-gray-500">Total Facturado</div>
-              <div className="text-2xl font-bold text-center text-green-600">
+            <div className="bg-white p-3 rounded border shadow-sm flex flex-col justify-between min-h-[100px]">
+              <div className="text-xs sm:text-sm text-gray-500">Total Facturado</div>
+              <div className="text-xl sm:text-2xl font-bold text-center my-1 text-green-600">
                 RD$ {calculatedTotals.totalSold || "0.00"}
               </div>
-              <div className="text-xs flex justify-between">
+              <div className="text-[10px] sm:text-xs flex flex-col sm:flex-row sm:justify-between gap-1">
                 <span className="text-gray-500">Efectivo: RD$ {calculatedTotals.cashSales || "0.00"}</span>
                 <span className="text-gray-500">Crédito: RD$ {calculatedTotals.creditSales || "0.00"}</span>
               </div>
             </div>
             
-            <div className={`bg-white p-3 rounded border flex flex-col justify-between ${
+            <div className={`bg-white p-3 rounded border shadow-sm flex flex-col justify-between min-h-[100px] ${
               parseFloat(calculatedTotals.cashDifference || "0") < 0 
                 ? "border-red-300" 
                 : parseFloat(calculatedTotals.cashDifference || "0") > 0 
                   ? "border-yellow-300" 
                   : "border-green-300"
             }`}>
-              <div className="text-sm text-gray-500">Diferencia de Efectivo</div>
-              <div className={`text-2xl font-bold text-center ${
+              <div className="text-xs sm:text-sm text-gray-500">Diferencia de Efectivo</div>
+              <div className={`text-xl sm:text-2xl font-bold text-center my-1 ${
                 parseFloat(calculatedTotals.cashDifference || "0") < 0 
                   ? "text-red-600" 
                   : parseFloat(calculatedTotals.cashDifference || "0") > 0 
@@ -791,15 +791,15 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
               }`}>
                 RD$ {calculatedTotals.cashDifference || "0.00"}
               </div>
-              <div className="text-xs text-gray-500 text-right">
+              <div className="text-[10px] sm:text-xs text-gray-500 text-right">
                 Esperado: RD$ {calculatedTotals.expectedCash || "0.00"}
               </div>
             </div>
           </div>
           
           {settlementData?.warningMessage && (
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 mt-2">
-              <p className="text-yellow-700 text-sm">
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-2 sm:p-3 mt-2 text-[12px] sm:text-sm">
+              <p className="text-yellow-700">
                 ⚠️ {settlementData.warningMessage}
               </p>
             </div>
@@ -808,12 +808,12 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
           {/* Resumen de productos vendidos */}
           {settlementData?.productSummary && settlementData.productSummary.length > 0 && (
             <div className="mt-4 border-t pt-3">
-              <h4 className="text-sm font-medium mb-2 flex items-center">
-                <BarChart4 className="h-4 w-4 mr-1" /> 
-                Resumen de productos vendidos
+              <h4 className="text-xs sm:text-sm font-medium mb-2 flex items-center">
+                <BarChart4 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" /> 
+                <span className="truncate">Resumen de productos vendidos</span>
               </h4>
-              <div className="bg-white rounded border overflow-hidden">
-                <table className="min-w-full text-sm">
+              <div className="bg-white rounded border overflow-hidden overflow-x-auto">
+                <table className="min-w-full text-xs sm:text-sm w-full">
                   <thead className="bg-gray-100">
                     <tr>
                       <th className="px-2 py-1 text-left">Producto</th>
@@ -824,7 +824,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                   <tbody>
                     {settlementData?.productSummary?.map((product, idx) => (
                       <tr key={`product-summary-${product.productId}`} className={idx % 2 === 0 ? 'bg-gray-50' : ''}>
-                        <td className="px-2 py-1">{product.productName}</td>
+                        <td className="px-2 py-1 truncate max-w-[150px] sm:max-w-none">{product.productName}</td>
                         <td className="px-2 py-1 text-center">{product.quantity}</td>
                         <td className="px-2 py-1 text-right">RD$ {product.total.toFixed(2)}</td>
                       </tr>
@@ -837,34 +837,34 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
         </div>
 
         {isLoadingSettlementData ? (
-          <div className="flex justify-center items-center p-6">
-            <Loader2 className="w-8 h-8 animate-spin text-primary mr-2" />
-            <span>Cargando datos de devoluciones...</span>
+          <div className="flex justify-center items-center p-4 sm:p-6">
+            <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary mr-2" />
+            <span className="text-sm sm:text-base">Cargando datos de devoluciones...</span>
           </div>
         ) : settlementData?.bottleReturns && settlementData.bottleReturns.length > 0 ? (
-          <div className="mb-6 border border-primary/20 bg-primary/5 p-4 rounded-lg">
+          <div className="mb-4 sm:mb-6 border border-primary/20 bg-primary/5 p-3 sm:p-4 rounded-lg">
             <div className="flex items-center mb-2">
-              <PillBottle className="h-5 w-5 text-primary mr-2" />
-              <h3 className="text-lg font-medium">Devoluciones de Envases Registradas</h3>
+              <PillBottle className="h-4 w-4 sm:h-5 sm:w-5 text-primary mr-1 sm:mr-2 flex-shrink-0" />
+              <h3 className="text-base sm:text-lg font-medium truncate">Devoluciones de Envases Registradas</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
               Se encontraron {settlementData?.bottleReturns?.length || 0} devoluciones de envases registradas por el conductor.
             </p>
-            <div className="overflow-x-auto max-h-40">
-              <table className="w-full text-sm">
-                <thead className="bg-primary/10">
+            <div className="overflow-x-auto max-h-36 sm:max-h-40 border rounded">
+              <table className="min-w-full w-full text-xs sm:text-sm bg-white">
+                <thead className="bg-primary/10 sticky top-0">
                   <tr>
                     <th className="px-2 py-1 text-left">Producto</th>
-                    <th className="px-2 py-1 text-center">Esperados</th>
-                    <th className="px-2 py-1 text-center">Devueltos</th>
-                    <th className="px-2 py-1 text-center">Pendientes</th>
-                    <th className="px-2 py-1 text-right">Depósito</th>
+                    <th className="px-2 py-1 text-center w-16 sm:w-20">Esperados</th>
+                    <th className="px-2 py-1 text-center w-16 sm:w-20">Devueltos</th>
+                    <th className="px-2 py-1 text-center w-16 sm:w-20">Pendientes</th>
+                    <th className="px-2 py-1 text-right w-20 sm:w-24">Depósito</th>
                   </tr>
                 </thead>
                 <tbody>
                   {settlementData?.bottleReturns?.map((bottleReturn: ExtendedBottleReturn) => (
-                    <tr key={bottleReturn.id} className="border-b border-primary/10">
-                      <td className="px-2 py-1">{bottleReturn.productName || `Producto #${bottleReturn.productId}`}</td>
+                    <tr key={bottleReturn.id} className="border-b border-primary/10 hover:bg-gray-50">
+                      <td className="px-2 py-1 truncate max-w-[120px] sm:max-w-none">{bottleReturn.productName || `Producto #${bottleReturn.productId}`}</td>
                       <td className="px-2 py-1 text-center">{bottleReturn.expectedQuantity}</td>
                       <td className="px-2 py-1 text-center">{bottleReturn.returnedQuantity}</td>
                       <td className="px-2 py-1 text-center">{bottleReturn.pendingQuantity}</td>
@@ -880,15 +880,21 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
         <Form {...form}>
           <form onSubmit={readOnly ? (e) => e.preventDefault() : form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Sección de Efectivo y Crédito */}
-            <div className="border p-4 rounded-md">
-              <h3 className="text-lg font-medium mb-4">Totales de Facturación</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border p-3 sm:p-4 rounded-md">
+              <h3 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 flex items-center">
+                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2 flex-shrink-0 text-primary/70" />
+                <span>Totales de Facturación</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
                 <FormField
                   control={form.control}
                   name="totalCashReceived"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Efectivo Recibido (RD$)</FormLabel>
+                    <FormItem className="bg-white p-2 sm:p-3 rounded shadow-sm border">
+                      <FormLabel className="text-xs sm:text-sm font-semibold flex items-center">
+                        <Coins className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-green-600 flex-shrink-0" />
+                        Efectivo Recibido (RD$)
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           // No pasamos todos los props del field para tener más control
@@ -899,7 +905,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                           inputMode="decimal"
                           readOnly={readOnly}
                           disabled={readOnly}
-                          className={readOnly ? "bg-gray-50" : ""}
+                          className={`text-sm sm:text-base text-center font-medium ${readOnly ? "bg-gray-50" : ""}`}
                           onFocus={!readOnly ? (e) => {
                             console.log("onFocus totalCashReceived - valor actual:", e.target.value);
                             // Si el valor es 0.00, limpiar el campo para facilitar la entrada
@@ -948,7 +954,7 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                           } : undefined}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-[10px] sm:text-xs" />
                     </FormItem>
                   )}
                 />
@@ -957,15 +963,18 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                   control={form.control}
                   name="totalCreditReceived"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Crédito Otorgado (RD$)</FormLabel>
+                    <FormItem className="bg-white p-2 sm:p-3 rounded shadow-sm border">
+                      <FormLabel className="text-xs sm:text-sm font-semibold flex items-center">
+                        <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-blue-600 flex-shrink-0" />
+                        Crédito Otorgado (RD$)
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           name={field.name}
                           ref={field.ref}
                           type="text" 
                           inputMode="decimal"
-                          className="bg-gray-50"
+                          className="bg-gray-50 text-sm sm:text-base text-center font-medium"
                           readOnly
                           disabled
                           // Garantiza que siempre se muestre con dos decimales en UI
@@ -973,8 +982,8 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                           // Eliminar todos los eventos para evitar modificaciones
                         />
                       </FormControl>
-                      <p className="text-xs text-gray-500 mt-1">Total de ventas a crédito (calculado automáticamente)</p>
-                      <FormMessage />
+                      <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Total de ventas a crédito (calculado automáticamente)</p>
+                      <FormMessage className="text-[10px] sm:text-xs" />
                     </FormItem>
                   )}
                 />
@@ -983,49 +992,52 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                   control={form.control}
                   name="totalInvoiced"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Total Facturado (RD$)</FormLabel>
+                    <FormItem className="bg-white p-2 sm:p-3 rounded shadow-sm border">
+                      <FormLabel className="text-xs sm:text-sm font-semibold flex items-center">
+                        <Receipt className="h-3 w-3 sm:h-4 sm:w-4 mr-1 text-green-600 flex-shrink-0" />
+                        Total Facturado (RD$)
+                      </FormLabel>
                       <FormControl>
                         <Input 
                           name={field.name}
                           ref={field.ref}
                           type="text" 
                           inputMode="decimal"
-                          className="bg-gray-50"
+                          className="bg-gray-50 text-sm sm:text-base text-center font-medium"
                           readOnly
                           disabled
                           // Garantiza que siempre se muestre con dos decimales en UI
                           value={(parseFloat(field.value) || 0).toFixed(2)}
                         />
                       </FormControl>
-                      <p className="text-xs text-gray-500 mt-1">Total de producto vendido (no devuelto)</p>
-                      <FormMessage />
+                      <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Total de producto vendido (no devuelto)</p>
+                      <FormMessage className="text-[10px] sm:text-xs" />
                     </FormItem>
                   )}
                 />
               </div>
 
               {/* Mostrar las diferencias calculadas */}
-              <div className="mt-4 p-3 border border-gray-200 rounded bg-gray-50">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-600">Diferencia de Efectivo</p>
-                    <p className={`font-medium ${parseFloat(calculatedTotals.cashDifference) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+              <div className="mt-4 p-2 sm:p-3 border border-gray-200 rounded bg-gray-50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="bg-white p-2 sm:p-3 rounded shadow-sm border">
+                    <p className="text-xs sm:text-sm text-gray-600 font-semibold">Diferencia de Efectivo</p>
+                    <p className={`text-sm sm:text-base font-medium ${parseFloat(calculatedTotals.cashDifference) < 0 ? 'text-red-600' : 'text-green-600'}`}>
                       RD$ {calculatedTotals.cashDifference}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">(Efectivo recibido - Efectivo esperado)</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">(Efectivo recibido - Efectivo esperado)</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Producto Vendido</p>
-                    <p className="font-medium">RD$ {form.getValues().totalInvoiced}</p>
-                    <p className="text-xs text-gray-500 mt-1">Igual al Total Facturado</p>
+                  <div className="bg-white p-2 sm:p-3 rounded shadow-sm border">
+                    <p className="text-xs sm:text-sm text-gray-600 font-semibold">Producto Vendido</p>
+                    <p className="text-sm sm:text-base font-medium">RD$ {form.getValues().totalInvoiced}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Igual al Total Facturado</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Efectivo Esperado</p>
-                    <p className="font-medium">
+                  <div className="bg-white p-2 sm:p-3 rounded shadow-sm border">
+                    <p className="text-xs sm:text-sm text-gray-600 font-semibold">Efectivo Esperado</p>
+                    <p className="text-sm sm:text-base font-medium">
                       RD$ {calculatedTotals.expectedCash}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">(Inicial + Ventas en efectivo)</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-1">(Inicial + Ventas en efectivo)</p>
                   </div>
                 </div>
                 
@@ -1037,10 +1049,10 @@ export default function VehicleSettlementForm({ loading, onSuccess, readOnly = f
                       variant="outline" 
                       size="sm"
                       onClick={() => calculateDifferences()}
-                      className="flex items-center gap-1"
+                      className="flex items-center gap-1 w-full sm:w-auto"
                     >
-                      <Calculator className="h-4 w-4" />
-                      Calcular Totales
+                      <Calculator className="h-4 w-4 flex-shrink-0" />
+                      <span>Calcular Totales</span>
                     </Button>
                   </div>
                 )}
