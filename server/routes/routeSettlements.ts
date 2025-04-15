@@ -152,7 +152,7 @@ export async function registerRouteSettlements(app: Express) {
           .where(and(
             eq(orders.routeId, loading.routeId),
             // Verificar que el status sea "delivered" o "completed" (compatibilidad con ambos términos)
-            sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed')`
+            sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
           ));
         
         // Forzar a mostrar más detalles para depuración
@@ -168,24 +168,52 @@ export async function registerRouteSettlements(app: Express) {
           console.log("⚠️ IMPORTANTE: No se encontraron órdenes para la ruta especificada");
           console.log("Probando consulta alternativa para buscar órdenes válidas...");
           
-          // Intentar una búsqueda alternativa - todas las órdenes del mismo día de la carga
+          // Buscar órdenes del mismo día con el mismo conductor
           const loadingDate = new Date(loading.date);
           const startOfDay = new Date(loadingDate.getFullYear(), loadingDate.getMonth(), loadingDate.getDate());
           const endOfDay = new Date(loadingDate.getFullYear(), loadingDate.getMonth(), loadingDate.getDate() + 1);
           
-          console.log(`Buscando órdenes entre ${startOfDay.toISOString()} y ${endOfDay.toISOString()}`);
+          console.log(`Buscando órdenes entre ${startOfDay.toISOString()} y ${endOfDay.toISOString()} para el conductor ${loading.driverId}`);
           
-          const alternativeOrdersData = await db
+          // Primero, obtenemos las rutas que involucran al conductor de esta carga
+          const driverRoutes = await db
             .select()
-            .from(orders)
-            .where(
-              and(
-                gte(orders.date, startOfDay),
-                lt(orders.date, endOfDay),
-                // Filtrar también por estado para obtener solo órdenes completadas
-                sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed')`
-              )
-            );
+            .from(routes)
+            .where(eq(routes.driverId, loading.driverId));
+          
+          const driverRouteIds = driverRoutes.map(route => route.id);
+          console.log(`El conductor tiene ${driverRouteIds.length} rutas asignadas: ${driverRouteIds.join(', ')}`);
+          
+          // Si hay rutas asignadas al conductor, buscar órdenes en esas rutas
+          let alternativeOrdersData = [];
+          
+          if (driverRouteIds.length > 0) {
+            alternativeOrdersData = await db
+              .select()
+              .from(orders)
+              .where(
+                and(
+                  inArray(orders.routeId, driverRouteIds),
+                  gte(orders.date, startOfDay),
+                  lt(orders.date, endOfDay),
+                  // Filtrar también por estado para obtener solo órdenes completadas
+                  sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
+                )
+              );
+          } else {
+            // Si no hay rutas, buscar todas las órdenes del mismo día
+            alternativeOrdersData = await db
+              .select()
+              .from(orders)
+              .where(
+                and(
+                  gte(orders.date, startOfDay),
+                  lt(orders.date, endOfDay),
+                  // Filtrar también por estado para obtener solo órdenes completadas
+                  sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
+                )
+              );
+          }
           
           console.log(`Encontradas ${alternativeOrdersData.length} órdenes alternativas`);
           
@@ -198,17 +226,8 @@ export async function registerRouteSettlements(app: Express) {
             // Usar estas órdenes en lugar de las originales si no hay órdenes originales
             if (ordersData.length === 0) {
               console.log("Usando órdenes alternativas en lugar de las originales");
-              // Filtrar solo órdenes entregadas o completadas
-              const validOrders = alternativeOrdersData.filter(order => {
-                const status = (order.status || "").toLowerCase();
-                return status === "delivered" || status === "completed" || status.includes("deliver");
-              });
-              
-              if (validOrders.length > 0) {
-                console.log(`Usando ${validOrders.length} órdenes alternativas válidas`);
-                // Usar estas órdenes
-                ordersData.push(...validOrders);
-              }
+              // Usar estas órdenes
+              ordersData.push(...alternativeOrdersData);
             }
           }
         }

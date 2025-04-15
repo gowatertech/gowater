@@ -208,32 +208,21 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
     
     // Si tenemos órdenes relacionadas, usar esos datos para calcular el crédito
     if (settlementData && settlementData.relatedOrders && settlementData.relatedOrders.length > 0) {
-      // CORRECCIÓN: Filtrar órdenes relacionadas con la ruta exacta de la carga
-      const orders = settlementData.relatedOrders.filter(order => {
-        // Verificar si la orden está entregada o completada (status es case-insensitive)
+      // Las órdenes ya vienen filtradas desde el backend, así que podemos usarlas directamente
+      console.log(`Procesando ${settlementData.relatedOrders.length} órdenes relacionadas para el cuadre`);
+      
+      // Verificamos cada orden para mostrar detalles en consola
+      settlementData.relatedOrders.forEach(order => {
         const orderStatus = (order.status || "").toLowerCase();
         const isDelivered = orderStatus === "delivered" || 
                          orderStatus === "completed" || 
                          orderStatus.includes("deliver") ||
                          (!order.status && parseFloat(order.total || "0") > 0);
         
-        // Verificar si la orden pertenece a la ruta asociada a la carga
-        let belongsToRoute = false;
-        
-        if (loading.routeId) {
-          // Comparar como números para evitar problemas de tipo string vs number
-          belongsToRoute = Number(order.routeId) === Number(loading.routeId);
-          console.log(`Orden #${order.id}: ruta=${order.routeId}, carga.routeId=${loading.routeId}, coincide=${belongsToRoute}`);
-        } else {
-          // Si no hay routeId, buscar órdenes del mismo conductor
-          belongsToRoute = true;
-          console.log(`Orden #${order.id}: no hay ruta en carga, se asume que es del conductor`);
-        }
-        
-        console.log(`Orden #${order.id}: status=${order.status}, total=${order.total}, entregada=${isDelivered}, de la ruta=${belongsToRoute}`);
-        
-        return isDelivered && belongsToRoute;
+        console.log(`Orden #${order.id}: status=${order.status}, total=${order.total}, entregada=${isDelivered}, ruta=${order.routeId}, métodoPago=${order.paymentMethod}`);
       });
+      
+      const orders = settlementData.relatedOrders;
       
       console.log(`Órdenes filtradas (entregadas y de la ruta): ${orders.length}`);
       

@@ -208,20 +208,28 @@ export function VehicleLoadingForm({ onSuccess }: VehicleLoadingFormProps) {
     try {
       setIsSubmitting(true);
 
+      // Verificar si se ha seleccionado una ruta
+      const hasRouteId = values.routeId !== undefined && values.routeId !== null;
+      
+      console.log("Valores del formulario:", values);
+      console.log(`routeId seleccionado: ${values.routeId}, es definido: ${hasRouteId}`);
+
       const formattedData = {
         ...values,
         initialCash: values.initialCash.toString(),
         truckId: Number(values.truckId),
         driverId: Number(values.driverId),
-        routeId: values.routeId ? Number(values.routeId) : undefined,
-        assistantId: values.assistantId ? Number(values.assistantId) : undefined,
+        // Asegurarse de que routeId sea un número o null (no undefined)
+        routeId: hasRouteId ? Number(values.routeId) : null,
+        assistantId: values.assistantId ? Number(values.assistantId) : null,
         items: values.items.map(item => ({
           productId: Number(item.productId),
           quantity: Number(item.quantity)
         }))
       };
 
-      console.log("Submitting data:", formattedData);
+      console.log("Datos formateados para enviar:", formattedData);
+      console.log(`routeId a enviar: ${formattedData.routeId}, tipo: ${typeof formattedData.routeId}`);
 
       const response = await fetch("/api/vehicle-loading", {
         method: "POST",
