@@ -14,6 +14,7 @@ import OrderDetails from "@/pages/orders/details";
 import OrderStatus from "@/pages/orders/status";
 import Routes from "@/pages/routes";
 import RouteDetails from "@/pages/routes/RouteDetails";
+import Zones from "@/pages/zones";
 import Users from "@/pages/users";
 import Payments from "@/pages/payments";
 import RegisterPayment from "@/pages/payments/register";
@@ -196,6 +197,7 @@ function Router() {
         <Route path="/vehicle-loading" component={VehicleLoadingPage} />
         <Route path="/routes/:id" component={RouteDetails} />
         <Route path="/routes" component={Routes} />
+        <Route path="/zones" component={Zones} />
         <Route path="/users" component={Users} />
         <Route path="/entregas" component={Entregas} />
         <Route path="/drivers" component={DriverView} />

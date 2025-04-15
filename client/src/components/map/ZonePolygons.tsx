@@ -13,9 +13,10 @@ interface Zone {
 
 interface ZonePolygonsProps {
   zones: Zone[];
+  showLabels?: boolean;
 }
 
-export function ZonePolygons({ zones }: ZonePolygonsProps) {
+export function ZonePolygons({ zones, showLabels = true }: ZonePolygonsProps) {
   const { toast } = useToast();
   const [polygons, setPolygons] = useState<{
     id: number;
@@ -158,9 +159,11 @@ export function ZonePolygons({ zones }: ZonePolygonsProps) {
               weight: 2
             }}
           >
-            <Tooltip sticky>
-              {polygon.name}
-            </Tooltip>
+            {showLabels && (
+              <Tooltip sticky>
+                {polygon.name}
+              </Tooltip>
+            )}
           </Polygon>
         );
       })}

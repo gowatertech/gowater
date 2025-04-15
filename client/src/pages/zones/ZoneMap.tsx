@@ -354,7 +354,7 @@ export default function ZoneMap({
               <input
                 type="color"
                 value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
+                onChange={(e) => setSelectedColor ? setSelectedColor(e.target.value) : undefined}
                 className="h-5 w-8 border rounded-md"
               />
               <span className="text-xs">{selectedColor}</span>
