@@ -156,11 +156,24 @@ export async function registerRouteSettlements(app: Express) {
         console.log(`Verificación de ruta: ${routeData.length > 0 ? `Encontrada ruta #${routeData[0].id}` : 'Ruta no encontrada'}`);
         
         // Obtener órdenes con un routeId que coincida exactamente con la ruta de la carga
+        const routeIdToSearch = Number(loading.routeId);
+        console.log(`Buscando órdenes para routeId exacto: ${routeIdToSearch} (tipo: ${typeof routeIdToSearch})`);
+        
+        const allOrdersData = await db
+          .select()
+          .from(orders);
+        
+        console.log("Todas las órdenes en la base de datos:");
+        allOrdersData.forEach(order => {
+          console.log(`Orden #${order.id}: routeId=${order.routeId} (tipo: ${typeof order.routeId}), status=${order.status}, total=${order.total}`);
+        });
+        
+        // Ahora la búsqueda real con filtros
         const ordersData = await db
           .select()
           .from(orders)
           .where(and(
-            eq(orders.routeId, loading.routeId),
+            eq(orders.routeId, routeIdToSearch),
             // Verificar que el status sea "delivered" o "completed" (compatibilidad con ambos términos)
             sql`(${orders.status} = 'delivered' OR ${orders.status} = 'completed' OR LOWER(${orders.status}) LIKE '%deliver%')`
           ));
