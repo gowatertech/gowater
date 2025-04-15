@@ -280,11 +280,15 @@ export default function DriverRoute() {
           // Mostrar logs para depuración
           console.log(`Pedido ${order.id}: Estado real API = ${actualStatus}`);
           
-          // Si el estado es "in_transit", mostrarlo como "in_progress" en la interfaz 
-          // (esta orden está en ruta pero aún no ha sido entregada)
+          // Mapear los estados para visualización adecuada
           if (displayStatus === "in_transit") {
+            // Orden en ruta pero aún no entregada
             displayStatus = "in_progress";
             console.log(`Pedido ${order.id}: Cambiado a "in_progress" para la visualización`);
+          } else if (displayStatus === "cancelled") {
+            // Pedido cancelado - mostrarlo como devuelto
+            displayStatus = "returned";
+            console.log(`Pedido ${order.id}: Cambiado a "returned" para la visualización`);
           }
           
           // Para propósitos de debugging, loggear los estados de completado
@@ -352,20 +356,22 @@ export default function DriverRoute() {
         // Actualizar el índice de la parada actual para que siempre sea la primera (1) después del almacén
         if (orderedStops.length > 1) {
           // Siempre establecer la primera parada después del almacén como la actual
-          // a menos que ya esté completada
-          if (orderedStops[1] && orderedStops[1].status !== "completed") {
+          // a menos que ya esté completada, entregada o devuelta
+          const completedOrDeliveredStatuses = ["completed", "delivered", "returned"];
+          
+          if (orderedStops[1] && !completedOrDeliveredStatuses.includes(orderedStops[1].status)) {
             setCurrentStopIndex(1);
           } else {
-            // Si la primera está completada, buscar la primera no completada
+            // Si la primera está completada/entregada/devuelta, buscar la primera no completada
             for (let i = 2; i < orderedStops.length; i++) {
-              if (orderedStops[i].status !== "completed") {
+              if (!completedOrDeliveredStatuses.includes(orderedStops[i].status)) {
                 setCurrentStopIndex(i);
                 break;
               }
             }
           }
           
-          // Si todas están completadas, usar la última
+          // Si todas están completadas/entregadas/devueltas, usar la última
           if (currentStopIndex === -1) {
             setCurrentStopIndex(orderedStops.length - 1);
           }
@@ -467,7 +473,9 @@ export default function DriverRoute() {
     // Verificar si hay paradas pendientes
     const pendingStops = routeStops.filter(stop => {
       if (stop.isWarehouse) return false; // Ignorar el almacén
-      return stop.status !== "completed" && stop.status !== "delivered";
+      // Considerar completadas, entregadas y devueltas como "finalizadas"
+      const finishedStatuses = ["completed", "delivered", "returned"];
+      return !finishedStatuses.includes(stop.status);
     });
     
     if (pendingStops.length > 0) {
