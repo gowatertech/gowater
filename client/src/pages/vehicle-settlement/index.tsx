@@ -2,15 +2,16 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Calculator, Truck, AlertCircle, Calendar, Clock, 
   User as UserIcon, // Renombrar el icono para evitar conflicto
   DollarSign, Package, CheckCircle, BanknoteIcon, TrendingDown, 
   TrendingUp, FileText, Tag, ClipboardList, BarChart3, 
   History as HistoryIcon, ListCheck as ListChecks, Route as RouteIcon,
-  BadgeCheck, Filter as FilterIcon
+  BadgeCheck, Filter as FilterIcon, CheckSquare, ShoppingBag, User
 } from "lucide-react";
-import type { VehicleLoading, Product, User, Truck as TruckType, Route } from "@shared/schema";
+import type { VehicleLoading, Product, User as UserType, Truck as TruckType, Route } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import VehicleSettlementForm from "./VehicleSettlementForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +36,11 @@ interface CompletedLoadingWithStats extends LoadingWithRelations {
     orderCount: number;
     totalSales: string;
   };
+  cashTotal?: string;
+  transferTotal?: string;
+  difference?: string;
+  completedAt?: string;
+  notes?: string;
 }
 
 const getStatusColor = (status: string) => {
@@ -54,6 +60,7 @@ const getStatusColor = (status: string) => {
 
 export default function VehicleSettlementPage() {
   const [selectedLoadingId, setSelectedLoadingId] = useState<number | null>(null);
+  const [selectedSettlementId, setSelectedSettlementId] = useState<number | null>(null);
 
   // Obtener solo cargas pendientes
   const { 
@@ -99,6 +106,7 @@ export default function VehicleSettlementPage() {
   }
 
   const selectedLoading = loadings.find(loading => loading.id === selectedLoadingId);
+  const selectedSettlement = completedSettlements.settlements.find(settlement => settlement.id === selectedSettlementId);
 
   // Calcular valor total de la carga
   const calculateTotalValue = (items: LoadingWithRelations['items']) => {
@@ -127,11 +135,14 @@ export default function VehicleSettlementPage() {
           <h1 className="text-xl font-bold">Cuadre de Vehículo</h1>
         </div>
         
-        {selectedLoadingId && (
+        {(selectedLoadingId || selectedSettlementId) && (
           <Button 
             variant="outline"
             size="sm"
-            onClick={() => setSelectedLoadingId(null)}
+            onClick={() => {
+              setSelectedLoadingId(null);
+              setSelectedSettlementId(null);
+            }}
             className="h-8"
           >
             Volver a la lista
@@ -140,7 +151,7 @@ export default function VehicleSettlementPage() {
       </div>
 
       {/* Stats Cards */}
-      {!selectedLoadingId && (
+      {!selectedLoadingId && !selectedSettlementId && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <Card className="p-0 overflow-hidden">
             <div className="flex items-center border-l-4 border-l-amber-500">
@@ -203,8 +214,109 @@ export default function VehicleSettlementPage() {
         </div>
       )}
 
-      {/* Lista de cargas o formulario de cuadre */}
-      {selectedLoading ? (
+      {/* Lista de cargas o formulario de cuadre o detalle de cuadre completado */}
+      {selectedSettlementId ? (
+        <Card className="p-3 overflow-hidden">
+          <CardHeader className="p-3 pb-2 flex flex-row justify-between">
+            <div className="flex items-center gap-1.5">
+              <CheckSquare className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-base">Detalle de Cuadre #{selectedSettlement?.loadingNumber}</CardTitle>
+            </div>
+            <Badge variant="outline" className="text-green-700 border-green-200 bg-green-50">
+              Completado
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-50 p-2 mb-3 rounded-lg text-xs">
+              <div className="border-l-4 border-l-blue-500 pl-2">
+                <p className="text-xs text-gray-500 flex items-center">
+                  <Calendar className="h-3 w-3 mr-1 text-blue-500" />
+                  Fecha Carga
+                </p>
+                <p className="font-medium text-sm">{selectedSettlement && new Date(selectedSettlement.date).toLocaleDateString()}</p>
+              </div>
+              <div className="border-l-4 border-l-green-500 pl-2">
+                <p className="text-xs text-gray-500 flex items-center">
+                  <Clock className="h-3 w-3 mr-1 text-green-500" />
+                  Fecha Cuadre
+                </p>
+                <p className="font-medium text-sm">
+                  {selectedSettlement?.completedAt 
+                    ? new Date(selectedSettlement.completedAt).toLocaleDateString() 
+                    : 'Sin fecha'}
+                </p>
+              </div>
+              <div className="border-l-4 border-l-purple-500 pl-2">
+                <p className="text-xs text-gray-500 flex items-center">
+                  <Truck className="h-3 w-3 mr-1 text-purple-500" />
+                  Vehículo
+                </p>
+                <p className="font-medium text-sm">{selectedSettlement?.truck?.plate || 'N/A'}</p>
+              </div>
+              <div className="border-l-4 border-l-amber-500 pl-2">
+                <p className="text-xs text-gray-500 flex items-center">
+                  <User className="h-3 w-3 mr-1 text-amber-500" />
+                  Conductor
+                </p>
+                <p className="font-medium text-sm">{selectedSettlement?.driver?.name || 'N/A'}</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+              <Card className="p-3">
+                <CardTitle className="text-sm mb-3 flex items-center gap-1.5">
+                  <ShoppingBag className="h-4 w-4 text-gray-500" /> 
+                  Resumen de Ventas
+                </CardTitle>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center pb-1 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Total Órdenes:</span>
+                    <span className="font-medium">{selectedSettlement?.stats.orderCount || 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-1 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Total Vendido:</span>
+                    <span className="font-medium">RD$ {selectedSettlement ? Number(selectedSettlement.stats.totalSales).toFixed(2) : '0.00'}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-1 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Ruta:</span>
+                    <span className="font-medium">{selectedSettlement?.route?.name || 'Sin ruta asignada'}</span>
+                  </div>
+                </div>
+              </Card>
+              
+              <Card className="p-3 bg-green-50">
+                <CardTitle className="text-sm mb-3 flex items-center gap-1.5">
+                  <DollarSign className="h-4 w-4 text-green-600" /> 
+                  Resumen de Cuadre
+                </CardTitle>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center pb-1 border-b border-green-100">
+                    <span className="text-sm text-gray-600">Efectivo:</span>
+                    <span className="font-medium">RD$ {selectedSettlement?.cashTotal || '0.00'}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-1 border-b border-green-100">
+                    <span className="text-sm text-gray-600">Transferencias:</span>
+                    <span className="font-medium">RD$ {selectedSettlement?.transferTotal || '0.00'}</span>
+                  </div>
+                  <div className="flex justify-between items-center pb-1 border-b border-green-100">
+                    <span className="text-sm text-gray-600">Diferencia:</span>
+                    <span className={`font-medium ${selectedSettlement?.difference && parseFloat(selectedSettlement.difference) < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      RD$ {selectedSettlement?.difference || '0.00'}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+            
+            <div className="mt-3">
+              <span className="text-xs text-gray-500 block mb-1">Notas:</span>
+              <div className="bg-gray-50 p-2 rounded-md text-sm min-h-[40px]">
+                {selectedSettlement?.notes || 'Sin notas adicionales'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : selectedLoading ? (
         <Card className="p-3 overflow-hidden">
           <CardHeader className="p-3 pb-2 flex flex-row justify-between">
             <div className="flex items-center gap-1.5">
@@ -331,7 +443,8 @@ export default function VehicleSettlementPage() {
                   .map((settlement) => (
                     <Card 
                       key={settlement.id} 
-                      className="p-0 hover:shadow-md transition-shadow overflow-hidden"
+                      className="p-0 hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+                      onClick={() => setSelectedSettlementId(settlement.id)}
                     >
                       <div className="flex flex-col border-l-4 border-l-green-500">
                         <div className="p-2.5 pb-1.5">
