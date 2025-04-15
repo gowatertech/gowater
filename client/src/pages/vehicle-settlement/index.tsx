@@ -39,7 +39,7 @@ interface CompletedLoadingWithStats extends Omit<LoadingWithRelations, 'notes'> 
   cashTotal?: string;
   transferTotal?: string;
   difference?: string;
-  completedAt?: string;
+  completedAt?: string | null;
   notes?: string | null;
 }
 

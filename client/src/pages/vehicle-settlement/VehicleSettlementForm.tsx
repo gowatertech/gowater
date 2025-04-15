@@ -666,7 +666,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
                 {settlementData?.relatedOrders?.length || 0}
               </div>
               <div className="text-xs text-gray-500 text-right">
-                {settlementData?.relatedOrders?.length > 0 
+                {settlementData?.relatedOrders && settlementData.relatedOrders.length > 0 
                   ? "Órdenes encontradas" 
                   : "No hay órdenes" }
               </div>
@@ -715,7 +715,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
           )}
           
           {/* Resumen de productos vendidos */}
-          {settlementData?.productSummary?.length > 0 && (
+          {settlementData?.productSummary && settlementData.productSummary.length > 0 && (
             <div className="mt-4 border-t pt-3">
               <h4 className="text-sm font-medium mb-2 flex items-center">
                 <BarChart4 className="h-4 w-4 mr-1" /> 
@@ -750,7 +750,7 @@ export default function VehicleSettlementForm({ loading, onSuccess }: Settlement
             <Loader2 className="w-8 h-8 animate-spin text-primary mr-2" />
             <span>Cargando datos de devoluciones...</span>
           </div>
-        ) : settlementData?.bottleReturns?.length > 0 ? (
+        ) : settlementData?.bottleReturns && settlementData.bottleReturns.length > 0 ? (
           <div className="mb-6 border border-primary/20 bg-primary/5 p-4 rounded-lg">
             <div className="flex items-center mb-2">
               <PillBottle className="h-5 w-5 text-primary mr-2" />
