@@ -93,6 +93,7 @@ interface PendingOrder {
   customerAddress: string;
   customerPhone: string;
   coordinates?: string;
+  deliveryCoordinates?: string; // Añadir esta propiedad
   date: string;
   products: {
     productId: number;
@@ -284,15 +285,20 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
       // Convert orders to customers for the route algorithm
       const customersFromOrders = selectedOrders.map(order => {
-        return {
+        // Obtener cliente por ID si existe en la zona
+        const customer = {
           id: order.customerId,
           businessname: order.customerName,
           phone: order.customerPhone || "",
           street: order.customerAddress,
           streetnumber: "",
-          coordinates: order.coordinates || `19.${Math.random().toFixed(6)},-70.${Math.random().toFixed(6)}`, // Use real coordinates or generate random ones for testing
-          orderId: order.id, // Add the order ID to associate with the customer
+          // Si no hay coordenadas, usamos las coordenadas reales del cliente o un valor predeterminado
+          coordinates: order.deliveryCoordinates || order.coordinates || "19.105433,-70.086588", // Usar coordenadas reales o una ubicación predeterminada
+          orderId: order.id, // Añadir el ID del pedido para asociarlo con el cliente
         } as Customer;
+        
+        console.log("Cliente para optimización:", customer);
+        return customer;
       });
 
       // Ensure we have unique customers (multiple orders from same customer)
@@ -362,13 +368,41 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   // Optimize route order based on proximity
   const optimizeRoute = (customers: Customer[]) => {
     try {
+      console.log("Optimizando ruta para clientes:", customers);
+      
       // Extract depot (first customer) and remaining customers
       const depot = customers[0];
       const customersToVisit = customers.slice(1);
       
+      console.log("Depot:", depot);
+      console.log("Clientes a visitar:", customersToVisit);
+      
+      if (customersToVisit.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No hay clientes para optimizar la ruta",
+        });
+        setIsOptimizing(false);
+        return;
+      }
+      
       // Start with depot
       const unvisited = [...customersToVisit];
       const optimized = [depot];
+
+      // Verificar que todos los clientes tengan coordenadas válidas
+      const invalidCustomers = unvisited.filter(
+        customer => !customer.coordinates || customer.coordinates === "null,null"
+      );
+      
+      if (invalidCustomers.length > 0) {
+        console.warn("Hay clientes sin coordenadas:", invalidCustomers);
+        // Asignar coordenadas predeterminadas para permitir la optimización
+        invalidCustomers.forEach(customer => {
+          customer.coordinates = "19.105433,-70.086588"; // Coordenada predeterminada en la zona
+        });
+      }
 
       while (unvisited.length > 0) {
         const currentPoint = optimized[optimized.length - 1];
@@ -379,9 +413,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         
         for (let i = 0; i < unvisited.length; i++) {
           const distance = calculateDistance(
-            currentPoint.coordinates || "19.0,-70.0", 
-            unvisited[i].coordinates || "19.0,-70.0"
+            currentPoint.coordinates || "19.075380,-70.128822", // Coordenadas del depósito por defecto
+            unvisited[i].coordinates || "19.075380,-70.128822"  // Coordenadas del depósito por defecto
           );
+          
+          console.log(`Distancia desde ${currentPoint.businessname} hasta ${unvisited[i].businessname}: ${distance} km`);
           
           if (distance < closestDistance) {
             closestDistance = distance;
@@ -391,16 +427,21 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         
         // Add the closest point to our route
         optimized.push(unvisited[closestIdx]);
+        console.log(`Añadiendo a la ruta: ${unvisited[closestIdx].businessname}`);
         unvisited.splice(closestIdx, 1);
       }
+      
+      console.log("Ruta optimizada final:", optimized);
       
       // Set the optimized route
       setOptimizedRoute(optimized);
       
-      // Update stops in form
-      const stops = optimized.map(customer => 
-        `${customer.id}:${customer.businessname}:${customer.coordinates || ""}`
-      );
+      // Calcular distancia total
+      const totalDistance = calculateTotalRouteDistance(optimized);
+      console.log(`Distancia total de la ruta: ${totalDistance.toFixed(2)} km`);
+      
+      // Update stops in form with format esperado por el backend
+      const stops = optimized.map(customer => customer.coordinates || "");
       form.setValue("stops", stops);
       
       // Cambiar automáticamente a la pestaña de revisión
@@ -409,7 +450,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       // Mensaje de éxito
       toast({
         title: "Ruta optimizada",
-        description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes`,
+        description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes (${totalDistance.toFixed(2)} km)`,
       });
     } catch (error) {
       console.error("Error optimizing route:", error);
