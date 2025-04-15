@@ -84,6 +84,28 @@ interface SettlementResponse {
   }>;
   totalOrdersFound?: number;
   warningMessage?: string;
+  // Datos del cuadre guardado en route_settlements
+  settlementRecord?: {
+    id: number;
+    vehicleLoadingId: number;
+    settlementDate: string;
+    totalCashReceived: string;
+    totalCreditReceived: string;
+    totalInvoiced: string;
+    cashDifference: string;
+    status: string;
+    notes: string | null;
+    items: Array<{
+      id: number;
+      productId: number;
+      productName: string;
+      loadedQuantity: number;
+      returnedQuantity: number;
+      soldQuantity: number;
+      difference: number;
+      returnedContainers: number;
+    }>;
+  };
 }
 
 // Interfaz para el resumen de productos vendidos

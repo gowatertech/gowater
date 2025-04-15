@@ -245,6 +245,25 @@ export async function registerRouteSettlements(app: Express) {
           message: "La carga especificada no existe"
         });
       }
+      
+      // Buscar si existe un registro de cuadre en la nueva tabla
+      const settlementData = await db.query.routeSettlements.findFirst({
+        where: eq(routeSettlements.vehicleLoadingId, loadingId),
+        with: {
+          items: {
+            with: {
+              product: true
+            }
+          }
+        }
+      });
+      
+      // Si encontramos un registro de cuadre, usamos esa información
+      if (settlementData) {
+        console.log(`Encontrado cuadre en la tabla route_settlements con ID: ${settlementData.id}`);
+      } else {
+        console.log(`No se encontró cuadre en la tabla route_settlements para la carga ID: ${loadingId}`);
+      }
 
       // Obtenemos las devoluciones de envases para las órdenes del conductor
       let bottleReturnData: any[] = [];
@@ -710,7 +729,8 @@ export async function registerRouteSettlements(app: Express) {
       // Log para depuración
       console.log(`Enviando respuesta: ${safeRelatedOrders.length} órdenes, ${safeProductSummary.length} productos en resumen`);
       
-      res.json({
+      // Si encontramos un registro de cuadre en la nueva tabla, incluir esa información
+      const responseData = {
         loading,
         relatedOrders: safeRelatedOrders,
         bottleReturns: bottleReturnData || [],
@@ -719,7 +739,35 @@ export async function registerRouteSettlements(app: Express) {
         warningMessage: safeRelatedOrders.length === 0 
           ? "No se encontraron órdenes completadas relacionadas con esta carga. Verifique que todas las órdenes estén marcadas como 'delivered'."
           : null
-      });
+      };
+      
+      // Si encontramos datos del cuadre en la tabla route_settlements, incluirlos en la respuesta
+      if (settlementData) {
+        console.log(`Incluyendo información del cuadre ID ${settlementData.id} en la respuesta`);
+        responseData.settlementRecord = {
+          id: settlementData.id,
+          vehicleLoadingId: settlementData.vehicleLoadingId,
+          settlementDate: settlementData.settlementDate,
+          totalCashReceived: settlementData.totalCashReceived,
+          totalCreditReceived: settlementData.totalCreditReceived,
+          totalInvoiced: settlementData.totalInvoiced,
+          cashDifference: settlementData.cashDifference,
+          status: settlementData.status,
+          notes: settlementData.notes,
+          items: settlementData.items?.map(item => ({
+            id: item.id,
+            productId: item.productId,
+            productName: item.product?.name || `Producto #${item.productId}`,
+            loadedQuantity: item.loadedQuantity,
+            returnedQuantity: item.returnedQuantity,
+            soldQuantity: item.soldQuantity,
+            difference: item.difference,
+            returnedContainers: item.returnedContainers || 0
+          })) || []
+        };
+      }
+      
+      res.json(responseData);
     } catch (error) {
       console.error("Error al obtener cuadre de vehículo:", error);
       res.status(500).json({
