@@ -1164,20 +1164,13 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                 const [lat, lng] = point.coordinates.split(',').map(parseFloat);
                                 if (isNaN(lat) || isNaN(lng)) return null;
                                 
-                                // Different icon for depot
-                                const icon = index === 0 
-                                  ? new L.Icon({
-                                      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                                      iconSize: [20, 33], // Smaller icons
-                                      iconAnchor: [10, 33],
-                                      popupAnchor: [1, -34],
-                                    })
-                                  : new L.Icon({
-                                      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-                                      iconSize: [20, 33], // Smaller icons
-                                      iconAnchor: [10, 33],
-                                      popupAnchor: [1, -34],
-                                    });
+                                // Usar el mismo icono azul para todos los puntos
+                                const icon = new L.Icon({
+                                  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                                  iconSize: [20, 33], // Smaller icons
+                                  iconAnchor: [10, 33],
+                                  popupAnchor: [1, -34],
+                                });
                                 
                                 return (
                                   <Marker 
@@ -1188,7 +1181,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                     <Popup>
                                       <div className="text-xs">
                                         <strong>{point.businessname}</strong><br />
-                                        {index === 0 ? 'Inicio' : `Parada ${index}`}
+                                        {index === 0 ? 'Almacén (Parada 0)' : `Parada ${index}`}
                                       </div>
                                     </Popup>
                                   </Marker>
