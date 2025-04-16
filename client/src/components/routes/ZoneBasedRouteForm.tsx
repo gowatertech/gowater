@@ -539,13 +539,39 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       
       console.log("Enviando órdenes para la ruta:", routeData.orderIds);
       
-      // Enviar los datos de la ruta al servidor
-      const response = await apiRequest("POST", "/api/routes", routeData);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create route");
+      try {
+        // Asegurar que enviamos datos bien formados y la URL es correcta
+        console.log("URL de envío: /api/routes");
+        console.log("Data enviada:", routeData);
+        const response = await apiRequest("POST", "/api/routes", routeData);
+        
+        // Verificar el tipo de contenido de la respuesta
+        const contentType = response.headers.get("content-type");
+        console.log("Tipo de contenido de respuesta:", contentType);
+        
+        if (!response.ok) {
+          // Intentar leer el error como texto primero
+          const errorText = await response.text();
+          console.error("Error text from server:", errorText);
+          
+          // Si parece JSON, convertirlo
+          try {
+            if (contentType && contentType.includes("application/json")) {
+              const errorData = JSON.parse(errorText);
+              throw new Error(errorData.message || "Failed to create route");
+            }
+          } catch (jsonError) {
+            console.error("Error parsing JSON error response:", jsonError);
+          }
+          
+          throw new Error(errorText || "Failed to create route");
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("Error creating route:", error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       toast({
