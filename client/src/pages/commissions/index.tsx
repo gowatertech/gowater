@@ -649,6 +649,19 @@ export default function CommissionsPage() {
   const [, navigate] = useLocation();
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [currentTab, setCurrentTab] = useState<string>("all");
+  const [showGenerateForm, setShowGenerateForm] = useState(false);
+  
+  // Estados para el formulario de generación
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [weekDates, setWeekDates] = useState<{ from: Date; to: Date }>(() => {
+    const now = new Date();
+    const start = startOfWeek(now, { weekStartsOn: 1 });
+    const end = endOfWeek(now, { weekStartsOn: 1 });
+    return { from: start, to: end };
+  });
+  const [userRole, setUserRole] = useState<string>("driver");
+  const [userId, setUserId] = useState<string>("");
 
   // Construir el string de query params para el filtrado
   const queryString = Object.entries(filters)
@@ -671,6 +684,22 @@ export default function CommissionsPage() {
     return data;
   };
 
+  // Obtener lista de choferes y ayudantes
+  const { data: users = [] } = useQuery({ 
+    queryKey: ['/api/users/drivers'],
+    staleTime: 300000 // 5 minutos
+  });
+  
+  const filteredUsers = Array.isArray(users) 
+    ? users
+        .filter((user: any) => 
+          userRole === "driver" 
+            ? user.role === "driver" 
+            : user.role === "assistant"
+        )
+        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+    : [];
+
   const { data: commissions = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/commissions', finalQueryString],
     queryFn: fetchCommissions,
@@ -679,9 +708,29 @@ export default function CommissionsPage() {
     refetchOnWindowFocus: true // Refrescar datos cuando se vuelve a enfocar la ventana
   });
 
+  const handleDateSelect = (range: DateRange | undefined) => {
+    if (range?.from) {
+      setWeekDates({ 
+        from: range.from, 
+        to: range.to || range.from 
+      });
+    }
+  };
+
   // Manejar la generación de comisiones
-  const handleGenerateCommissions = async (data: any) => {
+  const handleGenerateCommissions = async () => {
     try {
+      setLoading(true);
+      setErrorMessage(null);
+      
+      // Formatear fechas para la API
+      const data = {
+        weekStartDate: format(weekDates.from, 'yyyy-MM-dd'),
+        weekEndDate: format(weekDates.to, 'yyyy-MM-dd'),
+        ...(userId ? { userId: parseInt(userId) } : {}),
+        userRole
+      };
+      
       console.log("Generando comisiones con datos:", data);
       
       // Agregar timeout para evitar bloqueos indefinidos
@@ -726,7 +775,10 @@ export default function CommissionsPage() {
         // Refrescar la lista de comisiones
         refetch();
         
-        return result; // Devolver el resultado para el manejo en el componente del diálogo
+        // Ocultar el formulario
+        setShowGenerateForm(false);
+        
+        return result;
       } catch (error) {
         clearTimeout(timeoutId);
         const fetchError = error as Error;
@@ -737,12 +789,15 @@ export default function CommissionsPage() {
       }
     } catch (error: any) {
       console.error("Error completo:", error);
+      const errorMsg = error instanceof Error ? error.message : "No se pudieron generar las comisiones";
+      setErrorMessage(errorMsg);
       toast({
         title: "Error",
-        description: error.message || "No se pudieron generar las comisiones",
+        description: errorMsg,
         variant: "destructive",
       });
-      throw error; // Re-lanzar para el manejo en el componente del diálogo
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -755,8 +810,105 @@ export default function CommissionsPage() {
             Gestione las comisiones de choferes y ayudantes basadas en entregas completadas
           </p>
         </div>
-        <GenerateCommissionsDialog onGenerate={handleGenerateCommissions} />
+        <Button 
+          onClick={() => setShowGenerateForm(!showGenerateForm)}
+          variant={showGenerateForm ? "secondary" : "default"}
+        >
+          <BadgeDollarSign className="mr-2 h-4 w-4" />
+          {showGenerateForm ? "Cancelar" : "Generar Comisiones"}
+        </Button>
       </div>
+
+      {/* Formulario de Generación de Comisiones (visible/oculto según estado) */}
+      {showGenerateForm && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Generar Comisiones Semanales</CardTitle>
+            <CardDescription>
+              Seleccione el período y el tipo de empleado para calcular las comisiones
+              sobre las entregas realizadas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="week">Período (Semana)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="date"
+                      variant={"outline"}
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {format(weekDates.from, "P", { locale: es })} -{" "}
+                      {format(weekDates.to, "P", { locale: es })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      initialFocus
+                      mode="range"
+                      defaultMonth={weekDates.from}
+                      selected={{ from: weekDates.from, to: weekDates.to }}
+                      onSelect={handleDateSelect}
+                      numberOfMonths={2}
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="userRole">Tipo de Empleado</Label>
+                <Select
+                  value={userRole}
+                  onValueChange={setUserRole}
+                >
+                  <SelectTrigger id="userRole">
+                    <SelectValue placeholder="Seleccionar rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="driver">Choferes</SelectItem>
+                    <SelectItem value="helper">Ayudantes</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="userId">Empleado Específico (Opcional)</Label>
+                <Select
+                  value={userId}
+                  onValueChange={setUserId}
+                >
+                  <SelectTrigger id="userId">
+                    <SelectValue placeholder="Todos los empleados" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Todos los empleados</SelectItem>
+                    {filteredUsers.map((user: any) => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {errorMessage && (
+                <div className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded border border-red-200 sm:col-span-2">
+                  <AlertCircle className="h-4 w-4 inline mr-1" />
+                  {errorMessage}
+                </div>
+              )}
+            </div>
+          </CardContent>
+          <div className="flex items-center justify-end p-6 pt-0">
+            <Button onClick={handleGenerateCommissions} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Generar Comisiones
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
