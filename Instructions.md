@@ -50,10 +50,16 @@ PostgreSQL no reconoce la función `DATE_ADD()`, lo que resulta en el error de s
    sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < ${endDate}::timestamp + INTERVAL '1 day'`
    ```
 
-3. **Pruebas a realizar**:
-   - Generar comisiones para choferes (verificar que sigue funcionando)
-   - Generar comisiones para ayudantes (verificar que ahora funciona)
-   - Comprobar que las comisiones generadas son correctas en ambos casos
+3. **Resultados de las pruebas**:
+   - Generación de comisiones para ayudantes: ✅ FUNCIONANDO
+   ```json
+   {"message":"Se generaron 1 comisiones correctamente","commissions":[{"id":6,"userId":3,"userName":"milton perez","userRole":"helper","weekStartDate":"2025-04-09T00:00:00.000Z","weekEndDate":"2025-04-16T00:00:00.000Z","productCount":2,"totalAmount":"4.00","status":"pending","paymentDate":null,"routeName":"Ruta de prueba 2","routeId":32,"createdAt":"2025-04-16T21:22:10.969Z"}]}
+   ```
+   
+   - Generación de comisiones para choferes: ✅ FUNCIONANDO
+   ```json
+   {"message":"Se generaron 1 comisiones correctamente","commissions":[{"id":5,"userId":2,"userName":"alvin leandro","userRole":"driver","weekStartDate":"2025-04-09T00:00:00.000Z","weekEndDate":"2025-04-16T00:00:00.000Z","productCount":3,"totalAmount":"12.00","status":"pending","paymentDate":null,"routeName":"Ruta Zona Platanal - 4-14-2025","routeId":30,"createdAt":"2025-04-16T19:37:04.089Z"}]}
+   ```
 
 ## Notas Adicionales
 
