@@ -1,454 +1,393 @@
-import { Router } from "express";
-import { z } from "zod";
-import { db } from "../db";
-import { 
-  commissions, 
-  commissionItems, 
-  orders, 
-  users,
-  routes,
-  orderItems,
-  products
-} from "../../shared/schema";
-import { and, between, eq, gte, lte, sql } from 'drizzle-orm';
-import { startOfWeek, endOfWeek, format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+import express, { Router, Request, Response } from 'express';
+import { db } from '../db';
+import { commissions, commissionItems, users, products, orders, routes, orderItems } from '@shared/schema';
+import { z } from 'zod';
+import { eq, and, between, like, sql, asc, desc, or, inArray } from 'drizzle-orm';
 
 const router = Router();
 
-// Get all commissions with optional filters
-router.get("/", async (req, res) => {
-  try {
-    const { status, userId, userRole, startDate, endDate, routeId } = req.query;
+// Esquema para generar comisiones
+const generateCommissionsSchema = z.object({
+  weekStartDate: z.string(), // formato YYYY-MM-DD
+  weekEndDate: z.string(),   // formato YYYY-MM-DD
+  userId: z.number().optional(),
+  userRole: z.enum(['driver', 'helper']),
+});
 
+// Esquema para actualizar el estado de la comisión
+const updateCommissionStatusSchema = z.object({
+  status: z.enum(['pending', 'paid', 'cancelled']),
+  paymentDate: z.string().optional(),
+  paymentReference: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+// Obtener comisiones con filtros
+router.get('/', async (req, res) => {
+  try {
+    // Parsear parámetros de consulta
+    const { status, userRole, startDate, endDate, userId } = req.query;
+    
+    // Construir query dinámicamente con filtros
     let query = db.select({
-      commission: commissions,
-      user: users,
-      route: routes
+      id: commissions.id,
+      userId: commissions.userId,
+      userName: users.name,
+      userRole: commissions.userRole,
+      weekStartDate: commissions.weekStartDate,
+      weekEndDate: commissions.weekEndDate,
+      productCount: commissions.productCount,
+      totalAmount: commissions.totalAmount,
+      status: commissions.status,
+      paymentDate: commissions.paymentDate,
+      routeName: routes.name,
+      routeId: commissions.routeId,
+      createdAt: commissions.createdAt,
     })
     .from(commissions)
     .leftJoin(users, eq(commissions.userId, users.id))
     .leftJoin(routes, eq(commissions.routeId, routes.id));
-
-    // Apply filters if provided
-    if (status && ['pending', 'paid', 'cancelled'].includes(status as string)) {
-      query = query.where(eq(commissions.status, status as string));
+    
+    // Aplicar filtros según los parámetros recibidos
+    const conditions = [];
+    
+    if (status) {
+      conditions.push(eq(commissions.status, status as string));
     }
-
+    
+    if (userRole) {
+      conditions.push(eq(commissions.userRole, userRole as string));
+    }
+    
     if (userId) {
-      query = query.where(eq(commissions.userId, Number(userId)));
+      conditions.push(eq(commissions.userId, parseInt(userId as string)));
     }
-
-    if (userRole && ['driver', 'helper'].includes(userRole as string)) {
-      query = query.where(eq(commissions.userRole, userRole as string));
+    
+    if (startDate) {
+      conditions.push(sql`${commissions.weekStartDate} >= ${startDate}`);
     }
-
-    if (routeId) {
-      query = query.where(eq(commissions.routeId, Number(routeId)));
+    
+    if (endDate) {
+      conditions.push(sql`${commissions.weekEndDate} <= ${endDate}`);
     }
-
-    // Date range filtering
-    if (startDate && endDate) {
-      query = query.where(
-        and(
-          gte(commissions.weekStartDate, startDate as string),
-          lte(commissions.weekEndDate, endDate as string)
-        )
-      );
-    } else if (startDate) {
-      query = query.where(gte(commissions.weekStartDate, startDate as string));
-    } else if (endDate) {
-      query = query.where(lte(commissions.weekEndDate, endDate as string));
+    
+    // Aplicar condiciones a la consulta
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
     }
-
-    const results = await query;
-
-    // Map results to a more frontend-friendly format
-    const formattedResults = results.map(result => ({
-      id: result.commission.id,
-      userId: result.commission.userId,
-      userName: result.user ? `${result.user.name}` : 'Usuario Desconocido',
-      userRole: result.commission.userRole,
-      routeId: result.commission.routeId,
-      routeName: result.route ? result.route.name : null,
-      weekStartDate: result.commission.weekStartDate,
-      weekEndDate: result.commission.weekEndDate,
-      productCount: result.commission.productCount,
-      totalAmount: result.commission.totalAmount,
-      status: result.commission.status,
-      paymentDate: result.commission.paymentDate,
-      paymentReference: result.commission.paymentReference,
-      notes: result.commission.notes,
-      createdAt: result.commission.createdAt
-    }));
-
-    res.json(formattedResults);
+    
+    // Ejecutar consulta con ordenamiento por fecha descendente
+    const result = await query.orderBy(desc(commissions.weekStartDate));
+    
+    res.json(result);
   } catch (error) {
-    console.error("Error fetching commissions:", error);
-    res.status(500).json({ error: "Error al obtener las comisiones" });
+    console.error('Error al obtener comisiones:', error);
+    res.status(500).json({ error: 'Error al obtener comisiones' });
   }
 });
 
-// Get specific commission by ID with its items
-router.get("/:id", async (req, res) => {
+// Obtener detalle de una comisión específica
+router.get('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const commissionId = Number(id);
-
-    // First get the commission details
-    const commissionResult = await db.select({
-      commission: commissions,
-      user: users,
-      route: routes
+    const commissionId = parseInt(req.params.id);
+    
+    // Obtener datos de la comisión
+    const [commission] = await db.select({
+      id: commissions.id,
+      userId: commissions.userId,
+      userName: users.name,
+      userRole: commissions.userRole,
+      weekStartDate: commissions.weekStartDate,
+      weekEndDate: commissions.weekEndDate,
+      productCount: commissions.productCount,
+      totalAmount: commissions.totalAmount,
+      status: commissions.status,
+      paymentDate: commissions.paymentDate,
+      paymentReference: commissions.paymentReference,
+      routeName: routes.name,
+      routeId: commissions.routeId,
+      notes: commissions.notes,
     })
     .from(commissions)
     .leftJoin(users, eq(commissions.userId, users.id))
     .leftJoin(routes, eq(commissions.routeId, routes.id))
-    .where(eq(commissions.id, commissionId))
-    .limit(1);
-
-    if (commissionResult.length === 0) {
-      return res.status(404).json({ error: "Comisión no encontrada" });
+    .where(eq(commissions.id, commissionId));
+    
+    if (!commission) {
+      return res.status(404).json({ error: 'Comisión no encontrada' });
     }
-
-    // Get all commission items
-    const commissionItemsResult = await db.select({
-      item: commissionItems,
-      product: products,
-      order: orders
+    
+    // Obtener los ítems de la comisión con sus detalles
+    const items = await db.select({
+      id: commissionItems.id,
+      productId: commissionItems.productId,
+      productName: products.name,
+      orderId: commissionItems.orderId,
+      orderNumber: orders.id, // Usar como referencia
+      quantity: commissionItems.quantity,
+      commissionValue: commissionItems.commissionValue,
+      commissionAmount: commissionItems.commissionAmount,
+      deliveryDate: orders.actualDeliveryTime,
     })
     .from(commissionItems)
     .leftJoin(products, eq(commissionItems.productId, products.id))
     .leftJoin(orders, eq(commissionItems.orderId, orders.id))
-    .where(eq(commissionItems.commissionId, commissionId));
-
-    // Format the commission details
-    const commissionData = commissionResult[0];
-    const formattedCommission = {
-      id: commissionData.commission.id,
-      userId: commissionData.commission.userId,
-      userName: commissionData.user ? `${commissionData.user.name}` : 'Usuario Desconocido',
-      userRole: commissionData.commission.userRole,
-      routeId: commissionData.commission.routeId,
-      routeName: commissionData.route ? commissionData.route.name : null,
-      weekStartDate: commissionData.commission.weekStartDate,
-      weekEndDate: commissionData.commission.weekEndDate,
-      productCount: commissionData.commission.productCount,
-      totalAmount: commissionData.commission.totalAmount,
-      status: commissionData.commission.status,
-      paymentDate: commissionData.commission.paymentDate,
-      paymentReference: commissionData.commission.paymentReference,
-      notes: commissionData.commission.notes,
-      createdAt: commissionData.commission.createdAt,
-      items: commissionItemsResult.map(item => ({
-        id: item.item.id,
-        orderId: item.item.orderId,
-        orderNumber: item.order ? `#${item.order.id}` : null,
-        productId: item.item.productId,
-        productName: item.product ? item.product.name : 'Producto Desconocido',
-        quantity: item.item.quantity,
-        commissionValue: item.item.commissionValue,
-        commissionAmount: item.item.commissionAmount,
-        deliveryDate: item.item.deliveryDate
-      }))
-    };
-
-    res.json(formattedCommission);
-  } catch (error) {
-    console.error("Error fetching commission details:", error);
-    res.status(500).json({ error: "Error al obtener los detalles de la comisión" });
-  }
-});
-
-// Create a new commission (usually through a scheduled job or admin action)
-router.post("/", async (req, res) => {
-  try {
-    const schema = z.object({
-      userId: z.number(),
-      userRole: z.enum(["driver", "helper"]),
-      routeId: z.number().optional(),
-      weekStartDate: z.string(),
-      weekEndDate: z.string(),
-      items: z.array(z.object({
-        orderId: z.number(),
-        productId: z.number(),
-        quantity: z.number(),
-        commissionValue: z.string(),
-        commissionAmount: z.string(),
-        deliveryDate: z.string()
-      })).optional()
-    });
-
-    const data = schema.parse(req.body);
-
-    // Calculate product count and total amount if items are provided
-    let productCount = 0;
-    let totalAmount = 0;
-
-    if (data.items && data.items.length > 0) {
-      productCount = data.items.reduce((sum, item) => sum + item.quantity, 0);
-      totalAmount = data.items.reduce((sum, item) => sum + parseFloat(item.commissionAmount), 0);
-    }
-
-    // Create the commission record
-    const [commission] = await db.insert(commissions).values({
-      userId: data.userId,
-      userRole: data.userRole,
-      routeId: data.routeId,
-      weekStartDate: new Date(data.weekStartDate),
-      weekEndDate: new Date(data.weekEndDate),
-      productCount,
-      totalAmount: totalAmount.toFixed(2),
-      status: "pending"
-    }).returning();
-
-    // If items are provided, create commission items
-    if (data.items && data.items.length > 0 && commission) {
-      const commissionItemsValues = data.items.map(item => ({
-        commissionId: commission.id,
-        orderId: item.orderId,
-        productId: item.productId,
-        quantity: item.quantity,
-        commissionValue: item.commissionValue,
-        commissionAmount: item.commissionAmount,
-        deliveryDate: new Date(item.deliveryDate)
-      }));
-
-      await db.insert(commissionItems).values(commissionItemsValues);
-    }
-
-    res.status(201).json(commission);
-  } catch (error) {
-    console.error("Error creating commission:", error);
-    res.status(500).json({ error: "Error al crear la comisión" });
-  }
-});
-
-// Update commission status (pay or cancel)
-router.patch("/:id/status", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const schema = z.object({
-      status: z.enum(["pending", "paid", "cancelled"]),
-      paymentDate: z.string().optional(),
-      paymentReference: z.string().optional(),
-      notes: z.string().optional()
-    });
-
-    const { status, paymentDate, paymentReference, notes } = schema.parse(req.body);
-
-    const updateData: any = { status };
-
-    if (status === "paid") {
-      // If marking as paid, require payment date and reference
-      if (!paymentDate) {
-        return res.status(400).json({ error: "La fecha de pago es requerida para marcar como pagada" });
-      }
-      updateData.paymentDate = new Date(paymentDate);
-      updateData.paymentReference = paymentReference;
-    }
-
-    if (notes) {
-      updateData.notes = notes;
-    }
-
-    const result = await db.update(commissions)
-      .set(updateData)
-      .where(eq(commissions.id, Number(id)))
-      .returning();
-
-    if (result.length === 0) {
-      return res.status(404).json({ error: "Comisión no encontrada" });
-    }
-
-    res.json(result[0]);
-  } catch (error) {
-    console.error("Error updating commission status:", error);
-    res.status(500).json({ error: "Error al actualizar el estado de la comisión" });
-  }
-});
-
-// Generate commissions for a specific week
-router.post("/generate", async (req, res) => {
-  try {
-    const schema = z.object({
-      weekStartDate: z.string(),
-      weekEndDate: z.string(),
-      userId: z.number().optional(),
-      userRole: z.enum(["driver", "helper"]).optional()
-    });
-
-    const { weekStartDate, weekEndDate, userId, userRole } = schema.parse(req.body);
+    .where(eq(commissionItems.commissionId, commissionId))
+    .orderBy(asc(commissionItems.id));
     
-    // Convert dates to Date objects
-    const startDate = new Date(weekStartDate);
-    const endDate = new Date(weekEndDate);
+    // Crear objeto de respuesta completo
+    const commissionDetails = {
+      ...commission,
+      items,
+    };
+    
+    res.json(commissionDetails);
+  } catch (error) {
+    console.error('Error al obtener detalle de comisión:', error);
+    res.status(500).json({ error: 'Error al obtener detalle de comisión' });
+  }
+});
 
-    // Get all orders delivered in the date range
-    const deliveredOrders = await db.select()
-      .from(orders)
-      .where(
-        and(
-          eq(orders.status, "delivered"),
-          gte(orders.actualDeliveryTime, startDate),
-          lte(orders.actualDeliveryTime, endDate)
-        )
-      );
-
-    if (deliveredOrders.length === 0) {
+// Actualizar el estado de una comisión
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const commissionId = parseInt(req.params.id);
+    
+    // Validar los datos de entrada
+    const result = updateCommissionStatusSchema.safeParse(req.body);
+    if (!result.success) {
       return res.status(400).json({ 
-        error: "No hay pedidos entregados en el rango de fechas seleccionado" 
+        error: 'Datos inválidos para actualizar estado',
+        details: result.error.format()
       });
     }
-
-    // Get all order items with commissionable products
-    const orderIds = deliveredOrders.map(order => order.id);
     
-    // Get all driver or helper users if not specified
-    let usersToProcess: { id: number, name: string, role: string }[] = [];
+    const { status, paymentDate, paymentReference, notes } = result.data;
     
-    if (userId) {
-      const user = await db.select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
-      
-      if (user.length === 0) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
-      }
-      
-      usersToProcess = [{ 
-        id: user[0].id, 
-        name: user[0].name, 
-        role: userRole || "driver" 
-      }];
-    } else {
-      // Get all drivers or helpers
-      const query = db.select()
-        .from(users)
-        .where(eq(users.role, userRole === "helper" ? "assistant" : "driver"));
-
-      const userList = await query;
-      usersToProcess = userList.map(u => ({ 
-        id: u.id, 
-        name: u.name, 
-        role: userRole || (u.role === "driver" ? "driver" : "helper")
-      }));
+    // Verificar que la comisión existe
+    const [existingCommission] = await db
+      .select()
+      .from(commissions)
+      .where(eq(commissions.id, commissionId));
+    
+    if (!existingCommission) {
+      return res.status(404).json({ error: 'Comisión no encontrada' });
     }
+    
+    // Preparar los datos para actualizar
+    const updateData: Record<string, any> = { status };
+    
+    if (status === 'paid' && paymentDate) {
+      updateData.paymentDate = new Date(paymentDate);
+    }
+    
+    if (paymentReference !== undefined) {
+      updateData.paymentReference = paymentReference;
+    }
+    
+    if (notes !== undefined) {
+      updateData.notes = notes;
+    }
+    
+    // Actualizar la comisión
+    const [updatedCommission] = await db
+      .update(commissions)
+      .set(updateData)
+      .where(eq(commissions.id, commissionId))
+      .returning();
+    
+    res.json(updatedCommission);
+  } catch (error) {
+    console.error('Error al actualizar estado de comisión:', error);
+    res.status(500).json({ error: 'Error al actualizar estado de comisión' });
+  }
+});
 
-    // Process each user
-    const results = [];
-    for (const user of usersToProcess) {
-      // Find orders where this user was the driver or helper
-      const userOrders = await db.select()
+// Generar comisiones para un período
+router.post('/generate', async (req, res) => {
+  try {
+    // Validar los datos de entrada
+    const result = generateCommissionsSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: 'Datos inválidos para generar comisiones',
+        details: result.error.format()
+      });
+    }
+    
+    const { weekStartDate, weekEndDate, userId, userRole } = result.data;
+    
+    // Convertir fechas a objetos Date
+    const startDate = new Date(weekStartDate);
+    const endDate = new Date(weekEndDate);
+    
+    // Verificar que la fecha de inicio es anterior a la fecha de fin
+    if (startDate > endDate) {
+      return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
+    }
+    
+    // Construir la consulta para obtener usuarios según los filtros
+    let usersQuery = db
+      .select()
+      .from(users)
+      .where(eq(users.role, userRole === 'driver' ? 'driver' : 'assistant'));
+    
+    // Filtrar por ID de usuario si se proporciona
+    if (userId) {
+      usersQuery = usersQuery.where(eq(users.id, userId));
+    }
+    
+    // Obtener la lista de usuarios
+    const usersList = await usersQuery;
+    
+    if (usersList.length === 0) {
+      return res.status(404).json({ error: 'No se encontraron usuarios para generar comisiones' });
+    }
+    
+    // Array para almacenar las comisiones generadas
+    const generatedCommissions = [];
+    
+    // Para cada usuario, generar su comisión
+    for (const user of usersList) {
+      // Buscar órdenes entregadas en el período especificado por este usuario
+      const deliveredOrders = await db
+        .select({
+          id: orders.id,
+          routeId: orders.routeId,
+          actualDeliveryTime: orders.actualDeliveryTime,
+          driverId: routes.driverId,
+          assistantId: routes.assistantId,
+        })
         .from(orders)
         .leftJoin(routes, eq(orders.routeId, routes.id))
         .where(
           and(
-            eq(orders.status, "delivered"),
-            gte(orders.actualDeliveryTime, startDate),
-            lte(orders.actualDeliveryTime, endDate),
-            user.role === "driver" 
+            eq(orders.status, 'delivered'),
+            sql`${orders.actualDeliveryTime} BETWEEN ${startDate} AND ${endDate}`,
+            userRole === 'driver' 
               ? eq(routes.driverId, user.id)
               : eq(routes.assistantId, user.id)
           )
         );
-
-      if (userOrders.length === 0) {
-        continue; // Skip this user if no orders found
+      
+      if (deliveredOrders.length === 0) {
+        // Si no hay órdenes para este usuario en este período, continuar con el siguiente
+        continue;
       }
-
-      const userOrderIds = userOrders.map(order => order.orders.id);
-
-      // Find commissionable order items for these orders
-      const commissionableItems = await db.select({
-        orderItem: orderItems,
-        product: products,
-        order: orders,
-      })
-      .from(orderItems)
-      .leftJoin(products, eq(orderItems.productId, products.id))
-      .leftJoin(orders, eq(orderItems.orderId, orders.id))
-      .where(
-        and(
-          eq(products.isCommissionable, true),
-          sql`${orderItems.orderId} IN (${userOrderIds.join(',')})`
-        )
-      );
-
-      if (commissionableItems.length === 0) {
-        continue; // Skip this user if no commissionable items found
+      
+      // Obtener los IDs de las órdenes entregadas
+      const orderIds = deliveredOrders.map(order => order.id);
+      
+      // Buscar productos comisionables en estas órdenes
+      const orderProductItems = await db
+        .select({
+          orderId: orderItems.orderId,
+          productId: orderItems.productId,
+          product: products,
+          quantity: orderItems.quantity,
+          order: orders,
+          routeId: orders.routeId,
+        })
+        .from(orderItems)
+        .leftJoin(products, eq(orderItems.productId, products.id))
+        .leftJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(
+          and(
+            inArray(orderItems.orderId, orderIds),
+            eq(products.isCommissionable, true)
+          )
+        );
+      
+      // Si no hay productos comisionables, continuar con el siguiente usuario
+      if (orderProductItems.length === 0) {
+        continue;
       }
-
-      // Calculate total commission amount
-      let totalAmount = 0;
-      let totalProducts = 0;
+      
+      // Calcular el monto total de comisiones
+      let totalCommissionAmount = 0;
       const commissionItemsData = [];
-
-      for (const item of commissionableItems) {
-        const commissionValue = user.role === "driver" 
-          ? item.product.driverCommissionValue 
-          : item.product.helperCommissionValue;
+      
+      for (const item of orderProductItems) {
+        const commissionValue = userRole === 'driver' 
+          ? item.product?.driverCommissionValue 
+          : item.product?.helperCommissionValue;
         
-        const commissionAmount = parseFloat(commissionValue.toString()) * item.orderItem.quantity;
+        if (!commissionValue) {
+          continue;
+        }
         
-        totalAmount += commissionAmount;
-        totalProducts += item.orderItem.quantity;
-
+        const commissionAmount = parseFloat(commissionValue) * item.quantity;
+        totalCommissionAmount += commissionAmount;
+        
         commissionItemsData.push({
-          orderId: item.orderItem.orderId,
-          productId: item.orderItem.productId,
-          quantity: item.orderItem.quantity,
-          commissionValue: commissionValue.toString(),
-          commissionAmount: commissionAmount.toFixed(2),
-          deliveryDate: item.order.actualDeliveryTime
-        });
-      }
-
-      // Create a new commission record
-      const [commission] = await db.insert(commissions).values({
-        userId: user.id,
-        userRole: user.role,
-        weekStartDate: startDate,
-        weekEndDate: endDate,
-        productCount: totalProducts,
-        totalAmount: totalAmount.toFixed(2),
-        status: "pending"
-      }).returning();
-
-      if (commission) {
-        // Create commission items
-        const commissionItemsValues = commissionItemsData.map(item => ({
-          commissionId: commission.id,
-          orderId: item.orderId,
           productId: item.productId,
+          orderId: item.orderId,
           quantity: item.quantity,
-          commissionValue: item.commissionValue,
-          commissionAmount: item.commissionAmount,
-          deliveryDate: item.deliveryDate
-        }));
-
-        await db.insert(commissionItems).values(commissionItemsValues);
-        
-        results.push({
-          id: commission.id,
-          userId: user.id,
-          userName: user.name,
-          userRole: user.role,
-          totalAmount: totalAmount.toFixed(2),
-          productCount: totalProducts
+          commissionValue: commissionValue,
+          commissionAmount: commissionAmount.toFixed(2),
         });
       }
+      
+      // Si no hay montos de comisión, continuar con el siguiente usuario
+      if (commissionItemsData.length === 0) {
+        continue;
+      }
+      
+      // Verificar si ya existe una comisión para este usuario en este período
+      const [existingCommission] = await db
+        .select()
+        .from(commissions)
+        .where(
+          and(
+            eq(commissions.userId, user.id),
+            eq(commissions.userRole, userRole),
+            sql`${commissions.weekStartDate} = ${startDate}`,
+            sql`${commissions.weekEndDate} = ${endDate}`
+          )
+        );
+      
+      if (existingCommission) {
+        // Si ya existe, no crear una nueva
+        generatedCommissions.push(existingCommission);
+        continue;
+      }
+      
+      // Crear una nueva comisión
+      const [newCommission] = await db
+        .insert(commissions)
+        .values({
+          userId: user.id,
+          userRole: userRole,
+          weekStartDate: startDate,
+          weekEndDate: endDate,
+          productCount: commissionItemsData.length,
+          totalAmount: totalCommissionAmount.toFixed(2),
+          status: 'pending',
+          routeId: deliveredOrders[0].routeId, // Usar el primer routeId encontrado
+          createdAt: new Date(),
+        })
+        .returning();
+      
+      // Agregar ítems de comisión
+      for (const itemData of commissionItemsData) {
+        await db
+          .insert(commissionItems)
+          .values({
+            ...itemData,
+            commissionId: newCommission.id,
+          });
+      }
+      
+      generatedCommissions.push(newCommission);
     }
-
-    res.status(201).json({
-      message: `Se generaron ${results.length} comisiones`,
-      commissions: results
+    
+    res.status(201).json({ 
+      message: `Se generaron ${generatedCommissions.length} comisiones correctamente`,
+      commissions: generatedCommissions 
     });
-
   } catch (error) {
-    console.error("Error generating commissions:", error);
-    res.status(500).json({ error: "Error al generar las comisiones" });
+    console.error('Error al generar comisiones:', error);
+    res.status(500).json({ error: 'Error al generar comisiones' });
   }
 });
 

@@ -1,373 +1,633 @@
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link, useLocation } from 'wouter';
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+  ArrowUpDown,
+  Calendar,
+  ExternalLink,
+  Filter,
+  Loader2,
+  Check,
+  BadgeDollarSign,
+  AlertCircle,
+  Clock,
+  ArrowRight,
+} from 'lucide-react';
+import { parse, format, startOfWeek, endOfWeek } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { DateRange } from 'react-day-picker';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { CalendarIcon, RefreshCcw, Search } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { toast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+
+type Status = 'pending' | 'paid' | 'cancelled';
+type UserRole = 'driver' | 'helper';
 
 type Commission = {
   id: number;
   userId: number;
   userName: string;
-  userRole: "driver" | "helper";
+  userRole: UserRole;
   weekStartDate: string;
   weekEndDate: string;
   productCount: number;
   totalAmount: string;
-  status: "pending" | "paid" | "cancelled";
+  status: Status;
   paymentDate?: string;
   routeName?: string;
+  createdAt?: string;
 };
 
-// Simulación de datos para la vista previa
-// Estos datos serán reemplazados por llamadas reales a la API
-const mockCommissions: Commission[] = [];
-
-const CommissionsPage: React.FC = () => {
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<string>("pending");
-  const [selectedDateRange, setSelectedDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+function CommissionsFilters({
+  onFilterChange,
+}: {
+  onFilterChange: (filters: Record<string, string>) => void;
+}) {
+  const [status, setStatus] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('');
+  const [date, setDate] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
   });
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [open, setOpen] = useState(false);
 
-  // Función para obtener las comisiones según el estado activo
-  const { data: commissions = [], isLoading, refetch } = useQuery({
-    queryKey: ["commissions", activeTab],
-    queryFn: async () => {
-      // En producción, esta sería una llamada API real
-      const response = await fetch(`/api/commissions?status=${activeTab}`);
-      if (!response.ok) {
-        throw new Error("Error al cargar las comisiones");
-      }
-      return response.json();
-    },
-    // Desactivar la consulta automática para la demo
-    enabled: false,
-  });
-
-  // Función para manejar los filtros y búsquedas
-  const filteredCommissions = mockCommissions.filter((commission) => {
-    // Filtrar por término de búsqueda (nombre de usuario)
-    const matchesSearch = commission.userName
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-
-    // Filtrar por estado
-    const matchesStatus =
-      statusFilter === "all" || commission.status === statusFilter;
-
-    // Filtrar por rol
-    const matchesRole =
-      roleFilter === "all" || commission.userRole === roleFilter;
-
-    // Filtrar por rango de fechas
-    const matchesDateRange = !selectedDateRange.from
-      ? true
-      : new Date(commission.weekStartDate) >= selectedDateRange.from &&
-        (!selectedDateRange.to ||
-          new Date(commission.weekEndDate) <= selectedDateRange.to);
-
-    return matchesSearch && matchesStatus && matchesRole && matchesDateRange;
-  });
-
-  // Función para calcular el total de comisiones
-  const calculateTotal = (commissions: Commission[]): number => {
-    return commissions.reduce(
-      (total, commission) => total + parseFloat(commission.totalAmount),
-      0
-    );
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    if (range) {
+      setDate({
+        from: range.from,
+        to: range.to || range.from
+      });
+    }
   };
 
-  // Función para formatear moneda
-  const formatCurrency = (amount: string | number): string => {
-    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat("es-DO", {
-      style: "currency",
-      currency: "DOP",
-    }).format(numAmount);
+  const applyFilters = () => {
+    const filters: Record<string, string> = {};
+    
+    if (status) filters.status = status;
+    if (userRole) filters.userRole = userRole;
+    if (date.from) filters.startDate = format(date.from, 'yyyy-MM-dd');
+    if (date.to) filters.endDate = format(date.to, 'yyyy-MM-dd');
+    
+    onFilterChange(filters);
+    setOpen(false);
   };
 
-  // Función para formatear fecha
-  const formatDate = (dateString: string): string => {
-    return format(new Date(dateString), "dd/MM/yyyy", { locale: es });
-  };
-
-  // Función para manejar el pago de una comisión
-  const handlePayCommission = (id: number) => {
-    toast({
-      title: "Comisión marcada como pagada",
-      description: `La comisión #${id} ha sido marcada como pagada.`,
-    });
+  const resetFilters = () => {
+    setStatus('');
+    setUserRole('');
+    setDate({ from: undefined, to: undefined });
+    onFilterChange({});
+    setOpen(false);
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Gestión de Comisiones</h1>
-      
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <div className="flex-1">
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="h-8 border-dashed">
+          <Filter className="mr-2 h-4 w-4" />
+          Filtros
+          {(status || userRole || date.from) && (
+            <Badge variant="secondary" className="ml-2 rounded-sm px-1 font-normal lg:hidden">
+              Activo
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80">
+        <div className="grid gap-4">
+          <div className="space-y-2">
+            <h4 className="font-medium leading-none">Filtrar comisiones</h4>
+            <p className="text-sm text-muted-foreground">
+              Seleccione los filtros que desea aplicar
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="status">Estado</Label>
+              <Select
+                value={status}
+                onValueChange={setStatus}
+              >
+                <SelectTrigger id="status" className="col-span-2 h-8">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="pending">Pendiente</SelectItem>
+                  <SelectItem value="paid">Pagado</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="userRole">Rol</Label>
+              <Select
+                value={userRole}
+                onValueChange={setUserRole}
+              >
+                <SelectTrigger id="userRole" className="col-span-2 h-8">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="driver">Chofer</SelectItem>
+                  <SelectItem value="helper">Ayudante</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-3 items-center gap-4">
+              <Label htmlFor="date">Fecha</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date"
+                    variant={"outline"}
+                    className={`col-span-2 h-8 justify-start text-left font-normal ${!date.from && "text-muted-foreground"}`}
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {date.from ? (
+                      date.to ? (
+                        <>
+                          {format(date.from, "P", { locale: es })} -{" "}
+                          {format(date.to, "P", { locale: es })}
+                        </>
+                      ) : (
+                        format(date.from, "P", { locale: es })
+                      )
+                    ) : (
+                      <span>Seleccionar fecha</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    initialFocus
+                    mode="range"
+                    defaultMonth={date.from}
+                    selected={date}
+                    onSelect={handleDateRangeSelect}
+                    numberOfMonths={2}
+                    locale={es}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button onClick={applyFilters} size="sm" className="flex-1">Aplicar</Button>
+            <Button onClick={resetFilters} size="sm" variant="outline" className="flex-1">Limpiar</Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function CommissionCards({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2 text-sm text-muted-foreground">Cargando comisiones...</p>
+      </div>
+    );
+  }
+
+  if (commissions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8">
+        <AlertCircle className="h-8 w-8 text-muted-foreground" />
+        <p className="mt-2 text-sm text-muted-foreground">No se encontraron comisiones</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:hidden">
+      {commissions.map((commission) => (
+        <Card key={commission.id} className="overflow-hidden">
+          <CardHeader className="pb-2">
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle className="text-base">{commission.userName}</CardTitle>
+                <CardDescription>
+                  {commission.userRole === 'driver' ? 'Chofer' : 'Ayudante'}
+                  {commission.routeName && ` • Ruta: ${commission.routeName}`}
+                </CardDescription>
+              </div>
+              <StatusBadge status={commission.status} />
+            </div>
+          </CardHeader>
+          <CardContent className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center text-sm text-muted-foreground">
+                <Calendar className="mr-1 h-3.5 w-3.5" />
+                <span>
+                  {format(new Date(commission.weekStartDate), 'dd MMM', { locale: es })} - {' '}
+                  {format(new Date(commission.weekEndDate), 'dd MMM yyyy', { locale: es })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm text-muted-foreground">
+                  {commission.productCount} productos
+                </div>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <div className="text-xl font-semibold">
+                ${parseFloat(commission.totalAmount).toFixed(2)}
+              </div>
+              <Link
+                to={`/commissions/details/${commission.id}`}
+                className="flex items-center text-sm font-medium text-primary"
+              >
+                Ver detalles
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function CommissionsTable({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="hidden flex-col items-center justify-center p-8 lg:flex">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-2 text-sm text-muted-foreground">Cargando comisiones...</p>
+      </div>
+    );
+  }
+
+  if (commissions.length === 0) {
+    return (
+      <div className="hidden flex-col items-center justify-center p-8 lg:flex">
+        <AlertCircle className="h-8 w-8 text-muted-foreground" />
+        <p className="mt-2 text-sm text-muted-foreground">No se encontraron comisiones</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="hidden rounded-md border lg:block">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Empleado</TableHead>
+            <TableHead>Rol</TableHead>
+            <TableHead>Período</TableHead>
+            <TableHead>Ruta</TableHead>
+            <TableHead>Productos</TableHead>
+            <TableHead>Monto</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead className="text-right">Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {commissions.map((commission) => (
+            <TableRow key={commission.id}>
+              <TableCell className="font-medium">{commission.userName}</TableCell>
+              <TableCell>{commission.userRole === 'driver' ? 'Chofer' : 'Ayudante'}</TableCell>
+              <TableCell>
+                <div className="flex items-center">
+                  <Calendar className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
+                  <span>
+                    {format(new Date(commission.weekStartDate), 'dd MMM', { locale: es })} - {' '}
+                    {format(new Date(commission.weekEndDate), 'dd MMM yyyy', { locale: es })}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell>{commission.routeName || "—"}</TableCell>
+              <TableCell>{commission.productCount}</TableCell>
+              <TableCell className="font-medium">${parseFloat(commission.totalAmount).toFixed(2)}</TableCell>
+              <TableCell>
+                <StatusBadge status={commission.status} />
+              </TableCell>
+              <TableCell className="text-right">
+                <Link to={`/commissions/details/${commission.id}`}>
+                  <Button variant="ghost" size="icon">
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="sr-only">Ver detalles</span>
+                  </Button>
+                </Link>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: Status }) {
+  switch (status) {
+    case 'pending':
+      return (
+        <Badge variant="outline" className="border-amber-500 bg-amber-50 text-amber-700">
+          <Clock className="mr-1 h-3 w-3" />
+          Pendiente
+        </Badge>
+      );
+    case 'paid':
+      return (
+        <Badge variant="outline" className="border-green-500 bg-green-50 text-green-700">
+          <Check className="mr-1 h-3 w-3" />
+          Pagado
+        </Badge>
+      );
+    case 'cancelled':
+      return (
+        <Badge variant="outline" className="border-red-500 bg-red-50 text-red-700">
+          <AlertCircle className="mr-1 h-3 w-3" />
+          Cancelado
+        </Badge>
+      );
+    default:
+      return null;
+  }
+}
+
+function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
+  return (
+    <label htmlFor={htmlFor} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+      {children}
+    </label>
+  );
+}
+
+function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => void }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [weekDates, setWeekDates] = useState<{ from: Date; to: Date }>(() => {
+    const now = new Date();
+    const start = startOfWeek(now, { weekStartsOn: 1 });  // 1 = lunes
+    const end = endOfWeek(now, { weekStartsOn: 1 });
+    return { from: start, to: end };
+  });
+  const [userRole, setUserRole] = useState<string>("driver");
+  const [userId, setUserId] = useState<string>("");
+
+  // Obtener lista de choferes y ayudantes
+  const { data: users = [] } = useQuery({ 
+    queryKey: ['/api/users/drivers'],
+    staleTime: 300000 // 5 minutos
+  });
+  
+  const filteredUsers = users
+    .filter((user: any) => 
+      userRole === "driver" 
+        ? user.role === "driver" 
+        : user.role === "assistant"
+    )
+    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const data = {
+        weekStartDate: format(weekDates.from, 'yyyy-MM-dd'),
+        weekEndDate: format(weekDates.to, 'yyyy-MM-dd'),
+        ...(userId ? { userId: parseInt(userId) } : {}),
+        userRole
+      };
+      
+      onGenerate(data);
+      setOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "No se pudieron generar las comisiones",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDateSelect = (range: DateRange | undefined) => {
+    if (range?.from) {
+      setWeekDates({ 
+        from: range.from, 
+        to: range.to || range.from 
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <BadgeDollarSign className="mr-2 h-4 w-4" />
+          Generar Comisiones
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Generar Comisiones Semanales</DialogTitle>
+          <DialogDescription>
+            Seleccione el período y el tipo de empleado para calcular las comisiones
+            sobre las entregas realizadas.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="week">Semana</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-start text-left font-normal w-[240px]">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {selectedDateRange.from ? (
-                    selectedDateRange.to ? (
-                      <>
-                        {format(selectedDateRange.from, "d MMM, yyyy", { locale: es })} -{" "}
-                        {format(selectedDateRange.to, "d MMM, yyyy", { locale: es })}
-                      </>
-                    ) : (
-                      format(selectedDateRange.from, "d MMM, yyyy", { locale: es })
-                    )
-                  ) : (
-                    <span>Seleccionar fechas...</span>
-                  )}
+                <Button
+                  id="date"
+                  variant={"outline"}
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <Calendar className="mr-2 h-4 w-4" />
+                  {format(weekDates.from, "P", { locale: es })} -{" "}
+                  {format(weekDates.to, "P", { locale: es })}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  selected={selectedDateRange}
-                  onSelect={(range) => setSelectedDateRange(range || { from: undefined, to: undefined })}
+                <CalendarComponent
                   initialFocus
+                  mode="range"
+                  defaultMonth={weekDates.from}
+                  selected={{ from: weekDates.from, to: weekDates.to }}
+                  onSelect={handleDateSelect}
+                  numberOfMonths={2}
                   locale={es}
                 />
-                <div className="p-3 border-t border-border">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setSelectedDateRange({ from: undefined, to: undefined })}
-                  >
-                    Limpiar filtro
-                  </Button>
-                </div>
               </PopoverContent>
             </Popover>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <div className="w-[140px]">
+          <div className="space-y-2">
+            <Label htmlFor="userRole">Tipo de Empleado</Label>
             <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
+              value={userRole}
+              onValueChange={setUserRole}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Estado" />
+              <SelectTrigger id="userRole">
+                <SelectValue placeholder="Seleccionar rol" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pending">Pendientes</SelectItem>
-                <SelectItem value="paid">Pagadas</SelectItem>
-                <SelectItem value="cancelled">Canceladas</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="w-[140px]">
-            <Select
-              value={roleFilter}
-              onValueChange={setRoleFilter}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Rol" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="driver">Conductores</SelectItem>
+                <SelectItem value="driver">Choferes</SelectItem>
                 <SelectItem value="helper">Ayudantes</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
+          <div className="space-y-2">
+            <Label htmlFor="userId">Empleado Específico (Opcional)</Label>
+            <Select
+              value={userId}
+              onValueChange={setUserId}
+            >
+              <SelectTrigger id="userId">
+                <SelectValue placeholder="Todos los empleados" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Todos los empleados</SelectItem>
+                {filteredUsers.map((user: any) => (
+                  <SelectItem key={user.id} value={user.id.toString()}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+        <DialogFooter>
+          <Button onClick={handleGenerate} disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Generar Comisiones
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function CommissionsPage() {
+  const [, navigate] = useLocation();
+  const [filters, setFilters] = useState<Record<string, string>>({});
+  const [currentTab, setCurrentTab] = useState<string>("all");
+
+  // Construir el string de query params para el filtrado
+  const queryString = Object.entries(filters)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+    .join('&');
+  
+  // Añadir el filtro de estado según la pestaña seleccionada
+  const tabQueryParam = currentTab !== 'all' ? `status=${currentTab}` : '';
+  const finalQueryString = [queryString, tabQueryParam].filter(Boolean).join('&');
+  
+  // Obtener la lista de comisiones
+  const { data: commissions = [], isLoading, refetch } = useQuery({
+    queryKey: ['/api/commissions', finalQueryString],
+    queryFn: async () => {
+      const url = `/api/commissions${finalQueryString ? `?${finalQueryString}` : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Error al obtener comisiones');
+      return res.json();
+    }
+  });
+
+  // Manejar la generación de comisiones
+  const handleGenerateCommissions = async (data: any) => {
+    try {
+      const response = await fetch('/api/commissions/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al generar comisiones');
+      }
+
+      const result = await response.json();
+      toast({
+        title: "Comisiones generadas",
+        description: `Se generaron ${result.commissions.length} comisiones correctamente`,
+      });
+      
+      // Refrescar la lista de comisiones
+      refetch();
+      
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudieron generar las comisiones",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 border-b pb-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Comisiones</h1>
+          <p className="text-sm text-muted-foreground">
+            Gestione las comisiones de choferes y ayudantes basadas en entregas completadas
+          </p>
+        </div>
+        <GenerateCommissionsDialog onGenerate={handleGenerateCommissions} />
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="pending">Pendientes</TabsTrigger>
-          <TabsTrigger value="paid">Pagadas</TabsTrigger>
-          <TabsTrigger value="cancelled">Canceladas</TabsTrigger>
-        </TabsList>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Comisiones Pendientes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(calculateTotal(filteredCommissions.filter(c => c.status === 'pending')))}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Tabs
+            value={currentTab}
+            onValueChange={setCurrentTab}
+            className="w-full"
+          >
+            <div className="flex items-center justify-between">
+              <TabsList>
+                <TabsTrigger value="all">Todas</TabsTrigger>
+                <TabsTrigger value="pending">Pendientes</TabsTrigger>
+                <TabsTrigger value="paid">Pagadas</TabsTrigger>
+              </TabsList>
+              <div className="flex items-center gap-2">
+                <CommissionsFilters onFilterChange={setFilters} />
               </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Conductores
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(calculateTotal(filteredCommissions.filter(c => c.userRole === 'driver')))}
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Ayudantes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {formatCurrency(calculateTotal(filteredCommissions.filter(c => c.userRole === 'helper')))}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </Tabs>
         </div>
 
-        <TabsContent value={activeTab} className="border rounded-md p-4">
-          {isLoading ? (
-            <div className="text-center py-4">Cargando comisiones...</div>
-          ) : filteredCommissions.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground mb-4">No hay comisiones para mostrar</p>
-              <Button onClick={() => refetch()}>Cargar comisiones</Button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Periodo</TableHead>
-                    <TableHead>Cant. Productos</TableHead>
-                    <TableHead>Ruta</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Monto</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCommissions.map((commission) => (
-                    <TableRow key={commission.id}>
-                      <TableCell>{commission.id}</TableCell>
-                      <TableCell className="font-medium">{commission.userName}</TableCell>
-                      <TableCell>
-                        {commission.userRole === "driver" ? "Conductor" : "Ayudante"}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(commission.weekStartDate)} - {formatDate(commission.weekEndDate)}
-                      </TableCell>
-                      <TableCell>{commission.productCount}</TableCell>
-                      <TableCell>{commission.routeName || "-"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            commission.status === "pending"
-                              ? "outline"
-                              : commission.status === "paid"
-                              ? "default"
-                              : "destructive"
-                          }
-                        >
-                          {commission.status === "pending"
-                            ? "Pendiente"
-                            : commission.status === "paid"
-                            ? "Pagada"
-                            : "Cancelada"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(commission.totalAmount)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              // Implementar visualización de detalles
-                            }}
-                          >
-                            Ver detalles
-                          </Button>
-                          {commission.status === "pending" && (
-                            <Button
-                              size="sm"
-                              onClick={() => handlePayCommission(commission.id)}
-                            >
-                              Pagar
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        <CommissionCards commissions={commissions} isLoading={isLoading} />
+        <CommissionsTable commissions={commissions} isLoading={isLoading} />
+      </div>
     </div>
   );
-};
-
-export default CommissionsPage;
+}
