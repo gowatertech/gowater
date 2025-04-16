@@ -547,7 +547,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       });
       // Invalidate queries to refresh lists
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/zones/${selectedZone}/pending-orders`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
       // Reset form and state
       form.reset();
       setSelectedZone(null);
