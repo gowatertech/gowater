@@ -293,6 +293,7 @@ export async function registerRoutes(app: Express) {
           status: orders.status,
           notes: orders.notes,
           deliveryCoordinates: orders.deliveryCoordinates,
+          coordinates: customers.coordinates, // Añadimos las coordenadas del cliente
           customerName: customers.businessname,
           customerAddress: customers.street,
           customerAddressNumber: customers.streetnumber,

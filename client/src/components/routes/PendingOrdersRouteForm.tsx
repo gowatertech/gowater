@@ -166,7 +166,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       return data.map((order: any) => ({
         ...order,
         // Asegurarnos de que cada pedido tenga una propiedad coordinates
-        coordinates: order.deliveryCoordinates || null,
+        coordinates: order.deliveryCoordinates || order.coordinates || null,
         // Agregar customerAddress completo con número (para mostrar en la vista)
         customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
         // Si customerPhone no está presente, usar un valor por defecto
@@ -865,7 +865,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                                       <circle cx="12" cy="10" r="3"></circle>
                                     </svg>
-                                    {order.deliveryCoordinates || "Sin coordenadas"}
+                                    {order.deliveryCoordinates || order.coordinates || "Sin coordenadas"}
                                   </div>
                                 </div>
                                 <div className="text-right">
