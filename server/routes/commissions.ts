@@ -266,7 +266,8 @@ router.post('/generate', async (req, res) => {
     // Vamos a mapear los roles del frontend a los roles de la base de datos
     
     // Si viene el rol "helper" del frontend, buscar usuarios con rol "assistant" en BD
-    const dbRoleMapping = {
+    // Aquí definimos el mapeo entre roles del frontend y roles de la BD
+    const dbRoleMapping: Record<string, string> = {
       'driver': 'driver',
       'helper': 'assistant' // Este es el mapeo clave que arregla la inconsistencia
     };
@@ -370,9 +371,9 @@ router.post('/generate', async (req, res) => {
               // Ajustamos el rango para incluir todo el día de la fecha final
               sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < DATE_ADD(${endDate}, INTERVAL 1 DAY)`,
               and(
-            eq(routes.assistantId, user.id),
-            sql`${routes.assistantId} IS NOT NULL`
-          )
+                eq(routes.assistantId, user.id),
+                sql`${routes.assistantId} IS NOT NULL`
+              )
             )
           );
       }
