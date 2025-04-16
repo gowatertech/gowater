@@ -341,11 +341,14 @@ router.post('/generate', async (req, res) => {
         .where(
           and(
             inArray(orderItems.orderId, orderIds),
-            eq(products.isCommissionable, true)
+            eq(products.isCommissionable, true),
+            userRole === 'driver' 
+              ? sql`${products.driverCommissionValue} > 0`
+              : sql`${products.helperCommissionValue} > 0`
           )
         );
         
-      console.log("Productos comisionables encontrados:", orderProductItems.length);
+      console.log(`Productos comisionables para ${userRole} encontrados:`, orderProductItems.length);
       
       // Si no hay productos comisionables, continuar con el siguiente usuario
       if (orderProductItems.length === 0) {
