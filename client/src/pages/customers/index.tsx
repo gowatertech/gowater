@@ -68,9 +68,9 @@ import {
   CreditCard,
   FileText,
   DollarSign,
+  Home,
   User,
   ClipboardCheck,
-  Home,
   ImageIcon
 } from "lucide-react";
 
@@ -576,105 +576,123 @@ export default function Customers() {
                 </div>
               </ScrollArea>
             ) : (
-              /* Tabla para escritorio - versión compacta */
-              <div className="overflow-x-auto">
-                <Table className="min-w-full text-xs">
-                  <TableHeader>
-                    <TableRow className="h-7">
-                      <TableHead className="h-7 py-1 px-2">Logo</TableHead>
-                      <TableHead className="h-7 py-1 px-2">Nombre</TableHead>
-                      <TableHead className="h-7 py-1 px-2">RNC</TableHead>
-                      <TableHead className="h-7 py-1 px-2">Encargado</TableHead>
-                      <TableHead className="h-7 py-1 px-2">Teléfono</TableHead>
-                      <TableHead className="h-7 py-1 px-2">Dirección</TableHead>
-                      <TableHead className="h-7 py-1 px-2">Coordenadas</TableHead>
-                      <TableHead className="h-7 py-1 px-2">Crédito</TableHead>
-                      <TableHead className="h-7 py-1 px-2">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredCustomers.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={9} className="text-center py-2 text-gray-500 text-xs">
-                          No se encontraron clientes
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredCustomers.map((customer) => (
-                        <TableRow key={customer.id} className="h-8 hover:bg-blue-50/50 cursor-pointer"
-                          onClick={() => {
-                            handleViewCustomer(customer);
-                            setActiveTab("details");
-                          }}>
-                          <TableCell className="py-1 px-2">
-                            {customer.logo ? (
-                              <img
-                                src={`data:image/jpeg;base64,${customer.logo}`}
-                                alt="Logo"
-                                className="w-6 h-6 object-contain"
-                              />
-                            ) : (
-                              <div className="w-6 h-6 bg-blue-50 rounded-md flex items-center justify-center">
-                                <Building2 className="h-4 w-4 text-blue-500" />
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="py-1 px-2 font-medium">{customer.businessname}</TableCell>
-                          <TableCell className="py-1 px-2">{customer.rnc || '-'}</TableCell>
-                          <TableCell className="py-1 px-2">{customer.managername}</TableCell>
-                          <TableCell className="py-1 px-2">{customer.phone}</TableCell>
-                          <TableCell className="py-1 px-2 max-w-[180px] truncate">
-                            {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}`}
-                          </TableCell>
-                          <TableCell className="py-1 px-2 max-w-[180px] truncate text-xs">
-                            {customer.coordinates || <span className="text-red-500">Sin coordenadas</span>}
-                          </TableCell>
-                          <TableCell className="py-1 px-2">
-                            <div className="flex gap-1">
-                              <Badge 
-                                className="px-1.5 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500"
-                                title="Límite de crédito"
-                              >
-                                RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                              </Badge>
-                              {customer.zoneid && (
-                                <Badge 
-                                  className={`px-1.5 py-0 h-5 text-[10px] ${
-                                    customer.zoneid === 1
-                                      ? 'bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500'
-                                      : customer.zoneid === 2
-                                      ? 'bg-red-50 text-red-700 border-red-200 border-l-4 border-l-red-500'
-                                      : customer.zoneid === 3
-                                      ? 'bg-green-50 text-green-700 border-green-200 border-l-4 border-l-green-500'
-                                      : 'bg-gray-50 text-gray-700 border-gray-200 border-l-4 border-l-gray-500'
-                                  }`}
-                                  title="Zona asignada"
-                                >
-                                  Zona {customer.zoneid}
-                                </Badge>
-                              )}
+              /* Vista de tarjetas para escritorio - diseño moderno */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filteredCustomers.length === 0 ? (
+                  <div className="col-span-3 text-center py-5 bg-gray-50 rounded-lg text-gray-500">
+                    <Search className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                    <p>No se encontraron clientes</p>
+                    <p className="text-xs mt-1">Intente con otra búsqueda o cree un nuevo cliente</p>
+                  </div>
+                ) : (
+                  filteredCustomers.map((customer) => (
+                    <Card 
+                      key={customer.id} 
+                      className="overflow-hidden hover:shadow-md transition-all border-t-4 cursor-pointer"
+                      style={{ 
+                        borderTopColor: customer.zoneid === 1 ? '#3b82f6' : 
+                                      customer.zoneid === 2 ? '#ef4444' : 
+                                      customer.zoneid === 3 ? '#22c55e' : 
+                                      '#6b7280' 
+                      }}
+                      onClick={() => {
+                        handleViewCustomer(customer);
+                        setActiveTab("details");
+                      }}
+                    >
+                      <CardHeader className="px-4 py-3 flex flex-row items-center space-y-0 gap-3">
+                        <div className="relative">
+                          {customer.logo ? (
+                            <img
+                              src={`data:image/jpeg;base64,${customer.logo}`}
+                              alt="Logo"
+                              className="w-12 h-12 rounded-md object-contain border bg-white"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 bg-blue-50 rounded-md flex items-center justify-center border">
+                              <Building2 className="h-6 w-6 text-blue-500" />
                             </div>
-                          </TableCell>
-                          <TableCell className="py-1 px-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleViewCustomer(customer);
-                                setActiveTab("details");
-                              }}
-                              className="h-6 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-0"
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              Ver
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                          )}
+                          <div 
+                            className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] z-10 ${
+                              customer.zoneid === 1 ? 'bg-blue-500' : 
+                              customer.zoneid === 2 ? 'bg-red-500' : 
+                              customer.zoneid === 3 ? 'bg-green-500' : 
+                              'bg-gray-500'
+                            }`}
+                            title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
+                          >
+                            Z{customer.zoneid || "?"}
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle className="text-sm font-semibold line-clamp-1 mb-0">
+                            {customer.businessname}
+                          </CardTitle>
+                          {customer.rnc && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5 h-4">
+                              RNC: {customer.rnc}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="px-4 py-2 text-xs space-y-2">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                          <div className="flex items-center text-muted-foreground">
+                            <User className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">{customer.managername}</span>
+                          </div>
+                          <div className="flex items-center text-muted-foreground">
+                            <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">{customer.phone}</span>
+                          </div>
+                          {customer.email && (
+                            <div className="flex items-center text-muted-foreground w-full">
+                              <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
+                              <span className="truncate">{customer.email}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-start text-muted-foreground">
+                            <Home className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                            <span className="truncate">{`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}`}</span>
+                          </div>
+                          <div className="flex items-center text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <span className="truncate">{customer.coordinates ? "Ubicación disponible" : <span className="text-red-500">Sin coordenadas</span>}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="pt-1 flex justify-between items-center border-t border-dashed border-gray-200">
+                          <Badge 
+                            className="px-2 py-0.5 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200"
+                            title="Límite de crédito"
+                          >
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                          </Badge>
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 text-[10px] px-2 hover:bg-blue-50 hover:text-blue-700"
+                            title="Ver detalles"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewCustomer(customer);
+                              setActiveTab("details");
+                            }}
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Detalles
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
               </div>
             )}
           </Card>
