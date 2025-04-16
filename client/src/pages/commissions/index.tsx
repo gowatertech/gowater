@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
+import { queryClient } from '@/lib/queryClient';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { startOfWeek, endOfWeek } from 'date-fns';
@@ -404,6 +405,9 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
   });
   const [userRole, setUserRole] = useState<string>("driver");
   const [userId, setUserId] = useState<string>("");
+  const [submissionAttempted, setSubmissionAttempted] = useState(false);
+
+  // No necesitamos importar queryClient, usaremos refetch directamente
 
   // Obtener lista de choferes y ayudantes
   const { data: users = [] } = useQuery({ 
@@ -425,73 +429,98 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
   useEffect(() => {
     if (!open) {
       setErrorMessage(null);
+      setSubmissionAttempted(false);
     }
   }, [open]);
 
-  const handleGenerate = () => {
-    // Evitar que se quede en blanco usando un formulario controlado
-    setLoading(true);
-    setErrorMessage(null);
-    
-    console.log("Preparando datos para generar comisiones...");
-    
-    // Formatear fechas para la API
-    const data = {
-      weekStartDate: format(weekDates.from, 'yyyy-MM-dd'),
-      weekEndDate: format(weekDates.to, 'yyyy-MM-dd'),
-      ...(userId ? { userId: parseInt(userId) } : {}),
-      userRole
-    };
-    
-    console.log("Enviando datos para generar comisiones:", data);
-    
-    // Usamos fetch directamente en lugar de la función proporcionada
-    fetch('/api/commissions/generate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    })
-      .then(response => {
-        console.log("Respuesta del servidor:", response.status, response.statusText);
+  // Controlador simplificado que no depende de la función externa
+  const handleGenerate = async () => {
+    try {
+      setLoading(true);
+      setErrorMessage(null);
+      setSubmissionAttempted(true);
+      
+      console.log("Preparando datos para generar comisiones...");
+      
+      // Formatear fechas para la API
+      const data = {
+        weekStartDate: format(weekDates.from, 'yyyy-MM-dd'),
+        weekEndDate: format(weekDates.to, 'yyyy-MM-dd'),
+        ...(userId ? { userId: parseInt(userId) } : {}),
+        userRole
+      };
+      
+      console.log("Enviando datos para generar comisiones:", data);
+      
+      // Usando XMLHttpRequest en lugar de fetch para evitar problemas
+      const xhr = new XMLHttpRequest();
+      const promise = new Promise<any>((resolve, reject) => {
+        xhr.open('POST', '/api/commissions/generate', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
         
-        if (!response.ok) {
-          return response.json().then(errData => {
-            throw new Error(errData?.error || 'Error al generar comisiones');
-          });
-        }
+        xhr.onload = function() {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              resolve(data);
+            } catch (e) {
+              reject(new Error('Error al procesar la respuesta del servidor'));
+            }
+          } else {
+            try {
+              const errorData = JSON.parse(xhr.responseText);
+              reject(new Error(errorData?.error || 'Error al generar comisiones'));
+            } catch (e) {
+              reject(new Error(`Error ${xhr.status}: ${xhr.statusText}`));
+            }
+          }
+        };
         
-        return response.json();
-      })
-      .then(result => {
-        console.log("Comisiones generadas exitosamente:", result);
+        xhr.onerror = function() {
+          reject(new Error('Error de red al intentar generar comisiones'));
+        };
         
-        // Mostrar notificación de éxito
-        toast({
-          title: "Comisiones generadas",
-          description: `Se generaron ${result.commissions?.length || 0} comisiones correctamente`,
-        });
+        xhr.timeout = 30000; // 30 segundos
+        xhr.ontimeout = function() {
+          reject(new Error('La solicitud excedió el tiempo de espera'));
+        };
         
-        // Cerrar el modal y notificar
-        setOpen(false);
-        
-        // Llamamos a onGenerate sin esperar para que actualice la UI
-        onGenerate(data);
-      })
-      .catch((error: unknown) => {
-        console.error("Error al generar comisiones:", error);
-        const errorMsg = error instanceof Error ? error.message : "No se pudieron generar las comisiones";
-        setErrorMessage(errorMsg);
-        toast({
-          title: "Error",
-          description: errorMsg,
-          variant: "destructive",
-        });
-      })
-      .finally(() => {
-        setLoading(false);
+        xhr.send(JSON.stringify(data));
       });
+      
+      const result = await promise;
+      console.log("Comisiones generadas exitosamente:", result);
+      
+      // Mostrar notificación de éxito
+      toast({
+        title: "Comisiones generadas",
+        description: `Se generaron ${result.commissions?.length || 0} comisiones correctamente`,
+      });
+      
+      // Actualizaremos los datos en la función onGenerate
+      
+      // Cerrar el modal
+      setOpen(false);
+      
+      // Notificar
+      if (typeof onGenerate === 'function') {
+        onGenerate(result);
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error("Error al generar comisiones:", error);
+      const errorMsg = error instanceof Error ? error.message : "No se pudieron generar las comisiones";
+      setErrorMessage(errorMsg);
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDateSelect = (range: DateRange | undefined) => {
