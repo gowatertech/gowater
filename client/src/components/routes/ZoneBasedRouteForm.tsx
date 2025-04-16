@@ -1077,7 +1077,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                             </div>
                           ) : (
                             drivers && Array.isArray(drivers) && drivers.map((driver: any) => (
-                              <SelectItem key={driver.id} value={driver.id.toString()} className="text-xs">
+                              <SelectItem key={driver.id} value={String(driver.id)} className="text-xs">
                                 {driver.name}
                               </SelectItem>
                             ))
