@@ -324,8 +324,8 @@ export default function Customers() {
       provinceid: customer.provinceid,
       municipalityid: customer.municipalityid,
       reference: customer.reference || undefined,
-      // La propiedad coordinates está garantizada porque se requiere al crear clientes
-      coordinates: customer.street + ", " + customer.municipalityName,
+      // Usar coordinates directamente si existe, de lo contrario usar una cadena vacía
+      coordinates: customer.coordinates || "",
       creditlimit: customer.creditlimit.toString(),
       logo: customer.logo || undefined
     };
@@ -518,7 +518,7 @@ export default function Customers() {
                             provinceid: customer.provinceid,
                             municipalityid: customer.municipalityid,
                             reference: customer.reference || undefined,
-                            coordinates: customer.street + ", " + customer.municipalityName,
+                            coordinates: customer.coordinates || "",
                             creditlimit: customer.creditlimit.toString(),
                             logo: customer.logo || undefined
                           };

@@ -719,6 +719,7 @@ export type CustomerWithDetails = {
   provinceid: number;
   municipalityid: number;
   reference: string | null;
+  coordinates: string | null;
   creditlimit: string;
   balance: string;
   municipalityName?: string;
