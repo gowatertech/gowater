@@ -176,7 +176,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders
   } = useQuery<PendingOrder[]>({
-    queryKey: [`/api/zones/${selectedZone}/pending-orders`],
+    queryKey: ["/api/zones", selectedZone, "pending-orders"],
     queryFn: async () => {
       if (!selectedZone) return [];
       console.log(`Fetching pending orders for zone ${selectedZone}`);

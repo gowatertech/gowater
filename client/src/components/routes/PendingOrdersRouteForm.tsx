@@ -151,7 +151,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders
   } = useQuery<OrderWithCustomer[]>({
-    queryKey: [`/api/zones/${selectedZone}/pending-orders`],
+    queryKey: ["/api/zones", selectedZone, "pending-orders"],
     queryFn: async () => {
       if (!selectedZone) return [];
       console.log(`Fetching pending orders for zone ${selectedZone}`);
@@ -169,8 +169,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         coordinates: order.deliveryCoordinates || null,
         // Agregar customerAddress completo con número (para mostrar en la vista)
         customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
+        // Si customerPhone no está presente, usar un valor por defecto
+        customerPhone: order.customerPhone || "",
         // Inicializar un array vacío de productos (opcional, ya que hemos agregado la verificación)
-        products: []
+        products: order.products || []
       }));
     },
     enabled: !!selectedZone,
