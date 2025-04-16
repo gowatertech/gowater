@@ -313,7 +313,8 @@ router.post('/generate', async (req, res) => {
           .where(
             and(
               eq(orders.status, 'delivered'),
-              sql`${orders.actualDeliveryTime} BETWEEN ${startDate} AND ${endDate}`,
+              // Ajustamos el rango para incluir todo el día de la fecha final
+              sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < DATE_ADD(${endDate}, INTERVAL 1 DAY)`,
               eq(routes.driverId, user.id)
             )
           );
@@ -332,7 +333,8 @@ router.post('/generate', async (req, res) => {
           .where(
             and(
               eq(orders.status, 'delivered'),
-              sql`${orders.actualDeliveryTime} BETWEEN ${startDate} AND ${endDate}`,
+              // Ajustamos el rango para incluir todo el día de la fecha final
+              sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < DATE_ADD(${endDate}, INTERVAL 1 DAY)`,
               sql`${routes.assistantId} = ${user.id} AND ${routes.assistantId} IS NOT NULL`
             )
           );
@@ -341,8 +343,14 @@ router.post('/generate', async (req, res) => {
       // Log específico para ayudantes
       if (userRole === 'helper') {
         console.log(`Consultando órdenes para ayudante ${user.name} (ID: ${user.id}) entre ${startDate} y ${endDate}`);
+        // Construir fecha fin para incluir el día completo
+        const endDatePlusDay = new Date(endDate);
+        endDatePlusDay.setDate(endDatePlusDay.getDate() + 1);
+        
         console.log(`SQL para ayudante: SELECT * FROM orders o JOIN routes r ON o.route_id = r.id 
-           WHERE o.status = 'delivered' AND o.actual_delivery_time BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'
+           WHERE o.status = 'delivered' 
+           AND o.actual_delivery_time >= '${startDate.toISOString()}' 
+           AND o.actual_delivery_time < '${endDatePlusDay.toISOString()}'
            AND r.assistant_id = ${user.id} AND r.assistant_id IS NOT NULL`);
       }
       
