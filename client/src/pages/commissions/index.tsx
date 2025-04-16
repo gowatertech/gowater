@@ -393,7 +393,7 @@ function StatusBadge({ status }: { status: Status }) {
 }
 
 function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => void }) {
-  console.log("Renderizando GenerateCommissionsDialog");
+  console.log("Renderizando GenerateCommissionsDialog con carga optimizada");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -424,9 +424,25 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
         .sort((a: any, b: any) => a.name.localeCompare(b.name))
     : [];
 
-  // Limpiar errores al cerrar el diálogo
+  // Efecto para manejar estado del diálogo
   useEffect(() => {
-    if (!open) {
+    // Al abrir el diálogo, reiniciar los estados
+    if (open) {
+      console.log("Diálogo abierto: Reiniciando estados");
+      
+      // Reiniciar fechas a la semana actual
+      const now = new Date();
+      const start = startOfWeek(now, { weekStartsOn: 1 });
+      const end = endOfWeek(now, { weekStartsOn: 1 });
+      setWeekDates({ from: start, to: end });
+      
+      // Reiniciar otros estados
+      setUserRole("driver");
+      setUserId("");
+      setErrorMessage(null);
+      setSubmissionAttempted(false);
+    } else {
+      // Al cerrar, solo limpiar mensajes de error
       setErrorMessage(null);
       setSubmissionAttempted(false);
     }
