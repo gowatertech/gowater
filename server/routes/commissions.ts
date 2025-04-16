@@ -321,7 +321,7 @@ router.post('/generate', async (req, res) => {
             and(
               eq(orders.status, 'delivered'),
               // Ajustamos el rango para incluir todo el día de la fecha final
-              sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < DATE_ADD(${endDate}, INTERVAL 1 DAY)`,
+              sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < ${endDate}::timestamp + INTERVAL '1 day'`,
               eq(routes.driverId, user.id)
             )
           );
