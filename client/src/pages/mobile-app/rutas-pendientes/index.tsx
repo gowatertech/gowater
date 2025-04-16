@@ -287,7 +287,6 @@ export default function MobilePendingRoutes() {
         console.log(`El conductor ya tiene la ruta #${activeRouteId} activa`);
         
         // Mostrar alerta al usuario
-        const { toast } = useToast();
         toast({
           title: "Ruta activa detectada",
           description: `Ya tienes una ruta en progreso. Debes completar o cancelar la ruta actual antes de iniciar una nueva.`,
