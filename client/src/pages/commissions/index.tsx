@@ -407,7 +407,6 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
   const [userId, setUserId] = useState<string>("");
   const [submissionAttempted, setSubmissionAttempted] = useState(false);
 
-  // No necesitamos importar queryClient, usaremos refetch directamente
 
   // Obtener lista de choferes y ayudantes
   const { data: users = [] } = useQuery({ 
@@ -497,7 +496,8 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
         description: `Se generaron ${result.commissions?.length || 0} comisiones correctamente`,
       });
       
-      // Actualizaremos los datos en la función onGenerate
+      // Invalidar consultas para refrescar la vista
+      queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
       
       // Cerrar el modal
       setOpen(false);
