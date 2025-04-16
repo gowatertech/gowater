@@ -480,273 +480,289 @@ export default function Customers() {
               <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500">{filteredCustomers.length} clientes</Badge>
             </div>
 
-            {isMobile ? (
-              /* Vista de tarjetas para móvil - versión compacta */
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-1.5">
-                  {filteredCustomers.length === 0 ? (
-                    <div className="text-center py-2 text-gray-500 text-xs">
-                      No se encontraron clientes
-                    </div>
-                  ) : (
-                    filteredCustomers.map((customer) => (
-                      <Card 
-                        key={customer.id} 
-                        className="overflow-hidden hover:bg-accent/5 transition-colors border-l-4"
-                        style={{ 
-                          borderLeftColor: customer.zoneid === 1 ? '#3b82f6' : 
-                                          customer.zoneid === 2 ? '#ef4444' : 
-                                          customer.zoneid === 3 ? '#22c55e' : 
-                                          '#6b7280' 
-                        }}
-                        onClick={() => {
-                          setSelectedCustomer(customer);
-                          setSelectedProvinceId(customer.provinceid);
-                          setIsEditing(false);
-                          setActiveTab("details");
-                          
-                          // Preparar datos para el formulario
-                          const formData = {
-                            businessname: customer.businessname,
-                            managername: customer.managername,
-                            phone: customer.phone,
-                            email: customer.email || undefined,
-                            rnc: customer.rnc || undefined,
-                            zoneid: customer.zoneid || undefined,
-                            street: customer.street,
-                            streetnumber: customer.streetnumber,
-                            provinceid: customer.provinceid,
-                            municipalityid: customer.municipalityid,
-                            reference: customer.reference || undefined,
-                            coordinates: customer.coordinates || "",
-                            creditlimit: customer.creditlimit.toString(),
-                            logo: customer.logo || undefined
-                          };
-                          
-                          form.reset(formData);
-                        }}
-                      >
-                        <div className="flex items-center p-2">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                              <Building2 className="h-4 w-4 text-blue-500" />
-                              <span className="text-sm font-medium">
-                                {customer.businessname}
-                              </span>
-                              {customer.rnc && (
-                                <Badge variant="outline" className="ml-auto text-[10px] py-0 h-4">
-                                  RNC: {customer.rnc}
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-2 mt-1 text-[11px]">
-                              <div className="flex items-center text-muted-foreground">
-                                <User className="h-3 w-3 mr-1" />
-                                <span>{customer.managername}</span>
-                              </div>
-                              <div className="flex items-center text-muted-foreground">
-                                <Phone className="h-3 w-3 mr-1" />
-                                <span>{customer.phone}</span>
-                              </div>
-                              {customer.email && (
-                                <div className="flex items-center text-muted-foreground">
-                                  <Mail className="h-3 w-3 mr-1" />
-                                  <span>{customer.email}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            {customer.zoneid === 1 ? (
-                              <Building2 className="h-5 w-5 text-blue-500" />
-                            ) : customer.zoneid === 2 ? (
-                              <Building2 className="h-5 w-5 text-red-500" />
-                            ) : customer.zoneid === 3 ? (
-                              <Building2 className="h-5 w-5 text-green-500" />
-                            ) : (
-                              <Building2 className="h-5 w-5 text-gray-500" />
-                            )}
-                          </div>
-                        </div>
-                      </Card>
-                    ))
-                  )}
+            <div className="overflow-hidden rounded-md border">
+              {filteredCustomers.length === 0 ? (
+                <div className="text-center py-8 bg-gradient-to-b from-gray-50 to-white text-gray-500 border border-dashed border-gray-200">
+                  <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p className="font-medium">No se encontraron clientes</p>
+                  <p className="text-xs mt-1">Intente con otra búsqueda o cree un nuevo cliente</p>
                 </div>
-              </ScrollArea>
-            ) : (
-              /* Vista de lista para escritorio - diseño moderno */
-              <div className="overflow-hidden rounded-md border">
-                {filteredCustomers.length === 0 ? (
-                  <div className="text-center py-8 bg-gradient-to-b from-gray-50 to-white text-gray-500 border border-dashed border-gray-200">
-                    <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p className="font-medium">No se encontraron clientes</p>
-                    <p className="text-xs mt-1">Intente con otra búsqueda o cree un nuevo cliente</p>
-                  </div>
-                ) : (
-                  <div className="overflow-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-200">
-                          <th className="py-2 px-4 text-left font-medium text-gray-500 w-8">#</th>
-                          <th className="py-2 px-4 text-left font-medium text-gray-500">Negocio</th>
-                          <th className="py-2 px-4 text-left font-medium text-gray-500">Contacto</th>
-                          <th className="py-2 px-4 text-left font-medium text-gray-500">Ubicación</th>
-                          <th className="py-2 px-4 text-left font-medium text-gray-500">Zona</th>
-                          <th className="py-2 px-4 text-left font-medium text-gray-500">Crédito</th>
-                          <th className="py-2 px-4 text-center font-medium text-gray-500">Mapa</th>
-                          <th className="py-2 px-4 text-right font-medium text-gray-500">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
+              ) : (
+                <>
+                  {/* Vista móvil - Cards verticales */}
+                  {isMobile ? (
+                    <ScrollArea className="h-[400px]">
+                      <div className="p-2 space-y-2">
                         {filteredCustomers.map((customer, index) => (
-                          <tr 
-                            key={customer.id} 
-                            className="hover:bg-blue-50/30 transition-colors cursor-pointer"
+                          <div 
+                            key={customer.id}
+                            className={`border rounded-md overflow-hidden cursor-pointer hover:shadow-md transition-all bg-white`}
+                            style={{ 
+                              borderLeftWidth: '4px',
+                              borderLeftColor: customer.zoneid === 1 ? '#3b82f6' : 
+                                              customer.zoneid === 2 ? '#ef4444' : 
+                                              customer.zoneid === 3 ? '#22c55e' : 
+                                              '#6b7280' 
+                            }}
                             onClick={() => {
                               handleViewCustomer(customer);
                               setActiveTab("details");
                             }}
                           >
-                            {/* Columna de índice */}
-                            <td className="py-2 px-4 align-middle text-xs text-gray-500">{index + 1}</td>
-                            
-                            {/* Columna de Negocio */}
-                            <td className="py-2.5 px-4 align-middle">
-                              <div className="flex items-center gap-3">
-                                <div className="relative flex-shrink-0">
-                                  {customer.logo ? (
-                                    <div className="w-9 h-9 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
-                                      <img
-                                        src={`data:image/jpeg;base64,${customer.logo}`}
-                                        alt="Logo"
-                                        className="w-full h-full object-contain"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <div className="w-9 h-9 bg-gradient-to-br from-blue-50 to-white rounded-md flex items-center justify-center border shadow-sm">
-                                      <Building2 className="h-5 w-5 text-blue-500" />
-                                    </div>
-                                  )}
-                                  <div 
-                                    className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
-                                      customer.zoneid === 1 ? 'bg-blue-500' : 
-                                      customer.zoneid === 2 ? 'bg-red-500' : 
-                                      customer.zoneid === 3 ? 'bg-green-500' : 
-                                      'bg-gray-500'
-                                    }`}
-                                    title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                                  >
-                                    {customer.zoneid || "?"}
+                            <div className="flex items-center p-2 border-b">
+                              <div className="relative mr-2 flex-shrink-0">
+                                {customer.logo ? (
+                                  <div className="w-8 h-8 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
+                                    <img
+                                      src={`data:image/jpeg;base64,${customer.logo}`}
+                                      alt="Logo"
+                                      className="w-full h-full object-contain"
+                                    />
                                   </div>
-                                </div>
-                                <div>
-                                  <p className="font-medium text-sm line-clamp-1">{customer.businessname}</p>
-                                  {customer.rnc && (
-                                    <p className="text-xs text-gray-500">RNC: {customer.rnc}</p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            
-                            {/* Columna de Contacto */}
-                            <td className="py-2.5 px-4 align-middle">
-                              <div className="space-y-1">
-                                <div className="flex items-center text-xs text-gray-700">
-                                  <User className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
-                                  <span className="truncate">{customer.managername}</span>
-                                </div>
-                                <div className="flex items-center text-xs text-gray-700">
-                                  <Phone className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
-                                  <span className="truncate">{customer.phone}</span>
-                                </div>
-                                {customer.email && (
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <Mail className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
-                                    <span className="truncate max-w-[150px]">{customer.email}</span>
+                                ) : (
+                                  <div className="w-8 h-8 bg-blue-50 rounded-md flex items-center justify-center border">
+                                    <Building2 className="h-4 w-4 text-blue-500" />
                                   </div>
                                 )}
-                              </div>
-                            </td>
-                            
-                            {/* Columna de Dirección */}
-                            <td className="py-2.5 px-4 align-middle max-w-[200px]">
-                              <div className="space-y-1">
-                                <div className="flex items-start text-xs text-gray-700">
-                                  <Home className="h-3 w-3 mr-1.5 mt-0.5 text-blue-600 flex-shrink-0" />
-                                  <span className="truncate">{`${customer.street} #${customer.streetnumber}`}</span>
-                                </div>
-                                <div className="flex items-center text-xs text-gray-700">
-                                  <MapPin className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
-                                  <span className="truncate">{customer.municipalityName || ''}, {provinces.find(p => p.id === customer.provinceid)?.name || ''}</span>
+                                <div 
+                                  className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] z-10 ${
+                                    customer.zoneid === 1 ? 'bg-blue-500' : 
+                                    customer.zoneid === 2 ? 'bg-red-500' : 
+                                    customer.zoneid === 3 ? 'bg-green-500' : 
+                                    'bg-gray-500'
+                                  }`}
+                                  title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
+                                >
+                                  Z{customer.zoneid || "?"}
                                 </div>
                               </div>
-                            </td>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center">
+                                  <p className="font-medium text-sm truncate">
+                                    {customer.businessname}
+                                  </p>
+                                  <span className="text-xs text-gray-400 ml-1">#{index + 1}</span>
+                                </div>
+                                {customer.rnc && (
+                                  <p className="text-xs text-gray-500 truncate">RNC: {customer.rnc}</p>
+                                )}
+                              </div>
+                            </div>
                             
-                            {/* Columna de Zona */}
-                            <td className="py-2.5 px-4 align-middle">
-                              <Badge 
-                                className={`px-2 py-0.5 ${
-                                  customer.zoneid === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 
-                                  customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
-                                  customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
-                                  'bg-gray-50 text-gray-700 border-gray-200'
-                                }`}
-                              >
-                                {zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                              </Badge>
-                            </td>
+                            <div className="grid grid-cols-2 gap-1 p-2 text-xs">
+                              <div className="flex items-center text-gray-700">
+                                <User className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                <span className="truncate">{customer.managername}</span>
+                              </div>
+                              <div className="flex items-center text-gray-700">
+                                <Phone className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                <span className="truncate">{customer.phone}</span>
+                              </div>
+                            </div>
                             
-                            {/* Columna de Crédito */}
-                            <td className="py-2.5 px-4 align-middle">
+                            <div className="flex justify-between items-center p-2 bg-gray-50 border-t">
                               <Badge 
                                 variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
-                                className="px-2 py-0.5 font-medium"
+                                className="px-2 py-0.5 text-[10px]"
                               >
-                                <DollarSign className="h-3 w-3 mr-1 inline-block" />
+                                <DollarSign className="h-2.5 w-2.5 mr-0.5 inline-block" />
                                 {parseFloat(customer.creditlimit.toString()).toFixed(2)}
                               </Badge>
-                            </td>
-                            
-                            {/* Columna de Mapa */}
-                            <td className="py-2.5 px-4 align-middle text-center">
-                              <Badge variant="outline" className={`px-2 py-0.5 text-xs ${
+                              
+                              <Badge variant="outline" className={`px-2 py-0.5 text-[10px] ${
                                 customer.coordinates 
                                   ? 'bg-green-50 text-green-700 border-green-200' 
                                   : 'bg-orange-50 text-orange-700 border-orange-200'
                               }`}>
                                 {customer.coordinates 
-                                  ? <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> Sí</span> 
-                                  : <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> No</span>
+                                  ? <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> Sí</span> 
+                                  : <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> No</span>
                                 }
                               </Badge>
-                            </td>
-                            
-                            {/* Columna de Acciones */}
-                            <td className="py-2.5 px-4 align-middle text-right">
+                              
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-7 px-2 py-0 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                                className="h-6 px-2 py-0 text-[10px] bg-blue-50 text-blue-700"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleViewCustomer(customer);
                                   setActiveTab("details");
                                 }}
                               >
-                                <Eye className="h-3 w-3 mr-1" />
-                                Detalles
+                                <Eye className="h-2.5 w-2.5 mr-0.5" />
+                                Ver
                               </Button>
-                            </td>
-                          </tr>
+                            </div>
+                          </div>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    /* Vista de escritorio - Tabla responsiva */
+                    <div className="overflow-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-200">
+                            <th className="py-2 px-4 text-left font-medium text-gray-500 w-8">#</th>
+                            <th className="py-2 px-4 text-left font-medium text-gray-500">Negocio</th>
+                            <th className="py-2 px-4 text-left font-medium text-gray-500">Contacto</th>
+                            <th className="py-2 px-4 text-left font-medium text-gray-500">Ubicación</th>
+                            <th className="py-2 px-4 text-left font-medium text-gray-500">Zona</th>
+                            <th className="py-2 px-4 text-left font-medium text-gray-500">Crédito</th>
+                            <th className="py-2 px-4 text-center font-medium text-gray-500">Mapa</th>
+                            <th className="py-2 px-4 text-right font-medium text-gray-500">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {filteredCustomers.map((customer, index) => (
+                            <tr 
+                              key={customer.id} 
+                              className="hover:bg-blue-50/30 transition-colors cursor-pointer"
+                              onClick={() => {
+                                handleViewCustomer(customer);
+                                setActiveTab("details");
+                              }}
+                            >
+                              {/* Columna de índice */}
+                              <td className="py-2 px-4 align-middle text-xs text-gray-500">{index + 1}</td>
+                              
+                              {/* Columna de Negocio */}
+                              <td className="py-2.5 px-4 align-middle">
+                                <div className="flex items-center gap-3">
+                                  <div className="relative flex-shrink-0">
+                                    {customer.logo ? (
+                                      <div className="w-9 h-9 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
+                                        <img
+                                          src={`data:image/jpeg;base64,${customer.logo}`}
+                                          alt="Logo"
+                                          className="w-full h-full object-contain"
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div className="w-9 h-9 bg-gradient-to-br from-blue-50 to-white rounded-md flex items-center justify-center border shadow-sm">
+                                        <Building2 className="h-5 w-5 text-blue-500" />
+                                      </div>
+                                    )}
+                                    <div 
+                                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
+                                        customer.zoneid === 1 ? 'bg-blue-500' : 
+                                        customer.zoneid === 2 ? 'bg-red-500' : 
+                                        customer.zoneid === 3 ? 'bg-green-500' : 
+                                        'bg-gray-500'
+                                      }`}
+                                      title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
+                                    >
+                                      {customer.zoneid || "?"}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm line-clamp-1">{customer.businessname}</p>
+                                    {customer.rnc && (
+                                      <p className="text-xs text-gray-500">RNC: {customer.rnc}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              
+                              {/* Columna de Contacto */}
+                              <td className="py-2.5 px-4 align-middle">
+                                <div className="space-y-1">
+                                  <div className="flex items-center text-xs text-gray-700">
+                                    <User className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                    <span className="truncate">{customer.managername}</span>
+                                  </div>
+                                  <div className="flex items-center text-xs text-gray-700">
+                                    <Phone className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                    <span className="truncate">{customer.phone}</span>
+                                  </div>
+                                  {customer.email && (
+                                    <div className="flex items-center text-xs text-gray-700">
+                                      <Mail className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                      <span className="truncate max-w-[150px]">{customer.email}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              
+                              {/* Columna de Dirección */}
+                              <td className="py-2.5 px-4 align-middle max-w-[200px]">
+                                <div className="space-y-1">
+                                  <div className="flex items-start text-xs text-gray-700">
+                                    <Home className="h-3 w-3 mr-1.5 mt-0.5 text-blue-600 flex-shrink-0" />
+                                    <span className="truncate">{`${customer.street} #${customer.streetnumber}`}</span>
+                                  </div>
+                                  <div className="flex items-center text-xs text-gray-700">
+                                    <MapPin className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                    <span className="truncate">{customer.municipalityName || ''}, {provinces.find(p => p.id === customer.provinceid)?.name || ''}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              
+                              {/* Columna de Zona */}
+                              <td className="py-2.5 px-4 align-middle">
+                                <Badge 
+                                  className={`px-2 py-0.5 ${
+                                    customer.zoneid === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                                    customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
+                                    customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
+                                    'bg-gray-50 text-gray-700 border-gray-200'
+                                  }`}
+                                >
+                                  {zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
+                                </Badge>
+                              </td>
+                              
+                              {/* Columna de Crédito */}
+                              <td className="py-2.5 px-4 align-middle">
+                                <Badge 
+                                  variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
+                                  className="px-2 py-0.5 font-medium"
+                                >
+                                  <DollarSign className="h-3 w-3 mr-1 inline-block" />
+                                  {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                                </Badge>
+                              </td>
+                              
+                              {/* Columna de Mapa */}
+                              <td className="py-2.5 px-4 align-middle text-center">
+                                <Badge variant="outline" className={`px-2 py-0.5 text-xs ${
+                                  customer.coordinates 
+                                    ? 'bg-green-50 text-green-700 border-green-200' 
+                                    : 'bg-orange-50 text-orange-700 border-orange-200'
+                                }`}>
+                                  {customer.coordinates 
+                                    ? <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> Sí</span> 
+                                    : <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> No</span>
+                                  }
+                                </Badge>
+                              </td>
+                              
+                              {/* Columna de Acciones */}
+                              <td className="py-2.5 px-4 align-middle text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-7 px-2 py-0 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewCustomer(customer);
+                                    setActiveTab("details");
+                                  }}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Detalles
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </Card>
         </TabsContent>
         
