@@ -52,11 +52,11 @@ router.get('/', async (req, res) => {
     const conditions = [];
     
     if (status) {
-      conditions.push(eq(commissions.status, status as string));
+      conditions.push(eq(commissions.status, status as "pending" | "paid" | "cancelled"));
     }
     
     if (userRole) {
-      conditions.push(eq(commissions.userRole, userRole as string));
+      conditions.push(eq(commissions.userRole, userRole as "driver" | "helper"));
     }
     
     if (userId) {
@@ -278,6 +278,8 @@ router.post('/generate', async (req, res) => {
       // Obtener los IDs de las órdenes entregadas
       const orderIds = deliveredOrders.map(order => order.id);
       
+      console.log("Buscando productos comisionables para órdenes:", orderIds);
+      
       // Buscar productos comisionables en estas órdenes
       const orderProductItems = await db
         .select({
@@ -297,6 +299,8 @@ router.post('/generate', async (req, res) => {
             eq(products.isCommissionable, true)
           )
         );
+        
+      console.log("Productos comisionables encontrados:", orderProductItems.length);
       
       // Si no hay productos comisionables, continuar con el siguiente usuario
       if (orderProductItems.length === 0) {
@@ -308,15 +312,43 @@ router.post('/generate', async (req, res) => {
       const commissionItemsData = [];
       
       for (const item of orderProductItems) {
-        const commissionValue = userRole === 'driver' 
-          ? item.product?.driverCommissionValue 
-          : item.product?.helperCommissionValue;
+        // Obtener el valor de comisión según el rol (conductor o ayudante)
+        let commissionValue;
+        if (userRole === 'driver') {
+          commissionValue = item.product?.driverCommissionValue;
+          console.log("Valor de comisión para conductor:", commissionValue);
+        } else {
+          commissionValue = item.product?.helperCommissionValue;
+          console.log("Valor de comisión para ayudante:", commissionValue);
+        }
         
+        // Verificar si el valor de comisión existe
         if (!commissionValue) {
+          console.log("Sin valor de comisión para producto:", item.productId);
           continue;
         }
         
-        const commissionAmount = parseFloat(commissionValue) * item.quantity;
+        // Convertir el valor de comisión a número para hacer cálculos
+        let commissionValueNum = 0;
+        try {
+          // Intentar convertir el valor de la comisión a un número
+          if (typeof commissionValue === 'string') {
+            commissionValueNum = parseFloat(commissionValue);
+          } else if (commissionValue !== null && commissionValue !== undefined) {
+            // Si no es string pero existe, intentar convertirlo
+            commissionValueNum = Number(commissionValue);
+          }
+        } catch (e) {
+          console.error("Error al convertir valor de comisión:", commissionValue, e);
+          // En caso de error, usar valor por defecto
+          commissionValueNum = 0;
+        }
+        
+        // Calcular el monto de comisión
+        const commissionAmount = commissionValueNum * item.quantity;
+        console.log(`Calculando comisión: ${commissionValueNum} * ${item.quantity} = ${commissionAmount}`);
+        
+        // Sumar al total
         totalCommissionAmount += commissionAmount;
         
         commissionItemsData.push({
