@@ -440,9 +440,35 @@ router.post('/generate', async (req, res) => {
       generatedCommissions.push(newCommission);
     }
     
+    // Obtener comisiones para asegurar que se devuelven con todos los datos relacionados
+    const generatedCommissionsWithDetails = await db.select({
+      id: commissions.id,
+      userId: commissions.userId,
+      userName: users.name,
+      userRole: commissions.userRole,
+      weekStartDate: commissions.weekStartDate,
+      weekEndDate: commissions.weekEndDate,
+      productCount: commissions.productCount,
+      totalAmount: commissions.totalAmount,
+      status: commissions.status,
+      paymentDate: commissions.paymentDate,
+      routeName: routes.name,
+      routeId: commissions.routeId,
+      createdAt: commissions.createdAt,
+    })
+    .from(commissions)
+    .leftJoin(users, eq(commissions.userId, users.id))
+    .leftJoin(routes, eq(commissions.routeId, routes.id))
+    .where(
+      inArray(
+        commissions.id, 
+        generatedCommissions.map(c => c.id)
+      )
+    );
+    
     res.status(201).json({ 
       message: `Se generaron ${generatedCommissions.length} comisiones correctamente`,
-      commissions: generatedCommissions 
+      commissions: generatedCommissionsWithDetails
     });
   } catch (error) {
     console.error('Error al generar comisiones:', error);

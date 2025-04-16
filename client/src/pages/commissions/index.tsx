@@ -435,14 +435,10 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
       console.log("Enviando datos para generar comisiones:", data);
       
       // Llamar a la función que hace la petición al backend
-      await onGenerate(data);
+      const result = await onGenerate(data);
       
       // Si llegamos aquí, la operación fue exitosa
-      console.log("Comisiones generadas exitosamente");
-      toast({
-        title: "Éxito",
-        description: "Comisiones generadas correctamente",
-      });
+      console.log("Comisiones generadas exitosamente:", result);
       
       // Cerrar el modal
       setOpen(false);
