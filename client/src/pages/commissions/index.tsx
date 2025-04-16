@@ -811,11 +811,11 @@ export default function CommissionsPage() {
           </p>
         </div>
         <Button 
-          onClick={() => setShowGenerateForm(!showGenerateForm)}
-          variant={showGenerateForm ? "secondary" : "default"}
+          onClick={() => navigate('/commissions/test')}
+          variant="default"
         >
           <BadgeDollarSign className="mr-2 h-4 w-4" />
-          {showGenerateForm ? "Cancelar" : "Generar Comisiones"}
+          Generar Comisiones
         </Button>
       </div>
 
