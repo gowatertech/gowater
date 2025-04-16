@@ -73,25 +73,7 @@ router.get('/', async (req, res) => {
     
     // Aplicar condiciones a la consulta
     if (conditions.length > 0) {
-      query = db.select({
-        id: commissions.id,
-        userId: commissions.userId,
-        userName: users.name,
-        userRole: commissions.userRole,
-        weekStartDate: commissions.weekStartDate,
-        weekEndDate: commissions.weekEndDate,
-        productCount: commissions.productCount,
-        totalAmount: commissions.totalAmount,
-        status: commissions.status,
-        paymentDate: commissions.paymentDate,
-        routeName: routes.name,
-        routeId: commissions.routeId,
-        createdAt: commissions.createdAt,
-      })
-      .from(commissions)
-      .leftJoin(users, eq(commissions.userId, users.id))
-      .leftJoin(routes, eq(commissions.routeId, routes.id))
-      .where(and(...conditions));
+      query = query.where(and(...conditions));
     }
     
     // Ejecutar consulta con ordenamiento por fecha descendente
@@ -163,6 +145,42 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error al obtener detalle de comisión:', error);
     res.status(500).json({ error: 'Error al obtener detalle de comisión' });
+  }
+});
+
+// Eliminar una comisión
+router.delete('/:id', async (req, res) => {
+  try {
+    const commissionId = parseInt(req.params.id);
+    
+    // Verificar que la comisión existe
+    const [existingCommission] = await db
+      .select()
+      .from(commissions)
+      .where(eq(commissions.id, commissionId));
+    
+    if (!existingCommission) {
+      return res.status(404).json({ error: 'Comisión no encontrada' });
+    }
+    
+    // Primero eliminar todos los items relacionados
+    await db
+      .delete(commissionItems)
+      .where(eq(commissionItems.commissionId, commissionId));
+    
+    // Luego eliminar la comisión
+    const [deletedCommission] = await db
+      .delete(commissions)
+      .where(eq(commissions.id, commissionId))
+      .returning();
+    
+    res.json({ 
+      message: 'Comisión eliminada correctamente',
+      deletedCommission 
+    });
+  } catch (error) {
+    console.error('Error al eliminar comisión:', error);
+    res.status(500).json({ error: 'Error al eliminar comisión' });
   }
 });
 
