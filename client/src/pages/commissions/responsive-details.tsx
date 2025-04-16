@@ -464,7 +464,7 @@ export default function ResponsiveCommissionDetailsPage() {
             <DetailItem 
               icon={CalendarRange} 
               label="Período" 
-              value={`${format(parseISO(commission.weekStartDate), 'dd MMM', { locale: es })} - ${format(parseISO(commission.weekEndDate), 'dd MMM', { locale: es })}`} 
+              value={`${format(parseISO(commission.weekStartDate), 'dd/MM')} - ${format(parseISO(commission.weekEndDate), 'dd/MM/yy')}`} 
             />
           </div>
           <div className="mt-3 flex justify-end">
@@ -579,7 +579,7 @@ export default function ResponsiveCommissionDetailsPage() {
               <DetailItem 
                 icon={Calendar} 
                 label="Período" 
-                value={`${format(parseISO(commission.weekStartDate), 'dd MMM', { locale: es })} - ${format(parseISO(commission.weekEndDate), 'dd MMM yyyy', { locale: es })}`} 
+                value={`${format(parseISO(commission.weekStartDate), 'dd/MM')} - ${format(parseISO(commission.weekEndDate), 'dd/MM/yy')}`} 
               />
               {commission.routeName && (
                 <DetailItem 
