@@ -606,34 +606,25 @@ export default function CommissionsPage() {
 
       console.log("Respuesta del servidor:", response.status, response.statusText);
       
-      const responseText = await response.text();
-      console.log("Texto de respuesta:", responseText);
-      
-      let errorData;
-      let result;
-      
-      try {
-        // Intentar parsear como JSON
-        const jsonData = JSON.parse(responseText);
-        if (!response.ok) {
-          errorData = jsonData;
-        } else {
-          result = jsonData;
-        }
-      } catch (e) {
-        console.error("Error al parsear la respuesta como JSON:", e);
-        if (!response.ok) {
-          throw new Error('Error de formato en la respuesta del servidor');
-        }
+      // Primero verificamos el tipo de contenido de la respuesta
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        console.error("La respuesta no es JSON:", contentType);
+        throw new Error('El servidor no devolvió JSON. Contacta al administrador.');
       }
-
+      
+      // Obtenemos los datos JSON
+      const result = await response.json();
+      console.log("Datos JSON recibidos:", result);
+      
       if (!response.ok) {
-        throw new Error(errorData?.error || 'Error al generar comisiones');
+        throw new Error(result?.error || 'Error al generar comisiones');
       }
 
+      // Si llegamos aquí, todo fue exitoso
       toast({
         title: "Comisiones generadas",
-        description: `Se generaron ${result.commissions.length} comisiones correctamente`,
+        description: `Se generaron ${result.commissions?.length || 0} comisiones correctamente`,
       });
       
       // Refrescar la lista de comisiones
