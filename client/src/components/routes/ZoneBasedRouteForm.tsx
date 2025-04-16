@@ -1093,6 +1093,74 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
                 <FormField
                   control={form.control}
+                  name="assistantId"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Asistente</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value ? String(field.value) : ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue placeholder="Seleccionar asistente" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingAssistants ? (
+                            <div className="p-1">
+                              <Skeleton className="h-4 w-full" />
+                            </div>
+                          ) : (
+                            assistants && Array.isArray(assistants) && assistants.map((assistant: any) => (
+                              <SelectItem key={assistant.id} value={String(assistant.id)} className="text-xs">
+                                {assistant.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="truckId"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Vehículo</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        value={field.value ? String(field.value) : ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-7 text-xs">
+                            <SelectValue placeholder="Seleccionar vehículo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingTrucks ? (
+                            <div className="p-1">
+                              <Skeleton className="h-4 w-full" />
+                            </div>
+                          ) : (
+                            trucks && Array.isArray(trucks) && trucks.map((truck: any) => (
+                              <SelectItem key={truck.id} value={String(truck.id)} className="text-xs">
+                                {truck.plate} - {truck.brand} {truck.model}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col space-y-1">
