@@ -266,7 +266,7 @@ router.post('/generate', async (req, res) => {
     let usersQuery = db
       .select()
       .from(users)
-      .where(eq(users.role, userRole === 'driver' ? 'driver' : 'assistant'));
+      .where(eq(users.role, userRole === 'driver' ? 'driver' : 'helper'));
     
     // Filtrar por ID de usuario si se proporciona
     if (userId) {
@@ -335,7 +335,10 @@ router.post('/generate', async (req, res) => {
               eq(orders.status, 'delivered'),
               // Ajustamos el rango para incluir todo el día de la fecha final
               sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < DATE_ADD(${endDate}, INTERVAL 1 DAY)`,
-              sql`${routes.assistantId} = ${user.id} AND ${routes.assistantId} IS NOT NULL`
+              and(
+            eq(routes.assistantId, user.id),
+            sql`${routes.assistantId} IS NOT NULL`
+          )
             )
           );
       }
@@ -535,8 +538,8 @@ router.post('/generate', async (req, res) => {
       }
       
       // Crear una nueva comisión
-      // Convertir userRole 'helper' a 'assistant' para consistencia en la BD
-      const dbUserRole = userRole === 'helper' ? 'helper' : 'driver';
+      // Mantener consistencia usando 'helper' en toda la aplicación
+      const dbUserRole = userRole;
       
       const [newCommission] = await db
         .insert(commissions)
