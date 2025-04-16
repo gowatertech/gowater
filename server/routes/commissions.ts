@@ -384,11 +384,11 @@ router.post('/generate', async (req, res) => {
         const endDatePlusDay = new Date(endDate);
         endDatePlusDay.setDate(endDatePlusDay.getDate() + 1);
         
-        console.log(`SQL para ayudante: SELECT * FROM orders o JOIN routes r ON o.route_id = r.id 
-           WHERE o.status = 'delivered' 
-           AND o.actual_delivery_time >= '${startDate.toISOString()}' 
-           AND o.actual_delivery_time < '${endDatePlusDay.toISOString()}'
-           AND r.assistant_id = ${user.id} AND r.assistant_id IS NOT NULL`);
+        // No construir consulta SQL directa, solo mostrar información básica para depuración
+        console.log(`Consultando órdenes entre: 
+           Inicio: ${startDate.toISOString()} 
+           Fin: ${endDatePlusDay.toISOString()}
+           Para ayudante con ID: ${user.id}`);
       }
       
       console.log(`Usuario ${user.id} (${user.name}): ${deliveredOrders.length} órdenes entregadas encontradas`);
@@ -437,15 +437,14 @@ router.post('/generate', async (req, res) => {
             );
         }
       } else {
-        // Para ayudantes, mostrar la consulta SQL para depuración
-        console.log(`SQL para productos comisionables de ayudante:
-           SELECT order_items.order_id, order_items.product_id, products.*, order_items.quantity
-           FROM order_items
-           LEFT JOIN products ON order_items.product_id = products.id
-           LEFT JOIN orders ON order_items.order_id = orders.id
-           WHERE order_items.order_id IN (${orderIds.length > 0 ? orderIds.join(',') : '0'})
-           AND products.is_commissionable = true
-           AND COALESCE(products.helper_commission_value, 0) > 0`);
+        // Para ayudantes, mostrar información básica de depuración
+        console.log(`Detalles para consulta de productos comisionables para ayudante:`);
+        console.log(`  - Número de orderIds: ${orderIds.length}`);
+        if (orderIds.length > 0) {
+          console.log(`  - Primer orderId: ${orderIds[0]}`);
+        } else {
+          console.log(`  - No hay orderIds disponibles`);
+        }
            
         // Si no hay orderIds, devolvemos un array vacío directamente
         if (orderIds.length === 0) {
