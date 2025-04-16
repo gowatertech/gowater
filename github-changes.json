@@ -1,0 +1,24 @@
+{
+  "title": "Prevención de rutas múltiples por conductor",
+  "description": "Implementa un sistema que impide que los conductores inicien múltiples rutas simultáneamente",
+  "changes": [
+    {
+      "file": "server/routes/api/startRoute.ts",
+      "status": "added",
+      "description": "Nuevo endpoint para validar rutas activas por conductor"
+    },
+    {
+      "file": "client/src/pages/mobile-app/rutas-pendientes/index.tsx",
+      "status": "modified",
+      "description": "Actualizado para manejar respuestas de validación y mostrar notificaciones"
+    }
+  ],
+  "features": [
+    "Validación de rutas activas por conductor",
+    "Notificaciones de error cuando existe una ruta activa",
+    "Opción para redirigir al conductor a su ruta en progreso",
+    "Bloqueo de inicio de nuevas rutas cuando hay rutas activas"
+  ],
+  "impact": "Alto - Mejora la integridad operativa y previene problemas de seguimiento",
+  "testing": "Completado - Verificado que no se pueden iniciar múltiples rutas activas"
+}

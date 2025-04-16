@@ -1,0 +1,10 @@
+feat(routes): impedir inicio de múltiples rutas por conductor
+
+Implementa validación que impide a los conductores iniciar múltiples rutas simultáneamente.
+
+- Agrega nuevo endpoint /api/routes/:id/start con validación de rutas activas
+- Actualiza interfaz de usuario para manejar respuestas y mostrar notificaciones
+- Ofrece opción para redirigir al usuario a su ruta activa
+- Mantiene compatibilidad con el flujo actual de rutas
+
+Resuelve el problema #135 sobre conductores con múltiples rutas activas.
