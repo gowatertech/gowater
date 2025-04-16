@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { format } from 'date-fns';
@@ -395,6 +395,7 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
   console.log("Renderizando GenerateCommissionsDialog");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [weekDates, setWeekDates] = useState<{ from: Date; to: Date }>(() => {
     const now = new Date();
     const start = startOfWeek(now, { weekStartsOn: 1 });  // 1 = lunes
@@ -420,44 +421,77 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
         .sort((a: any, b: any) => a.name.localeCompare(b.name))
     : [];
 
-  const handleGenerate = async () => {
-    try {
-      setLoading(true);
-      console.log("Preparando datos para generar comisiones...");
-      
-      // Formatear fechas para la API
-      const data = {
-        weekStartDate: format(weekDates.from, 'yyyy-MM-dd'),
-        weekEndDate: format(weekDates.to, 'yyyy-MM-dd'),
-        ...(userId ? { userId: parseInt(userId) } : {}),
-        userRole
-      };
-      
-      console.log("Enviando datos para generar comisiones:", data);
-      
-      // Llamar a la función que hace la petición al backend
-      try {
-        const result = await onGenerate(data);
+  // Limpiar errores al cerrar el diálogo
+  useEffect(() => {
+    if (!open) {
+      setErrorMessage(null);
+    }
+  }, [open]);
+
+  const handleGenerate = () => {
+    // Evitar que se quede en blanco usando un formulario controlado
+    setLoading(true);
+    setErrorMessage(null);
+    
+    console.log("Preparando datos para generar comisiones...");
+    
+    // Formatear fechas para la API
+    const data = {
+      weekStartDate: format(weekDates.from, 'yyyy-MM-dd'),
+      weekEndDate: format(weekDates.to, 'yyyy-MM-dd'),
+      ...(userId ? { userId: parseInt(userId) } : {}),
+      userRole
+    };
+    
+    console.log("Enviando datos para generar comisiones:", data);
+    
+    // Usamos fetch directamente en lugar de la función proporcionada
+    fetch('/api/commissions/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+      .then(response => {
+        console.log("Respuesta del servidor:", response.status, response.statusText);
+        
+        if (!response.ok) {
+          return response.json().then(errData => {
+            throw new Error(errData?.error || 'Error al generar comisiones');
+          });
+        }
+        
+        return response.json();
+      })
+      .then(result => {
         console.log("Comisiones generadas exitosamente:", result);
         
-        // Cerrar el modal solo si la operación fue exitosa
+        // Mostrar notificación de éxito
+        toast({
+          title: "Comisiones generadas",
+          description: `Se generaron ${result.commissions?.length || 0} comisiones correctamente`,
+        });
+        
+        // Cerrar el modal y notificar
         setOpen(false);
-      } catch (err) {
-        console.error("Error en onGenerate:", err);
-        throw err; // Re-lanzar el error para el manejador externo
-      }
-    } catch (error) {
-      console.error("Error al generar comisiones:", error);
-      // Mostrar un mensaje más específico
-      const errorMessage = error instanceof Error ? error.message : "No se pudieron generar las comisiones";
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
+        
+        // Llamamos a onGenerate sin esperar para que actualice la UI
+        onGenerate(data);
+      })
+      .catch((error: unknown) => {
+        console.error("Error al generar comisiones:", error);
+        const errorMsg = error instanceof Error ? error.message : "No se pudieron generar las comisiones";
+        setErrorMessage(errorMsg);
+        toast({
+          title: "Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        setLoading(false);
       });
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleDateSelect = (range: DateRange | undefined) => {
@@ -547,6 +581,13 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
               </SelectContent>
             </Select>
           </div>
+          
+          {errorMessage && (
+            <div className="text-red-500 text-sm mt-2 bg-red-50 p-2 rounded border border-red-200">
+              <AlertCircle className="h-4 w-4 inline mr-1" />
+              {errorMessage}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button onClick={handleGenerate} disabled={loading}>
@@ -641,8 +682,9 @@ export default function CommissionsPage() {
         refetch();
         
         return result; // Devolver el resultado para el manejo en el componente del diálogo
-      } catch (fetchError) {
+      } catch (error) {
         clearTimeout(timeoutId);
+        const fetchError = error as Error;
         if (fetchError.name === 'AbortError') {
           throw new Error('La solicitud tardó demasiado tiempo. Intente nuevamente.');
         }
