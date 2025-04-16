@@ -436,18 +436,23 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
       console.log("Enviando datos para generar comisiones:", data);
       
       // Llamar a la función que hace la petición al backend
-      const result = await onGenerate(data);
-      
-      // Si llegamos aquí, la operación fue exitosa
-      console.log("Comisiones generadas exitosamente:", result);
-      
-      // Cerrar el modal
-      setOpen(false);
+      try {
+        const result = await onGenerate(data);
+        console.log("Comisiones generadas exitosamente:", result);
+        
+        // Cerrar el modal solo si la operación fue exitosa
+        setOpen(false);
+      } catch (err) {
+        console.error("Error en onGenerate:", err);
+        throw err; // Re-lanzar el error para el manejador externo
+      }
     } catch (error) {
       console.error("Error al generar comisiones:", error);
+      // Mostrar un mensaje más específico
+      const errorMessage = error instanceof Error ? error.message : "No se pudieron generar las comisiones";
       toast({
         title: "Error",
-        description: "No se pudieron generar las comisiones",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -593,40 +598,56 @@ export default function CommissionsPage() {
     try {
       console.log("Generando comisiones con datos:", data);
       
-      const response = await fetch('/api/commissions/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+      // Agregar timeout para evitar bloqueos indefinidos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos de timeout
+      
+      try {
+        const response = await fetch('/api/commissions/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId); // Limpiar el timeout si la respuesta llega a tiempo
+        
+        console.log("Respuesta del servidor:", response.status, response.statusText);
+        
+        // Primero verificamos el tipo de contenido de la respuesta
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.error("La respuesta no es JSON:", contentType);
+          throw new Error('El servidor no devolvió JSON. Contacta al administrador.');
+        }
+        
+        // Obtenemos los datos JSON
+        const result = await response.json();
+        console.log("Datos JSON recibidos:", result);
+        
+        if (!response.ok) {
+          throw new Error(result?.error || 'Error al generar comisiones');
+        }
 
-      console.log("Respuesta del servidor:", response.status, response.statusText);
-      
-      // Primero verificamos el tipo de contenido de la respuesta
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        console.error("La respuesta no es JSON:", contentType);
-        throw new Error('El servidor no devolvió JSON. Contacta al administrador.');
+        // Si llegamos aquí, todo fue exitoso
+        toast({
+          title: "Comisiones generadas",
+          description: `Se generaron ${result.commissions?.length || 0} comisiones correctamente`,
+        });
+        
+        // Refrescar la lista de comisiones
+        refetch();
+        
+        return result; // Devolver el resultado para el manejo en el componente del diálogo
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('La solicitud tardó demasiado tiempo. Intente nuevamente.');
+        }
+        throw fetchError;
       }
-      
-      // Obtenemos los datos JSON
-      const result = await response.json();
-      console.log("Datos JSON recibidos:", result);
-      
-      if (!response.ok) {
-        throw new Error(result?.error || 'Error al generar comisiones');
-      }
-
-      // Si llegamos aquí, todo fue exitoso
-      toast({
-        title: "Comisiones generadas",
-        description: `Se generaron ${result.commissions?.length || 0} comisiones correctamente`,
-      });
-      
-      // Refrescar la lista de comisiones
-      refetch();
-      
     } catch (error: any) {
       console.error("Error completo:", error);
       toast({
@@ -634,6 +655,7 @@ export default function CommissionsPage() {
         description: error.message || "No se pudieron generar las comisiones",
         variant: "destructive",
       });
+      throw error; // Re-lanzar para el manejo en el componente del diálogo
     }
   };
 
