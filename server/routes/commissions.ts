@@ -408,29 +408,34 @@ router.post('/generate', async (req, res) => {
       console.log(`Buscando productos comisionables para el usuario ${user.name} con rol ${userRole}`);
       
       // Ejecutar la consulta para productos comisionables
-      let orderProductItems;
+      let orderProductItems: any[] = [];
       
       // Consultas separadas para cada rol
       if (userRole === 'driver') {
-        orderProductItems = await db
-          .select({
-            orderId: orderItems.orderId,
-            productId: orderItems.productId,
-            product: products,
-            quantity: orderItems.quantity,
-            order: orders,
-            routeId: orders.routeId,
-          })
-          .from(orderItems)
-          .leftJoin(products, eq(orderItems.productId, products.id))
-          .leftJoin(orders, eq(orderItems.orderId, orders.id))
-          .where(
-            and(
-              inArray(orderItems.orderId, orderIds),
-              eq(products.isCommissionable, true),
-              sql`COALESCE(${products.driverCommissionValue}, 0) > 0`
-            )
-          );
+        // Si no hay orderIds, devolvemos un array vacío directamente
+        if (orderIds.length === 0) {
+          orderProductItems = [];
+        } else {
+          orderProductItems = await db
+            .select({
+              orderId: orderItems.orderId,
+              productId: orderItems.productId,
+              product: products,
+              quantity: orderItems.quantity,
+              order: orders,
+              routeId: orders.routeId,
+            })
+            .from(orderItems)
+            .leftJoin(products, eq(orderItems.productId, products.id))
+            .leftJoin(orders, eq(orderItems.orderId, orders.id))
+            .where(
+              and(
+                inArray(orderItems.orderId, orderIds),
+                eq(products.isCommissionable, true),
+                sql`COALESCE(${products.driverCommissionValue}, 0) > 0`
+              )
+            );
+        }
       } else {
         // Para ayudantes, mostrar la consulta SQL para depuración
         console.log(`SQL para productos comisionables de ayudante:
@@ -438,29 +443,34 @@ router.post('/generate', async (req, res) => {
            FROM order_items
            LEFT JOIN products ON order_items.product_id = products.id
            LEFT JOIN orders ON order_items.order_id = orders.id
-           WHERE order_items.order_id IN (${orderIds.join(',')})
+           WHERE order_items.order_id IN (${orderIds.length > 0 ? orderIds.join(',') : '0'})
            AND products.is_commissionable = true
            AND COALESCE(products.helper_commission_value, 0) > 0`);
            
-        orderProductItems = await db
-          .select({
-            orderId: orderItems.orderId,
-            productId: orderItems.productId,
-            product: products,
-            quantity: orderItems.quantity,
-            order: orders,
-            routeId: orders.routeId,
-          })
-          .from(orderItems)
-          .leftJoin(products, eq(orderItems.productId, products.id))
-          .leftJoin(orders, eq(orderItems.orderId, orders.id))
-          .where(
-            and(
-              inArray(orderItems.orderId, orderIds),
-              eq(products.isCommissionable, true),
-              sql`COALESCE(${products.helperCommissionValue}, 0) > 0`
-            )
-          );
+        // Si no hay orderIds, devolvemos un array vacío directamente
+        if (orderIds.length === 0) {
+          orderProductItems = [];
+        } else {
+          orderProductItems = await db
+            .select({
+              orderId: orderItems.orderId,
+              productId: orderItems.productId,
+              product: products,
+              quantity: orderItems.quantity,
+              order: orders,
+              routeId: orders.routeId,
+            })
+            .from(orderItems)
+            .leftJoin(products, eq(orderItems.productId, products.id))
+            .leftJoin(orders, eq(orderItems.orderId, orders.id))
+            .where(
+              and(
+                inArray(orderItems.orderId, orderIds),
+                eq(products.isCommissionable, true),
+                sql`COALESCE(${products.helperCommissionValue}, 0) > 0`
+              )
+            );
+        }
       }
         
       console.log(`Productos comisionables para ${userRole} encontrados:`, orderProductItems.length);
@@ -545,7 +555,9 @@ router.post('/generate', async (req, res) => {
       
       // Verificar si ya existe una comisión para este usuario en este período
       // Usar el rol correcto para la base de datos
-      const searchRoleValue = userRole === 'helper' ? 'helper' : 'driver';
+      // Para búsquedas en la BD, se mantiene el rol "helper" o "driver"
+      // sin hacer el mapeo automático a "assistant"
+      const searchRoleValue = userRole;
       
       console.log(`Buscando comisión existente para usuario ${user.name} con rol ${searchRoleValue} entre ${startDate} y ${endDate}`);
       
@@ -561,8 +573,8 @@ router.post('/generate', async (req, res) => {
           )
         );
       
-      // Decidir qué rol usar para la búsqueda de comisión existente
-      const existingRoleValue = userRole === 'helper' ? 'helper' : 'driver';
+      // Para propósitos de registro y depuración
+      const existingRoleValue = userRole;
       
       if (existingCommission) {
         console.log(`Comisión existente encontrada para ${user.name} con rol ${existingRoleValue}`);
@@ -604,30 +616,36 @@ router.post('/generate', async (req, res) => {
     }
     
     // Obtener comisiones para asegurar que se devuelven con todos los datos relacionados
-    const generatedCommissionsWithDetails = await db.select({
-      id: commissions.id,
-      userId: commissions.userId,
-      userName: users.name,
-      userRole: commissions.userRole,
-      weekStartDate: commissions.weekStartDate,
-      weekEndDate: commissions.weekEndDate,
-      productCount: commissions.productCount,
-      totalAmount: commissions.totalAmount,
-      status: commissions.status,
-      paymentDate: commissions.paymentDate,
-      routeName: routes.name,
-      routeId: commissions.routeId,
-      createdAt: commissions.createdAt,
-    })
-    .from(commissions)
-    .leftJoin(users, eq(commissions.userId, users.id))
-    .leftJoin(routes, eq(commissions.routeId, routes.id))
-    .where(
-      inArray(
-        commissions.id, 
-        generatedCommissions.map(c => c.id)
-      )
-    );
+    let generatedCommissionsWithDetails = [];
+    
+    if (generatedCommissions.length > 0) {
+      generatedCommissionsWithDetails = await db.select({
+        id: commissions.id,
+        userId: commissions.userId,
+        userName: users.name,
+        userRole: commissions.userRole,
+        weekStartDate: commissions.weekStartDate,
+        weekEndDate: commissions.weekEndDate,
+        productCount: commissions.productCount,
+        totalAmount: commissions.totalAmount,
+        status: commissions.status,
+        paymentDate: commissions.paymentDate,
+        routeName: routes.name,
+        routeId: commissions.routeId,
+        createdAt: commissions.createdAt,
+      })
+      .from(commissions)
+      .leftJoin(users, eq(commissions.userId, users.id))
+      .leftJoin(routes, eq(commissions.routeId, routes.id))
+      .where(
+        inArray(
+          commissions.id, 
+          generatedCommissions.map(c => c.id)
+        )
+      );
+    } else {
+      console.log("No se generaron comisiones nuevas, devolviendo lista vacía");
+    }
     
     res.status(201).json({ 
       message: `Se generaron ${generatedCommissions.length} comisiones correctamente`,
