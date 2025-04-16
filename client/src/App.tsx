@@ -36,6 +36,7 @@ import RecurringOrdersPage from "@/pages/recurring-orders";
 import RecurringOrderForm from "@/pages/recurring-orders/[id]";
 import DriverView from "@/pages/drivers/DriverView";
 import CommissionsPage from "@/pages/commissions";
+import SimpleCommissionsPage from "@/pages/commissions/simple";
 import CommissionDetailsPage from "@/pages/commissions/details";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
@@ -221,6 +222,7 @@ function Router() {
         
         {/* Rutas para comisiones */}
         <Route path="/commissions/details/:id" component={CommissionDetailsPage} />
+        <Route path="/commissions/simple" component={SimpleCommissionsPage} />
         <Route path="/commissions" component={CommissionsPage} />
         
         {/* Páginas de prueba de impresión */}

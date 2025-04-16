@@ -73,8 +73,25 @@ router.get('/', async (req, res) => {
     
     // Aplicar condiciones a la consulta
     if (conditions.length > 0) {
-      const whereClause = and(...conditions);
-      query = query.where(whereClause);
+      query = db.select({
+        id: commissions.id,
+        userId: commissions.userId,
+        userName: users.name,
+        userRole: commissions.userRole,
+        weekStartDate: commissions.weekStartDate,
+        weekEndDate: commissions.weekEndDate,
+        productCount: commissions.productCount,
+        totalAmount: commissions.totalAmount,
+        status: commissions.status,
+        paymentDate: commissions.paymentDate,
+        routeName: routes.name,
+        routeId: commissions.routeId,
+        createdAt: commissions.createdAt,
+      })
+      .from(commissions)
+      .leftJoin(users, eq(commissions.userId, users.id))
+      .leftJoin(routes, eq(commissions.routeId, routes.id))
+      .where(and(...conditions));
     }
     
     // Ejecutar consulta con ordenamiento por fecha descendente

@@ -110,7 +110,15 @@ const sidebarItems = [
     subItems: [
       { icon: CreditCard, label: "Pagos", href: "/payments" },
       { icon: FileText, label: "Facturación", href: "/billing" },
-      { icon: TrendingUp, label: "Comisiones", href: "/commissions" },
+      { 
+        icon: TrendingUp, 
+        label: "Comisiones", 
+        href: "/commissions",
+        subItems: [
+          { icon: TrendingUp, label: "Comisiones", href: "/commissions" },
+          { icon: TrendingUp, label: "Vista Simple", href: "/commissions/simple" },
+        ],
+      },
     ],
   },
   {
