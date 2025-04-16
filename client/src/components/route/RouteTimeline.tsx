@@ -165,7 +165,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                           ) : (
                             <>
                               <Building className="h-4 w-4 text-gray-500 mr-1" />
-                              <span className="font-medium">
+                              <span className={`font-medium ${isCompleted ? "line-through" : ""}`}>
                                 {stop.order}. {stop.customerName}
                               </span>
                             </>
@@ -194,7 +194,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                         <div className="flex flex-wrap items-center text-xs text-muted-foreground gap-y-1">
                           <span className="flex items-center w-full relative pr-10">
                             <MapPin className="h-3 w-3 mr-0.5 flex-shrink-0" />
-                            <span className="truncate">{stop.address}</span>
+                            <span className={`truncate ${isCompleted ? "line-through" : ""}`}>{stop.address}</span>
                             
                             {!stop.isWarehouse && onNavigateToLocation && (
                               <Button 
@@ -223,7 +223,7 @@ const RouteTimeline: React.FC<RouteTimelineProps> = ({
                               {typeof stop.totalValue !== 'undefined' && (
                                 <>
                                   <span className="w-1 h-1 rounded-full bg-gray-300 mx-1 hidden sm:inline-block" />
-                                  <span className="font-medium flex items-center sm:inline-block">
+                                  <span className={`font-medium flex items-center sm:inline-block ${isCompleted ? "line-through" : ""}`}>
                                     <span className="w-1 h-1 rounded-full bg-gray-300 mr-1 inline-block sm:hidden" />
                                     {formatCurrency(stop.totalValue)}
                                   </span>

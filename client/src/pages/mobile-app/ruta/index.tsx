@@ -332,20 +332,32 @@ export default function DriverRoute() {
             if (stopId !== "0") { // El almacén ya está incluido
               const stop = stopsMap.get(stopId);
               if (stop) {
+                // Actualizar el número de orden para reflejar la posición en la secuencia
+                stop.order = i;
                 orderedStops.push(stop);
               }
             }
           }
           
-          // Si alguna parada no está en la secuencia, añadirla al final
+          // Si alguna parada no está en la secuencia, añadirla al final con orden actualizado
+          let additionalIndex = orderedStops.length;
           customerStops.forEach(stop => {
             if (!routeDetails.deliverySequence.includes(stop.id.toString())) {
+              // Actualizar el número de orden para las paradas adicionales
+              stop.order = additionalIndex;
               orderedStops.push(stop);
+              additionalIndex++;
             }
           });
         } else {
-          // Si no hay secuencia definida, simplemente poner el almacén primero
-          orderedStops = [warehouseStop, ...customerStops];
+          // Si no hay secuencia definida, simplemente poner el almacén primero y asignar órdenes correlativos
+          orderedStops = [warehouseStop];
+          
+          // Asignar órdenes secuenciales al resto de paradas
+          customerStops.forEach((stop, index) => {
+            stop.order = index + 1; // Empezar desde 1 ya que 0 es el almacén
+            orderedStops.push(stop);
+          });
         }
         
         console.log("Paradas ordenadas:", orderedStops);
