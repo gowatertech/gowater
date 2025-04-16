@@ -912,15 +912,16 @@ export async function registerRoutes(app: Express) {
     try {
       console.log("POST /api/routes - Datos recibidos:", req.body);
       
-      // Ahora solo requerimos un conductor, no assistant ni truck
+      // Requerimos conductor y opcionales asistente y camión
       const routeData = {
         name: req.body.name,
         date: new Date(req.body.date),
         driverId: Number(req.body.driverId),
+        assistantId: req.body.assistantId ? Number(req.body.assistantId) : null,
+        truckId: req.body.truckId ? Number(req.body.truckId) : null,
         zoneId: Number(req.body.zoneId),
         status: "pending",
         isCompleted: false,
-        // Ya no se requiere truckId (es opcional)
         // Campos opcionales si están presentes
         deliverySequence: req.body.deliverySequence || [],
         stops: req.body.stops || [],
