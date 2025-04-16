@@ -1139,7 +1139,10 @@ export default function Customers() {
                   name="businessname"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre del Negocio</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <Building2 className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Nombre del Negocio</span>
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -1153,7 +1156,10 @@ export default function Customers() {
                   name="managername"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre del Encargado</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <User className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Nombre del Encargado</span>
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -1167,7 +1173,10 @@ export default function Customers() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <Phone className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Teléfono</span>
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -1181,7 +1190,10 @@ export default function Customers() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <Mail className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Email</span>
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} value={field.value || ""} readOnly={!isEditing} />
                       </FormControl>
@@ -1195,7 +1207,10 @@ export default function Customers() {
                   name="zoneid"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Zona</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Zona</span>
+                      </FormLabel>
                       {isEditing ? (
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
@@ -1233,7 +1248,10 @@ export default function Customers() {
                   name="street"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Calle</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <Home className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Calle</span>
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -1247,7 +1265,10 @@ export default function Customers() {
                   name="streetnumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Número</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Número</span>
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} readOnly={!isEditing} />
                       </FormControl>
@@ -1349,30 +1370,30 @@ export default function Customers() {
                   )}
                 />
 
-                {isEditing && (
-                  <FormField
-                    control={form.control}
-                    name="coordinates"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-3">
-                        <FormLabel>Ubicación en Mapa</FormLabel>
-                        <FormControl>
-                          <div className="h-[200px] w-full">
-                            <LocationSelector 
-                              value={field.value || ""} 
-                              onChange={field.onChange} 
-                              initialCenter={[19.075380, -70.128822]} 
-                            />
-                          </div>
-                        </FormControl>
+                <FormField
+                  control={form.control}
+                  name="coordinates"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-3">
+                      <FormLabel>Ubicación en Mapa</FormLabel>
+                      <FormControl>
+                        <div className="h-[200px] w-full">
+                          <LocationSelector 
+                            value={field.value || ""} 
+                            onChange={isEditing ? field.onChange : () => {}} 
+                            initialCenter={[19.075380, -70.128822]} 
+                          />
+                        </div>
+                      </FormControl>
+                      {isEditing && (
                         <div className="text-xs text-muted-foreground mt-1">
                           Mueva el marcador para seleccionar la ubicación exacta
                         </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
