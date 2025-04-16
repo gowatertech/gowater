@@ -24,6 +24,7 @@ import { useMobile } from "@/hooks/use-mobile";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 // Tipo para las rutas
 interface Route {
@@ -64,6 +65,7 @@ export default function MobilePendingRoutes() {
   const { isDarkMode } = useMobile();
   const [, setLocation] = useLocation();
   const { user, isLoading: isLoadingUser } = useCurrentUser();
+  const { toast } = useToast();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [expandedRoutes, setExpandedRoutes] = useState<Record<number, boolean>>({});
   
@@ -257,8 +259,7 @@ export default function MobilePendingRoutes() {
         console.log(`Ruta ${routeId} iniciada correctamente via API`);
         
         // Actualizar también los estados de los pedidos a "in_transit"
-        // Esto debería hacerlo el backend, pero lo hacemos también aquí
-        // para asegurar que la UI se actualice inmediatamente
+        // Esto ya lo hace el backend, pero mantenemos el código por compatibilidad
         fetch(`/api/routes/${routeId}/orders`, {
           method: 'PATCH',
           headers: {
@@ -280,12 +281,35 @@ export default function MobilePendingRoutes() {
         // También guardar el estado general para compatibilidad
         localStorage.setItem('routeStatus', 'in_progress');
         setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+      } else if (data.activeRouteId) {
+        // El servidor detectó que el conductor ya tiene una ruta activa
+        const activeRouteId = data.activeRouteId;
+        console.log(`El conductor ya tiene la ruta #${activeRouteId} activa`);
+        
+        // Mostrar alerta al usuario
+        const { toast } = useToast();
+        toast({
+          title: "Ruta activa detectada",
+          description: `Ya tienes una ruta en progreso. Debes completar o cancelar la ruta actual antes de iniciar una nueva.`,
+          variant: "destructive",
+          duration: 5000,
+        });
+        
+        // Opcionalmente redirigir a la ruta activa
+        setTimeout(() => {
+          if (confirm("¿Deseas ir a la ruta activa?")) {
+            setLocation(`/mobile-app/ruta?routeId=${activeRouteId}`);
+          }
+        }, 1000);
+      } else {
+        // Otro tipo de error
+        console.error("Error al iniciar la ruta:", data.message || "Error desconocido");
+        alert(`Error: ${data.message || "No se pudo iniciar la ruta"}`);
       }
     })
     .catch(err => {
       console.error("Error al iniciar la ruta:", err);
-      // Incluso con error, redirigimos y manejamos el estado en la página de ruta
-      setLocation(`/mobile-app/ruta?routeId=${routeId}`);
+      alert("Error al iniciar la ruta. Por favor intenta de nuevo.");
     });
   };
 

@@ -12,6 +12,7 @@ import { registerRouteSettlements } from "./routes/routeSettlements";
 import { registerDriverRoutes } from "./routes/driver";
 import { registerRoutesEndpoints } from "./routes-endpoints";
 import { registerDriversLocationsEndpoint } from "./routes/api/driversLocations";
+import { registerStartRouteEndpoint } from "./routes/api/startRoute";
 import { registerMobileApiEndpoints } from "./routes/mobile-api";
 import commissionsRoutes from "./routes/commissions";
 
@@ -41,6 +42,9 @@ export async function registerRoutes(app: Express) {
   
   // Registrar endpoint para ubicaciones de conductores
   registerDriversLocationsEndpoint(app);
+  
+  // Registrar endpoint para iniciar rutas (validación para chofer con ruta activa)
+  registerStartRouteEndpoint(app);
   
   // Registrar endpoints de la API móvil
   registerMobileApiEndpoints(app);
