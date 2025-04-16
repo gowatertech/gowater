@@ -811,7 +811,7 @@ export default function CommissionsPage() {
           </p>
         </div>
         <Button 
-          onClick={() => navigate('/commissions/test')}
+          onClick={() => window.location.href = '/commissions/test'}
           variant="default"
         >
           <BadgeDollarSign className="mr-2 h-4 w-4" />
