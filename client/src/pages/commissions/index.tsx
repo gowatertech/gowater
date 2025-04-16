@@ -852,7 +852,31 @@ export default function CommissionsPage() {
   };
 
   // Manejar la generación de comisiones
-  const handleGenerateCommissions = async () => {
+  const // Función para verificar si ya existen comisiones para el rango de fechas
+  checkExistingCommissions = async (data: { weekStartDate: string; weekEndDate: string; userId?: number; userRole: string }) => {
+    try {
+      const response = await fetch('/api/commissions/check-existing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (!response.ok) {
+        console.error("Error al verificar comisiones existentes:", response.status, response.statusText);
+        return { exists: false }; // Si hay un error, asumimos que no existen para continuar con la generación
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error al verificar comisiones existentes:", error);
+      return { exists: false }; // Si hay un error, asumimos que no existen para continuar con la generación
+    }
+  };
+
+  handleGenerateCommissions = async () => {
     try {
       setLoading(true);
       setErrorMessage(null);
@@ -865,7 +889,27 @@ export default function CommissionsPage() {
         userRole
       };
       
-      console.log("Generando comisiones con datos:", data);
+      console.log("Verificando comisiones existentes para:", data);
+      
+      // Verificar si ya existen comisiones para este período
+      const checkResult = await this.checkExistingCommissions(data);
+      
+      if (checkResult.exists) {
+        // Ya existen comisiones, mostrar mensaje y preguntar si quiere verlas
+        const statusText = checkResult.commissions[0].status === 'paid' ? 'pagada' : 'pendiente';
+        const message = `Ya existe una comisión ${statusText} para este período (${format(weekDates.from, 'dd/MM/yyyy')} - ${format(weekDates.to, 'dd/MM/yyyy')}).`;
+        
+        setErrorMessage(message);
+        toast({
+          title: "Comisión existente",
+          description: message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      console.log("No hay comisiones existentes, procediendo a generar comisiones con datos:", data);
       
       // Agregar timeout para evitar bloqueos indefinidos
       const controller = new AbortController();
