@@ -983,3 +983,88 @@ export type RecurringOrder = typeof recurringOrders.$inferSelect;
 export type InsertRecurringOrder = z.infer<typeof insertRecurringOrderSchema>;
 export type RecurringOrderItem = typeof recurringOrderItems.$inferSelect;
 export type InsertRecurringOrderItem = z.infer<typeof insertRecurringOrderItemSchema>;
+
+// Comisiones
+export const commissions = pgTable("commissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  userRole: text("user_role", { enum: ["driver", "helper"] }),
+  routeId: integer("route_id").references(() => routes.id),
+  weekStartDate: timestamp("week_start_date"), // Lunes
+  weekEndDate: timestamp("week_end_date"),     // Domingo
+  productCount: integer("product_count"), // Total de productos entregados
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  status: text("status", { enum: ["pending", "paid", "cancelled"] }).default("pending"),
+  paymentDate: timestamp("payment_date"),
+  paymentReference: text("payment_reference"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+export const commissionItems = pgTable("commission_items", {
+  id: serial("id").primaryKey(),
+  commissionId: integer("commission_id").references(() => commissions.id),
+  orderId: integer("order_id").references(() => orders.id),
+  productId: integer("product_id").references(() => products.id),
+  quantity: integer("quantity"),
+  commissionValue: decimal("commission_value", { precision: 10, scale: 2 }),
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }),
+  deliveryDate: timestamp("delivery_date")
+});
+
+// Relaciones para comisiones
+export const commissionsRelations = relations(commissions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [commissions.userId],
+    references: [users.id],
+  }),
+  route: one(routes, {
+    fields: [commissions.routeId],
+    references: [routes.id],
+  }),
+  items: many(commissionItems),
+}));
+
+export const commissionItemsRelations = relations(commissionItems, ({ one }) => ({
+  commission: one(commissions, {
+    fields: [commissionItems.commissionId],
+    references: [commissions.id],
+  }),
+  order: one(orders, {
+    fields: [commissionItems.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [commissionItems.productId],
+    references: [products.id],
+  }),
+}));
+
+export const insertCommissionSchema = z.object({
+  userId: z.number({ required_error: "El usuario es requerido" }),
+  userRole: z.enum(["driver", "helper"], { required_error: "El rol es requerido" }),
+  routeId: z.number({ required_error: "La ruta es requerida" }),
+  weekStartDate: z.string().datetime("La fecha debe estar en formato ISO"),
+  weekEndDate: z.string().datetime("La fecha debe estar en formato ISO"),
+  productCount: z.number().default(0),
+  totalAmount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
+  status: z.enum(["pending", "paid", "cancelled"]).default("pending"),
+  paymentDate: z.string().datetime().optional(),
+  paymentReference: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const insertCommissionItemSchema = z.object({
+  commissionId: z.number({ required_error: "El ID de comisión es requerido" }),
+  orderId: z.number({ required_error: "El ID de orden es requerido" }),
+  productId: z.number({ required_error: "El ID de producto es requerido" }),
+  quantity: z.number({ required_error: "La cantidad es requerida" }),
+  commissionValue: z.string().regex(/^\d+\.\d{2}$/, "El valor de comisión debe tener 2 decimales"),
+  commissionAmount: z.string().regex(/^\d+\.\d{2}$/, "El monto de comisión debe tener 2 decimales"),
+  deliveryDate: z.string().datetime("La fecha debe estar en formato ISO"),
+});
+
+export type Commission = typeof commissions.$inferSelect;
+export type InsertCommission = z.infer<typeof insertCommissionSchema>;
+export type CommissionItem = typeof commissionItems.$inferSelect;
+export type InsertCommissionItem = z.infer<typeof insertCommissionItemSchema>;
