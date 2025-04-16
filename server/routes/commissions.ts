@@ -368,8 +368,8 @@ router.post('/generate', async (req, res) => {
         }
         
         // Verificar si el valor de comisión existe
-        if (!commissionValue) {
-          console.log("Sin valor de comisión para producto:", item.productId);
+        if (!commissionValue || parseFloat(commissionValue.toString()) === 0) {
+          console.log("Sin valor de comisión válido para producto:", item.productId);
           continue;
         }
         
