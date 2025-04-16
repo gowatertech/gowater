@@ -315,13 +315,17 @@ router.post('/generate', async (req, res) => {
           )
         );
       
+      console.log(`Usuario ${user.id} (${user.name}): ${deliveredOrders.length} órdenes entregadas encontradas`);
+      
       if (deliveredOrders.length === 0) {
         // Si no hay órdenes para este usuario en este período, continuar con el siguiente
+        console.log(`Sin órdenes para el usuario ${user.id} (${user.name}) en el período seleccionado`);
         continue;
       }
       
       // Obtener los IDs de las órdenes entregadas
       const orderIds = deliveredOrders.map(order => order.id);
+      console.log(`IDs de órdenes entregadas para ${user.name}:`, orderIds);
       
       console.log("Buscando productos comisionables para órdenes:", orderIds);
       
@@ -350,8 +354,19 @@ router.post('/generate', async (req, res) => {
         
       console.log(`Productos comisionables para ${userRole} encontrados:`, orderProductItems.length);
       
+      // Mostrar detalles de los productos encontrados para depuración
+      if (orderProductItems.length > 0) {
+        for (const item of orderProductItems) {
+          console.log(`Producto ${item.productId}: ` +
+            `driverCommissionValue=${item.product?.driverCommissionValue}, ` +
+            `helperCommissionValue=${item.product?.helperCommissionValue}, ` +
+            `isCommissionable=${item.product?.isCommissionable}`);
+        }
+      }
+      
       // Si no hay productos comisionables, continuar con el siguiente usuario
       if (orderProductItems.length === 0) {
+        console.log(`No se encontraron productos comisionables para ${user.name} con rol ${userRole}`);
         continue;
       }
       
@@ -410,8 +425,12 @@ router.post('/generate', async (req, res) => {
       
       // Si no hay montos de comisión, continuar con el siguiente usuario
       if (commissionItemsData.length === 0) {
+        console.log(`No se generaron ítems de comisión para ${user.name} con rol ${userRole}`);
         continue;
       }
+      
+      console.log(`Usuario ${user.name}: ${commissionItemsData.length} ítems de comisión generados con un total de $${totalCommissionAmount.toFixed(2)}`);
+      
       
       // Verificar si ya existe una comisión para este usuario en este período
       const [existingCommission] = await db
