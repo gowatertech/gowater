@@ -235,11 +235,11 @@ export const routesRelations = relations(routes, ({ one, many }) => ({
 
 export const insertRouteSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  driverId: z.number({ required_error: "Se requiere un conductor" }),
-  assistantId: z.number().optional(),
-  truckId: z.number().optional(), // Ya no es requerido
+  driverId: z.coerce.number({ required_error: "Se requiere un conductor" }),
+  assistantId: z.coerce.number().optional().nullable(),
+  truckId: z.coerce.number().optional().nullable(),
   date: z.date(),
-  zoneId: z.number({ required_error: "Se requiere una zona" }),
+  zoneId: z.coerce.number({ required_error: "Se requiere una zona" }),
   status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
   isCompleted: z.boolean().default(false),
   startTime: z.string().datetime().optional(),
