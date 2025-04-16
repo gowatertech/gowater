@@ -13,6 +13,7 @@ import { registerDriverRoutes } from "./routes/driver";
 import { registerRoutesEndpoints } from "./routes-endpoints";
 import { registerDriversLocationsEndpoint } from "./routes/api/driversLocations";
 import { registerMobileApiEndpoints } from "./routes/mobile-api";
+import commissionsRoutes from "./routes/commissions";
 
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
@@ -44,6 +45,8 @@ export async function registerRoutes(app: Express) {
   // Registrar endpoints de la API móvil
   registerMobileApiEndpoints(app);
 
+  // Registrar endpoints para comisiones
+  app.use('/api/commissions', commissionsRoutes);
   
   // Endpoint para obtener el usuario actual
   app.get("/api/me", async (req, res) => {
