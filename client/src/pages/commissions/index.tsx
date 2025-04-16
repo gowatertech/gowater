@@ -392,6 +392,7 @@ function StatusBadge({ status }: { status: Status }) {
 }
 
 function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => void }) {
+  console.log("Renderizando GenerateCommissionsDialog");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [weekDates, setWeekDates] = useState<{ from: Date; to: Date }>(() => {
