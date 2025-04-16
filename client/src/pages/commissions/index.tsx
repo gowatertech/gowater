@@ -852,8 +852,7 @@ export default function CommissionsPage() {
   };
 
   // Manejar la generación de comisiones
-  const // Función para verificar si ya existen comisiones para el rango de fechas
-  checkExistingCommissions = async (data: { weekStartDate: string; weekEndDate: string; userId?: number; userRole: string }) => {
+  const checkExistingCommissions = async (data: { weekStartDate: string; weekEndDate: string; userId?: number; userRole: string }) => {
     try {
       const response = await fetch('/api/commissions/check-existing', {
         method: 'POST',
@@ -876,7 +875,7 @@ export default function CommissionsPage() {
     }
   };
 
-  handleGenerateCommissions = async () => {
+  const handleGenerateCommissions = async () => {
     try {
       setLoading(true);
       setErrorMessage(null);
@@ -892,7 +891,7 @@ export default function CommissionsPage() {
       console.log("Verificando comisiones existentes para:", data);
       
       // Verificar si ya existen comisiones para este período
-      const checkResult = await this.checkExistingCommissions(data);
+      const checkResult = await checkExistingCommissions(data);
       
       if (checkResult.exists) {
         // Ya existen comisiones, mostrar mensaje y preguntar si quiere verlas
