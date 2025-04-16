@@ -231,7 +231,6 @@ function CommissionsFilters({
 function CommissionCards({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
   console.log("CommissionCards - commissions:", commissions);
   console.log("CommissionCards - tipo de commissions:", typeof commissions);
-  const { toast } = useToast();
   
   if (Array.isArray(commissions)) {
     console.log("CommissionCards - es un array con longitud:", commissions.length);
@@ -255,7 +254,7 @@ function CommissionCards({ commissions, isLoading }: { commissions: Commission[]
       
       toast({
         title: "Comisión eliminada",
-        description: "La comisión ha sido eliminada correctamente.",
+        description: "La comisión ha sido eliminada correctamente",
         variant: "default",
       });
       
@@ -369,7 +368,6 @@ function CommissionCards({ commissions, isLoading }: { commissions: Commission[]
 
 function CommissionsTable({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
   console.log("CommissionsTable - commissions:", commissions);
-  const { toast } = useToast();
   const [, navigate] = useLocation();
   
   const handleDeleteCommission = async (id: number) => {
