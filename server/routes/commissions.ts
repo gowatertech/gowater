@@ -239,6 +239,79 @@ router.patch('/:id/status', async (req, res) => {
   }
 });
 
+// Verificar si ya existe una comisión para un rango de fechas
+router.post('/check-existing', async (req, res) => {
+  try {
+    // Validar los datos de entrada
+    const result = generateCommissionsSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: 'Datos inválidos para verificar comisiones',
+        details: result.error.format()
+      });
+    }
+    
+    const { weekStartDate, weekEndDate, userId, userRole } = result.data;
+    
+    // Convertir fechas a objetos Date
+    const startDate = new Date(weekStartDate);
+    const endDate = new Date(weekEndDate);
+    
+    // Verificar que la fecha de inicio es anterior a la fecha de fin
+    if (startDate > endDate) {
+      return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
+    }
+
+    // Construir la consulta para buscar comisiones existentes
+    let query = db.select({
+      id: commissions.id,
+      status: commissions.status,
+      weekStartDate: commissions.weekStartDate,
+      weekEndDate: commissions.weekEndDate,
+      userRole: commissions.userRole,
+      userName: users.name,
+      totalAmount: commissions.totalAmount,
+      paymentDate: commissions.paymentDate
+    })
+    .from(commissions)
+    .leftJoin(users, eq(commissions.userId, users.id))
+    .where(
+      and(
+        eq(commissions.userRole, userRole),
+        sql`${commissions.weekStartDate} = ${startDate}`,
+        sql`${commissions.weekEndDate} = ${endDate}`
+      )
+    );
+    
+    // Filtrar por userId si se proporciona
+    if (userId) {
+      query = query.where(eq(commissions.userId, userId));
+    }
+    
+    const existingCommissions = await query;
+    
+    if (existingCommissions.length > 0) {
+      // Hay comisiones existentes, devolver información sobre ellas
+      return res.status(200).json({ 
+        exists: true, 
+        commissions: existingCommissions,
+        message: existingCommissions[0].status === 'paid' 
+          ? `Ya existe una comisión pagada para este período (${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}).`
+          : `Ya existe una comisión pendiente para este período (${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}).`
+      });
+    } else {
+      // No hay comisiones existentes
+      return res.status(200).json({ 
+        exists: false, 
+        message: "No existen comisiones para este período. Puede generar nuevas comisiones."
+      });
+    }
+  } catch (error) {
+    console.error('Error al verificar comisiones existentes:', error);
+    return res.status(500).json({ error: 'Error al verificar comisiones existentes' });
+  }
+});
+
 // Generar comisiones para un período
 router.post('/generate', async (req, res) => {
   try {
