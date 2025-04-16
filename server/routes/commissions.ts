@@ -267,14 +267,9 @@ router.post('/generate', async (req, res) => {
     
     // Si viene el rol "helper" del frontend, buscar usuarios con rol "assistant" en BD
     // Aquí definimos el mapeo entre roles del frontend y roles de la BD
-    const dbRoleMapping: Record<string, string> = {
-      'driver': 'driver',
-      'helper': 'assistant' // Este es el mapeo clave que arregla la inconsistencia
-    };
-    
-    // Aquí obtenemos el rol de la base de datos que corresponde al rol del frontend
-    const roleValue = dbRoleMapping[userRole] || userRole;
-    console.log(`Rol frontend: "${userRole}" -> Rol buscado en BD: "${roleValue}"`);
+    // Mantener consistencia usando 'helper' en toda la aplicación
+    const roleValue = userRole;
+    console.log(`Rol a usar: "${roleValue}"`);
     
     // Consulta inicial con tipado seguro
     let usersQuery;
@@ -467,7 +462,8 @@ router.post('/generate', async (req, res) => {
               and(
                 inArray(orderItems.orderId, orderIds),
                 eq(products.isCommissionable, true),
-                sql`COALESCE(${products.helperCommissionValue}, 0) > 0`
+                sql`${products.helperCommissionValue} IS NOT NULL`,
+                sql`CAST(${products.helperCommissionValue} AS DECIMAL) > 0`
               )
             );
         }
