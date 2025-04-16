@@ -533,7 +533,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       };
       
       // Send route data to server
-      const response = await apiRequest("POST", "/api/routes-with-orders", routeData);
+      const response = await apiRequest("POST", "/api/routes", routeData);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create route");
