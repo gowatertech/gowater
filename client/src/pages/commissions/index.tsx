@@ -410,8 +410,11 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
     : [];
 
   const handleGenerate = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
+      console.log("Preparando datos para generar comisiones...");
+      
+      // Formatear fechas para la API
       const data = {
         weekStartDate: format(weekDates.from, 'yyyy-MM-dd'),
         weekEndDate: format(weekDates.to, 'yyyy-MM-dd'),
@@ -419,10 +422,22 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
         userRole
       };
       
-      onGenerate(data);
+      console.log("Enviando datos para generar comisiones:", data);
+      
+      // Llamar a la función que hace la petición al backend
+      await onGenerate(data);
+      
+      // Si llegamos aquí, la operación fue exitosa
+      console.log("Comisiones generadas exitosamente");
+      toast({
+        title: "Éxito",
+        description: "Comisiones generadas correctamente",
+      });
+      
+      // Cerrar el modal
       setOpen(false);
     } catch (error) {
-      console.error(error);
+      console.error("Error al generar comisiones:", error);
       toast({
         title: "Error",
         description: "No se pudieron generar las comisiones",
