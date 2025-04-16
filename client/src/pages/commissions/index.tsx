@@ -560,6 +560,8 @@ export default function CommissionsPage() {
   // Manejar la generación de comisiones
   const handleGenerateCommissions = async (data: any) => {
     try {
+      console.log("Generando comisiones con datos:", data);
+      
       const response = await fetch('/api/commissions/generate', {
         method: 'POST',
         headers: {
@@ -568,12 +570,33 @@ export default function CommissionsPage() {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al generar comisiones');
+      console.log("Respuesta del servidor:", response.status, response.statusText);
+      
+      const responseText = await response.text();
+      console.log("Texto de respuesta:", responseText);
+      
+      let errorData;
+      let result;
+      
+      try {
+        // Intentar parsear como JSON
+        const jsonData = JSON.parse(responseText);
+        if (!response.ok) {
+          errorData = jsonData;
+        } else {
+          result = jsonData;
+        }
+      } catch (e) {
+        console.error("Error al parsear la respuesta como JSON:", e);
+        if (!response.ok) {
+          throw new Error('Error de formato en la respuesta del servidor');
+        }
       }
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(errorData?.error || 'Error al generar comisiones');
+      }
+
       toast({
         title: "Comisiones generadas",
         description: `Se generaron ${result.commissions.length} comisiones correctamente`,
@@ -583,6 +606,7 @@ export default function CommissionsPage() {
       refetch();
       
     } catch (error: any) {
+      console.error("Error completo:", error);
       toast({
         title: "Error",
         description: error.message || "No se pudieron generar las comisiones",
