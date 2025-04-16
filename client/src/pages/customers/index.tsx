@@ -1282,7 +1282,10 @@ export default function Customers() {
                   name="provinceid"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Provincia</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Provincia</span>
+                      </FormLabel>
                       {isEditing ? (
                         <Select
                           onValueChange={(value) => {
@@ -1323,7 +1326,10 @@ export default function Customers() {
                   name="municipalityid"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Municipio</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Municipio</span>
+                      </FormLabel>
                       {isEditing ? (
                         <Select
                           onValueChange={(value) => field.onChange(parseInt(value))}
@@ -1361,7 +1367,10 @@ export default function Customers() {
                   name="reference"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Referencia</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <FileText className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Referencia</span>
+                      </FormLabel>
                       <FormControl>
                         <Input {...field} value={field.value || ""} readOnly={!isEditing} />
                       </FormControl>
@@ -1375,7 +1384,10 @@ export default function Customers() {
                   name="coordinates"
                   render={({ field }) => (
                     <FormItem className="md:col-span-3">
-                      <FormLabel>Ubicación en Mapa</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <MapPin className="h-3.5 w-3.5 text-blue-600" /> 
+                        <span>Ubicación en Mapa</span>
+                      </FormLabel>
                       <FormControl>
                         <div className="h-[200px] w-full">
                           <LocationSelector 
@@ -1400,7 +1412,10 @@ export default function Customers() {
                   name="creditlimit"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Límite de Crédito</FormLabel>
+                      <FormLabel className="flex items-center gap-1">
+                        <DollarSign className="h-3.5 w-3.5 text-blue-600" />
+                        <span>Límite de Crédito</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           type="text"
