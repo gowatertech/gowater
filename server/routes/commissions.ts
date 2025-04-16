@@ -263,23 +263,57 @@ router.post('/generate', async (req, res) => {
     }
     
     // Construir la consulta para obtener usuarios según los filtros
-    let usersQuery = db
-      .select()
-      .from(users)
-      .where(eq(users.role, userRole === 'driver' ? 'driver' : 'helper'));
+    // Vamos a mapear los roles del frontend a los roles de la base de datos
     
-    // Filtrar por ID de usuario si se proporciona
-    if (userId) {
-      // Crear una consulta completamente nueva con el filtro aplicado
+    // Si viene el rol "helper" del frontend, buscar usuarios con rol "assistant" en BD
+    const dbRoleMapping = {
+      'driver': 'driver',
+      'helper': 'assistant' // Este es el mapeo clave que arregla la inconsistencia
+    };
+    
+    // Aquí obtenemos el rol de la base de datos que corresponde al rol del frontend
+    const roleValue = dbRoleMapping[userRole] || userRole;
+    console.log(`Rol frontend: "${userRole}" -> Rol buscado en BD: "${roleValue}"`);
+    
+    // Consulta inicial con tipado seguro
+    let usersQuery;
+    
+    if (roleValue === 'driver' || roleValue === 'assistant') {
+      const validRole = roleValue;
       usersQuery = db
         .select()
         .from(users)
-        .where(
-          and(
-            eq(users.role, userRole === 'driver' ? 'driver' : 'assistant'),
-            eq(users.id, userId)
-          )
-        );
+        .where(eq(users.role, validRole));
+    } else {
+      // Por si acaso, usar un valor predeterminado
+      console.log(`ADVERTENCIA: Rol no reconocido: ${roleValue}, usando consulta sin filtro de rol`);
+      usersQuery = db.select().from(users);
+    }
+    
+    // Filtrar por ID de usuario si se proporciona
+    if (userId) {
+      console.log(`Buscando específicamente usuario con ID: ${userId}`);
+      
+      // Crear una consulta completamente nueva
+      if (roleValue === 'driver' || roleValue === 'assistant') {
+        const validRole = roleValue; // Tipo explícito
+        
+        usersQuery = db
+          .select()
+          .from(users)
+          .where(
+            and(
+              eq(users.role, validRole),
+              eq(users.id, userId)
+            )
+          );
+      } else {
+        // Fallback para otros roles que no deberían llegar aquí
+        usersQuery = db
+          .select()
+          .from(users)
+          .where(eq(users.id, userId));
+      }
     }
     
     // Obtener la lista de usuarios
@@ -538,14 +572,14 @@ router.post('/generate', async (req, res) => {
       }
       
       // Crear una nueva comisión
-      // Mantener consistencia usando 'helper' en toda la aplicación
-      const dbUserRole = userRole;
+      // Mantener el rol del frontend para comisiones en BD
+      const commissionRole = userRole;
       
       const [newCommission] = await db
         .insert(commissions)
         .values({
           userId: user.id,
-          userRole: dbUserRole, // Guardamos el rol como lo espera la BD
+          userRole: commissionRole, // Guardamos el rol como lo espera la BD
           weekStartDate: startDate,
           weekEndDate: endDate,
           productCount: commissionItemsData.length,
