@@ -601,7 +601,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   });
 
   // Form submission handler
-  const onSubmit = (data: any) => {
+  const onSubmit = async (data: any) => {
+    console.log("Datos del formulario:", data);
+    
     if (optimizedRoute.length < 2) {
       toast({
         variant: "destructive",
@@ -620,7 +622,94 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       return;
     }
     
-    createRouteMutation.mutate(data);
+    // Asegurar que los IDs son números
+    const cleanedData = {
+      ...data,
+      driverId: Number(data.driverId),
+      assistantId: data.assistantId ? Number(data.assistantId) : null,
+      truckId: data.truckId ? Number(data.truckId) : null,
+      zoneId: Number(data.zoneId || selectedZone)
+    };
+    
+    console.log("Datos procesados:", cleanedData);
+    
+    try {
+      // En lugar de usar la mutación, hacemos la solicitud directamente
+      // para tener más control sobre el proceso
+      const routeData = {
+        name: cleanedData.name,
+        date: new Date(cleanedData.date),
+        driverId: cleanedData.driverId,
+        assistantId: cleanedData.assistantId,
+        truckId: cleanedData.truckId,
+        zoneId: cleanedData.zoneId,
+        status: "pending",
+        isCompleted: false,
+        deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
+        stops: optimizedRoute.map(customer => customer.coordinates || ""),
+        totalDistance: (calculateTotalRouteDistance(optimizedRoute) / 1000).toFixed(2),
+        estimatedDuration: calculateEstimatedDuration(
+          calculateTotalRouteDistance(optimizedRoute), 
+          optimizedRoute.length - 1
+        ),
+        orderIds: pendingOrders
+          .filter(order => 
+            optimizedRoute.some(customer => 
+              customer.id !== 0 && customer.id === order.customerId
+            )
+          )
+          .map(order => order.id)
+      };
+      
+      console.log("Enviando datos a /api/routes:", routeData);
+      
+      const response = await fetch('/api/routes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(routeData)
+      });
+      
+      const contentType = response.headers.get("content-type");
+      console.log("Tipo de contenido de la respuesta:", contentType);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error al crear ruta:", errorText);
+        throw new Error(errorText || "Error al crear la ruta");
+      }
+      
+      const responseData = await response.json();
+      console.log("Respuesta del servidor:", responseData);
+      
+      toast({
+        title: "Ruta creada",
+        description: "La ruta se ha creado exitosamente",
+      });
+      
+      // Invalidate queries to refresh lists
+      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
+      
+      // Reset form and state
+      form.reset();
+      setSelectedZone(null);
+      setSelectedCustomers([]);
+      setOptimizedRoute([]);
+      setSelectedTab("zone");
+      
+      // Call onRouteCreated callback
+      onRouteCreated();
+    } catch (error: any) {
+      console.error("Error creating route:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "No se pudo crear la ruta. Intenta nuevamente.",
+      });
+    }
   };
 
   // Calcular estadísticas de la ruta para mostrar en las tarjetas
