@@ -11,7 +11,7 @@ const generateCommissionsSchema = z.object({
   weekStartDate: z.string(), // formato YYYY-MM-DD
   weekEndDate: z.string(),   // formato YYYY-MM-DD
   userId: z.number().optional(),
-  userRole: z.enum(['driver', 'helper']),
+  userRole: z.enum(['driver', 'helper']), // Nota: 'helper' es el valor que viene del frontend, pero internamente usamos 'assistant'
 });
 
 // Esquema para actualizar el estado de la comisión
@@ -341,6 +341,9 @@ router.post('/generate', async (req, res) => {
       // Log específico para ayudantes
       if (userRole === 'helper') {
         console.log(`Consultando órdenes para ayudante ${user.name} (ID: ${user.id}) entre ${startDate} y ${endDate}`);
+        console.log(`SQL para ayudante: SELECT * FROM orders o JOIN routes r ON o.route_id = r.id 
+           WHERE o.status = 'delivered' AND o.actual_delivery_time BETWEEN '${startDate.toISOString()}' AND '${endDate.toISOString()}'
+           AND r.assistant_id = ${user.id} AND r.assistant_id IS NOT NULL`);
       }
       
       console.log(`Usuario ${user.id} (${user.name}): ${deliveredOrders.length} órdenes entregadas encontradas`);
@@ -384,6 +387,16 @@ router.post('/generate', async (req, res) => {
             )
           );
       } else {
+        // Para ayudantes, mostrar la consulta SQL para depuración
+        console.log(`SQL para productos comisionables de ayudante:
+           SELECT order_items.order_id, order_items.product_id, products.*, order_items.quantity
+           FROM order_items
+           LEFT JOIN products ON order_items.product_id = products.id
+           LEFT JOIN orders ON order_items.order_id = orders.id
+           WHERE order_items.order_id IN (${orderIds.join(',')})
+           AND products.is_commissionable = true
+           AND COALESCE(products.helper_commission_value, 0) > 0`);
+           
         orderProductItems = await db
           .select({
             orderId: orderItems.orderId,
@@ -486,30 +499,42 @@ router.post('/generate', async (req, res) => {
       
       
       // Verificar si ya existe una comisión para este usuario en este período
+      // Usar el rol correcto para la base de datos
+      const searchRoleValue = userRole === 'helper' ? 'helper' : 'driver';
+      
+      console.log(`Buscando comisión existente para usuario ${user.name} con rol ${searchRoleValue} entre ${startDate} y ${endDate}`);
+      
       const [existingCommission] = await db
         .select()
         .from(commissions)
         .where(
           and(
             eq(commissions.userId, user.id),
-            eq(commissions.userRole, userRole),
+            eq(commissions.userRole, searchRoleValue),
             sql`${commissions.weekStartDate} = ${startDate}`,
             sql`${commissions.weekEndDate} = ${endDate}`
           )
         );
       
+      // Decidir qué rol usar para la búsqueda de comisión existente
+      const existingRoleValue = userRole === 'helper' ? 'helper' : 'driver';
+      
       if (existingCommission) {
+        console.log(`Comisión existente encontrada para ${user.name} con rol ${existingRoleValue}`);
         // Si ya existe, no crear una nueva
         generatedCommissions.push(existingCommission);
         continue;
       }
       
       // Crear una nueva comisión
+      // Convertir userRole 'helper' a 'assistant' para consistencia en la BD
+      const dbUserRole = userRole === 'helper' ? 'helper' : 'driver';
+      
       const [newCommission] = await db
         .insert(commissions)
         .values({
           userId: user.id,
-          userRole: userRole,
+          userRole: dbUserRole, // Guardamos el rol como lo espera la BD
           weekStartDate: startDate,
           weekEndDate: endDate,
           productCount: commissionItemsData.length,
