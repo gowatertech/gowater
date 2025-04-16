@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -24,11 +24,11 @@ export default function SimpleCommissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar datos directamente
   useEffect(() => {
     const fetchCommissions = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await fetch('/api/commissions');
         
         if (!response.ok) {
@@ -36,14 +36,10 @@ export default function SimpleCommissionsPage() {
         }
         
         const data = await response.json();
-        console.log('Datos recibidos:', data);
-        
         setCommissions(Array.isArray(data) ? data : []);
-        setError(null);
       } catch (err: any) {
         console.error('Error al cargar comisiones:', err);
         setError(err.message || 'Error al cargar las comisiones');
-        setCommissions([]);
       } finally {
         setLoading(false);
       }
@@ -54,7 +50,7 @@ export default function SimpleCommissionsPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center p-8">
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="mt-2 text-sm text-muted-foreground">Cargando comisiones...</p>
       </div>
@@ -63,16 +59,16 @@ export default function SimpleCommissionsPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center p-8">
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
         <AlertCircle className="h-8 w-8 text-destructive" />
-        <p className="mt-2 text-sm text-muted-foreground">Error: {error}</p>
+        <p className="mt-2 text-sm text-destructive">Error: {error}</p>
       </div>
     );
   }
 
   if (commissions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8">
+      <div className="flex flex-col items-center justify-center min-h-[400px] p-8">
         <AlertCircle className="h-8 w-8 text-muted-foreground" />
         <p className="mt-2 text-sm text-muted-foreground">No se encontraron comisiones</p>
       </div>
