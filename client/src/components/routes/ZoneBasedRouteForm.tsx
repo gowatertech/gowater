@@ -524,6 +524,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         name: data.name,
         date: new Date(data.date),
         driverId: Number(data.driverId),
+        assistantId: data.assistantId ? Number(data.assistantId) : undefined,
+        truckId: data.truckId ? Number(data.truckId) : undefined,
         zoneId: Number(data.zoneId || selectedZone),
         status: "pending",
         isCompleted: false,
