@@ -73,7 +73,8 @@ router.get('/', async (req, res) => {
     
     // Aplicar condiciones a la consulta
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      const whereClause = and(...conditions);
+      query = query.where(whereClause);
     }
     
     // Ejecutar consulta con ordenamiento por fecha descendente
