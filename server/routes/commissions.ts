@@ -274,42 +274,19 @@ router.post('/generate', async (req, res) => {
     // Consulta inicial con tipado seguro
     let usersQuery;
     
-    if (roleValue === 'driver' || roleValue === 'assistant') {
-      const validRole = roleValue;
-      usersQuery = db
-        .select()
-        .from(users)
-        .where(eq(users.role, validRole));
-    } else {
-      // Por si acaso, usar un valor predeterminado
-      console.log(`ADVERTENCIA: Rol no reconocido: ${roleValue}, usando consulta sin filtro de rol`);
-      usersQuery = db.select().from(users);
-    }
+    // Mapear 'helper' a 'assistant' para la consulta en BD
+    const dbRole = roleValue === 'helper' ? 'assistant' : roleValue;
+    console.log(`Rol para consulta en BD: "${dbRole}"`);
+    
+    usersQuery = db
+      .select()
+      .from(users)
+      .where(eq(users.role, dbRole));
     
     // Filtrar por ID de usuario si se proporciona
     if (userId) {
       console.log(`Buscando específicamente usuario con ID: ${userId}`);
-      
-      // Crear una consulta completamente nueva
-      if (roleValue === 'driver' || roleValue === 'assistant') {
-        const validRole = roleValue; // Tipo explícito
-        
-        usersQuery = db
-          .select()
-          .from(users)
-          .where(
-            and(
-              eq(users.role, validRole),
-              eq(users.id, userId)
-            )
-          );
-      } else {
-        // Fallback para otros roles que no deberían llegar aquí
-        usersQuery = db
-          .select()
-          .from(users)
-          .where(eq(users.id, userId));
-      }
+      usersQuery = usersQuery.where(eq(users.id, userId));
     }
     
     // Obtener la lista de usuarios
