@@ -17,7 +17,20 @@ import {
   Calendar,
   BadgeDollarSign,
   User,
+  Trash2,
 } from 'lucide-react';
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -26,7 +39,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from 'wouter';
-import { toast } from '@/hooks/use-toast';
+import { toast, useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Popover,
@@ -218,11 +231,45 @@ function CommissionsFilters({
 function CommissionCards({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
   console.log("CommissionCards - commissions:", commissions);
   console.log("CommissionCards - tipo de commissions:", typeof commissions);
+  const { toast } = useToast();
+  
   if (Array.isArray(commissions)) {
     console.log("CommissionCards - es un array con longitud:", commissions.length);
   } else {
     console.log("CommissionCards - no es un array");
   }
+  
+  const handleDeleteCommission = async (id: number) => {
+    try {
+      const response = await fetch(`/api/commissions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar la comisión');
+      }
+      
+      toast({
+        title: "Comisión eliminada",
+        description: "La comisión ha sido eliminada correctamente.",
+        variant: "default",
+      });
+      
+      // Recargar la página para actualizar la lista
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al eliminar comisión:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al eliminar la comisión",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (isLoading) {
     return (
@@ -255,7 +302,35 @@ function CommissionCards({ commissions, isLoading }: { commissions: Commission[]
                   {commission.routeName && ` • Ruta: ${commission.routeName}`}
                 </CardDescription>
               </div>
-              <StatusBadge status={commission.status} />
+              <div className="flex items-center space-x-2">
+                <StatusBadge status={commission.status} />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 hover:text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Eliminar</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar comisión?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminará permanentemente la comisión 
+                        de {commission.userName} por ${parseFloat(commission.totalAmount).toFixed(2)}.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDeleteCommission(commission.id)}
+                        className="bg-red-500 text-white hover:bg-red-600"
+                      >
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pb-3">
@@ -294,6 +369,40 @@ function CommissionCards({ commissions, isLoading }: { commissions: Commission[]
 
 function CommissionsTable({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
   console.log("CommissionsTable - commissions:", commissions);
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  
+  const handleDeleteCommission = async (id: number) => {
+    try {
+      const response = await fetch(`/api/commissions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar la comisión');
+      }
+      
+      toast({
+        title: "Comisión eliminada",
+        description: "La comisión ha sido eliminada correctamente.",
+        variant: "default",
+      });
+      
+      // Recargar la página para actualizar la lista
+      window.location.reload();
+    } catch (error) {
+      console.error('Error al eliminar comisión:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Error al eliminar la comisión",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (isLoading) {
     return (
@@ -348,13 +457,40 @@ function CommissionsTable({ commissions, isLoading }: { commissions: Commission[
               <TableCell>
                 <StatusBadge status={commission.status} />
               </TableCell>
-              <TableCell className="text-right">
+              <TableCell className="text-right flex justify-end space-x-1">
                 <Link to={`/commissions/details/${commission.id}`}>
                   <Button variant="ghost" size="icon">
                     <ExternalLink className="h-4 w-4" />
                     <span className="sr-only">Ver detalles</span>
                   </Button>
                 </Link>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:bg-red-50 hover:text-red-600">
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Eliminar</span>
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar comisión?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminará permanentemente la comisión 
+                        de {commission.userName} por ${parseFloat(commission.totalAmount).toFixed(2)}.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDeleteCommission(commission.id)}
+                        className="bg-red-500 text-white hover:bg-red-600"
+                      >
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </TableCell>
             </TableRow>
           ))}
