@@ -38,6 +38,7 @@ import DriverView from "@/pages/drivers/DriverView";
 import CommissionsPage from "@/pages/commissions";
 import SimpleCommissionsPage from "@/pages/commissions/simple";
 import CommissionDetailsPage from "@/pages/commissions/details";
+import ResponsiveCommissionDetailsPage from "@/pages/commissions/responsive-details";
 import { I18nextProvider } from "react-i18next";
 import i18n from "./lib/i18n";
 import VehicleLoadingPage from "@/pages/vehicle-loading";
@@ -221,7 +222,8 @@ function Router() {
         <Route path="/recurring-orders" component={RecurringOrdersPage} />
         
         {/* Rutas para comisiones */}
-        <Route path="/commissions/details/:id" component={CommissionDetailsPage} />
+        <Route path="/commissions/details/:id" component={ResponsiveCommissionDetailsPage} />
+        <Route path="/commissions/details-old/:id" component={CommissionDetailsPage} />
         <Route path="/commissions/simple" component={SimpleCommissionsPage} />
         <Route path="/commissions" component={CommissionsPage} />
         
