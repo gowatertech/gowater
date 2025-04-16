@@ -295,25 +295,53 @@ router.post('/generate', async (req, res) => {
     // Para cada usuario, generar su comisión
     for (const user of usersList) {
       // Buscar órdenes entregadas en el período especificado por este usuario
-      const deliveredOrders = await db
-        .select({
-          id: orders.id,
-          routeId: orders.routeId,
-          actualDeliveryTime: orders.actualDeliveryTime,
-          driverId: routes.driverId,
-          assistantId: routes.assistantId,
-        })
-        .from(orders)
-        .leftJoin(routes, eq(orders.routeId, routes.id))
-        .where(
-          and(
-            eq(orders.status, 'delivered'),
-            sql`${orders.actualDeliveryTime} BETWEEN ${startDate} AND ${endDate}`,
-            userRole === 'driver' 
-              ? eq(routes.driverId, user.id)
-              : eq(routes.assistantId, user.id)
-          )
-        );
+      let deliveredOrders;
+      
+      // Consulta personalizada según el rol del usuario
+      if (userRole === 'driver') {
+        // Para conductores, buscar órdenes donde son conductores
+        deliveredOrders = await db
+          .select({
+            id: orders.id,
+            routeId: orders.routeId,
+            actualDeliveryTime: orders.actualDeliveryTime,
+            driverId: routes.driverId,
+            assistantId: routes.assistantId,
+          })
+          .from(orders)
+          .leftJoin(routes, eq(orders.routeId, routes.id))
+          .where(
+            and(
+              eq(orders.status, 'delivered'),
+              sql`${orders.actualDeliveryTime} BETWEEN ${startDate} AND ${endDate}`,
+              eq(routes.driverId, user.id)
+            )
+          );
+      } else {
+        // Para ayudantes, buscar órdenes donde son ayudantes y el campo no es nulo
+        deliveredOrders = await db
+          .select({
+            id: orders.id,
+            routeId: orders.routeId,
+            actualDeliveryTime: orders.actualDeliveryTime,
+            driverId: routes.driverId,
+            assistantId: routes.assistantId,
+          })
+          .from(orders)
+          .leftJoin(routes, eq(orders.routeId, routes.id))
+          .where(
+            and(
+              eq(orders.status, 'delivered'),
+              sql`${orders.actualDeliveryTime} BETWEEN ${startDate} AND ${endDate}`,
+              sql`${routes.assistantId} = ${user.id} AND ${routes.assistantId} IS NOT NULL`
+            )
+          );
+      }
+      
+      // Log específico para ayudantes
+      if (userRole === 'helper') {
+        console.log(`Consultando órdenes para ayudante ${user.name} (ID: ${user.id}) entre ${startDate} y ${endDate}`);
+      }
       
       console.log(`Usuario ${user.id} (${user.name}): ${deliveredOrders.length} órdenes entregadas encontradas`);
       
@@ -329,28 +357,53 @@ router.post('/generate', async (req, res) => {
       
       console.log("Buscando productos comisionables para órdenes:", orderIds);
       
-      // Buscar productos comisionables en estas órdenes
-      const orderProductItems = await db
-        .select({
-          orderId: orderItems.orderId,
-          productId: orderItems.productId,
-          product: products,
-          quantity: orderItems.quantity,
-          order: orders,
-          routeId: orders.routeId,
-        })
-        .from(orderItems)
-        .leftJoin(products, eq(orderItems.productId, products.id))
-        .leftJoin(orders, eq(orderItems.orderId, orders.id))
-        .where(
-          and(
-            inArray(orderItems.orderId, orderIds),
-            eq(products.isCommissionable, true),
-            userRole === 'driver' 
-              ? sql`${products.driverCommissionValue} > 0`
-              : sql`${products.helperCommissionValue} > 0`
-          )
-        );
+      console.log(`Buscando productos comisionables para el usuario ${user.name} con rol ${userRole}`);
+      
+      // Ejecutar la consulta para productos comisionables
+      let orderProductItems;
+      
+      // Consultas separadas para cada rol
+      if (userRole === 'driver') {
+        orderProductItems = await db
+          .select({
+            orderId: orderItems.orderId,
+            productId: orderItems.productId,
+            product: products,
+            quantity: orderItems.quantity,
+            order: orders,
+            routeId: orders.routeId,
+          })
+          .from(orderItems)
+          .leftJoin(products, eq(orderItems.productId, products.id))
+          .leftJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(
+            and(
+              inArray(orderItems.orderId, orderIds),
+              eq(products.isCommissionable, true),
+              sql`COALESCE(${products.driverCommissionValue}, 0) > 0`
+            )
+          );
+      } else {
+        orderProductItems = await db
+          .select({
+            orderId: orderItems.orderId,
+            productId: orderItems.productId,
+            product: products,
+            quantity: orderItems.quantity,
+            order: orders,
+            routeId: orders.routeId,
+          })
+          .from(orderItems)
+          .leftJoin(products, eq(orderItems.productId, products.id))
+          .leftJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(
+            and(
+              inArray(orderItems.orderId, orderIds),
+              eq(products.isCommissionable, true),
+              sql`COALESCE(${products.helperCommissionValue}, 0) > 0`
+            )
+          );
+      }
         
       console.log(`Productos comisionables para ${userRole} encontrados:`, orderProductItems.length);
       
