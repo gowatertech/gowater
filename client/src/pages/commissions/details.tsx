@@ -1,29 +1,37 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useLocation, useRoute } from 'wouter';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useParams, useLocation } from 'wouter';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   ArrowLeft,
-  Calendar,
   Clock,
-  Loader2,
   Check,
   AlertCircle,
-  ShoppingCart,
+  Edit,
+  Calendar,
+  BadgeDollarSign,
   User,
+  MapPin,
+  Loader2,
+  ReceiptText,
+  MoreHorizontal,
+  Package,
+  ExternalLink,
   Truck,
-  CreditCard,
-  CalendarDays,
-  Receipt,
-  Send,
-  Ban
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link } from 'wouter';
+import { toast } from '@/hooks/use-toast';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -33,17 +41,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { toast } from '@/hooks/use-toast';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { apiRequest } from '@/lib/queryClient';
-import { Link } from 'wouter';
 
 type Status = 'pending' | 'paid' | 'cancelled';
 type UserRole = 'driver' | 'helper';
@@ -108,270 +121,268 @@ function StatusBadge({ status }: { status: Status }) {
 
 function UpdateStatusDialog({ 
   commissionId, 
-  currentStatus, 
-  onStatusUpdated 
+  onStatusUpdate, 
+  currentStatus 
 }: { 
   commissionId: number; 
+  onStatusUpdate: () => void; 
   currentStatus: Status; 
-  onStatusUpdated: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<Status>(currentStatus);
-  const [paymentDate, setPaymentDate] = useState<string>(
-    format(new Date(), 'yyyy-MM-dd')
-  );
-  const [paymentReference, setPaymentReference] = useState<string>('');
-  const [notes, setNotes] = useState<string>('');
-
+  const [paymentDate, setPaymentDate] = useState<string>("");
+  const [paymentReference, setPaymentReference] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
   const queryClient = useQueryClient();
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async (data: {
-      status: Status;
-      paymentDate?: string;
-      paymentReference?: string;
-      notes?: string;
-    }) => {
-      return apiRequest(`/api/commissions/${commissionId}/status`, {
+  const isPaid = status === 'paid';
+
+  const handleUpdateStatus = async () => {
+    setLoading(true);
+    try {
+      const url = `/api/commissions/${commissionId}/status`;
+      await fetch(url, {
         method: 'PATCH',
-        data,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status,
+          ...(paymentDate ? { paymentDate } : {}),
+          ...(paymentReference ? { paymentReference } : {}),
+          ...(notes ? { notes } : {}),
+        })
       });
-    },
-    onSuccess: () => {
+
       queryClient.invalidateQueries({ queryKey: [`/api/commissions/${commissionId}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/commissions'] });
-      setOpen(false);
       
-      const successMessage = status === 'paid' 
-        ? 'Comisión marcada como pagada' 
-        : status === 'cancelled' 
-          ? 'Comisión cancelada' 
-          : 'Estado de comisión actualizado';
-          
       toast({
-        title: "Operación exitosa",
-        description: successMessage,
+        title: "Estado actualizado",
+        description: "El estado de la comisión ha sido actualizado correctamente",
       });
       
-      onStatusUpdated();
-    },
-    onError: (error: any) => {
+      onStatusUpdate();
+      setOpen(false);
+    } catch (error) {
+      console.error(error);
       toast({
         title: "Error",
-        description: error.message || "No se pudo actualizar el estado",
+        description: "No se pudo actualizar el estado de la comisión",
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    const data: any = { status };
-    
-    if (status === 'paid') {
-      data.paymentDate = paymentDate;
-      data.paymentReference = paymentReference;
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Reset form when closing dialog
+      setStatus(currentStatus);
+      setPaymentDate("");
+      setPaymentReference("");
+      setNotes("");
     }
-    
-    if (notes.trim()) {
-      data.notes = notes;
-    }
-    
-    updateStatusMutation.mutate(data);
+    setOpen(newOpen);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline">
-          {currentStatus === 'pending' ? (
-            <>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Actualizar Estado
-            </>
-          ) : (
-            <>
-              <Clock className="mr-2 h-4 w-4" />
-              Cambiar Estado
-            </>
-          )}
+        <Button size="sm" variant="outline">
+          <Edit className="mr-2 h-4 w-4" />
+          Actualizar Estado
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Actualizar Estado de Comisión</DialogTitle>
           <DialogDescription>
-            Seleccione el nuevo estado para esta comisión
+            Cambie el estado de la comisión y proporcione detalles adicionales si es necesario.
           </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <RadioGroup defaultValue={currentStatus} onValueChange={(value) => setStatus(value as Status)}>
-            <div className="flex items-center space-x-2 rounded-md border p-3">
-              <RadioGroupItem value="pending" id="pending" />
-              <Label htmlFor="pending" className="flex items-center">
-                <Clock className="mr-2 h-4 w-4 text-amber-500" />
-                Pendiente
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2 rounded-md border p-3">
-              <RadioGroupItem value="paid" id="paid" />
-              <Label htmlFor="paid" className="flex items-center">
-                <Check className="mr-2 h-4 w-4 text-green-500" />
-                Pagado
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2 rounded-md border p-3">
-              <RadioGroupItem value="cancelled" id="cancelled" />
-              <Label htmlFor="cancelled" className="flex items-center">
-                <Ban className="mr-2 h-4 w-4 text-red-500" />
-                Cancelado
-              </Label>
-            </div>
-          </RadioGroup>
-
-          {status === 'paid' && (
-            <div className="space-y-3">
-              <div className="space-y-1">
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="status">Estado</Label>
+            <Select
+              value={status}
+              onValueChange={(value) => setStatus(value as Status)}
+            >
+              <SelectTrigger id="status">
+                <SelectValue placeholder="Seleccionar estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pendiente</SelectItem>
+                <SelectItem value="paid">Pagado</SelectItem>
+                <SelectItem value="cancelled">Cancelado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {isPaid && (
+            <>
+              <div className="grid gap-2">
                 <Label htmlFor="paymentDate">Fecha de Pago</Label>
                 <Input
                   id="paymentDate"
                   type="date"
                   value={paymentDate}
                   onChange={(e) => setPaymentDate(e.target.value)}
-                  required
                 />
               </div>
-              <div className="space-y-1">
+              <div className="grid gap-2">
                 <Label htmlFor="paymentReference">Referencia de Pago</Label>
                 <Input
                   id="paymentReference"
-                  placeholder="Ej. Transferencia #1234"
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
+                  placeholder="Ej. Transferencia #12345"
                 />
               </div>
-            </div>
+            </>
           )}
-
-          <div className="space-y-1">
-            <Label htmlFor="notes">Notas (Opcional)</Label>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="notes">Notas</Label>
             <Textarea
               id="notes"
-              placeholder="Agregar notas o comentarios adicionales"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
+              placeholder="Observaciones adicionales..."
+              rows={3}
             />
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={updateStatusMutation.isPending}>
-              {updateStatusMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Confirmar
-            </Button>
-          </DialogFooter>
-        </form>
+        </div>
+        <DialogFooter>
+          <Button onClick={handleUpdateStatus} disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Guardar Cambios
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
 export default function CommissionDetailsPage() {
-  const [, params] = useRoute<{ id: string }>('/commissions/details/:id');
+  const params = useParams();
   const [, navigate] = useLocation();
-  
-  if (!params) {
-    navigate('/commissions');
-    return null;
-  }
-
-  const commissionId = parseInt(params.id);
+  const id = params.id ? parseInt(params.id) : 0;
 
   const { data: commission, isLoading, refetch } = useQuery({
-    queryKey: [`/api/commissions/${commissionId}`],
+    queryKey: [`/api/commissions/${id}`],
     queryFn: async () => {
-      const res = await fetch(`/api/commissions/${commissionId}`);
+      const res = await fetch(`/api/commissions/${id}`);
       if (!res.ok) throw new Error('Error al obtener detalles de comisión');
       return res.json();
-    }
+    },
+    enabled: !!id
   });
+
+  const handleStatusUpdate = () => {
+    refetch();
+  };
 
   if (isLoading) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-2 text-sm text-muted-foreground">Cargando detalles de comisión...</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" onClick={() => navigate('/commissions')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <Skeleton className="h-8 w-56" />
+              <Skeleton className="mt-1.5 h-4 w-32" />
+            </div>
+          </div>
+          <Skeleton className="h-9 w-36" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+        <Skeleton className="h-80" />
       </div>
     );
   }
 
   if (!commission) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center">
-        <AlertCircle className="h-8 w-8 text-red-500" />
-        <p className="mt-2 text-sm text-foreground">No se pudo encontrar la comisión solicitada</p>
-        <Button variant="outline" className="mt-4" onClick={() => navigate('/commissions')}>
+      <div className="flex h-full flex-col items-center justify-center">
+        <AlertCircle className="h-10 w-10 text-muted-foreground" />
+        <h2 className="mt-4 text-lg font-medium">Comisión no encontrada</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No se encontró la comisión solicitada o ha sido eliminada.
+        </p>
+        <Button onClick={() => navigate('/commissions')} className="mt-6">
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Volver a Comisiones
         </Button>
       </div>
     );
   }
 
-  const commissionData = commission as CommissionDetails;
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-        <div className="flex items-center">
-          <Button variant="outline" size="icon" className="mr-2" onClick={() => navigate('/commissions')}>
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" size="icon" onClick={() => navigate('/commissions')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Detalle de Comisión</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{commission.userName}</h1>
             <p className="text-sm text-muted-foreground">
-              Comisión #{commissionData.id} • {commissionData.userName}
+              {commission.userRole === 'driver' ? 'Chofer' : 'Ayudante'} • Comisión #{commission.id}
             </p>
           </div>
         </div>
-        {commissionData.status === 'pending' && (
-          <UpdateStatusDialog 
-            commissionId={commissionData.id} 
-            currentStatus={commissionData.status}
-            onStatusUpdated={refetch}
-          />
-        )}
+        <UpdateStatusDialog
+          commissionId={commission.id}
+          onStatusUpdate={handleStatusUpdate}
+          currentStatus={commission.status}
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Información del Empleado</CardTitle>
+          <CardHeader className="px-5 pb-3 pt-5">
+            <CardTitle className="text-base">Información General</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-1.5">
-              <div className="flex items-center">
-                <User className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-semibold">{commissionData.userName}</span>
+          <CardContent className="px-5 py-0">
+            <div className="flex flex-col space-y-3">
+              <div className="flex justify-between py-1.5">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <User className="mr-2 h-4 w-4" />
+                  Empleado
+                </div>
+                <div className="font-medium">{commission.userName}</div>
               </div>
-              <div className="flex items-center text-sm text-muted-foreground">
-                <span className="ml-6">
-                  {commissionData.userRole === 'driver' ? 'Chofer' : 'Ayudante'}
-                </span>
+              <div className="flex justify-between py-1.5">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <BadgeDollarSign className="mr-2 h-4 w-4" />
+                  Rol
+                </div>
+                <div>{commission.userRole === 'driver' ? 'Chofer' : 'Ayudante'}</div>
               </div>
-              {commissionData.routeName && (
-                <div className="flex items-center mt-2">
-                  <Truck className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    Ruta: {commissionData.routeName}
-                  </span>
+              <div className="flex justify-between py-1.5">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Período
+                </div>
+                <div>
+                  {format(parseISO(commission.weekStartDate), 'dd MMM', { locale: es })} - {format(parseISO(commission.weekEndDate), 'dd MMM yyyy', { locale: es })}
+                </div>
+              </div>
+              {commission.routeName && (
+                <div className="flex justify-between py-1.5">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Truck className="mr-2 h-4 w-4" />
+                    Ruta
+                  </div>
+                  <div>{commission.routeName}</div>
                 </div>
               )}
             </div>
@@ -379,64 +390,48 @@ export default function CommissionDetailsPage() {
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Información de Comisión</CardTitle>
+          <CardHeader className="px-5 pb-3 pt-5">
+            <CardTitle className="text-base">Detalles del Pago</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-1.5">
-              <div className="flex items-center">
-                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {format(new Date(commissionData.weekStartDate), 'dd MMM', { locale: es })} - {' '}
-                  {format(new Date(commissionData.weekEndDate), 'dd MMM yyyy', { locale: es })}
-                </span>
+          <CardContent className="px-5 py-0">
+            <div className="flex flex-col space-y-3">
+              <div className="flex justify-between py-1.5">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <ReceiptText className="mr-2 h-4 w-4" />
+                  Estado
+                </div>
+                <StatusBadge status={commission.status} />
               </div>
-              <div className="flex items-center">
-                <ShoppingCart className="mr-2 h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {commissionData.productCount} productos
-                </span>
+              <div className="flex justify-between py-1.5">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <Package className="mr-2 h-4 w-4" />
+                  Productos
+                </div>
+                <div className="font-medium">{commission.productCount}</div>
               </div>
-              <div className="flex items-center mt-2">
-                <span className="ml-6 text-2xl font-bold">
-                  ${parseFloat(commissionData.totalAmount).toFixed(2)}
-                </span>
+              <div className="flex justify-between py-1.5">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <BadgeDollarSign className="mr-2 h-4 w-4" />
+                  Monto Total
+                </div>
+                <div className="text-lg font-semibold">${parseFloat(commission.totalAmount).toFixed(2)}</div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Estado</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <StatusBadge status={commissionData.status} />
-              </div>
-              {commissionData.status === 'paid' && commissionData.paymentDate && (
-                <>
-                  <div className="flex items-center mt-2">
-                    <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">
-                      Pagado el: {format(new Date(commissionData.paymentDate), 'PPP', { locale: es })}
-                    </span>
+              {commission.status === 'paid' && commission.paymentDate && (
+                <div className="flex justify-between py-1.5">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Fecha de Pago
                   </div>
-                  {commissionData.paymentReference && (
-                    <div className="flex items-center">
-                      <Receipt className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        Ref: {commissionData.paymentReference}
-                      </span>
-                    </div>
-                  )}
-                </>
+                  <div>{format(parseISO(commission.paymentDate), 'dd MMM yyyy', { locale: es })}</div>
+                </div>
               )}
-              {commissionData.notes && (
-                <div className="mt-2 pt-2 border-t">
-                  <p className="text-xs text-muted-foreground mb-1">Notas:</p>
-                  <p className="text-sm">{commissionData.notes}</p>
+              {commission.status === 'paid' && commission.paymentReference && (
+                <div className="flex justify-between py-1.5">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <ReceiptText className="mr-2 h-4 w-4" />
+                    Referencia
+                  </div>
+                  <div>{commission.paymentReference}</div>
                 </div>
               )}
             </div>
@@ -444,83 +439,70 @@ export default function CommissionDetailsPage() {
         </Card>
       </div>
 
-      <div className="mt-6">
-        <h2 className="mb-4 text-xl font-semibold tracking-tight">Detalle de Productos</h2>
+      {commission.notes && (
         <Card>
-          <div className="hidden md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Producto</TableHead>
-                  <TableHead>Orden</TableHead>
-                  <TableHead>Fecha Entrega</TableHead>
-                  <TableHead>Cantidad</TableHead>
-                  <TableHead>Valor Comisión</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {commissionData.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.productName}</TableCell>
-                    <TableCell>
-                      {item.orderNumber ? (
-                        <Link to={`/orders/details/${item.orderId}`} className="text-primary hover:underline">
-                          {item.orderNumber}
-                        </Link>
-                      ) : (
-                        `#${item.orderId}`
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(item.deliveryDate), 'dd MMM yyyy', { locale: es })}
-                    </TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>${parseFloat(item.commissionValue).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">${parseFloat(item.commissionAmount).toFixed(2)}</TableCell>
-                  </TableRow>
-                ))}
-                <TableRow>
-                  <TableCell colSpan={5} className="text-right font-semibold">
-                    Total
-                  </TableCell>
-                  <TableCell className="text-right font-bold">
-                    ${parseFloat(commissionData.totalAmount).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+          <CardHeader className="px-5 pb-3 pt-5">
+            <CardTitle className="text-base">Notas</CardTitle>
+          </CardHeader>
+          <CardContent className="px-5 py-2">
+            <p className="text-sm text-muted-foreground">{commission.notes}</p>
+          </CardContent>
+        </Card>
+      )}
 
-          {/* Mobile view */}
-          <div className="md:hidden">
-            <div className="divide-y">
-              {commissionData.items.map((item) => (
-                <div key={item.id} className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">{item.productName}</span>
-                    <span className="font-bold">${parseFloat(item.commissionAmount).toFixed(2)}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                    <div>Orden: 
-                      <Link to={`/orders/details/${item.orderId}`} className="text-primary hover:underline ml-1">
-                        {item.orderNumber || `#${item.orderId}`}
+      <Card>
+        <CardHeader className="px-6 pb-3 pt-6">
+          <CardTitle>Desglose de Comisiones</CardTitle>
+          <CardDescription>
+            Detalle de los productos entregados y comisiones generadas
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Producto</TableHead>
+                <TableHead>Orden</TableHead>
+                <TableHead>Fecha de Entrega</TableHead>
+                <TableHead>Cantidad</TableHead>
+                <TableHead>Valor Comisión</TableHead>
+                <TableHead className="text-right">Monto</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {commission.items.map((item: CommissionItem) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.productName}</TableCell>
+                  <TableCell>
+                    {item.orderNumber ? (
+                      <Link to={`/orders/${item.orderId}`} className="flex items-center text-primary hover:underline">
+                        #{item.orderNumber}
+                        <ExternalLink className="ml-1 h-3 w-3" />
                       </Link>
-                    </div>
-                    <div>Fecha: {format(new Date(item.deliveryDate), 'dd/MM/yyyy')}</div>
-                    <div>Cantidad: {item.quantity}</div>
-                    <div>Valor: ${parseFloat(item.commissionValue).toFixed(2)}</div>
-                  </div>
-                </div>
+                    ) : (
+                      `#${item.orderId}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {format(parseISO(item.deliveryDate), 'dd MMM yyyy', { locale: es })}
+                  </TableCell>
+                  <TableCell>{item.quantity}</TableCell>
+                  <TableCell>${parseFloat(item.commissionValue).toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    ${parseFloat(item.commissionAmount).toFixed(2)}
+                  </TableCell>
+                </TableRow>
               ))}
-              <div className="p-4 flex justify-between items-center">
-                <span className="font-semibold">Total</span>
-                <span className="text-lg font-bold">${parseFloat(commissionData.totalAmount).toFixed(2)}</span>
-              </div>
-            </div>
+            </TableBody>
+          </Table>
+        </CardContent>
+        <CardFooter className="border-t px-6 py-4">
+          <div className="ml-auto flex items-center space-x-1">
+            <p className="text-muted-foreground">Total:</p>
+            <p className="text-lg font-bold">${parseFloat(commission.totalAmount).toFixed(2)}</p>
           </div>
-        </Card>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

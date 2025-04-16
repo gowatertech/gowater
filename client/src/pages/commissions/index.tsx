@@ -1,35 +1,37 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useLocation } from 'wouter';
+import { useLocation } from 'wouter';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { startOfWeek, endOfWeek } from 'date-fns';
 import {
-  ArrowUpDown,
-  Calendar,
+  CalendarIcon,
+  ArrowRight,
+  Clock,
+  Check,
+  AlertCircle,
+  Loader2,
   ExternalLink,
   Filter,
-  Loader2,
-  Check,
+  Calendar,
   BadgeDollarSign,
-  AlertCircle,
-  Clock,
-  ArrowRight,
+  User,
 } from 'lucide-react';
-import { parse, format, startOfWeek, endOfWeek } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { DateRange } from 'react-day-picker';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Link } from 'wouter';
+import { toast } from '@/hooks/use-toast';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import {
   Dialog,
   DialogContent,
@@ -39,13 +41,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { toast } from '@/hooks/use-toast';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DateRange } from 'react-day-picker';
 
 type Status = 'pending' | 'paid' | 'cancelled';
 type UserRole = 'driver' | 'helper';
@@ -66,13 +70,13 @@ type Commission = {
 };
 
 function CommissionsFilters({
-  onFilterChange,
+  onFilterChange
 }: {
   onFilterChange: (filters: Record<string, string>) => void;
 }) {
   const [status, setStatus] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('');
-  const [date, setDate] = useState<{ from: Date | undefined; to: Date | undefined }>({
+  const [date, setDate] = useState<DateRange>({
     from: undefined,
     to: undefined,
   });
@@ -377,14 +381,6 @@ function StatusBadge({ status }: { status: Status }) {
   }
 }
 
-function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
-  return (
-    <label htmlFor={htmlFor} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-      {children}
-    </label>
-  );
-}
-
 function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => void }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -403,13 +399,15 @@ function GenerateCommissionsDialog({ onGenerate }: { onGenerate: (data: any) => 
     staleTime: 300000 // 5 minutos
   });
   
-  const filteredUsers = users
-    .filter((user: any) => 
-      userRole === "driver" 
-        ? user.role === "driver" 
-        : user.role === "assistant"
-    )
-    .sort((a: any, b: any) => a.name.localeCompare(b.name));
+  const filteredUsers = Array.isArray(users) 
+    ? users
+        .filter((user: any) => 
+          userRole === "driver" 
+            ? user.role === "driver" 
+            : user.role === "assistant"
+        )
+        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+    : [];
 
   const handleGenerate = async () => {
     setLoading(true);
