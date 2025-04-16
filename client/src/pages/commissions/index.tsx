@@ -215,6 +215,8 @@ function CommissionsFilters({
 }
 
 function CommissionCards({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
+  console.log("CommissionCards - commissions:", commissions);
+  
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
@@ -224,7 +226,7 @@ function CommissionCards({ commissions, isLoading }: { commissions: Commission[]
     );
   }
 
-  if (commissions.length === 0) {
+  if (!commissions || commissions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8">
         <AlertCircle className="h-8 w-8 text-muted-foreground" />
@@ -284,6 +286,8 @@ function CommissionCards({ commissions, isLoading }: { commissions: Commission[]
 }
 
 function CommissionsTable({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
+  console.log("CommissionsTable - commissions:", commissions);
+  
   if (isLoading) {
     return (
       <div className="hidden flex-col items-center justify-center p-8 lg:flex">
@@ -293,7 +297,7 @@ function CommissionsTable({ commissions, isLoading }: { commissions: Commission[
     );
   }
 
-  if (commissions.length === 0) {
+  if (!commissions || commissions.length === 0) {
     return (
       <div className="hidden flex-col items-center justify-center p-8 lg:flex">
         <AlertCircle className="h-8 w-8 text-muted-foreground" />
@@ -562,14 +566,23 @@ export default function CommissionsPage() {
   const finalQueryString = [queryString, tabQueryParam].filter(Boolean).join('&');
   
   // Obtener la lista de comisiones
+  const fetchCommissions = async () => {
+    console.log("Obteniendo comisiones...");
+    const url = `/api/commissions${finalQueryString ? `?${finalQueryString}` : ''}`;
+    console.log("URL de consulta:", url);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Error al obtener comisiones');
+    const data = await res.json();
+    console.log("Comisiones recibidas:", data);
+    return data;
+  };
+
   const { data: commissions = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/commissions', finalQueryString],
-    queryFn: async () => {
-      const url = `/api/commissions${finalQueryString ? `?${finalQueryString}` : ''}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Error al obtener comisiones');
-      return res.json();
-    }
+    queryFn: fetchCommissions,
+    staleTime: 0, // Siempre refrescar los datos
+    refetchOnMount: true, // Refrescar datos al montar el componente
+    refetchOnWindowFocus: true // Refrescar datos cuando se vuelve a enfocar la ventana
   });
 
   // Manejar la generación de comisiones
