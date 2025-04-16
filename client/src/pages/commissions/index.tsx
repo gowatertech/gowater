@@ -810,7 +810,7 @@ export default function CommissionsPage() {
             Gestione las comisiones de choferes y ayudantes basadas en entregas completadas
           </p>
         </div>
-        <a href="/commissions/test" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+        <a href="/commissions/simple" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground ring-offset-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
           <BadgeDollarSign className="mr-2 h-4 w-4" />
           Generar Comisiones
         </a>

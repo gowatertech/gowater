@@ -225,7 +225,8 @@ function Router() {
         <Route path="/commissions/details/:id" component={ResponsiveCommissionDetailsPage} />
         <Route path="/commissions/details-old/:id" component={CommissionDetailsPage} />
         <Route path="/commissions/test" component={lazy(() => import('./pages/commissions/test-commissions'))} />
-        <Route path="/commissions/simple" component={SimpleCommissionsPage} />
+        <Route path="/commissions/simple" component={lazy(() => import('./pages/commissions/simple-generator'))} />
+        <Route path="/commissions/simple-old" component={SimpleCommissionsPage} />
         <Route path="/commissions" component={CommissionsPage} />
         
         {/* Páginas de prueba de impresión */}
