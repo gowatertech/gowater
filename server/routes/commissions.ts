@@ -235,7 +235,16 @@ router.post('/generate', async (req, res) => {
     
     // Filtrar por ID de usuario si se proporciona
     if (userId) {
-      usersQuery = usersQuery.where(eq(users.id, userId));
+      // Crear una consulta completamente nueva con el filtro aplicado
+      usersQuery = db
+        .select()
+        .from(users)
+        .where(
+          and(
+            eq(users.role, userRole === 'driver' ? 'driver' : 'assistant'),
+            eq(users.id, userId)
+          )
+        );
     }
     
     // Obtener la lista de usuarios

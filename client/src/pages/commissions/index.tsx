@@ -216,6 +216,12 @@ function CommissionsFilters({
 
 function CommissionCards({ commissions, isLoading }: { commissions: Commission[]; isLoading: boolean }) {
   console.log("CommissionCards - commissions:", commissions);
+  console.log("CommissionCards - tipo de commissions:", typeof commissions);
+  if (Array.isArray(commissions)) {
+    console.log("CommissionCards - es un array con longitud:", commissions.length);
+  } else {
+    console.log("CommissionCards - no es un array");
+  }
   
   if (isLoading) {
     return (
