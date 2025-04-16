@@ -587,6 +587,7 @@ export default function Customers() {
                       <TableHead className="h-7 py-1 px-2">Encargado</TableHead>
                       <TableHead className="h-7 py-1 px-2">Teléfono</TableHead>
                       <TableHead className="h-7 py-1 px-2">Dirección</TableHead>
+                      <TableHead className="h-7 py-1 px-2">Coordenadas</TableHead>
                       <TableHead className="h-7 py-1 px-2">Crédito</TableHead>
                       <TableHead className="h-7 py-1 px-2">Acciones</TableHead>
                     </TableRow>
@@ -594,7 +595,7 @@ export default function Customers() {
                   <TableBody>
                     {filteredCustomers.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-2 text-gray-500 text-xs">
+                        <TableCell colSpan={9} className="text-center py-2 text-gray-500 text-xs">
                           No se encontraron clientes
                         </TableCell>
                       </TableRow>
@@ -624,6 +625,9 @@ export default function Customers() {
                           <TableCell className="py-1 px-2">{customer.phone}</TableCell>
                           <TableCell className="py-1 px-2 max-w-[180px] truncate">
                             {`${customer.street} #${customer.streetnumber}, ${customer.municipalityName || ''}`}
+                          </TableCell>
+                          <TableCell className="py-1 px-2 max-w-[180px] truncate text-xs">
+                            {customer.coordinates || <span className="text-red-500">Sin coordenadas</span>}
                           </TableCell>
                           <TableCell className="py-1 px-2">
                             <div className="flex gap-1">
