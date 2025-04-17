@@ -214,7 +214,7 @@ export default function InvoicesPage() {
       case 'cancelled':
         return { variant: "destructive" as const, icon: <XCircle className="w-3 h-3 mr-1" />, text: "Cancelada" };
       case 'overdue':
-        return { variant: "warning" as const, icon: <Clock className="w-3 h-3 mr-1" />, text: "Vencida" };
+        return { variant: "destructive" as const, icon: <Clock className="w-3 h-3 mr-1" />, text: "Vencida" };
       default:
         return { variant: "outline" as const, icon: null, text: status };
     }

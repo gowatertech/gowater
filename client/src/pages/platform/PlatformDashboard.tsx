@@ -24,23 +24,23 @@ export default function PlatformDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
-  // Manejar errores de autenticación
-  React.useEffect(() => {
-    const handleAuthError = (error: any) => {
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        toast({
-          title: "Sesión expirada",
-          description: "Por favor, inicia sesión nuevamente",
-          variant: "destructive",
-        });
-        setLocation("/platform/login");
-      }
-    };
+  // Comentamos temporalmente la redirección para poder ver la página sin iniciar sesión
+  // React.useEffect(() => {
+  //   const handleAuthError = (error: any) => {
+  //     if (error?.response?.status === 401 || error?.response?.status === 403) {
+  //       toast({
+  //         title: "Sesión expirada",
+  //         description: "Por favor, inicia sesión nuevamente",
+  //         variant: "destructive",
+  //       });
+  //       setLocation("/platform/login");
+  //     }
+  //   };
 
-    if (companiesQuery.error) {
-      handleAuthError(companiesQuery.error);
-    }
-  }, [companiesQuery.error, toast, setLocation]);
+  //   if (companiesQuery.error) {
+  //     handleAuthError(companiesQuery.error);
+  //   }
+  // }, [companiesQuery.error, toast, setLocation]);
 
   // Consulta para obtener el recuento de usuarios
   const usersQuery = useQuery({

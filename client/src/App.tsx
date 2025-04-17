@@ -155,6 +155,10 @@ function Router() {
   // Importación de componentes de la plataforma
   const PlatformLogin = lazy(() => import("@/pages/platform/PlatformLogin"));
   const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
+  const PlatformUsers = lazy(() => import("@/pages/platform/users"));
+  const PlatformUserForm = lazy(() => import("@/pages/platform/users/[id]"));
+  const PlatformInvoices = lazy(() => import("@/pages/platform/invoices"));
+  const PlatformInvoiceForm = lazy(() => import("@/pages/platform/invoices/[id]"));
 
   // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
   if (isMobileApp) {
@@ -188,6 +192,36 @@ function Router() {
         <Route path="/platform/dashboard">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <PlatformDashboard />
+          </Suspense>
+        </Route>
+        <Route path="/platform/users/new">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformUserForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/users/:id">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformUserForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/users">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformUsers />
+          </Suspense>
+        </Route>
+        <Route path="/platform/invoices/new">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformInvoiceForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/invoices/:id">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformInvoiceForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/invoices">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformInvoices />
           </Suspense>
         </Route>
         <Route path="/platform">
