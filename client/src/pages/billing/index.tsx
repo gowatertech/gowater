@@ -92,6 +92,40 @@ export default function Billing() {
   const [notes, setNotes] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("list");
+  const [isLoadingInvoiceDetails, setIsLoadingInvoiceDetails] = useState(false);
+  
+  // Función para manejar la selección de factura y mostrar detalles
+  const handleViewInvoiceDetails = async (invoice: InvoiceWithDetails) => {
+    setSelectedInvoice(invoice);
+    setIsLoadingInvoiceDetails(true);
+    
+    try {
+      // Realizar una solicitud explícita para cargar los detalles
+      const response = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+      if (!response.ok) {
+        throw new Error("Error al cargar detalles de la factura");
+      }
+      
+      // Obtener los datos explícitamente para verificar
+      const items = await response.json();
+      console.log(`Cargados ${items.length} items para factura ${invoice.id}`);
+      
+      // Invalidar la consulta para actualizar el cache
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices", invoice.id, "items"] });
+      
+      // Cambiar a la pestaña de detalles
+      setActiveTab("details");
+    } catch (error) {
+      console.error("Error al cargar detalles:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudieron cargar los detalles de la factura"
+      });
+    } finally {
+      setIsLoadingInvoiceDetails(false);
+    }
+  };
   const [statusFilter, setStatusFilter] = useState("all");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
     { code: "", description: "", quantity: 0, price: 0, total: 0 },
