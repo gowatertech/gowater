@@ -307,8 +307,7 @@ export default function App() {
         <Router />
         <Toaster />
         <CenteredLogo size="medium" showName={true} companyName="GoWater" />
-        <CompanyFooter />
-        <DesignCredit />
+        {/* Componentes personalizados desactivados para el panel de administración */}
       </QueryClientProvider>
     </I18nextProvider>
   );
