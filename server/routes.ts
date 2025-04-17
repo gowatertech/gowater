@@ -1016,7 +1016,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Customer endpoints
-  app.post("/api/customers", upload.single('logo'), async (req, res) => {
+  router.post("/customers", upload.single('logo'), async (req, res) => {
     try {
       // Validar los datos del cliente
       const customerData = {
@@ -1054,7 +1054,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/customers", async (req, res) => {
+  router.get("/customers", async (req, res) => {
     try {
       const allCustomers = await db
         .select({
@@ -1087,7 +1087,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/customers/by-zone", async (req, res) => {
+  router.get("/customers/by-zone", async (req, res) => {
     try {
       const zoneId = parseInt(req.query.zoneId as string);
       
@@ -1141,12 +1141,29 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/customers/:id", async (req, res) => {
+  router.get("/customers/:id", async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
+      
+      // Select specific fields from customers table instead of spreading the entire table
       const [customer] = await db
         .select({
-          ...customers,
+          id: customers.id,
+          logo: customers.logo,
+          rnc: customers.rnc,
+          businessname: customers.businessname,
+          managername: customers.managername,
+          phone: customers.phone,
+          email: customers.email,
+          zoneid: customers.zoneid,
+          street: customers.street,
+          streetnumber: customers.streetnumber,
+          creditlimit: customers.creditlimit,
+          provinceid: customers.provinceid,
+          municipalityid: customers.municipalityid,
+          reference: customers.reference,
+          coordinates: customers.coordinates,
+          balance: customers.balance,
           provinceName: provinces.name,
           municipalityName: municipalities.name,
         })
@@ -1166,8 +1183,8 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  // Agregar después del endpoint GET /api/customers/:id
-  app.patch("/api/customers/:id", upload.single('logo'), async (req, res) => {
+  // Actualizar cliente por ID
+  router.patch("/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
 
@@ -1204,7 +1221,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoints para los ajustes
-  app.get("/api/settings", async (req, res) => {
+  router.get("/settings", async (req, res) => {
     try {
       const settings = await storage.getSettings();
       console.log("GET /api/settings - Retornando:", settings);
@@ -1215,7 +1232,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/settings", upload.single('logo'), async (req, res) => {
+  router.post("/settings", upload.single('logo'), async (req, res) => {
     try {
       console.log("POST /api/settings - Body recibido:", req.body);
       const settingsData = {
@@ -1260,7 +1277,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Facturas
-  app.get("/api/invoices", async (req, res) => {
+  router.get("/invoices", async (req, res) => {
     try {
       const allInvoices = await db
         .select({
@@ -1284,7 +1301,7 @@ export async function registerRoutes(router: express.Router) {
   });
   
   // Facturas pendientes de pago
-  app.get("/api/invoices/pending", async (req, res) => {
+  router.get("/invoices/pending", async (req, res) => {
     try {
       // Obtener todas las facturas con estado pendiente
       const allInvoices = await db
@@ -1336,7 +1353,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/invoices", async (req, res) => {
+  router.post("/invoices", async (req, res) => {
     try {
       console.log("POST /api/invoices - Datos recibidos:", req.body);
       const result = insertInvoiceSchema.safeParse(req.body);
@@ -1363,7 +1380,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoints para estadísticas del dashboard
-  app.get("/api/dashboard/stats", async (req, res) => {
+  router.get("/dashboard/stats", async (req, res) => {
     try {
       // Obtener el año actual y fechas
       const currentYear = new Date().getFullYear();
@@ -1454,7 +1471,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
 
-  app.get("/api/dashboard/payments-stats", async (req, res) => {
+  router.get("/dashboard/payments-stats", async (req, res) => {
     try {
       // Obtener el año actual y mes
       const currentYear = new Date().getFullYear();
@@ -1494,7 +1511,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoint para estadísticas de rutas
-  app.get("/api/dashboard/route-stats", async (req, res) => {
+  router.get("/dashboard/route-stats", async (req, res) => {
     try {
       // Obtener rutas activas
       const activeRoutes = await db
@@ -1549,7 +1566,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoint para estadísticas de envases
-  app.get("/api/dashboard/bottle-stats", async (req, res) => {
+  router.get("/dashboard/bottle-stats", async (req, res) => {
     try {
       // Obtener envases pendientes de devolución
       const pendingReturns = await db
@@ -1592,7 +1609,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/stats/sales", async (req, res) => {
+  router.get("/stats/sales", async (req, res) => {
     try {
       // Obtener el total de ventas de las facturas
       const salesStats = await db
@@ -1615,7 +1632,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/stats/sales-trend", async (req, res) => {
+  router.get("/stats/sales-trend", async (req, res) => {
     try {
       // Obtener las últimas 7 ventas para tendencia
       const salesData = await db
@@ -1640,7 +1657,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/stats/order-status", async (req, res) => {
+  router.get("/stats/order-status", async (req, res) => {
     try {
       // Obtener conteo de pedidos por estado
       const orderStatusData = await db
@@ -1679,7 +1696,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/stats/top-customers", async (req, res) => {
+  router.get("/stats/top-customers", async (req, res) => {
     try {
       // Obtener los clientes con más pedidos
       const topCustomersData = await db
@@ -1692,7 +1709,7 @@ export async function registerRoutes(router: express.Router) {
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
         .groupBy(orders.customerId, customers.businessname)
-        .orderBy(sql`COUNT(*)`, "desc")
+        .orderBy(desc(orders.id))
         .limit(5);
 
       // Formatear datos para el gráfico
@@ -1709,7 +1726,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/invoices/:id/items", async (req, res) => {
+  router.get("/invoices/:id/items", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
       const items = await db
@@ -1724,7 +1741,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/invoices/:id/items", async (req, res) => {
+  router.post("/invoices/:id/items", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
       const { productId, quantity, price } = req.body;
