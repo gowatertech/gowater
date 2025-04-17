@@ -17,6 +17,7 @@ import bcrypt from "bcrypt";
 import { db } from "./db";
 import { platformDb } from "./platform-db";
 import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export function registerPlatformRoutes(router: Router) {
   // Middleware de autenticación para endpoints de plataforma
@@ -430,8 +431,9 @@ export function registerPlatformRoutes(router: Router) {
   // Endpoints para obtener conteos
   router.get("/companies/count", async (req: Request, res: Response) => {
     try {
-      const companies = await platformStorage.listCompanies();
-      res.json({ count: companies.length });
+      // Usar una consulta COUNT SQL directa para mayor eficiencia
+      const result = await platformDb.execute(sql`SELECT COUNT(*) as count FROM "companies"`);
+      res.json({ count: Number(result.rows[0].count) });
     } catch (error) {
       console.error("Error al contar empresas:", error);
       res.status(500).json({ message: "Error al contar empresas" });
@@ -440,8 +442,9 @@ export function registerPlatformRoutes(router: Router) {
 
   router.get("/platform-users/count", async (req: Request, res: Response) => {
     try {
-      const users = await platformStorage.listPlatformUsers();
-      res.json({ count: users.length });
+      // Usar SQL directo para mayor eficiencia
+      const result = await platformDb.execute(sql`SELECT COUNT(*) as count FROM "platform_users"`);
+      res.json({ count: Number(result.rows[0].count) });
     } catch (error) {
       console.error("Error al contar usuarios:", error);
       res.status(500).json({ message: "Error al contar usuarios" });
@@ -451,14 +454,18 @@ export function registerPlatformRoutes(router: Router) {
   router.get("/membership-invoices/count", async (req: Request, res: Response) => {
     try {
       const status = req.query.status as string | undefined;
-      const invoices = await platformStorage.listMembershipInvoices();
       
       if (status) {
-        const filteredInvoices = invoices.filter(invoice => invoice.status === status);
-        return res.json({ count: filteredInvoices.length });
+        const result = await platformDb.execute(
+          sql`SELECT COUNT(*) as count FROM "membership_invoices" WHERE "status" = ${status}`
+        );
+        return res.json({ count: Number(result.rows[0].count) });
       }
       
-      res.json({ count: invoices.length });
+      const result = await platformDb.execute(
+        sql`SELECT COUNT(*) as count FROM "membership_invoices"`
+      );
+      res.json({ count: Number(result.rows[0].count) });
     } catch (error) {
       console.error("Error al contar facturas:", error);
       res.status(500).json({ message: "Error al contar facturas" });
