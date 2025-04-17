@@ -1887,6 +1887,76 @@ export async function registerRoutes(router: express.Router) {
       res.status(500).json({ error: String(error) });
     }
   });
+  
+  // Eliminar un item de factura
+  router.delete("/invoices/:invoiceId/items/:itemId", async (req, res) => {
+    try {
+      const invoiceId = parseInt(req.params.invoiceId);
+      const itemId = parseInt(req.params.itemId);
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para eliminar item de factura");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`DELETE /api/invoices/${invoiceId}/items/${itemId} - Eliminando item para la empresa ${companyId}`);
+      
+      // Obtener el item antes de eliminarlo para tener su valor
+      const [item] = await db
+        .select()
+        .from(invoiceItems)
+        .where(and(
+          eq(invoiceItems.id, itemId),
+          eq(invoiceItems.invoiceId, invoiceId),
+          eq(invoiceItems.companyId, companyId) // Filtrar por companyId para seguridad
+        ));
+      
+      if (!item) {
+        return res.status(404).json({ error: "Item no encontrado o no pertenece a la empresa actual" });
+      }
+      
+      // Eliminar el item
+      await db
+        .delete(invoiceItems)
+        .where(and(
+          eq(invoiceItems.id, itemId),
+          eq(invoiceItems.companyId, companyId) // Filtrar por companyId
+        ));
+      
+      // Actualizar el total de la factura
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        ));
+      
+      if (invoice) {
+        // Restar el valor del item eliminado
+        const newTotal = Math.max(0, parseFloat(invoice.total) - parseFloat(item.total)).toFixed(2);
+        
+        await db
+          .update(invoices)
+          .set({ total: newTotal })
+          .where(and(
+            eq(invoices.id, invoiceId),
+            eq(invoices.companyId, companyId)
+          ));
+          
+        console.log(`Total de factura actualizado a ${newTotal} después de eliminar item`);
+      }
+      
+      console.log(`Item ${itemId} eliminado correctamente de la factura ${invoiceId}`);
+      res.json({ success: true, message: "Item eliminado correctamente" });
+    } catch (error) {
+      console.error("Error al eliminar item de factura:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
 
   // Actualizar método de pago de una factura
   router.patch("/invoices/:id", async (req, res) => {
