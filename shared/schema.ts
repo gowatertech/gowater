@@ -5,6 +5,7 @@ import { relations } from "drizzle-orm";
 // Users (drivers, admins, etc.)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
@@ -37,6 +38,7 @@ export const insertUserSchema = z.object({
 // Products
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").notNull().default(0),
@@ -132,6 +134,7 @@ export const insertSectorSchema = z.object({
 // Customers
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   logo: text("logo"),
   rnc: text("rnc"),
   businessname: text("businessname").notNull(),
