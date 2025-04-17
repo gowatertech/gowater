@@ -109,14 +109,17 @@ export default function RegisterPayment() {
       return;
     }
 
+    // Asegurarnos que los datos cumplen con el esquema esperado
     const paymentData = {
       invoiceId: selectedInvoice.id,
       customerId: selectedInvoice.customerId,
       amount: paymentAmount,
-      paymentMethod: paymentMethod,
+      // Usar la forma correcta según el esquema (paymentMethod vs método)
+      paymentMethod: paymentMethod, 
       notes: paymentNotes || undefined
     };
 
+    console.log("Enviando datos de pago:", paymentData);
     createPaymentMutation.mutate(paymentData);
   };
 

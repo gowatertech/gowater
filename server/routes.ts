@@ -2398,17 +2398,27 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      console.log("POST /api/payments - Datos recibidos:", JSON.stringify(req.body, null, 2));
+      console.log("POST /api/payments - CompanyId del contexto:", companyId);
+      
       if (!companyId) {
         console.warn("No se encontró companyId en el contexto para crear pago");
         return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
       }
       
+      // Asegurarnos que amount tenga el formato correcto (string con 2 decimales)
+      const amount = typeof req.body.amount === 'number' 
+        ? req.body.amount.toFixed(2) 
+        : Number(req.body.amount).toFixed(2);
+      
       const paymentData = {
         ...req.body,
         companyId: companyId, // Añadir el companyId del contexto
-        amount: Number(req.body.amount).toFixed(2),
+        amount: amount,
         date: new Date()
       };
+
+      console.log("POST /api/payments - Datos del pago preparados:", JSON.stringify(paymentData, null, 2));
 
       // Validar los datos del pago contra el esquema
       const validationResult = insertPaymentSchema.safeParse(paymentData);
@@ -2417,64 +2427,71 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "Datos de pago inválidos", details: validationResult.error.format() });
       }
 
-      // Insertar el pago validado
-      const [payment] = await db
-        .insert(payments)
-        .values(validationResult.data)
-        .returning();
-      
-      console.log("POST /api/payments - Pago creado:", payment);
-      
-      // Actualizar el estado de la factura si corresponde
-      const invoiceId = payment.invoiceId;
-      
-      // 1. Obtener la factura
-      const [invoice] = await db
-        .select()
-        .from(invoices)
-        .where(and(
-          eq(invoices.id, invoiceId),
-          eq(invoices.companyId, companyId)
-        ));
-      
-      if (invoice) {
-        // 2. Obtener todos los pagos para esta factura
-        const paymentsForInvoice = await db
+      console.log("POST /api/payments - Datos validados, procediendo a insertar:", JSON.stringify(validationResult.data, null, 2));
+
+      try {
+        // Insertar el pago validado
+        const [payment] = await db
+          .insert(payments)
+          .values(validationResult.data)
+          .returning();
+        
+        console.log("POST /api/payments - Pago creado:", payment);
+        
+        // Actualizar el estado de la factura si corresponde
+        const invoiceId = payment.invoiceId;
+        
+        // 1. Obtener la factura
+        const [invoice] = await db
           .select()
-          .from(payments)
+          .from(invoices)
           .where(and(
-            eq(payments.invoiceId, invoiceId),
-            eq(payments.companyId, companyId)
+            eq(invoices.id, invoiceId),
+            eq(invoices.companyId, companyId)
           ));
         
-        // 3. Calcular el total pagado
-        const totalPaid = paymentsForInvoice.reduce(
-          (sum, payment) => sum + parseFloat(payment.amount.toString()), 
-          0
-        );
-        
-        // 4. Verificar si se ha pagado el total o más
-        const invoiceTotal = parseFloat(invoice.total);
-        
-        console.log(`Total de la factura: ${invoiceTotal}, Total pagado: ${totalPaid}`);
-        
-        if (totalPaid >= invoiceTotal) {
-          // 5. Actualizar el estado de la factura a "paid"
-          console.log(`Actualizando factura ${invoiceId} a estado "paid" porque se ha pagado completamente`);
-          
-          await db
-            .update(invoices)
-            .set({ status: "paid" })
+        if (invoice) {
+          // 2. Obtener todos los pagos para esta factura
+          const paymentsForInvoice = await db
+            .select()
+            .from(payments)
             .where(and(
-              eq(invoices.id, invoiceId),
-              eq(invoices.companyId, companyId)
+              eq(payments.invoiceId, invoiceId),
+              eq(payments.companyId, companyId)
             ));
-        } else {
-          console.log(`La factura ${invoiceId} sigue pendiente. Total: ${invoiceTotal}, Pagado: ${totalPaid}`);
+          
+          // 3. Calcular el total pagado
+          const totalPaid = paymentsForInvoice.reduce(
+            (sum, payment) => sum + parseFloat(payment.amount.toString()), 
+            0
+          );
+          
+          // 4. Verificar si se ha pagado el total o más
+          const invoiceTotal = parseFloat(invoice.total);
+          
+          console.log(`Total de la factura: ${invoiceTotal}, Total pagado: ${totalPaid}`);
+          
+          if (totalPaid >= invoiceTotal) {
+            // 5. Actualizar el estado de la factura a "paid"
+            console.log(`Actualizando factura ${invoiceId} a estado "paid" porque se ha pagado completamente`);
+            
+            await db
+              .update(invoices)
+              .set({ status: "paid" })
+              .where(and(
+                eq(invoices.id, invoiceId),
+                eq(invoices.companyId, companyId)
+              ));
+          } else {
+            console.log(`La factura ${invoiceId} sigue pendiente. Total: ${invoiceTotal}, Pagado: ${totalPaid}`);
+          }
         }
+        
+        res.json(payment);
+      } catch (dbError) {
+        console.error("Error al insertar en base de datos:", dbError);
+        throw new Error(`Error de base de datos: ${dbError.message}`);
       }
-      
-      res.json(payment);
     } catch (error) {
       console.error("Error al crear pago:", error);
       res.status(500).json({ error: String(error) });

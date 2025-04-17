@@ -561,9 +561,9 @@ export const payments = pgTable("payments", {
   invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
   customerId: integer("customer_id").notNull().references(() => customers.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card"] }).notNull(),
+  paymentMethod: text("payment_method", { enum: ["cash", "credit", "card", "transfer"] }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
-  reference: text("reference"), // Para pagos con tarjeta/crédito
+  reference: text("reference"), // Para pagos con tarjeta/crédito/transferencia
   notes: text("notes"),
 });
 
@@ -572,7 +572,7 @@ export const insertPaymentSchema = z.object({
   customerId: z.number(),
   companyId: z.number(),
   amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
-  paymentMethod: z.enum(["cash", "credit", "card"]),
+  paymentMethod: z.enum(["cash", "credit", "card", "transfer"]),
   reference: z.string().optional(),
   notes: z.string().optional(),
 });
