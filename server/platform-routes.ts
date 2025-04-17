@@ -396,7 +396,7 @@ export function registerPlatformRoutes(router: Router) {
       // ya que no está en el schema de validación
       try {
         const lastLoginDate = new Date();
-        await db
+        await platformDb
           .update(platformUsers)
           .set({ lastLogin: lastLoginDate })
           .where(eq(platformUsers.id, user.id));
