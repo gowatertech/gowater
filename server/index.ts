@@ -7,6 +7,7 @@ import session from "express-session";
 import { tenantMiddleware, companyFilterMiddleware } from "./multi-tenant-middleware";
 import { platformStorage } from "./platform-storage";
 import { setupPlatform } from "./platform-db-setup";
+import { companyDbMiddleware } from "./company-db";
 
 const app = express();
 
@@ -29,6 +30,9 @@ app.use(session(sessionConfig));
 
 // Aplicar middleware multi-tenant después de la sesión
 app.use(tenantMiddleware);
+
+// Aplicar middleware de companyDb para establecer el companyId en el contexto
+app.use(companyDbMiddleware);
 
 // Aplicar filtro de compañía para separar datos
 app.use(companyFilterMiddleware);
