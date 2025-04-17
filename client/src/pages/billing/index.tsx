@@ -108,7 +108,7 @@ export default function Billing() {
     queryKey: ["/api/invoices"]
   });
 
-  const { data: customers = [] } = useQuery({
+  const { data: customers = [] } = useQuery<any[]>({
     queryKey: ["/api/customers"]
   });
 
@@ -116,18 +116,13 @@ export default function Billing() {
     queryKey: ["/api/products"]
   });
   
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<any>({
     queryKey: ["/api/settings"]
   });
 
   // Consulta para obtener los items de una factura específica
-  const { data: invoiceDetails = [] } = useQuery({
+  const { data: invoiceDetails = [] } = useQuery<any[]>({
     queryKey: ["/api/invoices", selectedInvoice?.id, "items"],
-    queryFn: async () => {
-      if (!selectedInvoice) return [];
-      const response = await apiRequest("GET", `/api/invoices/${selectedInvoice.id}/items`);
-      return response.json();
-    },
     enabled: !!selectedInvoice,
   });
 
