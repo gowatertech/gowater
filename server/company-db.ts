@@ -53,17 +53,42 @@ export function withCompany(query: any): any {
   const companyId = getCurrentCompanyId();
   
   if (!companyId) {
-    console.warn("No se encontró companyId en el contexto para la consulta");
+    console.warn("No se encontró companyId en el contexto para la consulta SELECT");
     return query;
   }
   
   try {
-    console.log("Aplicando filtro companyId =", companyId, "a consulta");
+    // Intentar obtener información de las tablas involucradas
+    let tableName = 'unknown_table';
+    try {
+      if (query.config && query.config.tableName) {
+        tableName = query.config.tableName;
+      } else if (query.from && query.from.config && query.from.config.name) {
+        tableName = query.from.config.name;
+      }
+    } catch (tableError) {
+      console.warn("No se pudo determinar el nombre de la tabla:", tableError);
+    }
+    
+    console.log(`SELECT en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
+    
+    // Verificar si la consulta ya tiene una cláusula WHERE
+    const hasWhereClause = query && query._whereParts && query._whereParts.length > 0;
+    
     // En Drizzle ORM, el método where siempre está disponible para los objetos de consulta
     return query.where(sql`company_id = ${companyId}`);
   } catch (error) {
     console.error("Error al aplicar filtro de companyId:", error);
-    return query; // Retornar la consulta original si hay error
+    console.error("Detalles:", String(error));
+    
+    // En caso de error, intentar una forma alternativa
+    try {
+      return query.where(sql`company_id = ${companyId}`);
+    } catch (secondError) {
+      console.error("Segundo intento fallido:", secondError);
+      // Como último recurso, devolver la consulta sin filtro
+      return query;
+    }
   }
 }
 
@@ -76,12 +101,38 @@ export function withCompanyInsert(table: any, values: any | any[]): any {
     return db.insert(table).values(values);
   }
   
-  // Añadir companyId a cada valor a insertar
-  if (Array.isArray(values)) {
-    const valuesWithCompany = values.map(value => ({ ...value, companyId }));
-    return db.insert(table).values(valuesWithCompany);
-  } else {
-    return db.insert(table).values({ ...values, companyId });
+  // Obtener el nombre de la tabla para los logs
+  const tableName = table?.config?.name || 'unknown_table';
+  console.log(`INSERT en tabla ${tableName} - Aplicando companyId = ${companyId}`);
+  
+  try {
+    // Añadir companyId a cada valor a insertar
+    if (Array.isArray(values)) {
+      // Para inserciones múltiples
+      console.log(`Inserción múltiple (${values.length} registros) con companyId = ${companyId}`);
+      const valuesWithCompany = values.map(value => {
+        // No sobrescribir companyId si ya viene en los datos
+        if (value.companyId !== undefined) {
+          console.log(`AVISO: companyId ya viene en los datos de inserción: ${value.companyId}`);
+          return value;
+        }
+        return { ...value, companyId };
+      });
+      return db.insert(table).values(valuesWithCompany);
+    } else {
+      // Para inserción simple
+      // No sobrescribir companyId si ya viene en los datos
+      if (values.companyId !== undefined) {
+        console.log(`AVISO: companyId ya viene en los datos de inserción: ${values.companyId}`);
+        return db.insert(table).values(values);
+      }
+      console.log(`Inserción simple con companyId = ${companyId}`);
+      return db.insert(table).values({ ...values, companyId });
+    }
+  } catch (error) {
+    console.error(`Error en withCompanyInsert para tabla ${tableName}:`, error);
+    // En caso de error, intentar la inserción sin modificar
+    return db.insert(table).values(values);
   }
 }
 
@@ -94,8 +145,26 @@ export function withCompanyUpdate(table: any, values: any): any {
     return db.update(table).set(values);
   }
   
-  // Retornar la consulta de actualización, pero limitada a la compañía actual
-  return db.update(table).set(values).where(sql`company_id = ${companyId}`);
+  // Obtener el nombre de la tabla para los logs
+  const tableName = table?.config?.name || 'unknown_table';
+  console.log(`UPDATE en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
+  
+  try {
+    // No sobrescribir companyId si ya viene en los datos (generalmente no debería ocurrir en updates)
+    if (values.companyId !== undefined && values.companyId !== companyId) {
+      console.warn(`ADVERTENCIA: El UPDATE intenta modificar companyId de ${companyId} a ${values.companyId}`);
+      // Eliminar companyId de los valores a actualizar para evitar cambios no deseados
+      const { companyId: _, ...valuesWithoutCompanyId } = values;
+      return db.update(table).set(valuesWithoutCompanyId).where(sql`company_id = ${companyId}`);
+    }
+    
+    // Retornar la consulta de actualización, pero limitada a la compañía actual
+    return db.update(table).set(values).where(sql`company_id = ${companyId}`);
+  } catch (error) {
+    console.error(`Error en withCompanyUpdate para tabla ${tableName}:`, error);
+    // En caso de error, intentar la actualización sin filtro
+    return db.update(table).set(values);
+  }
 }
 
 // Función helper para incluir automáticamente el companyId en eliminaciones
@@ -107,8 +176,18 @@ export function withCompanyDelete(table: any): any {
     return db.delete(table);
   }
   
-  // Retornar la consulta de eliminación, pero limitada a la compañía actual
-  return db.delete(table).where(sql`company_id = ${companyId}`);
+  // Obtener el nombre de la tabla para los logs
+  const tableName = table?.config?.name || 'unknown_table';
+  console.log(`DELETE en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
+  
+  try {
+    // Retornar la consulta de eliminación, pero limitada a la compañía actual
+    return db.delete(table).where(sql`company_id = ${companyId}`);
+  } catch (error) {
+    console.error(`Error en withCompanyDelete para tabla ${tableName}:`, error);
+    // En caso de error, intentar la eliminación sin filtro
+    return db.delete(table);
+  }
 }
 
 // Cliente de DB adaptado para multi-tenant

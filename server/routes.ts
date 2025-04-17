@@ -16,6 +16,7 @@ import { registerDriversLocationsEndpoint } from "./routes/api/driversLocations"
 import { registerStartRouteEndpoint } from "./routes/api/startRoute";
 import { registerMobileApiEndpoints } from "./routes/mobile-api";
 import commissionsRoutes from "./routes/commissions";
+import { registerMultiTenantTestEndpoint } from "./routes/test-tenant";
 
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
@@ -49,6 +50,9 @@ export async function registerRoutes(app: Express) {
   
   // Registrar endpoints de la API móvil
   registerMobileApiEndpoints(app);
+  
+  // Registrar endpoint de prueba para multi-tenant
+  registerMultiTenantTestEndpoint(app);
 
   // Registrar endpoints para comisiones
   app.use('/api/commissions', commissionsRoutes);
