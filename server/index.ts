@@ -8,6 +8,9 @@ import { tenantMiddleware, companyFilterMiddleware } from "./multi-tenant-middle
 import { platformStorage } from "./platform-storage";
 import { setupPlatform } from "./platform-db-setup";
 import { companyDbMiddleware } from "./company-db";
+import { createServer } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
+import { storage } from "./storage";
 
 const app = express();
 
@@ -83,8 +86,66 @@ app.use((req, res, next) => {
     log("Platform routes registered successfully");
     
     // Register regular API routes for company operations
-    server = await registerRoutes(companyApiRouter);
+    await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
+    
+    // Crear servidor HTTP
+    server = createServer(app);
+    
+    // Configurar WebSocket Server
+    const driverConnections = new Map<number, WebSocket>();
+    const wss = new WebSocketServer({ 
+      server: server,
+      path: '/ws'
+    });
+    
+    wss.on('connection', (ws) => {
+      console.log('Nueva conexión WebSocket');
+
+      ws.on('message', async (message) => {
+        try {
+          const data = JSON.parse(message.toString());
+
+          if (data.type === 'driver_location') {
+            // Almacenar la conexión del conductor
+            driverConnections.set(data.driverId, ws);
+
+            // Actualizar ubicación en la base de datos
+            await storage.updateDriverLocation(data.driverId, {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              timestamp: new Date()
+            });
+
+            // Broadcast a todos los clientes conectados
+            wss.clients.forEach((client) => {
+              if (client !== ws && client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'location_update',
+                  driverId: data.driverId,
+                  location: {
+                    latitude: data.latitude,
+                    longitude: data.longitude,
+                    timestamp: new Date()
+                  }
+                }));
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Error procesando mensaje WebSocket:', error);
+        }
+      });
+
+      ws.on('close', () => {
+        // Eliminar la conexión cuando se cierra
+        driverConnections.forEach((connection, driverId) => {
+          if (connection === ws) {
+            driverConnections.delete(driverId);
+          }
+        });
+      });
+    });
 
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {

@@ -1,6 +1,4 @@
-import type { Express } from "express";
-import { createServer } from "http";
-import { WebSocketServer, WebSocket } from 'ws';
+import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema } from "@shared/schema";
@@ -20,9 +18,6 @@ import { registerMultiTenantTestEndpoint } from "./routes/test-tenant";
 
 import {Request, Response} from 'express';
 import { calculateOptimalRoute } from './services/routeOptimizer';
-
-// Mapa para almacenar conexiones de los conductores
-const driverConnections = new Map<number, WebSocket>();
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -1793,7 +1788,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Actualizar método de pago de una factura
-  app.patch("/api/invoices/:id", async (req, res) => {
+  router.patch("/invoices/:id", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
       const { paymentMethod } = req.body;
@@ -1820,7 +1815,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Actualizar un item de factura específico
-  app.patch("/api/invoices/:invoiceId/items/:itemId", async (req, res) => {
+  router.patch("/invoices/:invoiceId/items/:itemId", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.invoiceId);
       const itemId = parseInt(req.params.itemId);
@@ -1848,7 +1843,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Productos
-  app.get("/api/products", async (req, res) =>{
+  router.get("/products", async (req, res) =>{
     try {
       const allProducts = await db
         .select({
@@ -1872,7 +1867,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/products", async (req, res) => {
+  router.post("/products", async (req, res) => {
     try {
       const productData = {
         ...req.body,
@@ -1893,7 +1888,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.patch("/api/products/:id", async (req, res) => {
+  router.patch("/products/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       console.log("PATCH /api/products/:id - Body recibido:", req.body);
@@ -1927,7 +1922,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.delete("/api/products/:id", async (req, res) => {
+  router.delete("/products/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
       console.log("DELETE /api/products/:id - Eliminando producto:", productId);
@@ -1955,7 +1950,7 @@ export async function registerRoutes(router: express.Router) {
   });
   
   // Endpoint para actualizar todos los productos existentes, estableciendo hasCommission = true
-  app.post("/api/products/update-all-commission", async (req, res) => {
+  router.post("/products/update-all-commission", async (req, res) => {
     try {
       console.log("POST /api/products/update-all-commission - Iniciando actualización de comisiones");
       
@@ -2006,7 +2001,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Pagos
-  app.get("/api/payments", async (req, res) => {
+  router.get("/payments", async (req, res) => {
     try {
       const allPayments = await db        
         .select({
@@ -2032,7 +2027,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/payments", async (req, res) => {
+  router.post("/payments", async (req, res) => {
     try {
       const paymentData = {
         ...req.body,
@@ -2054,7 +2049,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Pedidos
-  app.get("/api/orders", async (req, res) => {
+  router.get("/orders", async (req, res) => {
     try {
       const allOrders = await db
         .select({
@@ -2078,7 +2073,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/orders", async (req, res) => {
+  router.post("/orders", async (req, res) => {
     try {
       console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
 
@@ -2148,7 +2143,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/orders/:id/items", async (req, res) => {
+  router.get("/orders/:id/items", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       console.log("Buscando items para el pedido:", orderId);
@@ -2175,7 +2170,7 @@ export async function registerRoutes(router: express.Router) {
   });
   
   // Endpoint para agregar items a un pedido existente
-  app.post("/api/orders/:id/items", async (req, res) => {
+  router.post("/orders/:id/items", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       if (isNaN(orderId)) {
@@ -2210,7 +2205,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoint para actualizar el estado de un pedido
-  app.patch("/api/orders/:id/status", async (req, res) => {
+  router.patch("/orders/:id/status", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       if (isNaN(orderId)) {
@@ -2335,7 +2330,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/reports/sales", async (req, res) => {
+  router.get("/reports/sales", async (req, res) => {
     try {
       const range = req.query.range || 'month';
       let dateFilter;
@@ -2380,7 +2375,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/reports/payments", async (req, res) => {
+  router.get("/reports/payments", async (req, res) => {
     try {
       const range = req.query.range || 'month';
       let dateFilter;
@@ -2427,7 +2422,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoints para envases faltantes
-  app.get("/api/envases/faltantes/clientes", async (req, res) => {
+  router.get("/envases/faltantes/clientes", async (req, res) => {
     try {
       // Datos de ejemplo para pruebas
       const faltantesPorCliente = [
@@ -2462,7 +2457,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/envases/faltantes/choferes", async (req, res) => {
+  router.get("/envases/faltantes/choferes", async (req, res) => {
     try {
       // Datos de ejemplo para pruebas
       const faltantesPorChofer = [
@@ -2497,7 +2492,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/envases/faltantes", async (req, res) => {
+  router.post("/envases/faltantes", async (req, res) => {
     try {
       const faltanteData = {
         ...req.body,
@@ -2520,7 +2515,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/envases/faltantes/asignar", async (req, res) => {
+  router.post("/envases/faltantes/asignar", async (req, res) => {
     try {
       const {
         bottleReturnId,
@@ -2556,7 +2551,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Production batches endpoints
-  app.get("/api/production-batches", async (req, res) => {
+  router.get("/production-batches", async (req, res) => {
     try {
       const batches = await db
         .select({
@@ -2604,7 +2599,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/production-batches", async (req, res) => {
+  router.post("/production-batches", async (req, res) => {
     try {
       console.log("POST /api/production-batches - Datos recibidos:", req.body);
 
@@ -2710,7 +2705,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Trucks endpoints
-  app.get("/api/trucks", async (req, res) => {
+  router.get("/trucks", async (req, res) => {
     try {
       const allTrucks = await storage.listTrucks();
       res.json(allTrucks);
@@ -2720,7 +2715,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/trucks/:id", async (req, res) => {
+  router.get("/trucks/:id", async (req, res) => {
     try {
       const truckId = parseInt(req.params.id);
       const truck = await storage.getTruck(truckId);
@@ -2736,7 +2731,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/trucks", async (req, res) => {
+  router.post("/trucks", async (req, res) => {
     try {
       const result = insertTruckSchema.safeParse(req.body);
       if (!result.success) {
@@ -2751,7 +2746,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.put("/api/trucks/:id", async (req, res) => {
+  router.put("/trucks/:id", async (req, res) => {
     try {
       const truckId = parseInt(req.params.id);
       const result = insertTruckSchema.partial().safeParse(req.body);
@@ -2771,7 +2766,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.patch("/api/trucks/:id/status", async (req, res) => {
+  router.patch("/trucks/:id/status", async (req, res) => {
     try {
       const truckId = parseInt(req.params.id);
       const { status } = req.body;
@@ -2793,7 +2788,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Vehicle Loading endpoints
-  app.get("/api/vehicle-loading", async (req, res) => {
+  router.get("/vehicle-loading", async (req, res) => {
     try {
       const allLoadings = await db
         .select()
@@ -2808,7 +2803,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.post("/api/vehicle-loading", async (req, res) => {
+  router.post("/vehicle-loading", async (req, res) => {
     try {
       console.log("POST /api/vehicle-loading - Datos recibidos:", req.body);
 
@@ -2861,7 +2856,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Driver endpoints
-  app.get("/api/driver/deliveries/today", async (req, res) => {
+  router.get("/driver/deliveries/today", async (req, res) => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -2890,7 +2885,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/driver/cash-balance", async (req, res) => {
+  router.get("/driver/cash-balance", async (req, res) => {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -2909,7 +2904,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  app.get("/api/driver/performance", async (req, res) => {
+  router.get("/driver/performance", async (req, res) => {
     try {
       // Example performance metrics
       const performance = {
@@ -2925,60 +2920,10 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  // Configurar WebSocket después de las rutas API
-  const httpServer = createServer(app);
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws'
-  });
-
-  wss.on('connection', (ws) => {
-    console.log('Nueva conexión WebSocket');
-
-    ws.on('message', async (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-
-        if (data.type === 'driver_location') {
-          // Almacenar la conexión del conductor
-          driverConnections.set(data.driverId, ws);
-
-          // Actualizar ubicación en la base de datos
-          await storage.updateDriverLocation(data.driverId, {
-            latitude: data.latitude,
-            longitude: data.longitude,
-            timestamp: new Date()
-          });
-
-          // Broadcast a todos los clientes conectados
-          wss.clients.forEach((client) => {
-            if (client !== ws && client.readyState === WebSocket.OPEN) {
-              client.send(JSON.stringify({
-                type: 'location_update',
-                driverId: data.driverId,
-                location: {
-                  latitude: data.latitude,
-                  longitude: data.longitude,
-                  timestamp: new Date()
-                }
-              }));
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error procesando mensaje WebSocket:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      // Eliminar la conexión cuando se cierra
-      driverConnections.forEach((connection, driverId) => {
-        if (connection === ws) {
-          driverConnections.delete(driverId);
-        }
-      });
-    });
-  });
-
-  return httpServer;
+  // Nota: El WebSocketServer se configurará en server/index.ts
+  // Para permitir que el router sea modular, dejamos la configuración del WebSocketServer
+  // fuera de este archivo y solo registramos las rutas API
+  
+  // No se necesita retornar httpServer ya que las rutas se registran a través del router
+  // El server/index.ts es quien maneja la creación y configuración del servidor HTTP
 }
