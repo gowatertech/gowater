@@ -150,12 +150,21 @@ export default function CompaniesPage() {
 
   // Formatear fecha
   const formatDate = (dateString: string) => {
+    // Aseguramos que la fecha se interprete exactamente como está en UTC
+    // y luego se formatea correctamente para mostrar
     const date = new Date(dateString);
+    const utcDate = new Date(Date.UTC(
+      date.getUTCFullYear(),
+      date.getUTCMonth(),
+      date.getUTCDate()
+    ));
+    
     return new Intl.DateTimeFormat('es', { 
       year: 'numeric', 
       month: 'long', 
-      day: 'numeric' 
-    }).format(date);
+      day: 'numeric',
+      timeZone: 'UTC' // Usamos UTC para evitar desplazamientos por zona horaria
+    }).format(utcDate);
   };
 
   return (
