@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
+import { DropletIcon } from "lucide-react";
 
 // Esquema de validación para el formulario de login
 const loginSchema = z.object({
@@ -68,11 +69,21 @@ export default function PlatformLogin() {
   return (
     <div className="container flex items-center justify-center min-h-screen py-10">
       <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Plataforma Administrativa</CardTitle>
-          <CardDescription className="text-center">
-            Inicia sesión en tu cuenta de administrador
-          </CardDescription>
+        <CardHeader className="space-y-2">
+          <div className="flex justify-center mb-2">
+            <div className="bg-primary p-2 rounded-full">
+              <DropletIcon className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <div className="text-center">
+            <CardTitle className="text-3xl font-bold text-primary">GOWater</CardTitle>
+            <CardDescription className="text-base mt-1">
+              Plataforma Administrativa
+            </CardDescription>
+            <p className="text-sm text-muted-foreground mt-1">
+              Software Gestión de empresas de distribución de Agua
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (
