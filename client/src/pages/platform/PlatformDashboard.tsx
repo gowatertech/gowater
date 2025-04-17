@@ -15,7 +15,10 @@ function PlatformLayout({ children }: { children: React.ReactNode }) {
   // Función para cerrar sesión
   const handleLogout = async () => {
     try {
-      await apiRequest("/api/platform/platform-logout", { method: "POST" });
+      await apiRequest({
+        url: "/api/platform/platform-logout", 
+        method: "POST" 
+      });
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente",
@@ -108,11 +111,18 @@ export default function PlatformDashboard() {
   // Consulta para obtener el recuento de empresas
   const companiesQuery = useQuery({
     queryKey: ["/api/platform/companies/count"],
-    queryFn: () => apiRequest("/api/platform/companies/count", { method: "GET" }),
+    queryFn: () => 
+      apiRequest({
+        url: "/api/platform/companies/count", 
+        method: "GET" 
+      }),
     staleTime: 1000 * 60 * 5, // 5 minutos
-    onError: (error: any) => {
-      // Si hay un error de autenticación, redirigir al login
-      if (error.response?.status === 401 || error.response?.status === 403) {
+  });
+
+  // Manejar errores de autenticación
+  React.useEffect(() => {
+    const handleAuthError = (error: any) => {
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
         toast({
           title: "Sesión expirada",
           description: "Por favor, inicia sesión nuevamente",
@@ -120,13 +130,21 @@ export default function PlatformDashboard() {
         });
         setLocation("/platform/login");
       }
-    },
-  });
+    };
+
+    if (companiesQuery.error) {
+      handleAuthError(companiesQuery.error);
+    }
+  }, [companiesQuery.error, toast, setLocation]);
 
   // Consulta para obtener el recuento de usuarios
   const usersQuery = useQuery({
     queryKey: ["/api/platform/platform-users/count"],
-    queryFn: () => apiRequest("/api/platform/platform-users/count", { method: "GET" }),
+    queryFn: () => 
+      apiRequest({
+        url: "/api/platform/platform-users/count", 
+        method: "GET"
+      }),
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
@@ -134,9 +152,10 @@ export default function PlatformDashboard() {
   const invoicesQuery = useQuery({
     queryKey: ["/api/platform/membership-invoices/count", { status: "pending" }],
     queryFn: () =>
-      apiRequest("/api/platform/membership-invoices/count", {
+      apiRequest({
+        url: "/api/platform/membership-invoices/count",
         method: "GET",
-        params: { status: "pending" },
+        params: { status: "pending" }
       }),
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
@@ -172,7 +191,11 @@ export default function PlatformDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {companiesQuery.isLoading ? "..." : companiesQuery.data?.count || 0}
+                {companiesQuery.isLoading ? "..." : (
+                  typeof companiesQuery.data === 'object' && 'count' in companiesQuery.data 
+                    ? companiesQuery.data.count 
+                    : 0
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 Empresas registradas en la plataforma
@@ -190,7 +213,11 @@ export default function PlatformDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {usersQuery.isLoading ? "..." : usersQuery.data?.count || 0}
+                {usersQuery.isLoading ? "..." : (
+                  typeof usersQuery.data === 'object' && 'count' in usersQuery.data 
+                    ? usersQuery.data.count 
+                    : 0
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 Administradores de plataforma y empresas
@@ -208,7 +235,11 @@ export default function PlatformDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {invoicesQuery.isLoading ? "..." : invoicesQuery.data?.count || 0}
+                {invoicesQuery.isLoading ? "..." : (
+                  typeof invoicesQuery.data === 'object' && 'count' in invoicesQuery.data 
+                    ? invoicesQuery.data.count 
+                    : 0
+                )}
               </div>
               <p className="text-xs text-muted-foreground">
                 Facturas pendientes de pago

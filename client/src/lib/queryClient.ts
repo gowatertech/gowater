@@ -12,11 +12,44 @@ function getBaseUrl() {
   return '';
 }
 
+interface ApiRequestOptions {
+  url: string;
+  method: string;
+  data?: unknown;
+  params?: Record<string, string>;
+}
+
 export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+  options: ApiRequestOptions | string,
+  requestOptions?: Record<string, any>
+): Promise<any> {
+  let url: string;
+  let method: string = 'GET';
+  let data: unknown | undefined;
+  let params: Record<string, string> | undefined;
+
+  // Manejar tanto el formato de objeto como el formato de cadena + opciones
+  if (typeof options === 'string') {
+    url = options;
+    method = requestOptions?.method || 'GET';
+    data = requestOptions?.data;
+    params = requestOptions?.params;
+  } else {
+    url = options.url;
+    method = options.method;
+    data = options.data;
+    params = options.params;
+  }
+
+  // Agregar parámetros de consulta a la URL si existen
+  if (params) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      queryParams.append(key, value);
+    });
+    url = `${url}${url.includes('?') ? '&' : '?'}${queryParams.toString()}`;
+  }
+
   const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
   const fullUrl = `${getBaseUrl()}${apiUrl}`;
 
@@ -32,7 +65,13 @@ export async function apiRequest(
     });
 
     await throwIfResNotOk(res);
-    return res;
+    
+    // Intentar analizar la respuesta como JSON, si falla, devolver la respuesta directa
+    try {
+      return await res.json();
+    } catch (e) {
+      return res;
+    }
   } catch (error) {
     console.error(`API Request Error (${method} ${fullUrl}):`, error);
     throw error;

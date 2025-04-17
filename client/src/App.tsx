@@ -152,6 +152,10 @@ function Router() {
     };
   }, []);
 
+  // Importación de componentes de la plataforma
+  const PlatformLogin = lazy(() => import("@/pages/platform/PlatformLogin"));
+  const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
+
   // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
   if (isMobileApp) {
     return (
@@ -166,6 +170,29 @@ function Router() {
         <Route path="/mobile-app/mapa">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <MobileMap />
+          </Suspense>
+        </Route>
+      </Switch>
+    );
+  }
+  
+  // Si estamos en la sección de plataforma, renderizar sin DashboardLayout
+  if (location.startsWith("/platform")) {
+    return (
+      <Switch>
+        <Route path="/platform/login">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformLogin />
+          </Suspense>
+        </Route>
+        <Route path="/platform/dashboard">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformDashboard />
+          </Suspense>
+        </Route>
+        <Route path="/platform">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformLogin />
           </Suspense>
         </Route>
       </Switch>

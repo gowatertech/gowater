@@ -36,11 +36,12 @@ export default function PlatformLogin() {
   // Mutación para el login
   const loginMutation = useMutation({
     mutationFn: (data: LoginForm) =>
-      apiRequest("/api/platform/platform-login", {
+      apiRequest({
+        url: "/api/platform/platform-login",
         method: "POST",
         data,
       }),
-    onSuccess: (response) => {
+    onSuccess: (response: any) => {
       toast({
         title: "Inicio de sesión exitoso",
         description: response.message || "Bienvenido a la plataforma",
