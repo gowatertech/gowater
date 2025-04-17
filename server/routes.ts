@@ -1764,17 +1764,20 @@ export async function registerRoutes(router: express.Router) {
     try {
       const invoiceId = parseInt(req.params.id);
       
+      console.log(`GET /api/invoices/${invoiceId}/items - Inicio`);
+      
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener items de factura");
+        console.warn(`GET /api/invoices/${invoiceId}/items - Error: No se encontró companyId en el contexto`);
         return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
       }
       
-      console.log(`Obteniendo items para factura ${invoiceId}, companyId: ${companyId}`);
+      console.log(`GET /api/invoices/${invoiceId}/items - companyId: ${companyId}`);
       
       // Verificar primero que la factura existe y pertenece a la empresa
+      console.log(`GET /api/invoices/${invoiceId}/items - Verificando existencia de la factura`);
       const [invoice] = await db
         .select()
         .from(invoices)
@@ -1784,36 +1787,62 @@ export async function registerRoutes(router: express.Router) {
         ));
       
       if (!invoice) {
-        console.warn(`Factura ${invoiceId} no encontrada o no pertenece a la empresa ${companyId}`);
+        console.warn(`GET /api/invoices/${invoiceId}/items - Error: Factura ${invoiceId} no encontrada o no pertenece a la empresa ${companyId}`);
         return res.status(404).json({ error: "Factura no encontrada o no pertenece a la empresa actual" });
       }
       
+      console.log(`GET /api/invoices/${invoiceId}/items - Factura encontrada:`, JSON.stringify(invoice));
+      
       // Construir la consulta siempre incluyendo el filtro por companyId
-      const items = await db
-        .select({
-          id: invoiceItems.id,
-          invoiceId: invoiceItems.invoiceId,
-          productId: invoiceItems.productId,
-          quantity: invoiceItems.quantity,
-          price: invoiceItems.price,
-          total: invoiceItems.total,
-          productName: products.name,
-          isReturnable: products.isReturnable,
-          depositAmount: products.depositAmount,
-          productIcon: products.icon,
-          hasCommission: products.hasCommission,
-          companyId: invoiceItems.companyId // Añadir para mayor claridad en debugging
-        })
-        .from(invoiceItems)
-        .leftJoin(products, eq(invoiceItems.productId, products.id))
-        .where(and(
-          eq(invoiceItems.invoiceId, invoiceId),
-          eq(invoiceItems.companyId, companyId)
-        ));
-      
-      console.log(`Se encontraron ${items.length} items para la factura ${invoiceId}`);
-      
-      res.json(items);
+      console.log(`GET /api/invoices/${invoiceId}/items - Buscando items...`);
+      try {
+        const items = await db
+          .select({
+            id: invoiceItems.id,
+            invoiceId: invoiceItems.invoiceId,
+            productId: invoiceItems.productId,
+            quantity: invoiceItems.quantity,
+            price: invoiceItems.price,
+            total: invoiceItems.total,
+            productName: products.name,
+            isReturnable: products.isReturnable,
+            depositAmount: products.depositAmount,
+            productIcon: products.icon,
+            hasCommission: products.hasCommission,
+            companyId: invoiceItems.companyId // Añadir para mayor claridad en debugging
+          })
+          .from(invoiceItems)
+          .leftJoin(products, eq(invoiceItems.productId, products.id))
+          .where(and(
+            eq(invoiceItems.invoiceId, invoiceId),
+            eq(invoiceItems.companyId, companyId)
+          ));
+        
+        console.log(`GET /api/invoices/${invoiceId}/items - Se encontraron ${items.length} items`);
+        
+        if (items.length === 0) {
+          console.log(`GET /api/invoices/${invoiceId}/items - No hay items. Verificando tabla invoiceItems...`);
+          // Verificar si hay items en la tabla sin filtrar por companyId
+          const allItems = await db
+            .select({
+              id: invoiceItems.id,
+              invoiceId: invoiceItems.invoiceId,
+              companyId: invoiceItems.companyId
+            })
+            .from(invoiceItems)
+            .where(eq(invoiceItems.invoiceId, invoiceId));
+          
+          console.log(`GET /api/invoices/${invoiceId}/items - Total items sin filtro de companyId: ${allItems.length}`);
+          if (allItems.length > 0) {
+            console.log(`GET /api/invoices/${invoiceId}/items - Items encontrados pero con companyId diferente:`, JSON.stringify(allItems));
+          }
+        }
+        
+        res.json(items);
+      } catch (err) {
+        console.error(`GET /api/invoices/${invoiceId}/items - Error en consulta de items:`, err);
+        throw err;
+      }
     } catch (error) {
       console.error("Error al obtener items de factura:", error);
       res.status(500).json({ error: String(error) });
