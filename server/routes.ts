@@ -1730,12 +1730,27 @@ export async function registerRoutes(router: express.Router) {
       
       if (!companyId) {
         console.warn("No se encontró companyId en el contexto para obtener items de factura");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
       }
       
-      console.log(`Obteniendo items para factura ${invoiceId}, companyId: ${companyId || 'No definido'}`);
+      console.log(`Obteniendo items para factura ${invoiceId}, companyId: ${companyId}`);
       
-      // Construir la consulta con el filtro apropiado
-      let query = db
+      // Verificar primero que la factura existe y pertenece a la empresa
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        ));
+      
+      if (!invoice) {
+        console.warn(`Factura ${invoiceId} no encontrada o no pertenece a la empresa ${companyId}`);
+        return res.status(404).json({ error: "Factura no encontrada o no pertenece a la empresa actual" });
+      }
+      
+      // Construir la consulta siempre incluyendo el filtro por companyId
+      const items = await db
         .select({
           id: invoiceItems.id,
           invoiceId: invoiceItems.invoiceId,
@@ -1747,23 +1762,15 @@ export async function registerRoutes(router: express.Router) {
           isReturnable: products.isReturnable,
           depositAmount: products.depositAmount,
           productIcon: products.icon,
+          hasCommission: products.hasCommission,
           companyId: invoiceItems.companyId // Añadir para mayor claridad en debugging
         })
         .from(invoiceItems)
-        .leftJoin(products, eq(invoiceItems.productId, products.id));
-      
-      // Si tenemos companyId, aplicar filtro por companyId y invoiceId
-      if (companyId) {
-        query = query.where(and(
+        .leftJoin(products, eq(invoiceItems.productId, products.id))
+        .where(and(
           eq(invoiceItems.invoiceId, invoiceId),
           eq(invoiceItems.companyId, companyId)
         ));
-      } else {
-        // Si no hay companyId, solo filtrar por invoiceId
-        query = query.where(eq(invoiceItems.invoiceId, invoiceId));
-      }
-      
-      const items = await query;
       
       console.log(`Se encontraron ${items.length} items para la factura ${invoiceId}`);
       
@@ -1941,7 +1948,7 @@ export async function registerRoutes(router: express.Router) {
       
       if (invoice) {
         // Obtener todos los items de la factura
-        const items = await db
+        const invoiceItemSummary = await db
           .select({
             total: sql`SUM(total::numeric)`.mapWith(Number)
           })
@@ -1951,17 +1958,19 @@ export async function registerRoutes(router: express.Router) {
             eq(invoiceItems.companyId, companyId)
           ));
         
-        if (invoiceItems.length > 0 && invoiceItems[0].total) {
+        if (invoiceItemSummary.length > 0 && invoiceItemSummary[0].total) {
           // Actualizar el total de la factura
           await db
             .update(invoices)
             .set({ 
-              total: invoiceItems[0].total.toFixed(2) 
+              total: invoiceItemSummary[0].total.toFixed(2) 
             })
             .where(and(
               eq(invoices.id, invoiceId),
               eq(invoices.companyId, companyId)
             ));
+          
+          console.log(`Total de factura actualizado a ${invoiceItemSummary[0].total.toFixed(2)}`);
         }
       }
 
@@ -1976,6 +1985,16 @@ export async function registerRoutes(router: express.Router) {
   // Productos
   router.get("/products", async (req, res) =>{
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener productos");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`Obteniendo productos para la empresa ${companyId}`);
+      
       const allProducts = await db
         .select({
           id: products.id,
@@ -1985,12 +2004,14 @@ export async function registerRoutes(router: express.Router) {
           icon: products.icon,
           isReturnable: products.isReturnable,
           depositAmount: products.depositAmount,
-          hasCommission: products.hasCommission
+          hasCommission: products.hasCommission,
+          companyId: products.companyId
         })
         .from(products)
+        .where(eq(products.companyId, companyId))
         .orderBy(products.name);
 
-      console.log("GET /api/products - Retornando:", allProducts.length, "productos");
+      console.log(`GET /api/products - Retornando ${allProducts.length} productos para la empresa ${companyId}`);
       res.json(allProducts);
     } catch (error) {
       console.error("Error al obtener productos:", error);
@@ -2000,11 +2021,22 @@ export async function registerRoutes(router: express.Router) {
 
   router.post("/products", async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para crear producto");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
       const productData = {
         ...req.body,
         stock: Number(req.body.stock) || 0,
         price: Number(req.body.price).toFixed(2),
+        companyId // Asegurar que se incluya companyId
       };
+
+      console.log(`Creando producto para la empresa ${companyId}:`, productData);
 
       const [product] = await db
         .insert(products)
@@ -2022,30 +2054,48 @@ export async function registerRoutes(router: express.Router) {
   router.patch("/products/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      console.log("PATCH /api/products/:id - Body recibido:", req.body);
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para actualizar producto");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`PATCH /api/products/${productId} - Body recibido:`, req.body, `companyId: ${companyId}`);
 
       const productData = {
         ...req.body,
         stock: req.body.stock !== undefined ? Number(req.body.stock) : undefined,
         price: req.body.price !== undefined ? Number(req.body.price).toFixed(2) : undefined,
+        // No permitir cambiar el companyId
+        companyId: undefined
       };
 
+      // Verificar que el producto existe y pertenece a esta empresa
       const [existingProduct] = await db
         .select()
         .from(products)
-        .where(eq(products.id, productId));
+        .where(and(
+          eq(products.id, productId),
+          eq(products.companyId, companyId)
+        ));
 
       if (!existingProduct) {
-        return res.status(404).json({ error: "Producto no encontrado" });
+        return res.status(404).json({ error: "Producto no encontrado o no pertenece a la empresa actual" });
       }
 
       const [updatedProduct] = await db
         .update(products)
         .set(productData)
-        .where(eq(products.id, productId))
+        .where(and(
+          eq(products.id, productId),
+          eq(products.companyId, companyId) // Filtrar por companyId para evitar modificar productos de otras empresas
+        ))
         .returning();
 
-      console.log("PATCH /api/products/:id - Producto actualizado:", updatedProduct);
+      console.log(`PATCH /api/products/${productId} - Producto actualizado:`, updatedProduct);
       res.json(updatedProduct);
     } catch (error) {
       console.error("Error al actualizar producto:", error);
@@ -2056,23 +2106,39 @@ export async function registerRoutes(router: express.Router) {
   router.delete("/products/:id", async (req, res) => {
     try {
       const productId = parseInt(req.params.id);
-      console.log("DELETE /api/products/:id - Eliminando producto:", productId);
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para eliminar producto");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`DELETE /api/products/${productId} - Eliminando producto para la empresa ${companyId}`);
 
+      // Verificar que el producto existe y pertenece a esta empresa
       const [existingProduct] = await db
         .select()
         .from(products)
-        .where(eq(products.id, productId));
+        .where(and(
+          eq(products.id, productId),
+          eq(products.companyId, companyId)
+        ));
 
       if (!existingProduct) {
-        return res.status(404).json({ error: "Producto no encontrado" });
+        return res.status(404).json({ error: "Producto no encontrado o no pertenece a la empresa actual" });
       }
 
       const deletedProduct = await db
         .delete(products)
-        .where(eq(products.id, productId))
+        .where(and(
+          eq(products.id, productId),
+          eq(products.companyId, companyId) // Filtrar por companyId para evitar eliminar productos de otras empresas
+        ))
         .returning();
 
-      console.log("DELETE /api/products/:id - Producto eliminado:", deletedProduct);
+      console.log(`DELETE /api/products/${productId} - Producto eliminado:`, deletedProduct);
       res.json({ success: true, message: "Producto eliminado correctamente" });
     } catch (error) {
       console.error("Error al eliminar producto:", error);
