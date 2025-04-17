@@ -1847,21 +1847,35 @@ export async function registerRoutes(router: express.Router) {
     try {
       const invoiceId = parseInt(req.params.id);
       const { paymentMethod } = req.body;
-
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para actualizar factura");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
       if (!["cash", "credit", "card"].includes(paymentMethod)) {
         return res.status(400).json({ error: "Método de pago inválido" });
       }
+      
+      console.log(`Actualizando factura ${invoiceId}, método de pago: ${paymentMethod}, companyId: ${companyId}`);
 
       const [updatedInvoice] = await db
         .update(invoices)
         .set({ paymentMethod })
-        .where(eq(invoices.id, invoiceId))
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId) // Asegurar que solo se actualice la factura si pertenece a la empresa
+        ))
         .returning();
 
       if (!updatedInvoice) {
-        return res.status(404).json({ error: "Factura no encontrada" });
+        return res.status(404).json({ error: "Factura no encontrada o no pertenece a la empresa actual" });
       }
-
+      
+      console.log("Factura actualizada:", updatedInvoice);
       res.json(updatedInvoice);
     } catch (error) {
       console.error("Error al actualizar factura:", error);
@@ -1875,7 +1889,30 @@ export async function registerRoutes(router: express.Router) {
       const invoiceId = parseInt(req.params.invoiceId);
       const itemId = parseInt(req.params.itemId);
       const { quantity, price } = req.body;
-
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para actualizar item de factura");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      console.log(`Actualizando item ${itemId} de factura ${invoiceId}, companyId: ${companyId}`);
+      
+      // Verificar que el item existe y pertenece a la empresa
+      const [existingItem] = await db
+        .select()
+        .from(invoiceItems)
+        .where(and(
+          eq(invoiceItems.id, itemId),
+          eq(invoiceItems.companyId, companyId)
+        ));
+        
+      if (!existingItem) {
+        return res.status(404).json({ error: "Item no encontrado o no pertenece a la empresa actual" });
+      }
+      
       const [updatedItem] = await db
         .update(invoiceItems)
         .set({
@@ -1883,13 +1920,52 @@ export async function registerRoutes(router: express.Router) {
           price: price,
           total: (parseFloat(price) * parseInt(quantity)).toFixed(2),
         })
-        .where(eq(invoiceItems.id, itemId))
+        .where(and(
+          eq(invoiceItems.id, itemId),
+          eq(invoiceItems.companyId, companyId) // Asegurar que solo se actualice el item si pertenece a la empresa
+        ))
         .returning();
 
       if (!updatedItem) {
         return res.status(404).json({ error: "Item no encontrado" });
       }
+      
+      // Actualizar el total de la factura
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        ));
+      
+      if (invoice) {
+        // Obtener todos los items de la factura
+        const items = await db
+          .select({
+            total: sql`SUM(total::numeric)`.mapWith(Number)
+          })
+          .from(invoiceItems)
+          .where(and(
+            eq(invoiceItems.invoiceId, invoiceId),
+            eq(invoiceItems.companyId, companyId)
+          ));
+        
+        if (invoiceItems.length > 0 && invoiceItems[0].total) {
+          // Actualizar el total de la factura
+          await db
+            .update(invoices)
+            .set({ 
+              total: invoiceItems[0].total.toFixed(2) 
+            })
+            .where(and(
+              eq(invoices.id, invoiceId),
+              eq(invoices.companyId, companyId)
+            ));
+        }
+      }
 
+      console.log("Item de factura actualizado:", updatedItem);
       res.json(updatedItem);
     } catch (error) {
       console.error("Error al actualizar item:", error);
