@@ -3,15 +3,19 @@ import { platformStorage } from "./platform-storage";
 import { 
   insertCompanySchema, 
   insertPlanSchema, 
-  insertMembershipInvoiceSchema 
+  insertMembershipInvoiceSchema,
+  companies
 } from "../shared/platform-schema";
 import { 
-  insertPlatformUserSchema 
+  insertPlatformUserSchema,
+  platformUsers
 } from "../shared/platform-users-schema";
 import { 
   insertCompanySettingsSchema 
 } from "../shared/company-settings-schema";
 import bcrypt from "bcrypt";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export function registerPlatformRoutes(router: Router) {
   // Middleware de autenticación para endpoints de plataforma
@@ -376,10 +380,17 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: "Usuario inactivo" });
       }
       
-      // Actualizar fecha de último login
-      await platformStorage.updatePlatformUser(user.id, { 
-        lastLogin: new Date().toISOString() 
-      });
+      // Para actualizar la fecha de último login lo haremos directo en la base de datos
+      // ya que no está en el schema de validación
+      try {
+        const lastLoginDate = new Date();
+        await db
+          .update(platformUsers)
+          .set({ lastLogin: lastLoginDate })
+          .where(eq(platformUsers.id, user.id));
+      } catch (error) {
+        console.error("Error al actualizar fecha de último login:", error);
+      }
       
       // Crear sesión
       req.session.user = {

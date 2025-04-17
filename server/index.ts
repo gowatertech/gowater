@@ -1,13 +1,37 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { registerPlatformEndpoints } from "./platform-routes-register";
 import { setupVite, log } from "./vite";
 import path from "path";
+import session from "express-session";
+import { tenantMiddleware, companyFilterMiddleware } from "./multi-tenant-middleware";
+import { platformStorage } from "./platform-storage";
+import { setupPlatform } from "./platform-db-setup";
 
 const app = express();
 
 // Basic middleware for parsing JSON and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Configuración de sesión
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'sistema_multi_empresas_secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 1000 * 60 * 60 * 24 // 1 día
+  }
+};
+
+app.use(session(sessionConfig));
+
+// Aplicar middleware multi-tenant después de la sesión
+app.use(tenantMiddleware);
+
+// Aplicar filtro de compañía para separar datos
+app.use(companyFilterMiddleware);
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -38,11 +62,21 @@ app.use((req, res, next) => {
     log("Starting server initialization...");
     log(`Current working directory: ${process.cwd()}`);
     log(`Environment: ${process.env.NODE_ENV}`);
+    
+    // Setup platform tables and initial data
+    log("Setting up platform database tables and initial data...");
+    await setupPlatform();
+    log("Platform setup completed");
+    
     let server;
 
-    // Register API routes first to ensure they take precedence
+    // Register Platform API routes first (for admin platform)
+    registerPlatformEndpoints(app);
+    log("Platform routes registered successfully");
+    
+    // Register regular API routes for company operations
     server = await registerRoutes(app);
-    log("Routes registered successfully");
+    log("Company routes registered successfully");
 
     // Configure static file serving and client-side routing
     if (process.env.NODE_ENV === "production") {

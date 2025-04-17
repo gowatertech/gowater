@@ -2,6 +2,7 @@ import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 import { companies } from "./platform-schema";
+import { users } from "./schema";
 
 // Usuarios de la plataforma (platform_admins, company_admins)
 export const platformUsers = pgTable("platform_users", {
@@ -50,9 +51,6 @@ export const userCompany = pgTable("user_company", {
   companyId: integer("company_id").notNull().references(() => companies.id),
 });
 
-// Referencia a la tabla de usuarios existente
-import { users } from "./schema";
-
 // Relaciones para user_company
 export const userCompanyRelations = relations(userCompany, ({ one }) => ({
   user: one(users, {
@@ -62,5 +60,5 @@ export const userCompanyRelations = relations(userCompany, ({ one }) => ({
   company: one(companies, {
     fields: [userCompany.companyId],
     references: [companies.id],
-  }),
-});
+  })
+}));
