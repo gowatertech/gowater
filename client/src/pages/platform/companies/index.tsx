@@ -205,7 +205,12 @@ export default function CompaniesPage() {
                       <TableRow key={company.id}>
                         <TableCell className="font-medium">{company.name}</TableCell>
                         <TableCell>{company.subdomain}</TableCell>
-                        <TableCell>{company.planName || `Plan #${company.planId}`}</TableCell>
+                        <TableCell>
+                          {company.planId === 1 ? 'Plan Básico' : 
+                           company.planId === 2 ? 'Plan Profesional' : 
+                           company.planId === 3 ? 'Plan Empresarial' : 
+                           `Plan #${company.planId}`}
+                        </TableCell>
                         <TableCell>
                           {formatDate(company.expirationDate)}
                         </TableCell>

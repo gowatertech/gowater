@@ -53,9 +53,11 @@ interface PlatformUser {
   id: number;
   name: string;
   email: string;
-  role: 'platform_admin' | 'company_admin';
-  isActive: boolean;
-  companies?: { id: number; name: string }[];
+  role: string;
+  active: boolean;
+  companyId?: number;
+  phone?: string;
+  lastLogin?: string;
   createdAt?: string;
 }
 
@@ -255,8 +257,8 @@ export default function UsersPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {user.companies?.length ? (
-                            <span>{user.companies.length} empresas</span>
+                          {user.companyId ? (
+                            <span>Empresa #{user.companyId}</span>
                           ) : (
                             <span className="text-muted-foreground">Ninguna</span>
                           )}
