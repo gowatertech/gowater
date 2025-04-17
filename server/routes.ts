@@ -5,6 +5,7 @@ import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema } from "@shared/schema";
 import { db } from './db';
+import { companyDb, getCurrentCompanyId } from './company-db';
 import { eq, and, sql, inArray, desc } from 'drizzle-orm';
 import express from 'express';
 import { registerVehicleLoadingRoutes } from "./routes/vehicleLoading";
@@ -51,6 +52,43 @@ export async function registerRoutes(app: Express) {
 
   // Registrar endpoints para comisiones
   app.use('/api/commissions', commissionsRoutes);
+  
+  // Endpoint de prueba para verificar el funcionamiento del filtrado multi-tenant
+  app.get("/api/test-company-filter", async (req, res) => {
+    try {
+      // Obtener el ID de compañía del contexto
+      const currentCompanyId = getCurrentCompanyId();
+      
+      console.log(`Test filtro multi-tenant. CompanyId en contexto: ${currentCompanyId}`);
+      
+      // Realizar una consulta con el cliente DB original (sin filtro)
+      const allCustomersWithoutFilter = await db
+        .select()
+        .from(customers)
+        .limit(10);
+      
+      // Realizar la misma consulta pero con el cliente adaptado para multi-tenant
+      const allCustomersWithFilter = await companyDb
+        .select()
+        .from(customers)
+        .limit(10);
+      
+      res.json({
+        companyIdEnContexto: currentCompanyId,
+        sinFiltro: {
+          cantidad: allCustomersWithoutFilter.length,
+          primeros5: allCustomersWithoutFilter.slice(0, 5)
+        },
+        conFiltroCompania: {
+          cantidad: allCustomersWithFilter.length,
+          primeros5: allCustomersWithFilter.slice(0, 5)
+        }
+      });
+    } catch (error) {
+      console.error("Error en prueba de filtrado multi-tenant:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
   
   // Endpoint para obtener el usuario actual
   app.get("/api/me", async (req, res) => {
