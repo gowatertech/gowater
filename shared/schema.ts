@@ -794,6 +794,7 @@ export const vehicleLoading = pgTable("vehicle_loading", {
 
 export const vehicleLoadingItems = pgTable("vehicle_loading_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   loadingId: integer("loading_id").notNull().references(() => vehicleLoading.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
@@ -856,6 +857,7 @@ export type VehicleLoadingItem = typeof vehicleLoadingItems.$inferSelect;
 // Route Settlement (Cuadre de Ruta)
 export const routeSettlements = pgTable("route_settlements", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   vehicleLoadingId: integer("vehicle_loading_id").notNull().references(() => vehicleLoading.id),
   settlementDate: timestamp("settlement_date", { mode: 'string' }).notNull().defaultNow(),
   totalCashReceived: decimal("total_cash_received", { precision: 10, scale: 2 }).notNull().default("0.00"),
@@ -873,6 +875,7 @@ export const routeSettlements = pgTable("route_settlements", {
 // Route Settlement Items (Items del Cuadre de Ruta)
 export const routeSettlementItems = pgTable("route_settlement_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   settlementId: integer("settlement_id").notNull().references(() => routeSettlements.id),
   productId: integer("product_id").notNull().references(() => products.id),
   loadedQuantity: integer("loaded_quantity").notNull(),
@@ -933,6 +936,7 @@ export type InsertRouteSettlementItem = z.infer<typeof insertRouteSettlementSche
 // Recurring Orders - Pedidos Recurrentes
 export const recurringOrders = pgTable("recurring_orders", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   customerId: integer("customer_id").notNull().references(() => customers.id),
   name: text("name").notNull(),
   frequency: text("frequency", { 
@@ -956,6 +960,7 @@ export const recurringOrders = pgTable("recurring_orders", {
 
 export const recurringOrderItems = pgTable("recurring_order_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   recurringOrderId: integer("recurring_order_id").notNull().references(() => recurringOrders.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
@@ -1012,6 +1017,7 @@ export type InsertRecurringOrderItem = z.infer<typeof insertRecurringOrderItemSc
 // Comisiones
 export const commissions = pgTable("commissions", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   userId: integer("user_id").references(() => users.id),
   userRole: text("user_role", { enum: ["driver", "helper"] }),
   routeId: integer("route_id").references(() => routes.id),
@@ -1028,6 +1034,7 @@ export const commissions = pgTable("commissions", {
 
 export const commissionItems = pgTable("commission_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   commissionId: integer("commission_id").references(() => commissions.id),
   orderId: integer("order_id").references(() => orders.id),
   productId: integer("product_id").references(() => products.id),
