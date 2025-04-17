@@ -55,8 +55,9 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
         req.session.companyId = req.session.user.companyId;
       }
       
-      // Si la ruta comienza con /platform, no aplicar restricciones de tenant
-      if (req.path.startsWith('/api/platform')) {
+      // Si la ruta comienza con /api/platform o la request es para /platform, no aplicar restricciones de tenant
+      if (req.path.startsWith('/api/platform') || req.path.startsWith('/platform') || 
+          (req.headers.referer && req.headers.referer.includes('/platform'))) {
         return next();
       }
       

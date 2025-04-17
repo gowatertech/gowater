@@ -24,9 +24,16 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
   const [location] = useLocation();
   const { toast } = useToast();
 
-  // Función para cerrar sesión
+  // Función para cerrar sesión (solo para demostración)
   const handleLogout = async () => {
     try {
+      // En modo demostración, solo redireccionamos sin llamar a la API
+      toast({
+        title: "Modo demostración",
+        description: "La función de cierre de sesión está desactivada en modo demostración.",
+      });
+      
+      /* Código original
       await apiRequest({
         url: "/api/platform/platform-logout", 
         method: "POST" 
@@ -37,6 +44,7 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
       });
       // Redireccionar a la página de login
       setLocation("/platform/login");
+      */
     } catch (error) {
       toast({
         title: "Error",
