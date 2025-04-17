@@ -345,6 +345,7 @@ function Router() {
         {/* Páginas de prueba de impresión */}
         <Route path="/test-print" component={TestPage} />
         <Route path="/test-print-payment" component={TestPrintPayment} />
+        <Route path="/test-billing" component={lazy(() => import('./pages/test-billing'))} />
 
         <Route component={NotFound} />
       </Switch>
