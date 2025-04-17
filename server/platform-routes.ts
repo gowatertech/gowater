@@ -410,7 +410,7 @@ export function registerPlatformRoutes(router: Router) {
         name: user.name,
         email: user.email,
         role: user.role,
-        companyId: user.companyId,
+        companyId: user.companyId || undefined,
         isPlatformUser: true
       };
       

@@ -241,38 +241,80 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async listPlatformUsers(role?: string, companyId?: number): Promise<PlatformUser[]> {
-    // Construir la consulta SQL base
-    let query = platformDb.select().from(platformUsers);
-    
-    // Aplicar filtro de rol si se especifica
-    if (role) {
-      query = query.where(sql`platform_users.role = ${role}`);
-    }
-    
-    // Aplicar filtro de compañía si se especifica
-    if (companyId !== undefined) {
-      // Si ya hay un filtro anterior, agregamos este filtro de manera adicional
+    try {
+      // Los SQL queries directos para evitar problemas de tipo
+      let sqlQuery = `SELECT * FROM platform_users`;
+      const params: any[] = [];
+      let paramIndex = 1;
+      let whereClauseAdded = false;
+      
+      // Construir la cláusula WHERE según los filtros proporcionados
       if (role) {
-        query = query.where(sql`platform_users.company_id = ${companyId}`);
-      } else {
-        query = query.where(sql`platform_users.company_id = ${companyId}`);
+        sqlQuery += ` WHERE role = $${paramIndex}`;
+        params.push(role);
+        paramIndex++;
+        whereClauseAdded = true;
       }
+      
+      if (companyId !== undefined) {
+        if (whereClauseAdded) {
+          sqlQuery += ` AND company_id = $${paramIndex}`;
+        } else {
+          sqlQuery += ` WHERE company_id = $${paramIndex}`;
+        }
+        params.push(companyId);
+        paramIndex++;
+      }
+      
+      // Ordenar por nombre
+      sqlQuery += ` ORDER BY name`;
+      
+      // Ejecutar query nativo
+      const { rows } = await platformDb.connection.query(sqlQuery, params);
+      
+      // Convertir filas a PlatformUser[] (TypeScript)
+      return rows as PlatformUser[];
+    } catch (error) {
+      console.error("Error al listar usuarios de plataforma:", error);
+      return [];
     }
-    
-    // Ordenar por nombre
-    return await query.orderBy(platformUsers.name);
   }
 
   // Implementación de configuraciones de empresa
   async createCompanySettings(data: InsertCompanySettings): Promise<CompanySettings> {
-    // Convertir tax a string si está presente
-    const settingsData = {
-      ...data,
-      tax: data.tax?.toString()
-    };
-    
-    const [created] = await platformDb.insert(companySettings).values(settingsData).returning();
-    return created;
+    try {
+      // Preparar datos con las conversiones necesarias
+      const settingsData: any = {
+        companyId: data.companyId,
+        name: data.name,
+        street: data.street,
+        streetNumber: data.streetNumber,
+        provinceId: data.provinceId,
+        municipalityId: data.municipalityId,
+        contactPhone: data.contactPhone,
+        country: data.country,
+        currency: data.currency,
+        // Campos opcionales
+        logo: data.logo,
+        rnc: data.rnc,
+        email: data.email,
+        // Campos numéricos que necesitan conversión
+        tax: data.tax !== undefined ? data.tax.toString() : "0.00",
+        latitude: data.latitude,
+        longitude: data.longitude
+      };
+      
+      // Insertar en la base de datos
+      const [result] = await platformDb
+        .insert(companySettings)
+        .values(settingsData)
+        .returning();
+      
+      return result;
+    } catch (error) {
+      console.error("Error al crear configuración de empresa:", error);
+      throw new Error("No se pudo crear la configuración de empresa");
+    }
   }
 
   async getCompanySettings(companyId: number): Promise<CompanySettings | undefined> {
