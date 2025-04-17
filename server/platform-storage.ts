@@ -116,7 +116,13 @@ export class PlatformStorage implements IPlatformStorage {
 
   // Implementación de planes
   async createPlan(data: InsertPlan): Promise<Plan> {
-    const [created] = await platformDb.insert(plans).values(data).returning();
+    // Convertir price de number a string para decimal
+    const planData = {
+      ...data,
+      price: data.price.toString()
+    };
+    
+    const [created] = await platformDb.insert(plans).values(planData).returning();
     return created;
   }
 
@@ -126,9 +132,17 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async updatePlan(id: number, data: Partial<InsertPlan>): Promise<Plan> {
+    // Preparar los datos para actualizar
+    const updateData: any = { ...data };
+    
+    // Convertir price a string si está presente
+    if (updateData.price !== undefined) {
+      updateData.price = updateData.price.toString();
+    }
+    
     const [updated] = await platformDb
       .update(plans)
-      .set(data)
+      .set(updateData)
       .where(eq(plans.id, id))
       .returning();
     return updated;
@@ -144,7 +158,14 @@ export class PlatformStorage implements IPlatformStorage {
 
   // Implementación de facturas de membresía
   async createMembershipInvoice(data: InsertMembershipInvoice): Promise<MembershipInvoice> {
-    const [created] = await platformDb.insert(membershipInvoices).values(data).returning();
+    // Convertir datos necesarios
+    const invoiceData = {
+      ...data,
+      amount: data.amount.toString(),
+      dueDate: new Date(data.dueDate)
+    };
+    
+    const [created] = await platformDb.insert(membershipInvoices).values(invoiceData).returning();
     return created;
   }
 
@@ -154,9 +175,22 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async updateMembershipInvoice(id: number, data: Partial<InsertMembershipInvoice>): Promise<MembershipInvoice> {
+    // Preparar los datos para actualizar
+    const updateData: any = { ...data };
+    
+    // Convertir amount a string si está presente
+    if (updateData.amount !== undefined) {
+      updateData.amount = updateData.amount.toString();
+    }
+    
+    // Convertir dueDate a Date si está presente
+    if (updateData.dueDate) {
+      updateData.dueDate = new Date(updateData.dueDate);
+    }
+    
     const [updated] = await platformDb
       .update(membershipInvoices)
-      .set(data)
+      .set(updateData)
       .where(eq(membershipInvoices.id, id))
       .returning();
     return updated;
@@ -207,22 +241,37 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async listPlatformUsers(role?: string, companyId?: number): Promise<PlatformUser[]> {
+    // Construir la consulta SQL base
     let query = platformDb.select().from(platformUsers);
     
+    // Aplicar filtro de rol si se especifica
     if (role) {
-      query = query.where(eq(platformUsers.role, role));
+      query = query.where(sql`platform_users.role = ${role}`);
     }
     
-    if (companyId) {
-      query = query.where(eq(platformUsers.companyId, companyId));
+    // Aplicar filtro de compañía si se especifica
+    if (companyId !== undefined) {
+      // Si ya hay un filtro anterior, agregamos este filtro de manera adicional
+      if (role) {
+        query = query.where(sql`platform_users.company_id = ${companyId}`);
+      } else {
+        query = query.where(sql`platform_users.company_id = ${companyId}`);
+      }
     }
     
+    // Ordenar por nombre
     return await query.orderBy(platformUsers.name);
   }
 
   // Implementación de configuraciones de empresa
   async createCompanySettings(data: InsertCompanySettings): Promise<CompanySettings> {
-    const [created] = await platformDb.insert(companySettings).values(data).returning();
+    // Convertir tax a string si está presente
+    const settingsData = {
+      ...data,
+      tax: data.tax?.toString()
+    };
+    
+    const [created] = await platformDb.insert(companySettings).values(settingsData).returning();
     return created;
   }
 
@@ -235,9 +284,17 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async updateCompanySettings(companyId: number, data: Partial<InsertCompanySettings>): Promise<CompanySettings> {
+    // Preparar los datos para actualizar
+    const updateData: any = { ...data };
+    
+    // Convertir tax a string si está presente
+    if (updateData.tax !== undefined) {
+      updateData.tax = updateData.tax.toString();
+    }
+    
     const [updated] = await platformDb
       .update(companySettings)
-      .set(data)
+      .set(updateData)
       .where(eq(companySettings.companyId, companyId))
       .returning();
     return updated;
