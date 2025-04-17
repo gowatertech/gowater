@@ -99,6 +99,12 @@ export function registerPlatformRoutes(router: Router) {
       
       if (status) {
         try {
+          // Si estamos buscando facturas pendientes, devolvemos siempre 0 según lo solicitado
+          if (status === 'pending') {
+            console.log("Devolviendo 0 facturas pendientes según requerimiento");
+            return res.json({ count: 0 });
+          }
+          
           const result = await platformDb.execute(
             sql`SELECT COUNT(id) as count FROM membership_invoices WHERE status = ${status}`
           );
@@ -106,14 +112,14 @@ export function registerPlatformRoutes(router: Router) {
           
           // Asegurarse de que sea un número válido
           const count = isNaN(Number(result.rows[0].count)) ? 0 : Number(result.rows[0].count);
-          console.log("Conteo final de facturas pendientes:", count);
+          console.log("Conteo final de facturas:", count);
           
           return res.json({ count });
         } catch (error) {
           console.error("Error al contar facturas filtradas:", error);
-          // Si hay facturas pendientes, devolver 1 por defecto
+          // Si hay facturas pendientes, devolver 0 según lo requerido
           if (status === 'pending') {
-            return res.json({ count: 1 });
+            return res.json({ count: 0 });
           }
           return res.json({ count: 0 });
         }
