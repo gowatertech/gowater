@@ -116,6 +116,7 @@ export const cities = pgTable("cities", {
 
 export const sectors = pgTable("sectors", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   cityId: integer("city_id").notNull().references(() => cities.id),
   code: text("code").notNull().unique(),
@@ -294,6 +295,7 @@ export const orders = pgTable("orders", {
 
 export const orderItems = pgTable("order_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   orderId: integer("order_id").notNull(),
   productId: integer("product_id").notNull(),
   quantity: integer("quantity").notNull(),
@@ -351,6 +353,7 @@ export const insertOrderItemSchema = z.object({
 // Bottle Returns
 export const bottleReturns = pgTable("bottle_returns", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   orderId: integer("order_id").notNull().references(() => orders.id),
   productId: integer("product_id").notNull().references(() => products.id),
   expectedQuantity: integer("expected_quantity").notNull(),
@@ -394,6 +397,7 @@ export const insertBottleReturnSchema = z.object({
 // Driver Cash Balances
 export const driverCashBalances = pgTable("driver_cash_balances", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   driverId: integer("driver_id").notNull().references(() => users.id),
   date: timestamp("date").notNull().defaultNow(),
   initialBalance: decimal("initial_balance", { precision: 10, scale: 2 }).default("0.00"),
@@ -416,6 +420,7 @@ export const insertDriverCashBalanceSchema = z.object({
 // Returned Bottles
 export const returnedBottles = pgTable("returned_bottles", {
     id: serial("id").primaryKey(),
+    companyId: integer("company_id").notNull(), // Añadido companyId
     orderId: integer("order_id").references(() => orders.id),
     productId: integer("product_id").references(() => products.id),
     quantity: integer("quantity").notNull(),
@@ -482,6 +487,7 @@ export const invoices = pgTable("invoices", {
 // Invoice Items (Items de Factura)
 export const invoiceItems = pgTable("invoice_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
@@ -522,6 +528,7 @@ export const bills = pgTable("bills", {
 // Bill Items (Items de Factura)
 export const billItems = pgTable("bill_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   billId: integer("bill_id").notNull().references(() => bills.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
@@ -548,6 +555,7 @@ export const insertBillItemSchema = z.object({
 // Payments
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
   customerId: integer("customer_id").notNull().references(() => customers.id),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
@@ -644,6 +652,7 @@ export const insertSettingsSchema = z.object({
 // Production Batches
 export const productionBatches = pgTable("production_batches", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   batchNumber: text("batch_number").notNull().unique(),
   warehouseId: integer("warehouse_id").notNull().references(() => warehouses.id),
   date: timestamp("date").notNull().defaultNow(),
@@ -654,6 +663,7 @@ export const productionBatches = pgTable("production_batches", {
 
 export const productionBatchItems = pgTable("production_batch_items", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   batchId: integer("batch_id").notNull().references(() => productionBatches.id),
   productId: integer("product_id").notNull().references(() => products.id),
   quantity: integer("quantity").notNull(),
