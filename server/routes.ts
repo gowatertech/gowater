@@ -1274,6 +1274,16 @@ export async function registerRoutes(router: express.Router) {
   // Facturas
   router.get("/invoices", async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener facturas");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`GET /api/invoices - Obteniendo facturas para la empresa ${companyId}`);
+      
       const allInvoices = await db
         .select({
           id: invoices.id,
@@ -1284,10 +1294,13 @@ export async function registerRoutes(router: express.Router) {
           paymentMethod: invoices.paymentMethod,
           date: invoices.date,
           notes: invoices.notes,
+          companyId: invoices.companyId
         })
         .from(invoices)
+        .where(eq(invoices.companyId, companyId)) // Filtrar por companyId
         .orderBy(invoices.date);
 
+      console.log(`GET /api/invoices - Retornando ${allInvoices.length} facturas`);
       res.json(allInvoices);
     } catch (error) {
       console.error("Error al obtener facturas:", error);
@@ -1298,7 +1311,17 @@ export async function registerRoutes(router: express.Router) {
   // Facturas pendientes de pago
   router.get("/invoices/pending", async (req, res) => {
     try {
-      // Obtener todas las facturas con estado pendiente
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener facturas pendientes");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`GET /api/invoices/pending - Obteniendo facturas pendientes para la empresa ${companyId}`);
+      
+      // Obtener todas las facturas con estado pendiente para esta empresa
       const allInvoices = await db
         .select({
           id: invoices.id,
@@ -1310,11 +1333,17 @@ export async function registerRoutes(router: express.Router) {
           paymentMethod: invoices.paymentMethod,
           date: invoices.date,
           notes: invoices.notes,
+          companyId: invoices.companyId
         })
         .from(invoices)
         .leftJoin(customers, eq(invoices.customerId, customers.id))
-        .where(eq(invoices.status, "pending"))
+        .where(and(
+          eq(invoices.status, "pending"),
+          eq(invoices.companyId, companyId) // Filtrar por companyId
+        ))
         .orderBy(invoices.date);
+      
+      console.log(`Encontradas ${allInvoices.length} facturas pendientes iniciales para la empresa ${companyId}`);
       
       // Calcular el monto pagado y pendiente para cada factura
       const invoicesWithPayments = await Promise.all(allInvoices.map(async (invoice) => {
@@ -1340,7 +1369,7 @@ export async function registerRoutes(router: express.Router) {
       // Filtrar facturas nulas (totalmente pagadas)
       const pendingInvoices = invoicesWithPayments.filter(invoice => invoice !== null);
       
-      console.log("GET /api/invoices/pending - Retornando:", pendingInvoices.length, "facturas pendientes");
+      console.log(`GET /api/invoices/pending - Retornando ${pendingInvoices.length} facturas pendientes para la empresa ${companyId}`);
       res.json(pendingInvoices);
     } catch (error) {
       console.error("Error al obtener facturas pendientes:", error);
@@ -1350,23 +1379,33 @@ export async function registerRoutes(router: express.Router) {
 
   router.post("/invoices", async (req, res) => {
     try {
-      console.log("POST /api/invoices - Datos recibidos:", req.body);
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para crear factura");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`POST /api/invoices - Datos recibidos para empresa ${companyId}:`, req.body);
+      
       const result = insertInvoiceSchema.safeParse(req.body);
       if (!result.success) {
         console.error("Error de validación:", result.error.format());
         return res.status(400).json({ error: result.error.format() });
       }
 
-      // Crear la factura - la fecha se establecerá automáticamente con defaultNow()
+      // Crear la factura con el companyId del contexto
       const [invoice] = await db
         .insert(invoices)
         .values({
           ...result.data,
+          companyId: companyId, // Asegurar que se guarda con el companyId correcto
           date: new Date(), // Aseguramos que tenga una fecha actual
         })
         .returning();
 
-      console.log("Factura creada:", invoice);
+      console.log(`Factura #${invoice.id} creada para la empresa ${companyId}:`, invoice);
       res.json(invoice);
     } catch (error) {
       console.error("Error al crear factura:", error);
@@ -2149,11 +2188,23 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para actualizar todos los productos existentes, estableciendo hasCommission = true
   router.post("/products/update-all-commission", async (req, res) => {
     try {
-      console.log("POST /api/products/update-all-commission - Iniciando actualización de comisiones");
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
       
-      // Obtener todos los productos
-      const allProducts = await db.select().from(products);
-      console.log(`Encontrados ${allProducts.length} productos para actualizar.`);
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para actualizar comisiones de productos");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
+      console.log(`POST /api/products/update-all-commission - Iniciando actualización de comisiones para empresa ${companyId}`);
+      
+      // Obtener todos los productos de esta empresa
+      const allProducts = await db
+        .select()
+        .from(products)
+        .where(eq(products.companyId, companyId));
+      
+      console.log(`Encontrados ${allProducts.length} productos para actualizar en la empresa ${companyId}.`);
       
       // Contador para productos actualizados
       let updatedCount = 0;
@@ -2166,7 +2217,10 @@ export async function registerRoutes(router: express.Router) {
           const result = await db
             .update(products)
             .set({ hasCommission: true })
-            .where(eq(products.id, product.id))
+            .where(and(
+              eq(products.id, product.id),
+              eq(products.companyId, companyId) // Asegurar que solo actualizamos productos de esta empresa
+            ))
             .returning();
           
           if (result.length > 0) {
