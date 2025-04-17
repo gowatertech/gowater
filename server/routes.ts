@@ -1395,6 +1395,17 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: result.error.format() });
       }
 
+      // Obtener el último número de factura para esta empresa
+      const maxInvoiceNumberResult = await db
+        .select({
+          maxInvoiceNumber: sql`MAX(${invoices.invoiceNumber})`
+        })
+        .from(invoices)
+        .where(eq(invoices.companyId, companyId));
+      
+      const maxInvoiceNumber = maxInvoiceNumberResult[0]?.maxInvoiceNumber || 0;
+      const nextInvoiceNumber = maxInvoiceNumber + 1;
+
       // Crear la factura con el companyId del contexto
       const [invoice] = await db
         .insert(invoices)
@@ -1402,6 +1413,7 @@ export async function registerRoutes(router: express.Router) {
           ...result.data,
           companyId: companyId, // Asegurar que se guarda con el companyId correcto
           date: new Date(), // Aseguramos que tenga una fecha actual
+          invoiceNumber: nextInvoiceNumber // Usar el siguiente número de factura
         })
         .returning();
 
@@ -2602,12 +2614,26 @@ export async function registerRoutes(router: express.Router) {
               // Validar datos de factura
               const validationResult = insertInvoiceSchema.safeParse(invoiceData);
               if (validationResult.success) {
+                // Obtener el último número de factura para esta empresa
+                const companyId = getCurrentCompanyId();
+                const maxInvoiceNumberResult = await db
+                  .select({
+                    maxInvoiceNumber: sql`MAX(${invoices.invoiceNumber})`
+                  })
+                  .from(invoices)
+                  .where(eq(invoices.companyId, companyId));
+                
+                const maxInvoiceNumber = maxInvoiceNumberResult[0]?.maxInvoiceNumber || 0;
+                const nextInvoiceNumber = maxInvoiceNumber + 1;
+                
                 // Crear la factura
                 const [invoice] = await db
                   .insert(invoices)
                   .values({
                     ...validationResult.data,
+                    companyId, // Asegurar que se usa el companyId correcto
                     date: new Date(), // Aseguramos que tenga una fecha actual
+                    invoiceNumber: nextInvoiceNumber // Usar el siguiente número de factura
                   })
                   .returning();
                 
