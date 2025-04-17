@@ -2395,15 +2395,32 @@ export async function registerRoutes(router: express.Router) {
 
   router.post("/payments", async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para crear pago");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+      
       const paymentData = {
         ...req.body,
+        companyId: companyId, // Añadir el companyId del contexto
         amount: Number(req.body.amount).toFixed(2),
         date: new Date()
       };
 
+      // Validar los datos del pago contra el esquema
+      const validationResult = insertPaymentSchema.safeParse(paymentData);
+      if (!validationResult.success) {
+        console.error("Error de validación:", validationResult.error.format());
+        return res.status(400).json({ error: "Datos de pago inválidos", details: validationResult.error.format() });
+      }
+
+      // Insertar el pago validado
       const [payment] = await db
         .insert(payments)
-        .values(paymentData)
+        .values(validationResult.data)
         .returning();
 
       console.log("POST /api/payments - Pago creado:", payment);
@@ -2713,18 +2730,34 @@ export async function registerRoutes(router: express.Router) {
                   // Si se recibió un pago, registrarlo en la tabla de pagos
                   if (paymentReceived) {
                     try {
+                      // Obtener el companyId del contexto
+                      const companyId = getCurrentCompanyId();
+                      
+                      if (!companyId) {
+                        console.warn("No se encontró companyId en el contexto para registrar pago automático");
+                        throw new Error("ID de empresa no encontrado en el contexto");
+                      }
+                      
                       // Datos para el pago
                       const paymentData = {
                         invoiceId: invoice.id,
                         customerId: order.customerId,
+                        companyId: companyId, // Agregar el companyId al pago
                         amount: order.total,
                         paymentMethod: order.paymentMethod || "cash",
                         reference: `Pago recibido en entrega del pedido #${orderId}`,
                         notes: `Pago registrado automáticamente para la factura #${invoice.id}`,
                       };
                       
+                      // Validar datos del pago
+                      const paymentValidation = insertPaymentSchema.safeParse(paymentData);
+                      if (!paymentValidation.success) {
+                        console.error("Error de validación en pago automático:", paymentValidation.error.format());
+                        throw new Error(`Error de validación en datos de pago: ${paymentValidation.error}`);
+                      }
+                      
                       // Registrar el pago
-                      await storage.registerPayment(paymentData);
+                      await storage.registerPayment(paymentValidation.data);
                       console.log(`Pago registrado para factura #${invoice.id}`);
                     } catch (paymentError) {
                       console.error("Error al registrar pago:", paymentError);

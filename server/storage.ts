@@ -678,8 +678,22 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Storage - registerPayment: Registrando pago:", payment);
       
+      // Obtener el companyId del contexto o del pago
+      const companyId = payment.companyId || getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.error("Storage - registerPayment: No se encontró companyId");
+        throw new Error("No se encontró companyId para registrar el pago");
+      }
+      
+      // Asegurar que el pago tenga companyId
+      const paymentData = {
+        ...payment,
+        companyId
+      };
+      
       // Validar datos del pago
-      const validationResult = insertPaymentSchema.safeParse(payment);
+      const validationResult = insertPaymentSchema.safeParse(paymentData);
       if (!validationResult.success) {
         console.error("Storage - registerPayment: Error de validación:", validationResult.error);
         throw new Error(`Error de validación: ${validationResult.error}`);
@@ -691,24 +705,18 @@ export class DatabaseStorage implements IStorage {
         amount = amount.toFixed(2);
       }
       
-      // Registrar el pago
+      // Registrar el pago con datos validados
       const [newPayment] = await db
         .insert(payments)
-        .values({
-          invoiceId: payment.invoiceId,
-          customerId: payment.customerId,
-          amount,
-          paymentMethod: payment.paymentMethod,
-          reference: payment.reference,
-          notes: payment.notes
-        })
+        .values(validationResult.data)
         .returning();
       
       // Actualizar el estado de la factura a "paid"
       await db
         .update(invoices)
         .set({ status: "paid" })
-        .where(eq(invoices.id, payment.invoiceId));
+        .where(eq(invoices.id, payment.invoiceId))
+        .where(eq(invoices.companyId, companyId)); // Asegurar que solo se actualice la factura de la misma empresa
       
       console.log("Storage - registerPayment: Pago registrado con ID:", newPayment.id);
       return newPayment;

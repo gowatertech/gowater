@@ -570,6 +570,7 @@ export const payments = pgTable("payments", {
 export const insertPaymentSchema = z.object({
   invoiceId: z.number(),
   customerId: z.number(),
+  companyId: z.number(),
   amount: z.string().regex(/^\d+\.\d{2}$/, "El monto debe tener 2 decimales"),
   paymentMethod: z.enum(["cash", "credit", "card"]),
   reference: z.string().optional(),
