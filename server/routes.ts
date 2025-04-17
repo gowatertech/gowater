@@ -1793,56 +1793,60 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`GET /api/invoices/${invoiceId}/items - Factura encontrada:`, JSON.stringify(invoice));
       
-      // Construir la consulta siempre incluyendo el filtro por companyId
-      console.log(`GET /api/invoices/${invoiceId}/items - Buscando items...`);
-      try {
-        const items = await db
+      // Primero, recuperamos los productos para tener la información actualizada
+      const productsList = await db
+        .select()
+        .from(products)
+        .where(eq(products.companyId, companyId));
+        
+      console.log(`GET /api/invoices/${invoiceId}/items - Productos disponibles: ${productsList.length}`);
+      
+      // Obtener los items de la factura sin unir con productos
+      const invoiceItemsList = await db
+        .select()
+        .from(invoiceItems)
+        .where(and(
+          eq(invoiceItems.invoiceId, invoiceId),
+          eq(invoiceItems.companyId, companyId)
+        ));
+      
+      console.log(`GET /api/invoices/${invoiceId}/items - Items de factura encontrados: ${invoiceItemsList.length}`);
+      
+      // Enriquecer manualmente los items con información de productos
+      const enrichedItems = invoiceItemsList.map(item => {
+        const product = productsList.find(p => p.id === item.productId);
+        return {
+          ...item,
+          productName: product ? product.name : "Producto desconocido",
+          isReturnable: product ? product.isReturnable : false,
+          depositAmount: product ? product.depositAmount : "0.00",
+          productIcon: product ? product.icon : "water",
+          hasCommission: product ? product.hasCommission : false
+        };
+      });
+      
+      if (enrichedItems.length === 0) {
+        console.log(`GET /api/invoices/${invoiceId}/items - No hay items. Verificando tabla invoiceItems sin filtro...`);
+        // Verificar si hay items en la tabla sin filtrar por companyId (para depuración)
+        const allItems = await db
           .select({
             id: invoiceItems.id,
             invoiceId: invoiceItems.invoiceId,
-            productId: invoiceItems.productId,
-            quantity: invoiceItems.quantity,
-            price: invoiceItems.price,
-            total: invoiceItems.total,
-            productName: products.name,
-            isReturnable: products.isReturnable,
-            depositAmount: products.depositAmount,
-            productIcon: products.icon,
-            hasCommission: products.hasCommission,
-            companyId: invoiceItems.companyId // Añadir para mayor claridad en debugging
+            companyId: invoiceItems.companyId,
+            productId: invoiceItems.productId
           })
           .from(invoiceItems)
-          .leftJoin(products, eq(invoiceItems.productId, products.id))
-          .where(and(
-            eq(invoiceItems.invoiceId, invoiceId),
-            eq(invoiceItems.companyId, companyId)
-          ));
+          .where(eq(invoiceItems.invoiceId, invoiceId));
         
-        console.log(`GET /api/invoices/${invoiceId}/items - Se encontraron ${items.length} items`);
-        
-        if (items.length === 0) {
-          console.log(`GET /api/invoices/${invoiceId}/items - No hay items. Verificando tabla invoiceItems...`);
-          // Verificar si hay items en la tabla sin filtrar por companyId
-          const allItems = await db
-            .select({
-              id: invoiceItems.id,
-              invoiceId: invoiceItems.invoiceId,
-              companyId: invoiceItems.companyId
-            })
-            .from(invoiceItems)
-            .where(eq(invoiceItems.invoiceId, invoiceId));
-          
-          console.log(`GET /api/invoices/${invoiceId}/items - Total items sin filtro de companyId: ${allItems.length}`);
-          if (allItems.length > 0) {
-            console.log(`GET /api/invoices/${invoiceId}/items - Items encontrados pero con companyId diferente:`, JSON.stringify(allItems));
-          }
+        console.log(`GET /api/invoices/${invoiceId}/items - Total items sin filtro de companyId: ${allItems.length}`);
+        if (allItems.length > 0) {
+          console.log(`GET /api/invoices/${invoiceId}/items - Items encontrados pero con companyId diferente:`, JSON.stringify(allItems));
         }
-        
-        res.json(items);
-      } catch (err) {
-        console.error(`GET /api/invoices/${invoiceId}/items - Error en consulta de items:`, err);
-        throw err;
+      } else {
+        console.log(`GET /api/invoices/${invoiceId}/items - Items enriquecidos con éxito:`, enrichedItems.length);
       }
+      
+      res.json(enrichedItems);
     } catch (error) {
       console.error("Error al obtener items de factura:", error);
       res.status(500).json({ error: String(error) });
