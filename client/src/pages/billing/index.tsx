@@ -124,6 +124,12 @@ export default function Billing() {
   const { data: invoiceDetails = [] } = useQuery<any[]>({
     queryKey: ["/api/invoices", selectedInvoice?.id, "items"],
     enabled: !!selectedInvoice,
+    onSuccess: (data) => {
+      console.log("Detalles de factura recibidos:", data);
+    },
+    onError: (error) => {
+      console.error("Error al obtener detalles de factura:", error);
+    }
   });
 
   // Función para agregar un nuevo producto vacío al arreglo
