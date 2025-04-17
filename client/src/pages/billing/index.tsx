@@ -112,20 +112,18 @@ export default function Billing() {
       console.log(`Cargando detalles para factura ID: ${invoice.id}`);
       
       // Realizar una solicitud explícita para cargar los detalles
-      const response = await fetch(`/apiGET?path=/api/invoices/${invoice.id}/items`);
+      const response = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
       
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
       
-      // Obtener los datos explícitamente para verificar
-      const result = await response.json();
+      const items = await response.json();
       
-      if (!result.data || !Array.isArray(result.data)) {
+      if (!Array.isArray(items)) {
+        console.error("Respuesta inválida:", items);
         throw new Error("Formato de respuesta inválido");
       }
-      
-      const items = result.data;
       console.log(`Cargados ${items.length} items para factura ${invoice.id}`);
       
       // Invalidar la consulta para actualizar el cache
