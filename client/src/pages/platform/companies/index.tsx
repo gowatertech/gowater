@@ -99,6 +99,8 @@ export default function CompaniesPage() {
   const filteredCompanies = React.useMemo(() => {
     if (!companies?.data) return [];
     
+    console.log("Datos de empresas recibidos:", companies.data);
+    
     return companies.data.filter((company: Company) => 
       company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       company.subdomain.toLowerCase().includes(searchTerm.toLowerCase())
