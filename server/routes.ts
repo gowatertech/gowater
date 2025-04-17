@@ -2422,8 +2422,58 @@ export async function registerRoutes(router: express.Router) {
         .insert(payments)
         .values(validationResult.data)
         .returning();
-
+      
       console.log("POST /api/payments - Pago creado:", payment);
+      
+      // Actualizar el estado de la factura si corresponde
+      const invoiceId = payment.invoiceId;
+      
+      // 1. Obtener la factura
+      const [invoice] = await db
+        .select()
+        .from(invoices)
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        ));
+      
+      if (invoice) {
+        // 2. Obtener todos los pagos para esta factura
+        const paymentsForInvoice = await db
+          .select()
+          .from(payments)
+          .where(and(
+            eq(payments.invoiceId, invoiceId),
+            eq(payments.companyId, companyId)
+          ));
+        
+        // 3. Calcular el total pagado
+        const totalPaid = paymentsForInvoice.reduce(
+          (sum, payment) => sum + parseFloat(payment.amount.toString()), 
+          0
+        );
+        
+        // 4. Verificar si se ha pagado el total o más
+        const invoiceTotal = parseFloat(invoice.total);
+        
+        console.log(`Total de la factura: ${invoiceTotal}, Total pagado: ${totalPaid}`);
+        
+        if (totalPaid >= invoiceTotal) {
+          // 5. Actualizar el estado de la factura a "paid"
+          console.log(`Actualizando factura ${invoiceId} a estado "paid" porque se ha pagado completamente`);
+          
+          await db
+            .update(invoices)
+            .set({ status: "paid" })
+            .where(and(
+              eq(invoices.id, invoiceId),
+              eq(invoices.companyId, companyId)
+            ));
+        } else {
+          console.log(`La factura ${invoiceId} sigue pendiente. Total: ${invoiceTotal}, Pagado: ${totalPaid}`);
+        }
+      }
+      
       res.json(payment);
     } catch (error) {
       console.error("Error al crear pago:", error);
