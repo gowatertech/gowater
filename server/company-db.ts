@@ -72,23 +72,32 @@ export function withCompany(query: any): any {
     
     console.log(`SELECT en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
     
-    // Verificar si la consulta ya tiene una cláusula WHERE
-    const hasWhereClause = query && query._whereParts && query._whereParts.length > 0;
+    // Verificar si la consulta tiene el método where
+    if (typeof query.where !== 'function') {
+      console.warn(`Advertencia: La consulta no tiene método where() disponible. Tipo de consulta: ${typeof query}`);
+      
+      // Si no tiene where, verificar si es un objeto de Drizzle para SQL
+      if (query.$dynamic && query.driver) {
+        // Intento alternativo para queries SQL dinámicas
+        try {
+          return query.where(eq(sql`company_id`, companyId));
+        } catch (innerError) {
+          console.warn("No se pudo aplicar filtro alternativo:", innerError);
+        }
+      }
+      
+      // Si no se pudo aplicar ningún filtro, devolver la consulta original
+      return query;
+    }
     
-    // En Drizzle ORM, el método where siempre está disponible para los objetos de consulta
+    // En Drizzle ORM, aplicar el filtro
     return query.where(sql`company_id = ${companyId}`);
   } catch (error) {
     console.error("Error al aplicar filtro de companyId:", error);
     console.error("Detalles:", String(error));
     
-    // En caso de error, intentar una forma alternativa
-    try {
-      return query.where(sql`company_id = ${companyId}`);
-    } catch (secondError) {
-      console.error("Segundo intento fallido:", secondError);
-      // Como último recurso, devolver la consulta sin filtro
-      return query;
-    }
+    // Como último recurso, devolver la consulta sin filtro
+    return query;
   }
 }
 
@@ -209,15 +218,15 @@ export const companyDb = {
       } else if (args.length === 1) {
         query = db.select(args[0]);
       } else {
-        // Convertir arguments a array explícito para pasar multiple args
-        query = db.select(...args);
+        // Usar apply() en lugar de spread para evitar errores de tipo
+        query = db.select.apply(db, args);
       }
       
       return withCompany(query);
     } catch (error) {
       console.error("Error en companyDb.select:", error);
-      // En caso de error, usar el método original sin filtrado
-      return db.select(...Array.from(arguments));
+      // En caso de error, usar el método original sin filtrado pero con apply
+      return db.select.apply(db, Array.from(arguments));
     }
   },
   
