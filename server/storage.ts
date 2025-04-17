@@ -18,6 +18,7 @@ import {
   type RecurringOrderItem, type InsertRecurringOrderItem
 } from "@shared/schema";
 import { db } from "./db";
+import { getCurrentCompanyId } from "./company-db";
 import { eq, inArray } from "drizzle-orm";
 
 export interface DriverLocation {
