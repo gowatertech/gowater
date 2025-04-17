@@ -307,29 +307,57 @@ export default function Billing() {
         // Evitamos enviar la fecha ya que el servidor la establecerá como defaultNow()
       };
 
-      const invoiceResponse = await apiRequest("POST", "/api/invoices", invoiceData);
-      if (!invoiceResponse.ok) {
-        throw new Error('Error al crear la factura');
-      }
-
-      const invoice = await invoiceResponse.json();
-
-      for (const item of validItems) {
-        const itemData = {
-          invoiceId: invoice.id,
-          productId: parseInt(item.code),
-          quantity: item.quantity,
-          price: item.price.toFixed(2),
-          total: item.total.toFixed(2)
-        };
-
-        const itemResponse = await apiRequest("POST", `/api/invoices/${invoice.id}/items`, itemData);
-        if (!itemResponse.ok) {
-          throw new Error('Error al crear items de la factura');
+      try {
+        // Usar fetch directamente con un control de errores mejorado
+        const invoiceResponse = await fetch("/api/invoices", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(invoiceData)
+        });
+        
+        if (!invoiceResponse.ok) {
+          const errorData = await invoiceResponse.text();
+          console.error("Error al crear factura:", errorData);
+          throw new Error(`Error al crear la factura: ${errorData}`);
         }
-      }
 
-      return invoice;
+        const invoice = await invoiceResponse.json();
+        console.log("Factura creada:", invoice);
+
+        // Crear todos los items
+        for (const item of validItems) {
+          const itemData = {
+            invoiceId: invoice.id,
+            productId: parseInt(item.code),
+            quantity: item.quantity,
+            price: item.price.toFixed(2),
+            total: item.total.toFixed(2)
+          };
+
+          const itemResponse = await fetch(`/api/invoices/${invoice.id}/items`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(itemData)
+          });
+          
+          if (!itemResponse.ok) {
+            const errorData = await itemResponse.text();
+            console.error("Error al crear item:", errorData);
+            throw new Error(`Error al crear items de la factura: ${errorData}`);
+          }
+          
+          console.log(`Item añadido a factura ${invoice.id}:`, await itemResponse.json());
+        }
+
+        return invoice;
+      } catch (error) {
+        console.error("Error en proceso de creación:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
@@ -1367,7 +1395,7 @@ export default function Billing() {
                                 <div className="space-y-2">
                                   <div className="flex justify-between">
                                     <div className="font-medium">
-                                      {item.productName || products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
+                                      {item.productName || products.find((p: Product) => p.id === item.productId)?.name || `Producto #${item.productId}`}
                                     </div>
                                     {selectedInvoice?.status === "pending" && (
                                       <Button 
@@ -1432,7 +1460,7 @@ export default function Billing() {
                               Array.isArray(invoiceDetails) && invoiceDetails.map((item: any) => (
                                 <TableRow key={item.id}>
                                   <TableCell className="p-2">
-                                    {item.productName || products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
+                                    {item.productName || products.find((p: Product) => p.id === item.productId)?.name || `Producto #${item.productId}`}
                                   </TableCell>
                                   <TableCell className="text-right p-2">{item.quantity}</TableCell>
                                   <TableCell className="text-right p-2">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
