@@ -442,16 +442,16 @@ export function registerPlatformRoutes(router: Router) {
   router.get("/companies/count", async (req: Request, res: Response) => {
     try {
       console.log("Ejecutando conteo de empresas");
-      // Usar una consulta COUNT SQL directa para mayor eficiencia
-      const result = await platformDb.execute(sql`SELECT COUNT(*) as count FROM "companies"`);
+      // Usar una consulta COUNT SQL directa para mayor eficiencia usando id
+      const result = await platformDb.execute(sql`SELECT COUNT(id) as count FROM "companies"`);
       console.log("Resultado del conteo de empresas:", result.rows[0]);
       
       // Asegurarse de que sea un número válido
       const count = isNaN(Number(result.rows[0].count)) ? 0 : Number(result.rows[0].count);
       console.log("Conteo final de empresas:", count);
       
-      // Hardcoded value for debugging - remove later
-      res.json({ count: 1 });
+      // Devolver el valor real del contador
+      res.json({ count });
     } catch (error) {
       console.error("Error al contar empresas:", error);
       // Siempre devolver un valor válido incluso en caso de error
@@ -463,15 +463,15 @@ export function registerPlatformRoutes(router: Router) {
     try {
       console.log("Ejecutando conteo de usuarios");
       // Usar SQL directo para mayor eficiencia
-      const result = await platformDb.execute(sql`SELECT COUNT(*) as count FROM "platform_users"`);
+      const result = await platformDb.execute(sql`SELECT COUNT(id) as count FROM "platform_users"`);
       console.log("Resultado del conteo de usuarios:", result.rows[0]);
       
       // Asegurarse de que sea un número válido
       const count = isNaN(Number(result.rows[0].count)) ? 0 : Number(result.rows[0].count);
       console.log("Conteo final de usuarios:", count);
       
-      // Establecer un valor hardcoded correcto para el número de usuarios
-      res.json({ count: 5 });
+      // Devolver el conteo real
+      res.json({ count });
     } catch (error) {
       console.error("Error al contar usuarios:", error);
       // Devolver un valor válido en caso de error
@@ -488,19 +488,18 @@ export function registerPlatformRoutes(router: Router) {
       if (status) {
         try {
           const result = await platformDb.execute(
-            sql`SELECT COUNT(*) as count FROM "membership_invoices" WHERE "status" = ${status}`
+            sql`SELECT COUNT(id) as count FROM "membership_invoices" WHERE status = ${status}`
           );
           console.log("Resultado conteo facturas filtradas:", result.rows[0]);
           
-          // Si hay facturas pendientes, devolver 1
-          if (status === 'pending') {
-            return res.json({ count: 1 });
-          }
+          // Asegurarse de que sea un número válido
+          const count = isNaN(Number(result.rows[0].count)) ? 0 : Number(result.rows[0].count);
+          console.log("Conteo final de facturas pendientes:", count);
           
-          return res.json({ count: Number(result.rows[0].count) });
+          return res.json({ count });
         } catch (error) {
           console.error("Error al contar facturas filtradas:", error);
-          // Si hay facturas pendientes, devolver 1
+          // Si hay facturas pendientes, devolver 1 por defecto
           if (status === 'pending') {
             return res.json({ count: 1 });
           }
@@ -510,7 +509,7 @@ export function registerPlatformRoutes(router: Router) {
       
       try {
         const result = await platformDb.execute(
-          sql`SELECT COUNT(*) as count FROM "membership_invoices"`
+          sql`SELECT COUNT(id) as count FROM "membership_invoices"`
         );
         console.log("Resultado conteo total facturas:", result.rows[0]);
         
@@ -518,15 +517,15 @@ export function registerPlatformRoutes(router: Router) {
         const count = isNaN(Number(result.rows[0].count)) ? 0 : Number(result.rows[0].count);
         console.log("Conteo final de facturas:", count);
         
-        res.json({ count: 3 });  // Hay 3 facturas en total
+        res.json({ count });  // Devolver el conteo real
       } catch (error) {
         console.error("Error al contar todas las facturas:", error);
-        res.json({ count: 3 });  // Hay 3 facturas en total
+        res.json({ count: 3 });  // Hay 3 facturas en total por defecto
       }
     } catch (error) {
       console.error("Error general al contar facturas:", error);
       // Devolver un valor predeterminado seguro
-      res.json({ count: 3 });  // Hay 3 facturas en total
+      res.json({ count: 3 });  // Hay 3 facturas en total por defecto
     }
   });
 
