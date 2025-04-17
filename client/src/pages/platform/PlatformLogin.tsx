@@ -29,8 +29,8 @@ export default function PlatformLogin() {
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin@plataforma.com",
+      password: "admin12345",
     },
   });
 
