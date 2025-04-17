@@ -64,11 +64,14 @@ export default function CompaniesPage() {
   // Consulta para obtener todas las empresas
   const { data: companies, isLoading, refetch } = useQuery({
     queryKey: ["/api/platform/companies"],
-    queryFn: () => 
-      apiRequest({
+    queryFn: async () => {
+      const response = await apiRequest({
         url: "/api/platform/companies",
         method: "GET"
-      }),
+      });
+      console.log("Respuesta directa de la API:", response);
+      return { data: Array.isArray(response) ? response : [] };
+    }
   });
 
   // Mutación para eliminar una empresa
