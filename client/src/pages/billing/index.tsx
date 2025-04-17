@@ -112,28 +112,39 @@ export default function Billing() {
     try {
       console.log(`Cargando detalles para factura ID: ${invoice.id}, companyId: ${invoice.companyId}`);
       
-      // Realizar una solicitud explícita para cargar los detalles
-      const response = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+      // Forzar una actualización de los detalles (esto invalida y vuelve a cargar los datos)
+      await queryClient.resetQueries({ queryKey: ["/api/invoices", invoice.id, "items"] });
+      const result = await refetchDetails();
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error("Error en respuesta:", errorData);
-        throw new Error(`Error HTTP: ${response.status} - ${errorData.error || 'Error desconocido'}`);
+      if (result.isError) {
+        throw result.error;
       }
       
-      const items = await response.json();
-      
-      if (!Array.isArray(items)) {
-        console.error("Respuesta inválida:", items);
-        throw new Error("Formato de respuesta inválido");
+      if (!Array.isArray(result.data) || result.data.length === 0) {
+        console.log("Respuesta vacía o no es un array:", result.data);
+        
+        // Intentar una solicitud directa como fallback
+        const response = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Error en respuesta directa:", errorData);
+          throw new Error(`Error HTTP: ${response.status} - ${errorData.error || 'Error desconocido'}`);
+        }
+        
+        const items = await response.json();
+        
+        if (!Array.isArray(items) || items.length === 0) {
+          console.warn("No se encontraron items asociados a esta factura");
+          // No lanzar error, solo mostrar vacío
+        } else {
+          console.log(`Cargados ${items.length} items para factura ${invoice.id} mediante solicitud directa`);
+          // Actualizar el cache con los items obtenidos
+          queryClient.setQueryData(["/api/invoices", invoice.id, "items"], items);
+        }
+      } else {
+        console.log(`Cargados ${result.data.length} items para factura ${invoice.id}`);
       }
-      console.log(`Cargados ${items.length} items para factura ${invoice.id}`);
-      
-      // Invalidar la consulta para actualizar el cache
-      queryClient.invalidateQueries({ queryKey: ["/api/invoices", invoice.id, "items"] });
-      
-      // Forzar una actualización de los detalles para asegurar que se tienen los datos más recientes
-      await refetchDetails();
       
       // Cambiar a la pestaña de detalles
       setActiveTab("details");
