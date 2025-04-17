@@ -1,5 +1,5 @@
 import { eq, and, sql } from "drizzle-orm";
-import { platformDb } from "./platform-db";
+import { platformDb, platformPool } from "./platform-db";
 import {
   companies,
   plans,
@@ -242,7 +242,12 @@ export class PlatformStorage implements IPlatformStorage {
 
   async listPlatformUsers(role?: string, companyId?: number): Promise<PlatformUser[]> {
     try {
-      // Los SQL queries directos para evitar problemas de tipo
+      // Usamos el enfoque básico sin filtros
+      if (!role && companyId === undefined) {
+        return await platformDb.select().from(platformUsers).orderBy(platformUsers.name);
+      }
+      
+      // Para filtros, usamos SQL directo con el pool
       let sqlQuery = `SELECT * FROM platform_users`;
       const params: any[] = [];
       let paramIndex = 1;
@@ -269,8 +274,8 @@ export class PlatformStorage implements IPlatformStorage {
       // Ordenar por nombre
       sqlQuery += ` ORDER BY name`;
       
-      // Ejecutar query nativo
-      const { rows } = await platformDb.connection.query(sqlQuery, params);
+      // Ejecutar query nativo usando el pool directamente
+      const { rows } = await platformPool.query(sqlQuery, params);
       
       // Convertir filas a PlatformUser[] (TypeScript)
       return rows as PlatformUser[];
