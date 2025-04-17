@@ -117,34 +117,52 @@ export default function Billing() {
       
       console.log(`Cargando detalles para factura ID: ${invoice.id}, companyId: ${invoice.companyId || 'no especificado'}`);
       
+      // Primero obtener información fresca de los productos
+      await queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/products"] });
+      
       // Limpiar caché y forzar una actualización completa
       await queryClient.invalidateQueries({ queryKey: ["/api/invoices", invoice.id, "items"] });
       
-      // Solicitud directa para buscar los items sin pasar por react-query
-      const response = await fetch(`/api/invoices/${invoice.id}/items`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const items = await response.json();
-      
-      // Actualizar manualmente el caché de react-query
-      queryClient.setQueryData(["/api/invoices", invoice.id, "items"], items);
-      
-      // Recargar la consulta para asegurar que los datos estén disponibles
-      await refetchDetails();
-      
-      console.log(`Cargados ${items?.length || 0} items para factura ${invoice.id}`);
-      
-      if (!Array.isArray(items) || items.length === 0) {
-        console.warn("No se encontraron items asociados a esta factura");
+      try {
+        // Solicitud con fetch para mayor control
+        const response = await fetch(`/api/invoices/${invoice.id}/items`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error HTTP ${response.status}: ${errorText}`);
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+        const items = await response.json();
+        console.log(`Cargados ${items?.length || 0} items para factura ${invoice.id}:`, items);
+        
+        // Hacer referencia cruzada con productos para asegurar nombres correctos
+        if (Array.isArray(items) && items.length > 0) {
+          const itemsWithProductInfo = items.map(item => {
+            // Buscar el producto por ID para recuperar información correcta
+            const product = products.find(p => p.id === item.productId);
+            return {
+              ...item,
+              productName: product?.name || "Producto desconocido",
+              price: item.price || (product ? product.price : "0.00"),
+              total: item.total || (product && item.quantity ? 
+                (parseFloat(product.price) * item.quantity).toFixed(2) : "0.00")
+            };
+          });
+          
+          // Actualizar la caché con datos enriquecidos
+          queryClient.setQueryData(["/api/invoices", invoice.id, "items"], itemsWithProductInfo);
+          console.log("Datos de items enriquecidos:", itemsWithProductInfo);
+        } else {
+          // Si no hay items, establecer un array vacío
+          queryClient.setQueryData(["/api/invoices", invoice.id, "items"], []);
+          console.warn("No se encontraron items asociados a esta factura");
+        }
+      } catch (fetchError) {
+        console.error("Error en fetch directo:", fetchError);
+        // Intentar con react-query como fallback
+        await refetchDetails();
       }
     } catch (error) {
       console.error("Error al cargar detalles:", error);
