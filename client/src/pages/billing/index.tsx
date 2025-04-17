@@ -60,6 +60,7 @@ import {
   Clock,
   DollarSign,
   AlertTriangle,
+  Trash,
   ListFilter,
   Printer,
   FileDown,
@@ -294,6 +295,56 @@ export default function Billing() {
       });
     }
   });
+
+  // Mutación para eliminar items de factura
+  const deleteInvoiceItemMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      if (!selectedInvoice) {
+        throw new Error('No hay factura seleccionada');
+      }
+      
+      const response = await apiRequest("DELETE", `/api/invoices/${selectedInvoice.id}/items/${itemId}`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar el item de factura');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidar la consulta de detalles de factura para actualizar la UI
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices", selectedInvoice?.id, "items"] });
+      // Invalidar la consulta de facturas para actualizar los totales
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      
+      toast({
+        title: "Éxito",
+        description: "Item eliminado correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    }
+  });
+  
+  // Función para manejar la eliminación de un item
+  const handleDeleteInvoiceItem = (itemId: number) => {
+    if (selectedInvoice?.status !== "pending") {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Solo se pueden eliminar items de facturas pendientes"
+      });
+      return;
+    }
+    
+    deleteInvoiceItemMutation.mutate(itemId);
+  };
 
   const createPaymentMutation = useMutation({
     mutationFn: async ({ invoiceId, amount, customerId }: { invoiceId: number, amount: string, customerId: number }) => {
@@ -1220,8 +1271,20 @@ export default function Billing() {
                           {invoiceDetails.map((item: any) => (
                             <Card key={item.id} className="p-3">
                               <div className="space-y-2">
-                                <div className="font-medium">
-                                  {item.productName || products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
+                                <div className="flex justify-between">
+                                  <div className="font-medium">
+                                    {item.productName || products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
+                                  </div>
+                                  {selectedInvoice?.status === "pending" && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-7 w-7" 
+                                      onClick={() => handleDeleteInvoiceItem(item.id)}
+                                    >
+                                      <Trash className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                  )}
                                 </div>
                                 <div className="grid grid-cols-3 gap-2 text-sm">
                                   <div>
@@ -1255,12 +1318,13 @@ export default function Billing() {
                               <TableHead className="py-2 text-right">Cantidad</TableHead>
                               <TableHead className="py-2 text-right">Precio</TableHead>
                               <TableHead className="py-2 text-right">Total</TableHead>
+                              <TableHead className="py-2 w-[50px]"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {invoiceDetails.length === 0 ? (
                               <TableRow>
-                                <TableCell colSpan={4} className="text-center p-3">
+                                <TableCell colSpan={5} className="text-center p-3">
                                   No hay detalles disponibles
                                 </TableCell>
                               </TableRow>
@@ -1273,6 +1337,18 @@ export default function Billing() {
                                   <TableCell className="text-right p-2">{item.quantity}</TableCell>
                                   <TableCell className="text-right p-2">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
                                   <TableCell className="text-right font-medium p-2">RD$ {parseFloat(item.total).toFixed(2)}</TableCell>
+                                  <TableCell className="p-2 text-right">
+                                    {selectedInvoice?.status === "pending" && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7" 
+                                        onClick={() => handleDeleteInvoiceItem(item.id)}
+                                      >
+                                        <Trash className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    )}
+                                  </TableCell>
                                 </TableRow>
                               ))
                             )}
