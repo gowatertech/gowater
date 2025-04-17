@@ -53,7 +53,17 @@ export function registerPlatformRoutes(router: Router) {
   // Rutas para la gestión de empresas
   router.get("/companies", requirePlatformAdmin, async (req: Request, res: Response) => {
     try {
+      console.log("Recibida solicitud GET /companies");
       const companies = await platformStorage.listCompanies();
+      console.log("Respuesta a enviar:", companies);
+      
+      // Asegúrate de que la respuesta sea un array, incluso si está vacío
+      if (!Array.isArray(companies)) {
+        console.log("La respuesta no es un array, convirtiendo a array vacío");
+        res.json([]);
+        return;
+      }
+      
       res.json(companies);
     } catch (error) {
       console.error("Error al listar empresas:", error);
