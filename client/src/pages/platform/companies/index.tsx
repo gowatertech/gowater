@@ -73,23 +73,26 @@ export default function CompaniesPage() {
         });
         console.log("Respuesta directa de la API:", response);
         
-        // Crear un objeto estático para pruebas
-        const testData = [
-          {
-            id: 1,
-            name: "AGUA HARRIS",
-            subdomain: "aguaharris",
-            active: true,
-            planId: 3,
-            expirationDate: "2026-04-17T00:00:00.000Z",
-            createdAt: "2025-04-17T01:44:28.197Z"
-          }
-        ];
+        // Verificar que la respuesta sea un array
+        if (!Array.isArray(response)) {
+          console.error("La respuesta de la API no es un array:", response);
+          return { data: [] };
+        }
         
-        console.log("Datos de prueba (NO de la API):", testData);
+        // Asegurar que cada empresa tenga los campos requeridos
+        const validatedData = response.map(company => ({
+          id: company.id,
+          name: company.name || 'Sin nombre',
+          subdomain: company.subdomain || '',
+          active: typeof company.active === 'boolean' ? company.active : true,
+          planId: company.planId || 1,
+          expirationDate: company.expirationDate || new Date().toISOString(),
+          createdAt: company.createdAt || new Date().toISOString(),
+          logo: company.logo || null
+        }));
         
-        // Siempre devolver datos estructurados correctamente
-        return { data: testData };
+        console.log("Datos procesados de la API:", validatedData);
+        return { data: validatedData };
       } catch (error) {
         console.error("Error al obtener empresas:", error);
         return { data: [] };
