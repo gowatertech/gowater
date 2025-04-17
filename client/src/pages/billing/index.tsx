@@ -177,11 +177,16 @@ export default function Billing() {
   });
 
   // Consulta para obtener los items de una factura específica
-  const { data: invoiceDetails = [], isLoading: isLoadingDetails, refetch: refetchDetails } = useQuery<any[]>({
+  const { 
+    data: invoiceDetails = [], 
+    isLoading: isLoadingDetails, 
+    refetch: refetchDetails,
+    error: invoiceDetailsError
+  } = useQuery<any[]>({
     queryKey: ["/api/invoices", selectedInvoice?.id, "items"],
     enabled: !!selectedInvoice,
     // Configurar un retry para asegurar que se carguen los datos correctamente
-    retry: 2,
+    retry: 3,
     retryDelay: 1000,
     staleTime: 60000 // Datos "frescos" por un minuto
   });
@@ -1317,41 +1322,59 @@ export default function Billing() {
                         <div className="py-4 text-center">No hay detalles disponibles</div>
                       ) : (
                         <div className="space-y-3">
-                          {Array.isArray(invoiceDetails) && invoiceDetails.map((item: any) => (
-                            <Card key={item.id} className="p-3">
-                              <div className="space-y-2">
-                                <div className="flex justify-between">
-                                  <div className="font-medium">
-                                    {item.productName || products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
-                                  </div>
-                                  {selectedInvoice?.status === "pending" && (
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-7 w-7" 
-                                      onClick={() => handleDeleteInvoiceItem(item.id)}
-                                    >
-                                      <Trash className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  )}
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 text-sm">
-                                  <div>
-                                    <div className="text-xs text-muted-foreground">Cantidad</div>
-                                    <div>{item.quantity}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-muted-foreground">Precio</div>
-                                    <div>RD$ {parseFloat(item.price).toFixed(2)}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-xs text-muted-foreground">Total</div>
-                                    <div className="font-medium">RD$ {parseFloat(item.total).toFixed(2)}</div>
-                                  </div>
-                                </div>
+                          {isLoadingDetails ? (
+                            // Mostrar un estado de carga para mejorar la experiencia de usuario
+                            <div className="space-y-2 p-4">
+                              <div className="h-6 bg-gray-200 rounded animate-pulse mb-3"></div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
                               </div>
-                            </Card>
-                          ))}
+                            </div>
+                          ) : Array.isArray(invoiceDetails) && invoiceDetails.length > 0 ? (
+                            // Mostrar los detalles de la factura si hay datos
+                            invoiceDetails.map((item: any) => (
+                              <Card key={item.id} className="p-3 mb-2">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between">
+                                    <div className="font-medium">
+                                      {item.productName || products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
+                                    </div>
+                                    {selectedInvoice?.status === "pending" && (
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7" 
+                                        onClick={() => handleDeleteInvoiceItem(item.id)}
+                                      >
+                                        <Trash className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-sm">
+                                    <div>
+                                      <div className="text-xs text-muted-foreground">Cantidad</div>
+                                      <div>{item.quantity}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-muted-foreground">Precio</div>
+                                      <div>RD$ {parseFloat(item.price).toFixed(2)}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-muted-foreground">Total</div>
+                                      <div className="font-medium">RD$ {parseFloat(item.total).toFixed(2)}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))
+                          ) : (
+                            // Mensaje si no hay items
+                            <div className="text-center p-4 bg-gray-50 rounded-lg">
+                              <p className="text-muted-foreground">No hay productos en esta factura</p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
