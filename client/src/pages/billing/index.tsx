@@ -107,11 +107,14 @@ export default function Billing() {
   } = useQuery<InvoiceWithDetails[]>({
     queryKey: ["/api/invoices"],
     queryFn: async () => {
+      console.log("Solicitando facturas...");
       const response = await apiRequest("GET", "/api/invoices");
       if (!response.ok) {
         throw new Error('Error al cargar facturas');
       }
-      return response.json();
+      const data = await response.json();
+      console.log("Facturas recibidas:", data);
+      return data;
     }
   });
 
