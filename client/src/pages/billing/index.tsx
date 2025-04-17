@@ -744,9 +744,26 @@ export default function Billing() {
                               variant="outline" 
                               size="sm"
                               className="flex-1"
-                              onClick={() => {
+                              onClick={async () => {
                                 setSelectedInvoice(invoice);
-                                setActiveTab("details");
+                                // Forzar una consulta nueva de los detalles
+                                try {
+                                  const response = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+                                  if (!response.ok) {
+                                    throw new Error("Error al cargar detalles de la factura");
+                                  }
+                                  // Mostrar la pestaña después de obtener los datos
+                                  setActiveTab("details");
+                                  // Refrescar las consultas
+                                  queryClient.invalidateQueries({ queryKey: ["/api/invoices", invoice.id, "items"] });
+                                } catch (error) {
+                                  console.error("Error al cargar detalles:", error);
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Error",
+                                    description: "No se pudieron cargar los detalles de la factura"
+                                  });
+                                }
                               }}
                             >
                               <Eye className="h-3.5 w-3.5 mr-1" /> Ver Detalles
@@ -864,9 +881,26 @@ export default function Billing() {
                                   variant="ghost" 
                                   size="sm"
                                   className="h-6 w-6 p-0"
-                                  onClick={() => {
+                                  onClick={async () => {
                                     setSelectedInvoice(invoice);
-                                    setActiveTab("details");
+                                    // Forzar una consulta nueva de los detalles
+                                    try {
+                                      const response = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
+                                      if (!response.ok) {
+                                        throw new Error("Error al cargar detalles de la factura");
+                                      }
+                                      // Mostrar la pestaña después de obtener los datos
+                                      setActiveTab("details");
+                                      // Refrescar las consultas
+                                      queryClient.invalidateQueries({ queryKey: ["/api/invoices", invoice.id, "items"] });
+                                    } catch (error) {
+                                      console.error("Error al cargar detalles:", error);
+                                      toast({
+                                        variant: "destructive",
+                                        title: "Error",
+                                        description: "No se pudieron cargar los detalles de la factura"
+                                      });
+                                    }
                                   }}
                                   title="Ver detalles"
                                 >
