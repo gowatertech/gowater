@@ -301,12 +301,20 @@ function Router() {
 }
 
 export default function App() {
+  // Obtener la ubicación actual para determinar si mostrar el logo
+  const [location] = useLocation();
+  
+  // No mostrar el logo en páginas de la plataforma ni en la app móvil
+  const isPlatformRoute = location.startsWith("/platform");
+  const isMobileApp = location.startsWith("/mobile-app");
+  const shouldShowLogo = !isPlatformRoute && !isMobileApp;
+  
   return (
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={queryClient}>
         <Router />
         <Toaster />
-        <CenteredLogo size="medium" showName={true} companyName="GoWater" />
+        {shouldShowLogo && <CenteredLogo size="medium" showName={true} companyName="GoWater" />}
         {/* Componentes personalizados desactivados para el panel de administración */}
       </QueryClientProvider>
     </I18nextProvider>

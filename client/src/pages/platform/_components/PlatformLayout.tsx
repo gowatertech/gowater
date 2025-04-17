@@ -76,7 +76,15 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
       {/* Sidebar */}
       <aside className="w-64 bg-card shadow-md">
         <div className="p-4 border-b">
-          <h1 className="text-xl font-bold">Admin Platform</h1>
+          <div className="flex items-center gap-2">
+            <div className="bg-primary p-1.5 rounded-full">
+              <LogOut className="h-4 w-4 text-white rotate-180" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-primary">GOWater</h1>
+              <p className="text-xs text-muted-foreground">Plataforma Administrativa</p>
+            </div>
+          </div>
         </div>
         <nav className="p-2">
           <ul className="space-y-1">
