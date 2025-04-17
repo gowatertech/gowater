@@ -108,13 +108,18 @@ export default function Billing() {
     queryKey: ["/api/invoices"],
     queryFn: async () => {
       console.log("Solicitando facturas...");
-      const response = await apiRequest("GET", "/api/invoices");
-      if (!response.ok) {
-        throw new Error('Error al cargar facturas');
+      try {
+        const response = await apiRequest("GET", "/api/invoices");
+        if (!response.ok) {
+          throw new Error(`Error al cargar facturas: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Facturas recibidas:", data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Error en la consulta:", error);
+        throw error;
       }
-      const data = await response.json();
-      console.log("Facturas recibidas:", data);
-      return data;
     }
   });
 
