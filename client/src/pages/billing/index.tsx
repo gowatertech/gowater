@@ -105,55 +105,19 @@ export default function Billing() {
     isLoading: isLoadingInvoices,
     error: invoicesError
   } = useQuery<InvoiceWithDetails[]>({
-    queryKey: ["/api/invoices"],
-    queryFn: async () => {
-      console.log("Solicitando facturas...");
-      try {
-        const response = await apiRequest("GET", "/api/invoices");
-        if (!response.ok) {
-          throw new Error(`Error al cargar facturas: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log("Facturas recibidas:", data);
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error("Error en la consulta:", error);
-        throw error;
-      }
-    }
+    queryKey: ["/api/invoices"]
   });
 
   const { data: customers = [] } = useQuery({
-    queryKey: ["/api/customers"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/customers");
-      if (!response.ok) {
-        throw new Error('Error al cargar clientes');
-      }
-      return response.json();
-    }
+    queryKey: ["/api/customers"]
   });
 
   const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products");
-      if (!response.ok) {
-        throw new Error('Error al cargar productos');
-      }
-      return response.json();
-    }
+    queryKey: ["/api/products"]
   });
   
   const { data: settings } = useQuery({
-    queryKey: ["/api/settings"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/settings");
-      if (!response.ok) {
-        throw new Error('Error al cargar configuración');
-      }
-      return response.json();
-    }
+    queryKey: ["/api/settings"]
   });
 
   // Consulta para obtener los items de una factura específica
