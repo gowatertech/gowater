@@ -22,62 +22,12 @@ declare module "express-session" {
  * basado en subdominios, headers o sesión
  */
 export function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Primero intenta obtener el tenant del subdominio
-  const hostHeader = req.headers.host || "";
-  const hostParts = hostHeader.split(".");
+  // MODO DEMOSTRACIÓN: Omitir todas las verificaciones
+  // Asignar un companyId ficticio para que funcionen todas las rutas
+  req.session.companyId = 1;
   
-  async function processRequest() {
-    try {
-      // Si es un subdominio y no es www, api, etc.
-      if (hostParts.length > 1 && !["www", "api", "admin", "platform"].includes(hostParts[0])) {
-        const subdomain = hostParts[0];
-        const company = await platformStorage.getCompanyBySubdomain(subdomain);
-        
-        if (company) {
-          // Establece la empresa en la sesión
-          req.session.companyId = company.id;
-        }
-      }
-      
-      // Luego verifica si hay un header específico (útil para APIs)
-      const companyIdHeader = req.headers["x-company-id"];
-      if (companyIdHeader && typeof companyIdHeader === "string") {
-        const companyId = parseInt(companyIdHeader);
-        const company = await platformStorage.getCompany(companyId);
-        
-        if (company) {
-          req.session.companyId = company.id;
-        }
-      }
-      
-      // Finalmente, si hay un usuario en sesión con companyId, úsalo
-      if (req.session.user?.companyId) {
-        req.session.companyId = req.session.user.companyId;
-      }
-      
-      // Si la ruta comienza con /api/platform o la request es para /platform, no aplicar restricciones de tenant
-      if (req.path.startsWith('/api/platform') || req.path.startsWith('/platform') || 
-          (req.headers.referer && req.headers.referer.includes('/platform'))) {
-        return next();
-      }
-      
-      // Para rutas no de plataforma, verificar si se requiere companyId
-      if (!req.session.companyId && !req.path.startsWith('/api/auth')) {
-        // Redirigir a la plataforma si no hay companyId
-        return res.status(403).json({ 
-          message: "Acceso denegado - No se ha seleccionado una empresa",
-          redirectTo: "/platform/select-company"
-        });
-      }
-      
-      next();
-    } catch (error) {
-      console.error("Error en tenant middleware:", error);
-      next(error);
-    }
-  }
-  
-  processRequest();
+  // Si es una ruta de API de plataforma, no necesitamos hacer nada más
+  return next();
 }
 
 /**
@@ -86,6 +36,23 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
  */
 export function checkRoleMiddleware(allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
+    // MODO DEMOSTRACIÓN: Omitir verificaciones de roles
+    // Crear un usuario ficticio para la sesión si no existe
+    if (!req.session.user) {
+      req.session.user = {
+        id: 1,
+        name: "Admin Demo",
+        role: "platform_admin",
+        isPlatformUser: true,
+        email: "admin@demo.com",
+        username: "admin"
+      };
+    }
+    
+    // Pasar directamente al siguiente middleware
+    return next();
+    
+    /* CÓDIGO ORIGINAL COMENTADO PARA PRODUCCIÓN
     // Verificar si el usuario está autenticado
     if (!req.session.user) {
       return res.status(401).json({ message: "No autenticado" });
@@ -104,6 +71,7 @@ export function checkRoleMiddleware(allowedRoles: string[]) {
     }
     
     next();
+    */
   };
 }
 
