@@ -122,9 +122,13 @@ export default function Billing() {
   });
 
   // Consulta para obtener los items de una factura específica
-  const { data: invoiceDetails = [], isLoading: isLoadingDetails, refetch: refetchDetails } = useQuery({
+  const { data: invoiceDetails = [], isLoading: isLoadingDetails, refetch: refetchDetails } = useQuery<any[]>({
     queryKey: ["/api/invoices", selectedInvoice?.id, "items"],
-    enabled: !!selectedInvoice
+    enabled: !!selectedInvoice,
+    // Configurar un retry para asegurar que se carguen los datos correctamente
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 60000 // Datos "frescos" por un minuto
   });
 
   // Función para agregar un nuevo producto vacío al arreglo
@@ -1296,7 +1300,7 @@ export default function Billing() {
                         <div className="py-4 text-center">No hay detalles disponibles</div>
                       ) : (
                         <div className="space-y-3">
-                          {invoiceDetails.map((item: any) => (
+                          {Array.isArray(invoiceDetails) && invoiceDetails.map((item: any) => (
                             <Card key={item.id} className="p-3">
                               <div className="space-y-2">
                                 <div className="flex justify-between">
@@ -1357,7 +1361,7 @@ export default function Billing() {
                                 </TableCell>
                               </TableRow>
                             ) : (
-                              invoiceDetails.map((item: any) => (
+                              Array.isArray(invoiceDetails) && invoiceDetails.map((item: any) => (
                                 <TableRow key={item.id}>
                                   <TableCell className="p-2">
                                     {item.productName || products.find((p: Product) => p.id === item.productId)?.name || "Producto"}
