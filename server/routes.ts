@@ -1725,8 +1725,20 @@ export async function registerRoutes(router: express.Router) {
     try {
       const invoiceId = parseInt(req.params.id);
       const items = await db
-        .select()
+        .select({
+          id: invoiceItems.id,
+          invoiceId: invoiceItems.invoiceId,
+          productId: invoiceItems.productId,
+          quantity: invoiceItems.quantity,
+          price: invoiceItems.price,
+          total: invoiceItems.total,
+          productName: products.name,
+          isReturnable: products.isReturnable,
+          depositAmount: products.depositAmount,
+          productIcon: products.icon
+        })
         .from(invoiceItems)
+        .leftJoin(products, eq(invoiceItems.productId, products.id))
         .where(eq(invoiceItems.invoiceId, invoiceId));
 
       res.json(items);
