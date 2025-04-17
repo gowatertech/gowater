@@ -1,7 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema } from "@shared/schema";
 import { db } from './db';
 import { companyDb, getCurrentCompanyId } from './company-db';
 import { eq, and, sql, inArray, desc } from 'drizzle-orm';
@@ -2443,6 +2443,14 @@ export async function registerRoutes(router: express.Router) {
     try {
       console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
 
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para crear pedido");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+      }
+
       // Extraer datos de los items antes de preparar los datos del pedido
       const orderItemsData = req.body.items || [];
       
@@ -2452,16 +2460,24 @@ export async function registerRoutes(router: express.Router) {
       // Procesar datos adicionales del pedido
       const orderData = {
         ...orderDataRaw,
+        companyId: companyId, // Asegurar que se usa el companyId correcto
         date: new Date(req.body.date || new Date()),
       };
 
       console.log("Datos de orden procesados:", orderData);
       console.log("Items del pedido a insertar:", orderItemsData);
 
+      // Validar los datos del pedido antes de la inserción
+      const validationResult = insertOrderSchema.safeParse(orderData);
+      if (!validationResult.success) {
+        console.error("Error de validación:", validationResult.error.format());
+        return res.status(400).json({ error: "Datos de pedido inválidos", details: validationResult.error.format() });
+      }
+
       // Crear el pedido
       const [order] = await db
         .insert(orders)
-        .values(orderData)
+        .values(validationResult.data)
         .returning();
 
       // Si hay items, crearlos
@@ -2486,14 +2502,22 @@ export async function registerRoutes(router: express.Router) {
             orderId: order.id,
             productId: productId,
             quantity: parseInt(item.quantity) || 1,
-            price: typeof item.price === 'string' ? item.price : item.price.toFixed(2)
+            price: typeof item.price === 'string' ? item.price : item.price.toFixed(2),
+            companyId: companyId // Asegurar que items también tengan companyId
           };
           
           console.log("Insertando item:", itemToInsert);
           
+          // Validar cada item antes de insertarlo
+          const itemValidationResult = insertOrderItemSchema.safeParse(itemToInsert);
+          if (!itemValidationResult.success) {
+            console.warn("Item inválido:", item, itemValidationResult.error.format());
+            continue;
+          }
+          
           await db
             .insert(orderItems)
-            .values(itemToInsert);
+            .values(itemValidationResult.data);
         }
         
         console.log(`Items insertados correctamente para el pedido #${order.id}`);
