@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { db } from "./db";
+import { platformDb } from "./platform-db";
 import bcrypt from "bcrypt";
 
 // Función para crear todas las tablas necesarias para la plataforma
@@ -8,7 +8,7 @@ export async function setupPlatformTables() {
     console.log("Iniciando configuración de tablas de plataforma...");
 
     // Crear tabla de empresas
-    await db.execute(sql`
+    await platformDb.execute(sql`
       CREATE TABLE IF NOT EXISTS companies (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -23,7 +23,7 @@ export async function setupPlatformTables() {
     console.log("Tabla 'companies' creada o ya existente");
 
     // Crear tabla de planes
-    await db.execute(sql`
+    await platformDb.execute(sql`
       CREATE TABLE IF NOT EXISTS plans (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -38,7 +38,7 @@ export async function setupPlatformTables() {
     console.log("Tabla 'plans' creada o ya existente");
 
     // Crear tabla de facturas de membresía
-    await db.execute(sql`
+    await platformDb.execute(sql`
       CREATE TABLE IF NOT EXISTS membership_invoices (
         id SERIAL PRIMARY KEY,
         company_id INTEGER NOT NULL REFERENCES companies(id),
@@ -55,7 +55,7 @@ export async function setupPlatformTables() {
     console.log("Tabla 'membership_invoices' creada o ya existente");
 
     // Crear tabla de usuarios de plataforma
-    await db.execute(sql`
+    await platformDb.execute(sql`
       CREATE TABLE IF NOT EXISTS platform_users (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
@@ -74,7 +74,7 @@ export async function setupPlatformTables() {
     console.log("Tabla 'platform_users' creada o ya existente");
 
     // Crear tabla de configuraciones de empresa
-    await db.execute(sql`
+    await platformDb.execute(sql`
       CREATE TABLE IF NOT EXISTS company_settings (
         id SERIAL PRIMARY KEY,
         company_id INTEGER NOT NULL REFERENCES companies(id) UNIQUE,
@@ -97,7 +97,7 @@ export async function setupPlatformTables() {
     console.log("Tabla 'company_settings' creada o ya existente");
 
     // Crear tabla de asignación de usuarios a empresas
-    await db.execute(sql`
+    await platformDb.execute(sql`
       CREATE TABLE IF NOT EXISTS user_company (
         user_id INTEGER NOT NULL REFERENCES platform_users(id),
         company_id INTEGER NOT NULL REFERENCES companies(id),
@@ -120,24 +120,24 @@ export async function insertInitialPlatformData() {
     console.log("Iniciando inserción de datos iniciales de plataforma...");
 
     // Verificar si ya existen planes
-    const existingPlans = await db.execute(sql`SELECT COUNT(*) FROM plans`);
-    const plansCount = parseInt(existingPlans.rows[0].count);
+    const existingPlans = await platformDb.execute(sql`SELECT COUNT(*) FROM plans`);
+    const plansCount = parseInt(existingPlans.rows[0].count as string);
 
     if (plansCount === 0) {
       // Insertar plan básico
-      await db.execute(sql`
+      await platformDb.execute(sql`
         INSERT INTO plans (name, price, description, max_users, max_trucks, features, is_active)
         VALUES ('Plan Básico', 99.99, 'Plan básico para pequeñas empresas', 5, 3, ARRAY['Gestión de usuarios', 'Rutas básicas', 'Reportes básicos'], TRUE)
       `);
 
       // Insertar plan profesional
-      await db.execute(sql`
+      await platformDb.execute(sql`
         INSERT INTO plans (name, price, description, max_users, max_trucks, features, is_active)
         VALUES ('Plan Profesional', 199.99, 'Plan profesional con características avanzadas', 15, 10, ARRAY['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST'], TRUE)
       `);
 
       // Insertar plan empresarial
-      await db.execute(sql`
+      await platformDb.execute(sql`
         INSERT INTO plans (name, price, description, max_users, max_trucks, features, is_active)
         VALUES ('Plan Empresarial', 299.99, 'Plan empresarial con todas las características', 50, 30, ARRAY['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST', 'Soporte 24/7', 'Personalización'], TRUE)
       `);
@@ -148,17 +148,17 @@ export async function insertInitialPlatformData() {
     }
 
     // Verificar si ya existen administradores de plataforma
-    const existingAdmins = await db.execute(sql`
+    const existingAdmins = await platformDb.execute(sql`
       SELECT COUNT(*) FROM platform_users WHERE role = 'platform_admin'
     `);
-    const adminsCount = parseInt(existingAdmins.rows[0].count);
+    const adminsCount = parseInt(existingAdmins.rows[0].count as string);
 
     if (adminsCount === 0) {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash('admin12345', salt);
 
       // Insertar administrador de plataforma
-      await db.execute(sql`
+      await platformDb.execute(sql`
         INSERT INTO platform_users (name, email, password, role, active)
         VALUES ('Administrador', 'admin@plataforma.com', ${hashedPassword}, 'platform_admin', TRUE)
       `);

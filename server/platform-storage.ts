@@ -69,7 +69,13 @@ export interface IPlatformStorage {
 export class PlatformStorage implements IPlatformStorage {
   // Implementación de empresas
   async createCompany(data: InsertCompany): Promise<Company> {
-    const [created] = await platformDb.insert(companies).values(data).returning();
+    // Convertir la fecha de string a objeto Date para el timestamp
+    const expirationDate = new Date(data.expirationDate);
+    
+    const [created] = await platformDb.insert(companies).values({
+      ...data,
+      expirationDate
+    }).returning();
     return created;
   }
 
@@ -84,9 +90,17 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async updateCompany(id: number, data: Partial<InsertCompany>): Promise<Company> {
+    // Preparar los datos para actualizar
+    const updateData: any = { ...data };
+    
+    // Convertir expirationDate a Date si está presente
+    if (updateData.expirationDate) {
+      updateData.expirationDate = new Date(updateData.expirationDate);
+    }
+    
     const [updated] = await platformDb
       .update(companies)
-      .set(data)
+      .set(updateData)
       .where(eq(companies.id, id))
       .returning();
     return updated;
