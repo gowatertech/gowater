@@ -2567,6 +2567,14 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: 'ID de pedido inválido' });
       }
       
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para agregar item a pedido");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
       console.log("POST /api/orders/:id/items - Datos recibidos:", JSON.stringify(req.body, null, 2));
       
       // Validar datos requeridos
@@ -2574,16 +2582,27 @@ export async function registerRoutes(router: express.Router) {
       if (!productId || !quantity || !price) {
         return res.status(400).json({ error: 'Faltan datos requeridos (productId, quantity, price)' });
       }
+
+      // Preparar datos del item
+      const itemData = {
+        orderId,
+        productId: parseInt(productId.toString()),
+        quantity: parseInt(quantity.toString()),
+        price: typeof price === 'string' ? price : price.toFixed(2),
+        companyId: companyId // Añadir campo requerido
+      };
+      
+      // Validar datos con el esquema
+      const validationResult = insertOrderItemSchema.safeParse(itemData);
+      if (!validationResult.success) {
+        console.error("Error de validación:", validationResult.error.format());
+        return res.status(400).json({ error: "Datos del item inválidos", details: validationResult.error.format() });
+      }
       
       // Crear el item del pedido
       const [orderItem] = await db
         .insert(orderItems)
-        .values({
-          orderId,
-          productId: parseInt(productId.toString()),
-          quantity: parseInt(quantity.toString()),
-          price: typeof price === 'string' ? price : price.toFixed(2)
-        })
+        .values(validationResult.data)
         .returning();
       
       console.log("Item agregado al pedido:", orderItem);

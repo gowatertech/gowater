@@ -328,6 +328,7 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 
 export const insertOrderSchema = z.object({
   customerId: z.number(),
+  companyId: z.number(),
   total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   status: z.enum(["pending", "in_transit", "delivered", "cancelled"]),
   paymentMethod: z.enum(["cash", "credit", "card"]),
@@ -348,6 +349,7 @@ export const insertOrderItemSchema = z.object({
   productId: z.number(),
   quantity: z.number(),
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+  companyId: z.number(),
 });
 
 // Bottle Returns
