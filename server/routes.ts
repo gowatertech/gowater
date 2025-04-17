@@ -32,33 +32,29 @@ const upload = multer({
   }
 });
 
-export async function registerRoutes(app: Express) {
-  // Configurar express primero
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-
+export async function registerRoutes(router: express.Router) {
   // Registrar las rutas de carga de vehículo y cuadre
-  await registerVehicleLoadingRoutes(app);
-  await registerRouteSettlements(app);
-  await registerDriverRoutes(app);
+  await registerVehicleLoadingRoutes(router);
+  await registerRouteSettlements(router);
+  await registerDriverRoutes(router);
   
   // Registrar endpoint para ubicaciones de conductores
-  registerDriversLocationsEndpoint(app);
+  registerDriversLocationsEndpoint(router);
   
   // Registrar endpoint para iniciar rutas (validación para chofer con ruta activa)
-  registerStartRouteEndpoint(app);
+  registerStartRouteEndpoint(router);
   
   // Registrar endpoints de la API móvil
-  registerMobileApiEndpoints(app);
+  registerMobileApiEndpoints(router);
   
   // Registrar endpoint de prueba para multi-tenant
-  registerMultiTenantTestEndpoint(app);
+  registerMultiTenantTestEndpoint(router);
 
   // Registrar endpoints para comisiones
-  app.use('/api/commissions', commissionsRoutes);
+  router.use('/commissions', commissionsRoutes);
   
   // Endpoint de prueba para verificar el funcionamiento del filtrado multi-tenant
-  app.get("/api/test-company-filter", async (req, res) => {
+  router.get("/test-company-filter", async (req, res) => {
     try {
       // Obtener el ID de compañía del contexto
       const currentCompanyId = getCurrentCompanyId();
@@ -95,7 +91,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para obtener el usuario actual
-  app.get("/api/me", async (req, res) => {
+  router.get("/me", async (req, res) => {
     try {
       // Solución temporal: simular un usuario con rol de administrador
       // En un sistema real, esto usaría la información de sesión del usuario
@@ -115,12 +111,12 @@ export async function registerRoutes(app: Express) {
   });
 
   // Registrar endpoints para rutas y pedidos
-  registerRoutesEndpoints(app);
+  registerRoutesEndpoints(router);
   
 
 
   // Warehouses endpoints
-  app.get("/api/warehouses", async (req, res) => {
+  router.get("/warehouses", async (req, res) => {
     try {
       const allWarehouses = await db
         .select()
@@ -135,7 +131,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/warehouses", async (req, res) => {
+  router.post("/warehouses", async (req, res) => {
     try {
       console.log("POST /api/warehouses - Datos recibidos:", req.body);
 
@@ -160,7 +156,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/warehouses/:id", async (req, res) => {
+  router.patch("/warehouses/:id", async (req, res) => {
     try {
       console.log("PATCH /api/warehouses/:id - Body recibido:", req.body);
       const warehouseId = parseInt(req.params.id);
@@ -198,7 +194,7 @@ export async function registerRoutes(app: Express) {
 
 
   // Endpoints para el manejo de direcciones
-  app.get("/api/provinces", async (req, res) => {
+  router.get("/provinces", async (req, res) => {
     try {
       const allProvinces = await db
         .select()
@@ -211,7 +207,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/municipalities/:provinceId", async (req, res) => {
+  router.get("/municipalities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
       if (isNaN(provinceId)) {
@@ -232,7 +228,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/cities/:provinceId", async (req, res) => {
+  router.get("/cities/:provinceId", async (req, res) => {
     try {
       const provinceId = parseInt(req.params.provinceId);
       const citiesInProvince = await db
@@ -250,7 +246,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/sectors/:cityId", async (req, res) => {
+  router.get("/sectors/:cityId", async (req, res) => {
     try {
       const cityId = parseInt(req.params.cityId);
       const sectorsInCity = await db
@@ -265,7 +261,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Zonas
-  app.get("/api/zones", async (req, res) => {
+  router.get("/zones", async (req, res) => {
     try {
       const allZones = await db
         .select()
@@ -278,7 +274,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/zones/:id", async (req, res) => {
+  router.get("/zones/:id", async (req, res) => {
     try {
       const zoneId = parseInt(req.params.id);
       if (isNaN(zoneId)) {
@@ -303,7 +299,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para obtener pedidos pendientes por zona
-  app.get("/api/zones/:id/pending-orders", async (req, res) => {
+  router.get("/zones/:id/pending-orders", async (req, res) => {
     try {
       const zoneId = parseInt(req.params.id);
       
@@ -311,7 +307,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
-      console.log(`GET /api/zones/${zoneId}/pending-orders - Buscando pedidos pendientes`);
+      console.log(`GET /zones/${zoneId}/pending-orders - Buscando pedidos pendientes`);
       
       // Primero obtenemos los clientes de la zona
       const zoneCustomers = await db
@@ -367,7 +363,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/zones", async (req, res) => {
+  router.post("/zones", async (req, res) => {
     const result = insertZoneSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({ error: result.error.format() });
@@ -397,7 +393,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/zones/:id", async (req, res) => {
+  router.patch("/zones/:id", async (req, res) => {
     try {
       const zoneId = parseInt(req.params.id);
       if (isNaN(zoneId)) {
@@ -436,7 +432,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/zones/:id", async (req, res) => {
+  router.delete("/zones/:id", async (req, res) => {
     try {
       const zoneId = parseInt(req.params.id);
       if (isNaN(zoneId)) {
@@ -471,7 +467,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Users
-  app.get("/api/users", async (req, res) => {
+  router.get("/users", async (req, res) => {
     try {
       const role = req.query.role as string;
       let usersList;
@@ -495,7 +491,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Endpoint para obtener conductores y ayudantes
-  app.get("/api/users/drivers", async (req, res) => {
+  router.get("/users/drivers", async (req, res) => {
     try {
       const role = req.query.role as string;
       const drivers = await db
@@ -515,7 +511,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para obtener un usuario por ID
-  app.get("/api/users/:id", async (req, res) => {
+  router.get("/users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const [user] = await db
@@ -535,7 +531,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para crear un nuevo usuario
-  app.post("/api/users", async (req, res) => {
+  router.post("/users", async (req, res) => {
     try {
       const userData = req.body;
       
@@ -581,7 +577,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para actualizar un usuario
-  app.put("/api/users/:id", async (req, res) => {
+  router.put("/users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const userData = req.body;
@@ -622,7 +618,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para eliminar un usuario (soft delete)
-  app.delete("/api/users/:id", async (req, res) => {
+  router.delete("/users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       
@@ -651,7 +647,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Rutas
-  app.get("/api/routes", async (req, res) => {
+  router.get("/routes", async (req, res) => {
     try {
       console.log("GET /api/routes - Obteniendo todas las rutas");
       console.log("Query params:", req.query);
@@ -695,7 +691,7 @@ export async function registerRoutes(app: Express) {
   
   // Endpoint para obtener una ruta por ID
   // Endpoint para obtener rutas activas (pending o in_progress)
-  app.get("/api/routes/active", async (req, res) => {
+  router.get("/routes/active", async (req, res) => {
     try {
       console.log("GET /api/routes/active - Obteniendo rutas activas");
       
@@ -714,7 +710,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Endpoint para obtener las órdenes asociadas a una ruta específica
-  app.get("/api/routes/:id/orders", async (req, res) => {
+  router.get("/routes/:id/orders", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
       
@@ -810,7 +806,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/routes/:id", async (req, res) => {
+  router.get("/routes/:id", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
       
@@ -887,7 +883,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para eliminar una ruta por ID
-  app.delete("/api/routes/:id", async (req, res) => {
+  router.delete("/routes/:id", async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
       
@@ -918,7 +914,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Endpoint para optimizar ruta
-  app.post("/api/routes/optimize", async (req, res) => {
+  router.post("/routes/optimize", async (req, res) => {
     try {
       console.log("POST /api/routes/optimize - Body recibido:", req.body);
       const { orderIds, truckId, assistantId } = req.body;
@@ -957,7 +953,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/routes", async (req, res) => {
+  router.post("/routes", async (req, res) => {
     try {
       console.log("POST /api/routes - Datos recibidos:", req.body);
       

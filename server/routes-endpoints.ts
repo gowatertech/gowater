@@ -332,10 +332,10 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
 };
 
 // Función principal para registrar todos los endpoints
-export function registerRoutesEndpoints(app: Express) {
+export function registerRoutesEndpoints(router: Router) {
   // Registrar endpoints para pedidos recurrentes
-  createRecurringOrdersEndpoints(app);
+  createRecurringOrdersEndpoints(router);
   
   // Registrar endpoints de pedidos estándar
-  createOrdersEndpoints(app);
+  createOrdersEndpoints(router);
 }

@@ -28,14 +28,18 @@ const sessionConfig = {
 
 app.use(session(sessionConfig));
 
-// Aplicar middleware multi-tenant después de la sesión
-app.use(tenantMiddleware);
+// Creamos routers separados para APIs de empresas y plataforma
+const companyApiRouter = express.Router();
+const platformApiRouter = express.Router();
 
-// Aplicar middleware de companyDb para establecer el companyId en el contexto
-app.use(companyDbMiddleware);
+// Solo aplicamos los middlewares de multi-tenancy al router de empresas
+companyApiRouter.use(tenantMiddleware);
+companyApiRouter.use(companyDbMiddleware);
+companyApiRouter.use(companyFilterMiddleware);
 
-// Aplicar filtro de compañía para separar datos
-app.use(companyFilterMiddleware);
+// Montamos los routers en sus respectivas rutas
+app.use("/api/platform", platformApiRouter);
+app.use("/api", companyApiRouter);
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -79,7 +83,7 @@ app.use((req, res, next) => {
     log("Platform routes registered successfully");
     
     // Register regular API routes for company operations
-    server = await registerRoutes(app);
+    server = await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
 
     // Configure static file serving and client-side routing
