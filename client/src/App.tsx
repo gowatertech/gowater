@@ -155,8 +155,20 @@ function Router() {
   // Importación de componentes de la plataforma
   const PlatformLogin = lazy(() => import("@/pages/platform/PlatformLogin"));
   const PlatformDashboard = lazy(() => import("@/pages/platform/PlatformDashboard"));
+  
+  // Companies (Empresas)
+  const PlatformCompanies = lazy(() => import("@/pages/platform/companies"));
+  const PlatformCompanyForm = lazy(() => import("@/pages/platform/companies/[id]"));
+  
+  // Plans (Planes)
+  const PlatformPlans = lazy(() => import("@/pages/platform/plans"));
+  const PlatformPlanForm = lazy(() => import("@/pages/platform/plans/[id]"));
+  
+  // Users (Usuarios)
   const PlatformUsers = lazy(() => import("@/pages/platform/users"));
   const PlatformUserForm = lazy(() => import("@/pages/platform/users/[id]"));
+  
+  // Invoices (Facturas)
   const PlatformInvoices = lazy(() => import("@/pages/platform/invoices"));
   const PlatformInvoiceForm = lazy(() => import("@/pages/platform/invoices/[id]"));
 
@@ -194,6 +206,42 @@ function Router() {
             <PlatformDashboard />
           </Suspense>
         </Route>
+        
+        {/* Rutas de Empresas */}
+        <Route path="/platform/companies/new">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformCompanyForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/companies/:id">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformCompanyForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/companies">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformCompanies />
+          </Suspense>
+        </Route>
+        
+        {/* Rutas de Planes */}
+        <Route path="/platform/plans/new">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformPlanForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/plans/:id">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformPlanForm />
+          </Suspense>
+        </Route>
+        <Route path="/platform/plans">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformPlans />
+          </Suspense>
+        </Route>
+        
+        {/* Rutas de Usuarios */}
         <Route path="/platform/users/new">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <PlatformUserForm />
@@ -209,6 +257,8 @@ function Router() {
             <PlatformUsers />
           </Suspense>
         </Route>
+        
+        {/* Rutas de Facturas */}
         <Route path="/platform/invoices/new">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <PlatformInvoiceForm />
@@ -224,6 +274,8 @@ function Router() {
             <PlatformInvoices />
           </Suspense>
         </Route>
+        
+        {/* Ruta por defecto de la plataforma */}
         <Route path="/platform">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <PlatformLogin />

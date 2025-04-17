@@ -15,6 +15,7 @@ import {
 } from "../shared/company-settings-schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
+import { platformDb } from "./platform-db";
 import { eq } from "drizzle-orm";
 
 export function registerPlatformRoutes(router: Router) {
