@@ -67,12 +67,14 @@ export const insertProductSchema = z.object({
 // Provincias y Municipios
 export const provinces = pgTable("provinces", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
 });
 
 export const municipalities = pgTable("municipalities", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   provinceId: integer("province_id").notNull().references(() => provinces.id),
@@ -106,6 +108,7 @@ export const municipalitiesRelations = relations(municipalities, ({ one }) => ({
 // Cities and Sectors
 export const cities = pgTable("cities", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   municipalityId: integer("municipality_id").notNull().references(() => municipalities.id),
   code: text("code").notNull().unique(),
@@ -173,6 +176,7 @@ export const insertCustomerSchema = z.object({
 // Trucks (Vehículos)
 export const trucks = pgTable("trucks", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   brand: text("brand").notNull(),
   model: text("model").notNull(),
   year: text("year").notNull(),
@@ -197,6 +201,7 @@ export const insertTruckSchema = z.object({
 // Routes
 export const routes = pgTable("routes", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   driverId: integer("driver_id").notNull().references(() => users.id),
   assistantId: integer("assistant_id").references(() => users.id),
@@ -269,6 +274,7 @@ export const insertRouteSchema = z.object({
 // Orders
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   customerId: integer("customer_id").notNull(),
   routeId: integer("route_id"),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
@@ -428,6 +434,7 @@ export const insertReturnedBottleSchema = z.object({
 // Zones
 export const zones = pgTable("zones", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   color: text("color").notNull(),
   coordinates: text("coordinates").array().notNull(),
@@ -445,6 +452,7 @@ export const insertZoneSchema = z.object({
 // Warehouses
 export const warehouses = pgTable("warehouses", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   code: serial("code").unique(),
   name: text("name").notNull(),
   address: text("address"),
@@ -461,6 +469,7 @@ export const insertWarehouseSchema = z.object({
 // Invoices (Facturas)
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   invoiceNumber: serial("invoice_number").unique(),
   customerId: integer("customer_id").notNull().references(() => customers.id),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
@@ -500,6 +509,7 @@ export const insertInvoiceItemSchema = z.object({
 // Bills (Facturas)
 export const bills = pgTable("bills", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   billNumber: serial("bill_number").unique(),
   customerId: integer("customer_id").notNull().references(() => customers.id),
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
@@ -559,6 +569,7 @@ export const insertPaymentSchema = z.object({
 // Customer Orders
 export const customerOrders = pgTable("customer_orders", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   customerId: integer("customer_id").notNull(),
   orderType: text("order_type", { enum: ["regular", "wholesale", "special"] }).notNull(),
   frequency: text("frequency", { enum: ["daily", "weekly", "monthly", "occasional"] }).notNull(),
@@ -750,6 +761,7 @@ export type InsertProductionBatchItem = z.infer<typeof insertProductionBatchItem
 // Vehicle Loading (Carga de Vehículos)
 export const vehicleLoading = pgTable("vehicle_loading", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   loadingNumber: serial("loading_number").unique(),
   date: timestamp("date", { mode: 'string' }).notNull().defaultNow(),
   truckId: integer("truck_id").notNull().references(() => trucks.id),
