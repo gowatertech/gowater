@@ -74,6 +74,14 @@ export function registerPlatformRoutes(router: Router) {
   router.get("/companies/:id", requirePlatformAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Validar que id es un número válido
+      if (isNaN(id)) {
+        console.log("ID no válido en la petición:", req.params.id);
+        return res.status(400).json({ message: "ID de empresa no válido" });
+      }
+      
+      console.log("Buscando empresa con ID:", id);
       const company = await platformStorage.getCompany(id);
       
       if (!company) {
@@ -442,8 +450,8 @@ export function registerPlatformRoutes(router: Router) {
   router.get("/companies/count", async (req: Request, res: Response) => {
     try {
       console.log("Ejecutando conteo de empresas");
-      // Usar una consulta COUNT SQL directa para mayor eficiencia usando id
-      const result = await platformDb.execute(sql`SELECT COUNT(id) as count FROM "companies"`);
+      // Ejecutar la consulta directamente sin pasar por el método getCompany
+      const result = await platformDb.execute(sql`SELECT COUNT(id) as count FROM companies`);
       console.log("Resultado del conteo de empresas:", result.rows[0]);
       
       // Asegurarse de que sea un número válido
@@ -463,7 +471,7 @@ export function registerPlatformRoutes(router: Router) {
     try {
       console.log("Ejecutando conteo de usuarios");
       // Usar SQL directo para mayor eficiencia
-      const result = await platformDb.execute(sql`SELECT COUNT(id) as count FROM "platform_users"`);
+      const result = await platformDb.execute(sql`SELECT COUNT(id) as count FROM platform_users`);
       console.log("Resultado del conteo de usuarios:", result.rows[0]);
       
       // Asegurarse de que sea un número válido
@@ -488,7 +496,7 @@ export function registerPlatformRoutes(router: Router) {
       if (status) {
         try {
           const result = await platformDb.execute(
-            sql`SELECT COUNT(id) as count FROM "membership_invoices" WHERE status = ${status}`
+            sql`SELECT COUNT(id) as count FROM membership_invoices WHERE status = ${status}`
           );
           console.log("Resultado conteo facturas filtradas:", result.rows[0]);
           
@@ -509,7 +517,7 @@ export function registerPlatformRoutes(router: Router) {
       
       try {
         const result = await platformDb.execute(
-          sql`SELECT COUNT(id) as count FROM "membership_invoices"`
+          sql`SELECT COUNT(id) as count FROM membership_invoices`
         );
         console.log("Resultado conteo total facturas:", result.rows[0]);
         
