@@ -716,8 +716,12 @@ export class DatabaseStorage implements IStorage {
       await db
         .update(invoices)
         .set({ status: "paid" })
-        .where(eq(invoices.id, payment.invoiceId))
-        .where(eq(invoices.companyId, companyId)); // Asegurar que solo se actualice la factura de la misma empresa
+        .where(
+          and(
+            eq(invoices.id, payment.invoiceId),
+            eq(invoices.companyId, companyId)
+          )
+        ); // Asegurar que solo se actualice la factura de la misma empresa
       
       console.log("Storage - registerPayment: Pago registrado con ID:", newPayment.id);
       return newPayment;
