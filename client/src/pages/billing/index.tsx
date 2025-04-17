@@ -678,17 +678,6 @@ export default function Billing() {
   // Renderizado del componente
   return (
     <div className="p-2 md:p-4 space-y-2">
-      {/* Información de depuración */}
-      <div className="bg-blue-50 p-3 border border-blue-200 rounded-md mb-4">
-        <h3 className="text-sm font-semibold mb-1">Información de depuración:</h3>
-        <p className="text-xs">Estado de carga: {isLoadingInvoices ? "Cargando..." : "Completado"}</p>
-        <p className="text-xs">Error: {invoicesError ? invoicesError.message : "Ninguno"}</p>
-        <p className="text-xs">Facturas recibidas: {invoices.length}</p>
-        <p className="text-xs">Facturas filtradas: {filteredInvoices.length}</p>
-        <pre className="text-xs mt-2 bg-white p-2 rounded max-h-20 overflow-auto">
-          {JSON.stringify(invoices.slice(0, 2), null, 2)}
-        </pre>
-      </div>
 
       {/* Cabecera con título e icono */}
       <div className="flex items-center justify-between">
