@@ -1724,7 +1724,18 @@ export async function registerRoutes(router: express.Router) {
   router.get("/invoices/:id/items", async (req, res) => {
     try {
       const invoiceId = parseInt(req.params.id);
-      const items = await db
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener items de factura");
+      }
+      
+      console.log(`Obteniendo items para factura ${invoiceId}, companyId: ${companyId || 'No definido'}`);
+      
+      // Construir la consulta con el filtro apropiado
+      let query = db
         .select({
           id: invoiceItems.id,
           invoiceId: invoiceItems.invoiceId,
@@ -1735,12 +1746,27 @@ export async function registerRoutes(router: express.Router) {
           productName: products.name,
           isReturnable: products.isReturnable,
           depositAmount: products.depositAmount,
-          productIcon: products.icon
+          productIcon: products.icon,
+          companyId: invoiceItems.companyId // Añadir para mayor claridad en debugging
         })
         .from(invoiceItems)
-        .leftJoin(products, eq(invoiceItems.productId, products.id))
-        .where(eq(invoiceItems.invoiceId, invoiceId));
-
+        .leftJoin(products, eq(invoiceItems.productId, products.id));
+      
+      // Si tenemos companyId, aplicar filtro por companyId y invoiceId
+      if (companyId) {
+        query = query.where(and(
+          eq(invoiceItems.invoiceId, invoiceId),
+          eq(invoiceItems.companyId, companyId)
+        ));
+      } else {
+        // Si no hay companyId, solo filtrar por invoiceId
+        query = query.where(eq(invoiceItems.invoiceId, invoiceId));
+      }
+      
+      const items = await query;
+      
+      console.log(`Se encontraron ${items.length} items para la factura ${invoiceId}`);
+      
       res.json(items);
     } catch (error) {
       console.error("Error al obtener items de factura:", error);
@@ -1752,6 +1778,14 @@ export async function registerRoutes(router: express.Router) {
     try {
       const invoiceId = parseInt(req.params.id);
       const { productId, quantity, price } = req.body;
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para crear item de factura");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
 
       // Validar datos básicos
       if (!productId || !quantity || !price) {
@@ -1765,7 +1799,9 @@ export async function registerRoutes(router: express.Router) {
       // Calcular el total
       const total = (numPrice * numQuantity).toFixed(2);
       
-      // Guardar directamente en la base de datos
+      console.log(`Creando item para factura ${invoiceId}, companyId: ${companyId}, producto: ${productId}, cantidad: ${numQuantity}`);
+      
+      // Guardar directamente en la base de datos incluyendo companyId
       const [item] = await db
         .insert(invoiceItems)
         .values({
@@ -1773,7 +1809,8 @@ export async function registerRoutes(router: express.Router) {
           productId,
           quantity: numQuantity,
           price,
-          total
+          total,
+          companyId // Añadir companyId
         })
         .returning();
 
@@ -1781,14 +1818,20 @@ export async function registerRoutes(router: express.Router) {
       const [invoice] = await db
         .select()
         .from(invoices)
-        .where(eq(invoices.id, invoiceId));
+        .where(and(
+          eq(invoices.id, invoiceId),
+          eq(invoices.companyId, companyId)
+        ));
 
       if (invoice) {
         const newTotal = (parseFloat(invoice.total) + parseFloat(total)).toFixed(2);
         await db
           .update(invoices)
           .set({ total: newTotal })
-          .where(eq(invoices.id, invoiceId));
+          .where(and(
+            eq(invoices.id, invoiceId),
+            eq(invoices.companyId, companyId)
+          ));
       }
 
       console.log("Item de factura creado:", item);
