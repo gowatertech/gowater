@@ -105,17 +105,20 @@ export default function Billing() {
       return;
     }
     
+    // Establecer la factura seleccionada inmediatamente para la UI
     setSelectedInvoice(invoice);
     setIsLoadingInvoiceDetails(true);
     
     try {
-      console.log(`Cargando detalles para factura ID: ${invoice.id}`);
+      console.log(`Cargando detalles para factura ID: ${invoice.id}, companyId: ${invoice.companyId}`);
       
       // Realizar una solicitud explícita para cargar los detalles
       const response = await apiRequest("GET", `/api/invoices/${invoice.id}/items`);
       
       if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Error en respuesta:", errorData);
+        throw new Error(`Error HTTP: ${response.status} - ${errorData.error || 'Error desconocido'}`);
       }
       
       const items = await response.json();
@@ -129,8 +132,8 @@ export default function Billing() {
       // Invalidar la consulta para actualizar el cache
       queryClient.invalidateQueries({ queryKey: ["/api/invoices", invoice.id, "items"] });
       
-      // Forzar una actualización de los detalles
-      refetchDetails();
+      // Forzar una actualización de los detalles para asegurar que se tienen los datos más recientes
+      await refetchDetails();
       
       // Cambiar a la pestaña de detalles
       setActiveTab("details");
@@ -139,8 +142,10 @@ export default function Billing() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudieron cargar los detalles de la factura"
+        description: "No se pudieron cargar los detalles de la factura. Intente nuevamente."
       });
+      // En caso de error, volver a la lista para evitar quedarse en una vista incompleta
+      setActiveTab("list");
     } finally {
       setIsLoadingInvoiceDetails(false);
     }
