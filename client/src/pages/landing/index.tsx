@@ -43,7 +43,7 @@ export default function LandingPage() {
             <Link href="/soporte">
               <Button variant="ghost" className="font-medium">Soporte</Button>
             </Link>
-            <Link href="/demo">
+            <Link href="/contact">
               <Button variant="ghost" className="font-medium">Demo</Button>
             </Link>
             <Link href="/contact">
@@ -79,7 +79,7 @@ export default function LandingPage() {
                     <Link href="/soporte">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Soporte</div>
                     </Link>
-                    <Link href="/demo">
+                    <Link href="/contact">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                     </Link>
                     <Link href="/contact">
@@ -130,7 +130,7 @@ export default function LandingPage() {
                     Comenzar ahora
                   </Button>
                 </Link>
-                <Link href="/demo">
+                <Link href="/contact">
                   <Button size="lg" variant="outline" className="w-full">
                     Solicitar demo
                   </Button>
@@ -231,7 +231,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm">
                 <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Características</Link></li>
                 <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Planes y precios</Link></li>
-                <li><Link href="/demo" className="text-muted-foreground hover:text-foreground">Solicitar demo</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Solicitar demo</Link></li>
                 <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Seguridad</Link></li>
               </ul>
             </div>
