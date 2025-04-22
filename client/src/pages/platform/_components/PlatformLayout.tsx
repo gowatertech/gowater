@@ -12,7 +12,8 @@ import {
   Clock, 
   CreditCard,
   LayoutDashboard, 
-  Settings 
+  Settings,
+  Briefcase
 } from "lucide-react";
 
 interface PlatformLayoutProps {
@@ -103,6 +104,18 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
                 }`}>
                   <Building2 size={18} />
                   <span>Empresas</span>
+                </a>
+              </Link>
+            </li>
+            <li>
+              <Link href="/platform/interested-companies">
+                <a className={`flex items-center gap-2 p-2 rounded-md ${
+                  isActive('/platform/interested-companies') 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'hover:bg-primary/10'
+                }`}>
+                  <Briefcase size={18} />
+                  <span>Empresas Interesadas</span>
                 </a>
               </Link>
             </li>

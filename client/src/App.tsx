@@ -179,6 +179,9 @@ function Router() {
   
   // Settings (Configuración)
   const PlatformSettings = lazy(() => import("@/pages/platform/settings"));
+  
+  // Empresas Interesadas
+  const InterestedCompanies = lazy(() => import("@/pages/platform/interested-companies"));
 
   // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
   if (isMobileApp) {
@@ -296,6 +299,13 @@ function Router() {
           </Suspense>
         </Route>
         
+        {/* Ruta de Empresas Interesadas */}
+        <Route path="/platform/interested-companies">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <InterestedCompanies />
+          </Suspense>
+        </Route>
+
         {/* Ruta de Configuración */}
         <Route path="/platform/settings">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
