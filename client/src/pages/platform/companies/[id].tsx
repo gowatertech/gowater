@@ -286,7 +286,7 @@ export default function CompanyFormPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {plansData?.data?.map((plan: any) => (
+                            {plansData?.map((plan: any) => (
                               <SelectItem key={plan.id} value={plan.id.toString()}>
                                 {plan.name} - ${plan.price}/mes
                               </SelectItem>
