@@ -11,6 +11,7 @@ import { companyDbMiddleware } from "./company-db";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
+import leadsRoutes from "./leads-routes";
 
 const app = express();
 
@@ -88,6 +89,10 @@ app.use((req, res, next) => {
     // Register regular API routes for company operations
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
+    
+    // Montar las rutas públicas para registro de empresas interesadas
+    app.use("/api/leads", leadsRoutes);
+    log("Lead registration routes registered successfully");
     
     // Crear servidor HTTP
     server = createServer(app);

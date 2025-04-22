@@ -1103,3 +1103,36 @@ export type Commission = typeof commissions.$inferSelect;
 export type InsertCommission = z.infer<typeof insertCommissionSchema>;
 export type CommissionItem = typeof commissionItems.$inferSelect;
 export type InsertCommissionItem = z.infer<typeof insertCommissionItemSchema>;
+
+// Tabla para empresas interesadas en el servicio
+export const companyLeads = pgTable("company_leads", {
+  id: serial("id").primaryKey(),
+  companyName: text("company_name").notNull(),
+  address: text("address").notNull(),
+  country: text("country").notNull().default("República Dominicana"),
+  managerName: text("manager_name").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  approximateClients: integer("approximate_clients").notNull().default(0),
+  vehicleCount: integer("vehicle_count").notNull().default(0),
+  comments: text("comments"),
+  interestedInPlan: text("interested_in_plan"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  status: text("status", { enum: ["new", "contacted", "converted", "declined"] }).notNull().default("new"),
+});
+
+export const insertCompanyLeadSchema = z.object({
+  companyName: z.string().min(1, "El nombre de la empresa es requerido"),
+  address: z.string().min(1, "La dirección es requerida"),
+  country: z.string().default("República Dominicana"),
+  managerName: z.string().min(1, "El nombre del encargado es requerido"),
+  phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
+  email: z.string().email("Correo electrónico inválido").optional(),
+  approximateClients: z.number().int().nonnegative().default(0),
+  vehicleCount: z.number().int().nonnegative().default(0),
+  comments: z.string().optional(),
+  interestedInPlan: z.string().optional(),
+});
+
+export type CompanyLead = typeof companyLeads.$inferSelect;
+export type InsertCompanyLead = z.infer<typeof insertCompanyLeadSchema>;
