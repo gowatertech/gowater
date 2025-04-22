@@ -44,9 +44,15 @@ export default function LandingPage() {
             <Link href="/soporte">
               <Button variant="ghost" className="font-medium">Soporte</Button>
             </Link>
-            <Link href="#app-mobile">
+            <a href="#app-mobile" onClick={(e) => {
+                e.preventDefault();
+                const element = document.getElementById('app-mobile');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}>
               <Button variant="ghost" className="font-medium">App Móvil</Button>
-            </Link>
+            </a>
             <Link href="/contact">
               <Button variant="ghost" className="font-medium">Demo</Button>
             </Link>
@@ -83,9 +89,20 @@ export default function LandingPage() {
                     <Link href="/soporte">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Soporte</div>
                     </Link>
-                    <Link href="#app-mobile">
+                    <a href="#app-mobile" onClick={(e) => {
+                      e.preventDefault();
+                      const element = document.getElementById('app-mobile');
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                        // Cerrar el menú móvil
+                        const closeButton = document.querySelector('[data-radix-collection-item]');
+                        if (closeButton && 'click' in closeButton) {
+                          (closeButton as HTMLElement).click();
+                        }
+                      }
+                    }}>
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">App Móvil</div>
-                    </Link>
+                    </a>
                     <Link href="/contact">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                     </Link>
