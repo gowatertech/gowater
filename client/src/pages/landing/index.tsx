@@ -118,12 +118,16 @@ export default function LandingPage() {
                     </SheetClose>
                   </nav>
                   <div className="pt-6 border-t space-y-4">
-                    <Link href="/platform/login">
-                      <Button variant="outline" className="w-full">Iniciar sesión</Button>
-                    </Link>
-                    <Link href="/register-interest">
-                      <Button className="w-full">Registrar interés</Button>
-                    </Link>
+                    <SheetClose asChild>
+                      <Link href="/platform/login">
+                        <Button variant="outline" className="w-full">Iniciar sesión</Button>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/register-interest">
+                        <Button className="w-full">Registrar interés</Button>
+                      </Link>
+                    </SheetClose>
                   </div>
                 </div>
               </SheetContent>
