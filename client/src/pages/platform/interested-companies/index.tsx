@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlatformLayout } from "../_components/PlatformLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Filter, FileDown } from "lucide-react";
+import { Loader2, Search, FileDown } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -42,6 +42,7 @@ const statusLabels = {
 
 export default function InterestedCompanies() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -66,14 +67,15 @@ export default function InterestedCompanies() {
         data: { status }
       });
 
+      // Invalidar la consulta y recargar los datos
+      queryClient.invalidateQueries({ queryKey: ["/api/interested-companies"] });
+      
       toast({
         title: "Estado actualizado",
         description: "El estado de la empresa ha sido actualizado correctamente",
       });
-
-      // Recargar los datos
-      refetch();
     } catch (error) {
+      console.error("Error al actualizar estado:", error);
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado de la empresa",
