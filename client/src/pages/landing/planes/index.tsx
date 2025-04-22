@@ -143,10 +143,10 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
 
   return (
     <Card className={cn(
-      "border-2 transition-all duration-300 relative",
+      "border-2 transition-all duration-300 relative h-full flex flex-col",
       colorClass,
       hoverClass,
-      recommended && "transform scale-105 shadow-lg border-green-300"
+      recommended && "shadow-lg border-green-300"
     )}>
       {recommended && (
         <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-600 hover:bg-green-700">
@@ -155,9 +155,9 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
       )}
       <CardHeader>
         <CardTitle className={cn("text-xl font-bold", textColorClass)}>{plan.name}</CardTitle>
-        <CardDescription className="mt-2">{plan.description}</CardDescription>
+        <CardDescription className="mt-2 min-h-[50px]">{plan.description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-grow">
         <div className="flex items-end gap-1">
           <span className="text-3xl font-bold">${plan.price}</span>
           <span className="text-muted-foreground mb-1">/mes</span>
@@ -165,11 +165,11 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
 
         <div className="pt-4 space-y-3">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground/70" />
+            <Users className="h-5 w-5 text-muted-foreground/70 flex-shrink-0" />
             <span className="text-sm">Hasta <strong>{plan.maxUsers}</strong> usuarios</span>
           </div>
           <div className="flex items-center gap-2">
-            <Truck className="h-5 w-5 text-muted-foreground/70" />
+            <Truck className="h-5 w-5 text-muted-foreground/70 flex-shrink-0" />
             <span className="text-sm">Hasta <strong>{plan.maxTrucks}</strong> vehículos</span>
           </div>
         </div>
@@ -186,7 +186,7 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
           </ul>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="mt-auto pt-4">
         <Link href={`/platform/register?plan=${plan.id}`} className="w-full">
           <Button 
             variant={buttonVariant} 
@@ -207,12 +207,13 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
 // Componente de esqueleto para carga
 function PlanCardSkeleton() {
   return (
-    <Card className="border-2 border-muted">
+    <Card className="border-2 border-muted h-full flex flex-col">
       <CardHeader>
         <Skeleton className="h-7 w-28 mb-2" />
         <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-3/4 mt-1" />
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-grow">
         <Skeleton className="h-8 w-20" />
         
         <div className="pt-4 space-y-3">
@@ -230,7 +231,7 @@ function PlanCardSkeleton() {
           </div>
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="mt-auto pt-4">
         <Skeleton className="h-10 w-full" />
       </CardFooter>
     </Card>
