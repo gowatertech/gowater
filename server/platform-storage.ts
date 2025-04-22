@@ -4,24 +4,22 @@ import {
   companies,
   plans,
   membershipInvoices,
+  platformUsers,
+  userCompanies,
+  companySettings,
   Company,
   InsertCompany,
   Plan,
   InsertPlan,
   MembershipInvoice,
   InsertMembershipInvoice,
-} from "../shared/platform-schema";
-import {
-  platformUsers,
-  userCompany,
   PlatformUser,
   InsertPlatformUser,
-} from "../shared/platform-users-schema";
-import {
-  companySettings,
+  UserCompany,
+  InsertUserCompany,
   CompanySettings,
   InsertCompanySettings,
-} from "../shared/company-settings-schema";
+} from "../shared/platform-schema";
 
 // Interfaz para el almacenamiento de la plataforma
 export interface IPlatformStorage {
@@ -296,31 +294,21 @@ export class PlatformStorage implements IPlatformStorage {
   // Implementación de configuraciones de empresa
   async createCompanySettings(data: InsertCompanySettings): Promise<CompanySettings> {
     try {
-      // Preparar datos con las conversiones necesarias
-      const settingsData: any = {
-        companyId: data.companyId,
-        name: data.name,
-        street: data.street,
-        streetNumber: data.streetNumber,
-        provinceId: data.provinceId,
-        municipalityId: data.municipalityId,
-        contactPhone: data.contactPhone,
-        country: data.country,
-        currency: data.currency,
-        // Campos opcionales
-        logo: data.logo,
-        rnc: data.rnc,
-        email: data.email,
-        // Campos numéricos que necesitan conversión
-        tax: data.tax !== undefined ? data.tax.toString() : "0.00",
-        latitude: data.latitude,
-        longitude: data.longitude
-      };
-      
-      // Insertar en la base de datos
+      // Insertar en la base de datos usando el esquema actualizado
       const [result] = await platformDb
         .insert(companySettings)
-        .values(settingsData)
+        .values({
+          companyId: data.companyId,
+          settings: data.settings,
+          theme: data.theme,
+          currency: data.currency,
+          timezone: data.timezone,
+          language: data.language,
+          contactEmail: data.contactEmail,
+          contactPhone: data.contactPhone,
+          address: data.address,
+          logoUrl: data.logoUrl
+        })
         .returning();
       
       return result;
@@ -357,25 +345,29 @@ export class PlatformStorage implements IPlatformStorage {
 
   // Implementación de relación usuario-empresa
   async assignUserToCompany(userId: number, companyId: number): Promise<void> {
-    await platformDb.insert(userCompany).values({ userId, companyId });
+    await platformDb.insert(userCompanies).values({ 
+      userId, 
+      companyId,
+      role: "standard" 
+    });
   }
 
   async removeUserFromCompany(userId: number, companyId: number): Promise<void> {
     await platformDb
-      .delete(userCompany)
+      .delete(userCompanies)
       .where(
         and(
-          eq(userCompany.userId, userId),
-          eq(userCompany.companyId, companyId)
+          eq(userCompanies.userId, userId),
+          eq(userCompanies.companyId, companyId)
         )
       );
   }
 
   async getUsersByCompany(companyId: number): Promise<number[]> {
     const results = await platformDb
-      .select({ userId: userCompany.userId })
-      .from(userCompany)
-      .where(eq(userCompany.companyId, companyId));
+      .select({ userId: userCompanies.userId })
+      .from(userCompanies)
+      .where(eq(userCompanies.companyId, companyId));
     
     return results.map((r: { userId: number }) => r.userId);
   }

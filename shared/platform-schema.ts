@@ -80,6 +80,75 @@ export const insertMembershipInvoiceSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Usuarios de la plataforma
+export const platformUsers = pgTable("platform_users", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  role: text("role", {
+    enum: ["platform_admin", "company_admin", "support"]
+  }).notNull(),
+  isPlatformUser: boolean("is_platform_user").notNull().default(true),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Asignación de usuarios a empresas
+export const userCompanies = pgTable("user_companies", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => platformUsers.id),
+  companyId: integer("company_id").notNull().references(() => companies.id),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  role: text("role", {
+    enum: ["owner", "admin", "standard"]
+  }).notNull().default("standard"),
+});
+
+// Configuraciones específicas de empresa
+export const companySettings = pgTable("company_settings", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull().references(() => companies.id).unique(),
+  settings: text("settings"), // JSON serializado
+  theme: text("theme").default("default"),
+  currency: text("currency").default("DOP"),
+  timezone: text("timezone").default("America/Santo_Domingo"),
+  language: text("language").default("es"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  address: text("address"),
+  logoUrl: text("logo_url"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Esquemas de inserción para validación Zod
+export const insertPlatformUserSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  email: z.string().email("Correo electrónico inválido"),
+  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  role: z.enum(["platform_admin", "company_admin", "support"]),
+  active: z.boolean().default(true),
+});
+
+export const insertUserCompanySchema = z.object({
+  userId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  role: z.enum(["owner", "admin", "standard"]).default("standard"),
+});
+
+export const insertCompanySettingsSchema = z.object({
+  companyId: z.number().int().positive(),
+  settings: z.string().optional(),
+  theme: z.string().optional(),
+  currency: z.string().optional(),
+  timezone: z.string().optional(),
+  language: z.string().optional(),
+  contactEmail: z.string().email("Correo electrónico inválido").optional(),
+  contactPhone: z.string().optional(),
+  address: z.string().optional(),
+  logoUrl: z.string().optional(),
+});
+
 // Tipos inferidos
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type Company = typeof companies.$inferSelect;
@@ -89,3 +158,12 @@ export type Plan = typeof plans.$inferSelect;
 
 export type InsertMembershipInvoice = z.infer<typeof insertMembershipInvoiceSchema>;
 export type MembershipInvoice = typeof membershipInvoices.$inferSelect;
+
+export type InsertPlatformUser = z.infer<typeof insertPlatformUserSchema>;
+export type PlatformUser = typeof platformUsers.$inferSelect;
+
+export type InsertUserCompany = z.infer<typeof insertUserCompanySchema>;
+export type UserCompany = typeof userCompanies.$inferSelect;
+
+export type InsertCompanySettings = z.infer<typeof insertCompanySettingsSchema>;
+export type CompanySettings = typeof companySettings.$inferSelect;
