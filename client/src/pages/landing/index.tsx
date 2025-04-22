@@ -46,7 +46,7 @@ export default function LandingPage() {
             <Link href="/demo">
               <Button variant="ghost" className="font-medium">Demo</Button>
             </Link>
-            <Link href="/contacto">
+            <Link href="/contact">
               <Button variant="ghost" className="font-medium">Contáctanos</Button>
             </Link>
           </div>
@@ -82,7 +82,7 @@ export default function LandingPage() {
                     <Link href="/demo">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                     </Link>
-                    <Link href="/contacto">
+                    <Link href="/contact">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Contáctanos</div>
                     </Link>
                   </nav>
@@ -199,7 +199,7 @@ export default function LandingPage() {
                   Comenzar gratis
                 </Button>
               </Link>
-              <Link href="/contacto">
+              <Link href="/contact">
                 <Button size="lg" variant="outline" className="bg-transparent border-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto">
                   Contactar ventas
                 </Button>

@@ -43,7 +43,7 @@ export default function ContactPage() {
               <Button variant="ghost" className="font-medium">Demo</Button>
             </Link>
             <Link href="/contact">
-              <Button variant="ghost" className="font-medium bg-primary/10">Contáctanos</Button>
+              <Button variant="ghost" className="font-medium bg-primary/10">Contact</Button>
             </Link>
           </div>
 
@@ -79,7 +79,7 @@ export default function ContactPage() {
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                     </Link>
                     <Link href="/contact">
-                      <div className="block p-2 text-base font-medium bg-primary/10 rounded-md">Contáctanos</div>
+                      <div className="block p-2 text-base font-medium bg-primary/10 rounded-md">Contact</div>
                     </Link>
                   </nav>
                   <div className="pt-6 border-t space-y-4">

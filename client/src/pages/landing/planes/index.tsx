@@ -49,7 +49,7 @@ function Header() {
           <Link href="/demo">
             <Button variant="ghost" className="font-medium">Demo</Button>
           </Link>
-          <Link href="/contacto">
+          <Link href="/contact">
             <Button variant="ghost" className="font-medium">Contáctanos</Button>
           </Link>
         </div>
