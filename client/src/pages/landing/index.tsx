@@ -14,7 +14,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import MobileAppShowcase from "@/components/landing/MobileAppShowcase";
 
 // Componente de la landing page
@@ -80,35 +80,42 @@ export default function LandingPage() {
                     </span>
                   </div>
                   <nav className="space-y-4">
-                    <Link href="/">
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Inicio</div>
-                    </Link>
-                    <Link href="/planes">
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Planes</div>
-                    </Link>
-                    <Link href="/soporte">
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Soporte</div>
-                    </Link>
-                    <a href="#app-mobile" onClick={(e) => {
-                      e.preventDefault();
-                      const element = document.getElementById('app-mobile');
-                      if (element) {
-                        element.scrollIntoView({ behavior: 'smooth' });
-                        // Cerrar el menú móvil
-                        const closeButton = document.querySelector('[data-radix-collection-item]');
-                        if (closeButton && 'click' in closeButton) {
-                          (closeButton as HTMLElement).click();
+                    <SheetClose asChild>
+                      <Link href="/">
+                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Inicio</div>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/planes">
+                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Planes</div>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/soporte">
+                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Soporte</div>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <a href="#app-mobile" onClick={(e) => {
+                        e.preventDefault();
+                        const element = document.getElementById('app-mobile');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
                         }
-                      }
-                    }}>
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">App Móvil</div>
-                    </a>
-                    <Link href="/contact">
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
-                    </Link>
-                    <Link href="/contact">
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Contáctanos</div>
-                    </Link>
+                      }}>
+                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">App Móvil</div>
+                      </a>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/contact">
+                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
+                      <Link href="/contact">
+                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Contáctanos</div>
+                      </Link>
+                    </SheetClose>
                   </nav>
                   <div className="pt-6 border-t space-y-4">
                     <Link href="/platform/login">
