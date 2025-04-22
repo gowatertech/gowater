@@ -149,7 +149,7 @@ export default function PlansPage() {
                   <RefreshCw className="h-8 w-8 text-primary" />
                 </div>
               </div>
-            ) : !plans?.data?.length ? (
+            ) : !plans?.length ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Package className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <h3 className="mt-2 text-lg font-medium">No hay planes</h3>
@@ -176,7 +176,7 @@ export default function PlansPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {plans.data.map((plan: Plan) => (
+                    {plans.map((plan: Plan) => (
                       <TableRow key={plan.id}>
                         <TableCell className="font-medium">{plan.name}</TableCell>
                         <TableCell className="max-w-xs truncate">
