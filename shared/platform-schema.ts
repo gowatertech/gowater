@@ -116,7 +116,7 @@ export const platformUsers = pgTable("platform_users", {
   role: text("role", {
     enum: ["platform_admin", "company_admin", "support"]
   }).notNull(),
-  isPlatformUser: boolean("is_platform_user").notNull().default(true),
+  // Removido el campo isPlatformUser que no existe en la base de datos
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
