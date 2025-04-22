@@ -53,6 +53,7 @@ import TestPrintPayment from "@/pages/test-print-payment";
 import LandingPage from "@/pages/landing";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
+import ContactPage from "@/pages/landing/contact";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
