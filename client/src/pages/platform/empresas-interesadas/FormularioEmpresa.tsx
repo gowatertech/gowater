@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -109,46 +109,63 @@ export function FormularioEmpresa({
   onSave,
 }: FormularioEmpresaProps) {
   const { toast } = useToast();
+  const [mounted, setMounted] = useState(false);
   const isEditing = !!empresa?.id;
 
-  // Configurar el formulario con valores predeterminados
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      companyName: "",
-      address: "",
-      country: "República Dominicana",
-      managerName: "",
-      phone: "",
-      email: "",
-      approximateClients: 0,
-      vehicleCount: 0,
-      comments: "",
-      interestedInPlan: "",
-      status: "new",
-    },
+  // State para valores iniciales
+  const [initialValues, setInitialValues] = useState({
+    companyName: "",
+    address: "",
+    country: "República Dominicana",
+    managerName: "",
+    phone: "",
+    email: "",
+    approximateClients: 0,
+    vehicleCount: 0,
+    comments: "",
+    interestedInPlan: "",
+    status: "new" as const,
   });
 
-  // Actualizar el formulario cuando cambian las props
+  // Configurar el formulario sin valores predeterminados inicialmente
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: initialValues,
+  });
+
+  // Al montar y cuando cambian las props
   useEffect(() => {
+    setMounted(true);
+    
+    // Preparar nuevos valores basados en las props
+    const newValues = {
+      companyName: empresa?.companyName || "",
+      address: empresa?.address || "",
+      country: empresa?.country || "República Dominicana",
+      managerName: empresa?.managerName || "",
+      phone: empresa?.phone || "",
+      email: empresa?.email || "",
+      approximateClients: empresa?.approximateClients || 0,
+      vehicleCount: empresa?.vehicleCount || 0,
+      comments: empresa?.comments || "",
+      interestedInPlan: empresa?.interestedInPlan || "",
+      status: empresa?.status || "new" as const,
+    };
+
+    // Actualizar estado de valores iniciales
+    setInitialValues(newValues);
+    
+    // Solo resetear el formulario cuando el modal está abierto
     if (isOpen) {
-      console.log("Formulario abierto, actualizando valores", empresa);
-      // Solo resetear los valores cuando se abre el modal
-      form.reset({
-        companyName: empresa?.companyName || "",
-        address: empresa?.address || "",
-        country: empresa?.country || "República Dominicana",
-        managerName: empresa?.managerName || "",
-        phone: empresa?.phone || "",
-        email: empresa?.email || "",
-        approximateClients: empresa?.approximateClients || 0,
-        vehicleCount: empresa?.vehicleCount || 0,
-        comments: empresa?.comments || "",
-        interestedInPlan: empresa?.interestedInPlan || "",
-        status: empresa?.status || "new",
-      });
+      console.log("Formulario abierto con valores:", newValues);
+      form.reset(newValues);
     }
   }, [isOpen, empresa, form]);
+
+  // Si no está montado, no renderizar nada
+  if (!mounted) {
+    return null;
+  }
 
   // Manejar el cierre del formulario
   const handleClose = () => {
@@ -167,11 +184,16 @@ export function FormularioEmpresa({
       console.error("Error al guardar:", error);
       toast({
         title: "Error",
-        description: "No se pudo guardar la empresa. Intente nuevamente.",
+        description: "No se pudo registrar el interés. Intente nuevamente.",
         variant: "destructive",
       });
     }
   };
+
+  // Si no está abierto, no renderizar el contenido del diálogo
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

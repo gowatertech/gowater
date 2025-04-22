@@ -134,14 +134,24 @@ export default function EmpresasInteresadas() {
 
   // Abrir formulario para editar
   const handleEdit = (lead: CompanyLead) => {
+    console.log("Editando lead:", lead);
     setSelectedLead(lead);
-    setIsFormOpen(true);
+    // Pequeño retraso para asegurar que la UI se renderice correctamente
+    setTimeout(() => {
+      setIsFormOpen(true);
+      console.log("Abriendo formulario para editar");
+    }, 50);
   };
 
   // Abrir formulario para crear nuevo
   const handleCreate = () => {
+    // Asegurarse de que selectedLead sea undefined para un nuevo registro
     setSelectedLead(undefined);
-    setIsFormOpen(true);
+    // Pequeño retraso para asegurar que la UI se renderice correctamente
+    setTimeout(() => {
+      setIsFormOpen(true);
+      console.log("Abriendo formulario para nuevo registro");
+    }, 50);
   };
 
   // Cambiar estado directamente
