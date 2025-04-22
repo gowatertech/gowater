@@ -72,25 +72,53 @@ export default function CompanyFormPage() {
   const queryClient = useQueryClient();
 
   // Consulta para obtener la lista de planes
-  const { data: plansData } = useQuery({
+  const { data: plansResponse } = useQuery({
     queryKey: ["/api/platform/plans"],
-    queryFn: () => 
-      apiRequest({
-        url: "/api/platform/plans",
-        method: "GET"
-      }),
+    queryFn: async () => {
+      try {
+        console.log("Solicitando lista de planes");
+        const response = await apiRequest({
+          url: "/api/platform/plans",
+          method: "GET"
+        });
+        console.log("Respuesta de planes:", response);
+        
+        // Manejar respuesta con formato { data: [] } o array directo
+        return response && response.data ? response : { data: response || [] };
+      } catch (error) {
+        console.error("Error al obtener planes:", error);
+        return { data: [] };
+      }
+    },
   });
+  
+  // Extraer los planes del resultado de la consulta
+  const plansData = plansResponse?.data || [];
 
   // Consulta para obtener detalles de la empresa (solo en modo edición)
-  const { data: companyData, isLoading: isLoadingCompany } = useQuery({
+  const { data: companyResponse, isLoading: isLoadingCompany } = useQuery({
     queryKey: [`/api/platform/companies/${companyId}`],
-    queryFn: () => 
-      apiRequest({
-        url: `/api/platform/companies/${companyId}`,
-        method: "GET"
-      }),
+    queryFn: async () => {
+      try {
+        console.log(`Solicitando detalles de empresa ID: ${companyId}`);
+        const response = await apiRequest({
+          url: `/api/platform/companies/${companyId}`,
+          method: "GET"
+        });
+        console.log("Respuesta detalle de empresa:", response);
+        
+        // Manejar respuesta con formato { data: {} } o objeto directo
+        return response && response.data ? response : { data: response };
+      } catch (error) {
+        console.error("Error al obtener detalles de empresa:", error);
+        return { data: null };
+      }
+    },
     enabled: isEditMode && !!companyId,
   });
+  
+  // Extraer los datos de la empresa
+  const companyData = companyResponse?.data;
 
   // Configuración del formulario
   const form = useForm<FormData>({
