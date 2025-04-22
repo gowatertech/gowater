@@ -167,9 +167,6 @@ export default function RegisterInterestPage() {
                     <Link href="/platform/login">
                       <Button variant="outline" className="w-full">Iniciar sesión</Button>
                     </Link>
-                    <Link href="/dashboard">
-                      <Button className="w-full">Área de clientes</Button>
-                    </Link>
                   </div>
                 </div>
               </SheetContent>
@@ -180,9 +177,6 @@ export default function RegisterInterestPage() {
           <div className="hidden md:flex gap-4 items-center">
             <Link href="/platform/login">
               <Button variant="ghost">Iniciar sesión</Button>
-            </Link>
-            <Link href="/dashboard">
-              <Button>Área de clientes</Button>
             </Link>
           </div>
         </div>
