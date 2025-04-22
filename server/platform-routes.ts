@@ -9,12 +9,13 @@ import {
   insertUserCompanySchema,
   companies,
   platformUsers,
-  userCompanies
+  userCompanies,
+  companySettings
 } from "../shared/platform-schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
 import { platformDb } from "./platform-db";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 export function registerPlatformRoutes(router: Router) {
@@ -576,8 +577,10 @@ export function registerPlatformRoutes(router: Router) {
       const result = await platformDb
         .delete(userCompanies)
         .where(
-          eq(userCompanies.userId, userId) && 
-          eq(userCompanies.companyId, companyId)
+          and(
+            eq(userCompanies.userId, userId),
+            eq(userCompanies.companyId, companyId)
+          )
         );
       
       res.status(204).end();
