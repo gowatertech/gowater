@@ -44,6 +44,9 @@ export default function LandingPage() {
             <Link href="/soporte">
               <Button variant="ghost" className="font-medium">Soporte</Button>
             </Link>
+            <Link href="#app-mobile">
+              <Button variant="ghost" className="font-medium">App Móvil</Button>
+            </Link>
             <Link href="/contact">
               <Button variant="ghost" className="font-medium">Demo</Button>
             </Link>
@@ -79,6 +82,9 @@ export default function LandingPage() {
                     </Link>
                     <Link href="/soporte">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Soporte</div>
+                    </Link>
+                    <Link href="#app-mobile">
+                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">App Móvil</div>
                     </Link>
                     <Link href="/contact">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>

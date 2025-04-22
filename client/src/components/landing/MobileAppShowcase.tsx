@@ -354,20 +354,20 @@ export default function MobileAppShowcase() {
               <div className="w-1/12 bg-primary/50 h-8 rounded-t"></div>
               <div className="w-1/12 bg-primary/60 h-10 rounded-t"></div>
               <div className="w-1/12 bg-primary/70 h-12 rounded-t"></div>
-              <div className="w-1/12 bg-primary/80 h-10 rounded-t"></div>
               <div className="w-1/12 bg-primary/70 h-9 rounded-t"></div>
               <div className="w-1/12 bg-primary/60 h-7 rounded-t"></div>
               <div className="w-1/12 bg-primary/50 h-5 rounded-t"></div>
+              <div className="w-1/12 bg-primary/40 h-3 rounded-t"></div>
+              <div className="w-1/12 bg-primary/30 h-2 rounded-t"></div>
               <div className="w-1/12 bg-muted h-2 rounded-t"></div>
-              <div className="w-1/12 bg-muted h-1 rounded-t"></div>
             </div>
             <div className="flex justify-between text-[8px] text-muted-foreground mt-1">
-              <span>8am</span>
-              <span>10am</span>
-              <span>12pm</span>
-              <span>2pm</span>
-              <span>4pm</span>
-              <span>6pm</span>
+              <span>8h</span>
+              <span>10h</span>
+              <span>12h</span>
+              <span>14h</span>
+              <span>16h</span>
+              <span>18h</span>
             </div>
           </Card>
         </div>
@@ -376,91 +376,85 @@ export default function MobileAppShowcase() {
   ];
 
   return (
-    <div className="py-16 md:py-24 bg-gradient-to-b from-muted/50 to-background">
+    <section id="app-mobile" className="py-16 md:py-24 bg-gradient-to-b from-white to-blue-50">
       <div className="container px-4 md:px-6">
-        <div className="text-center max-w-[800px] mx-auto mb-12">
-          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-            Descubre la <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-primary">experiencia móvil</span>
-          </h2>
-          <p className="mt-4 text-muted-foreground md:text-xl">
-            Nuestra aplicación móvil permite a tus conductores gestionar rutas, entregas y pagos de forma eficiente desde cualquier lugar.
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Nuestra Aplicación Móvil</h2>
+          <p className="mt-4 text-muted-foreground md:text-xl max-w-[800px] mx-auto">
+            Descubra todas las funcionalidades que nuestra aplicación móvil ofrece para optimizar su operación diaria
           </p>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <div className="order-2 md:order-1">
-            <Tabs defaultValue="routes" value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-3 md:grid-cols-6">
-                {tabs.map(tab => (
-                  <TabsTrigger key={tab.id} value={tab.id} className="flex items-center text-xs md:text-sm">
-                    {tab.icon}
-                    <span className="hidden md:inline">{tab.title}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+        
+        <div className="flex flex-col lg:flex-row gap-12 items-center">
+          {/* Panel izquierdo - Smartphone */}
+          <div className="flex-1 max-w-md mx-auto lg:mx-0">
+            <div className="relative mx-auto w-[280px] h-[580px] bg-black rounded-[3rem] border-[14px] border-black shadow-xl overflow-hidden">
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-1/2 h-7 bg-black rounded-b-xl z-10"></div>
               
-              <div className="mt-6">
-                {tabs.map(tab => (
-                  <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                    <h3 className="text-xl font-bold mb-2 text-primary">{tab.title}</h3>
-                    <p className="mb-4 text-muted-foreground">{tab.description}</p>
-                  </TabsContent>
-                ))}
+              {/* Pantalla */}
+              <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden p-2">
+                <div className="w-full h-full bg-background rounded-[1.8rem] overflow-hidden flex flex-col">
+                  {/* App Header */}
+                  <div className="bg-primary text-primary-foreground p-3 text-xs flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Droplet className="h-4 w-4" />
+                      <span className="font-medium">GoWater App</span>
+                    </div>
+                    <div>22/04/2025</div>
+                  </div>
+                  
+                  {/* Tabs */}
+                  <div className="p-2">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                      <TabsList className="w-full overflow-x-auto justify-start h-auto py-1 bg-muted/30 gap-1 flex-wrap">
+                        {tabs.map(tab => (
+                          <TabsTrigger 
+                            key={tab.id}
+                            value={tab.id}
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground flex items-center text-xs py-1 px-2 h-auto"
+                          >
+                            {tab.icon}
+                            {tab.title}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      
+                      {tabs.map(tab => (
+                        <TabsContent key={tab.id} value={tab.id} className="h-[420px] overflow-y-auto mt-2">
+                          {tab.mockupContent}
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  </div>
+                </div>
               </div>
-            </Tabs>
-            
-            <div className="mt-8 space-y-4">
-              <h4 className="font-medium text-lg">Beneficios clave:</h4>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2">
-                  <Check className="h-5 w-5 text-primary mt-0.5" />
-                  <span>Funciona sin conexión, sincronizando datos cuando hay conexión disponible</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-5 w-5 text-primary mt-0.5" />
-                  <span>Reduce errores en la entrega y mejora la satisfacción del cliente</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-5 w-5 text-primary mt-0.5" />
-                  <span>Ahorra tiempo con navegación optimizada y reducción de papeleo</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <Check className="h-5 w-5 text-primary mt-0.5" />
-                  <span>Mejora el control de inventario y reduce pérdidas de envases</span>
-                </li>
-              </ul>
             </div>
           </div>
           
-          <div className="order-1 md:order-2 flex justify-center">
-            <div className="relative w-[280px] h-[580px] bg-gray-900 rounded-[3rem] shadow-xl overflow-hidden border-[8px] border-gray-900">
-              {/* Notch del teléfono */}
-              <div className="absolute top-0 inset-x-0 h-6 bg-gray-900 rounded-b-xl z-10"></div>
+          {/* Panel derecho - Descripción */}
+          <div className="flex-1">
+            <div className="space-y-6">
+              <h3 className="text-2xl font-bold">Optimice operaciones con nuestra app móvil</h3>
+              <p className="text-muted-foreground">Nuestra aplicación está diseñada para facilitar el trabajo de sus conductores y personal operativo con una interfaz intuitiva y funcionalidades completas.</p>
               
-              {/* Pantalla */}
-              <div className="absolute inset-x-0 top-0 h-full z-0 bg-background overflow-hidden">
-                {/* Header de la app */}
-                <div className="bg-primary text-white p-4 pt-7">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <Droplet className="h-5 w-5 mr-2" />
-                      <span className="font-medium">GoWater Móvil</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                      <span className="text-xs">Online</span>
+              <div className="space-y-4">
+                {tabs.map(tab => (
+                  <div key={tab.id} className="group cursor-pointer" onClick={() => setActiveTab(tab.id)}>
+                    <div className={`p-4 border rounded-lg transition-colors ${activeTab === tab.id ? 'border-primary bg-primary/5' : 'hover:border-primary/50 hover:bg-primary/5'}`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`rounded-full p-2 ${activeTab === tab.id ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                          {React.cloneElement(tab.icon, { className: 'h-5 w-5' })}
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{tab.title}</h4>
+                          <p className="text-sm text-muted-foreground">{tab.description}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                {/* Contenido de la pestaña activa */}
-                <div className="h-[calc(100%-56px)]">
-                  {tabs.find(tab => tab.id === activeTab)?.mockupContent}
-                </div>
+                ))}
               </div>
-              
-              {/* Botón home */}
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1/3 h-1 bg-gray-700 rounded-full"></div>
             </div>
           </div>
         </div>
@@ -474,6 +468,6 @@ export default function MobileAppShowcase() {
           </Link>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
