@@ -123,14 +123,14 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
   let hoverClass = "hover:border-blue-300";
   let buttonVariant: "default" | "outline" = "outline";
   let textColorClass = "text-blue-600";
-  let btnText = "Seleccionar plan";
+  let btnText = "Seleccionar";
   
   if (plan.name.toLowerCase().includes("profesional")) {
     colorClass = "bg-green-50 border-green-100";
     hoverClass = "hover:border-green-300";
     textColorClass = "text-green-600";
     buttonVariant = "default";
-    btnText = "Plan recomendado";
+    btnText = "Recomendado";
   } else if (plan.name.toLowerCase().includes("empresarial")) {
     colorClass = "bg-purple-50 border-purple-100";
     hoverClass = "hover:border-purple-300";
@@ -149,54 +149,55 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
       recommended && "shadow-lg border-green-300"
     )}>
       {recommended && (
-        <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-600 hover:bg-green-700">
+        <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-green-600 hover:bg-green-700 text-xs py-0.5">
           Recomendado
         </Badge>
       )}
-      <CardHeader>
-        <CardTitle className={cn("text-xl font-bold", textColorClass)}>{plan.name}</CardTitle>
-        <CardDescription className="mt-2 min-h-[50px]">{plan.description}</CardDescription>
+      <CardHeader className="p-3 pb-0">
+        <CardTitle className={cn("text-base font-bold", textColorClass)}>{plan.name}</CardTitle>
+        <CardDescription className="mt-1 text-xs min-h-[40px]">{plan.description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4 flex-grow">
+      <CardContent className="space-y-3 flex-grow p-3 text-sm">
         <div className="flex items-end gap-1">
-          <span className="text-3xl font-bold">${plan.price}</span>
-          <span className="text-muted-foreground mb-1">/mes</span>
+          <span className="text-2xl font-bold">${plan.price}</span>
+          <span className="text-muted-foreground mb-1 text-xs">/mes</span>
         </div>
 
-        <div className="pt-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-muted-foreground/70 flex-shrink-0" />
-            <span className="text-sm">Hasta <strong>{plan.maxUsers}</strong> usuarios</span>
+        <div className="pt-2 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Users className="h-4 w-4 text-muted-foreground/70 flex-shrink-0" />
+            <span className="text-xs">Hasta <strong>{plan.maxUsers}</strong> usuarios</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Truck className="h-5 w-5 text-muted-foreground/70 flex-shrink-0" />
-            <span className="text-sm">Hasta <strong>{plan.maxTrucks}</strong> vehículos</span>
+          <div className="flex items-center gap-1.5">
+            <Truck className="h-4 w-4 text-muted-foreground/70 flex-shrink-0" />
+            <span className="text-xs">Hasta <strong>{plan.maxTrucks}</strong> vehículos</span>
           </div>
         </div>
 
-        <div className="pt-3 border-t">
-          <h4 className="text-sm font-medium mb-2">Características incluidas:</h4>
-          <ul className="space-y-2">
+        <div className="pt-2 border-t">
+          <h4 className="text-xs font-medium mb-1.5">Características incluidas:</h4>
+          <ul className="space-y-1.5">
             {plan.features.map((feature, index) => (
-              <li key={index} className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span className="text-sm">{feature}</span>
+              <li key={index} className="flex items-start gap-1.5">
+                <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-xs">{feature}</span>
               </li>
             ))}
           </ul>
         </div>
       </CardContent>
-      <CardFooter className="mt-auto pt-4">
+      <CardFooter className="mt-auto p-3 pt-2">
         <Link href={`/platform/register?plan=${plan.id}`} className="w-full">
           <Button 
             variant={buttonVariant} 
+            size="sm"
             className={cn(
-              "w-full",
+              "w-full text-xs",
               buttonVariant === "outline" && textColorClass
             )}
           >
             {btnText}
-            <ArrowRight className="ml-2 h-4 w-4" />
+            <ArrowRight className="ml-1 h-3 w-3" />
           </Button>
         </Link>
       </CardFooter>
@@ -208,31 +209,31 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
 function PlanCardSkeleton() {
   return (
     <Card className="border-2 border-muted h-full flex flex-col">
-      <CardHeader>
-        <Skeleton className="h-7 w-28 mb-2" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4 mt-1" />
+      <CardHeader className="p-3 pb-0">
+        <Skeleton className="h-5 w-24 mb-2" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-3/4 mt-1" />
       </CardHeader>
-      <CardContent className="space-y-4 flex-grow">
-        <Skeleton className="h-8 w-20" />
+      <CardContent className="space-y-3 flex-grow p-3">
+        <Skeleton className="h-6 w-16" />
         
-        <div className="pt-4 space-y-3">
-          <Skeleton className="h-5 w-full" />
-          <Skeleton className="h-5 w-full" />
+        <div className="pt-2 space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
         </div>
 
-        <div className="pt-3 border-t">
-          <Skeleton className="h-5 w-40 mb-2" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
+        <div className="pt-2 border-t">
+          <Skeleton className="h-4 w-32 mb-1.5" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-full" />
+            <Skeleton className="h-3 w-3/4" />
           </div>
         </div>
       </CardContent>
-      <CardFooter className="mt-auto pt-4">
-        <Skeleton className="h-10 w-full" />
+      <CardFooter className="mt-auto p-3 pt-2">
+        <Skeleton className="h-8 w-full" />
       </CardFooter>
     </Card>
   );
@@ -334,14 +335,14 @@ export default function PlanesPage() {
         </section>
 
         {/* Planes */}
-        <section className="py-16 md:py-24">
+        <section className="py-12 md:py-16">
           <div className="container px-4 md:px-6">
             {error ? (
               <div className="text-center py-12 border rounded-lg bg-red-50">
                 <p className="text-red-600">Ha ocurrido un error al cargar los planes. Por favor, intente de nuevo más tarde.</p>
               </div>
             ) : (
-              <div className="grid gap-8 lg:grid-cols-3 md:grid-cols-2">
+              <div className="grid gap-4 xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 max-w-4xl mx-auto">
                 {isLoading ? (
                   // Mostrar esqueletos durante la carga
                   Array(3).fill(0).map((_, index) => (
