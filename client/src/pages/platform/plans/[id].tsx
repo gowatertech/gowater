@@ -64,7 +64,6 @@ export default function PlanFormPage() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [newFeature, setNewFeature] = useState("");
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Consulta para obtener detalles del plan (solo en modo edición)
   const { data: planResponse, isLoading: isLoadingPlan } = useQuery({
@@ -232,7 +231,6 @@ export default function PlanFormPage() {
         description: error.message || "No se pudo eliminar el plan",
         variant: "destructive",
       });
-      setShowDeleteDialog(false);
     },
   });
 
@@ -451,31 +449,18 @@ export default function PlanFormPage() {
                     )}
                   />
 
-                  <div className="flex justify-between space-x-2">
-                    {isEditMode && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={() => setShowDeleteDialog(true)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar Plan
-                      </Button>
-                    )}
-
-                    <div className="flex justify-end space-x-2 ml-auto">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setLocation("/platform/plans")}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isEditMode ? "Actualizar" : "Crear"} Plan
-                      </Button>
-                    </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setLocation("/platform/plans")}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isEditMode ? "Actualizar" : "Crear"} Plan
+                    </Button>
                   </div>
                 </form>
               </Form>
@@ -483,44 +468,6 @@ export default function PlanFormPage() {
           </Card>
         )}
       </div>
-
-      {/* Diálogo de confirmación para eliminar plan */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que deseas eliminar el plan{" "}
-              <span className="font-bold">{planData?.name}</span>?
-              <p className="mt-2 text-destructive">
-                Esta acción no se puede deshacer. Las empresas que ya tengan este plan seguirán teniendo acceso hasta que expire su suscripción.
-              </p>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDeleteDialog(false)}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeletePlan}
-              disabled={deletePlanMutation.isPending}
-            >
-              {deletePlanMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Eliminando...
-                </>
-              ) : (
-                "Eliminar"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PlatformLayout>
   );
 }

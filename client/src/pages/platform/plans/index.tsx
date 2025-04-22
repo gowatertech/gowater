@@ -36,7 +36,8 @@ import {
   RefreshCw, 
   Package,
   Check,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 
 // Interfaz para los planes
@@ -254,7 +255,14 @@ export default function PlansPage() {
               onClick={confirmDelete}
               disabled={deletePlanMutation.isPending}
             >
-              {deletePlanMutation.isPending ? "Eliminando..." : "Eliminar"}
+              {deletePlanMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
