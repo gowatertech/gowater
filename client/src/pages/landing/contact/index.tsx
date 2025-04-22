@@ -206,19 +206,19 @@ export default function ContactPage() {
             <div className="grid gap-10 md:grid-cols-2">
               <div>
                 <h2 className="text-3xl font-bold tracking-tighter mb-4">
-                  Send us a message
+                  Envíanos un mensaje
                 </h2>
                 <p className="text-muted-foreground mb-4">
-                  Fill out the form and we'll get back to you as soon as possible.
+                  Completa el formulario y te responderemos lo antes posible.
                 </p>
                 
                 <div className="space-y-6 mt-8">
                   <div className="flex items-start gap-4">
                     <Clock className="h-6 w-6 text-primary mt-1" />
                     <div>
-                      <h3 className="font-medium">Business Hours</h3>
+                      <h3 className="font-medium">Horario de Atención</h3>
                       <p className="text-sm text-muted-foreground">
-                        Monday to Friday: 8:00 AM - 6:00 PM (AST/EDT)
+                        Lunes a Viernes: 8:00 AM - 6:00 PM (AST/EDT)
                       </p>
                     </div>
                   </div>
@@ -226,9 +226,9 @@ export default function ContactPage() {
                   <div className="flex items-start gap-4">
                     <MapPin className="h-6 w-6 text-primary mt-1" />
                     <div>
-                      <h3 className="font-medium">Main Office</h3>
+                      <h3 className="font-medium">Oficina Principal</h3>
                       <p className="text-sm text-muted-foreground">
-                        Santo Domingo, Dominican Republic
+                        Santo Domingo, República Dominicana
                       </p>
                     </div>
                   </div>
@@ -239,38 +239,38 @@ export default function ContactPage() {
                 <form className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Name</label>
+                      <label className="text-sm font-medium">Nombre</label>
                       <input 
                         type="text" 
                         className="w-full p-2 rounded-md border border-input bg-background"
-                        placeholder="Your name" 
+                        placeholder="Tu nombre" 
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Email</label>
+                      <label className="text-sm font-medium">Correo</label>
                       <input 
                         type="email" 
                         className="w-full p-2 rounded-md border border-input bg-background"
-                        placeholder="you@example.com" 
+                        placeholder="tucorreo@ejemplo.com" 
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Subject</label>
+                    <label className="text-sm font-medium">Asunto</label>
                     <input 
                       type="text" 
                       className="w-full p-2 rounded-md border border-input bg-background"
-                      placeholder="Subject of your message" 
+                      placeholder="Asunto de tu mensaje" 
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Message</label>
+                    <label className="text-sm font-medium">Mensaje</label>
                     <textarea 
                       className="w-full p-2 rounded-md border border-input bg-background min-h-[120px]"
-                      placeholder="Write your message here" 
+                      placeholder="Escribe tu mensaje aquí" 
                     />
                   </div>
-                  <Button className="w-full">Send message</Button>
+                  <Button className="w-full">Enviar mensaje</Button>
                 </form>
               </div>
             </div>
@@ -281,15 +281,15 @@ export default function ContactPage() {
         <section className="py-16 md:py-24 bg-primary text-primary-foreground">
           <div className="container px-4 md:px-6 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4">
-              Start optimizing your water distribution today
+              Comienza a optimizar tu distribución de agua hoy
             </h2>
             <p className="mt-4 mb-8 text-primary-foreground/80 md:text-xl max-w-[700px] mx-auto">
-              Join hundreds of companies already trusting GoWater to manage their operations
+              Únete a cientos de empresas que ya confían en GoWater para gestionar sus operaciones
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/platform/register">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                  Get started
+                  Comenzar ahora
                 </Button>
               </Link>
               <Link href="/planes">
