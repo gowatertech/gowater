@@ -1103,34 +1103,3 @@ export type Commission = typeof commissions.$inferSelect;
 export type InsertCommission = z.infer<typeof insertCommissionSchema>;
 export type CommissionItem = typeof commissionItems.$inferSelect;
 export type InsertCommissionItem = z.infer<typeof insertCommissionItemSchema>;
-
-// Registro de empresas (formulario de registro)
-export const companyRegistrations = pgTable("company_registrations", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  address: text("address").notNull(),
-  country: text("country").notNull(),
-  contactName: text("contact_name").notNull(),
-  contactPhone: text("contact_phone").notNull(),
-  contactEmail: text("contact_email").notNull(),
-  approximateClients: integer("approximate_clients"),
-  truckCount: integer("truck_count"),
-  additionalInfo: text("additional_info"),
-  status: text("status", { enum: ["pending", "approved", "rejected"] }).notNull().default("pending"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertCompanyRegistrationSchema = z.object({
-  name: z.string().min(1, "El nombre de la empresa es requerido"),
-  address: z.string().min(1, "La dirección es requerida"),
-  country: z.string().min(1, "El país es requerido"),
-  contactName: z.string().min(1, "El nombre del contacto es requerido"),
-  contactPhone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  contactEmail: z.string().email("Correo electrónico inválido"),
-  approximateClients: z.number().optional(),
-  truckCount: z.number().optional(),
-  additionalInfo: z.string().optional(),
-});
-
-export type CompanyRegistration = typeof companyRegistrations.$inferSelect;
-export type InsertCompanyRegistration = z.infer<typeof insertCompanyRegistrationSchema>;
