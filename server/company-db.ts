@@ -89,9 +89,22 @@ export function withCompany(query: any): any {
       // Si no se pudo aplicar ningún filtro, devolver la consulta original
       return query;
     }
-    
-    // En Drizzle ORM, aplicar el filtro
-    return query.where(sql`company_id = ${companyId}`);
+
+    try {
+      // Intenta obtener la tabla principal para usar eq()
+      if (query.from && query.from.companyId) {
+        // El enfoque ideal usando eq()
+        const mainTable = query.from;
+        return query.where(eq(mainTable.companyId, companyId));
+      } else {
+        // Fallback usando sql raw
+        return query.where(sql`company_id = ${companyId}`);
+      }
+    } catch (whereError) {
+      console.warn("No se pudo aplicar el filtro ideal, usando SQL genérico:", whereError);
+      // En Drizzle ORM, aplicar el filtro genérico como último recurso
+      return query.where(sql`company_id = ${companyId}`);
+    }
   } catch (error) {
     console.error("Error al aplicar filtro de companyId:", error);
     console.error("Detalles:", String(error));
