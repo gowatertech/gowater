@@ -6,6 +6,7 @@ import {
   insertMembershipInvoiceSchema,
   insertPlatformUserSchema,
   insertCompanySettingsSchema,
+  insertUserCompanySchema,
   companies,
   platformUsers,
   userCompanies
@@ -13,7 +14,7 @@ import {
 import bcrypt from "bcrypt";
 import { db } from "./db";
 import { platformDb } from "./platform-db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 export function registerPlatformRoutes(router: Router) {
@@ -457,7 +458,11 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: 'Acceso denegado' });
       }
       
-      const settings = await platformStorage.getCompanySettings(companyId);
+      // Buscar directamente en la base de datos
+      const [settings] = await platformDb
+        .select()
+        .from(companySettings)
+        .where(eq(companySettings.companyId, companyId));
       
       if (!settings) {
         return res.status(404).json({ message: "Configuración no encontrada" });
@@ -479,8 +484,15 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: 'Acceso denegado' });
       }
       
+      // Validar datos según el esquema actualizado
       const validatedData = insertCompanySettingsSchema.parse(data);
-      const settings = await platformStorage.createCompanySettings(validatedData);
+      
+      // Insertar directamente
+      const [settings] = await platformDb
+        .insert(companySettings)
+        .values(validatedData)
+        .returning();
+        
       res.status(201).json(settings);
     } catch (error: any) {
       console.error("Error al crear configuración:", error);
@@ -497,8 +509,19 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: 'Acceso denegado' });
       }
       
+      // Validar datos parciales según el esquema actualizado
       const validatedData = insertCompanySettingsSchema.partial().parse(req.body);
-      const settings = await platformStorage.updateCompanySettings(companyId, validatedData);
+      
+      // Actualizar configuración con fecha de actualización
+      const [settings] = await platformDb
+        .update(companySettings)
+        .set({
+          ...validatedData,
+          updatedAt: new Date()
+        })
+        .where(eq(companySettings.companyId, companyId))
+        .returning();
+        
       res.json(settings);
     } catch (error: any) {
       console.error("Error al actualizar configuración:", error);
@@ -509,15 +532,30 @@ export function registerPlatformRoutes(router: Router) {
   // Rutas para gestión de usuarios por empresa
   router.post("/user-company-assignment", requireCompanyAdmin, async (req: Request, res: Response) => {
     try {
-      const { userId, companyId } = req.body;
+      const { userId, companyId, role = 'standard' } = req.body;
       
       // Si es admin de empresa, verificar que pertenezca a esta compañía
       if (req.session?.user?.role === 'company_admin' && req.session?.user?.companyId !== companyId) {
         return res.status(403).json({ message: 'Acceso denegado' });
       }
+
+      // Validar los datos usando el esquema
+      const validatedData = insertUserCompanySchema.parse({
+        userId, 
+        companyId,
+        role
+      });
       
-      await platformStorage.assignUserToCompany(userId, companyId);
-      res.status(201).json({ message: "Usuario asignado a empresa correctamente" });
+      // Insertar la asignación directamente
+      const [assignment] = await platformDb
+        .insert(userCompanies)
+        .values(validatedData)
+        .returning();
+      
+      res.status(201).json({ 
+        message: "Usuario asignado a empresa correctamente",
+        assignment
+      });
     } catch (error) {
       console.error("Error al asignar usuario:", error);
       res.status(500).json({ message: "Error al asignar usuario a empresa" });
@@ -534,7 +572,14 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: 'Acceso denegado' });
       }
       
-      await platformStorage.removeUserFromCompany(userId, companyId);
+      // Eliminar directamente usando el esquema actualizado
+      const result = await platformDb
+        .delete(userCompanies)
+        .where(
+          eq(userCompanies.userId, userId) && 
+          eq(userCompanies.companyId, companyId)
+        );
+      
       res.status(204).end();
     } catch (error) {
       console.error("Error al eliminar asignación:", error);
@@ -551,8 +596,43 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: 'Acceso denegado' });
       }
       
-      const userIds = await platformStorage.getUsersByCompany(companyId);
-      res.json(userIds);
+      // Obtener las asignaciones de usuarios a esta compañía
+      const assignments = await platformDb
+        .select()
+        .from(userCompanies)
+        .where(eq(userCompanies.companyId, companyId));
+      
+      if (assignments.length === 0) {
+        return res.json([]);
+      }
+      
+      // Obtener los IDs de usuario de las asignaciones
+      const userIds = assignments.map(assignment => assignment.userId);
+      
+      // Obtener los detalles de los usuarios
+      const users = await platformDb
+        .select({
+          id: platformUsers.id,
+          name: platformUsers.name,
+          email: platformUsers.email,
+          role: platformUsers.role,
+          active: platformUsers.active,
+          createdAt: platformUsers.createdAt,
+          isPlatformUser: platformUsers.isPlatformUser
+        })
+        .from(platformUsers)
+        .where(inArray(platformUsers.id, userIds));
+      
+      // Combinar los usuarios con sus roles de asignación
+      const usersWithRoles = users.map(user => {
+        const assignment = assignments.find(a => a.userId === user.id);
+        return {
+          ...user,
+          companyRole: assignment ? assignment.role : 'standard'
+        };
+      });
+      
+      res.json(usersWithRoles);
     } catch (error) {
       console.error("Error al listar usuarios por empresa:", error);
       res.status(500).json({ message: "Error al obtener usuarios" });
