@@ -182,6 +182,7 @@ function Router() {
   
   // Empresas Interesadas
   const InterestedCompanies = lazy(() => import("@/pages/platform/interested-companies"));
+  const EmpresasInteresadas = lazy(() => import("@/pages/platform/empresas-interesadas"));
 
   // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
   if (isMobileApp) {
@@ -299,10 +300,16 @@ function Router() {
           </Suspense>
         </Route>
         
-        {/* Ruta de Empresas Interesadas */}
+        {/* Rutas de Empresas Interesadas */}
         <Route path="/platform/interested-companies">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <InterestedCompanies />
+          </Suspense>
+        </Route>
+        
+        <Route path="/platform/empresas-interesadas">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <EmpresasInteresadas />
           </Suspense>
         </Route>
 

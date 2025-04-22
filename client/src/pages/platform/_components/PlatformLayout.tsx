@@ -108,9 +108,9 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
               </Link>
             </li>
             <li>
-              <Link href="/platform/interested-companies">
+              <Link href="/platform/empresas-interesadas">
                 <a className={`flex items-center gap-2 p-2 rounded-md ${
-                  isActive('/platform/interested-companies') 
+                  isActive('/platform/empresas-interesadas') 
                     ? 'bg-primary text-primary-foreground' 
                     : 'hover:bg-primary/10'
                 }`}>
