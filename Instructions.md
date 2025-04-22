@@ -1,230 +1,223 @@
-# Diagnóstico y Solución para el Problema de Visualización de Productos en Facturas
+# Diagnóstico y Solución del Panel Administrativo Multi-Tenant
 
 ## Problema Identificado
 
-Se ha detectado un problema en la vista de facturación donde los productos asociados a las facturas de las empresas no se están mostrando correctamente. El análisis del código muestra varios problemas potenciales:
+Después de un extenso análisis del código, he identificado varios problemas que impiden el correcto funcionamiento del panel administrativo para la gestión de empresas (multi-tenant) en la aplicación:
 
-### 1. Problema Principal: Falta de filtrado correcto por Company ID
+1. **Inconsistencia en la validación de datos**: Existen discrepancias entre la validación que realiza el frontend (cliente) y el backend (servidor) para la creación y actualización de empresas.
 
-El principal problema identificado es que la consulta que obtiene los items de una factura no está correctamente aplicando el filtro por `companyId`. En la tabla `invoiceItems`, cada registro tiene un campo `companyId` que debe filtrarse adecuadamente para el tenant (empresa) actual.
+2. **Problemas con el formato de fecha**: El formato de fecha de expiración que se envía desde el cliente no es compatible con el formato esperado por el servidor, lo que provoca errores durante la validación.
 
-### 2. Inconsistencias en la Implementación Multi-Tenant
+3. **Middleware de autenticación desactivado**: En el entorno de desarrollo, el middleware de autenticación para los endpoints de la plataforma está comentado, pero esto puede generar problemas de consistencia en algunas funcionalidades.
 
-- La ruta `/api/invoices/:id/items` utiliza el objeto `db` directamente en lugar de usar `companyDb` para las consultas.
-- Las consultas no aplican correctamente el filtro `withCompany()` al realizar joins entre tablas.
-- Cuando se crean nuevos items para una factura, no se está incluyendo el campo `companyId` en los datos insertados.
+4. **Manejo incorrecto de errores en API**: Las respuestas de error desde la API no están siendo correctamente procesadas y mostradas al usuario.
 
-### 3. Otros Problemas Identificados
+5. **Problemas de comunicación entre cliente y servidor**: La forma en que se construyen y envían las peticiones POST puede estar generando incompatibilidades.
 
-- El sistema multi-tenant utiliza un enfoque de bases de datos compartidas (shared database) donde cada tabla tiene un campo `companyId` para filtrar los datos por empresa.
-- La implementación del middleware `companyDbMiddleware` configura el companyId en el contexto, pero algunas operaciones SQL directas no lo están utilizando.
+## Análisis Detallado
 
-## Plan de Solución
+### 1. Problemas con el Esquema de Validación
 
-### 1. Corregir la consulta GET de items de factura
-
-La ruta actual GET `/api/invoices/:id/items` debe modificarse para incluir el filtro de `companyId`:
+En `shared/platform-schema.ts`, el esquema para la inserción de empresas requiere que `expirationDate` sea una cadena de texto con formato datetime:
 
 ```typescript
-router.get("/invoices/:id/items", async (req, res) => {
-  try {
-    const invoiceId = parseInt(req.params.id);
-    // Obtener el companyId del contexto
-    const companyId = getCurrentCompanyId();
-    
-    if (!companyId) {
-      return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
-    }
-    
-    const items = await db
-      .select({
-        id: invoiceItems.id,
-        invoiceId: invoiceItems.invoiceId,
-        productId: invoiceItems.productId,
-        quantity: invoiceItems.quantity,
-        price: invoiceItems.price,
-        total: invoiceItems.total,
-        productName: products.name,
-        isReturnable: products.isReturnable,
-        depositAmount: products.depositAmount,
-        productIcon: products.icon
-      })
-      .from(invoiceItems)
-      .leftJoin(products, eq(invoiceItems.productId, products.id))
-      .where(and(
-        eq(invoiceItems.invoiceId, invoiceId),
-        eq(invoiceItems.companyId, companyId)
-      ));
-
-    res.json(items);
-  } catch (error) {
-    console.error("Error al obtener items de factura:", error);
-    res.status(500).json({ error: String(error) });
-  }
+export const insertCompanySchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  subdomain: z.string().min(3, "El subdominio debe tener al menos 3 caracteres")
+    .regex(/^[a-z0-9]+$/, "El subdominio solo puede contener letras minúsculas y números"),
+  logo: z.string().optional(),
+  active: z.boolean().default(true),
+  planId: z.number().int().positive(),
+  expirationDate: z.string().datetime(),
 });
 ```
 
-### 2. Corregir la creación de items de factura
-
-La ruta POST `/api/invoices/:id/items` debe incluir el `companyId` al crear nuevos items:
+Sin embargo, en el componente de formulario en `client/src/pages/platform/companies/[id].tsx`, se está manejando `expirationDate` como un objeto `Date`:
 
 ```typescript
-router.post("/invoices/:id/items", async (req, res) => {
-  try {
-    const invoiceId = parseInt(req.params.id);
-    const { productId, quantity, price } = req.body;
-    // Obtener el companyId del contexto
-    const companyId = getCurrentCompanyId();
-    
-    if (!companyId) {
-      return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
-    }
-
-    // Validar datos básicos
-    if (!productId || !quantity || !price) {
-      return res.status(400).json({ error: "Faltan datos requeridos: productId, quantity, price" });
-    }
-
-    // Convertir a valores numéricos
-    const numPrice = parseFloat(price);
-    const numQuantity = parseInt(quantity);
-    
-    // Calcular el total
-    const total = (numPrice * numQuantity).toFixed(2);
-    
-    // Guardar directamente en la base de datos, incluyendo companyId
-    const [item] = await db
-      .insert(invoiceItems)
-      .values({
-        invoiceId,
-        productId,
-        quantity: numQuantity,
-        price,
-        total,
-        companyId // Añadir companyId
-      })
-      .returning();
-
-    // Actualizar el total de la factura
-    const [invoice] = await db
-      .select()
-      .from(invoices)
-      .where(and(
-        eq(invoices.id, invoiceId),
-        eq(invoices.companyId, companyId)
-      ));
-
-    if (invoice) {
-      const newTotal = (parseFloat(invoice.total) + parseFloat(total)).toFixed(2);
-      await db
-        .update(invoices)
-        .set({ total: newTotal })
-        .where(and(
-          eq(invoices.id, invoiceId),
-          eq(invoices.companyId, companyId)
-        ));
-    }
-
-    console.log("Item de factura creado:", item);
-    res.json(item);
-  } catch (error) {
-    console.error("Error al crear item de factura:", error);
-    res.status(500).json({ error: String(error) });
-  }
+const formSchema = z.object({
+  name: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
+  subdomain: z.string().min(3, "El subdominio debe tener al menos 3 caracteres")
+    .regex(/^[a-z0-9-]+$/, "El subdominio solo puede contener letras minúsculas, números y guiones")
+    .transform(val => val.toLowerCase()),
+  active: z.boolean().default(true),
+  planId: z.coerce.number().min(1, "Debes seleccionar un plan"),
+  expirationDate: z.date({
+    required_error: "Se requiere una fecha de expiración",
+  }),
+  logo: z.string().optional(),
 });
 ```
 
-### 3. Mejora del Middleware Multi-Tenant
+### 2. Problemas con las Mutaciones API
 
-Si bien esto no es estrictamente necesario para resolver el problema inmediato, podemos mejorar la función `withCompany()` para manejar mejor los joins:
+En las funciones de mutación para crear y actualizar empresas, la fecha se está convirtiendo a formato ISO y luego dividiéndola:
 
 ```typescript
-// Mejora en company-db.ts
-export function withCompany(query: any): any {
-  const companyId = getCurrentCompanyId();
-  
-  if (!companyId) {
-    console.warn("No se encontró companyId en el contexto para la consulta");
-    return query;
-  }
-  
-  try {
-    // Intentar obtener información de las tablas involucradas
-    let tableName = 'unknown_table';
-    try {
-      if (query.config && query.config.tableName) {
-        tableName = query.config.tableName;
-      } else if (query.from && query.from.config && query.from.config.name) {
-        tableName = query.from.config.name;
+const createCompanyMutation = useMutation({
+  mutationFn: (data: FormData) => 
+    apiRequest({
+      url: "/api/platform/companies",
+      method: "POST",
+      data: {
+        ...data,
+        expirationDate: data.expirationDate.toISOString().split('T')[0], // Formato YYYY-MM-DD
       }
-    } catch (tableError) {
-      console.warn("No se pudo determinar el nombre de la tabla:", tableError);
-    }
-    
-    console.log(`SELECT en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
-    
-    // Verificar si la consulta tiene el método where
-    if (typeof query.where !== 'function') {
-      console.warn(`La consulta no tiene método where() disponible. Tipo de consulta: ${typeof query}`);
-      return query;
-    }
-    
-    // En Drizzle ORM, aplicar el filtro
-    return query.where(eq(`${tableName}.companyId`, companyId));
-  } catch (error) {
-    console.error("Error al aplicar filtro de companyId:", error);
-    // Como último recurso, devolver la consulta sin filtro
-    return query;
+    }),
+  // resto del código...
+});
+```
+
+Este formato (`YYYY-MM-DD`) no coincide con el formato esperado por el esquema de validación en el servidor (`string().datetime()`), que espera un formato ISO 8601 completo.
+
+### 3. Middleware de Autenticación
+
+En `server/platform-routes.ts`, los middlewares de autenticación están desactivados para desarrollo:
+
+```typescript
+const requirePlatformAdmin = (req: Request, res: Response, next: any) => {
+  // Para propósitos de demostración, permitimos el acceso sin verificar autenticación
+  next();
+  
+  // Código original (descomentar para producción)
+  /*
+  // Verificar si el usuario es administrador de plataforma
+  if (!req.session || !req.session.user || req.session.user.role !== 'platform_admin') {
+    return res.status(403).json({ message: 'Acceso denegado' });
   }
+  next();
+  */
+};
+```
+
+### 4. Manejo de Errores
+
+El manejo de errores en los endpoints del servidor está envolviendo los errores con un mensaje genérico, lo que dificulta la depuración:
+
+```typescript
+router.post("/companies", requirePlatformAdmin, async (req: Request, res: Response) => {
+  try {
+    const validatedData = insertCompanySchema.parse(req.body);
+    const company = await platformStorage.createCompany(validatedData);
+    res.status(201).json(company);
+  } catch (error: any) {
+    console.error("Error al crear empresa:", error);
+    res.status(400).json({ message: error.message || "Error al crear empresa" });
+  }
+});
+```
+
+## Solución Propuesta
+
+Para resolver estos problemas, propongo las siguientes soluciones:
+
+### 1. Corregir el Esquema de Validación
+
+Modificar el esquema de validación en el servidor para que sea compatible con el formato de fecha enviado por el cliente. En `shared/platform-schema.ts`, cambiar la validación de fecha:
+
+```typescript
+export const insertCompanySchema = z.object({
+  // Otras propiedades...
+  expirationDate: z.string(), // Acepta cualquier string de fecha, se parseará en el servidor
+});
+```
+
+### 2. Corregir el Manejo de Fechas
+
+En `server/platform-storage.ts`, modificar el método `createCompany` para manejar el formato de fecha enviado por el cliente:
+
+```typescript
+async createCompany(data: InsertCompany): Promise<Company> {
+  // Asegurar que la fecha sea un objeto Date válido
+  let expirationDate: Date;
+  
+  try {
+    // Intentar parsear la fecha independientemente del formato
+    expirationDate = new Date(data.expirationDate);
+    
+    // Verificar si es una fecha válida
+    if (isNaN(expirationDate.getTime())) {
+      throw new Error("Fecha de expiración no válida");
+    }
+  } catch (error) {
+    throw new Error("Error al procesar la fecha de expiración: " + error.message);
+  }
+  
+  const [created] = await platformDb.insert(companies).values({
+    ...data,
+    expirationDate
+  }).returning();
+  
+  return created;
 }
 ```
 
-### 4. Verificar la Creación de Facturas
+### 3. Mejorar el Logging y Depuración
 
-Asegurarnos de que todas las inserciones en la tabla de facturas incluyan el `companyId`:
+Añadir más información de depuración en el servidor para identificar problemas específicos:
 
 ```typescript
-// Ejemplo de corrección para la creación de facturas
-router.post("/invoices", async (req, res) => {
+router.post("/companies", requirePlatformAdmin, async (req: Request, res: Response) => {
   try {
-    // Obtener companyId del contexto
-    const companyId = getCurrentCompanyId();
+    console.log("Datos recibidos para crear empresa:", req.body);
     
-    if (!companyId) {
-      return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+    // Intentar validar los datos
+    try {
+      const validatedData = insertCompanySchema.parse(req.body);
+      console.log("Datos validados:", validatedData);
+      
+      const company = await platformStorage.createCompany(validatedData);
+      console.log("Empresa creada:", company);
+      
+      res.status(201).json(company);
+    } catch (validationError: any) {
+      console.error("Error de validación:", validationError);
+      return res.status(400).json({ 
+        message: "Error de validación de datos", 
+        details: validationError.errors || validationError.message 
+      });
     }
-    
-    // Validar datos con Zod
-    const validationResult = insertInvoiceSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({ error: validationResult.error });
-    }
-    
-    // Crear factura incluyendo companyId
-    const [invoice] = await db
-      .insert(invoices)
-      .values({
-        ...validationResult.data,
-        companyId, // Añadir companyId
-        date: new Date(),
-      })
-      .returning();
-    
-    res.status(201).json(invoice);
-  } catch (error) {
-    console.error("Error al crear factura:", error);
-    res.status(500).json({ error: String(error) });
+  } catch (error: any) {
+    console.error("Error al crear empresa:", error);
+    res.status(500).json({ 
+      message: "Error interno al crear empresa", 
+      details: error.message 
+    });
   }
 });
 ```
 
-## Implementación del Plan
+### 4. Ajustar el Frontend para una Mejor Compatibilidad
 
-Para implementar esta solución, debemos:
+Modificar la mutación en el cliente para enviar la fecha en un formato más ampliamente aceptado:
 
-1. Modificar la ruta GET `/api/invoices/:id/items` para incluir el filtro por `companyId`.
-2. Actualizar la ruta POST `/api/invoices/:id/items` para incluir `companyId` al crear nuevos items.
-3. Opcionalmente, mejorar la función `withCompany()` para manejar mejor los joins entre tablas.
-4. Revisar todas las inserciones en la tabla de facturas para asegurarse de que incluyan el `companyId`.
+```typescript
+const createCompanyMutation = useMutation({
+  mutationFn: (data: FormData) => 
+    apiRequest({
+      url: "/api/platform/companies",
+      method: "POST",
+      data: {
+        ...data,
+        expirationDate: data.expirationDate.toISOString(), // Formato ISO completo
+      }
+    }),
+  // resto del código...
+});
+```
 
-Esta solución debería permitir que los productos asociados a las facturas se muestren correctamente en la vista de facturación, respetando la separación de datos entre empresas en el sistema multi-tenant.
+### 5. Agregar Manejo Consistente de Sesiones
+
+Implementar un enfoque consistente para el manejo de sesiones entre entornos de desarrollo y producción, posiblemente utilizando variables de entorno para controlar el comportamiento.
+
+## Pasos Adicionales Recomendados
+
+1. **Pruebas sistemáticas**: Crear un conjunto de pruebas automatizadas para validar el comportamiento del panel administrativo en diferentes escenarios.
+
+2. **Mejoras en la experiencia de usuario**: Añadir validación en tiempo real y mensajes de error más descriptivos en el frontend.
+
+3. **Documentación**: Crear una documentación detallada del sistema multi-tenant para futuros desarrolladores.
+
+4. **Monitoreo de errores**: Implementar un sistema de monitoreo de errores para detectar problemas en tiempo real.
+
+Con estas mejoras, el panel administrativo para la gestión de empresas debería funcionar correctamente y proporcionar una experiencia de usuario más fiable y coherente.
