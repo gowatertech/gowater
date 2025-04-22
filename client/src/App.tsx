@@ -186,8 +186,16 @@ function Router() {
 
   // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
   if (isMobileApp) {
+    // Importar el componente de login móvil
+    const MobileAppLogin = lazy(() => import("@/pages/mobile-app/login"));
+    
     return (
       <Switch>
+        <Route path="/mobile-app/login">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <MobileAppLogin />
+          </Suspense>
+        </Route>
         <Route path="/mobile-app" component={MobileApp} />
         <Route path="/mobile-app/rutas-pendientes" component={MobilePendingRoutes} />
         <Route path="/mobile-app/ruta" component={MobileRoute} />
