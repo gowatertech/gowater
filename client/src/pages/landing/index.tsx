@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import MobileAppShowcase from "@/components/landing/MobileAppShowcase";
 
 // Componente de la landing page
 export default function LandingPage() {
@@ -183,6 +184,9 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* Mobile App Showcase */}
+        <MobileAppShowcase />
 
         {/* Call to action */}
         <section className="py-16 md:py-24 bg-primary text-primary-foreground">
