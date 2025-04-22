@@ -376,16 +376,16 @@ export default function MobileAppShowcase() {
   ];
 
   return (
-    <section id="app-mobile" className="py-16 md:py-24 bg-gradient-to-b from-white to-blue-50">
+    <section id="app-mobile" className="py-10 md:py-16 bg-gradient-to-b from-white to-blue-50">
       <div className="container px-4 md:px-6">
-        <div className="text-center mb-12">
+        <div className="text-center mb-6">
           <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Nuestra Aplicación Móvil</h2>
-          <p className="mt-4 text-muted-foreground md:text-xl max-w-[800px] mx-auto">
+          <p className="mt-2 text-muted-foreground md:text-xl max-w-[800px] mx-auto">
             Descubra todas las funcionalidades que nuestra aplicación móvil ofrece para optimizar su operación diaria
           </p>
         </div>
         
-        <div className="flex flex-col lg:flex-row gap-12 items-center">
+        <div className="flex flex-col lg:flex-row gap-8 items-center">
           {/* Panel izquierdo - Smartphone */}
           <div className="flex-1 max-w-md mx-auto lg:mx-0">
             <div className="relative mx-auto w-[280px] h-[580px] bg-black rounded-[3rem] border-[14px] border-black shadow-xl overflow-hidden">
@@ -434,11 +434,11 @@ export default function MobileAppShowcase() {
           
           {/* Panel derecho - Descripción */}
           <div className="flex-1">
-            <div className="space-y-6">
+            <div className="space-y-4">
               <h3 className="text-2xl font-bold">Optimice operaciones con nuestra app móvil</h3>
               <p className="text-muted-foreground">Nuestra aplicación está diseñada para facilitar el trabajo de sus conductores y personal operativo con una interfaz intuitiva y funcionalidades completas.</p>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {tabs.map(tab => (
                   <div key={tab.id} className="group cursor-pointer" onClick={() => setActiveTab(tab.id)}>
                     <div className={`p-4 border rounded-lg transition-colors ${activeTab === tab.id ? 'border-primary bg-primary/5' : 'hover:border-primary/50 hover:bg-primary/5'}`}>
@@ -459,7 +459,7 @@ export default function MobileAppShowcase() {
           </div>
         </div>
         
-        <div className="mt-12 text-center">
+        <div className="mt-8 text-center">
           <Link href="/contact">
             <Button size="lg" className="bg-primary hover:bg-primary/90">
               <Smartphone className="mr-2 h-5 w-5" />
