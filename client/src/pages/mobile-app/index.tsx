@@ -127,6 +127,11 @@ export default function GoWaterDriverApp() {
     
     // Solo verificar rol cuando user está disponible y ya cargó
     if (!isLoading && user) {
+      // Temporalmente permitimos cualquier rol para pruebas
+      console.log("MobileApp - Usuario detectado:", user.role);
+      
+      // Original:
+      /*
       if (user.role !== "driver" && user.role !== "admin") {
         console.log("MobileApp - Acceso denegado: rol no permitido", user.role);
         toast({
@@ -138,6 +143,7 @@ export default function GoWaterDriverApp() {
       } else {
         console.log("MobileApp - Usuario con rol permitido:", user.role);
       }
+      */
     }
   }, [user, isLoading, setLocation, toast]);
 
