@@ -48,7 +48,14 @@ export default function MobileAppLogin() {
     setIsLoading(true);
     
     try {
-      const response = await apiRequest('POST', '/api/mobile/login', data);
+      // Usar el método apropiado con apiRequest
+      const response = await fetch('/api/mobile/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
       
       if (response.ok) {
         const result = await response.json();

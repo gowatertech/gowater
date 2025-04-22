@@ -7,9 +7,18 @@ import { useState, useEffect } from 'react';
 export type User = {
   id: number;
   name: string;
-  email: string;
-  role: 'admin' | 'driver' | 'assistant' | 'user';
-  createdAt: string;
+  username?: string;
+  email?: string;
+  role: 'admin' | 'driver' | 'assistant' | 'user' | 'supervisor' | 'cashier';
+  companyId?: number;
+  createdAt?: string;
+  active?: boolean;
+  phone?: string;
+  license?: string;
+  licenseExpiry?: string;
+  emergencyContact?: string;
+  currentLocation?: string;
+  lastLocationUpdate?: string;
 };
 
 type CurrentUserStore = {
@@ -28,9 +37,20 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   fetchUser: async () => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiRequest('GET', '/api/me');
+      // Intentar primero con el endpoint regular
+      let response = await apiRequest('GET', '/api/me');
+      
+      // Si el endpoint regular falla, intentar con el endpoint móvil
+      if (!response.ok) {
+        console.log('Intentando con endpoint móvil');
+        response = await apiRequest('GET', '/api/mobile/me');
+      }
+      
       if (response.ok) {
-        const user = await response.json();
+        const result = await response.json();
+        // Manejar ambos formatos de respuesta (objeto directo o { success: true, user: {...} })
+        const user = result.success && result.user ? result.user : result;
+        console.log('Usuario obtenido:', user);
         set({ user, isLoading: false });
       } else {
         console.error('Error al obtener usuario:', response.status);
@@ -52,9 +72,16 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   logout: async () => {
     set({ isLoading: true, error: null });
     try {
-      await apiRequest('POST', '/api/logout');
+      // Intentar primero con el endpoint regular
+      try {
+        await apiRequest('POST', '/api/logout');
+      } catch {
+        // Si falla, intentar con el endpoint móvil
+        await apiRequest('POST', '/api/mobile/logout');
+      }
       set({ user: null, isLoading: false });
     } catch (error) {
+      console.error('Error al cerrar sesión:', error);
       set({ error: error as Error, isLoading: false });
     }
   },
