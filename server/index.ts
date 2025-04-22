@@ -12,6 +12,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
+import interestedCompaniesRoutes from "./routes/api/interested-companies";
 
 const app = express();
 
@@ -93,6 +94,10 @@ app.use((req, res, next) => {
     // Montar las rutas públicas para registro de empresas interesadas
     app.use("/api/leads", leadsRoutes);
     log("Lead registration routes registered successfully");
+    
+    // Montar las rutas para gestionar empresas interesadas
+    app.use("/api", interestedCompaniesRoutes);
+    log("Interested companies routes registered successfully");
     
     // Crear servidor HTTP
     server = createServer(app);
