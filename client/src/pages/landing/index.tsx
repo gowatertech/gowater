@@ -125,9 +125,9 @@ export default function LandingPage() {
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row mt-8">
-                <Link href="/platform/register">
+                <Link href="/register-interest">
                   <Button size="lg" className="w-full">
-                    Comenzar ahora
+                    Registrar interés
                   </Button>
                 </Link>
                 <Link href="/contact">
@@ -194,9 +194,9 @@ export default function LandingPage() {
               Únase a cientos de empresas que ya están mejorando su eficiencia con GoWater
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/platform/register">
+              <Link href="/register-interest">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                  Comenzar gratis
+                  Registrar mi empresa
                 </Button>
               </Link>
               <Link href="/contact">

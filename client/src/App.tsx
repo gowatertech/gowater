@@ -54,6 +54,7 @@ import LandingPage from "@/pages/landing";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
 import ContactPage from "@/pages/landing/contact";
+import RegisterInterestPage from "@/pages/landing/register-interest";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -199,14 +200,15 @@ function Router() {
     );
   }
   
-  // Si estamos en la página de landing, planes, soporte o contacto, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact") && !location.startsWith("/dashboard")) {
+  // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
+  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest") && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/planes" component={PlanesPage} />
         <Route path="/soporte" component={SoportePage} />
         <Route path="/contact" component={ContactPage} />
+        <Route path="/register-interest" component={RegisterInterestPage} />
       </Switch>
     );
   }
@@ -386,7 +388,7 @@ export default function App() {
   // No mostrar el logo en páginas de la plataforma, app móvil, landing page o páginas públicas
   const isPlatformRoute = location.startsWith("/platform");
   const isMobileApp = location.startsWith("/mobile-app");
-  const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact";
+  const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest";
   const shouldShowLogo = !isPlatformRoute && !isMobileApp && !isPublicPage;
   
   return (
