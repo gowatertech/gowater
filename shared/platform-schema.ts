@@ -61,7 +61,10 @@ export const insertCompanySchema = z.object({
     z.number().int().positive(),
     z.string().transform(val => parseInt(val))
   ]),
-  expirationDate: z.string().datetime(),
+  expirationDate: z.string().refine((val) => {
+    // Acepta tanto el formato ISO completo como solo la fecha YYYY-MM-DD
+    return /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(val);
+  }, "La fecha debe estar en formato YYYY-MM-DD o ISO 8601"),
 });
 
 export const insertPlanSchema = z.object({
@@ -97,7 +100,10 @@ export const insertMembershipInvoiceSchema = z.object({
     z.string().transform(val => parseFloat(val))
   ]),
   status: z.enum(["pending", "paid", "cancelled", "overdue"]).default("pending"),
-  dueDate: z.string().datetime(),
+  dueDate: z.string().refine((val) => {
+    // Acepta tanto el formato ISO completo como solo la fecha YYYY-MM-DD
+    return /^\d{4}-\d{2}-\d{2}(T.*)?$/.test(val);
+  }, "La fecha debe estar en formato YYYY-MM-DD o ISO 8601"),
   notes: z.string().optional(),
 });
 
