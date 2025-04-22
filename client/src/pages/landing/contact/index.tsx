@@ -43,7 +43,7 @@ export default function ContactPage() {
               <Button variant="ghost" className="font-medium">Demo</Button>
             </Link>
             <Link href="/contact">
-              <Button variant="ghost" className="font-medium bg-primary/10">Contact</Button>
+              <Button variant="ghost" className="font-medium bg-primary/10">Contáctanos</Button>
             </Link>
           </div>
 
@@ -79,7 +79,7 @@ export default function ContactPage() {
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                     </Link>
                     <Link href="/contact">
-                      <div className="block p-2 text-base font-medium bg-primary/10 rounded-md">Contact</div>
+                      <div className="block p-2 text-base font-medium bg-primary/10 rounded-md">Contáctanos</div>
                     </Link>
                   </nav>
                   <div className="pt-6 border-t space-y-4">
@@ -114,10 +114,10 @@ export default function ContactPage() {
             <div className="flex flex-col justify-center items-center text-center max-w-3xl mx-auto">
               <div className="space-y-4">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-primary">
-                  Contact Us
+                  Contáctanos
                 </h1>
                 <p className="text-muted-foreground md:text-xl max-w-[700px] mx-auto">
-                  We're here to answer your questions and help you with any inquiries about our services.
+                  Estamos aquí para responder tus preguntas y ayudarte con cualquier consulta sobre nuestros servicios.
                 </p>
               </div>
             </div>
@@ -142,11 +142,11 @@ export default function ContactPage() {
                           alt="Dominican Republic Flag" 
                           className="h-5 mr-2"
                         />
-                        <h3 className="font-medium">Dominican Republic</h3>
+                        <h3 className="font-medium">República Dominicana</h3>
                       </div>
                       <p className="text-xl font-medium text-primary">809-350-2237</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Open hours: Monday to Friday 8am - 6pm
+                        Horario: Lunes a Viernes 8am - 6pm
                       </p>
                     </div>
                   </div>
@@ -167,12 +167,12 @@ export default function ContactPage() {
                           alt="United States Flag" 
                           className="h-5 mr-2"
                         />
-                        <h3 className="font-medium">United States</h3>
+                        <h3 className="font-medium">Estados Unidos</h3>
                       </div>
                       <p className="text-xl font-medium text-primary">919-343-6706</p>
                       <p className="text-xl font-medium text-primary mt-1">984-260-7447</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Open hours: Monday to Friday 9am - 7pm (EST)
+                        Horario: Lunes a Viernes 9am - 7pm (EST)
                       </p>
                     </div>
                   </div>
@@ -187,10 +187,10 @@ export default function ContactPage() {
                       <Mail className="h-6 w-6 text-primary" />
                     </div>
                     <div className="text-center">
-                      <h3 className="font-medium mb-2">Email</h3>
+                      <h3 className="font-medium mb-2">Correo Electrónico</h3>
                       <p className="text-xl font-medium text-primary">soportegowater@gmail.com</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        We respond within 24 hours.
+                        Respondemos dentro de 24 horas.
                       </p>
                     </div>
                   </div>
