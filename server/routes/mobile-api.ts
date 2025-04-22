@@ -494,30 +494,24 @@ export function createMobileApiEndpoints(): Router {
  * Registra las rutas de la API móvil en la aplicación Express
  */
 export function registerMobileApiEndpoints(app: Router) {
+  // Importar las nuevas rutas de autenticación móvil
+  const { createMobileAuthRoutes } = require('./api/mobile/auth');
+  const { mobileApiTenantMiddleware } = require('../middleware/mobile-tenant.middleware');
+  
+  // Crear las rutas de la API móvil existente
   const mobileApiRoutes = createMobileApiEndpoints();
   
   // Creamos un middleware para asegurar que los endpoints móviles
   // tengan acceso al ID de la empresa actual
-  const mobileApiTenantMiddleware = (req: Request, res: Response, next: any) => {
-    // Asegurar que hay un companyId en la sesión o en la solicitud
-    if (!req.session.companyId && !req.query.companyId && !req.body.companyId) {
-      console.log("MobileAPI - No se encontró companyId en la sesión o solicitud");
-      
-      // En modo desarrollo/demostración, asignar un companyId por defecto
-      req.session.companyId = 1;
-      console.log("MobileAPI - Asignando companyId de demostración:", req.session.companyId);
-    } else {
-      console.log("MobileAPI - CompanyId encontrado:", req.session.companyId || req.query.companyId || req.body.companyId);
-    }
-    
-    // Podemos continuar al siguiente middleware
-    next();
-  };
   
   // Registramos el middleware antes de nuestras rutas
   app.use('/mobile', mobileApiTenantMiddleware);
   
-  // Montamos las rutas de la API móvil
+  // Registrar rutas de autenticación
+  const authRoutes = createMobileAuthRoutes();
+  app.use('/mobile', authRoutes);
+  
+  // Montamos las rutas de la API móvil existente
   app.use('/mobile', mobileApiRoutes);
   console.log("Endpoints de API móvil registrados con soporte multitenant");
 }

@@ -227,8 +227,16 @@ export default function GoWaterDriverApp() {
     }
   };
 
-  // Si el usuario no es un chofer o está cargando, mostrar pantalla de carga
-  if (isLoading || !user) {
+  // Redirigir al login si no hay usuario autenticado
+  useEffect(() => {
+    if (!isLoading && !user) {
+      console.log("MobileApp - Usuario no autenticado, redirigiendo al login");
+      setLocation("/mobile-app/login");
+    }
+  }, [isLoading, user, setLocation]);
+
+  // Si está cargando, mostrar pantalla de carga
+  if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-primary/5">
         <div className="text-center">
@@ -237,6 +245,11 @@ export default function GoWaterDriverApp() {
         </div>
       </div>
     );
+  }
+  
+  // Si no hay usuario después de cargar, no renderizar el contenido
+  if (!user) {
+    return null; // No renderizar nada mientras redirecciona
   }
 
   return (
