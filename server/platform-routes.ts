@@ -488,6 +488,36 @@ export function registerPlatformRoutes(router: Router) {
       res.status(400).json({ message: error.message || "Error al actualizar usuario" });
     }
   });
+  
+  // Endpoint para eliminar un usuario
+  router.delete("/platform-users/:id", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de usuario no válido" });
+      }
+      
+      // Primero verificar si el usuario existe
+      const user = await platformStorage.getPlatformUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // Eliminar primero las asignaciones de compañías
+      await platformDb
+        .delete(userCompanies)
+        .where(eq(userCompanies.userId, id));
+      
+      // Luego eliminar el usuario
+      await platformStorage.deletePlatformUser(id);
+      
+      res.status(200).json({ message: "Usuario eliminado correctamente" });
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      res.status(500).json({ message: "Error al eliminar usuario" });
+    }
+  });
 
   // Rutas para configuraciones de empresa
   router.get("/company-settings/:companyId", requireCompanyAdmin, async (req: Request, res: Response) => {
