@@ -58,17 +58,25 @@ export default function PlansPage() {
   const [planToDelete, setPlanToDelete] = useState<Plan | null>(null);
 
   // Consulta para obtener todos los planes
-  const { data: plans, isLoading, refetch } = useQuery({
+  const { data: plansResponse, isLoading, refetch } = useQuery({
     queryKey: ["/api/platform/plans"],
     queryFn: async () => {
-      const result = await apiRequest({
-        url: "/api/platform/plans",
-        method: "GET"
-      });
-      console.log("Plans API response:", result);
-      return result;
+      try {
+        const result = await apiRequest({
+          url: "/api/platform/plans",
+          method: "GET"
+        });
+        console.log("Plans API response:", result);
+        return result && result.data ? result : { data: result || [] };
+      } catch (error) {
+        console.error("Error al obtener planes:", error);
+        return { data: [] };
+      }
     },
   });
+  
+  // Extraer los planes de la respuesta
+  const plans = plansResponse?.data || [];
 
   // Mutación para eliminar un plan
   const deletePlanMutation = useMutation({
