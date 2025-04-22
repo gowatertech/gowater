@@ -107,8 +107,8 @@ export default function CompanyFormPage() {
 
   // Actualizar el formulario cuando se carga la empresa
   useEffect(() => {
-    if (isEditMode && companyData?.data) {
-      const company = companyData.data;
+    if (isEditMode && companyData) {
+      const company = companyData;
       form.reset({
         name: company.name,
         subdomain: company.subdomain,
