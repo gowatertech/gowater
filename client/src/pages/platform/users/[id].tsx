@@ -152,8 +152,10 @@ export default function UserFormPage() {
 
   // Actualizar las empresas disponibles
   useEffect(() => {
-    if (companiesData?.data) {
-      setAvailableCompanies(companiesData.data);
+    if (companiesData) {
+      // La API puede devolver directamente un array o puede encapsularlo en una propiedad data
+      const companies = Array.isArray(companiesData) ? companiesData : companiesData.data || [];
+      setAvailableCompanies(companies);
     }
   }, [companiesData]);
 
