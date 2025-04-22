@@ -313,8 +313,53 @@ export function registerPlatformRoutes(router: Router) {
   // Rutas para la gestión de planes
   router.get("/plans", async (req: Request, res: Response) => {
     try {
-      const plans = await platformStorage.listPlans();
+      console.log("Solicitud de listado de planes recibida");
+      let plans = await platformStorage.listPlans();
+      
+      // Si no hay planes, insertamos los planes predeterminados
+      if (!plans || plans.length === 0) {
+        console.log("No se encontraron planes, insertando planes predeterminados");
+        
+        // Insertar plan básico
+        await platformStorage.createPlan({
+          name: 'Plan Básico',
+          price: 99.99,
+          description: 'Plan básico para pequeñas empresas',
+          maxUsers: 5,
+          maxTrucks: 3,
+          features: ['Gestión de usuarios', 'Rutas básicas', 'Reportes básicos'],
+          isActive: true
+        });
+        
+        // Insertar plan profesional
+        await platformStorage.createPlan({
+          name: 'Plan Profesional',
+          price: 199.99,
+          description: 'Plan profesional con características avanzadas',
+          maxUsers: 15,
+          maxTrucks: 10,
+          features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST'],
+          isActive: true
+        });
+        
+        // Insertar plan empresarial
+        await platformStorage.createPlan({
+          name: 'Plan Empresarial',
+          price: 299.99,
+          description: 'Plan empresarial con todas las características',
+          maxUsers: 50,
+          maxTrucks: 30,
+          features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST', 'Soporte 24/7', 'Personalización'],
+          isActive: true
+        });
+        
+        // Obtener los planes recién creados
+        plans = await platformStorage.listPlans();
+        console.log("Planes creados correctamente:", plans);
+      }
+      
       // Enviamos los datos en el formato que espera el frontend
+      console.log("Enviando planes al frontend:", { data: plans });
       res.json({ data: plans });
     } catch (error) {
       console.error("Error al listar planes:", error);

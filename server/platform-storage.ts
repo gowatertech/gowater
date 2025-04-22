@@ -159,7 +159,15 @@ export class PlatformStorage implements IPlatformStorage {
   }
 
   async listPlans(): Promise<Plan[]> {
-    return await platformDb.select().from(plans).orderBy(plans.price);
+    console.log("Ejecutando listPlans en PlatformStorage");
+    try {
+      const results = await platformDb.select().from(plans).orderBy(plans.price);
+      console.log("Planes encontrados:", results);
+      return results;
+    } catch (error) {
+      console.error("Error al listar planes en PlatformStorage:", error);
+      throw error;
+    }
   }
 
   // Implementación de facturas de membresía
