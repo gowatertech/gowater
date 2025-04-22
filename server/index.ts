@@ -82,7 +82,7 @@ app.use((req, res, next) => {
     let server;
 
     // Register Platform API routes first (for admin platform)
-    registerPlatformEndpoints(app);
+    registerPlatformEndpoints(platformApiRouter);
     log("Platform routes registered successfully");
     
     // Register regular API routes for company operations
