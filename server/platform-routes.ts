@@ -241,7 +241,8 @@ export function registerPlatformRoutes(router: Router) {
         return;
       }
       
-      res.json(companies);
+      // Enviamos los datos en el formato que espera el frontend
+      res.json({ data: companies });
     } catch (error) {
       console.error("Error al listar empresas:", error);
       res.status(500).json({ message: "Error al obtener empresas" });
@@ -310,7 +311,8 @@ export function registerPlatformRoutes(router: Router) {
   router.get("/plans", async (req: Request, res: Response) => {
     try {
       const plans = await platformStorage.listPlans();
-      res.json(plans);
+      // Enviamos los datos en el formato que espera el frontend
+      res.json({ data: plans });
     } catch (error) {
       console.error("Error al listar planes:", error);
       res.status(500).json({ message: "Error al obtener planes" });
@@ -372,7 +374,8 @@ export function registerPlatformRoutes(router: Router) {
     try {
       const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : undefined;
       const invoices = await platformStorage.listMembershipInvoices(companyId);
-      res.json(invoices);
+      // Enviamos los datos en el formato que espera el frontend
+      res.json({ data: invoices });
     } catch (error) {
       console.error("Error al listar facturas:", error);
       res.status(500).json({ message: "Error al obtener facturas" });
@@ -408,7 +411,9 @@ export function registerPlatformRoutes(router: Router) {
       const role = req.query.role as string | undefined;
       const companyId = req.query.companyId ? parseInt(req.query.companyId as string) : undefined;
       const users = await platformStorage.listPlatformUsers(role, companyId);
-      res.json(users);
+      
+      // Enviamos los datos en el formato que espera el frontend
+      res.json({ data: users });
     } catch (error) {
       console.error("Error al listar usuarios:", error);
       res.status(500).json({ message: "Error al obtener usuarios" });
@@ -643,7 +648,8 @@ export function registerPlatformRoutes(router: Router) {
         };
       });
       
-      res.json(usersWithRoles);
+      // Enviamos los datos en el formato que espera el frontend
+      res.json({ data: usersWithRoles });
     } catch (error) {
       console.error("Error al listar usuarios por empresa:", error);
       res.status(500).json({ message: "Error al obtener usuarios" });
