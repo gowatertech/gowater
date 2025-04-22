@@ -100,6 +100,17 @@ export async function setupPlatformTables() {
     `);
     console.log("Tabla 'company_settings' creada o ya existente");
 
+    // Crear tabla de configuración global de la plataforma
+    await platformDb.execute(sql`
+      CREATE TABLE IF NOT EXISTS platform_settings (
+        id SERIAL PRIMARY KEY,
+        key TEXT NOT NULL UNIQUE,
+        value TEXT,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+    console.log("Tabla 'platform_settings' creada o ya existente");
+
     console.log("Configuración de tablas de plataforma completada con éxito");
     return true;
   } catch (error) {

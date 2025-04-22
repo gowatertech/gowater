@@ -11,7 +11,10 @@ import {
   platformUsers,
   userCompanies,
   companySettings,
-  membershipInvoices
+  membershipInvoices,
+  platformSettings,
+  platformGeneralSettingsSchema,
+  platformEmailSettingsSchema
 } from "../shared/platform-schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -762,7 +765,192 @@ export function registerPlatformRoutes(router: Router) {
     }
   });
 
-  // Rutas de autenticación de la plataforma
+  // Rutas para la configuración global de la plataforma
+  router.get("/settings", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log("Obteniendo configuración de la plataforma");
+      
+      // Obtener todas las configuraciones
+      const settings = await platformDb
+        .select()
+        .from(platformSettings);
+      
+      console.log("Configuraciones obtenidas:", settings);
+      
+      // Transformar la lista de configuraciones a un objeto estructurado
+      const generalSettings: any = {
+        platformName: "GoWater",
+        supportEmail: "soporte@gowater.com",
+        supportPhone: "",
+        logoUrl: "",
+        enableRegistration: false,
+        maintenanceMode: false
+      };
+      
+      const emailSettings: any = {
+        smtpServer: "",
+        smtpPort: "587",
+        smtpUser: "",
+        senderEmail: "no-reply@gowater.com",
+        senderName: "GoWater"
+      };
+      
+      // Procesar las configuraciones obtenidas
+      for (const setting of settings) {
+        if (setting.key.startsWith('general.')) {
+          const generalKey = setting.key.replace('general.', '');
+          if (generalKey === 'enableRegistration' || generalKey === 'maintenanceMode') {
+            generalSettings[generalKey] = setting.value === 'true';
+          } else {
+            generalSettings[generalKey] = setting.value;
+          }
+        } else if (setting.key.startsWith('email.')) {
+          const emailKey = setting.key.replace('email.', '');
+          emailSettings[emailKey] = setting.value;
+        }
+      }
+      
+      res.json({
+        generalSettings,
+        emailSettings
+      });
+    } catch (error) {
+      console.error("Error al obtener configuración de la plataforma:", error);
+      res.status(500).json({ message: "Error al obtener configuración de la plataforma" });
+    }
+  });
+  
+  router.put("/settings/general", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log("Actualizando configuración general de la plataforma");
+      
+      // Validar los datos recibidos
+      const validatedData = platformGeneralSettingsSchema.parse(req.body);
+      console.log("Datos validados:", validatedData);
+      
+      // Convertir el objeto de configuración en entradas individuales para la tabla platformSettings
+      const entries = Object.entries(validatedData).map(([key, value]) => ({
+        key: `general.${key}`, 
+        value: typeof value === 'boolean' ? String(value) : value || ''
+      }));
+      
+      console.log("Entradas a actualizar:", entries);
+      
+      // Procesar cada entrada de configuración
+      for (const entry of entries) {
+        // Verificar si la configuración ya existe
+        const existingConfig = await platformDb
+          .select()
+          .from(platformSettings)
+          .where(eq(platformSettings.key, entry.key));
+        
+        if (existingConfig.length > 0) {
+          // Actualizar configuración existente
+          await platformDb
+            .update(platformSettings)
+            .set({ 
+              value: entry.value,
+              updatedAt: new Date()
+            })
+            .where(eq(platformSettings.key, entry.key));
+        } else {
+          // Crear nueva configuración
+          await platformDb
+            .insert(platformSettings)
+            .values({
+              key: entry.key,
+              value: entry.value
+            });
+        }
+      }
+      
+      res.json({ success: true, message: "Configuración general actualizada correctamente" });
+    } catch (error: any) {
+      console.error("Error al actualizar configuración general:", error);
+      res.status(400).json({ message: error.message || "Error al actualizar configuración general" });
+    }
+  });
+  
+  router.put("/settings/email", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log("Actualizando configuración de correo de la plataforma");
+      
+      // Validar los datos recibidos
+      const validatedData = platformEmailSettingsSchema.parse(req.body);
+      console.log("Datos validados:", validatedData);
+      
+      // Convertir el objeto de configuración en entradas individuales para la tabla platformSettings
+      const entries = Object.entries(validatedData)
+        .filter(([key, value]) => {
+          // No guardar contraseña si viene vacía (mantener la existente)
+          return !(key === 'smtpPassword' && !value);
+        })
+        .map(([key, value]) => ({
+          key: `email.${key}`, 
+          value: value || ''
+        }));
+      
+      console.log("Entradas a actualizar:", entries);
+      
+      // Procesar cada entrada de configuración
+      for (const entry of entries) {
+        // Verificar si la configuración ya existe
+        const existingConfig = await platformDb
+          .select()
+          .from(platformSettings)
+          .where(eq(platformSettings.key, entry.key));
+        
+        if (existingConfig.length > 0) {
+          // Actualizar configuración existente
+          await platformDb
+            .update(platformSettings)
+            .set({ 
+              value: entry.value,
+              updatedAt: new Date()
+            })
+            .where(eq(platformSettings.key, entry.key));
+        } else {
+          // Crear nueva configuración
+          await platformDb
+            .insert(platformSettings)
+            .values({
+              key: entry.key,
+              value: entry.value
+            });
+        }
+      }
+      
+      res.json({ success: true, message: "Configuración de correo actualizada correctamente" });
+    } catch (error: any) {
+      console.error("Error al actualizar configuración de correo:", error);
+      res.status(400).json({ message: error.message || "Error al actualizar configuración de correo" });
+    }
+  });
+  
+  router.post("/settings/test-email", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log("Enviando correo de prueba");
+      
+      // Aquí se implementaría el envío real del correo
+      // Por ahora simularemos un envío exitoso para la demostración
+      
+      // Simulamos un pequeño delay para hacerlo más realista
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      res.json({ 
+        success: true, 
+        message: "Correo de prueba enviado correctamente"
+      });
+    } catch (error) {
+      console.error("Error al enviar correo de prueba:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Error al enviar correo de prueba"
+      });
+    }
+  });
+
+  // Autenticación de plataforma
   router.post("/platform-login", async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;

@@ -203,3 +203,36 @@ export type UserCompany = typeof userCompanies.$inferSelect;
 
 export type InsertCompanySettings = z.infer<typeof insertCompanySettingsSchema>;
 export type CompanySettings = typeof companySettings.$inferSelect;
+
+// Configuración global de la plataforma
+export const platformSettings = pgTable("platform_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Esquema para validación de configuración general
+export const platformGeneralSettingsSchema = z.object({
+  platformName: z.string().min(2, "El nombre de la plataforma debe tener al menos 2 caracteres"),
+  supportEmail: z.string().email("Email inválido"),
+  supportPhone: z.string().optional(),
+  logoUrl: z.string().optional(),
+  enableRegistration: z.boolean().default(false),
+  maintenanceMode: z.boolean().default(false),
+});
+
+// Esquema para validación de configuración de correo
+export const platformEmailSettingsSchema = z.object({
+  smtpServer: z.string().min(1, "El servidor SMTP es requerido"),
+  smtpPort: z.string().min(1, "El puerto SMTP es requerido"),
+  smtpUser: z.string().min(1, "El usuario SMTP es requerido"),
+  smtpPassword: z.string().optional(),
+  senderEmail: z.string().email("Email inválido"),
+  senderName: z.string().min(1, "El nombre del remitente es requerido"),
+});
+
+// Tipos inferidos
+export type PlatformGeneralSettings = z.infer<typeof platformGeneralSettingsSchema>;
+export type PlatformEmailSettings = z.infer<typeof platformEmailSettingsSchema>;
+export type PlatformSetting = typeof platformSettings.$inferSelect;
