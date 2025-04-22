@@ -50,6 +50,7 @@ import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
 import TestPage from "@/pages/test-page";
 import TestPrintPayment from "@/pages/test-print-payment";
+import LandingPage from "@/pages/landing-page";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
