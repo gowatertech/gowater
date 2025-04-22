@@ -1,14 +1,5 @@
 import React from "react";
 import { Link } from "wouter";
-import { 
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { 
   Droplet, 
@@ -19,7 +10,8 @@ import {
   LifeBuoy, 
   ChevronRight, 
   Phone,
-  Menu
+  Menu,
+  ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -41,88 +33,22 @@ export default function LandingPage() {
           </div>
 
           {/* Menú de navegación principal */}
-          <div className="hidden md:flex">
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <Link href="/">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Inicio
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Planes</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="grid w-[500px] gap-3 p-4 md:grid-cols-2">
-                      <div className="p-4 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Package className="h-5 w-5 text-primary" />
-                          <h3 className="text-sm font-medium">Plan Básico</h3>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Ideal para pequeñas empresas. Gestión básica de rutas y pedidos.
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Package className="h-5 w-5 text-emerald-600" />
-                          <h3 className="text-sm font-medium">Plan Profesional</h3>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Para empresas en crecimiento. Incluye analíticas avanzadas.
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Package className="h-5 w-5 text-purple-600" />
-                          <h3 className="text-sm font-medium">Plan Empresarial</h3>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Solución completa para empresas con múltiples rutas y vehículos.
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-lg bg-amber-50 hover:bg-amber-100 transition-colors">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Package className="h-5 w-5 text-amber-600" />
-                          <h3 className="text-sm font-medium">Plan Personalizado</h3>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Adaptado a sus necesidades específicas. Contacte con nosotros.
-                        </p>
-                      </div>
-                      <Link href="/platform/plans" className="col-span-2">
-                        <div className="flex items-center justify-end gap-1 text-sm text-primary hover:underline">
-                          <span>Ver todos los planes</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </div>
-                      </Link>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link href="/soporte">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Soporte
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link href="/demo">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Demo
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link href="/contacto">
-                    <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                      Contáctanos
-                    </NavigationMenuLink>
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
+          <div className="hidden md:flex items-center space-x-4">
+            <Link href="/">
+              <Button variant="ghost" className="font-medium">Inicio</Button>
+            </Link>
+            <Link href="/platform/plans">
+              <Button variant="ghost" className="font-medium">Planes</Button>
+            </Link>
+            <Link href="/soporte">
+              <Button variant="ghost" className="font-medium">Soporte</Button>
+            </Link>
+            <Link href="/demo">
+              <Button variant="ghost" className="font-medium">Demo</Button>
+            </Link>
+            <Link href="/contacto">
+              <Button variant="ghost" className="font-medium">Contáctanos</Button>
+            </Link>
           </div>
 
           {/* Menú móvil (hamburguesa) */}

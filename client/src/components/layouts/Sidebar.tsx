@@ -61,7 +61,7 @@ const sidebarItems = [
   { 
     icon: Home, 
     label: "Panel Principal", 
-    href: "/",
+    href: "/dashboard",
     description: "Vista general"
   },
   {
