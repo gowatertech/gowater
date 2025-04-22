@@ -132,10 +132,11 @@ export function registerPlatformRoutes(router: Router) {
       const status = req.query.status as string | undefined;
       console.log("Estado de factura solicitado:", status);
       
-      // Construir la consulta base para contar facturas
-      let query = platformDb
-        .select({ count: sql`COUNT(*)`.as("count") })
-        .from(membershipInvoices);
+      // Construir la consulta base para contar facturas utilizando SQL directo
+      let query: Promise<any>;
+      
+      // Iniciar con una consulta por defecto
+      query = platformDb.execute(sql`SELECT COUNT(*) as count FROM membership_invoices`);
       
       // Si se especifica un estado, añadir el filtro correspondiente
       if (status) {
@@ -145,11 +146,12 @@ export function registerPlatformRoutes(router: Router) {
           console.log("Contando facturas pendientes");
           // En lugar de devolver 0 factura pendiente, contamos las reales
           try {
-            // Modificar la consulta para incluir el filtro de estado
-            query = platformDb
-              .select({ count: sql`COUNT(*)`.as("count") })
-              .from(membershipInvoices)
-              .where(eq(membershipInvoices.status, status));
+            // Usar SQL directo para evitar problemas de tipo
+            query = platformDb.execute(sql`
+              SELECT COUNT(*) as count 
+              FROM membership_invoices 
+              WHERE status = ${status}
+            `);
             
             const pendingResult = await query;
             
@@ -167,22 +169,28 @@ export function registerPlatformRoutes(router: Router) {
           // Si falló la consulta o no hay resultados, devolver 1 para demostración
           return res.json({ count: 1 });
         } else {
-          // Para otros estados, filtrar normalmente
-          query = platformDb
-            .select({ count: sql`COUNT(*)`.as("count") })
-            .from(membershipInvoices)
-            .where(eq(membershipInvoices.status, status));
+          // Para otros estados, usar SQL directo para evitar problemas de tipo
+          query = platformDb.execute(sql`
+            SELECT COUNT(*) as count 
+            FROM membership_invoices 
+            WHERE status = ${status}
+          `);
         }
       }
       
       try {
+        // Si no se ha definido la consulta (caso sin status), ejecutarla ahora
+        if (!query) {
+          query = platformDb.execute(sql`SELECT COUNT(*) as count FROM membership_invoices`);
+        }
+        
         // Ejecutar la consulta construida
         const result = await query;
         
         console.log("Resultado conteo de facturas:", result);
         
-        if (result && result.length > 0) {
-          const count = Number(result[0].count);
+        if (result && result.rows && result.rows.length > 0) {
+          const count = Number(result.rows[0].count);
           console.log("Conteo final de facturas:", count);
           return res.json({ count });
         }
