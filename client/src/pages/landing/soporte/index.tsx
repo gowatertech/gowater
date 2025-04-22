@@ -51,7 +51,7 @@ export default function SoportePage() {
             <Link href="/demo">
               <Button variant="ghost" className="font-medium">Demo</Button>
             </Link>
-            <Link href="/contacto">
+            <Link href="/contact">
               <Button variant="ghost" className="font-medium">Contáctanos</Button>
             </Link>
           </div>
@@ -87,7 +87,7 @@ export default function SoportePage() {
                     <Link href="/demo">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                     </Link>
-                    <Link href="/contacto">
+                    <Link href="/contact">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Contáctanos</div>
                     </Link>
                   </nav>
@@ -272,7 +272,7 @@ export default function SoportePage() {
             
             <div className="text-center mt-12">
               <h3 className="text-xl font-medium mb-4">¿No encuentra respuesta a su pregunta?</h3>
-              <Link href="/contacto">
+              <Link href="/contact">
                 <Button className="px-8">Contáctenos</Button>
               </Link>
             </div>

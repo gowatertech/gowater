@@ -85,7 +85,7 @@ function Header() {
                   <Link href="/demo">
                     <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                   </Link>
-                  <Link href="/contacto">
+                  <Link href="/contact">
                     <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Contáctanos</div>
                   </Link>
                 </nav>
@@ -366,7 +366,7 @@ export default function PlanesPage() {
               <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
                 Si necesita características específicas o tiene requisitos especiales, podemos ofrecerle un plan personalizado adaptado a sus necesidades.
               </p>
-              <Link href="/contacto">
+              <Link href="/contact">
                 <Button size="lg" variant="outline" className="px-8">
                   Contáctenos para un plan personalizado
                 </Button>
