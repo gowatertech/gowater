@@ -420,6 +420,32 @@ export function registerPlatformRoutes(router: Router) {
     }
   });
 
+  // Obtener un usuario específico por ID
+  router.get("/platform-users/:id", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "ID de usuario no válido" });
+      }
+      
+      const user = await platformStorage.getPlatformUser(id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // No devolver la contraseña
+      const { password, ...userWithoutPassword } = user;
+      
+      // Enviamos los datos en el formato que espera el frontend
+      res.json({ data: userWithoutPassword });
+    } catch (error) {
+      console.error("Error al obtener usuario:", error);
+      res.status(500).json({ message: "Error al obtener usuario" });
+    }
+  });
+
   router.post("/platform-users", requirePlatformAdmin, async (req: Request, res: Response) => {
     try {
       const userData = { ...req.body };
@@ -601,6 +627,56 @@ export function registerPlatformRoutes(router: Router) {
     } catch (error) {
       console.error("Error al eliminar asignación:", error);
       res.status(500).json({ message: "Error al eliminar asignación de usuario" });
+    }
+  });
+
+  // Endpoint para obtener las empresas asignadas a un usuario
+  router.get("/platform-users/:id/companies", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "ID de usuario no válido" });
+      }
+      
+      // Verificar que el usuario existe
+      const user = await platformStorage.getPlatformUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // Obtener las asignaciones de compañías para este usuario
+      const assignments = await platformDb
+        .select()
+        .from(userCompanies)
+        .where(eq(userCompanies.userId, userId));
+      
+      if (assignments.length === 0) {
+        return res.json({ data: { userId, companies: [] } });
+      }
+      
+      // Obtener los IDs de compañías asignadas
+      const companyIds = assignments.map(assignment => assignment.companyId);
+      
+      // Buscar los detalles de las compañías
+      const companies = await platformDb
+        .select()
+        .from(platformCompanies)
+        .where(inArray(platformCompanies.id, companyIds));
+      
+      // Combinar con los roles de asignación
+      const companiesWithRoles = companies.map(company => {
+        const assignment = assignments.find(a => a.companyId === company.id);
+        return {
+          ...company,
+          assignmentRole: assignment ? assignment.role : 'standard'
+        };
+      });
+      
+      res.json({ data: { userId, companies: companiesWithRoles } });
+    } catch (error) {
+      console.error("Error al obtener compañías del usuario:", error);
+      res.status(500).json({ message: "Error al obtener las compañías asignadas al usuario" });
     }
   });
 
