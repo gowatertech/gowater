@@ -1,4 +1,4 @@
-import express, { Router } from 'express';
+import express, { Router, Request, Response } from 'express';
 import { db } from '../db';
 import { 
   orders, invoices, invoiceItems, payments, orderItems,
@@ -6,6 +6,7 @@ import {
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { companyDb, getCurrentCompanyId } from '../company-db';
 
 /**
  * Crea y registra los endpoints específicos para la aplicación móvil

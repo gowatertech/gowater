@@ -120,14 +120,21 @@ export default function GoWaterDriverApp() {
 
   // Verificar si el usuario es un chofer
   useEffect(() => {
+    console.log("MobileApp - Estado de usuario:", { isLoading, user: user ? { id: user.id, role: user.role } : null });
+    
     // Solo verificar rol cuando user está disponible y ya cargó
-    if (!isLoading && user && user.role !== "driver" && user.role !== "admin") {
-      toast({
-        title: "Acceso denegado",
-        description: "Sólo los choferes y administradores pueden acceder a esta aplicación",
-        variant: "destructive"
-      });
-      setLocation("/dashboard");
+    if (!isLoading && user) {
+      if (user.role !== "driver" && user.role !== "admin") {
+        console.log("MobileApp - Acceso denegado: rol no permitido", user.role);
+        toast({
+          title: "Acceso denegado",
+          description: "Sólo los choferes y administradores pueden acceder a esta aplicación",
+          variant: "destructive"
+        });
+        setLocation("/dashboard");
+      } else {
+        console.log("MobileApp - Usuario con rol permitido:", user.role);
+      }
     }
   }, [user, isLoading, setLocation, toast]);
 
