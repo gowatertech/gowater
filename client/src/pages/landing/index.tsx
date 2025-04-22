@@ -90,8 +90,8 @@ export default function LandingPage() {
                     <Link href="/platform/login">
                       <Button variant="outline" className="w-full">Iniciar sesión</Button>
                     </Link>
-                    <Link href="/platform/register">
-                      <Button className="w-full">Registrarse</Button>
+                    <Link href="/register-interest">
+                      <Button className="w-full">Registrar empresa</Button>
                     </Link>
                   </div>
                 </div>
@@ -104,8 +104,8 @@ export default function LandingPage() {
             <Link href="/platform/login">
               <Button variant="ghost">Iniciar sesión</Button>
             </Link>
-            <Link href="/platform/register">
-              <Button>Registrarse</Button>
+            <Link href="/register-interest">
+              <Button>Registrar empresa</Button>
             </Link>
           </div>
         </div>
