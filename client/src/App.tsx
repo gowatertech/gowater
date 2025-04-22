@@ -171,6 +171,9 @@ function Router() {
   // Invoices (Facturas)
   const PlatformInvoices = lazy(() => import("@/pages/platform/invoices"));
   const PlatformInvoiceForm = lazy(() => import("@/pages/platform/invoices/[id]"));
+  
+  // Settings (Configuración)
+  const PlatformSettings = lazy(() => import("@/pages/platform/settings"));
 
   // Si estamos en la app móvil, renderizar directamente sin el DashboardLayout
   if (isMobileApp) {
@@ -272,6 +275,13 @@ function Router() {
         <Route path="/platform/invoices">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <PlatformInvoices />
+          </Suspense>
+        </Route>
+        
+        {/* Ruta de Configuración */}
+        <Route path="/platform/settings">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <PlatformSettings />
           </Suspense>
         </Route>
         
