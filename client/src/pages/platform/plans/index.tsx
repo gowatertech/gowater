@@ -60,11 +60,14 @@ export default function PlansPage() {
   // Consulta para obtener todos los planes
   const { data: plans, isLoading, refetch } = useQuery({
     queryKey: ["/api/platform/plans"],
-    queryFn: () => 
-      apiRequest({
+    queryFn: async () => {
+      const result = await apiRequest({
         url: "/api/platform/plans",
         method: "GET"
-      }),
+      });
+      console.log("Plans API response:", result);
+      return result;
+    },
   });
 
   // Mutación para eliminar un plan
