@@ -51,6 +51,7 @@ import { DesignCredit } from "@/components/common/DesignCredit";
 import TestPage from "@/pages/test-page";
 import TestPrintPayment from "@/pages/test-print-payment";
 import LandingPage from "@/pages/landing";
+import PlanesPage from "@/pages/landing/planes";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -196,11 +197,12 @@ function Router() {
     );
   }
   
-  // Si estamos en la página de landing, renderizar sin DashboardLayout
-  if (location === "/" && !location.startsWith("/dashboard")) {
+  // Si estamos en la página de landing o planes, renderizar sin DashboardLayout
+  if ((location === "/" || location === "/planes") && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
+        <Route path="/planes" component={PlanesPage} />
       </Switch>
     );
   }

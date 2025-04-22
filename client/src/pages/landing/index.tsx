@@ -37,7 +37,7 @@ export default function LandingPage() {
             <Link href="/">
               <Button variant="ghost" className="font-medium">Inicio</Button>
             </Link>
-            <Link href="/platform/plans">
+            <Link href="/planes">
               <Button variant="ghost" className="font-medium">Planes</Button>
             </Link>
             <Link href="/soporte">
@@ -73,7 +73,7 @@ export default function LandingPage() {
                     <Link href="/">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Inicio</div>
                     </Link>
-                    <Link href="/platform/plans">
+                    <Link href="/planes">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Planes</div>
                     </Link>
                     <Link href="/soporte">
@@ -273,7 +273,7 @@ export default function LandingPage() {
               <h3 className="text-lg font-medium mb-4">Producto</h3>
               <ul className="space-y-2 text-sm">
                 <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Características</Link></li>
-                <li><Link href="/platform/plans" className="text-muted-foreground hover:text-foreground">Planes y precios</Link></li>
+                <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Planes y precios</Link></li>
                 <li><Link href="/demo" className="text-muted-foreground hover:text-foreground">Solicitar demo</Link></li>
                 <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Seguridad</Link></li>
               </ul>
