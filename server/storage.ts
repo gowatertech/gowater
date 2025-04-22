@@ -2,6 +2,7 @@ import {
   users, customers, products, routes, orders, orderItems,
   settings as settingsTable, trucks, invoices, payments,
   recurringOrders, recurringOrderItems,
+  companyRegistrations,
   type User, type InsertUser,
   type Customer, type InsertCustomer,
   type Product, type InsertProduct,
@@ -10,6 +11,7 @@ import {
   type OrderItem, type InsertOrderItem,
   type Settings, type InsertSettings,
   type Truck, type InsertTruck,
+  type CompanyRegistration, type InsertCompanyRegistration,
   customerOrders, type CustomerOrders, type InsertCustomerOrders,
   bottleReturns,
   type BottleReturn, type InsertBottleReturn,
@@ -112,6 +114,12 @@ export interface IStorage {
   updateRecurringOrderItem(id: number, item: Partial<InsertRecurringOrderItem>): Promise<RecurringOrderItem>;
   deleteRecurringOrderItem(id: number): Promise<void>;
   generateOrderFromRecurring(recurringOrderId: number): Promise<Order>;
+  
+  // Registro de Empresas
+  createCompanyRegistration(registration: InsertCompanyRegistration): Promise<CompanyRegistration>;
+  listCompanyRegistrations(): Promise<CompanyRegistration[]>;
+  getCompanyRegistration(id: number): Promise<CompanyRegistration | undefined>;
+  updateCompanyRegistrationStatus(id: number, status: "pending" | "approved" | "rejected"): Promise<CompanyRegistration>;
 }
 
 export class DatabaseStorage implements IStorage {
