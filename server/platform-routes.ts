@@ -680,7 +680,7 @@ export function registerPlatformRoutes(router: Router) {
         email: user.email,
         role: user.role,
         companyId: primaryCompanyId,
-        isPlatformUser: user.isPlatformUser || true
+        isPlatformUser: true // Usuarios de plataforma siempre son true
       };
       
       // No devolver la contraseña
