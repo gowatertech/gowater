@@ -13,6 +13,120 @@ import { companyDb, getCurrentCompanyId } from '../company-db';
  */
 export function createMobileApiEndpoints(): Router {
   const router = express.Router();
+  
+  /**
+   * GET /api/mobile/routes
+   * Obtiene todas las rutas para la empresa actual
+   */
+  router.get('/routes', async (req, res) => {
+    try {
+      const companyId = req.session.companyId || 1;
+      console.log(`MobileAPI - Obteniendo rutas para compañía #${companyId}`);
+      
+      // Filtrar por estado si se proporciona
+      const statusFilter = req.query.status ? 
+        eq(routes.status, req.query.status as string) : undefined;
+        
+      // Filtrar por chofer si se proporciona
+      const driverFilter = req.query.driverId ? 
+        eq(routes.driverId, parseInt(req.query.driverId as string)) : undefined;
+      
+      // Construir el filtro completo
+      let filter = and(
+        eq(routes.companyId, companyId),
+        ...(statusFilter ? [statusFilter] : []),
+        ...(driverFilter ? [driverFilter] : [])
+      );
+      
+      const result = await companyDb.select()
+        .from(routes)
+        .where(filter)
+        .orderBy(desc(routes.date));
+      
+      console.log(`MobileAPI - Se encontraron ${result.length} rutas`);
+      res.json(result);
+    } catch (error) {
+      console.error("Error al obtener rutas:", error);
+      res.status(500).json({ error: "Error al obtener rutas", details: String(error) });
+    }
+  });
+  
+  /**
+   * GET /api/mobile/orders
+   * Obtiene todas las órdenes para la empresa actual
+   */
+  router.get('/orders', async (req, res) => {
+    try {
+      const companyId = req.session.companyId || 1;
+      console.log(`MobileAPI - Obteniendo órdenes para compañía #${companyId}`);
+      
+      // Filtrar por estado si se proporciona
+      const statusFilter = req.query.status ? 
+        eq(orders.status, req.query.status as string) : undefined;
+        
+      // Filtrar por ruta si se proporciona
+      const routeFilter = req.query.routeId ? 
+        eq(orders.routeId, parseInt(req.query.routeId as string)) : undefined;
+      
+      // Construir el filtro completo
+      let filter = and(
+        eq(orders.companyId, companyId),
+        ...(statusFilter ? [statusFilter] : []),
+        ...(routeFilter ? [routeFilter] : [])
+      );
+      
+      const result = await companyDb.select()
+        .from(orders)
+        .where(filter)
+        .orderBy(desc(orders.createdAt));
+        
+      // Enriquecer cada orden con los productos
+      for (const order of result) {
+        const items = await companyDb.select()
+          .from(orderItems)
+          .where(and(
+            eq(orderItems.orderId, order.id),
+            eq(orderItems.companyId, companyId)
+          ));
+          
+        // Añadir productos a la orden
+        order.products = items.map(item => ({
+          productId: item.productId,
+          name: item.productName || "Producto",
+          quantity: item.quantity,
+          price: item.price
+        }));
+      }
+      
+      console.log(`MobileAPI - Se encontraron ${result.length} órdenes`);
+      res.json(result);
+    } catch (error) {
+      console.error("Error al obtener órdenes:", error);
+      res.status(500).json({ error: "Error al obtener órdenes", details: String(error) });
+    }
+  });
+  
+  /**
+   * GET /api/mobile/customers
+   * Obtiene todos los clientes para la empresa actual
+   */
+  router.get('/customers', async (req, res) => {
+    try {
+      const companyId = req.session.companyId || 1;
+      console.log(`MobileAPI - Obteniendo clientes para compañía #${companyId}`);
+      
+      const result = await companyDb.select()
+        .from(customers)
+        .where(eq(customers.companyId, companyId))
+        .orderBy(customers.businessname);
+      
+      console.log(`MobileAPI - Se encontraron ${result.length} clientes`);
+      res.json(result);
+    } catch (error) {
+      console.error("Error al obtener clientes:", error);
+      res.status(500).json({ error: "Error al obtener clientes", details: String(error) });
+    }
+  });
 
   /**
    * Endpoint para completar una ruta cuando todas las paradas están completadas
@@ -21,6 +135,9 @@ export function createMobileApiEndpoints(): Router {
   router.post('/routes/:id/complete', async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
+      const companyId = req.session.companyId || 1; // Usar companyId de la sesión o el valor predeterminado
+      
+      console.log(`MobileAPI - Procesando completado de ruta #${routeId} para compañía #${companyId}`);
       
       if (!routeId || isNaN(routeId)) {
         return res.status(400).json({ 
@@ -30,8 +147,11 @@ export function createMobileApiEndpoints(): Router {
       }
 
       // 1. Verificar si la ruta existe
-      const route = await db.query.routes.findFirst({
-        where: eq(routes.id, routeId)
+      const route = await companyDb.query.routes.findFirst({
+        where: and(
+          eq(routes.id, routeId),
+          eq(routes.companyId, companyId)
+        )
       });
       
       if (!route) {
@@ -50,9 +170,12 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // 2. Verificar si todas las órdenes de la ruta están entregadas
-      const routeOrders = await db.select()
+      const routeOrders = await companyDb.select()
         .from(orders)
-        .where(eq(orders.routeId, routeId));
+        .where(and(
+          eq(orders.routeId, routeId),
+          eq(orders.companyId, companyId)
+        ));
       
       console.log(`Verificando si todas las órdenes de la ruta #${routeId} están entregadas...`);
       console.log(`Total de órdenes: ${routeOrders.length}`);
@@ -75,19 +198,25 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // 3. Actualizar el estado de la ruta a "completed"
-      await db.update(routes)
+      await companyDb.update(routes)
         .set({
           status: "completed",
           endTime: new Date(),
           driverEndedAt: new Date(),
           isCompleted: true
         })
-        .where(eq(routes.id, routeId));
+        .where(and(
+          eq(routes.id, routeId),
+          eq(routes.companyId, companyId)
+        ));
       
       // 4. NO completamos la carga de vehículo relacionada con esta ruta
       // Solo verificamos si existe para informar en los logs
-      const relatedLoading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.routeId, routeId),
+      const relatedLoading = await companyDb.query.vehicleLoading.findFirst({
+        where: and(
+          eq(vehicleLoading.routeId, routeId),
+          eq(vehicleLoading.companyId, companyId)
+        ),
       });
       
       if (relatedLoading) {
@@ -96,8 +225,11 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // 5. Obtener la ruta actualizada para devolver en la respuesta
-      const updatedRoute = await db.query.routes.findFirst({
-        where: eq(routes.id, routeId)
+      const updatedRoute = await companyDb.query.routes.findFirst({
+        where: and(
+          eq(routes.id, routeId),
+          eq(routes.companyId, companyId)
+        )
       });
       
       return res.status(200).json({
@@ -125,6 +257,9 @@ export function createMobileApiEndpoints(): Router {
       console.log(`POST /api/mobile/orders/${req.params.id}/deliver-and-invoice - Body:`, req.body);
       
       const orderId = parseInt(req.params.id);
+      const companyId = req.session.companyId || 1; // Usar companyId de la sesión o el valor predeterminado
+      
+      console.log(`MobileAPI - Procesando entrega y facturación de orden #${orderId} para compañía #${companyId}`);
       
       if (isNaN(orderId)) {
         return res.status(400).json({ error: "ID de orden inválido" });
@@ -141,10 +276,13 @@ export function createMobileApiEndpoints(): Router {
       }
       
       // 1. Verificar que la orden existe y obtener sus datos
-      const orderData = await db
+      const orderData = await companyDb
         .select()
         .from(orders)
-        .where(eq(orders.id, orderId))
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ))
         .limit(1);
       
       if (orderData.length === 0) {
@@ -154,14 +292,17 @@ export function createMobileApiEndpoints(): Router {
       const order = orderData[0];
       
       // 2. Actualizar el estado de la orden a "entregado"
-      const [updatedOrder] = await db
+      const [updatedOrder] = await companyDb
         .update(orders)
         .set({ 
           status: "delivered",
           cashCollected: amountPaid.toString(),
           actualDeliveryTime: new Date()
         })
-        .where(eq(orders.id, orderId))
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ))
         .returning();
       
       if (!updatedOrder) {
@@ -179,6 +320,7 @@ export function createMobileApiEndpoints(): Router {
       
       const invoiceData = {
         customerId: order.customerId,
+        companyId: companyId, // Agregar companyId para el multitenant
         total: formattedTotal,
         status: paymentMethod === 'credit' ? 'pending' : 'paid',
         paymentMethod: paymentMethod,
@@ -188,30 +330,28 @@ export function createMobileApiEndpoints(): Router {
       // Validar datos con el esquema
       const validInvoiceData = insertInvoiceSchema.parse(invoiceData);
       
-      // Crear la factura - el número de factura se generará automáticamente
-      // Usamos una transacción para evitar conflictos de números de factura
-      const [invoice] = await db.transaction(async (tx) => {
-        // Obtener el último número de factura
-        const lastInvoice = await tx
-          .select({ maxNumber: invoices.invoiceNumber })
-          .from(invoices)
-          .orderBy(desc(invoices.invoiceNumber))
-          .limit(1);
-        
-        // Insertar nueva factura con número incremental
-        const nextInvoiceNumber = lastInvoice.length > 0 ? lastInvoice[0].maxNumber + 1 : 1;
-
-        console.log(`Generando nueva factura con número: ${nextInvoiceNumber}`);
-        
-        return tx
-          .insert(invoices)
-          .values({
-            ...validInvoiceData,
-            date: today, // La fecha se agrega manualmente porque no está en el esquema
-            invoiceNumber: nextInvoiceNumber, // Asignar número manualmente
-          })
-          .returning();
-      });
+      // Obtener el último número de factura para esta empresa
+      const lastInvoice = await companyDb
+        .select({ maxNumber: invoices.invoiceNumber })
+        .from(invoices)
+        .where(eq(invoices.companyId, companyId))
+        .orderBy(desc(invoices.invoiceNumber))
+        .limit(1);
+      
+      // Calcular el siguiente número de factura
+      const nextInvoiceNumber = lastInvoice.length > 0 ? lastInvoice[0].maxNumber + 1 : 1;
+      
+      console.log(`Generando nueva factura con número: ${nextInvoiceNumber} para empresa #${companyId}`);
+      
+      // Crear la factura con el nuevo número
+      const [invoice] = await companyDb
+        .insert(invoices)
+        .values({
+          ...validInvoiceData,
+          invoiceNumber: nextInvoiceNumber, // Asignar número manualmente
+          date: today // La fecha se agrega manualmente porque no está en el esquema
+        })
+        .returning();
       
       if (!invoice) {
         return res.status(500).json({ error: "Error al crear la factura" });
@@ -220,10 +360,13 @@ export function createMobileApiEndpoints(): Router {
       console.log(`Factura ${invoice.invoiceNumber} creada para la orden ${orderId}`);
       
       // 4. Obtener los items de la orden y crear los items de la factura
-      const items = await db
+      const items = await companyDb
         .select()
         .from(orderItems)
-        .where(eq(orderItems.orderId, orderId));
+        .where(and(
+          eq(orderItems.orderId, orderId),
+          eq(orderItems.companyId, companyId)
+        ));
       
       // Crear los items de la factura basados en los items de la orden
       for (const item of items) {
@@ -237,12 +380,13 @@ export function createMobileApiEndpoints(): Router {
           quantity: item.quantity,
           price: item.price,
           total: formattedTotal,
+          companyId: companyId // Agregar companyId para el multitenant
         };
         
         // Validar datos con el esquema
         const validInvoiceItemData = insertInvoiceItemSchema.parse(invoiceItemData);
         
-        await db
+        await companyDb
           .insert(invoiceItems)
           .values(validInvoiceItemData);
       }
@@ -259,17 +403,18 @@ export function createMobileApiEndpoints(): Router {
           customerId: order.customerId,
           amount: formattedAmount,
           paymentMethod: 'cash',
-          notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`
+          notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`,
+          companyId: companyId // Agregar companyId para el multitenant
         };
         
         // Validar datos con el esquema
         const validPaymentData = insertPaymentSchema.parse(paymentData);
         
-        const [payment] = await db
+        const [payment] = await companyDb
           .insert(payments)
           .values({
             ...validPaymentData,
-            date: today, // La fecha se agrega manualmente porque no está en el esquema
+            date: today // La fecha se agrega manualmente porque no está en el esquema
           })
           .returning();
         
@@ -314,8 +459,31 @@ export function createMobileApiEndpoints(): Router {
 /**
  * Registra las rutas de la API móvil en la aplicación Express
  */
-export function registerMobileApiEndpoints(app: express.Express) {
+export function registerMobileApiEndpoints(app: Router) {
   const mobileApiRoutes = createMobileApiEndpoints();
-  app.use('/api/mobile', mobileApiRoutes);
-  console.log("Endpoints de API móvil registrados");
+  
+  // Creamos un middleware para asegurar que los endpoints móviles
+  // tengan acceso al ID de la empresa actual
+  const mobileApiTenantMiddleware = (req: Request, res: Response, next: any) => {
+    // Asegurar que hay un companyId en la sesión o en la solicitud
+    if (!req.session.companyId && !req.query.companyId && !req.body.companyId) {
+      console.log("MobileAPI - No se encontró companyId en la sesión o solicitud");
+      
+      // En modo desarrollo/demostración, asignar un companyId por defecto
+      req.session.companyId = 1;
+      console.log("MobileAPI - Asignando companyId de demostración:", req.session.companyId);
+    } else {
+      console.log("MobileAPI - CompanyId encontrado:", req.session.companyId || req.query.companyId || req.body.companyId);
+    }
+    
+    // Podemos continuar al siguiente middleware
+    next();
+  };
+  
+  // Registramos el middleware antes de nuestras rutas
+  app.use('/mobile', mobileApiTenantMiddleware);
+  
+  // Montamos las rutas de la API móvil
+  app.use('/mobile', mobileApiRoutes);
+  console.log("Endpoints de API móvil registrados con soporte multitenant");
 }

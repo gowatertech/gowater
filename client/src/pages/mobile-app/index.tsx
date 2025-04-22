@@ -84,22 +84,25 @@ export default function GoWaterDriverApp() {
   const [darkMode, setDarkMode] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   
-  // Consulta para obtener rutas pendientes
+  // Consulta para obtener rutas pendientes (compatible con multitenant)
   const { data: routes = [], isLoading: isLoadingRoutes, refetch: refetchRoutes } = useQuery<Route[]>({
-    queryKey: ["/api/routes"],
-    retry: 2
+    queryKey: ["/api/mobile/routes"],
+    retry: 2,
+    enabled: !!user // Solo cargar cuando el usuario esté disponible
   });
 
-  // Consulta para obtener pedidos
+  // Consulta para obtener pedidos (compatible con multitenant)
   const { data: orders = [], isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-    retry: 2
+    queryKey: ["/api/mobile/orders"],
+    retry: 2,
+    enabled: !!user // Solo cargar cuando el usuario esté disponible
   });
 
-  // Consulta para obtener clientes
+  // Consulta para obtener clientes (compatible con multitenant)
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
-    retry: 2
+    queryKey: ["/api/mobile/customers"],
+    retry: 2,
+    enabled: !!user // Solo cargar cuando el usuario esté disponible
   });
   
   // Rutas pendientes filtradas por el conductor actual (si es conductor)
