@@ -73,14 +73,19 @@ export default function CompaniesPage() {
         });
         console.log("Respuesta directa de la API:", response);
         
-        // Verificar que la respuesta sea un array
-        if (!Array.isArray(response)) {
-          console.error("La respuesta de la API no es un array:", response);
+        // Verificar que la respuesta tenga la propiedad 'data' o sea un array
+        let companiesData = [];
+        if (response && response.data && Array.isArray(response.data)) {
+          companiesData = response.data;
+        } else if (Array.isArray(response)) {
+          companiesData = response;
+        } else {
+          console.error("Formato de respuesta inválido:", response);
           return { data: [] };
         }
         
         // Asegurar que cada empresa tenga los campos requeridos
-        const validatedData = response.map(company => ({
+        const validatedData = companiesData.map(company => ({
           id: company.id,
           name: company.name || 'Sin nombre',
           subdomain: company.subdomain || '',
