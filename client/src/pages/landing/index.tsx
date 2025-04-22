@@ -148,10 +148,10 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero section */}
-        <section className="py-20 md:py-32 bg-gradient-to-b from-blue-50 to-white">
+        <section className="py-12 md:py-20 bg-gradient-to-b from-blue-50 to-white">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col justify-center items-center text-center max-w-3xl mx-auto">
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-primary">
                   Gestión de rutas y productos para su empresa de agua
                 </h1>
@@ -159,7 +159,7 @@ export default function LandingPage() {
                   Optimice sus operaciones, mejore la eficiencia y aumente la satisfacción del cliente con nuestra plataforma especializada.
                 </p>
               </div>
-              <div className="flex flex-col gap-2 min-[400px]:flex-row mt-8">
+              <div className="flex flex-col gap-2 min-[400px]:flex-row mt-4">
                 <Link href="/register-interest">
                   <Button size="lg" className="w-full">
                     Registrar interés
@@ -176,15 +176,15 @@ export default function LandingPage() {
         </section>
 
         {/* Features */}
-        <section className="py-16 md:py-24">
+        <section className="py-10 md:py-16">
           <div className="container px-4 md:px-6">
-            <div className="text-center mb-12">
+            <div className="text-center mb-6">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Características principales</h2>
-              <p className="mt-4 text-muted-foreground md:text-xl">
+              <p className="mt-2 text-muted-foreground md:text-xl">
                 Todo lo que necesita para gestionar eficientemente su negocio de distribución de agua
               </p>
             </div>
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               <FeatureCard 
                 icon={<Map className="h-12 w-12 text-primary" />}
                 title="Gestión de rutas inteligente"
@@ -223,12 +223,12 @@ export default function LandingPage() {
         <MobileAppShowcase />
 
         {/* Call to action */}
-        <section className="py-16 md:py-24 bg-primary text-primary-foreground">
+        <section className="py-10 md:py-16 bg-primary text-primary-foreground">
           <div className="container px-4 md:px-6 text-center">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-4">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl mb-2">
               ¿Listo para optimizar su negocio?
             </h2>
-            <p className="mt-4 mb-8 text-primary-foreground/80 md:text-xl max-w-[700px] mx-auto">
+            <p className="mt-2 mb-4 text-primary-foreground/80 md:text-xl max-w-[700px] mx-auto">
               Únase a cientos de empresas que ya están mejorando su eficiencia con GoWater
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -248,11 +248,11 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-12 md:py-16 bg-muted/30">
+      <footer className="py-8 md:py-12 bg-muted/30">
         <div className="container px-4 md:px-6">
-          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-4">
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 <div className="p-1.5 rounded-md bg-blue-50">
                   <Droplet className="h-5 w-5 text-primary" />
                 </div>
@@ -265,8 +265,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-medium mb-4">Producto</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-lg font-medium mb-3">Producto</h3>
+              <ul className="space-y-1 text-sm">
                 <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Características</span></li>
                 <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Planes y precios</Link></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Solicitar demo</Link></li>
@@ -274,8 +274,8 @@ export default function LandingPage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-medium mb-4">Soporte</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-lg font-medium mb-3">Soporte</h3>
+              <ul className="space-y-1 text-sm">
                 <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Centro de ayuda</span></li>
                 <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Documentación</span></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contacto</Link></li>
@@ -283,8 +283,8 @@ export default function LandingPage() {
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-medium mb-4">Empresa</h3>
-              <ul className="space-y-2 text-sm">
+              <h3 className="text-lg font-medium mb-3">Empresa</h3>
+              <ul className="space-y-1 text-sm">
                 <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Acerca de nosotros</span></li>
                 <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Blog</span></li>
                 <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Trabaja con nosotros</span></li>
@@ -292,7 +292,7 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
+          <div className="mt-8 pt-6 border-t text-center text-sm text-muted-foreground">
             <p>© {new Date().getFullYear()} GoWater. Todos los derechos reservados.</p>
           </div>
         </div>
