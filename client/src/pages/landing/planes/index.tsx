@@ -82,7 +82,7 @@ function Header() {
                   <Link href="/soporte">
                     <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Soporte</div>
                   </Link>
-                  <Link href="/demo">
+                  <Link href="/contact">
                     <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
                   </Link>
                   <Link href="/contact">
@@ -263,7 +263,7 @@ function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Características</Link></li>
               <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Planes y precios</Link></li>
-              <li><Link href="/demo" className="text-muted-foreground hover:text-foreground">Solicitar demo</Link></li>
+              <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Solicitar demo</Link></li>
               <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Seguridad</Link></li>
             </ul>
           </div>
@@ -435,7 +435,7 @@ export default function PlanesPage() {
                   Registrarse ahora
                 </Button>
               </Link>
-              <Link href="/demo">
+              <Link href="/contact">
                 <Button size="lg" variant="outline" className="bg-transparent border-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto">
                   Solicitar demostración
                 </Button>
