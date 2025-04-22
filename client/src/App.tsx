@@ -199,13 +199,14 @@ function Router() {
     );
   }
   
-  // Si estamos en la página de landing, planes o soporte, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/planes" || location === "/soporte") && !location.startsWith("/dashboard")) {
+  // Si estamos en la página de landing, planes, soporte o contacto, renderizar sin DashboardLayout
+  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact") && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/planes" component={PlanesPage} />
         <Route path="/soporte" component={SoportePage} />
+        <Route path="/contact" component={ContactPage} />
       </Switch>
     );
   }
@@ -382,11 +383,11 @@ export default function App() {
   // Obtener la ubicación actual para determinar si mostrar el logo
   const [location] = useLocation();
   
-  // No mostrar el logo en páginas de la plataforma, app móvil o la landing page
+  // No mostrar el logo en páginas de la plataforma, app móvil, landing page o páginas públicas
   const isPlatformRoute = location.startsWith("/platform");
   const isMobileApp = location.startsWith("/mobile-app");
-  const isLandingPage = location === "/";
-  const shouldShowLogo = !isPlatformRoute && !isMobileApp && !isLandingPage;
+  const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact";
+  const shouldShowLogo = !isPlatformRoute && !isMobileApp && !isPublicPage;
   
   return (
     <I18nextProvider i18n={i18n}>
