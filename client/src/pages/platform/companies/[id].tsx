@@ -44,6 +44,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
 import { PlatformLayout } from "../_components/PlatformLayout";
+import { PlanSelect } from "@/components/platform/PlanSelect";
 
 // Esquema de validación para el formulario
 const formSchema = z.object({
@@ -303,24 +304,13 @@ export default function CompanyFormPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Plan</FormLabel>
-                        <Select 
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          defaultValue={field.value?.toString()}
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un plan" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {plansData?.map((plan: any) => (
-                              <SelectItem key={plan.id} value={plan.id.toString()}>
-                                {plan.name} - ${plan.price}/mes
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <PlanSelect 
+                            value={field.value}
+                            onChange={field.onChange}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
                         <FormDescription>
                           Plan de suscripción de la empresa
                         </FormDescription>
