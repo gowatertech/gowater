@@ -144,9 +144,9 @@ export default function ContactPage() {
                         />
                         <h3 className="font-medium">República Dominicana</h3>
                       </div>
-                      <p className="text-xl font-medium text-primary">809-350-2237</p>
+                      <p className="text-xl font-medium text-primary">+1809-350-2237</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Horario: Lunes a Viernes 8am - 6pm
+                        Horario: Lunes a Viernes 9am - 5pm
                       </p>
                     </div>
                   </div>
@@ -169,10 +169,10 @@ export default function ContactPage() {
                         />
                         <h3 className="font-medium">Estados Unidos</h3>
                       </div>
-                      <p className="text-xl font-medium text-primary">919-343-6706</p>
-                      <p className="text-xl font-medium text-primary mt-1">984-260-7447</p>
+                      <p className="text-xl font-medium text-primary">+1919-343-6706</p>
+                      <p className="text-xl font-medium text-primary mt-1">+1984-260-7447</p>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Horario: Lunes a Viernes 9am - 7pm (EST)
+                        Horario: Lunes a Viernes 9am - 5pm
                       </p>
                     </div>
                   </div>
@@ -218,7 +218,7 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-medium">Horario de Atención</h3>
                       <p className="text-sm text-muted-foreground">
-                        Lunes a Viernes: 8:00 AM - 6:00 PM (AST/EDT)
+                        Lunes a Viernes: 9:00 AM - 5:00 PM
                       </p>
                     </div>
                   </div>
