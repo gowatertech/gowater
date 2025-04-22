@@ -115,69 +115,26 @@ export default function LandingPage() {
         {/* Hero section */}
         <section className="py-20 md:py-32 bg-gradient-to-b from-blue-50 to-white">
           <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
-              <div className="flex flex-col justify-center space-y-4">
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-primary">
-                    Gestión de rutas y productos para su empresa de agua
-                  </h1>
-                  <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                    Optimice sus operaciones, mejore la eficiencia y aumente la satisfacción del cliente con nuestra plataforma especializada.
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Link href="/platform/register">
-                    <Button size="lg" className="w-full">
-                      Comenzar ahora
-                    </Button>
-                  </Link>
-                  <Link href="/demo">
-                    <Button size="lg" variant="outline" className="w-full">
-                      Solicitar demo
-                    </Button>
-                  </Link>
-                </div>
+            <div className="flex flex-col justify-center items-center text-center max-w-3xl mx-auto">
+              <div className="space-y-4">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-primary">
+                  Gestión de rutas y productos para su empresa de agua
+                </h1>
+                <p className="text-muted-foreground md:text-xl">
+                  Optimice sus operaciones, mejore la eficiencia y aumente la satisfacción del cliente con nuestra plataforma especializada.
+                </p>
               </div>
-              <div className="mx-auto lg:mr-0 lg:ml-auto flex items-center justify-center">
-                <div className="relative w-full max-w-[450px] aspect-square">
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-                  <div className="relative bg-white rounded-xl shadow-xl border overflow-hidden w-full h-full">
-                    <div className="p-4 border-b bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-full bg-red-500"></div>
-                        <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                        <div className="ml-2 h-4 w-40 bg-muted rounded"></div>
-                      </div>
-                    </div>
-                    <div className="p-4 space-y-4">
-                      <div className="h-8 w-40 bg-muted/50 rounded"></div>
-                      <div className="space-y-2">
-                        <div className="h-4 w-full bg-muted/50 rounded"></div>
-                        <div className="h-4 w-full bg-muted/50 rounded"></div>
-                        <div className="h-4 w-2/3 bg-muted/50 rounded"></div>
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="h-10 w-20 bg-primary/20 rounded"></div>
-                        <div className="h-10 w-20 bg-muted/50 rounded"></div>
-                      </div>
-                      <div className="h-32 w-full bg-muted/30 rounded-lg border border-muted flex items-center justify-center">
-                        <Map className="h-16 w-16 text-muted" />
-                      </div>
-                      <div className="flex gap-2">
-                        <div className="h-16 w-16 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <div className="h-8 w-8 rounded-full bg-blue-500/50"></div>
-                        </div>
-                        <div className="h-16 w-16 bg-green-100 rounded-lg flex items-center justify-center">
-                          <div className="h-8 w-8 rounded-full bg-green-500/50"></div>
-                        </div>
-                        <div className="h-16 w-16 bg-yellow-100 rounded-lg flex items-center justify-center">
-                          <div className="h-8 w-8 rounded-full bg-yellow-500/50"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex flex-col gap-2 min-[400px]:flex-row mt-8">
+                <Link href="/platform/register">
+                  <Button size="lg" className="w-full">
+                    Comenzar ahora
+                  </Button>
+                </Link>
+                <Link href="/demo">
+                  <Button size="lg" variant="outline" className="w-full">
+                    Solicitar demo
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
