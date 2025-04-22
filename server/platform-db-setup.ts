@@ -62,49 +62,43 @@ export async function setupPlatformTables() {
         email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
         role TEXT NOT NULL,
-        company_id INTEGER REFERENCES companies(id),
+        is_platform_user BOOLEAN NOT NULL DEFAULT TRUE,
         active BOOLEAN NOT NULL DEFAULT TRUE,
-        phone TEXT,
-        last_login TIMESTAMP,
-        password_reset_token TEXT,
-        password_reset_expires TIMESTAMP,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `);
     console.log("Tabla 'platform_users' creada o ya existente");
+
+    // Crear tabla de asignación de usuarios a empresas
+    await platformDb.execute(sql`
+      CREATE TABLE IF NOT EXISTS user_companies (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES platform_users(id),
+        company_id INTEGER NOT NULL REFERENCES companies(id),
+        assigned_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        role TEXT NOT NULL DEFAULT 'standard'
+      )
+    `);
+    console.log("Tabla 'user_companies' creada o ya existente");
 
     // Crear tabla de configuraciones de empresa
     await platformDb.execute(sql`
       CREATE TABLE IF NOT EXISTS company_settings (
         id SERIAL PRIMARY KEY,
         company_id INTEGER NOT NULL REFERENCES companies(id) UNIQUE,
-        logo TEXT,
-        name TEXT NOT NULL,
-        rnc TEXT,
-        street TEXT NOT NULL,
-        street_number TEXT NOT NULL,
-        province_id INTEGER NOT NULL,
-        municipality_id INTEGER NOT NULL,
-        contact_phone TEXT NOT NULL,
-        email TEXT,
-        country TEXT NOT NULL,
-        currency TEXT NOT NULL,
-        tax DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-        latitude DECIMAL(10, 6),
-        longitude DECIMAL(10, 6)
+        settings TEXT,
+        theme TEXT DEFAULT 'default',
+        currency TEXT DEFAULT 'DOP',
+        timezone TEXT DEFAULT 'America/Santo_Domingo',
+        language TEXT DEFAULT 'es',
+        contact_email TEXT,
+        contact_phone TEXT,
+        address TEXT,
+        logo_url TEXT,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `);
     console.log("Tabla 'company_settings' creada o ya existente");
-
-    // Crear tabla de asignación de usuarios a empresas
-    await platformDb.execute(sql`
-      CREATE TABLE IF NOT EXISTS user_company (
-        user_id INTEGER NOT NULL REFERENCES platform_users(id),
-        company_id INTEGER NOT NULL REFERENCES companies(id),
-        PRIMARY KEY (user_id, company_id)
-      )
-    `);
-    console.log("Tabla 'user_company' creada o ya existente");
 
     console.log("Configuración de tablas de plataforma completada con éxito");
     return true;

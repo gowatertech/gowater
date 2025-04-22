@@ -4,15 +4,12 @@ import {
   insertCompanySchema, 
   insertPlanSchema, 
   insertMembershipInvoiceSchema,
-  companies
-} from "../shared/platform-schema";
-import { 
   insertPlatformUserSchema,
-  platformUsers
-} from "../shared/platform-users-schema";
-import { 
-  insertCompanySettingsSchema 
-} from "../shared/company-settings-schema";
+  insertCompanySettingsSchema,
+  companies,
+  platformUsers,
+  userCompanies
+} from "../shared/platform-schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
 import { platformDb } from "./platform-db";
@@ -581,17 +578,17 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(403).json({ message: "Usuario inactivo" });
       }
       
-      // Para actualizar la fecha de último login lo haremos directo en la base de datos
-      // ya que no está en el schema de validación
-      try {
-        const lastLoginDate = new Date();
+      // Obtener las compañías asociadas al usuario si es un administrador de empresa
+      const userCompanyAssignments = user.role === 'company_admin' ? 
         await platformDb
-          .update(platformUsers)
-          .set({ lastLogin: lastLoginDate })
-          .where(eq(platformUsers.id, user.id));
-      } catch (error) {
-        console.error("Error al actualizar fecha de último login:", error);
-      }
+          .select()
+          .from(userCompanies)
+          .where(eq(userCompanies.userId, user.id)) : 
+        [];
+      
+      // Obtener la primera compañía asociada (si existe)
+      const primaryCompanyId = userCompanyAssignments.length > 0 ? 
+        userCompanyAssignments[0].companyId : undefined;
       
       // Crear sesión
       req.session.user = {
@@ -599,14 +596,20 @@ export function registerPlatformRoutes(router: Router) {
         name: user.name,
         email: user.email,
         role: user.role,
-        companyId: user.companyId || undefined,
-        isPlatformUser: true
+        companyId: primaryCompanyId,
+        isPlatformUser: user.isPlatformUser || true
       };
       
       // No devolver la contraseña
       const { password: pwd, ...userWithoutPassword } = user;
+      
+      // Devolver también las compañías asociadas si es un administrador de empresa
       res.json({
-        user: userWithoutPassword,
+        user: {
+          ...userWithoutPassword,
+          companyId: primaryCompanyId,
+          companies: userCompanyAssignments.map(uc => uc.companyId)
+        },
         message: "Login exitoso"
       });
     } catch (error) {

@@ -2,8 +2,6 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as platformSchema from "@shared/platform-schema";
-import * as companySettingsSchema from "@shared/company-settings-schema";
-import * as platformUsersSchema from "@shared/platform-users-schema";
 
 neonConfig.webSocketConstructor = ws;
 
@@ -22,15 +20,8 @@ if (!platformDbUrl) {
   );
 }
 
-// Combinamos todos los esquemas relacionados con la plataforma
-const platformSchemas = {
-  ...platformSchema,
-  ...companySettingsSchema,
-  ...platformUsersSchema
-};
-
 export const platformPool = new Pool({ connectionString: platformDbUrl });
 export const platformDb = drizzle({ 
   client: platformPool, 
-  schema: platformSchemas
+  schema: platformSchema
 });
