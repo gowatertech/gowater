@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -77,7 +77,7 @@ const formSchema = z.object({
 });
 
 // Tipo para los datos del formulario
-type FormData = z.infer<typeof formSchema>;
+export type FormData = z.infer<typeof formSchema>;
 
 interface CompanyLead {
   id?: number;
@@ -115,23 +115,51 @@ export function FormularioEmpresa({
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      companyName: empresa?.companyName || "",
-      address: empresa?.address || "",
-      country: empresa?.country || "República Dominicana",
-      managerName: empresa?.managerName || "",
-      phone: empresa?.phone || "",
-      email: empresa?.email || "",
-      approximateClients: empresa?.approximateClients || 0,
-      vehicleCount: empresa?.vehicleCount || 0,
-      comments: empresa?.comments || "",
-      interestedInPlan: empresa?.interestedInPlan || "",
-      status: empresa?.status || "new",
+      companyName: "",
+      address: "",
+      country: "República Dominicana",
+      managerName: "",
+      phone: "",
+      email: "",
+      approximateClients: 0,
+      vehicleCount: 0,
+      comments: "",
+      interestedInPlan: "",
+      status: "new",
     },
   });
+
+  // Actualizar el formulario cuando cambian las props
+  useEffect(() => {
+    if (isOpen) {
+      console.log("Formulario abierto, actualizando valores", empresa);
+      // Solo resetear los valores cuando se abre el modal
+      form.reset({
+        companyName: empresa?.companyName || "",
+        address: empresa?.address || "",
+        country: empresa?.country || "República Dominicana",
+        managerName: empresa?.managerName || "",
+        phone: empresa?.phone || "",
+        email: empresa?.email || "",
+        approximateClients: empresa?.approximateClients || 0,
+        vehicleCount: empresa?.vehicleCount || 0,
+        comments: empresa?.comments || "",
+        interestedInPlan: empresa?.interestedInPlan || "",
+        status: empresa?.status || "new",
+      });
+    }
+  }, [isOpen, empresa, form]);
+
+  // Manejar el cierre del formulario
+  const handleClose = () => {
+    form.reset(); // Limpiar el formulario al cerrar
+    onClose();
+  };
 
   // Manejar el envío del formulario
   const onSubmit = async (data: FormData) => {
     try {
+      console.log("Enviando datos:", data);
       await onSave(data);
       form.reset();
       onClose();
@@ -146,11 +174,11 @@ export function FormularioEmpresa({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Editar empresa interesada" : "Registrar nueva empresa interesada"}
+            {isEditing ? "Editar empresa interesada" : "Registrar interés"}
           </DialogTitle>
         </DialogHeader>
 
@@ -372,11 +400,11 @@ export function FormularioEmpresa({
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
               <Button type="submit">
-                {isEditing ? "Guardar cambios" : "Registrar empresa"}
+                {isEditing ? "Guardar cambios" : "Registrar interés"}
               </Button>
             </DialogFooter>
           </form>

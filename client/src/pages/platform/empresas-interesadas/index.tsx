@@ -199,10 +199,10 @@ export default function EmpresasInteresadas() {
       }
 
       toast({
-        title: isEditing ? "Empresa actualizada" : "Empresa registrada",
+        title: isEditing ? "Interés actualizado" : "Interés registrado",
         description: isEditing 
-          ? "Los datos de la empresa se han actualizado correctamente" 
-          : "La empresa ha sido registrada correctamente",
+          ? "Los datos del interés se han actualizado correctamente" 
+          : "El interés de la empresa ha sido registrado correctamente",
       });
 
       // Actualizar la lista
@@ -211,7 +211,7 @@ export default function EmpresasInteresadas() {
       console.error("Error al guardar empresa:", error);
       toast({
         title: "Error",
-        description: "No se pudo guardar la información de la empresa",
+        description: "No se pudo registrar el interés de la empresa",
         variant: "destructive",
       });
       throw error; // Re-lanzar error para manejo en el componente del formulario
@@ -230,7 +230,7 @@ export default function EmpresasInteresadas() {
           </div>
           <Button onClick={handleCreate} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            <span>Nueva empresa</span>
+            <span>Registrar interés</span>
           </Button>
         </div>
         
