@@ -2,7 +2,7 @@ import express, { Router, Request, Response } from 'express';
 import { db } from '../db';
 import { 
   orders, invoices, invoiceItems, payments, orderItems,
-  routes, vehicleLoading,
+  routes, vehicleLoading, customers,
   insertInvoiceSchema, insertInvoiceItemSchema, insertPaymentSchema
 } from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -78,7 +78,7 @@ export function createMobileApiEndpoints(): Router {
       const result = await companyDb.select()
         .from(orders)
         .where(filter)
-        .orderBy(desc(orders.createdAt));
+        .orderBy(desc(orders.id));
         
       // Enriquecer cada orden con los productos
       for (const order of result) {
