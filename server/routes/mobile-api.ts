@@ -32,13 +32,29 @@ export function createMobileApiEndpoints(): Router {
         eq(routes.driverId, parseInt(req.query.driverId as string)) : undefined;
       
       // Construir el filtro completo
-      let filter = and(
-        eq(routes.companyId, companyId),
-        ...(statusFilter ? [statusFilter] : []),
-        ...(driverFilter ? [driverFilter] : [])
-      );
+      let filter;
+      if (statusFilter && driverFilter) {
+        filter = and(
+          eq(routes.companyId, companyId),
+          statusFilter,
+          driverFilter
+        );
+      } else if (statusFilter) {
+        filter = and(
+          eq(routes.companyId, companyId),
+          statusFilter
+        );
+      } else if (driverFilter) {
+        filter = and(
+          eq(routes.companyId, companyId),
+          driverFilter
+        );
+      } else {
+        filter = eq(routes.companyId, companyId);
+      }
       
-      const result = await companyDb.select()
+      // Usar db en lugar de companyDb para diagnóstico
+      const result = await db.select()
         .from(routes)
         .where(filter)
         .orderBy(desc(routes.date));
@@ -69,20 +85,37 @@ export function createMobileApiEndpoints(): Router {
         eq(orders.routeId, parseInt(req.query.routeId as string)) : undefined;
       
       // Construir el filtro completo
-      let filter = and(
-        eq(orders.companyId, companyId),
-        ...(statusFilter ? [statusFilter] : []),
-        ...(routeFilter ? [routeFilter] : [])
-      );
+      let filter;
+      if (statusFilter && routeFilter) {
+        filter = and(
+          eq(orders.companyId, companyId),
+          statusFilter,
+          routeFilter
+        );
+      } else if (statusFilter) {
+        filter = and(
+          eq(orders.companyId, companyId),
+          statusFilter
+        );
+      } else if (routeFilter) {
+        filter = and(
+          eq(orders.companyId, companyId),
+          routeFilter
+        );
+      } else {
+        filter = eq(orders.companyId, companyId);
+      }
       
-      const result = await companyDb.select()
+      // Usar db en lugar de companyDb para diagnóstico
+      const result = await db.select()
         .from(orders)
         .where(filter)
         .orderBy(desc(orders.id));
         
       // Enriquecer cada orden con los productos
       for (const order of result) {
-        const items = await companyDb.select()
+        // Usar db en lugar de companyDb para diagnóstico
+        const items = await db.select()
           .from(orderItems)
           .where(and(
             eq(orderItems.orderId, order.id),
@@ -115,7 +148,8 @@ export function createMobileApiEndpoints(): Router {
       const companyId = req.session.companyId || 1;
       console.log(`MobileAPI - Obteniendo clientes para compañía #${companyId}`);
       
-      const result = await companyDb.select()
+      // Usar db en lugar de companyDb para diagnóstico
+      const result = await db.select()
         .from(customers)
         .where(eq(customers.companyId, companyId))
         .orderBy(customers.businessname);
