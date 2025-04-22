@@ -21,8 +21,8 @@ import {
   ArrowRight
 } from "lucide-react";
 
-// Import assets
-import bottleImage from "@assets/IMG_0433.jpeg";
+// Para comentar la importación de la imagen que puede estar causando problemas
+// import bottleImage from "@assets/IMG_0433.jpeg";
 
 export default function LandingPage() {
   const [, setLocation] = useLocation();
@@ -120,13 +120,9 @@ export default function LandingPage() {
           </div>
           
           <div className="mx-auto grid items-center gap-6 md:grid-cols-2 lg:gap-12">
-            <img
-              src={bottleImage}
-              alt="Imagen de botellones de agua"
-              className="mx-auto aspect-video overflow-hidden rounded-xl object-cover object-center sm:w-full"
-              width={550}
-              height={310}
-            />
+            <div className="bg-primary/10 flex items-center justify-center rounded-xl aspect-video">
+              <Droplet className="h-24 w-24 text-primary/60" />
+            </div>
             <div className="space-y-4">
               <ul className="grid gap-4">
                 <li>

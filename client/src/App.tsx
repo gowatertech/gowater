@@ -296,6 +296,15 @@ function Router() {
     );
   }
 
+  // Ruta para la landing page pública
+  if (location.startsWith("/landing")) {
+    return (
+      <Switch>
+        <Route path="/landing" component={LandingPage} />
+      </Switch>
+    );
+  }
+  
   // Para la aplicación web normal, usar el DashboardLayout
   return (
     <DashboardLayout>
@@ -368,10 +377,11 @@ export default function App() {
   // Obtener la ubicación actual para determinar si mostrar el logo
   const [location] = useLocation();
   
-  // No mostrar el logo en páginas de la plataforma ni en la app móvil
+  // No mostrar el logo en páginas de la plataforma, app móvil o landing page
   const isPlatformRoute = location.startsWith("/platform");
   const isMobileApp = location.startsWith("/mobile-app");
-  const shouldShowLogo = !isPlatformRoute && !isMobileApp;
+  const isLandingPage = location.startsWith("/landing");
+  const shouldShowLogo = !isPlatformRoute && !isMobileApp && !isLandingPage;
   
   return (
     <I18nextProvider i18n={i18n}>
