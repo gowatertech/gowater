@@ -91,7 +91,7 @@ export default function LandingPage() {
                       <Button variant="outline" className="w-full">Iniciar sesión</Button>
                     </Link>
                     <Link href="/register-interest">
-                      <Button className="w-full">Registrar empresa</Button>
+                      <Button className="w-full">Registrar interés</Button>
                     </Link>
                   </div>
                 </div>
@@ -105,7 +105,7 @@ export default function LandingPage() {
               <Button variant="ghost">Iniciar sesión</Button>
             </Link>
             <Link href="/register-interest">
-              <Button>Registrar empresa</Button>
+              <Button>Registrar interés</Button>
             </Link>
           </div>
         </div>
@@ -196,7 +196,7 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/register-interest">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                  Registrar mi empresa
+                  Registrar mi interés
                 </Button>
               </Link>
               <Link href="/contact">
