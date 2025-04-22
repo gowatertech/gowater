@@ -10,7 +10,8 @@ import {
   companies,
   platformUsers,
   userCompanies,
-  companySettings
+  companySettings,
+  membershipInvoices
 } from "../shared/platform-schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
@@ -133,8 +134,8 @@ export function registerPlatformRoutes(router: Router) {
       
       // Construir la consulta base para contar facturas
       let query = platformDb
-        .select({ count: sql`COUNT(*)` })
-        .from(sql`membership_invoices`);
+        .select({ count: sql`COUNT(*)`.as("count") })
+        .from(membershipInvoices);
       
       // Si se especifica un estado, añadir el filtro correspondiente
       if (status) {
@@ -146,9 +147,9 @@ export function registerPlatformRoutes(router: Router) {
           try {
             // Modificar la consulta para incluir el filtro de estado
             query = platformDb
-              .select({ count: sql`COUNT(*)` })
-              .from(sql`membership_invoices`)
-              .where(sql`status = ${status}`);
+              .select({ count: sql`COUNT(*)`.as("count") })
+              .from(membershipInvoices)
+              .where(eq(membershipInvoices.status, status));
             
             const pendingResult = await query;
             
@@ -168,9 +169,9 @@ export function registerPlatformRoutes(router: Router) {
         } else {
           // Para otros estados, filtrar normalmente
           query = platformDb
-            .select({ count: sql`COUNT(*)` })
-            .from(sql`membership_invoices`)
-            .where(sql`status = ${status}`);
+            .select({ count: sql`COUNT(*)`.as("count") })
+            .from(membershipInvoices)
+            .where(eq(membershipInvoices.status, status));
         }
       }
       
@@ -620,8 +621,7 @@ export function registerPlatformRoutes(router: Router) {
           email: platformUsers.email,
           role: platformUsers.role,
           active: platformUsers.active,
-          createdAt: platformUsers.createdAt,
-          isPlatformUser: platformUsers.isPlatformUser
+          createdAt: platformUsers.createdAt
         })
         .from(platformUsers)
         .where(inArray(platformUsers.id, userIds));
