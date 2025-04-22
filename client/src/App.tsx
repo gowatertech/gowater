@@ -202,20 +202,13 @@ function Router() {
   
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
   if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest") && !location.startsWith("/dashboard")) {
-    console.log("Rendering landing/public pages, current location:", location);
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
         <Route path="/planes" component={PlanesPage} />
         <Route path="/soporte" component={SoportePage} />
         <Route path="/contact" component={ContactPage} />
-        <Route path="/register-interest">
-          <div>
-            <h2>Página de registro en construcción</h2>
-            <p>Estamos trabajando en esta página. Por favor, vuelve más tarde.</p>
-          </div>
-        </Route>
-        <Route component={NotFound} />
+        <Route path="/register-interest" component={RegisterInterestPage} />
       </Switch>
     );
   }
