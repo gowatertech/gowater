@@ -57,24 +57,45 @@ export const insertCompanySchema = z.object({
     .regex(/^[a-z0-9]+$/, "El subdominio solo puede contener letras minúsculas y números"),
   logo: z.string().optional(),
   active: z.boolean().default(true),
-  planId: z.number().int().positive(),
+  planId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   expirationDate: z.string().datetime(),
 });
 
 export const insertPlanSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
-  price: z.number().positive("El precio debe ser positivo"),
+  price: z.union([
+    z.number().positive("El precio debe ser positivo"), 
+    z.string().transform(val => parseFloat(val))
+  ]),
   description: z.string().optional(),
-  maxUsers: z.number().int().positive(),
-  maxTrucks: z.number().int().positive(),
+  maxUsers: z.union([
+    z.number().int().positive(), 
+    z.string().transform(val => parseInt(val))
+  ]),
+  maxTrucks: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   features: z.array(z.string()).optional(),
   isActive: z.boolean().default(true),
 });
 
 export const insertMembershipInvoiceSchema = z.object({
-  companyId: z.number().int().positive(),
-  planId: z.number().int().positive(),
-  amount: z.number().positive("El monto debe ser positivo"),
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
+  planId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
+  amount: z.union([
+    z.number().positive("El monto debe ser positivo"),
+    z.string().transform(val => parseFloat(val))
+  ]),
   status: z.enum(["pending", "paid", "cancelled", "overdue"]).default("pending"),
   dueDate: z.string().datetime(),
   notes: z.string().optional(),
@@ -131,13 +152,22 @@ export const insertPlatformUserSchema = z.object({
 });
 
 export const insertUserCompanySchema = z.object({
-  userId: z.number().int().positive(),
-  companyId: z.number().int().positive(),
+  userId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   role: z.enum(["owner", "admin", "standard"]).default("standard"),
 });
 
 export const insertCompanySettingsSchema = z.object({
-  companyId: z.number().int().positive(),
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   settings: z.string().optional(),
   theme: z.string().optional(),
   currency: z.string().optional(),
