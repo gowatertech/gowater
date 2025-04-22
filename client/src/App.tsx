@@ -50,7 +50,6 @@ import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
 import TestPage from "@/pages/test-page";
 import TestPrintPayment from "@/pages/test-print-payment";
-import LandingPage from "@/pages/landing-page";
 
 // PWA Pages
 import MobileApp from "@/pages/mobile-app";
@@ -296,15 +295,6 @@ function Router() {
     );
   }
 
-  // Ruta para la landing page pública
-  if (location.startsWith("/landing")) {
-    return (
-      <Switch>
-        <Route path="/landing" component={LandingPage} />
-      </Switch>
-    );
-  }
-  
   // Para la aplicación web normal, usar el DashboardLayout
   return (
     <DashboardLayout>
@@ -377,11 +367,10 @@ export default function App() {
   // Obtener la ubicación actual para determinar si mostrar el logo
   const [location] = useLocation();
   
-  // No mostrar el logo en páginas de la plataforma, app móvil o landing page
+  // No mostrar el logo en páginas de la plataforma ni en la app móvil
   const isPlatformRoute = location.startsWith("/platform");
   const isMobileApp = location.startsWith("/mobile-app");
-  const isLandingPage = location.startsWith("/landing");
-  const shouldShowLogo = !isPlatformRoute && !isMobileApp && !isLandingPage;
+  const shouldShowLogo = !isPlatformRoute && !isMobileApp;
   
   return (
     <I18nextProvider i18n={i18n}>
