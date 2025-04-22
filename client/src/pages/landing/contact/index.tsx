@@ -294,7 +294,7 @@ export default function ContactPage() {
               </Link>
               <Link href="/planes">
                 <Button size="lg" variant="outline" className="bg-transparent border-primary-foreground hover:bg-primary-foreground/10 w-full sm:w-auto">
-                  View plans
+                  Ver planes
                 </Button>
               </Link>
             </div>
@@ -316,39 +316,39 @@ export default function ContactPage() {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Route and product management solutions for water distribution companies.
+                Soluciones de gestión de rutas y productos para empresas de distribución de agua.
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-medium mb-4">Product</h3>
+              <h3 className="text-lg font-medium mb-4">Producto</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Features</Link></li>
-                <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Plans & Pricing</Link></li>
-                <li><Link href="/demo" className="text-muted-foreground hover:text-foreground">Request Demo</Link></li>
-                <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Security</Link></li>
+                <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Características</Link></li>
+                <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Planes y Precios</Link></li>
+                <li><Link href="/demo" className="text-muted-foreground hover:text-foreground">Solicitar Demo</Link></li>
+                <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Seguridad</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-medium mb-4">Support</h3>
+              <h3 className="text-lg font-medium mb-4">Soporte</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/soporte" className="text-muted-foreground hover:text-foreground">Help Center</Link></li>
-                <li><Link href="/documentation" className="text-muted-foreground hover:text-foreground">Documentation</Link></li>
-                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
-                <li><Link href="/status" className="text-muted-foreground hover:text-foreground">System Status</Link></li>
+                <li><Link href="/soporte" className="text-muted-foreground hover:text-foreground">Centro de Ayuda</Link></li>
+                <li><Link href="/documentation" className="text-muted-foreground hover:text-foreground">Documentación</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contacto</Link></li>
+                <li><Link href="/status" className="text-muted-foreground hover:text-foreground">Estado del Sistema</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-medium mb-4">Company</h3>
+              <h3 className="text-lg font-medium mb-4">Empresa</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/about" className="text-muted-foreground hover:text-foreground">About Us</Link></li>
+                <li><Link href="/about" className="text-muted-foreground hover:text-foreground">Sobre Nosotros</Link></li>
                 <li><Link href="/blog" className="text-muted-foreground hover:text-foreground">Blog</Link></li>
-                <li><Link href="/careers" className="text-muted-foreground hover:text-foreground">Careers</Link></li>
-                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
+                <li><Link href="/careers" className="text-muted-foreground hover:text-foreground">Empleo</Link></li>
+                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Política de Privacidad</Link></li>
               </ul>
             </div>
           </div>
           <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} GoWater. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} GoWater. Todos los derechos reservados.</p>
           </div>
         </div>
       </footer>
