@@ -21,12 +21,19 @@ export type User = {
   lastLocationUpdate?: string;
 };
 
+type LoginResult = {
+  success: boolean;
+  message: string;
+  user?: User;
+};
+
 type CurrentUserStore = {
   user: User | null;
   isLoading: boolean;
   error: Error | null;
   fetchUser: () => Promise<void>;
   logout: () => Promise<void>;
+  login: (username: string, password: string) => Promise<LoginResult>;
 };
 
 // Crear un store para el usuario actual
@@ -85,11 +92,55 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
       set({ error: error as Error, isLoading: false });
     }
   },
+  login: async (username: string, password: string): Promise<LoginResult> => {
+    set({ isLoading: true, error: null });
+    try {
+      // Intentar login con la API móvil
+      const response = await apiRequest('POST', '/api/mobile/login', { 
+        username, 
+        password 
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        console.log('Login exitoso:', result.user);
+        set({ user: result.user, isLoading: false });
+        return {
+          success: true,
+          message: result.message || "Login exitoso",
+          user: result.user
+        };
+      } else {
+        console.error('Error en login:', result.message);
+        set({ 
+          user: null, 
+          isLoading: false,
+          error: new Error(result.message || "Error de autenticación") 
+        });
+        return {
+          success: false,
+          message: result.message || "Error de autenticación"
+        };
+      }
+    } catch (error) {
+      console.error('Error al intentar login:', error);
+      set({ 
+        user: null, 
+        isLoading: false,
+        error: error as Error 
+      });
+      return {
+        success: false,
+        message: (error as Error).message || "Error en el servidor"
+      };
+    }
+  },
 }));
 
 // Hook para usar en componentes
 export function useCurrentUser() {
-  const { user, isLoading, error, fetchUser, logout } = useCurrentUserStore();
+  const { user, isLoading, error, fetchUser, logout, login } = useCurrentUserStore();
   
   useEffect(() => {
     if (!user && !isLoading && !error) {
@@ -97,5 +148,5 @@ export function useCurrentUser() {
     }
   }, [user, isLoading, error, fetchUser]);
 
-  return { user, isLoading, error, fetchUser, logout };
+  return { user, isLoading, error, fetchUser, logout, login };
 }

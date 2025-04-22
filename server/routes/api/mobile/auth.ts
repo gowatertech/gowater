@@ -1,157 +1,131 @@
-import express, { Request, Response, Router } from 'express';
+import express, { Router, Request, Response } from 'express';
 import { db } from '../../../db';
 import { users } from '@shared/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
+/**
+ * Crea las rutas para autenticación móvil
+ */
 export function createMobileAuthRoutes(): Router {
   const router = express.Router();
 
   /**
-   * POST /api/mobile/login
-   * Endpoint para autenticar usuarios en la app móvil
+   * POST /mobile/login
+   * Autentica un usuario móvil (conductor, asistente, etc.)
    */
   router.post('/login', async (req: Request, res: Response) => {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Usuario y contraseña son requeridos" 
+      });
+    }
+
     try {
-      const { username, password, companyId } = req.body;
-      
-      if (!username || !password) {
-        return res.status(400).json({ 
-          success: false,
-          message: "Usuario y contraseña son requeridos" 
-        });
-      }
-      
-      console.log(`MobileAPI - Intento de login para usuario: ${username}`);
-      
-      // Si se proporciona companyId, usarlo para filtrar
-      let userQuery = db.select().from(users);
-      
-      if (username) {
-        userQuery = userQuery.where(eq(users.username, username));
-      }
-      
-      if (companyId) {
-        userQuery = userQuery.where(eq(users.companyId, companyId));
-      }
-      
-      const [user] = await userQuery;
+      // Buscar el usuario por nombre de usuario
+      const [user] = await db.select().from(users).where(eq(users.username, username));
       
       if (!user) {
-        console.log(`MobileAPI - Usuario no encontrado: ${username}`);
+        console.log(`Login fallido: Usuario no encontrado: ${username}`);
         return res.status(401).json({ 
-          success: false,
-          message: "Credenciales inválidas" 
+          success: false, 
+          message: "Credenciales inválidas"
         });
       }
       
-      // Verificar contraseña con bcrypt
+      // Verificar que el usuario está activo
+      if (!user.active) {
+        console.log(`Login fallido: Usuario inactivo: ${username}`);
+        return res.status(401).json({ 
+          success: false, 
+          message: "La cuenta está desactivada" 
+        });
+      }
+      
+      // Verificar la contraseña (usando bcrypt)
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
-        console.log(`MobileAPI - Contraseña inválida para usuario: ${username}`);
+        console.log(`Login fallido: Contraseña incorrecta para usuario: ${username}`);
         return res.status(401).json({ 
-          success: false,
-          message: "Credenciales inválidas" 
-        });
-      }
-      
-      if (!user.active) {
-        console.log(`MobileAPI - Usuario inactivo: ${username}`);
-        return res.status(403).json({ 
-          success: false,
-          message: "Usuario inactivo" 
+          success: false, 
+          message: "Credenciales inválidas"
         });
       }
       
       // Verificar roles permitidos para la app móvil
       const allowedRoles = ['driver', 'assistant', 'admin', 'supervisor'];
       if (!allowedRoles.includes(user.role)) {
-        console.log(`MobileAPI - Rol no permitido: ${user.role} para usuario: ${username}`);
-        return res.status(403).json({
-          success: false,
-          message: "Este usuario no tiene permiso para acceder a la app móvil"
+        console.log(`Login fallido: Rol no permitido: ${user.role} para usuario: ${username}`);
+        return res.status(403).json({ 
+          success: false, 
+          message: "No tienes permiso para acceder a la aplicación móvil" 
         });
       }
       
-      // Establecer la sesión
-      req.session.user = {
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        role: user.role,
-        companyId: user.companyId, // Asegurar que companyId está en la sesión
-      };
-      
-      // También establecemos el companyId a nivel de sesión para el middleware
-      req.session.companyId = user.companyId;
-      
-      // No devolver la contraseña en la respuesta
+      // Crear objeto de usuario sin la contraseña para la sesión
       const { password: pwd, ...userWithoutPassword } = user;
       
-      console.log(`MobileAPI - Login exitoso para usuario ${username} (ID: ${user.id}, Empresa: ${user.companyId})`);
+      // Guardar información del usuario y companyId en la sesión
+      req.session.user = userWithoutPassword;
+      req.session.companyId = user.companyId;
       
-      res.json({
+      console.log(`Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${user.companyId}`);
+      
+      // Responder con éxito y los datos del usuario (sin contraseña)
+      return res.status(200).json({
         success: true,
         message: "Login exitoso",
         user: userWithoutPassword
       });
     } catch (error) {
       console.error("Error en login móvil:", error);
-      res.status(500).json({ 
-        success: false,
-        message: "Error de servidor al procesar el login",
-        error: String(error)
+      return res.status(500).json({ 
+        success: false, 
+        message: "Error de servidor"
       });
     }
   });
 
   /**
-   * POST /api/mobile/logout
-   * Endpoint para cerrar sesión en la app móvil
+   * POST /mobile/logout
+   * Cierra la sesión del usuario móvil
    */
   router.post('/logout', (req: Request, res: Response) => {
-    if (req.session.user) {
-      console.log(`MobileAPI - Cerrando sesión para usuario ID: ${req.session.user.id}`);
-      
-      // Destruir la sesión
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Error al destruir sesión:", err);
-          return res.status(500).json({
-            success: false,
-            message: "Error al cerrar sesión"
-          });
-        }
-        
-        res.json({
-          success: true,
-          message: "Sesión cerrada exitosamente"
+    // Destruir la sesión
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Error al cerrar sesión:", err);
+        return res.status(500).json({
+          success: false, 
+          message: "Error al cerrar sesión"
         });
+      }
+      
+      return res.status(200).json({
+        success: true, 
+        message: "Sesión cerrada correctamente"
       });
-    } else {
-      console.log("MobileAPI - Intento de logout sin sesión activa");
-      res.json({
-        success: true,
-        message: "No hay sesión activa"
-      });
-    }
+    });
   });
 
   /**
-   * GET /api/mobile/me
-   * Endpoint para obtener información del usuario actual en la app móvil
+   * GET /mobile/me
+   * Devuelve la información del usuario autenticado
    */
   router.get('/me', (req: Request, res: Response) => {
-    if (!req.session.user) {
+    // Verificar si hay un usuario en la sesión
+    if (!req.session || !req.session.user) {
       return res.status(401).json({
         success: false,
         message: "No autenticado"
       });
     }
     
-    console.log(`MobileAPI - Retornando información de usuario ID: ${req.session.user.id}`);
-    
-    res.json({
+    // Devolver la información del usuario
+    return res.status(200).json({
       success: true,
       user: req.session.user
     });

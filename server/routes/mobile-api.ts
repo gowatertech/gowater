@@ -490,14 +490,14 @@ export function createMobileApiEndpoints(): Router {
   return router;
 }
 
+// Importar las dependencias usando ESM
+import { createMobileAuthRoutes } from './api/mobile/auth';
+import { mobileApiTenantMiddleware } from '../middleware/mobile-tenant.middleware';
+
 /**
  * Registra las rutas de la API móvil en la aplicación Express
  */
 export function registerMobileApiEndpoints(app: Router) {
-  // Importar las nuevas rutas de autenticación móvil
-  const { createMobileAuthRoutes } = require('./api/mobile/auth');
-  const { mobileApiTenantMiddleware } = require('../middleware/mobile-tenant.middleware');
-  
   // Crear las rutas de la API móvil existente
   const mobileApiRoutes = createMobileApiEndpoints();
   
