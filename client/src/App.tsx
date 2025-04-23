@@ -216,7 +216,7 @@ function Router() {
   }
   
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest") && !location.startsWith("/dashboard")) {
+  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register") && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
@@ -224,6 +224,14 @@ function Router() {
         <Route path="/soporte" component={SoportePage} />
         <Route path="/contact" component={ContactPage} />
         <Route path="/register-interest" component={RegisterInterestPage} />
+        {/* Redirigir /register a /register-interest */}
+        <Route path="/register">
+          {() => {
+            const [, setLoc] = useLocation();
+            setLoc("/register-interest");
+            return null;
+          }}
+        </Route>
       </Switch>
     );
   }
@@ -416,7 +424,7 @@ export default function App() {
   // No mostrar el logo en páginas de la plataforma, app móvil, landing page o páginas públicas
   const isPlatformRoute = location.startsWith("/platform");
   const isMobileApp = location.startsWith("/mobile-app");
-  const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest";
+  const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register";
   const shouldShowLogo = !isPlatformRoute && !isMobileApp && !isPublicPage;
   
   return (
