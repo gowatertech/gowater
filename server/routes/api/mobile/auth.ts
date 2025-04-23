@@ -27,14 +27,25 @@ export function createMobileAuthRoutes(): Router {
     }
 
     try {
-      // Buscar el usuario por nombre de usuario
-      const [user] = await db.select().from(users).where(eq(users.username, username));
+      // Obtener el companyId de la sesión (establecido por el middleware de subdominio)
+      const companyId = req.session.companyId;
+      console.log(`Buscando usuario en compañía ID: ${companyId}`);
+      
+      // Buscar el usuario por nombre de usuario y compañía
+      let userQuery = db.select().from(users).where(eq(users.username, username));
+      
+      // Si tenemos un companyId en la sesión, filtrar por esa empresa
+      if (companyId) {
+        userQuery = userQuery.where(eq(users.companyId, companyId));
+      }
+      
+      const [user] = await userQuery;
       
       // Imprimir la estructura completa del usuario para depuración
-      console.log("Usuario encontrado:", JSON.stringify(user));
+      console.log("Usuario encontrado:", user ? JSON.stringify(user) : "No encontrado");
       
       if (!user) {
-        console.log(`Login fallido: Usuario no encontrado: ${username}`);
+        console.log(`Login fallido: Usuario no encontrado: ${username} en compañía: ${companyId}`);
         return res.status(401).json({ 
           success: false, 
           message: "Credenciales inválidas"
@@ -120,9 +131,9 @@ export function createMobileAuthRoutes(): Router {
 
   /**
    * GET /mobile/me
-   * Devuelve la información del usuario autenticado
+   * Devuelve la información del usuario autenticado y la empresa actual
    */
-  router.get('/me', (req: Request, res: Response) => {
+  router.get('/me', async (req: Request, res: Response) => {
     // Verificar si hay un usuario en la sesión
     if (!req.session || !req.session.user) {
       return res.status(401).json({
@@ -131,11 +142,46 @@ export function createMobileAuthRoutes(): Router {
       });
     }
     
-    // Devolver la información del usuario
-    return res.status(200).json({
-      success: true,
-      user: req.session.user
-    });
+    try {
+      // Obtener información de la empresa detectada por subdominio
+      let companyInfo = null;
+      
+      if (req.session.companyId) {
+        // Importar lo necesario para buscar la empresa
+        const { platformDb } = require('../../../platform-db');
+        const { companies } = require('@shared/platform-schema');
+        const { eq } = require('drizzle-orm');
+        
+        // Buscar la empresa por ID
+        const [company] = await platformDb
+          .select()
+          .from(companies)
+          .where(eq(companies.id, req.session.companyId));
+        
+        if (company) {
+          // Incluir solo la información relevante de la empresa
+          companyInfo = {
+            id: company.id,
+            name: company.name,
+            subdomain: company.subdomain
+          };
+        }
+      }
+      
+      // Devolver la información del usuario y la empresa
+      return res.status(200).json({
+        success: true,
+        user: req.session.user,
+        company: companyInfo
+      });
+    } catch (error) {
+      console.error("Error al obtener información del usuario:", error);
+      // Si hay un error, aún devolver la información del usuario
+      return res.status(200).json({
+        success: true,
+        user: req.session.user
+      });
+    }
   });
 
   return router;

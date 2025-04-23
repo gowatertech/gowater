@@ -4,6 +4,13 @@ import { apiRequest } from '@/lib/queryClient';
 import { useState, useEffect } from 'react';
 
 // Exportamos el tipo User para poder usarlo en otros componentes
+// Tipo para la información de la empresa
+export type Company = {
+  id: number;
+  name: string;
+  subdomain: string;
+}
+
 export type User = {
   id: number;
   name: string;
@@ -25,10 +32,12 @@ type LoginResult = {
   success: boolean;
   message: string;
   user?: User;
+  company?: Company;
 };
 
 type CurrentUserStore = {
   user: User | null;
+  company: Company | null;
   isLoading: boolean;
   error: Error | null;
   fetchUser: () => Promise<void>;
@@ -39,6 +48,7 @@ type CurrentUserStore = {
 // Crear un store para el usuario actual
 const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   user: null,
+  company: null,
   isLoading: false,
   error: null,
   fetchUser: async () => {
@@ -55,14 +65,28 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
       
       if (response.ok) {
         const result = await response.json();
-        // Manejar ambos formatos de respuesta (objeto directo o { success: true, user: {...} })
+        
+        // Obtener información del usuario
         const user = result.success && result.user ? result.user : result;
         console.log('Usuario obtenido:', user);
-        set({ user, isLoading: false });
+        
+        // Obtener información de la empresa si está disponible
+        let company = null;
+        if (result.company) {
+          company = result.company;
+          console.log('Empresa detectada:', company);
+        }
+        
+        set({ 
+          user, 
+          company,
+          isLoading: false 
+        });
       } else {
         console.error('Error al obtener usuario:', response.status);
         set({ 
-          user: null, 
+          user: null,
+          company: null,
           isLoading: false,
           error: new Error(`Error al obtener usuario: ${response.status}`)
         });
@@ -70,7 +94,8 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
     } catch (error) {
       console.error('Error en fetch usuario:', error);
       set({ 
-        user: null, 
+        user: null,
+        company: null,
         isLoading: false,
         error: error as Error 
       });
@@ -86,7 +111,7 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
         // Si falla, intentar con el endpoint móvil
         await apiRequest('POST', '/api/mobile/logout');
       }
-      set({ user: null, isLoading: false });
+      set({ user: null, company: null, isLoading: false });
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       set({ error: error as Error, isLoading: false });
@@ -111,16 +136,31 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
       
       if (response.ok && result.success) {
         console.log('Login exitoso:', result.user);
-        set({ user: result.user, isLoading: false });
+        
+        // Obtener información de la empresa si está disponible
+        let company = null;
+        if (result.company) {
+          company = result.company;
+          console.log('Empresa detectada en login:', company);
+        }
+        
+        set({ 
+          user: result.user, 
+          company,
+          isLoading: false 
+        });
+        
         return {
           success: true,
           message: result.message || "Login exitoso",
-          user: result.user
+          user: result.user,
+          company: result.company
         };
       } else {
         console.error('Error en login:', result.message);
         set({ 
           user: null, 
+          company: null,
           isLoading: false,
           error: new Error(result.message || "Error de autenticación") 
         });
@@ -133,6 +173,7 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
       console.error('Error al intentar login:', error);
       set({ 
         user: null, 
+        company: null,
         isLoading: false,
         error: error as Error 
       });
@@ -146,7 +187,7 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
 
 // Hook para usar en componentes
 export function useCurrentUser() {
-  const { user, isLoading, error, fetchUser, logout, login } = useCurrentUserStore();
+  const { user, company, isLoading, error, fetchUser, logout, login } = useCurrentUserStore();
   
   useEffect(() => {
     if (!user && !isLoading && !error) {
@@ -154,5 +195,5 @@ export function useCurrentUser() {
     }
   }, [user, isLoading, error, fetchUser]);
 
-  return { user, isLoading, error, fetchUser, logout, login };
+  return { user, company, isLoading, error, fetchUser, logout, login };
 }
