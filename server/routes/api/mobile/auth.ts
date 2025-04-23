@@ -30,6 +30,9 @@ export function createMobileAuthRoutes(): Router {
       // Buscar el usuario por nombre de usuario
       const [user] = await db.select().from(users).where(eq(users.username, username));
       
+      // Imprimir la estructura completa del usuario para depuración
+      console.log("Usuario encontrado:", JSON.stringify(user));
+      
       if (!user) {
         console.log(`Login fallido: Usuario no encontrado: ${username}`);
         return res.status(401).json({ 
@@ -72,9 +75,10 @@ export function createMobileAuthRoutes(): Router {
       
       // Guardar información del usuario y companyId en la sesión
       req.session.user = userWithoutPassword;
-      req.session.companyId = user.companyId;
+      // user.company_id es el valor correcto de la base de datos
+      req.session.companyId = user.company_id;
       
-      console.log(`Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${user.companyId}`);
+      console.log(`Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${user.company_id}`);
       
       // Responder con éxito y los datos del usuario (sin contraseña)
       return res.status(200).json({
