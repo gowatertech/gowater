@@ -86,8 +86,8 @@ export default function ContactPage() {
                     <Link href="/platform/login">
                       <Button variant="outline" className="w-full">Iniciar sesión</Button>
                     </Link>
-                    <Link href="/platform/register">
-                      <Button className="w-full">Registrarse</Button>
+                    <Link href="/register-interest">
+                      <Button className="w-full">Registrar interés</Button>
                     </Link>
                   </div>
                 </div>
@@ -100,8 +100,8 @@ export default function ContactPage() {
             <Link href="/platform/login">
               <Button variant="ghost">Iniciar sesión</Button>
             </Link>
-            <Link href="/platform/register">
-              <Button>Registrarse</Button>
+            <Link href="/register-interest">
+              <Button>Registrar interés</Button>
             </Link>
           </div>
         </div>
@@ -287,9 +287,9 @@ export default function ContactPage() {
               Únete a cientos de empresas que ya confían en GoWater para gestionar sus operaciones
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/platform/register">
+              <Link href="/register-interest">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                  Comenzar ahora
+                  Registrar interés
                 </Button>
               </Link>
               <Link href="/planes">
@@ -322,19 +322,19 @@ export default function ContactPage() {
             <div>
               <h3 className="text-lg font-medium mb-4">Producto</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Características</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Características</span></li>
                 <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Planes y Precios</Link></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Solicitar Demo</Link></li>
-                <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Seguridad</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Seguridad</span></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-medium mb-4">Soporte</h3>
               <ul className="space-y-2 text-sm">
                 <li><Link href="/soporte" className="text-muted-foreground hover:text-foreground">Centro de Ayuda</Link></li>
-                <li><Link href="/documentation" className="text-muted-foreground hover:text-foreground">Documentación</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Documentación</span></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contacto</Link></li>
-                <li><Link href="/status" className="text-muted-foreground hover:text-foreground">Estado del Sistema</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Estado del Sistema</span></li>
               </ul>
             </div>
             <div>

@@ -54,7 +54,7 @@ export default function LandingPage() {
               <Button variant="ghost" className="font-medium">App Móvil</Button>
             </a>
             <Link href="/contact">
-              <Button variant="ghost" className="font-medium">Demo</Button>
+              <Button variant="ghost" className="font-medium">Solicitar Demo</Button>
             </Link>
             <Link href="/contact">
               <Button variant="ghost" className="font-medium">Contáctanos</Button>
@@ -108,7 +108,7 @@ export default function LandingPage() {
                     </SheetClose>
                     <SheetClose asChild>
                       <Link href="/contact">
-                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
+                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Solicitar Demo</div>
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
