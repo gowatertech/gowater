@@ -129,6 +129,11 @@ export default function LandingPage() {
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
+                      <Link href="/mobile-app/login">
+                        <Button variant="outline" className="w-full">Login APP</Button>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
                       <Link href="/register-interest">
                         <Button className="w-full">Registrar interés</Button>
                       </Link>
@@ -146,6 +151,9 @@ export default function LandingPage() {
             </Link>
             <Link href="/platform/login">
               <Button variant="ghost">Login ADM</Button>
+            </Link>
+            <Link href="/mobile-app/login">
+              <Button variant="ghost">Login APP</Button>
             </Link>
             <Link href="/register-interest">
               <Button>Registrar interés</Button>
