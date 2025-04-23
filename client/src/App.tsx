@@ -50,7 +50,6 @@ import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
 import TestPage from "@/pages/test-page";
 import TestPrintPayment from "@/pages/test-print-payment";
-import TestSubdomain from "@/pages/test-subdomain";
 import LandingPage from "@/pages/landing";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
@@ -403,7 +402,6 @@ function Router() {
         <Route path="/test-print" component={TestPage} />
         <Route path="/test-print-payment" component={TestPrintPayment} />
         <Route path="/test-billing" component={lazy(() => import('./pages/test-billing'))} />
-        <Route path="/test-subdomain" component={TestSubdomain} />
 
         <Route component={NotFound} />
       </Switch>

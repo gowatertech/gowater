@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from 'express';
-import { db, pool } from '../../../db';
+import { db } from '../../../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
@@ -27,34 +27,14 @@ export function createMobileAuthRoutes(): Router {
     }
 
     try {
-      // Obtener el companyId de la sesión (establecido por el middleware de subdominio)
-      const companyId = req.session.companyId;
-      console.log(`Buscando usuario en compañía ID: ${companyId}`);
-      
-      // Usar una consulta SQL nativa para evitar problemas con discrepancias de esquema
-      const query = `
-        SELECT id, company_id as "companyId", name, username, password, role, active, 
-          phone, license, license_expiry as "licenseExpiry", 
-          emergency_contact as "emergencyContact", 
-          current_location as "currentLocation", 
-          last_location_update as "lastLocationUpdate"
-        FROM users 
-        WHERE username = $1
-        ${companyId ? "AND company_id = $2" : ""}
-      `;
-      
-      // Ejecutar la consulta con los parámetros adecuados
-      const params = companyId ? [username, companyId] : [username];
-      const result = await pool.query(query, params);
-      
-      // Obtener el primer usuario (si existe)
-      const user = result.rows[0];
+      // Buscar el usuario por nombre de usuario
+      const [user] = await db.select().from(users).where(eq(users.username, username));
       
       // Imprimir la estructura completa del usuario para depuración
-      console.log("Usuario encontrado:", user ? JSON.stringify(user) : "No encontrado");
+      console.log("Usuario encontrado:", JSON.stringify(user));
       
       if (!user) {
-        console.log(`Login fallido: Usuario no encontrado: ${username} en compañía: ${companyId}`);
+        console.log(`Login fallido: Usuario no encontrado: ${username}`);
         return res.status(401).json({ 
           success: false, 
           message: "Credenciales inválidas"
@@ -140,9 +120,9 @@ export function createMobileAuthRoutes(): Router {
 
   /**
    * GET /mobile/me
-   * Devuelve la información del usuario autenticado y la empresa actual
+   * Devuelve la información del usuario autenticado
    */
-  router.get('/me', async (req: Request, res: Response) => {
+  router.get('/me', (req: Request, res: Response) => {
     // Verificar si hay un usuario en la sesión
     if (!req.session || !req.session.user) {
       return res.status(401).json({
@@ -151,63 +131,11 @@ export function createMobileAuthRoutes(): Router {
       });
     }
     
-    try {
-      // Información de la empresa, inicialmente nula
-      let companyInfo = null;
-      
-      // Detectar si estamos en modo de simulación de subdominio
-      let subdomain = req.query.subdomain as string;
-      console.log(`Subdominio en query param: ${subdomain}`);
-      
-      // Usar el ID de empresa de la sesión o detectar por subdominio
-      const companyId = req.session.companyId;
-      console.log(`ID de empresa en sesión: ${companyId}`);
-      
-      // Si tenemos un ID de empresa, buscar la información
-      if (companyId) {
-        console.log(`Creando información de empresa para ID: ${companyId}`);
-        
-        // Crear objeto directamente (solución rápida para evitar problemas de BD)
-        companyInfo = {
-          id: companyId,
-          name: companyId === 1 ? "AGUA HARRIS" : 
-               companyId === 7 ? "Agua Maria" : 
-               companyId === 10 ? "EMPRESA DE PRUEBA" : "Empresa Desconocida",
-          subdomain: companyId === 1 ? "aguaharris" : 
-                    companyId === 7 ? "aguamaria" : 
-                    companyId === 10 ? "prueba" : "desconocido"
-        };
-        
-        console.log(`Información de empresa generada: ${JSON.stringify(companyInfo)}`);
-      } else if (subdomain) {
-        console.log(`Detectando empresa por subdominio: ${subdomain}`);
-        
-        // Mapear directamente el subdominio a datos conocidos
-        if (subdomain === "aguaharris") {
-          companyInfo = { id: 1, name: "AGUA HARRIS", subdomain: "aguaharris" };
-        } else if (subdomain === "aguamaria") {
-          companyInfo = { id: 7, name: "Agua Maria", subdomain: "aguamaria" };
-        } else if (subdomain === "prueba") {
-          companyInfo = { id: 10, name: "EMPRESA DE PRUEBA", subdomain: "prueba" };
-        }
-        
-        console.log(`Información de empresa por subdominio: ${JSON.stringify(companyInfo)}`);
-      }
-      
-      // Devolver la información del usuario y la empresa
-      return res.status(200).json({
-        success: true,
-        user: req.session.user,
-        company: companyInfo
-      });
-    } catch (error) {
-      console.error("Error al obtener información del usuario:", error);
-      // Si hay un error, aún devolver la información del usuario
-      return res.status(200).json({
-        success: true,
-        user: req.session.user
-      });
-    }
+    // Devolver la información del usuario
+    return res.status(200).json({
+      success: true,
+      user: req.session.user
+    });
   });
 
   return router;

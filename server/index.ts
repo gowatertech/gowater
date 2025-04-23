@@ -13,8 +13,6 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
-import { subdomainDetectionMiddleware } from "./middleware/subdomain-detection.middleware";
-import testSubdomainRoutes from "./routes/test-subdomain";
 
 const app = express();
 
@@ -34,9 +32,6 @@ const sessionConfig = {
 };
 
 app.use(session(sessionConfig));
-
-// Middleware para detección de subdominio - aplicado a nivel global para detectar la empresa
-app.use(subdomainDetectionMiddleware);
 
 // Creamos routers separados para APIs de empresas y plataforma
 const companyApiRouter = express.Router();
@@ -103,11 +98,6 @@ app.use((req, res, next) => {
     // Montar las rutas para gestionar empresas interesadas
     app.use("/api", interestedCompaniesRoutes);
     log("Interested companies routes registered successfully");
-    
-    // Montar la ruta de prueba para subdominio en el router de plataforma
-    // No usamos el router de compañías para evitar que sobrescriba el companyId detectado
-    platformApiRouter.use("/test-subdomain", testSubdomainRoutes);
-    log("Subdomain testing route registered successfully");
     
     // Crear servidor HTTP
     server = createServer(app);
