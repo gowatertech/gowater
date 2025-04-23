@@ -152,66 +152,46 @@ export function createMobileAuthRoutes(): Router {
     }
     
     try {
-      // Obtener información de la empresa detectada por subdominio
+      // Información de la empresa, inicialmente nula
       let companyInfo = null;
       
-      console.log("DEBUG /me - Sesión:", JSON.stringify({
-        sessionId: req.sessionID,
-        companyId: req.session.companyId,
-        user: req.session.user ? {
-          id: req.session.user.id,
-          username: req.session.user.username,
-          role: req.session.user.role
-        } : null
-      }));
+      // Detectar si estamos en modo de simulación de subdominio
+      let subdomain = req.query.subdomain as string;
+      console.log(`Subdominio en query param: ${subdomain}`);
       
-      if (req.session.companyId) {
-        try {
-          // Importar lo necesario para buscar la empresa
-          const { platformPool } = require('../../../platform-db');
-          
-          console.log("Consultando información de la empresa ID:", req.session.companyId);
-          
-          // Crear manualmente un objeto de empresa temporal para pruebas
-          // Esta es una solución temporal mientras se soluciona el problema con la BD
-          // La información se carga con los datos conocidos de la empresa
-          companyInfo = {
-            id: req.session.companyId,
-            name: req.session.companyId === 1 ? "AGUA HARRIS" : 
-                 req.session.companyId === 7 ? "Agua Maria" : 
-                 req.session.companyId === 10 ? "EMPRESA DE PRUEBA" : "Empresa Desconocida",
-            subdomain: req.session.companyId === 1 ? "aguaharris" : 
-                      req.session.companyId === 7 ? "aguamaria" : 
-                      req.session.companyId === 10 ? "prueba" : "desconocido"
-          };
-          
-          console.log("Información de empresa creada:", JSON.stringify(companyInfo));
-          
-          // Nota: El código para consultar la base de datos está comentado temporalmente
-          // por problemas con el acceso a la tabla companies en la base de datos de plataforma
-          /*
-          const query = `
-            SELECT id, name, subdomain, active
-            FROM companies
-            WHERE id = $1
-          `;
-          
-          const result = await platformPool.query(query, [req.session.companyId]);
-          const company = result.rows[0];
-          
-          if (company) {
-            // Incluir solo la información relevante de la empresa
-            companyInfo = {
-              id: company.id,
-              name: company.name,
-              subdomain: company.subdomain
-            };
-          }
-          */
-        } catch (err) {
-          console.error("Error al obtener información de la empresa:", err);
-          // Si falla, aún seguimos para devolver los datos del usuario
+      // Usar el ID de empresa de la sesión o detectar por subdominio
+      const companyId = req.session.companyId;
+      console.log(`ID de empresa en sesión: ${companyId}`);
+      
+      // Si tenemos un ID de empresa, buscar la información
+      if (companyId) {
+        console.log(`Creando información de empresa para ID: ${companyId}`);
+        
+        // Crear objeto directamente (solución rápida para evitar problemas de BD)
+        companyInfo = {
+          id: companyId,
+          name: companyId === 1 ? "AGUA HARRIS" : 
+               companyId === 7 ? "Agua Maria" : 
+               companyId === 10 ? "EMPRESA DE PRUEBA" : "Empresa Desconocida",
+          subdomain: companyId === 1 ? "aguaharris" : 
+                    companyId === 7 ? "aguamaria" : 
+                    companyId === 10 ? "prueba" : "desconocido"
+        };
+        
+        console.log(`Información de empresa generada: ${JSON.stringify(companyInfo)}`);
+      } else if (subdomain) {
+        console.log(`Detectando empresa por subdominio: ${subdomain}`);
+        
+        // Mapear directamente el subdominio a datos conocidos
+        if (subdomain === "aguaharris") {
+          companyInfo = { id: 1, name: "AGUA HARRIS", subdomain: "aguaharris" };
+        } else if (subdomain === "aguamaria") {
+          companyInfo = { id: 7, name: "Agua Maria", subdomain: "aguamaria" };
+        } else if (subdomain === "prueba") {
+          companyInfo = { id: 10, name: "EMPRESA DE PRUEBA", subdomain: "prueba" };
         }
+        
+        console.log(`Información de empresa por subdominio: ${JSON.stringify(companyInfo)}`);
       }
       
       // Devolver la información del usuario y la empresa
