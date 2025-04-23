@@ -27,8 +27,23 @@ export function createMobileAuthRoutes(): Router {
     }
 
     try {
-      // Buscar el usuario por nombre de usuario
-      const [user] = await db.select().from(users).where(eq(users.username, username));
+      // Buscar el usuario por nombre de usuario (evitando el campo email que aún no existe en la tabla)
+      const [user] = await db.select({
+        id: users.id,
+        companyId: users.companyId,
+        name: users.name,
+        username: users.username,
+        password: users.password,
+        role: users.role,
+        active: users.active,
+        phone: users.phone,
+        license: users.license,
+        licenseExpiry: users.licenseExpiry,
+        hireDate: users.hireDate,
+        emergencyContact: users.emergencyContact,
+        currentLocation: users.currentLocation,
+        lastLocationUpdate: users.lastLocationUpdate
+      }).from(users).where(eq(users.username, username));
       
       // Imprimir la estructura completa del usuario para depuración
       console.log("Usuario encontrado:", JSON.stringify(user));
@@ -122,7 +137,7 @@ export function createMobileAuthRoutes(): Router {
    * GET /mobile/me
    * Devuelve la información del usuario autenticado
    */
-  router.get('/me', (req: Request, res: Response) => {
+  router.get('/me', async (req: Request, res: Response) => {
     // Verificar si hay un usuario en la sesión
     if (!req.session || !req.session.user) {
       return res.status(401).json({
@@ -131,11 +146,50 @@ export function createMobileAuthRoutes(): Router {
       });
     }
     
-    // Devolver la información del usuario
-    return res.status(200).json({
-      success: true,
-      user: req.session.user
-    });
+    try {
+      // Buscar el usuario en la base de datos para asegurarnos de tener los datos actualizados
+      const [user] = await db.select({
+        id: users.id,
+        companyId: users.companyId,
+        name: users.name,
+        username: users.username,
+        role: users.role,
+        active: users.active,
+        phone: users.phone,
+        license: users.license,
+        licenseExpiry: users.licenseExpiry,
+        hireDate: users.hireDate,
+        emergencyContact: users.emergencyContact,
+        currentLocation: users.currentLocation,
+        lastLocationUpdate: users.lastLocationUpdate
+      })
+      .from(users)
+      .where(eq(users.id, req.session.user.id));
+      
+      if (!user) {
+        // Si el usuario ya no existe en la base de datos, cerrar sesión
+        req.session.destroy((err) => {
+          console.error("Error al cerrar sesión:", err);
+        });
+        
+        return res.status(401).json({
+          success: false,
+          message: "Usuario no encontrado"
+        });
+      }
+      
+      // Devolver la información del usuario
+      return res.status(200).json({
+        success: true,
+        user: user
+      });
+    } catch (error) {
+      console.error("Error al obtener datos del usuario:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Error al obtener datos del usuario"
+      });
+    }
   });
 
   return router;
