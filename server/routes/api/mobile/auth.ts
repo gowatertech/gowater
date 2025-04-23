@@ -15,9 +15,11 @@ export function createMobileAuthRoutes(): Router {
    * Autentica un usuario móvil (conductor, asistente, etc.)
    */
   router.post('/login', async (req: Request, res: Response) => {
+    console.log("Recibida solicitud de login en /api/mobile/login:", JSON.stringify(req.body));
     const { username, password } = req.body;
 
     if (!username || !password) {
+      console.log("Error: Usuario o contraseña faltantes");
       return res.status(400).json({ 
         success: false, 
         message: "Usuario y contraseña son requeridos" 
@@ -70,9 +72,9 @@ export function createMobileAuthRoutes(): Router {
       
       // Guardar información del usuario y companyId en la sesión
       req.session.user = userWithoutPassword;
-      req.session.companyId = user.company_id;
+      req.session.companyId = user.companyId;
       
-      console.log(`Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${user.company_id}`);
+      console.log(`Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${user.companyId}`);
       
       // Responder con éxito y los datos del usuario (sin contraseña)
       return res.status(200).json({
