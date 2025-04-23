@@ -2,7 +2,7 @@ import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema } from "@shared/schema";
-import { db } from './db';
+import { db, usersSimple } from './db';
 import { companyDb, getCurrentCompanyId } from './company-db';
 import { eq, and, sql, inArray, desc } from 'drizzle-orm';
 import express from 'express';
@@ -470,12 +470,12 @@ export async function registerRoutes(router: express.Router) {
       if (role) {
         usersList = await db
           .select()
-          .from(users)
-          .where(eq(users.role, role));
+          .from(usersSimple) // Usar esquema sin email
+          .where(eq(usersSimple.role, role));
       } else {
         usersList = await db
           .select()
-          .from(users);
+          .from(usersSimple); // Usar esquema sin email
       }
 
       res.json(usersList);
@@ -491,11 +491,11 @@ export async function registerRoutes(router: express.Router) {
       const role = req.query.role as string;
       const drivers = await db
         .select()
-        .from(users)
+        .from(usersSimple)
         .where(
-          role ? eq(users.role, role) : sql`${users.role} IN ('driver', 'assistant')`
+          role ? eq(usersSimple.role, role) : sql`${usersSimple.role} IN ('driver', 'assistant')`
         )
-        .orderBy(users.name);
+        .orderBy(usersSimple.name);
 
       console.log(`GET /api/users/drivers - Retornando: ${drivers.length} ${role || 'conductores/ayudantes'}`);
       res.json(drivers);
