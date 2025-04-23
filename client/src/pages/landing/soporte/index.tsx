@@ -49,7 +49,7 @@ export default function SoportePage() {
               <Button variant="ghost" className="font-medium bg-primary/10">Soporte</Button>
             </Link>
             <Link href="/contact">
-              <Button variant="ghost" className="font-medium">Demo</Button>
+              <Button variant="ghost" className="font-medium">Solicitar Demo</Button>
             </Link>
             <Link href="/contact">
               <Button variant="ghost" className="font-medium">Contáctanos</Button>
@@ -85,7 +85,7 @@ export default function SoportePage() {
                       <div className="block p-2 text-base font-medium bg-primary/10 rounded-md">Soporte</div>
                     </Link>
                     <Link href="/contact">
-                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Demo</div>
+                      <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Solicitar Demo</div>
                     </Link>
                     <Link href="/contact">
                       <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Contáctanos</div>
@@ -324,28 +324,28 @@ export default function SoportePage() {
             <div>
               <h3 className="text-lg font-medium mb-4">Producto</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/features" className="text-muted-foreground hover:text-foreground">Características</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Características</span></li>
                 <li><Link href="/planes" className="text-muted-foreground hover:text-foreground">Planes y precios</Link></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Solicitar demo</Link></li>
-                <li><Link href="/security" className="text-muted-foreground hover:text-foreground">Seguridad</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Seguridad</span></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-medium mb-4">Soporte</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/help" className="text-muted-foreground hover:text-foreground">Centro de ayuda</Link></li>
-                <li><Link href="/documentation" className="text-muted-foreground hover:text-foreground">Documentación</Link></li>
+                <li><Link href="/soporte" className="text-muted-foreground hover:text-foreground">Centro de ayuda</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Documentación</span></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contacto</Link></li>
-                <li><Link href="/status" className="text-muted-foreground hover:text-foreground">Estado del sistema</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Estado del sistema</span></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-medium mb-4">Empresa</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/about" className="text-muted-foreground hover:text-foreground">Acerca de nosotros</Link></li>
-                <li><Link href="/blog" className="text-muted-foreground hover:text-foreground">Blog</Link></li>
-                <li><Link href="/careers" className="text-muted-foreground hover:text-foreground">Trabaja con nosotros</Link></li>
-                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Política de privacidad</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Acerca de nosotros</span></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Blog</span></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Trabaja con nosotros</span></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Política de privacidad</span></li>
               </ul>
             </div>
           </div>
