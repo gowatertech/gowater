@@ -511,8 +511,8 @@ export async function registerRoutes(router: express.Router) {
       const userId = parseInt(req.params.id);
       const [user] = await db
         .select()
-        .from(users)
-        .where(eq(users.id, userId));
+        .from(usersSimple)
+        .where(eq(usersSimple.id, userId));
       
       if (!user) {
         return res.status(404).json({ error: "Usuario no encontrado" });
@@ -542,8 +542,8 @@ export async function registerRoutes(router: express.Router) {
       // Verificar si el username ya existe
       const existingUser = await db
         .select()
-        .from(users)
-        .where(eq(users.username, userData.username));
+        .from(usersSimple)
+        .where(eq(usersSimple.username, userData.username));
         
       if (existingUser.length > 0) {
         return res.status(400).json({ 

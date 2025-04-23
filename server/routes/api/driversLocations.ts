@@ -1,6 +1,5 @@
 import { Express, Request, Response } from "express";
-import { db } from "../../db";
-import { users } from "@shared/schema";
+import { db, usersSimple } from "../../db";
 import { eq, and } from "drizzle-orm";
 
 // Endpoint para obtener las ubicaciones de los conductores
@@ -10,11 +9,11 @@ export function registerDriversLocationsEndpoint(app: Express) {
       // Consultar los conductores (usuarios con rol driver)
       const drivers = await db
         .select({
-          id: users.id,
-          name: users.name,
+          id: usersSimple.id,
+          name: usersSimple.name,
         })
-        .from(users)
-        .where(eq(users.role, "driver"));
+        .from(usersSimple)
+        .where(eq(usersSimple.role, "driver"));
       
       // Este endpoint simplemente devuelve la lista de conductores sin ubicaciones reales
       // Como acordamos, por ahora no mostraremos ubicaciones reales
