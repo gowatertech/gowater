@@ -14,6 +14,7 @@ import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
 import { subdomainDetectionMiddleware } from "./middleware/subdomain-detection.middleware";
+import testSubdomainRoutes from "./routes/test-subdomain";
 
 const app = express();
 
@@ -102,6 +103,10 @@ app.use((req, res, next) => {
     // Montar las rutas para gestionar empresas interesadas
     app.use("/api", interestedCompaniesRoutes);
     log("Interested companies routes registered successfully");
+    
+    // Montar la ruta de prueba para subdominio
+    app.use("/api/test-subdomain", testSubdomainRoutes);
+    log("Subdomain testing route registered successfully");
     
     // Crear servidor HTTP
     server = createServer(app);
