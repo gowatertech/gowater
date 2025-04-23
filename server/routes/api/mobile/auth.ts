@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import { db } from '../../../db';
-import { users } from '@shared/schema';
+import { usersSimple } from '../../../db';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
 
@@ -27,23 +27,10 @@ export function createMobileAuthRoutes(): Router {
     }
 
     try {
-      // Buscar el usuario por nombre de usuario (evitando el campo email que aún no existe en la tabla)
-      const [user] = await db.select({
-        id: users.id,
-        companyId: users.companyId,
-        name: users.name,
-        username: users.username,
-        password: users.password,
-        role: users.role,
-        active: users.active,
-        phone: users.phone,
-        license: users.license,
-        licenseExpiry: users.licenseExpiry,
-        hireDate: users.hireDate,
-        emergencyContact: users.emergencyContact,
-        currentLocation: users.currentLocation,
-        lastLocationUpdate: users.lastLocationUpdate
-      }).from(users).where(eq(users.username, username));
+      // Buscar el usuario por nombre de usuario usando el esquema simplificado sin email
+      const [user] = await db.select()
+        .from(usersSimple)
+        .where(eq(usersSimple.username, username));
       
       // Imprimir la estructura completa del usuario para depuración
       console.log("Usuario encontrado:", JSON.stringify(user));
@@ -148,23 +135,9 @@ export function createMobileAuthRoutes(): Router {
     
     try {
       // Buscar el usuario en la base de datos para asegurarnos de tener los datos actualizados
-      const [user] = await db.select({
-        id: users.id,
-        companyId: users.companyId,
-        name: users.name,
-        username: users.username,
-        role: users.role,
-        active: users.active,
-        phone: users.phone,
-        license: users.license,
-        licenseExpiry: users.licenseExpiry,
-        hireDate: users.hireDate,
-        emergencyContact: users.emergencyContact,
-        currentLocation: users.currentLocation,
-        lastLocationUpdate: users.lastLocationUpdate
-      })
-      .from(users)
-      .where(eq(users.id, req.session.user.id));
+      const [user] = await db.select()
+        .from(usersSimple)
+        .where(eq(usersSimple.id, req.session.user.id));
       
       if (!user) {
         // Si el usuario ya no existe en la base de datos, cerrar sesión

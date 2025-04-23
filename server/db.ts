@@ -1,7 +1,33 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from "@shared/schema";
+import * as fullSchema from "@shared/schema";
+import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+
+// Crear un esquema simplificado sin la columna email para la consulta actual
+// hasta que se realice la migración para añadir email a la tabla
+export const usersSimple = pgTable("users", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(),
+  name: text("name").notNull(),
+  username: text("username").notNull(),
+  password: text("password").notNull(),
+  role: text("role").notNull(),
+  active: boolean("active").notNull().default(true),
+  phone: text("phone"),
+  license: text("license"),
+  licenseExpiry: timestamp("license_expiry", { mode: 'string' }),
+  hireDate: timestamp("hire_date").notNull().defaultNow(),
+  emergencyContact: text("emergency_contact"),
+  currentLocation: text("current_location"),
+  lastLocationUpdate: timestamp("last_location_update"),
+});
+
+// Crear esquema simplificado para usar en las consultas actuales
+const schemaSimple = {
+  ...fullSchema,
+  users: usersSimple,
+};
 
 neonConfig.webSocketConstructor = ws;
 
@@ -21,4 +47,4 @@ if (!companyDbUrl) {
 }
 
 export const pool = new Pool({ connectionString: companyDbUrl });
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle({ client: pool, schema: schemaSimple });
