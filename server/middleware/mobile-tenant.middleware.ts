@@ -27,11 +27,11 @@ export function mobileApiTenantMiddleware(req: Request, res: Response, next: Nex
   // Prioridad 1: Obtener companyId del usuario autenticado
   if (req.user) {
     if ('companyId' in req.user && req.user.companyId) {
-      companyId = req.user.companyId;
+      companyId = Number(req.user.companyId);
       console.log("MobileAPI - Usando companyId del usuario:", companyId);
-    } else if ('company_id' in req.user && req.user.company_id) {
+    } else if ('company_id' in req.user && (req.user as any).company_id) {
       // Soporte para company_id (DB) vs companyId (schema)
-      companyId = req.user.company_id;
+      companyId = Number((req.user as any).company_id);
       console.log("MobileAPI - Usando company_id del usuario:", companyId);
     }
   } 

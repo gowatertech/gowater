@@ -491,7 +491,7 @@ export function createMobileApiEndpoints(): Router {
 }
 
 // Importar las dependencias usando ESM
-import { createMobileAuthRoutes } from './api/mobile/auth';
+import { createMobileAuthRoutes } from '../routes/api/mobile/auth';
 import { mobileApiTenantMiddleware } from '../middleware/mobile-tenant.middleware';
 
 /**

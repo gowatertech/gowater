@@ -75,10 +75,11 @@ export function createMobileAuthRoutes(): Router {
       
       // Guardar información del usuario y companyId en la sesión
       req.session.user = userWithoutPassword;
-      // user.company_id es el valor correcto de la base de datos
-      req.session.companyId = user.company_id;
+      // Asegurar que usamos la propiedad correcta para el ID de empresa
+      // En la DB es company_id pero en el esquema es companyId
+      req.session.companyId = user.companyId || (user as any).company_id;
       
-      console.log(`Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${user.company_id}`);
+      console.log(`Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${req.session.companyId}`);
       
       // Responder con éxito y los datos del usuario (sin contraseña)
       return res.status(200).json({
