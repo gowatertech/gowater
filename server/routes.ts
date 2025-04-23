@@ -558,9 +558,14 @@ export async function registerRoutes(router: express.Router) {
         hireDate: new Date()
       };
       
-      // Crear el usuario
+      // Eliminar el campo email si existe para usar usersSimple
+      if (insertData.email) {
+        delete insertData.email;
+      }
+      
+      // Crear el usuario usando usersSimple en lugar de users
       const [newUser] = await db
-        .insert(users)
+        .insert(usersSimple)
         .values(insertData)
         .returning();
       
