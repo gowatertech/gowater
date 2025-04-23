@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { ThemeThumbnail } from "@/components/theme/ThemeThumbnail";
 import {
   Users,
   Route,
@@ -237,7 +236,6 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
               GoWater
             </span>
           </div>
-          <ThemeThumbnail />
         </div>
       </UISidebarHeader>
 
