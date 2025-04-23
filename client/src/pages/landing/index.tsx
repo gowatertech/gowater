@@ -10,157 +10,17 @@ import {
   LifeBuoy, 
   ChevronRight, 
   Phone,
-  Menu,
   ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import MobileAppShowcase from "@/components/landing/MobileAppShowcase";
+import { LandingHeader } from "@/components/landing/LandingHeader";
 
 // Componente de la landing page
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header con menú de navegación */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-blue-50">
-              <Droplet className="h-6 w-6 text-primary" />
-            </div>
-            <span className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-              GoWater
-            </span>
-          </div>
-
-          {/* Menú de navegación principal */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/">
-              <Button variant="ghost" className="font-medium">Inicio</Button>
-            </Link>
-            <Link href="/planes">
-              <Button variant="ghost" className="font-medium">Planes</Button>
-            </Link>
-            <Link href="/soporte">
-              <Button variant="ghost" className="font-medium">Soporte</Button>
-            </Link>
-            <a href="#app-mobile" onClick={(e) => {
-                e.preventDefault();
-                const element = document.getElementById('app-mobile');
-                if (element) {
-                  element.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}>
-              <Button variant="ghost" className="font-medium">App Móvil</Button>
-            </a>
-            <Link href="/contact">
-              <Button variant="ghost" className="font-medium">Solicitar Demo</Button>
-            </Link>
-            <Link href="/contact">
-              <Button variant="ghost" className="font-medium">Contáctanos</Button>
-            </Link>
-          </div>
-
-          {/* Menú móvil (hamburguesa) */}
-          <div className="md:hidden">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-primary">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="p-0">
-                <div className="p-6 space-y-6">
-                  <div className="flex items-center gap-2 mb-8">
-                    <div className="p-1.5 rounded-md bg-blue-50">
-                      <Droplet className="h-6 w-6 text-primary" />
-                    </div>
-                    <span className="text-xl font-semibold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-                      GoWater
-                    </span>
-                  </div>
-                  <nav className="space-y-4">
-                    <SheetClose asChild>
-                      <Link href="/">
-                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Inicio</div>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/planes">
-                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Planes</div>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/soporte">
-                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Soporte</div>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <a href="#app-mobile" onClick={(e) => {
-                        e.preventDefault();
-                        const element = document.getElementById('app-mobile');
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      }}>
-                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">App Móvil</div>
-                      </a>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/contact">
-                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Solicitar Demo</div>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/contact">
-                        <div className="block p-2 text-base font-medium hover:bg-muted rounded-md">Contáctanos</div>
-                      </Link>
-                    </SheetClose>
-                  </nav>
-                  <div className="pt-6 border-t space-y-4">
-                    <SheetClose asChild>
-                      <Link href="/dashboard">
-                        <Button variant="outline" className="w-full">Iniciar sesión</Button>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/platform/login">
-                        <Button variant="outline" className="w-full">Login ADM</Button>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/mobile-app/login">
-                        <Button variant="outline" className="w-full">Login APP</Button>
-                      </Link>
-                    </SheetClose>
-                    <SheetClose asChild>
-                      <Link href="/register-interest">
-                        <Button className="w-full">Registrar interés</Button>
-                      </Link>
-                    </SheetClose>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* Botones de acción */}
-          <div className="hidden md:flex gap-4 items-center">
-            <Link href="/dashboard">
-              <Button variant="ghost">Iniciar sesión</Button>
-            </Link>
-            <Link href="/platform/login">
-              <Button variant="ghost">Login ADM</Button>
-            </Link>
-            <Link href="/mobile-app/login">
-              <Button variant="ghost">Login APP</Button>
-            </Link>
-            <Link href="/register-interest">
-              <Button>Registrar interés</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       <main className="flex-1">
         {/* Hero section */}
