@@ -115,20 +115,53 @@ export function createMobileApiEndpoints(): Router {
       // Enriquecer cada orden con los productos
       for (const order of result) {
         // Usar db en lugar de companyDb para diagnóstico
-        const items = await db.select()
-          .from(orderItems)
-          .where(and(
-            eq(orderItems.orderId, order.id),
-            eq(orderItems.companyId, companyId)
-          ));
+        const items = await db.select({
+          id: orderItems.id,
+          orderId: orderItems.orderId,
+          productId: orderItems.productId,
+          quantity: orderItems.quantity,
+          price: orderItems.price
+        })
+        .from(orderItems)
+        .where(and(
+          eq(orderItems.orderId, order.id),
+          eq(orderItems.companyId, companyId)
+        ));
+        
+        // Obtener los nombres de los productos de una manera más simple
+        const productsInfo = await Promise.all(
+          items.map(async (item) => {
+            try {
+              // Buscar el producto por ID
+              const productResult = await db.execute(`
+                SELECT name FROM products 
+                WHERE id = ${item.productId} AND company_id = ${companyId}
+              `);
+              
+              const productName = productResult.rows && productResult.rows.length > 0 
+                ? productResult.rows[0].name 
+                : "Producto";
+                
+              return {
+                productId: item.productId,
+                name: productName,
+                quantity: item.quantity,
+                price: item.price
+              };
+            } catch (err) {
+              console.error(`Error al obtener producto #${item.productId}:`, err);
+              return {
+                productId: item.productId,
+                name: "Producto",
+                quantity: item.quantity,
+                price: item.price
+              };
+            }
+          })
+        );
           
         // Añadir productos a la orden
-        order.products = items.map(item => ({
-          productId: item.productId,
-          name: item.productName || "Producto",
-          quantity: item.quantity,
-          price: item.price
-        }));
+        order.products = productsInfo;
       }
       
       console.log(`MobileAPI - Se encontraron ${result.length} órdenes`);
