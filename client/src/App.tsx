@@ -196,7 +196,6 @@ function Router() {
             <MobileAppLogin />
           </Suspense>
         </Route>
-        <Route path="/mobile-app" component={MobileApp} />
         <Route path="/mobile-app/rutas-pendientes" component={MobilePendingRoutes} />
         <Route path="/mobile-app/ruta" component={MobileRoute} />
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
@@ -208,6 +207,8 @@ function Router() {
             <MobileMap />
           </Suspense>
         </Route>
+        {/* La ruta genérica debe ir al final */}
+        <Route path="/mobile-app" component={MobileApp} />
       </Switch>
     );
   }
