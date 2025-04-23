@@ -104,8 +104,9 @@ app.use((req, res, next) => {
     app.use("/api", interestedCompaniesRoutes);
     log("Interested companies routes registered successfully");
     
-    // Montar la ruta de prueba para subdominio
-    app.use("/api/test-subdomain", testSubdomainRoutes);
+    // Montar la ruta de prueba para subdominio en el router de plataforma
+    // No usamos el router de compañías para evitar que sobrescriba el companyId detectado
+    platformApiRouter.use("/test-subdomain", testSubdomainRoutes);
     log("Subdomain testing route registered successfully");
     
     // Crear servidor HTTP
