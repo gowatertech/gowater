@@ -1,5 +1,5 @@
 import express, { Router, Request, Response } from 'express';
-import { db } from '../../../db';
+import { db, pool } from '../../../db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcrypt';
@@ -31,15 +31,24 @@ export function createMobileAuthRoutes(): Router {
       const companyId = req.session.companyId;
       console.log(`Buscando usuario en compañía ID: ${companyId}`);
       
-      // Buscar el usuario por nombre de usuario y compañía
-      let userQuery = db.select().from(users).where(eq(users.username, username));
+      // Usar una consulta SQL nativa para evitar problemas con discrepancias de esquema
+      const query = `
+        SELECT id, company_id as "companyId", name, username, password, role, active, 
+          phone, license, license_expiry as "licenseExpiry", 
+          emergency_contact as "emergencyContact", 
+          current_location as "currentLocation", 
+          last_location_update as "lastLocationUpdate"
+        FROM users 
+        WHERE username = $1
+        ${companyId ? "AND company_id = $2" : ""}
+      `;
       
-      // Si tenemos un companyId en la sesión, filtrar por esa empresa
-      if (companyId) {
-        userQuery = userQuery.where(eq(users.companyId, companyId));
-      }
+      // Ejecutar la consulta con los parámetros adecuados
+      const params = companyId ? [username, companyId] : [username];
+      const result = await pool.query(query, params);
       
-      const [user] = await userQuery;
+      // Obtener el primer usuario (si existe)
+      const user = result.rows[0];
       
       // Imprimir la estructura completa del usuario para depuración
       console.log("Usuario encontrado:", user ? JSON.stringify(user) : "No encontrado");
@@ -149,14 +158,16 @@ export function createMobileAuthRoutes(): Router {
       if (req.session.companyId) {
         // Importar lo necesario para buscar la empresa
         const { platformDb } = require('../../../platform-db');
-        const { companies } = require('@shared/platform-schema');
-        const { eq } = require('drizzle-orm');
         
-        // Buscar la empresa por ID
-        const [company] = await platformDb
-          .select()
-          .from(companies)
-          .where(eq(companies.id, req.session.companyId));
+        // Usar SQL nativo para evitar problemas de esquema
+        const query = `
+          SELECT id, name, subdomain, active
+          FROM companies
+          WHERE id = $1
+        `;
+        
+        const result = await platformDb.connection.query(query, [req.session.companyId]);
+        const company = result.rows[0];
         
         if (company) {
           // Incluir solo la información relevante de la empresa
