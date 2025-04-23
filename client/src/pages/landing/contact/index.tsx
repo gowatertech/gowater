@@ -340,10 +340,10 @@ export default function ContactPage() {
             <div>
               <h3 className="text-lg font-medium mb-4">Empresa</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/about" className="text-muted-foreground hover:text-foreground">Sobre Nosotros</Link></li>
-                <li><Link href="/blog" className="text-muted-foreground hover:text-foreground">Blog</Link></li>
-                <li><Link href="/careers" className="text-muted-foreground hover:text-foreground">Empleo</Link></li>
-                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Política de Privacidad</Link></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Sobre Nosotros</span></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Blog</span></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Empleo</span></li>
+                <li><span className="text-muted-foreground cursor-not-allowed opacity-70">Política de Privacidad</span></li>
               </ul>
             </div>
           </div>
