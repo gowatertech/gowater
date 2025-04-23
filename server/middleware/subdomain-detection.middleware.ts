@@ -61,15 +61,18 @@ export function subdomainDetectionMiddleware(req: Request, res: Response, next: 
               req.session.user.companyId = company.id;
             }
           }
+          // Continuar con la petición después de configurar la empresa
+          next();
         } else {
           console.log(`Subdominio no encontrado: ${subdomain}`);
+          // Continuar con la petición aunque no se haya encontrado la empresa
+          next();
         }
       } catch (error) {
         console.error(`Error al buscar empresa por subdominio ${subdomain}:`, error);
+        // En caso de error, continuar con la petición
+        next();
       }
-      
-      // Siempre continuar con la petición
-      next();
     })();
   } else {
     // Si no hay subdominio, simplemente continuar

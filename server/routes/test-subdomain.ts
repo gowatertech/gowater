@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { platformDb } from '../platform-db';
 import { companies } from '@shared/platform-schema';
+import { eq } from 'drizzle-orm';
+import { getCurrentCompanyId } from '../company-db';
 
 const router = Router();
 
@@ -31,11 +33,30 @@ router.get('/', async (req: Request, res: Response) => {
     } : null
   };
   
+  // Detectar la empresa actual basada en el subdominio
+  let detectedCompany = null;
+  if (detectedSubdomain && detectedSubdomain !== 'localhost') {
+    const [company] = await platformDb
+      .select()
+      .from(companies)
+      .where(eq(companies.subdomain, detectedSubdomain));
+    
+    if (company) {
+      detectedCompany = {
+        id: company.id,
+        name: company.name,
+        subdomain: company.subdomain
+      };
+    }
+  }
+  
   // Responder con información de diagnóstico
   res.json({
     hostname,
     detectedSubdomain,
     session: sessionInfo,
+    detectedCompany,
+    currentCompanyId: getCurrentCompanyId() || null,
     allCompanies: allCompanies.map(company => ({
       id: company.id,
       name: company.name,
