@@ -289,9 +289,9 @@ export default function SoportePage() {
               Más que un proveedor de software, somos su socio en la optimización de operaciones de distribución de agua
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/platform/register">
+              <Link href="/register-interest">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                  Empezar ahora
+                  Registrar interés
                 </Button>
               </Link>
               <Link href="/contact">
