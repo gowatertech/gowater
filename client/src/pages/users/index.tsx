@@ -88,17 +88,12 @@ export default function Users() {
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest("POST", "/api/users", data);
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Error response:', error);
-        // Verificar si es un error de usuario duplicado
-        if (error.error?.includes('duplicate key value violates unique constraint "users_username_unique"')) {
-          throw new Error('Este usuario ya existe');
-        }
-        throw new Error(error.error || 'Error al crear usuario');
-      }
-      return response.json();
+      // Utilizar directamente apiRequest que ya maneja la lógica de errores y JSON
+      return apiRequest({
+        url: "/api/users",
+        method: "POST",
+        data: data
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -121,12 +116,12 @@ export default function Users() {
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const response = await apiRequest("PUT", `/api/users/${id}`, data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al actualizar usuario');
-      }
-      return response.json();
+      // Utilizar directamente apiRequest que ya maneja la lógica de errores y JSON
+      return apiRequest({
+        url: `/api/users/${id}`,
+        method: "PUT",
+        data: data
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -149,12 +144,11 @@ export default function Users() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/users/${id}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al eliminar usuario');
-      }
-      return response.json();
+      // Utilizar directamente apiRequest que ya maneja la lógica de errores y JSON
+      return apiRequest({
+        url: `/api/users/${id}`,
+        method: "DELETE"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
