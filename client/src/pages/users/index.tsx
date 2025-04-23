@@ -69,9 +69,15 @@ export default function Users() {
     queryKey: ["/api/users"],
   });
 
-  // Formulario
+  // Formulario con esquema de validación condicional
+  const formSchema = editingUser
+    ? insertUserSchema.extend({
+        password: insertUserSchema.shape.password.optional(),
+      })
+    : insertUserSchema;
+
   const form = useForm({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       username: "",
@@ -172,9 +178,20 @@ export default function Users() {
     try {
       // Si estamos editando, proceder con la actualización
       if (editingUser) {
+        // Preparar datos para la actualización
+        const updateData = {
+          ...data,
+          licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
+        };
+
+        // Si la contraseña está vacía, eliminarla del objeto para no actualizarla
+        if (!updateData.password) {
+          delete updateData.password;
+        }
+
         await updateUserMutation.mutateAsync({
           id: editingUser.id,
-          data
+          data: updateData
         });
         return;
       }
