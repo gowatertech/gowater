@@ -124,6 +124,11 @@ export default function LandingPage() {
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
+                      <Link href="/platform/login">
+                        <Button variant="outline" className="w-full">Login ADM</Button>
+                      </Link>
+                    </SheetClose>
+                    <SheetClose asChild>
                       <Link href="/register-interest">
                         <Button className="w-full">Registrar interés</Button>
                       </Link>
@@ -138,6 +143,9 @@ export default function LandingPage() {
           <div className="hidden md:flex gap-4 items-center">
             <Link href="/dashboard">
               <Button variant="ghost">Iniciar sesión</Button>
+            </Link>
+            <Link href="/platform/login">
+              <Button variant="ghost">Login ADM</Button>
             </Link>
             <Link href="/register-interest">
               <Button>Registrar interés</Button>
