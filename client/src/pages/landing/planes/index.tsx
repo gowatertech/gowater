@@ -93,8 +93,8 @@ function Header() {
                   <Link href="/platform/login">
                     <Button variant="outline" className="w-full">Iniciar sesión</Button>
                   </Link>
-                  <Link href="/platform/register">
-                    <Button className="w-full">Registrarse</Button>
+                  <Link href="/register-interest">
+                    <Button className="w-full">Registrar interés</Button>
                   </Link>
                 </div>
               </div>
@@ -107,8 +107,8 @@ function Header() {
           <Link href="/platform/login">
             <Button variant="ghost">Iniciar sesión</Button>
           </Link>
-          <Link href="/platform/register">
-            <Button>Registrarse</Button>
+          <Link href="/register-interest">
+            <Button>Registrar interés</Button>
           </Link>
         </div>
       </div>
@@ -187,7 +187,7 @@ function PlanCard({ plan, recommended = false }: { plan: Plan, recommended?: boo
         </div>
       </CardContent>
       <CardFooter className="mt-auto p-3 pt-2">
-        <Link href={`/platform/register?plan=${plan.id}`} className="w-full">
+        <Link href={`/register-interest?plan=${plan.id}`} className="w-full">
           <Button 
             variant={buttonVariant} 
             size="sm"
@@ -430,9 +430,9 @@ export default function PlanesPage() {
               Optimice sus operaciones de distribución de agua con nuestra plataforma especializada
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/platform/register">
+              <Link href="/register-interest">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
-                  Registrarse ahora
+                  Registrar interés
                 </Button>
               </Link>
               <Link href="/contact">
