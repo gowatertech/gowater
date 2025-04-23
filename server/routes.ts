@@ -580,8 +580,8 @@ export async function registerRoutes(router: express.Router) {
       // Verificar si el usuario existe
       const [existingUser] = await db
         .select()
-        .from(users)
-        .where(eq(users.id, userId));
+        .from(usersSimple)
+        .where(eq(usersSimple.id, userId));
         
       if (!existingUser) {
         return res.status(404).json({ error: "Usuario no encontrado" });
@@ -600,9 +600,9 @@ export async function registerRoutes(router: express.Router) {
       
       // Actualizar el usuario
       const [updatedUser] = await db
-        .update(users)
+        .update(usersSimple)
         .set(updateData)
-        .where(eq(users.id, userId))
+        .where(eq(usersSimple.id, userId))
         .returning();
       
       res.json(updatedUser);
@@ -620,8 +620,8 @@ export async function registerRoutes(router: express.Router) {
       // Verificar si el usuario existe
       const [existingUser] = await db
         .select()
-        .from(users)
-        .where(eq(users.id, userId));
+        .from(usersSimple)
+        .where(eq(usersSimple.id, userId));
         
       if (!existingUser) {
         return res.status(404).json({ error: "Usuario no encontrado" });
@@ -629,9 +629,9 @@ export async function registerRoutes(router: express.Router) {
       
       // Marcar como inactivo en lugar de eliminar
       const [deletedUser] = await db
-        .update(users)
+        .update(usersSimple)
         .set({ active: false })
-        .where(eq(users.id, userId))
+        .where(eq(usersSimple.id, userId))
         .returning();
       
       res.json(deletedUser);
@@ -829,9 +829,9 @@ export async function registerRoutes(router: express.Router) {
       
       if (route.driverId) {
         const driverData = await db
-          .select({ name: users.name })
-          .from(users)
-          .where(eq(users.id, route.driverId))
+          .select({ name: usersSimple.name })
+          .from(usersSimple)
+          .where(eq(usersSimple.id, route.driverId))
           .limit(1);
           
         if (driverData.length > 0) {
@@ -841,9 +841,9 @@ export async function registerRoutes(router: express.Router) {
       
       if (route.assistantId) {
         const assistantData = await db
-          .select({ name: users.name })
-          .from(users)
-          .where(eq(users.id, route.assistantId))
+          .select({ name: usersSimple.name })
+          .from(usersSimple)
+          .where(eq(usersSimple.id, route.assistantId))
           .limit(1);
           
         if (assistantData.length > 0) {
