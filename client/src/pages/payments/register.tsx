@@ -118,9 +118,10 @@ export default function RegisterPayment() {
       invoiceId: selectedInvoice.id,
       customerId: selectedInvoice.customerId,
       amount: paymentAmount,
-      // Usar la forma correcta según el esquema (paymentMethod vs método)
-      paymentMethod: paymentMethod, 
-      notes: paymentNotes || undefined
+      paymentMethod: paymentMethod,
+      notes: paymentNotes || undefined,
+      // El backend agregará el companyId del contexto, pero lo incluimos por si acaso
+      companyId: selectedInvoice.companyId
     };
 
     console.log("Enviando datos de pago:", paymentData);
