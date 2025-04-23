@@ -45,10 +45,10 @@ export function createMobileAuthRoutes(): Router {
         });
       }
       
-      // Verificar la contraseña (usando bcrypt)
-      const validPassword = await bcrypt.compare(password, user.password);
+      // Verificar la contraseña (comparando directamente ya que está en texto plano)
+      const validPassword = password === user.password;
       if (!validPassword) {
-        console.log(`Login fallido: Contraseña incorrecta para usuario: ${username}`);
+        console.log(`Login fallido: Contraseña incorrecta para usuario: ${username}. Esperada: ${user.password}, Recibida: ${password}`);
         return res.status(401).json({ 
           success: false, 
           message: "Credenciales inválidas"
