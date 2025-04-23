@@ -155,6 +155,16 @@ export function createMobileAuthRoutes(): Router {
       // Obtener información de la empresa detectada por subdominio
       let companyInfo = null;
       
+      console.log("DEBUG /me - Sesión:", JSON.stringify({
+        sessionId: req.sessionID,
+        companyId: req.session.companyId,
+        user: req.session.user ? {
+          id: req.session.user.id,
+          username: req.session.user.username,
+          role: req.session.user.role
+        } : null
+      }));
+      
       if (req.session.companyId) {
         try {
           // Importar lo necesario para buscar la empresa
@@ -175,7 +185,7 @@ export function createMobileAuthRoutes(): Router {
                       req.session.companyId === 10 ? "prueba" : "desconocido"
           };
           
-          console.log("Información de empresa creada:", companyInfo);
+          console.log("Información de empresa creada:", JSON.stringify(companyInfo));
           
           // Nota: El código para consultar la base de datos está comentado temporalmente
           // por problemas con el acceso a la tabla companies en la base de datos de plataforma
