@@ -2,6 +2,22 @@ import { Request, Response, NextFunction } from 'express';
 import { setCurrentCompanyId } from '../company-db';
 
 /**
+ * Middleware para verificar la autenticación del usuario móvil
+ */
+export function mobileAuthMiddleware(req: Request, res: Response, next: NextFunction) {
+  if (!req.session || !req.session.user) {
+    console.log("Autenticación móvil fallida: No hay usuario en la sesión");
+    return res.status(401).json({
+      success: false,
+      message: "No autenticado"
+    });
+  }
+  
+  console.log("Usuario móvil autenticado:", req.session.user.username);
+  next();
+}
+
+/**
  * Middleware para gestionar el tenant (empresa) en la app móvil
  * Prioriza el companyId del usuario autenticado
  */
