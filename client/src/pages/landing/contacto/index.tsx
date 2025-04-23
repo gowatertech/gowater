@@ -4,13 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   Droplet, 
-  Menu, 
   PhoneCall, 
   Mail,
   Clock,
   MapPin
 } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { LandingHeader } from "@/components/landing/LandingHeader";
 
 // Componente de la página de contacto
 export default function ContactoPage() {
