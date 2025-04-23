@@ -13,6 +13,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
+import { subdomainDetectionMiddleware } from "./middleware/subdomain-detection.middleware";
 
 const app = express();
 
@@ -32,6 +33,9 @@ const sessionConfig = {
 };
 
 app.use(session(sessionConfig));
+
+// Middleware para detección de subdominio - aplicado a nivel global para detectar la empresa
+app.use(subdomainDetectionMiddleware);
 
 // Creamos routers separados para APIs de empresas y plataforma
 const companyApiRouter = express.Router();
