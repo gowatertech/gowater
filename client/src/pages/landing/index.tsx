@@ -119,7 +119,7 @@ export default function LandingPage() {
                   </nav>
                   <div className="pt-6 border-t space-y-4">
                     <SheetClose asChild>
-                      <Link href="/platform/dashboard">
+                      <Link href="/dashboard">
                         <Button variant="outline" className="w-full">Iniciar sesión</Button>
                       </Link>
                     </SheetClose>
@@ -136,7 +136,7 @@ export default function LandingPage() {
 
           {/* Botones de acción */}
           <div className="hidden md:flex gap-4 items-center">
-            <Link href="/platform/dashboard">
+            <Link href="/dashboard">
               <Button variant="ghost">Iniciar sesión</Button>
             </Link>
             <Link href="/register-interest">
