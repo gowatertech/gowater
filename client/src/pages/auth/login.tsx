@@ -50,12 +50,12 @@ export default function LoginPage() {
 
   // Manejar la autenticación
   const loginMutation = useMutation({
-    mutationFn: async (data: LoginData) => {
-      return await apiRequest("/api/login", {
+    mutationFn: (data: LoginData) =>
+      apiRequest({
+        url: "/api/login",
         method: "POST",
-        data
-      });
-    },
+        data,
+      }),
     onSuccess: () => {
       toast({
         title: "Inicio de sesión exitoso",
