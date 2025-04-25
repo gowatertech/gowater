@@ -14,6 +14,7 @@ import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
 import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
+import { registerTestAPIRoutes } from "./test-api";
 import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
 
 const app = express();
