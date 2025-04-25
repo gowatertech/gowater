@@ -1438,14 +1438,16 @@ export async function registerRoutes(router: express.Router) {
   // Endpoints para estadísticas del dashboard
   router.get("/dashboard/stats", async (req, res) => {
     try {
+      console.log("GET /api/dashboard/stats - Obteniendo estadísticas del dashboard");
       // Obtener el año actual y fechas
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
+      console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
       // Consulta para obtener el total de ventas del año actual
-      const totalSales = await db
+      const totalSales = await companyDb
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
