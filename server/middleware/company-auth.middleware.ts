@@ -87,27 +87,31 @@ export async function loginWithEmail(req: Request, res: Response) {
     // Verificar la contraseña
     let validPassword = false;
     
-    // Intentar verificar con bcrypt primero
-    try {
-      validPassword = await bcrypt.compare(password, user.password);
-    } catch (e) {
-      console.log(`Error en la verificación de bcrypt: ${e.message}`);
-      
-      // Solo como fallback para cuentas antiguas (TEMPORAL - se debe migrar a bcrypt)
-      // NOTA: Esta verificación debe eliminarse una vez que todas las contraseñas sean hashes bcrypt
-      if (process.env.NODE_ENV !== 'production') {
-        validPassword = password === user.password;
-        
-        // Si coincide con la versión de texto plano, deberíamos actualizar a hash bcrypt
-        if (validPassword) {
-          console.log(`ADVERTENCIA: Usuario ${email} tiene contraseña en texto plano. Actualizando a bcrypt...`);
-          try {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            await storage.updateUserPassword(user.id, hashedPassword);
-          } catch (hashError) {
-            console.error(`Error al actualizar contraseña a bcrypt: ${hashError.message}`);
-          }
-        }
+    // La mayoría de las contraseñas aún están en texto plano, así que comprobamos primero eso
+    validPassword = password === user.password;
+    
+    // Si la contraseña de texto plano coincide, debemos actualizar a bcrypt (si no estamos en producción)
+    if (validPassword && process.env.NODE_ENV !== 'production') {
+      console.log(`ADVERTENCIA: Usuario ${email} tiene contraseña en texto plano. Debería actualizarse a bcrypt.`);
+      // Descomentar para habilitar la actualización automática a bcrypt:
+      /*
+      try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await storage.updateUserPassword(user.id, hashedPassword);
+        console.log(`Contraseña de ${email} actualizada a formato bcrypt.`);
+      } catch (hashError) {
+        console.error(`Error al actualizar contraseña a bcrypt: ${hashError}`);
+      }
+      */
+    }
+    
+    // Si no coincide como texto plano, intentamos con bcrypt
+    if (!validPassword) {
+      try {
+        validPassword = await bcrypt.compare(password, user.password);
+      } catch (e) {
+        console.log(`Error en la verificación de bcrypt: ${e}`);
+        // Esto es normal si la contraseña no está hasheada con bcrypt
       }
     }
     
