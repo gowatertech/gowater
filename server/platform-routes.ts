@@ -706,12 +706,44 @@ export function registerPlatformRoutes(router: Router) {
         return res.status(404).json({ message: "Usuario no encontrado" });
       }
       
+      console.log(`[DELETE USER] Eliminando usuario de plataforma ID=${id}, email=${user.email}`);
+      
+      // Si el usuario tiene email, buscar y eliminar usuario correspondiente en company
+      if (user.email) {
+        try {
+          console.log(`[DELETE USER] Buscando usuario correspondiente en company con email=${user.email}`);
+          
+          // Buscar usuario por email en la tabla de company
+          const companyUsers = await db
+            .select()
+            .from(users)
+            .where(eq(users.email, user.email));
+          
+          if (companyUsers.length > 0) {
+            for (const companyUser of companyUsers) {
+              console.log(`[DELETE USER] Eliminando usuario de compañía ID=${companyUser.id}, email=${companyUser.email}`);
+              
+              // Eliminar usuario de la compañía
+              await db
+                .delete(users)
+                .where(eq(users.id, companyUser.id));
+            }
+            console.log(`[DELETE USER] Se eliminaron ${companyUsers.length} usuarios de compañía`);
+          } else {
+            console.log(`[DELETE USER] No se encontraron usuarios de compañía con email=${user.email}`);
+          }
+        } catch (companyError) {
+          console.error("[DELETE USER] Error al eliminar usuario de compañía:", companyError);
+          // No detenemos el proceso si falla la eliminación del usuario de compañía
+        }
+      }
+      
       // Eliminar primero las asignaciones de compañías
       await platformDb
         .delete(userCompanies)
         .where(eq(userCompanies.userId, id));
       
-      // Luego eliminar el usuario
+      // Luego eliminar el usuario de plataforma
       await platformStorage.deletePlatformUser(id);
       
       res.status(200).json({ message: "Usuario eliminado correctamente" });
