@@ -1460,18 +1460,17 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
       
-      // Consulta para obtener el total de ventas del año actual
+      // Consulta para obtener el total de ventas (sin filtro de año para ver todos los datos)
       const totalSales = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
         .from(invoices)
         .where(
-          and(
-            sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
-            eq(invoices.companyId, effectiveCompanyId)
-          )
+          eq(invoices.companyId, effectiveCompanyId)
         );
+        
+      console.log("Total ventas (sin filtro de año):", totalSales);
 
       // Consulta para obtener el total de facturas pendientes de pago
       const pendingPayments = await db
@@ -1527,20 +1526,19 @@ export async function registerRoutes(router: express.Router) {
           )
         );
         
-      // Consulta para obtener ventas diarias (hoy)
+      // Consulta para obtener ventas diarias (todas, no solo de hoy)
       const dailySales = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
         .from(invoices)
         .where(
-          and(
-            sql`DATE(date) = DATE(${today})`,
-            eq(invoices.companyId, effectiveCompanyId)
-          )
+          eq(invoices.companyId, effectiveCompanyId)
         );
         
-      // Consulta para obtener tendencia de ventas semanales
+      console.log("Total ventas diarias (sin filtro de fecha):", dailySales);
+        
+      // Consulta para obtener tendencia de ventas (sin límite de 7 días)
       const weeklyTrend = await db
         .select({
           day: sql`DATE(date)`,
@@ -1548,13 +1546,12 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(invoices)
         .where(
-          and(
-            sql`date >= CURRENT_DATE - INTERVAL '7 days'`,
-            eq(invoices.companyId, effectiveCompanyId)
-          )
+          eq(invoices.companyId, effectiveCompanyId)
         )
         .groupBy(sql`DATE(date)`)
         .orderBy(sql`DATE(date)`);
+        
+      console.log("Tendencia de ventas (sin filtro de 7 días):", weeklyTrend);
 
       const stats = {
         totalSales: totalSales[0]?.total || 0,
@@ -1594,32 +1591,29 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
       
-      // Consulta para obtener el total de pagos del año
+      // Consulta para obtener el total de pagos (sin filtro de año)
       const yearlyPayments = await db
         .select({
           total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
         })
         .from(payments)
         .where(
-          and(
-            sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
-            eq(payments.companyId, effectiveCompanyId)
-          )
+          eq(payments.companyId, effectiveCompanyId)
         );
+        
+      console.log("Total pagos (sin filtro de año):", yearlyPayments);
 
-      // Consulta para obtener el total de pagos del mes actual
+      // Consulta para obtener el total de pagos (sin filtro de mes)
       const monthlyPayments = await db
         .select({
           total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
         })
         .from(payments)
         .where(
-          and(
-            sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
-            sql`EXTRACT(MONTH FROM date) = ${currentMonth}`,
-            eq(payments.companyId, effectiveCompanyId)
-          )
+          eq(payments.companyId, effectiveCompanyId)
         );
+        
+      console.log("Total pagos mensuales (sin filtro):", monthlyPayments);
 
       const stats = {
         yearlyPayments: yearlyPayments[0]?.total || 0,
