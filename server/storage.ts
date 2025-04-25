@@ -415,17 +415,23 @@ export class DatabaseStorage implements IStorage {
     
     console.log(`Actualizando pedido ${id} al estado '${status}'`);
 
-    // Método directo sin usar withCompanyUpdate
-    const [updatedOrder] = await db
+    // Obtenemos el companyId del contexto
+    const companyId = getCurrentCompanyId();
+    console.log(`CompanyId del contexto: ${companyId}`);
+
+    // Método directo usando la sintaxis más simple
+    console.log(`Ejecutando actualización: UPDATE orders SET status = '${status}' WHERE id = ${id} AND companyId = ${companyId}`);
+    
+    // Primero verificamos el SQL que se va a ejecutar
+    const query = db
       .update(orders)
       .set({ status })
-      .where(
-        and(
-          eq(orders.id, id),
-          eq(orders.companyId, getCurrentCompanyId() || 0)
-        )
-      )
-      .returning();
+      .where(eq(orders.id, id))
+      .where(eq(orders.companyId, companyId || 0));
+    
+    console.log("Query SQL a ejecutar:", query);
+    
+    const [updatedOrder] = await query.returning();
     
     console.log(`Pedido ${id} actualizado a '${status}'`, updatedOrder);
 
