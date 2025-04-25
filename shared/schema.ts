@@ -307,7 +307,7 @@ export const orderItems = pgTable("order_items", {
   productId: integer("product_id").notNull(),
   quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  // La columna total se calcula dinámicamente
+  total: decimal("total", { precision: 10, scale: 2 }), // Columna para el total calculado
 });
 
 // Relaciones para pedidos
@@ -357,6 +357,7 @@ export const insertOrderItemSchema = z.object({
   productId: z.number(),
   quantity: z.number(),
   price: z.string().regex(/^\d+\.\d{2}$/, "El precio debe tener 2 decimales"),
+  total: z.string().regex(/^\d+\.\d{2}$/, "El total debe tener 2 decimales"),
   companyId: z.number(),
 });
 

@@ -2827,7 +2827,7 @@ export async function registerRoutes(router: express.Router) {
           SELECT 
             id, order_id as "orderId", product_id as "productId",
             quantity, price as "unitPrice", 
-            (quantity * price::numeric) as "total"
+            total
           FROM order_items
           WHERE order_id = $1 AND company_id = $2
         `;
@@ -3000,7 +3000,7 @@ export async function registerRoutes(router: express.Router) {
           productName: products.name,
           quantity: orderItems.quantity,
           price: orderItems.price,
-          total: sql`${orderItems.quantity} * ${orderItems.price}::numeric`
+          total: orderItems.total
         })
         .from(orderItems)
         .innerJoin(products, eq(orderItems.productId, products.id))
@@ -3047,6 +3047,7 @@ export async function registerRoutes(router: express.Router) {
         productId: parseInt(productId.toString()),
         quantity: parseInt(quantity.toString()),
         price: typeof price === 'string' ? price : price.toFixed(2),
+        total: (parseInt(quantity.toString()) * parseFloat(typeof price === 'string' ? price : price.toFixed(2))).toFixed(2),
         companyId: companyId // Añadir campo requerido
       };
       
