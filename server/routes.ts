@@ -3073,7 +3073,7 @@ export async function registerRoutes(router: express.Router) {
   });
 
   // Endpoint para actualizar el estado de un pedido
-  router.patch("/orders/:id/status", async (req, res) => {
+  router.patch("/api/orders/:id/status", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       if (isNaN(orderId)) {
