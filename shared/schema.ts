@@ -614,6 +614,7 @@ export const insertCustomerOrdersSchema = z.object({
 // Company Settings
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
   logo: text("logo"),
   name: text("name").notNull(),
   rnc: text("rnc"),
@@ -643,6 +644,10 @@ export const settingsRelations = relations(settings, ({ one }) => ({
 }));
 
 export const insertSettingsSchema = z.object({
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   logo: z.any().optional(), // Permitir File o string
   name: z.string().min(1, "El nombre es requerido"),
   rnc: z.string().nullable(),
@@ -681,6 +686,10 @@ export const productionBatchItems = pgTable("production_batch_items", {
 });
 
 export const insertProductionBatchSchema = z.object({
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   warehouseId: z.number(),
   notes: z.string().optional(),
   status: z.enum(["pending", "completed"]).default("completed"),
@@ -846,6 +855,10 @@ export const vehicleLoadingItemsRelations = relations(vehicleLoadingItems, ({ on
 
 // Vehicle Loading schema update
 export const insertVehicleLoadingSchema = z.object({
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   truckId: z.number(),
   driverId: z.number(),
   assistantId: z.number().optional(),
@@ -918,6 +931,10 @@ export const routeSettlementItemsRelations = relations(routeSettlementItems, ({ 
 
 // Add schemas for validation
 export const insertRouteSettlementSchema = z.object({
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   vehicleLoadingId: z.number(),
   totalCashReceived: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   totalCreditReceived: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),

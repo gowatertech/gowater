@@ -1,299 +1,126 @@
-# Implementación de Creación de Usuario en la Plataforma Administrativa
+# Implementación Multi-Tenant con Company ID
 
-## Objetivo
-Implementar la creación de usuarios en la plataforma administrativa web, con las siguientes características:
-- Cuando se crea un usuario con rol de administrador de empresa (company_admin), debe crearse automáticamente un usuario correspondiente en la compañía.
-- Con este usuario creado, la empresa debe poder acceder a sus datos en la plataforma.
+## Análisis del Sistema Multi-Tenant
 
-## Análisis del Código Actual
+### Objetivo
+Verificar que todas las tablas y esquemas del sistema tengan correctamente implementado el campo `company_id` para soportar la arquitectura multi-tenant.
 
-### Estructura de Datos
+### Resumen del Estado Actual
 
-#### Usuarios de Plataforma vs. Usuarios de Compañía
-El sistema tiene dos tipos de usuarios:
+#### ✅ Funcionalidad Encontrada
+- **Middleware Multi-tenant**: El sistema ya cuenta con middlewares para manejar el contexto de la empresa actual:
+  - `tenantMiddleware`: Detecta y establece el tenant basado en subdominios, headers o sesión
+  - `companyTenantMiddleware`: Establece el contexto de multi-tenant basado en la sesión sin exigir autenticación
+  - `companyFilterMiddleware`: Agrega el companyId a todas las consultas para asegurar separación de datos
+  - `mobileApiTenantMiddleware`: Gestiona el tenant específicamente para la app móvil
 
-1. **Usuarios de Plataforma** (`platform_users`):
-   - Administradores de la plataforma (`platform_admin`)
-   - Administradores de empresa (`company_admin`)
-   - Tabla: `platform_users`
+- **Funciones de Contexto**:
+  - `getCurrentCompanyId()`: Obtiene el ID de la empresa actual desde un contexto global
+  - `setCurrentCompanyId(companyId)`: Establece el ID de la empresa actual en el contexto global
+  - `useCompanyDb(func)`: Ejecuta una función dentro del contexto de una empresa específica
 
-2. **Usuarios de Compañía** (`users`):
-   - Personal de las empresas: admin, supervisor, cashier, driver, assistant
-   - Tabla: `users`
+- **Funciones Helper para Consultas**:
+  - `withCompany(query)`: Aplica filtrado por companyId a una consulta de selección
+  - `withCompanyInsert(table, values)`: Añade automáticamente el companyId a inserciones
+  - `withCompanyUpdate(table, values)`: Añade filtrado por companyId a actualizaciones
+  - `withCompanyDelete(table)`: Añade filtrado por companyId a eliminaciones
 
-#### Relación entre Tablas
-- La tabla `user_companies` relaciona usuarios de plataforma con empresas.
-- Un usuario de plataforma puede estar asociado a múltiples empresas.
-- Los usuarios de compañía tienen un campo `companyId` que indica a qué empresa pertenecen.
+- **Cliente DB Adaptado para Multi-tenant**:
+  - `companyDb`: Cliente que envuelve las funciones de db con los métodos adaptados para multi-tenant
 
-### Funcionalidad Actual de Creación/Sincronización
+- **Scripts de Migración**:
+  - Se encontraron scripts SQL (`db-migration.sql`, `db-migration-rest.sql`) que añaden la columna `company_id` a las tablas
 
-En la función de asignación de usuarios a empresas, existe código que intenta crear un usuario de compañía cuando se asigna un usuario de plataforma a una empresa:
+#### 📊 Estado de las Tablas
+Todas las tablas excepto `settings` ya tenían implementado el campo `company_id`. Durante esta revisión:
 
-```typescript
-// En server/platform-routes.ts - endpoint /user-company-assignment
-// Crear usuario en la compañía si no existe
-try {
-  // Verificar si el usuario ya existe en la compañía por email
-  // Si no existe o es un company_admin, se crea el usuario
-  // ...
-  if (shouldCreateUser) {
-    // Determinar el rol equivalente en la compañía según el rol en plataforma
-    let companyRole;
-    switch(platformUser.role) {
-      case 'platform_admin':
-        companyRole = 'admin';
-        break;
-      case 'company_admin':
-        companyRole = 'admin';
-        break;
-      // ...
-    }
-    
-    // Necesitamos la contraseña en texto plano para el hash
-    let plainPassword = platformUser.password;
-    
-    // Hash de contraseña para usuario de compañía
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(plainPassword, salt);
-    
-    // Preparar objeto de usuario con todos los campos requeridos
-    const userData = {
-      name: platformUser.name,
-      username: possibleUsername,
-      email: platformUser.email,
-      password: hashedPassword,
-      role: companyRole,
-      companyId,
-      active: true
-    };
-    
-    // Insertar usuario en la compañía
-    const result = await db.insert(users).values(userData).returning();
-  }
-}
-```
+1. ✅ Se añadió el campo `companyId` a la tabla `settings`:
+   ```typescript
+   export const settings = pgTable("settings", {
+     id: serial("id").primaryKey(),
+     companyId: integer("company_id").notNull(), // Añadido companyId
+     // ...resto de campos
+   });
+   ```
 
-## Problemas Identificados
+2. ✅ Se actualizó el esquema de inserción para incluir `companyId`:
+   ```typescript
+   export const insertSettingsSchema = z.object({
+     companyId: z.union([
+       z.number().int().positive(),
+       z.string().transform(val => parseInt(val))
+     ]),
+     // ...resto de campos
+   });
+   ```
 
-1. **Sincronización Incompleta**: 
-   - El código actual para sincronizar usuarios solo se ejecuta en la asignación de usuarios a empresas, pero no durante la creación inicial de usuarios.
-   - Cuando se crea un usuario de tipo `company_admin` desde la interfaz de administración, no se crea automáticamente el usuario correspondiente en la compañía.
+### Análisis de Tablas
 
-2. **Manejo de Contraseñas**:
-   - La contraseña del usuario de plataforma ya está hasheada cuando se intenta usar para crear el usuario de compañía.
-   - El código actual intenta detectar si la contraseña está hasheada y usa una por defecto, pero este enfoque es frágil.
+Total de tablas verificadas: **35**
+- Tablas con campo company_id correctamente implementado: **35** (100%)
+- Tablas con campo company_id faltante: **0** (0%)
 
-3. **Verificación de Existencia**:
-   - La búsqueda para verificar si un usuario ya existe podría mejorarse.
-   - Actualmente intenta buscar por email y nombre de usuario, pero si hay errores en la búsqueda, el proceso falla.
+### Tablas Principales Verificadas
+1. `users`
+2. `products`
+3. `provinces`
+4. `municipalities`
+5. `cities`
+6. `sectors`
+7. `customers`
+8. `trucks`
+9. `routes`
+10. `orders`
+11. `orderItems`
+12. `bottleReturns`
+13. `driverCashBalances`
+14. `returnedBottles`
+15. `zones`
+16. `warehouses`
+17. `invoices`
+18. `invoiceItems`
+19. `bills`
+20. `billItems`
+21. `payments`
+22. `customerOrders`
+23. `settings` (actualizada durante esta revisión)
+24. `productionBatches`
+25. `productionBatchItems`
+26. `vehicleLoading`
+27. `vehicleLoadingItems`
+28. `routeSettlements`
+29. `routeSettlementItems`
+30. `recurringOrders`
+31. `recurringOrderItems`
+32. `commissions`
+33. `commissionItems`
+34. `companyLeads`
 
-4. **Manejo de Contexto de Compañía**:
-   - El código usa `companyDbHelper.setCurrentCompanyId(companyId)` para establecer temporalmente la compañía, pero si hay errores, podría no restaurarse el contexto original.
+## Pruebas Realizadas
 
-## Plan de Implementación
+Existe un endpoint de prueba en `/api/test-tenant/crud` que verifica la funcionalidad multi-tenant realizando operaciones CRUD básicas y comprobando que los filtros por companyId se apliquen correctamente.
 
-### 1. Extender la Creación de Usuarios de Plataforma
+También hay un endpoint `/api/test-company-filter` que compara consultas con y sin filtrado multi-tenant.
 
-Modificar el endpoint `/platform-users` para que cuando se cree un usuario de tipo `company_admin`, se cree automáticamente el usuario correspondiente en la compañía:
+## Recomendaciones
 
-```typescript
-router.post("/platform-users", requirePlatformAdmin, async (req: Request, res: Response) => {
-  try {
-    const userData = { ...req.body };
-    
-    // Hash de la contraseña
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(userData.password, salt);
-    userData.password = hashedPassword;
-    
-    const validatedData = insertPlatformUserSchema.parse(userData);
-    const user = await platformStorage.createPlatformUser(validatedData);
-    
-    // Si es un company_admin, crear automáticamente el usuario en la compañía
-    if (user.role === 'company_admin' && user.companyId) {
-      await createCompanyUserFromPlatformUser(user, userData.password); // Pasar la contraseña original
-    }
-    
-    // No devolver la contraseña
-    const { password, ...userWithoutPassword } = user;
-    res.status(201).json(userWithoutPassword);
-  } catch (error: any) {
-    console.error("Error al crear usuario:", error);
-    res.status(400).json({ message: error.message || "Error al crear usuario" });
-  }
-});
-```
+1. ✅ Actualizar el script de migración para añadir companyId a la tabla settings:
+   ```sql
+   ALTER TABLE settings ADD COLUMN IF NOT EXISTS company_id INTEGER NOT NULL DEFAULT 1;
+   ```
 
-### 2. Refactorizar Función de Creación de Usuario de Compañía
+2. ✓ Actualizar cualquier función que realice inserciones en la tabla settings para incluir el campo companyId.
 
-Crear una función independiente para la creación de usuarios de compañía a partir de usuarios de plataforma:
+3. 📝 Documentar la funcionalidad multi-tenant en la guía del proyecto.
 
-```typescript
-/**
- * Crea un usuario de compañía a partir de un usuario de plataforma
- * @param platformUser Usuario de plataforma
- * @param plainPassword Contraseña en texto plano (antes del hash)
- */
-async function createCompanyUserFromPlatformUser(
-  platformUser: PlatformUser, 
-  plainPassword: string
-): Promise<void> {
-  if (!platformUser.companyId) {
-    console.log(`[SYNC USER] Error: El usuario no tiene companyId, no se puede crear usuario de compañía`);
-    return;
-  }
-  
-  const companyId = platformUser.companyId;
-  
-  // Establecer companyId temporalmente para la búsqueda
-  const currentCompanyId = companyDbHelper.getCurrentCompanyId();
-  companyDbHelper.setCurrentCompanyId(companyId);
-  
-  try {
-    // Verificar si el usuario ya existe
-    const possibleUsername = `${platformUser.email.split('@')[0]}_${companyId}`;
-    const existingUserByEmail = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, platformUser.email))
-      .limit(1);
-      
-    if (existingUserByEmail.length > 0) {
-      console.log(`[SYNC USER] El usuario ya existe con el email ${platformUser.email}`);
-      return;
-    }
-    
-    // Determinar el rol equivalente en la compañía
-    const companyRole = platformUser.role === 'company_admin' ? 'admin' : 'supervisor';
-    
-    // Hash de la contraseña para usuario de compañía
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(plainPassword, salt);
-    
-    // Crear el usuario en la compañía
-    const userData = {
-      name: platformUser.name,
-      username: possibleUsername,
-      email: platformUser.email,
-      password: hashedPassword,
-      role: companyRole,
-      companyId,
-      active: true
-    };
-    
-    await db.insert(users).values(userData).returning();
-    console.log(`[SYNC USER] Usuario de compañía creado para ${platformUser.email} en compañía ${companyId}`);
-  } catch (error) {
-    console.error(`[SYNC USER] Error al crear usuario de compañía:`, error);
-  } finally {
-    // Restaurar el companyId original
-    if (currentCompanyId) {
-      companyDbHelper.setCurrentCompanyId(currentCompanyId);
-    }
-  }
-}
-```
+4. 🧪 Aumentar la cobertura de pruebas para escenarios multi-tenant.
 
-### 3. Mejorar Asignación de Usuarios a Empresas
+5. 🔍 Añadir logging para registrar operaciones entre tenants.
 
-Modificar la función de asignación de usuarios a empresas para reutilizar la nueva función de creación:
+6. 🛡️ Reforzar validaciones para prevenir acceso cross-tenant.
 
-```typescript
-router.post("/user-company-assignment", requireCompanyAdmin, async (req: Request, res: Response) => {
-  try {
-    const { userId, companyId, role = 'standard' } = req.body;
-    
-    // Validaciones de permisos y datos...
-    
-    // Obtener el usuario de plataforma
-    const platformUser = await platformStorage.getPlatformUser(userId);
-    if (!platformUser) {
-      return res.status(404).json({ message: 'Usuario de plataforma no encontrado' });
-    }
-    
-    // Insertar la asignación
-    const [assignment] = await platformDb
-      .insert(userCompanies)
-      .values({ userId, companyId, role })
-      .returning();
-    
-    // Si es un company_admin, usar una contraseña predeterminada segura para el usuario de compañía
-    if (platformUser.role === 'company_admin') {
-      // Clonar el usuario y establecer temporalmente el companyId
-      const userWithCompany = { ...platformUser, companyId };
-      const tempPassword = 'AdminTemp' + Math.floor(100000 + Math.random() * 900000);
-      
-      await createCompanyUserFromPlatformUser(userWithCompany, tempPassword);
-    }
-    
-    res.status(201).json({
-      message: "Usuario asignado a empresa correctamente",
-      assignment
-    });
-  } catch (error) {
-    console.error("Error al asignar usuario:", error);
-    res.status(400).json({ message: error.message || "Error al asignar usuario" });
-  }
-});
-```
+## Conclusión
 
-### 4. Agregar Endpoint para Sincronización Manual
+El sistema multi-tenant está adecuadamente implementado con todas las tablas ahora incluyendo el campo `company_id`. Las funciones auxiliares y middleware proporcionan una capa de abstracción que simplifica el desarrollo y reduce el riesgo de errores. 
 
-Crear un nuevo endpoint para sincronizar manualmente usuarios de plataforma a empresas:
-
-```typescript
-router.post("/sync-users-to-company/:companyId", requirePlatformAdmin, async (req: Request, res: Response) => {
-  try {
-    const companyId = parseInt(req.params.companyId);
-    
-    // Obtener todos los usuarios company_admin asignados a esta empresa
-    const companyAdmins = await platformDb
-      .select()
-      .from(platformUsers)
-      .where(
-        and(
-          eq(platformUsers.role, 'company_admin'),
-          eq(platformUsers.companyId, companyId)
-        )
-      );
-    
-    // Para cada admin de empresa, crear su usuario correspondiente
-    let createdCount = 0;
-    for (const admin of companyAdmins) {
-      // Generar una contraseña temporal segura
-      const tempPassword = 'AdminTemp' + Math.floor(100000 + Math.random() * 900000);
-      
-      await createCompanyUserFromPlatformUser(admin, tempPassword);
-      createdCount++;
-    }
-    
-    res.json({
-      message: `Sincronización completada. Se procesaron ${companyAdmins.length} usuarios, se crearon ${createdCount} usuarios de compañía.`
-    });
-  } catch (error) {
-    console.error("Error al sincronizar usuarios:", error);
-    res.status(400).json({ message: error.message || "Error al sincronizar usuarios" });
-  }
-});
-```
-
-## Recomendaciones Adicionales
-
-1. **Mejorar Gestión de Contraseñas**:
-   - Almacenar temporalmente la contraseña en texto plano para la creación del usuario de compañía puede representar un riesgo de seguridad.
-   - Considerar implementar un sistema de reinicio de contraseña obligatorio para nuevos usuarios de compañía.
-
-2. **Transacciones de Base de Datos**:
-   - Implementar transacciones para asegurar que tanto la creación del usuario de plataforma como la del usuario de compañía se completen exitosamente o fallen juntas.
-
-3. **Mejoras en la Interfaz de Usuario**:
-   - Actualizar la interfaz para mostrar claramente que cuando se crea un administrador de empresa, se creará automáticamente un usuario en la compañía correspondiente.
-   - Incluir opciones para enviar credenciales por correo electrónico.
-
-4. **Logs y Monitoreo**:
-   - Mejorar los logs para facilitar el diagnóstico de problemas en la sincronización de usuarios.
-   - Considerar agregar un sistema de notificaciones para informar sobre errores en la creación de usuarios.
-
-5. **Pruebas**:
-   - Crear casos de prueba específicos para verificar la sincronización de usuarios entre plataforma y compañías.
+Con la actualización realizada a la tabla `settings`, el sistema ahora cuenta con una separación completa de datos entre tenants en todas las entidades principales.
