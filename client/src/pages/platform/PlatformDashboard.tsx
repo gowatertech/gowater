@@ -15,7 +15,8 @@ export default function PlatformDashboard() {
   const [, setLocation] = useLocation();
   
   // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
-  usePreventBackNavigation('/platform');
+  // Usar el endpoint específico para la autenticación de la plataforma
+  usePreventBackNavigation('/platform', '/api/platform/user');
 
   // Consulta para obtener el recuento de empresas
   const companiesQuery = useQuery({

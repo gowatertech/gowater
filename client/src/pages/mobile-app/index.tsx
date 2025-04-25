@@ -86,7 +86,8 @@ export default function GoWaterDriverApp() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   
   // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
-  usePreventBackNavigation('/mobile-app/login');
+  // Usar el endpoint específico para la autenticación de la aplicación móvil
+  usePreventBackNavigation('/mobile-app/login', '/api/mobile/user');
   
   // Consulta para obtener rutas pendientes (compatible con multitenant)
   const { data: routes = [], isLoading: isLoadingRoutes, refetch: refetchRoutes } = useQuery<Route[]>({

@@ -83,7 +83,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   
   // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
-  usePreventBackNavigation('/');
+  // Usar el endpoint específico para la autenticación del panel de empresa
+  usePreventBackNavigation('/', '/api/user');
 
   // Consultas para obtener los datos del dashboard
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({

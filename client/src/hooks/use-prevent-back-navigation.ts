@@ -7,8 +7,9 @@ import { useLocation } from 'wouter';
  * después de cerrar sesión.
  * 
  * @param redirectTo Ruta a la que redirigir si el usuario no está autenticado
+ * @param authEndpoint Endpoint para verificar la autenticación (por defecto es '/api/user')
  */
-export function usePreventBackNavigation(redirectTo: string = '/') {
+export function usePreventBackNavigation(redirectTo: string = '/', authEndpoint: string = '/api/user') {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -18,14 +19,15 @@ export function usePreventBackNavigation(redirectTo: string = '/') {
     // Función para verificar la autenticación y redirigir si es necesario
     async function checkAuthentication() {
       try {
-        const response = await fetch('/api/user');
+        // Usar el endpoint específico para cada sistema (company, platform, mobile)
+        const response = await fetch(authEndpoint);
         if (!response.ok) {
           // Si no hay sesión, redirigir a la página de inicio
-          console.log('No hay sesión activa, redirigiendo a', redirectTo);
+          console.log(`[usePreventBackNavigation] No hay sesión activa en ${authEndpoint}, redirigiendo a ${redirectTo}`);
           setLocation(redirectTo, { replace: true });
         }
       } catch (error) {
-        console.error('Error verificando autenticación:', error);
+        console.error(`[usePreventBackNavigation] Error verificando autenticación en ${authEndpoint}:`, error);
         // En caso de error, también redirigir por seguridad
         setLocation(redirectTo, { replace: true });
       }
@@ -53,5 +55,5 @@ export function usePreventBackNavigation(redirectTo: string = '/') {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [redirectTo, setLocation]);
+  }, [redirectTo, authEndpoint, setLocation]);
 }
