@@ -81,6 +81,7 @@ export default function Users() {
     defaultValues: {
       name: "",
       username: "",
+      email: "", // Añadido campo de email
       password: "",
       role: "admin",
       phone: "",
@@ -229,6 +230,7 @@ export default function Users() {
     form.reset({
       name: user.name,
       username: user.username,
+      email: user.email || "", // Añadido email para edición
       password: "",
       role: user.role,
       phone: user.phone || "",
@@ -532,6 +534,25 @@ export default function Users() {
                                 placeholder={t("enterUsername")}
                                 autoComplete="username"
                                 className="text-sm sm:text-base"
+                              />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">{t("email")}</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder="ejemplo@correo.com"
+                                autoComplete="email"
+                                className="text-sm sm:text-base"
+                                type="email"
                               />
                             </FormControl>
                             <FormMessage className="text-xs" />
