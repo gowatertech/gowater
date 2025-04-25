@@ -68,7 +68,9 @@ export default function OrderStatus() {
     mutationFn: async ({ status }: { status: string }) => {
       if (!orderId) throw new Error('ID de pedido no válido');
       
-      return apiRequest(`/api/orders/${orderId}/status`, {
+      // La forma correcta de llamar a apiRequest según su definición
+      return apiRequest({
+        url: `/api/orders/${orderId}/status`,
         method: "PATCH", 
         data: { status }
       });
