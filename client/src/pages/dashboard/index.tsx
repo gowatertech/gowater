@@ -1,16 +1,16 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { AlertCard } from "@/components/dashboard/AlertCard";
-import { TestPrinterButton } from "@/test-button";
+import { useToast } from "@/hooks/use-toast";
 import {
   Activity,
   TrendingUp,
@@ -27,7 +27,8 @@ import {
   FileBarChart,
   PieChart,
   BarChart,
-  LineChart
+  LineChart,
+  LogOut
 } from "lucide-react";
 
 // Colores consistentes para los gráficos
@@ -220,15 +221,45 @@ export default function Dashboard() {
     });
   }
 
+  // Función para cerrar sesión
+  const { toast } = useToast();
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/logout");
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/user"], null);
+      navigate("/auth/login");
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error al cerrar sesión",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
         <h1 className="text-xl sm:text-2xl font-bold">{t("Panel de Control")}</h1>
         <div className="flex space-x-2">
-          <TestPrinterButton />
           <Button variant="outline" size="sm" onClick={() => navigateTo("/reports")}>
             <FileBarChart className="h-4 w-4 mr-1" />
             <span className="hidden xs:inline">{t("Reportes")}</span>
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-1" />
+            <span className="hidden xs:inline">{t("Cerrar sesión")}</span>
           </Button>
         </div>
       </div>
