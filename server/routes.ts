@@ -1455,7 +1455,7 @@ export async function registerRoutes(router: express.Router) {
         .where(sql`EXTRACT(YEAR FROM date) = ${currentYear}`);
 
       // Consulta para obtener el total de facturas pendientes de pago
-      const pendingPayments = await db
+      const pendingPayments = await companyDb
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
@@ -1463,7 +1463,7 @@ export async function registerRoutes(router: express.Router) {
         .where(eq(invoices.status, "pending"));
 
       // Consulta para obtener el total de pedidos pendientes
-      const pendingOrders = await db
+      const pendingOrders = await companyDb
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1471,7 +1471,7 @@ export async function registerRoutes(router: express.Router) {
         .where(eq(orders.status, "pending"));
 
       // Consulta para obtener el total de pedidos entregados del mes actual
-      const deliveredOrders = await db
+      const deliveredOrders = await companyDb
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1485,7 +1485,7 @@ export async function registerRoutes(router: express.Router) {
         );
 
       // Consulta para obtener el total de pedidos cancelados
-      const cancelledOrders = await db
+      const cancelledOrders = await companyDb
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1493,7 +1493,7 @@ export async function registerRoutes(router: express.Router) {
         .where(eq(orders.status, "cancelled"));
         
       // Consulta para obtener ventas diarias (hoy)
-      const dailySales = await db
+      const dailySales = await companyDb
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
@@ -1501,7 +1501,7 @@ export async function registerRoutes(router: express.Router) {
         .where(sql`DATE(date) = DATE(${today})`);
         
       // Consulta para obtener tendencia de ventas semanales
-      const weeklyTrend = await db
+      const weeklyTrend = await companyDb
         .select({
           day: sql`DATE(date)`,
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
@@ -1531,12 +1531,15 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/dashboard/payments-stats", async (req, res) => {
     try {
+      console.log("GET /api/dashboard/payments-stats - Obteniendo estadísticas de pagos");
       // Obtener el año actual y mes
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
-
+      
+      console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
+      
       // Consulta para obtener el total de pagos del año
-      const yearlyPayments = await db
+      const yearlyPayments = await companyDb
         .select({
           total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
         })
@@ -1544,7 +1547,7 @@ export async function registerRoutes(router: express.Router) {
         .where(sql`EXTRACT(YEAR FROM date) = ${currentYear}`);
 
       // Consulta para obtener el total de pagos del mes actual
-      const monthlyPayments = await db
+      const monthlyPayments = await companyDb
         .select({
           total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
         })
@@ -1571,8 +1574,9 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para estadísticas de rutas
   router.get("/dashboard/route-stats", async (req, res) => {
     try {
+      console.log("GET /api/dashboard/route-stats - Obteniendo estadísticas de rutas");
       // Obtener rutas activas
-      const activeRoutes = await db
+      const activeRoutes = await companyDb
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1583,7 +1587,9 @@ export async function registerRoutes(router: express.Router) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const completedTodayRoutes = await db
+      console.log(`Buscando rutas completadas hoy: ${today.toISOString().split('T')[0]}`);
+      
+      const completedTodayRoutes = await companyDb
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1596,7 +1602,7 @@ export async function registerRoutes(router: express.Router) {
         );
 
       // Obtener estadísticas de eficiencia de rutas
-      const routeEfficiency = await db
+      const routeEfficiency = await companyDb
         .select({
           avgEfficiency: sql`CASE 
             WHEN AVG(CASE WHEN estimated_duration > 0 AND actual_duration > 0 
@@ -1626,8 +1632,9 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para estadísticas de envases
   router.get("/dashboard/bottle-stats", async (req, res) => {
     try {
+      console.log("GET /api/dashboard/bottle-stats - Obteniendo estadísticas de envases");
       // Obtener envases pendientes de devolución
-      const pendingReturns = await db
+      const pendingReturns = await companyDb
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
           totalQty: sql`COALESCE(SUM(expected_quantity), 0)`.mapWith(Number),
@@ -1642,7 +1649,9 @@ export async function registerRoutes(router: express.Router) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const overdueReturns = await db
+      console.log(`Buscando devoluciones vencidas anteriores a: ${thirtyDaysAgo.toISOString().split('T')[0]}`);
+      
+      const overdueReturns = await companyDb
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
