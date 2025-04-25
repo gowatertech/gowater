@@ -2826,8 +2826,9 @@ export async function registerRoutes(router: express.Router) {
         const itemsQuery = `
           SELECT 
             id, order_id as "orderId", product_id as "productId",
-            quantity, unit_price as "unitPrice", 
-            total, discount, notes
+            quantity, price as "unitPrice", 
+            (quantity * price::numeric) as "total", 
+            discount, notes
           FROM order_items
           WHERE order_id = $1
         `;
