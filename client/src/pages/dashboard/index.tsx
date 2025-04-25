@@ -92,11 +92,25 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/stats"],
     queryFn: async () => {
       console.log("Iniciando solicitud GET a /api/dashboard/stats");
-      const response = await apiRequest("GET", "/api/dashboard/stats");
-      const jsonData = await response.json();
-      console.log("Respuesta de /api/dashboard/stats:", jsonData);
-      return jsonData;
-    }
+      try {
+        const response = await fetch("/api/dashboard/stats", {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const jsonData = await response.json();
+        console.log("Respuesta de /api/dashboard/stats:", jsonData);
+        return jsonData;
+      } catch (error) {
+        console.error("Error en solicitud GET a /api/dashboard/stats:", error);
+        throw error;
+      }
+    },
+    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
   });
 
   const { data: paymentStats, isLoading: paymentsLoading } = useQuery<PaymentStats>({
