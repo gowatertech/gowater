@@ -982,6 +982,12 @@ export default function OrdersPage() {
                     <span>Pendiente</span>
                   </div>
                 </SelectItem>
+                <SelectItem value="in_transit">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4 text-blue-600" />
+                    <span>En Tránsito</span>
+                  </div>
+                </SelectItem>
                 <SelectItem value="delivered">
                   <div className="flex items-center gap-1">
                     <CheckCircle className="h-4 w-4 text-green-600" />
