@@ -17,6 +17,7 @@ import { registerMobileApiEndpoints } from "./routes/mobile-api";
 import commissionsRoutes from "./routes/commissions";
 import { registerMultiTenantTestEndpoint } from "./routes/test-tenant";
 import { calculateOptimalRoute } from './services/routeOptimizer';
+import { companyAuthMiddleware, companyTenantMiddleware } from './middleware/company-auth.middleware';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({

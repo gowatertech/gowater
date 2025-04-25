@@ -22,11 +22,24 @@ declare module "express-session" {
  * basado en subdominios, headers o sesión
  */
 export function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
-  // MODO DEMOSTRACIÓN: Omitir todas las verificaciones
-  // Asignar un companyId ficticio para que funcionen todas las rutas
-  req.session.companyId = 1;
+  // Si es una ruta de API de plataforma, no alteramos nada
+  if (req.path.startsWith('/api/platform')) {
+    return next();
+  }
   
-  // Si es una ruta de API de plataforma, no necesitamos hacer nada más
+  // Si es una ruta de autenticación, no aplicamos el tenant
+  if (req.path === '/api/login' || req.path === '/api/logout' || req.path === '/api/user') {
+    return next();
+  }
+  
+  // Si no hay companyId en la sesión (no autenticado), usamos uno por defecto para modo demo
+  if (!req.session.companyId) {
+    console.log(`[Tenant Middleware] No hay companyId en sesión. Configurando valor por defecto.`);
+    req.session.companyId = 1; // Valor por defecto para modo demostración
+  } else {
+    console.log(`[Tenant Middleware] Usando companyId de sesión: ${req.session.companyId}`);
+  }
+  
   return next();
 }
 

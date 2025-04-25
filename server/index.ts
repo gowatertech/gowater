@@ -13,6 +13,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
+import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
 
 const app = express();
 
@@ -41,6 +42,7 @@ const platformApiRouter = express.Router();
 companyApiRouter.use(tenantMiddleware);
 companyApiRouter.use(companyDbMiddleware);
 companyApiRouter.use(companyFilterMiddleware);
+companyApiRouter.use(companyTenantMiddleware);
 
 // Montamos los routers en sus respectivas rutas
 app.use("/api/platform", platformApiRouter);
