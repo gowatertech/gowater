@@ -1917,14 +1917,16 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener top clientes. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`GET /api/stats/top-customers - Obteniendo top clientes para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`GET /api/stats/top-customers - Obteniendo top clientes para empresa ${companyId}`);
       
       // Obtener los clientes con más pedidos
       const topCustomersData = await db
@@ -1936,7 +1938,7 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
-        .where(eq(orders.companyId, effectiveCompanyId))
+        .where(eq(orders.companyId, companyId))
         .groupBy(orders.customerId, customers.businessname)
         .orderBy(desc(orders.id))
         .limit(5);
@@ -1964,14 +1966,16 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn(`GET /api/invoices/${invoiceId}/items - No se encontró companyId en el contexto. Usando valor predeterminado.`);
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`GET /api/invoices/${invoiceId}/items - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`GET /api/invoices/${invoiceId}/items - Usando companyId: ${companyId}`);
       
       // Verificar primero que la factura existe y pertenece a la empresa
       console.log(`GET /api/invoices/${invoiceId}/items - Verificando existencia de la factura`);
@@ -1980,11 +1984,11 @@ export async function registerRoutes(router: express.Router) {
         .from(invoices)
         .where(and(
           eq(invoices.id, invoiceId),
-          eq(invoices.companyId, effectiveCompanyId)
+          eq(invoices.companyId, companyId)
         ));
       
       if (!invoice) {
-        console.warn(`GET /api/invoices/${invoiceId}/items - Error: Factura ${invoiceId} no encontrada o no pertenece a la empresa ${effectiveCompanyId}`);
+        console.warn(`GET /api/invoices/${invoiceId}/items - Error: Factura ${invoiceId} no encontrada o no pertenece a la empresa ${companyId}`);
         return res.status(404).json({ error: "Factura no encontrada o no pertenece a la empresa actual" });
       }
       
@@ -1994,7 +1998,7 @@ export async function registerRoutes(router: express.Router) {
       const productsList = await db
         .select()
         .from(products)
-        .where(eq(products.companyId, effectiveCompanyId));
+        .where(eq(products.companyId, companyId));
         
       console.log(`GET /api/invoices/${invoiceId}/items - Productos disponibles: ${productsList.length}`);
       
@@ -2004,7 +2008,7 @@ export async function registerRoutes(router: express.Router) {
         .from(invoiceItems)
         .where(and(
           eq(invoiceItems.invoiceId, invoiceId),
-          eq(invoiceItems.companyId, effectiveCompanyId)
+          eq(invoiceItems.companyId, companyId)
         ));
       
       console.log(`GET /api/invoices/${invoiceId}/items - Items de factura encontrados: ${invoiceItemsList.length}`);
@@ -2058,14 +2062,16 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para crear item de factura. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`POST /api/invoices/${invoiceId}/items - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`POST /api/invoices/${invoiceId}/items - Usando companyId: ${companyId}`);
 
       // Validar datos básicos
       if (!productId || !quantity || !price) {
@@ -2090,7 +2096,7 @@ export async function registerRoutes(router: express.Router) {
           quantity: numQuantity,
           price,
           total,
-          companyId: effectiveCompanyId // Usar el effectiveCompanyId
+          companyId // Usar el companyId del contexto
         })
         .returning();
 
@@ -2100,7 +2106,7 @@ export async function registerRoutes(router: express.Router) {
         .from(invoices)
         .where(and(
           eq(invoices.id, invoiceId),
-          eq(invoices.companyId, effectiveCompanyId)
+          eq(invoices.companyId, companyId)
         ));
 
       if (invoice) {
@@ -2110,7 +2116,7 @@ export async function registerRoutes(router: express.Router) {
           .set({ total: newTotal })
           .where(and(
             eq(invoices.id, invoiceId),
-            eq(invoices.companyId, effectiveCompanyId)
+            eq(invoices.companyId, companyId)
           ));
       }
 
@@ -2331,14 +2337,16 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener productos. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`GET /api/products - Obteniendo productos para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`GET /api/products - Obteniendo productos para empresa ${companyId}`);
       
       const allProducts = await db
         .select({
@@ -2353,10 +2361,10 @@ export async function registerRoutes(router: express.Router) {
           companyId: products.companyId
         })
         .from(products)
-        .where(eq(products.companyId, effectiveCompanyId))
+        .where(eq(products.companyId, companyId))
         .orderBy(products.name);
 
-      console.log(`GET /api/products - Retornando ${allProducts.length} productos para la empresa ${effectiveCompanyId}`);
+      console.log(`GET /api/products - Retornando ${allProducts.length} productos para la empresa ${companyId}`);
       res.json(allProducts);
     } catch (error) {
       console.error("Error al obtener productos:", error);
@@ -2369,23 +2377,25 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para crear producto. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`POST /api/products - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`POST /api/products - Usando companyId: ${companyId}`);
       
       const productData = {
         ...req.body,
         stock: Number(req.body.stock) || 0,
         price: Number(req.body.price).toFixed(2),
-        companyId: effectiveCompanyId // Usar el effectiveCompanyId
+        companyId: companyId // Usar el companyId del contexto
       };
 
-      console.log(`Creando producto para la empresa ${effectiveCompanyId}:`, productData);
+      console.log(`Creando producto para la empresa ${companyId}:`, productData);
 
       const [product] = await db
         .insert(products)
@@ -2407,14 +2417,16 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para actualizar producto. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`PATCH /api/products/${productId} - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`PATCH /api/products/${productId} - Usando companyId: ${companyId}`);
       console.log(`PATCH /api/products/${productId} - Body recibido:`, req.body);
 
       const productData = {
@@ -2431,7 +2443,7 @@ export async function registerRoutes(router: express.Router) {
         .from(products)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, effectiveCompanyId)
+          eq(products.companyId, companyId)
         ));
 
       if (!existingProduct) {
@@ -2443,7 +2455,7 @@ export async function registerRoutes(router: express.Router) {
         .set(productData)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, effectiveCompanyId) // Filtrar por companyId para evitar modificar productos de otras empresas
+          eq(products.companyId, companyId) // Filtrar por companyId para evitar modificar productos de otras empresas
         ))
         .returning();
 
@@ -2462,15 +2474,17 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para eliminar producto. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`DELETE /api/products/${productId} - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
-      console.log(`DELETE /api/products/${productId} - Eliminando producto para la empresa ${effectiveCompanyId}`);
+      console.log(`DELETE /api/products/${productId} - Usando companyId: ${companyId}`);
+      console.log(`DELETE /api/products/${productId} - Eliminando producto para la empresa ${companyId}`);
 
       // Verificar que el producto existe y pertenece a esta empresa
       const [existingProduct] = await db
@@ -2478,7 +2492,7 @@ export async function registerRoutes(router: express.Router) {
         .from(products)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, effectiveCompanyId)
+          eq(products.companyId, companyId)
         ));
 
       if (!existingProduct) {
@@ -2489,7 +2503,7 @@ export async function registerRoutes(router: express.Router) {
         .delete(products)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, effectiveCompanyId) // Filtrar por companyId para evitar eliminar productos de otras empresas
+          eq(products.companyId, companyId) // Filtrar por companyId para evitar eliminar productos de otras empresas
         ))
         .returning();
 
@@ -2507,23 +2521,25 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para actualizar comisiones de productos. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
-      console.log(`POST /api/products/update-all-commission - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
-      console.log(`POST /api/products/update-all-commission - Iniciando actualización de comisiones para empresa ${effectiveCompanyId}`);
+      console.log(`POST /api/products/update-all-commission - Usando companyId: ${companyId}`);
+      console.log(`POST /api/products/update-all-commission - Iniciando actualización de comisiones para empresa ${companyId}`);
       
       // Obtener todos los productos de esta empresa
       const allProducts = await db
         .select()
         .from(products)
-        .where(eq(products.companyId, effectiveCompanyId));
+        .where(eq(products.companyId, companyId));
       
-      console.log(`Encontrados ${allProducts.length} productos para actualizar en la empresa ${effectiveCompanyId}.`);
+      console.log(`Encontrados ${allProducts.length} productos para actualizar en la empresa ${companyId}.`);
       
       // Contador para productos actualizados
       let updatedCount = 0;
@@ -2538,7 +2554,7 @@ export async function registerRoutes(router: express.Router) {
             .set({ hasCommission: true })
             .where(and(
               eq(products.id, product.id),
-              eq(products.companyId, effectiveCompanyId) // Asegurar que solo actualizamos productos de esta empresa
+              eq(products.companyId, companyId) // Asegurar que solo actualizamos productos de esta empresa
             ))
             .returning();
           
