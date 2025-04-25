@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 
 /**
@@ -8,9 +8,15 @@ import { useLocation } from 'wouter';
  * 
  * @param redirectTo Ruta a la que redirigir si el usuario no está autenticado
  * @param authEndpoint Endpoint para verificar la autenticación (por defecto es '/api/user')
+ * @param interval Intervalo en milisegundos para verificar autenticación (opcional, default 5000)
  */
-export function usePreventBackNavigation(redirectTo: string = '/', authEndpoint: string = '/api/user') {
+export function usePreventBackNavigation(
+  redirectTo: string = '/', 
+  authEndpoint: string = '/api/user',
+  interval: number = 5000
+) {
   const [, setLocation] = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Primera comprobación al cargar la página
@@ -24,11 +30,15 @@ export function usePreventBackNavigation(redirectTo: string = '/', authEndpoint:
         if (!response.ok) {
           // Si no hay sesión, redirigir a la página de inicio
           console.log(`[usePreventBackNavigation] No hay sesión activa en ${authEndpoint}, redirigiendo a ${redirectTo}`);
+          setIsAuthenticated(false);
           setLocation(redirectTo, { replace: true });
+        } else {
+          setIsAuthenticated(true);
         }
       } catch (error) {
         console.error(`[usePreventBackNavigation] Error verificando autenticación en ${authEndpoint}:`, error);
         // En caso de error, también redirigir por seguridad
+        setIsAuthenticated(false);
         setLocation(redirectTo, { replace: true });
       }
     }
@@ -49,11 +59,21 @@ export function usePreventBackNavigation(redirectTo: string = '/', authEndpoint:
     // Agregar listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('popstate', handlePopState);
+    
+    // Verificar periódicamente la autenticación
+    // Esto es especialmente útil después de un logout
+    const intervalId = setInterval(() => {
+      // Solo verificar si la página está visible
+      if (document.visibilityState === 'visible') {
+        checkAuthentication();
+      }
+    }, interval);
 
-    // Limpiar listeners al desmontar
+    // Limpiar listeners y intervalo al desmontar
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('popstate', handlePopState);
+      clearInterval(intervalId);
     };
-  }, [redirectTo, authEndpoint, setLocation]);
+  }, [redirectTo, authEndpoint, interval, setLocation]);
 }

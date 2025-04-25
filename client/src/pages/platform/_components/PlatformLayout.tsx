@@ -37,9 +37,13 @@ export function PlatformLayout({ children }: PlatformLayoutProps) {
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente",
       });
+
+      // Limpiar el historial actual para prevenir navegación hacia atrás después de cerrar sesión
+      // Primero reemplazar la entrada actual
+      window.history.replaceState(null, "", "/platform/login");
       
-      // Redireccionar a la página de login
-      setLocation("/platform/login");
+      // Redireccionar a la página de login reemplazando la entrada en el historial
+      setLocation("/platform/login", { replace: true });
     } catch (error) {
       toast({
         title: "Error",
