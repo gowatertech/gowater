@@ -94,13 +94,27 @@ export default function PaymentDashboard() {
 
   console.log("Fetching data from /api/payments");
   // Consulta para obtener pagos
-  const { data: payments = [], isLoading: isLoadingPayments, refetch } = useQuery<any[]>({
+  const { data: payments = [], isLoading: isLoadingPayments, refetch, error: paymentsError } = useQuery<any[]>({
     queryKey: ["/api/payments"],
     queryFn: async ({ queryKey }) => {
-      const response = await apiRequest("GET", queryKey[0] as string);
-      const data = await response.json();
-      console.log("Data received from /api/payments:", data);
-      return Array.isArray(data) ? data : [];
+      try {
+        console.log("Iniciando solicitud GET a /api/payments");
+        const response = await fetch("/api/payments", {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log("Data received from /api/payments:", data);
+        return Array.isArray(data) ? data : [];
+      } catch (error) {
+        console.error("Error en solicitud GET a /api/payments:", error);
+        throw error;
+      }
     },
   });
 
