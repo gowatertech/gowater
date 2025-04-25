@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -47,8 +47,8 @@ export default function PlatformLogin() {
         title: "Inicio de sesión exitoso",
         description: response.message || "Bienvenido a la plataforma",
       });
-      // Redireccionar al dashboard de la plataforma
-      setLocation("/platform/dashboard");
+      // Redireccionar al dashboard de la plataforma usando replace para evitar volver atrás
+      setLocation("/platform/dashboard", { replace: true });
     },
     onError: (error: any) => {
       setError(error.response?.data?.message || "Error en el inicio de sesión");
@@ -65,6 +65,24 @@ export default function PlatformLogin() {
     setError(null);
     loginMutation.mutate(data);
   };
+  
+  // Evitar que el usuario pueda volver a esta página si ya está autenticado
+  useEffect(() => {
+    // Verificar si hay un usuario ya autenticado en la plataforma
+    const checkPlatformAuth = async () => {
+      try {
+        const response = await fetch('/api/platform/platform-user');
+        if (response.ok) {
+          // Usuario ya autenticado, redirigir al dashboard
+          setLocation('/platform/dashboard', { replace: true });
+        }
+      } catch (error) {
+        console.error('Error verificando autenticación de plataforma:', error);
+      }
+    };
+    
+    checkPlatformAuth();
+  }, [setLocation]);
 
   return (
     <div className="container flex items-center justify-center min-h-screen py-10">

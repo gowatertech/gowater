@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -61,7 +61,8 @@ export default function LoginPage() {
         title: "Inicio de sesión exitoso",
         description: "Bienvenido al panel de control"
       });
-      navigate("/dashboard");
+      // Usar replace: true para que no se pueda volver atrás al login
+      navigate("/dashboard", { replace: true });
     },
     onError: (error: Error) => {
       toast({
@@ -76,6 +77,24 @@ export default function LoginPage() {
   const onSubmit = (data: LoginData) => {
     loginMutation.mutate(data);
   };
+  
+  // Evitar que el usuario pueda volver a esta página después de iniciar sesión
+  useEffect(() => {
+    // Verificar si hay un usuario ya autenticado
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/user');
+        if (response.ok) {
+          // Usuario ya autenticado, redirigir al dashboard
+          navigate('/dashboard', { replace: true });
+        }
+      } catch (error) {
+        console.error('Error verificando autenticación:', error);
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col md:flex-row">
