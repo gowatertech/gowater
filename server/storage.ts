@@ -18,8 +18,8 @@ import {
   type RecurringOrderItem, type InsertRecurringOrderItem
 } from "@shared/schema";
 import { db } from "./db";
-import { getCurrentCompanyId } from "./company-db";
-import { eq, inArray } from "drizzle-orm";
+import { getCurrentCompanyId, withCompanyUpdate } from "./company-db";
+import { eq, inArray, and } from "drizzle-orm";
 
 export interface DriverLocation {
   latitude: number;
@@ -405,9 +405,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: "pending" | "in_transit" | "delivered" | "cancelled"): Promise<Order> {
-    // Importamos las funciones necesarias para mantener la seguridad multiempresa
-    const { withCompanyUpdate } = require('./company-db');
-    
     // Primero verificamos que el pedido exista para la empresa actual
     const [order] = await db
       .select()
@@ -419,10 +416,13 @@ export class DatabaseStorage implements IStorage {
     console.log(`Actualizando pedido ${id} al estado '${status}'`);
 
     // Usamos withCompanyUpdate para asegurar que solo se modifiquen registros de la empresa actual
-    const [updatedOrder] = await withCompanyUpdate(orders, { 
-      where: eq(orders.id, id),
-      set: { status } 
-    });
+    // withCompanyUpdate se encarga de añadir el where clause para el company_id
+    const updateQuery = withCompanyUpdate(orders, { status });
+    
+    // Añadimos la condición del ID del pedido
+    const [updatedOrder] = await updateQuery
+      .where(eq(orders.id, id))
+      .returning();
     
     console.log(`Pedido ${id} actualizado a '${status}'`, updatedOrder);
 
