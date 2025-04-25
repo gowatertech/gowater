@@ -28,7 +28,7 @@ export default function MobileAppLogin() {
   useEffect(() => {
     if (user && !isLoading) {
       console.log("MobileLogin - Usuario ya autenticado, redirigiendo al dashboard:", user.username);
-      setLocation('/mobile-app');
+      setLocation('/mobile-app', { replace: true });
     }
   }, [user, isLoading, setLocation]);
 
@@ -53,7 +53,8 @@ export default function MobileAppLogin() {
           title: "Login exitoso",
           description: "Bienvenido a GoWater Driver",
         });
-        setLocation('/mobile-app');
+        // Usar replace para que no se pueda volver atrás
+        setLocation('/mobile-app', { replace: true });
       } else {
         toast({
           title: "Error de autenticación",
