@@ -1446,12 +1446,13 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Para permitir datos en desarrollo, usamos ID 1 si no hay companyId
-      const effectiveCompanyId = companyId || 1;
-      console.log(`GET /api/dashboard/stats - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto, usando valor predeterminado 1");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
       console.log(`GET /api/dashboard/stats - Obteniendo estadísticas del dashboard para empresa ${companyId}`);
@@ -1580,11 +1581,13 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener estadísticas de pagos. Usando valor predeterminado.");
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
       
       console.log(`GET /api/dashboard/payments-stats - Obteniendo estadísticas de pagos para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
