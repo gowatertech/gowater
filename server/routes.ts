@@ -2758,30 +2758,46 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de pedido inválido, debe ser un número" });
       }
       
-      // Forzamos companyId = 1 para depuración
-      const companyId = 1;
+      // Obtener el companyId adecuado del contexto o de la sesión
+      let companyId = getCurrentCompanyId();
       
-      console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${companyId} (Debug mode)`);
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
       
-      // Primero comprobar si existe la orden con SQL simple
+      // Si aún no tenemos companyId, usamos el valor 1 como último recurso (para depuración TEMPORAL)
+      if (!companyId) {
+        console.warn(`ADVERTENCIA: No se encontró companyId para la petición. Usando companyId=1 como fallback`);
+        companyId = 1; // SOLO PARA DEPURACIÓN
+      }
+      
+      console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${companyId}`);
+      
+      // Consulta SQL para obtener la orden y sus detalles en un solo viaje a la base de datos
       const { pool } = require('./db');
       const query = `
         SELECT 
-          id, company_id as "companyId", customer_id as "customerId", 
-          route_id as "routeId", total, status, payment_method as "paymentMethod", 
-          date, estimated_delivery_time as "estimatedDeliveryTime",
-          actual_delivery_time as "actualDeliveryTime", 
-          delivery_sequence as "deliverySequence",
-          delivery_coordinates as "deliveryCoordinates", 
-          notes, cash_collected as "cashCollected",
-          driver_commission as "driverCommission", 
-          assistant_commission as "assistantCommission"
-        FROM orders 
-        WHERE id = $1 AND company_id = $2
+          o.id, o.company_id as "companyId", o.customer_id as "customerId", 
+          o.route_id as "routeId", o.total, o.status, o.payment_method as "paymentMethod", 
+          o.date, o.estimated_delivery_time as "estimatedDeliveryTime",
+          o.actual_delivery_time as "actualDeliveryTime", 
+          o.delivery_sequence as "deliverySequence",
+          o.delivery_coordinates as "deliveryCoordinates", 
+          o.notes, o.cash_collected as "cashCollected",
+          o.driver_commission as "driverCommission", 
+          o.assistant_commission as "assistantCommission",
+          c.businessname as "customerName", 
+          c.email as "customerEmail", 
+          c.phone as "customerPhone",
+          c.address as "customerAddress"
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        WHERE o.id = $1 AND o.company_id = $2
         LIMIT 1
       `;
       
-      console.log(`Ejecutando query SQL directa para pedido ${orderId} y compañía ${companyId}`);
+      console.log(`Ejecutando query SQL para pedido ${orderId} y compañía ${companyId}`);
       const result = await pool.query(query, [orderId, companyId]);
       
       if (!result.rows || result.rows.length === 0) {
@@ -2805,7 +2821,63 @@ export async function registerRoutes(router: express.Router) {
         orderData.actualDeliveryTime = orderData.actualDeliveryTime.toISOString();
       }
       
-      console.log(`GET /api/orders/${orderId} - Retornando datos del pedido:`, orderData);
+      // Obtener también los items del pedido
+      try {
+        const itemsQuery = `
+          SELECT 
+            id, order_id as "orderId", product_id as "productId",
+            quantity, unit_price as "unitPrice", 
+            total, discount, notes
+          FROM order_items
+          WHERE order_id = $1
+        `;
+        
+        const itemsResult = await pool.query(itemsQuery, [orderId]);
+        
+        // Si hay items, agregarlos a la respuesta
+        if (itemsResult.rows && itemsResult.rows.length > 0) {
+          orderData.items = itemsResult.rows;
+          
+          // Obtener información de productos para cada item
+          const productIds = [...new Set(itemsResult.rows.map(item => item.productId))];
+          
+          if (productIds.length > 0) {
+            const productsQuery = `
+              SELECT 
+                id, name, description, price, 
+                category, image_url as "imageUrl", 
+                sku, bottle_deposit as "bottleDeposit"
+              FROM products
+              WHERE id = ANY($1) AND company_id = $2
+            `;
+            
+            const productsResult = await pool.query(productsQuery, [productIds, companyId]);
+            
+            // Crear un mapa de productos por ID para consulta rápida
+            const productsMap = {};
+            if (productsResult.rows && productsResult.rows.length > 0) {
+              productsResult.rows.forEach(product => {
+                productsMap[product.id] = product;
+              });
+              
+              // Enriquecer cada item con la información del producto
+              orderData.items = orderData.items.map(item => ({
+                ...item,
+                product: productsMap[item.productId] || null
+              }));
+            }
+          }
+        } else {
+          orderData.items = [];
+        }
+      } catch (itemsError) {
+        console.error(`Error al obtener items del pedido ${orderId}:`, itemsError);
+        // No fallamos la petición principal si hay error en los items
+        orderData.items = [];
+        orderData.itemsError = "Error al obtener items del pedido";
+      }
+      
+      console.log(`GET /api/orders/${orderId} - Retornando datos completos del pedido`);
       res.json(orderData);
     } catch (error) {
       console.error(`Error al obtener pedido ${req.params.id}:`, error);      
