@@ -405,18 +405,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: "pending" | "in_transit" | "delivered" | "cancelled"): Promise<Order> {
+    // Importamos las funciones necesarias para mantener la seguridad multiempresa
+    const { withCompanyUpdate } = require('./company-db');
+    
+    // Primero verificamos que el pedido exista para la empresa actual
     const [order] = await db
       .select()
       .from(orders)
       .where(eq(orders.id, id));
 
     if (!order) throw new Error("Order not found");
+    
+    console.log(`Actualizando pedido ${id} al estado '${status}'`);
 
-    const [updatedOrder] = await db
-      .update(orders)
-      .set({ status })
-      .where(eq(orders.id, id))
-      .returning();
+    // Usamos withCompanyUpdate para asegurar que solo se modifiquen registros de la empresa actual
+    const [updatedOrder] = await withCompanyUpdate(orders, { 
+      where: eq(orders.id, id),
+      set: { status } 
+    });
+    
+    console.log(`Pedido ${id} actualizado a '${status}'`, updatedOrder);
 
     return updatedOrder;
   }
