@@ -1,126 +1,224 @@
-# Implementación Multi-Tenant con Company ID
+# Análisis y Plan de Implementación para el Dashboard de Compañía
 
-## Análisis del Sistema Multi-Tenant
+## Resumen del Problema
 
-### Objetivo
-Verificar que todas las tablas y esquemas del sistema tengan correctamente implementado el campo `company_id` para soportar la arquitectura multi-tenant.
+Se requiere implementar correctamente en el dashboard de la compañía la visualización de datos de ventas, pagos y estadísticas que actualmente no están funcionando adecuadamente.
 
-### Resumen del Estado Actual
+## Análisis de la Situación Actual
 
-#### ✅ Funcionalidad Encontrada
-- **Middleware Multi-tenant**: El sistema ya cuenta con middlewares para manejar el contexto de la empresa actual:
-  - `tenantMiddleware`: Detecta y establece el tenant basado en subdominios, headers o sesión
-  - `companyTenantMiddleware`: Establece el contexto de multi-tenant basado en la sesión sin exigir autenticación
-  - `companyFilterMiddleware`: Agrega el companyId a todas las consultas para asegurar separación de datos
-  - `mobileApiTenantMiddleware`: Gestiona el tenant específicamente para la app móvil
+### Componentes Relevantes Identificados
 
-- **Funciones de Contexto**:
-  - `getCurrentCompanyId()`: Obtiene el ID de la empresa actual desde un contexto global
-  - `setCurrentCompanyId(companyId)`: Establece el ID de la empresa actual en el contexto global
-  - `useCompanyDb(func)`: Ejecuta una función dentro del contexto de una empresa específica
+1. **Frontend**:
+   - `client/src/pages/dashboard/index.tsx`: Página principal del dashboard que muestra las estadísticas
+   - `client/src/components/dashboard/ChartCard.tsx`: Componente para gráficos (pie, bar, line)
+   - `client/src/components/dashboard/KPICard.tsx`: Componente para indicadores clave de rendimiento
+   - `client/src/components/dashboard/AlertCard.tsx`: Componente para mostrar alertas
+   - `client/src/pages/reports/components/SalesReports.tsx`: Componente para reportes de ventas
+   - `client/src/pages/pagos/lista.tsx` y `client/src/pages/pagos/historial.tsx`: Páginas para gestión de pagos
 
-- **Funciones Helper para Consultas**:
-  - `withCompany(query)`: Aplica filtrado por companyId a una consulta de selección
-  - `withCompanyInsert(table, values)`: Añade automáticamente el companyId a inserciones
-  - `withCompanyUpdate(table, values)`: Añade filtrado por companyId a actualizaciones
-  - `withCompanyDelete(table)`: Añade filtrado por companyId a eliminaciones
+2. **Backend**:
+   - `server/routes.ts`: Contiene los endpoints para obtener estadísticas y datos del dashboard
+   - `shared/schema.ts`: Define el esquema de la base de datos incluyendo tablas de ventas y pagos
 
-- **Cliente DB Adaptado para Multi-tenant**:
-  - `companyDb`: Cliente que envuelve las funciones de db con los métodos adaptados para multi-tenant
+### Modelos de Datos Relevantes
 
-- **Scripts de Migración**:
-  - Se encontraron scripts SQL (`db-migration.sql`, `db-migration-rest.sql`) que añaden la columna `company_id` a las tablas
+- **Ventas**: Tabla `invoices` con `invoiceItems`
+- **Pagos**: Tabla `payments` que relaciona pagos con facturas y clientes
+- **Clientes**: Tabla `customers` que contiene información de los clientes
 
-#### 📊 Estado de las Tablas
-Todas las tablas excepto `settings` ya tenían implementado el campo `company_id`. Durante esta revisión:
+### Problemas Potenciales Identificados
 
-1. ✅ Se añadió el campo `companyId` a la tabla `settings`:
-   ```typescript
-   export const settings = pgTable("settings", {
-     id: serial("id").primaryKey(),
-     companyId: integer("company_id").notNull(), // Añadido companyId
-     // ...resto de campos
-   });
-   ```
+1. **Problemas de Conexión entre Frontend y Backend**:
+   - Los endpoints de API existen pero pueden no estar siendo llamados correctamente desde el frontend
+   - Posibles errores en las consultas de API o en el manejo de respuestas
 
-2. ✅ Se actualizó el esquema de inserción para incluir `companyId`:
-   ```typescript
-   export const insertSettingsSchema = z.object({
-     companyId: z.union([
-       z.number().int().positive(),
-       z.string().transform(val => parseInt(val))
-     ]),
-     // ...resto de campos
-   });
-   ```
+2. **Problemas en el Procesamiento de Datos**:
+   - Las consultas SQL pueden no estar filtrando correctamente por `companyId`
+   - Posibles errores en la manipulación y formateo de datos para gráficos
 
-### Análisis de Tablas
+3. **Problemas de Contexto de Compañía**:
+   - El sistema usa `getCurrentCompanyId()` para obtener el contexto de la compañía actual
+   - Puede haber problemas con este contexto no siendo establecido o propagado correctamente
 
-Total de tablas verificadas: **35**
-- Tablas con campo company_id correctamente implementado: **35** (100%)
-- Tablas con campo company_id faltante: **0** (0%)
+4. **Problemas de Visualización**:
+   - Componentes de gráficos pueden no estar recibiendo datos en el formato correcto
+   - Posibles errores en la transformación de datos para su visualización
 
-### Tablas Principales Verificadas
-1. `users`
-2. `products`
-3. `provinces`
-4. `municipalities`
-5. `cities`
-6. `sectors`
-7. `customers`
-8. `trucks`
-9. `routes`
-10. `orders`
-11. `orderItems`
-12. `bottleReturns`
-13. `driverCashBalances`
-14. `returnedBottles`
-15. `zones`
-16. `warehouses`
-17. `invoices`
-18. `invoiceItems`
-19. `bills`
-20. `billItems`
-21. `payments`
-22. `customerOrders`
-23. `settings` (actualizada durante esta revisión)
-24. `productionBatches`
-25. `productionBatchItems`
-26. `vehicleLoading`
-27. `vehicleLoadingItems`
-28. `routeSettlements`
-29. `routeSettlementItems`
-30. `recurringOrders`
-31. `recurringOrderItems`
-32. `commissions`
-33. `commissionItems`
-34. `companyLeads`
+## Plan de Implementación
 
-## Pruebas Realizadas
+### 1. Verificación y Corrección del Contexto de Compañía
 
-Existe un endpoint de prueba en `/api/test-tenant/crud` que verifica la funcionalidad multi-tenant realizando operaciones CRUD básicas y comprobando que los filtros por companyId se apliquen correctamente.
+```javascript
+// Verificar en server/routes.ts que el contexto de compañía esté correctamente establecido
+const companyId = getCurrentCompanyId();
+if (!companyId) {
+  console.error("No se encontró una compañía en el contexto");
+  return res.status(403).json({ error: "No hay contexto de compañía" });
+}
+```
 
-También hay un endpoint `/api/test-company-filter` que compara consultas con y sin filtrado multi-tenant.
+### 2. Corrección de Endpoints de API
 
-## Recomendaciones
+Asegurar que todos los endpoints necesarios estén correctamente implementados:
 
-1. ✅ Actualizar el script de migración para añadir companyId a la tabla settings:
-   ```sql
-   ALTER TABLE settings ADD COLUMN IF NOT EXISTS company_id INTEGER NOT NULL DEFAULT 1;
-   ```
+```javascript
+// En server/routes.ts
+router.get("/dashboard/stats", async (req, res) => {
+  try {
+    const companyId = getCurrentCompanyId();
+    if (!companyId) {
+      return res.status(403).json({ error: "No hay contexto de compañía" });
+    }
+    
+    // Consulta para obtener estadísticas relevantes para el dashboard
+    const totalSales = await db
+      .select({
+        total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
+      })
+      .from(invoices)
+      .where(eq(invoices.companyId, companyId));
+    
+    // Resto de consultas para otras estadísticas...
+    
+    res.json({
+      totalSales: totalSales[0]?.total || 0,
+      // Otros datos estadísticos...
+    });
+  } catch (error) {
+    console.error("Error al obtener estadísticas del dashboard:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+```
 
-2. ✓ Actualizar cualquier función que realice inserciones en la tabla settings para incluir el campo companyId.
+### 3. Implementación de Consultas en el Frontend
 
-3. 📝 Documentar la funcionalidad multi-tenant en la guía del proyecto.
+Asegurarse de que las consultas React Query estén correctamente implementadas:
 
-4. 🧪 Aumentar la cobertura de pruebas para escenarios multi-tenant.
+```javascript
+// En client/src/pages/dashboard/index.tsx
+const { data: stats, isLoading } = useQuery({
+  queryKey: ["/api/dashboard/stats"],
+  queryFn: async () => {
+    const response = await apiRequest("GET", "/api/dashboard/stats");
+    if (!response.ok) {
+      throw new Error("Error al cargar estadísticas");
+    }
+    return response.json();
+  },
+});
+```
 
-5. 🔍 Añadir logging para registrar operaciones entre tenants.
+### 4. Transformación de Datos para Gráficos
 
-6. 🛡️ Reforzar validaciones para prevenir acceso cross-tenant.
+```javascript
+// En client/src/pages/dashboard/index.tsx
+// Preparar datos para gráficos de ventas
+const salesData = [
+  { name: "Agua", value: stats?.salesByProduct?.water || 0, color: COLORS.BLUE },
+  { name: "Botellones", value: stats?.salesByProduct?.bottles || 0, color: COLORS.TURQUOISE },
+  // Otros productos...
+];
+
+// Preparar datos para gráficos de pedidos
+const ordersData = [
+  { name: "Pendientes", value: stats?.pendingOrders || 0, color: COLORS.YELLOW },
+  { name: "Entregados", value: stats?.deliveredOrders || 0, color: COLORS.GREEN },
+  { name: "Cancelados", value: stats?.cancelledOrders || 0, color: COLORS.RED },
+];
+```
+
+### 5. Mejoras en Componentes de Visualización
+
+```javascript
+// En client/src/components/dashboard/ChartCard.tsx
+// Asegurarse de manejar correctamente datos vacíos o nulos
+if (!data || data.length === 0) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent className="flex items-center justify-center h-32">
+        <p className="text-sm text-muted-foreground">No hay datos disponibles</p>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+### 6. Implementación de Estadísticas de Pagos
+
+```javascript
+// En server/routes.ts
+router.get("/dashboard/payment-stats", async (req, res) => {
+  try {
+    const companyId = getCurrentCompanyId();
+    if (!companyId) {
+      return res.status(403).json({ error: "No hay contexto de compañía" });
+    }
+    
+    // Obtener estadísticas de pagos (total, pendientes, etc.)
+    const totalPayments = await db
+      .select({
+        total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
+      })
+      .from(payments)
+      .where(eq(payments.companyId, companyId));
+    
+    // Resto de consultas para estadísticas de pagos...
+    
+    res.json({
+      totalPayments: totalPayments[0]?.total || 0,
+      // Otros datos de pagos...
+    });
+  } catch (error) {
+    console.error("Error al obtener estadísticas de pagos:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+```
+
+### 7. Integración de Estadísticas en el Dashboard
+
+```javascript
+// En client/src/pages/dashboard/index.tsx
+// Agregar una nueva pestaña para estadísticas de pagos
+<TabsList className="grid grid-cols-3">
+  <TabsTrigger value="overview">{t("Resumen")}</TabsTrigger>
+  <TabsTrigger value="sales">{t("Ventas")}</TabsTrigger>
+  <TabsTrigger value="payments">{t("Pagos")}</TabsTrigger>
+</TabsList>
+
+// Contenido de la pestaña de pagos
+<TabsContent value="payments" className="space-y-4">
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {/* Contenido específico de pagos */}
+  </div>
+</TabsContent>
+```
+
+## Pruebas a Realizar
+
+1. **Pruebas de Contexto de Compañía**:
+   - Verificar que el ID de compañía esté disponible en todas las rutas
+   - Probar con diferentes usuarios y compañías
+
+2. **Pruebas de Endpoints**:
+   - Verificar respuestas de cada endpoint con herramientas como Postman o pruebas directas
+   - Comprobar que los datos retornados sean consistentes con lo esperado
+
+3. **Pruebas de Visualización**:
+   - Verificar que los gráficos muestren correctamente los datos
+   - Comprobar el comportamiento con conjuntos de datos de diferentes tamaños
+
+4. **Pruebas de Integración**:
+   - Verificar que el flujo completo desde la base de datos hasta la visualización funcione correctamente
+   - Probar con datos reales de la compañía
 
 ## Conclusión
 
-El sistema multi-tenant está adecuadamente implementado con todas las tablas ahora incluyendo el campo `company_id`. Las funciones auxiliares y middleware proporcionan una capa de abstracción que simplifica el desarrollo y reduce el riesgo de errores. 
+El problema parece estar relacionado con la integración entre los componentes frontend y los endpoints backend, posiblemente complicado por el manejo del contexto de la compañía. El plan propuesto aborda estos aspectos y debería permitir una correcta implementación de las estadísticas en el dashboard de la compañía.
 
-Con la actualización realizada a la tabla `settings`, el sistema ahora cuenta con una separación completa de datos entre tenants en todas las entidades principales.
+La implementación debería realizarse de manera incremental, verificando cada paso antes de proceder al siguiente, para facilitar la identificación y corrección de problemas específicos.
