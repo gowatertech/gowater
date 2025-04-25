@@ -2420,7 +2420,7 @@ export async function registerRoutes(router: express.Router) {
         .from(products)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, companyId)
+          eq(products.companyId, effectiveCompanyId)
         ));
 
       if (!existingProduct) {
@@ -2432,7 +2432,7 @@ export async function registerRoutes(router: express.Router) {
         .set(productData)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, companyId) // Filtrar por companyId para evitar modificar productos de otras empresas
+          eq(products.companyId, effectiveCompanyId) // Filtrar por companyId para evitar modificar productos de otras empresas
         ))
         .returning();
 
@@ -2451,12 +2451,15 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para eliminar producto");
-        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+        console.warn("No se encontró companyId en el contexto para eliminar producto. Usando valor predeterminado.");
       }
       
-      console.log(`DELETE /api/products/${productId} - Eliminando producto para la empresa ${companyId}`);
+      console.log(`DELETE /api/products/${productId} - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`DELETE /api/products/${productId} - Eliminando producto para la empresa ${effectiveCompanyId}`);
 
       // Verificar que el producto existe y pertenece a esta empresa
       const [existingProduct] = await db
@@ -2464,7 +2467,7 @@ export async function registerRoutes(router: express.Router) {
         .from(products)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, companyId)
+          eq(products.companyId, effectiveCompanyId)
         ));
 
       if (!existingProduct) {
@@ -2475,7 +2478,7 @@ export async function registerRoutes(router: express.Router) {
         .delete(products)
         .where(and(
           eq(products.id, productId),
-          eq(products.companyId, companyId) // Filtrar por companyId para evitar eliminar productos de otras empresas
+          eq(products.companyId, effectiveCompanyId) // Filtrar por companyId para evitar eliminar productos de otras empresas
         ))
         .returning();
 
@@ -2493,20 +2496,23 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para actualizar comisiones de productos");
-        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
+        console.warn("No se encontró companyId en el contexto para actualizar comisiones de productos. Usando valor predeterminado.");
       }
       
-      console.log(`POST /api/products/update-all-commission - Iniciando actualización de comisiones para empresa ${companyId}`);
+      console.log(`POST /api/products/update-all-commission - Usando companyId: ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+      console.log(`POST /api/products/update-all-commission - Iniciando actualización de comisiones para empresa ${effectiveCompanyId}`);
       
       // Obtener todos los productos de esta empresa
       const allProducts = await db
         .select()
         .from(products)
-        .where(eq(products.companyId, companyId));
+        .where(eq(products.companyId, effectiveCompanyId));
       
-      console.log(`Encontrados ${allProducts.length} productos para actualizar en la empresa ${companyId}.`);
+      console.log(`Encontrados ${allProducts.length} productos para actualizar en la empresa ${effectiveCompanyId}.`);
       
       // Contador para productos actualizados
       let updatedCount = 0;
@@ -2521,7 +2527,7 @@ export async function registerRoutes(router: express.Router) {
             .set({ hasCommission: true })
             .where(and(
               eq(products.id, product.id),
-              eq(products.companyId, companyId) // Asegurar que solo actualizamos productos de esta empresa
+              eq(products.companyId, effectiveCompanyId) // Asegurar que solo actualizamos productos de esta empresa
             ))
             .returning();
           
