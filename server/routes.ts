@@ -2752,26 +2752,33 @@ export async function registerRoutes(router: express.Router) {
   // Ruta para obtener un pedido específico por ID
   router.get("/orders/:id", async (req, res) => {
     try {
+      // Validar que el ID de la orden sea un número
       const orderId = parseInt(req.params.id);
+      if (isNaN(orderId)) {
+        return res.status(400).json({ error: "ID de pedido inválido, debe ser un número" });
+      }
+      
       const companyId = req.session.companyId || 1;
       
       console.log(`GET /api/orders/${orderId} - Buscando pedido`);
       
-      const order = await db
-        .select({
-          id: orders.id,
-          customerId: orders.customerId,
-          total: orders.total,
-          status: orders.status,
-          date: orders.date,
-          paymentMethod: orders.paymentMethod,
-          routeId: orders.routeId,
-          driverId: orders.driverId,
-          companyId: orders.companyId,
-          assistantId: orders.assistantId,
-          comments: orders.comments,
-          reference: orders.reference
-        })
+      // Primero comprobar si existe la orden
+      const orderExists = await db
+        .select({ count: sql`count(*)` })
+        .from(orders)
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ));
+      
+      if (!orderExists || !orderExists.length || orderExists[0].count === 0) {
+        console.log(`GET /api/orders/${orderId} - Pedido no encontrado`);
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+      
+      // Si existe, obtener los datos completos
+      const orderData = await db
+        .select()
         .from(orders)
         .where(and(
           eq(orders.id, orderId),
@@ -2779,12 +2786,12 @@ export async function registerRoutes(router: express.Router) {
         ))
         .limit(1);
       
-      if (!order || !order.length) {
-        return res.status(404).json({ error: "Pedido no encontrado" });
+      if (!orderData || !orderData.length) {
+        return res.status(404).json({ error: "No se pudieron obtener los datos del pedido" });
       }
       
-      console.log(`GET /api/orders/${orderId} - Retornando datos del pedido:`, order[0]);
-      res.json(order[0]);
+      console.log(`GET /api/orders/${orderId} - Retornando datos del pedido:`, orderData[0]);
+      res.json(orderData[0]);
     } catch (error) {
       console.error(`Error al obtener pedido ${req.params.id}:`, error);      
       res.status(500).json({ error: String(error) });

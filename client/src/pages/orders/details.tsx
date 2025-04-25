@@ -63,11 +63,26 @@ export default function OrderDetails() {
     queryKey: ["/api/orders", orderId],
     queryFn: async () => {
       if (!orderId) return null;
-      const response = await apiRequest("GET", `/api/orders/${orderId}`);
+      
+      console.log(`Obteniendo datos del pedido ${orderId} para mostrar detalles`);
+      
+      // Usamos fetch directamente para tener mejor control del manejo de errores
+      const response = await fetch(`/api/orders/${orderId}`, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+      
       if (!response.ok) {
-        throw new Error('Error al cargar el pedido');
+        const errorText = await response.text();
+        console.error(`Error HTTP ${response.status} al cargar pedido: ${errorText}`);
+        throw new Error(`Error al cargar el pedido: ${response.status} ${response.statusText}`);
       }
-      return response.json();
+      
+      const orderData = await response.json();
+      console.log(`Datos del pedido ${orderId} obtenidos correctamente:`, orderData);
+      return orderData;
     },
     enabled: !!orderId,
   });
@@ -84,11 +99,26 @@ export default function OrderDetails() {
     queryKey: ["/api/orders", orderId, "items"],
     queryFn: async () => {
       if (!orderId) return [];
-      const response = await apiRequest("GET", `/api/orders/${orderId}/items`);
+      
+      console.log(`Obteniendo items del pedido ${orderId} para mostrar detalles`);
+      
+      // Usamos fetch directamente para tener mejor control del manejo de errores
+      const response = await fetch(`/api/orders/${orderId}/items`, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+      
       if (!response.ok) {
-        throw new Error('Error al cargar los items del pedido');
+        const errorText = await response.text();
+        console.error(`Error HTTP ${response.status} al cargar los items: ${errorText}`);
+        throw new Error(`Error al cargar los items del pedido: ${response.status} ${response.statusText}`);
       }
-      return response.json();
+      
+      const itemsData = await response.json();
+      console.log(`Items del pedido ${orderId} obtenidos correctamente:`, itemsData);
+      return itemsData;
     },
     enabled: !!orderId,
   });
