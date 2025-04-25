@@ -71,7 +71,7 @@ export const createOrdersEndpoints = (router: Router) => {
         return res.status(400).json({ error: "ID de pedido inválido" });
       }
       
-      if (!status || !["pending", "delivered", "cancelled"].includes(status)) {
+      if (!status || !["pending", "in_transit", "delivered", "cancelled"].includes(status)) {
         return res.status(400).json({ error: "Estado inválido" });
       }
       
