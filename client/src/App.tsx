@@ -215,8 +215,11 @@ function Router() {
     );
   }
   
+  // Importar el componente de login con correo
+  const CompanyLogin = lazy(() => import("@/pages/auth/login"));
+
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register") && !location.startsWith("/dashboard")) {
+  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login") && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
@@ -224,6 +227,11 @@ function Router() {
         <Route path="/soporte" component={SoportePage} />
         <Route path="/contact" component={ContactPage} />
         <Route path="/register-interest" component={RegisterInterestPage} />
+        <Route path="/auth/login">
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <CompanyLogin />
+          </Suspense>
+        </Route>
         {/* Redirigir /register a /register-interest */}
         <Route path="/register">
           {() => {
