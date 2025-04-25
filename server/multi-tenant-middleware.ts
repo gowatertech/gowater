@@ -32,10 +32,16 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
     return next();
   }
   
-  // Si no hay companyId en la sesión (no autenticado), usamos uno por defecto para modo demo
+  // Si no hay companyId en la sesión (no autenticado), y no es una ruta pública
   if (!req.session.companyId) {
-    console.log(`[Tenant Middleware] No hay companyId en sesión. Configurando valor por defecto.`);
-    req.session.companyId = 1; // Valor por defecto para modo demostración
+    // Para rutas de API que requieren autenticación, devolver error
+    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/public/')) {
+      console.log(`[Tenant Middleware] No hay companyId en sesión para ruta de API: ${req.path}`);
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    
+    // Para rutas de páginas, seguir sin companyId (se manejará por otra vía)
+    console.log(`[Tenant Middleware] No hay companyId en sesión. Continuando sin empresa.`);
   } else {
     console.log(`[Tenant Middleware] Usando companyId de sesión: ${req.session.companyId}`);
   }
@@ -49,23 +55,6 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
  */
 export function checkRoleMiddleware(allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    // MODO DEMOSTRACIÓN: Omitir verificaciones de roles
-    // Crear un usuario ficticio para la sesión si no existe
-    if (!req.session.user) {
-      req.session.user = {
-        id: 1,
-        name: "Admin Demo",
-        role: "platform_admin",
-        isPlatformUser: true,
-        email: "admin@demo.com",
-        username: "admin"
-      };
-    }
-    
-    // Pasar directamente al siguiente middleware
-    return next();
-    
-    /* CÓDIGO ORIGINAL COMENTADO PARA PRODUCCIÓN
     // Verificar si el usuario está autenticado
     if (!req.session.user) {
       return res.status(401).json({ message: "No autenticado" });
@@ -73,6 +62,7 @@ export function checkRoleMiddleware(allowedRoles: string[]) {
     
     // Verificar si el rol del usuario está permitido
     if (!allowedRoles.includes(req.session.user.role)) {
+      console.log(`Auth middleware: Rol no permitido: ${req.session.user.role}`);
       return res.status(403).json({ message: "Acceso denegado - Rol no autorizado" });
     }
     
@@ -84,7 +74,6 @@ export function checkRoleMiddleware(allowedRoles: string[]) {
     }
     
     next();
-    */
   };
 }
 
