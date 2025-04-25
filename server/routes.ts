@@ -1438,6 +1438,7 @@ export async function registerRoutes(router: express.Router) {
   // Endpoints para estadísticas del dashboard
   router.get("/dashboard/stats", async (req, res) => {
     try {
+      console.log("GET /api/dashboard/stats - Endpoint invocado");
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
