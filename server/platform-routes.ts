@@ -1061,6 +1061,16 @@ export function registerPlatformRoutes(router: Router) {
       res.status(200).json({ message: "Sesión cerrada" });
     });
   });
+  
+  // Ruta para verificar si el usuario está autenticado
+  router.get("/user", (req: Request, res: Response) => {
+    if (!req.session || !req.session.user || !req.session.user.isPlatformUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    
+    // Enviar los datos del usuario de la sesión sin modificar
+    res.json(req.session.user);
+  });
 
   return router;
 }

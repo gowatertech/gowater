@@ -71,7 +71,7 @@ export default function PlatformLogin() {
     // Verificar si hay un usuario ya autenticado en la plataforma
     const checkPlatformAuth = async () => {
       try {
-        const response = await fetch('/api/platform/platform-user');
+        const response = await fetch('/api/platform/user');
         if (response.ok) {
           // Usuario ya autenticado, redirigir al dashboard
           setLocation('/platform/dashboard', { replace: true });
