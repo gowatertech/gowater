@@ -2829,11 +2829,11 @@ export async function registerRoutes(router: express.Router) {
             quantity, price as "unitPrice", 
             (quantity * price::numeric) as "total"
           FROM order_items
-          WHERE order_id = $1
+          WHERE order_id = $1 AND company_id = $2
         `;
         
         // Usamos el pool ya importado
-        const itemsResult = await pool.query(itemsQuery, [orderId]);
+        const itemsResult = await pool.query(itemsQuery, [orderId, companyId]);
         
         // Si hay items, agregarlos a la respuesta
         if (itemsResult.rows && itemsResult.rows.length > 0) {
@@ -2984,6 +2984,14 @@ export async function registerRoutes(router: express.Router) {
     try {
       const orderId = parseInt(req.params.id);
       console.log("Buscando items para el pedido:", orderId);
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener items del pedido");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
 
       const items = await db
         .select({
@@ -2996,7 +3004,10 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(orderItems)
         .innerJoin(products, eq(orderItems.productId, products.id))
-        .where(eq(orderItems.orderId, orderId));
+        .where(and(
+          eq(orderItems.orderId, orderId),
+          eq(orderItems.companyId, companyId)
+        ));
 
       console.log("Items encontrados:", items);
       res.json(items);
