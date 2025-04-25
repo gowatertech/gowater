@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 // Iconos
 import { 
@@ -53,6 +54,7 @@ export default function NewOrder() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
+  const { user } = useCurrentUser();
   
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [notes, setNotes] = useState("");
@@ -148,7 +150,8 @@ export default function NewOrder() {
         paymentMethod: paymentMethod as "cash" | "credit" | "card",
         date: new Date().toISOString(), // Formato ISO completo
         routeId: null as number | null,
-        notes: notes || ""
+        notes: notes || "",
+        companyId: user?.companyId || 1 // Usar el companyId del usuario actual
       };
 
       console.log("Datos del pedido a enviar:", orderData);

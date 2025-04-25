@@ -63,7 +63,7 @@ export interface IStorage {
   getOrder(id: number): Promise<Order | undefined>;
   createOrder(order: InsertOrder): Promise<Order>;
   listOrders(): Promise<Order[]>;
-  updateOrderStatus(id: number, status: "pending" | "delivered" | "cancelled"): Promise<Order>;
+  updateOrderStatus(id: number, status: "pending" | "in_transit" | "delivered" | "cancelled"): Promise<Order>;
 
   // Order Items
   createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem>;
@@ -404,7 +404,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(orders);
   }
 
-  async updateOrderStatus(id: number, status: "pending" | "delivered" | "cancelled"): Promise<Order> {
+  async updateOrderStatus(id: number, status: "pending" | "in_transit" | "delivered" | "cancelled"): Promise<Order> {
     const [order] = await db
       .select()
       .from(orders)
