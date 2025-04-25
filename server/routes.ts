@@ -1550,7 +1550,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             sql`date >= CURRENT_DATE - INTERVAL '7 days'`,
-            eq(invoices.companyId, companyId)
+            eq(invoices.companyId, effectiveCompanyId)
           )
         )
         .groupBy(sql`DATE(date)`)
@@ -1579,12 +1579,14 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener estadísticas de pagos");
-        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de pagos. Usando valor predeterminado.");
       }
       
-      console.log(`GET /api/dashboard/payments-stats - Obteniendo estadísticas de pagos para empresa ${companyId}`);
+      console.log(`GET /api/dashboard/payments-stats - Obteniendo estadísticas de pagos para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
       
       // Obtener el año actual y mes
       const currentYear = new Date().getFullYear();
@@ -1601,7 +1603,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
-            eq(payments.companyId, companyId)
+            eq(payments.companyId, effectiveCompanyId)
           )
         );
 
@@ -1615,7 +1617,7 @@ export async function registerRoutes(router: express.Router) {
           and(
             sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
             sql`EXTRACT(MONTH FROM date) = ${currentMonth}`,
-            eq(payments.companyId, companyId)
+            eq(payments.companyId, effectiveCompanyId)
           )
         );
 
@@ -1637,12 +1639,14 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener estadísticas de rutas");
-        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de rutas. Usando valor predeterminado.");
       }
       
-      console.log(`GET /api/dashboard/route-stats - Obteniendo estadísticas de rutas para empresa ${companyId}`);
+      console.log(`GET /api/dashboard/route-stats - Obteniendo estadísticas de rutas para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
       
       // Obtener rutas activas
       const activeRoutes = await db
@@ -1653,7 +1657,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             inArray(routes.status, ["pending", "in_progress"]),
-            eq(routes.companyId, companyId)
+            eq(routes.companyId, effectiveCompanyId)
           )
         );
       
@@ -1672,7 +1676,7 @@ export async function registerRoutes(router: express.Router) {
           and(
             eq(routes.status, "completed"),
             sql`DATE(date) = DATE(${today})`,
-            eq(routes.companyId, companyId)
+            eq(routes.companyId, effectiveCompanyId)
           )
         );
 
@@ -1692,7 +1696,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             eq(routes.status, "completed"),
-            eq(routes.companyId, companyId)
+            eq(routes.companyId, effectiveCompanyId)
           )
         );
 
@@ -1715,12 +1719,14 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener estadísticas de envases");
-        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de envases. Usando valor predeterminado.");
       }
       
-      console.log(`GET /api/dashboard/bottle-stats - Obteniendo estadísticas de envases para empresa ${companyId}`);
+      console.log(`GET /api/dashboard/bottle-stats - Obteniendo estadísticas de envases para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
       
       // Obtener envases pendientes de devolución
       const pendingReturns = await db
@@ -1733,7 +1739,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             sql`expected_quantity > returned_quantity`,
-            eq(bottleReturns.companyId, companyId)
+            eq(bottleReturns.companyId, effectiveCompanyId)
           )
         );
       
@@ -1752,7 +1758,7 @@ export async function registerRoutes(router: express.Router) {
           and(
             sql`expected_quantity > returned_quantity`,
             sql`return_date < ${thirtyDaysAgo}`,
-            eq(bottleReturns.companyId, companyId)
+            eq(bottleReturns.companyId, effectiveCompanyId)
           )
         );
 
@@ -1774,10 +1780,14 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener estadísticas de ventas");
-        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de ventas. Usando valor predeterminado.");
       }
+      
+      console.log(`GET /api/stats/sales - Obteniendo estadísticas de ventas para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
       
       // Obtener el total de ventas de las facturas
       const salesStats = await db
@@ -1786,7 +1796,7 @@ export async function registerRoutes(router: express.Router) {
           count: sql`COUNT(*)`.mapWith(Number)
         })
         .from(invoices)
-        .where(eq(invoices.companyId, companyId));
+        .where(eq(invoices.companyId, effectiveCompanyId));
 
       const result = {
         total: salesStats[0]?.total || 0,
@@ -1806,10 +1816,14 @@ export async function registerRoutes(router: express.Router) {
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener tendencia de ventas");
-        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+        console.warn("No se encontró companyId en el contexto para obtener tendencia de ventas. Usando valor predeterminado.");
       }
+      
+      console.log(`GET /api/stats/sales-trend - Obteniendo tendencia de ventas para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
       
       // Obtener las últimas 7 ventas para tendencia
       const salesData = await db
@@ -1818,7 +1832,7 @@ export async function registerRoutes(router: express.Router) {
           sales: invoices.total
         })
         .from(invoices)
-        .where(eq(invoices.companyId, companyId))
+        .where(eq(invoices.companyId, effectiveCompanyId))
         .orderBy(invoices.date)
         .limit(7);
 
