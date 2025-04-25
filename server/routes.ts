@@ -16,6 +16,7 @@ import { registerStartRouteEndpoint } from "./routes/api/startRoute";
 import { registerMobileApiEndpoints } from "./routes/mobile-api";
 import commissionsRoutes from "./routes/commissions";
 import { registerMultiTenantTestEndpoint } from "./routes/test-tenant";
+import { registerTestSessionRoutes } from "./test-session";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, companyTenantMiddleware, loginWithEmail, logout, getCurrentUser } from './middleware/company-auth.middleware';
 
@@ -57,6 +58,9 @@ export async function registerRoutes(router: express.Router) {
   
   // Información del usuario actual
   router.get("/user", getCurrentUser);
+  
+  // Registrar endpoints de prueba para sesiones (solo en desarrollo)
+  registerTestSessionRoutes(router);
   
   // Proteger todas las rutas siguientes con el middleware de autenticación
   router.use(companyAuthMiddleware);
