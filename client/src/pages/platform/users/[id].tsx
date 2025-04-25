@@ -165,44 +165,22 @@ export default function UserFormPage() {
       apiRequest({
         url: "/api/platform/platform-users",
         method: "POST",
-        data
+        // Enviamos los datos del formulario junto con las compañías seleccionadas en un solo objeto
+        data: { ...data, selectedCompanies }
       }),
-    onSuccess: (response) => {
-      const userId = response.data?.id;
+    onSuccess: () => {
+      toast({
+        title: "Usuario creado",
+        description: selectedCompanies.length > 0 
+          ? "El usuario ha sido creado y asignado a las empresas seleccionadas"
+          : "El usuario ha sido creado correctamente",
+      });
       
-      if (userId && selectedCompanies.length > 0) {
-        // Si hay empresas seleccionadas, asignarlas al usuario
-        Promise.all(
-          selectedCompanies.map(companyId => 
-            apiRequest({
-              url: "/api/platform/user-company-assignment",
-              method: "POST",
-              data: { userId, companyId }
-            })
-          )
-        ).then(() => {
-          toast({
-            title: "Usuario creado",
-            description: "El usuario ha sido creado y asignado a las empresas seleccionadas",
-          });
-          queryClient.invalidateQueries({ queryKey: ["/api/platform/platform-users"] });
-          setLocation("/platform/users");
-        }).catch(() => {
-          toast({
-            title: "Usuario creado",
-            description: "El usuario ha sido creado pero hubo un problema al asignar algunas empresas",
-          });
-          queryClient.invalidateQueries({ queryKey: ["/api/platform/platform-users"] });
-          setLocation("/platform/users");
-        });
-      } else {
-        toast({
-          title: "Usuario creado",
-          description: "El usuario ha sido creado correctamente",
-        });
-        queryClient.invalidateQueries({ queryKey: ["/api/platform/platform-users"] });
-        setLocation("/platform/users");
-      }
+      // Refrescar la lista de usuarios
+      queryClient.invalidateQueries({ queryKey: ["/api/platform/platform-users"] });
+      
+      // Redirigir a la lista de usuarios
+      setLocation("/platform/users");
     },
     onError: (error: any) => {
       toast({

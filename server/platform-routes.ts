@@ -578,15 +578,48 @@ export function registerPlatformRoutes(router: Router) {
       const validatedData = insertPlatformUserSchema.parse(userData);
       const user = await platformStorage.createPlatformUser(validatedData);
       
-      // Si es un company_admin, crear automáticamente el usuario en la compañía
-      if (user.role === 'company_admin' && user.companyId) {
-        console.log(`[PLATFORM] Creando usuario de compañía para el admin de empresa ${user.email}`);
-        await createCompanyUserFromPlatformUser(user, originalPassword); // Pasar la contraseña original
+      // No devolver la contraseña en la respuesta
+      const { password, ...userWithoutPassword } = user;
+      
+      // Guarda el ID del usuario para realizar operaciones adicionales
+      const userId = user.id;
+      
+      // La respuesta que se enviará al cliente
+      const responseData = {
+        ...userWithoutPassword
+      };
+      
+      // Procesar respuesta inmediatamente para no bloquear al cliente
+      res.status(201).json(responseData);
+      
+      // Procesar asignaciones de usuario a compañías después de enviar respuesta
+      // Esto viene en el cuerpo de la petición como selectedCompanies
+      const selectedCompanies = req.body.selectedCompanies || [];
+      
+      if (user.role === 'company_admin' && selectedCompanies.length > 0) {
+        try {
+          console.log(`[PLATFORM] Asignando usuario ${user.email} a ${selectedCompanies.length} compañías`);
+          
+          // Tomar la primera compañía seleccionada para establecerla como companyId principal
+          const primaryCompanyId = selectedCompanies[0];
+          
+          // Actualizar el campo companyId del usuario
+          await platformStorage.updatePlatformUser(userId, { 
+            companyId: primaryCompanyId 
+          });
+          
+          // Obtener el usuario actualizado para pasarlo a la función de creación
+          const updatedUser = await platformStorage.getPlatformUser(userId);
+          
+          if (updatedUser) {
+            console.log(`[PLATFORM] Creando usuario de compañía para el admin de empresa ${updatedUser.email} en compañía ${updatedUser.companyId}`);
+            await createCompanyUserFromPlatformUser(updatedUser, originalPassword);
+          }
+        } catch (error) {
+          console.error("[PLATFORM] Error al procesar asignaciones de compañía después de crear usuario:", error);
+        }
       }
       
-      // No devolver la contraseña
-      const { password, ...userWithoutPassword } = user;
-      res.status(201).json(userWithoutPassword);
     } catch (error: any) {
       console.error("Error al crear usuario:", error);
       res.status(400).json({ message: error.message || "Error al crear usuario" });
