@@ -1514,7 +1514,7 @@ export async function registerRoutes(router: express.Router) {
             eq(orders.status, "delivered"),
             sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
             sql`EXTRACT(MONTH FROM date) = ${currentMonth}`,
-            eq(orders.companyId, effectiveCompanyId)
+            eq(orders.companyId, companyId)
           )
         );
 
@@ -1527,7 +1527,7 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             eq(orders.status, "cancelled"),
-            eq(orders.companyId, effectiveCompanyId)
+            eq(orders.companyId, companyId)
           )
         );
         
@@ -1538,7 +1538,7 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(invoices)
         .where(
-          eq(invoices.companyId, effectiveCompanyId)
+          eq(invoices.companyId, companyId)
         );
         
       console.log("Total ventas diarias (sin filtro de fecha):", dailySales);
@@ -1551,7 +1551,7 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(invoices)
         .where(
-          eq(invoices.companyId, effectiveCompanyId)
+          eq(invoices.companyId, companyId)
         )
         .groupBy(sql`DATE(date)`)
         .orderBy(sql`DATE(date)`);
