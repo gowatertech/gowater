@@ -49,6 +49,9 @@ export async function registerRoutes(router: express.Router) {
   // Registrar endpoints para comisiones
   router.use('/commissions', commissionsRoutes);
   
+  // Registrar endpoints de pedidos y pedidos recurrentes
+  registerRoutesEndpoints(router);
+  
   // Endpoints de autenticación para panel principal
   // Login para panel empresa (email + password)
   router.post("/login", loginWithEmail);
@@ -114,8 +117,7 @@ export async function registerRoutes(router: express.Router) {
     res.json(req.session.user);
   });
 
-  // Registrar endpoints para rutas y pedidos
-  registerRoutesEndpoints(router);
+  // Los endpoints para rutas y pedidos ya se registraron anteriormente
   
 
 
@@ -3072,161 +3074,13 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  // Endpoint para actualizar el estado de un pedido
+  // Este endpoint ha sido desactivado por duplicidad
+  // Se usa el endpoint de server/routes/orders.ts registrado con registerRoutesEndpoints
+  /*
   router.patch("/api/orders/:id/status", async (req, res) => {
-    try {
-      const orderId = parseInt(req.params.id);
-      if (isNaN(orderId)) {
-        return res.status(400).json({ error: 'ID de pedido inválido' });
-      }
-
-      const { status, paymentReceived, updateBalance } = req.body;
-      if (!status || !['pending', 'delivered', 'cancelled'].includes(status)) {
-        return res.status(400).json({ error: 'Estado inválido. Debe ser "pending", "delivered" o "cancelled"' });
-      }
-
-      // Actualizar el estado del pedido
-      const updatedOrder = await storage.updateOrderStatus(orderId, status);
-      console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a "${status}"`, updatedOrder);
-      
-      // Si el estado es "delivered", debemos procesar el pago y generar la factura
-      if (status === 'delivered' && updatedOrder) {
-        try {
-          // Obtener el pedido completo con detalles para generar la factura
-          const order = await storage.getOrder(orderId);
-          
-          if (order && order.customerId) {
-            // 1. Actualizar el balance del cliente si se requiere
-            if (paymentReceived && updateBalance) {
-              const customer = await storage.updateCustomerBalance(order.customerId, Number(paymentReceived));
-              console.log(`Balance del cliente ${order.customerId} actualizado con el pago de ${paymentReceived}`);
-            }
-            
-            // 2. Generar una factura para este pedido entregado
-            try {
-              // Datos para la factura
-              const invoiceData = {
-                customerId: order.customerId,
-                total: order.total,
-                status: paymentReceived ? "paid" : "pending", // Si se recibió el pago, la factura está pagada
-                paymentMethod: order.paymentMethod,
-                notes: `Factura generada automáticamente para el pedido #${orderId}`,
-              };
-              
-              // Validar datos de factura
-              const validationResult = insertInvoiceSchema.safeParse(invoiceData);
-              if (validationResult.success) {
-                // Obtener el último número de factura para esta empresa
-                const companyId = getCurrentCompanyId();
-                const maxInvoiceNumberResult = await db
-                  .select({
-                    maxInvoiceNumber: sql`MAX(${invoices.invoiceNumber})`
-                  })
-                  .from(invoices)
-                  .where(eq(invoices.companyId, companyId));
-                
-                const maxInvoiceNumber = maxInvoiceNumberResult[0]?.maxInvoiceNumber || 0;
-                const nextInvoiceNumber = maxInvoiceNumber + 1;
-                
-                // Crear la factura
-                const [invoice] = await db
-                  .insert(invoices)
-                  .values({
-                    ...validationResult.data,
-                    companyId, // Asegurar que se usa el companyId correcto
-                    date: new Date(), // Aseguramos que tenga una fecha actual
-                    invoiceNumber: nextInvoiceNumber // Usar el siguiente número de factura
-                  })
-                  .returning();
-                
-                console.log(`Factura #${invoice.id} creada automáticamente para el pedido #${orderId}`);
-                
-                // Obtener los ítems del pedido
-                const orderItemsData = await db
-                  .select({
-                    orderId: orderItems.orderId,
-                    productId: orderItems.productId,
-                    quantity: orderItems.quantity,
-                    price: orderItems.price,
-                  })
-                  .from(orderItems)
-                  .where(eq(orderItems.orderId, orderId));
-                
-                // Crear los ítems de la factura basados en los ítems del pedido
-                if (orderItemsData.length > 0) {
-                  const invoiceItemsToInsert = orderItemsData.map(item => ({
-                    invoiceId: invoice.id,
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: item.price,
-                    total: Number(item.price) * item.quantity,
-                  }));
-                  
-                  // Insertar los ítems de la factura
-                  await db
-                    .insert(invoiceItems)
-                    .values(invoiceItemsToInsert);
-                  
-                  console.log(`${invoiceItemsToInsert.length} ítems añadidos a la factura #${invoice.id}`);
-                  
-                  // Si se recibió un pago, registrarlo en la tabla de pagos
-                  if (paymentReceived) {
-                    try {
-                      // Obtener el companyId del contexto
-                      const companyId = getCurrentCompanyId();
-                      
-                      if (!companyId) {
-                        console.warn("No se encontró companyId en el contexto para registrar pago automático");
-                        throw new Error("ID de empresa no encontrado en el contexto");
-                      }
-                      
-                      // Datos para el pago
-                      const paymentData = {
-                        invoiceId: invoice.id,
-                        customerId: order.customerId,
-                        companyId: companyId, // Agregar el companyId al pago
-                        amount: order.total,
-                        paymentMethod: order.paymentMethod || "cash",
-                        reference: `Pago recibido en entrega del pedido #${orderId}`,
-                        notes: `Pago registrado automáticamente para la factura #${invoice.id}`,
-                      };
-                      
-                      // Validar datos del pago
-                      const paymentValidation = insertPaymentSchema.safeParse(paymentData);
-                      if (!paymentValidation.success) {
-                        console.error("Error de validación en pago automático:", paymentValidation.error.format());
-                        throw new Error(`Error de validación en datos de pago: ${paymentValidation.error}`);
-                      }
-                      
-                      // Registrar el pago
-                      await storage.registerPayment(paymentValidation.data);
-                      console.log(`Pago registrado para factura #${invoice.id}`);
-                    } catch (paymentError) {
-                      console.error("Error al registrar pago:", paymentError);
-                      // No fallamos la operación principal si el registro del pago falla
-                    }
-                  }
-                }
-              } else {
-                console.error("Error al validar datos de factura:", validationResult.error);
-              }
-            } catch (invoiceError) {
-              console.error("Error al generar factura para el pedido:", invoiceError);
-              // No fallamos la operación principal si la generación de factura falla
-            }
-          }
-        } catch (processingError) {
-          console.error("Error al procesar datos para entrega completada:", processingError);
-          // No fallamos la operación principal si este procesamiento falla
-        }
-      }
-      
-      res.json(updatedOrder);
-    } catch (error) {
-      console.error("Error al actualizar estado del pedido:", error);
-      res.status(500).json({ error: String(error) });
-    }
+    // Código removido para evitar conflictos con el endpoint registrado en server/routes/orders.ts
   });
+  */
 
   router.get("/reports/sales", async (req, res) => {
     try {
