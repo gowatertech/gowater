@@ -65,14 +65,15 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   // Consulta de usuarios
-  const { data: usersResponse = [], isLoading } = useQuery({
+  const { data: usersResponse = [], isLoading, error: usersError } = useQuery({
     queryKey: ["/api/users"],
     onSuccess: (data) => {
-      console.log("Datos de usuarios recibidos:", data);
+      console.log("✅ Datos de usuarios recibidos:", data);
     },
     onError: (error) => {
-      console.error("Error al cargar usuarios:", error);
-    }
+      console.error("❌ Error al cargar usuarios:", error);
+    },
+    retry: 1 // Reducir reintentos para ver errores más rápido
   });
   
   // Asegurarnos de que siempre tenemos un array de usuarios
@@ -319,6 +320,31 @@ export default function Users() {
 
   return (
     <div className="p-2 sm:p-3 md:p-4">
+      {/* Estado de carga */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center p-4 bg-card rounded-lg shadow-sm border mb-4">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-2"></div>
+          <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
+        </div>
+      )}
+      
+      {/* Error al cargar */}
+      {usersError && (
+        <div className="flex flex-col items-center justify-center p-4 bg-destructive/10 rounded-lg border border-destructive mb-4">
+          <p className="text-sm font-medium text-destructive mb-2">Error al cargar usuarios</p>
+          <p className="text-xs text-muted-foreground mb-2">{String(usersError)}</p>
+          <p className="text-xs text-muted-foreground">Parece que has perdido la sesión. Por favor, vuelve a iniciar sesión.</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-2"
+            onClick={() => window.location.href = '/auth/login'}
+          >
+            Volver a iniciar sesión
+          </Button>
+        </div>
+      )}
+      
       <div className="flex justify-between items-center mb-2 sm:mb-3">
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{t("users")}</h1>
         <Button 
@@ -329,63 +355,67 @@ export default function Users() {
           }}
           size="sm"
           className="h-7 sm:h-8 text-xs px-2 py-0"
+          disabled={isLoading || !!usersError}
         >
           <UserPlus className="h-3 w-3 mr-1" />
           {t("addUser")}
         </Button>
       </div>
 
-      {/* Tarjetas de estadísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-        <Card className="bg-blue-50 border-blue-100">
-          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Total Usuarios</p>
-              <p className="text-sm font-bold text-blue-600">{userStats.totalUsers}</p>
-            </div>
-            <UsersIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />
-          </CardContent>
-        </Card>
+      {/* Tarjetas de estadísticas y contenido - todo lo ocultamos si hay error o está cargando */}
+      {(isLoading || usersError) ? null : (
+        <>
+          {/* Tarjetas de estadísticas */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+            <Card className="bg-blue-50 border-blue-100">
+              <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Total Usuarios</p>
+                  <p className="text-sm font-bold text-blue-600">{userStats.totalUsers}</p>
+                </div>
+                <UsersIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-400" />
+              </CardContent>
+            </Card>
 
-        <Card className="bg-green-50 border-green-100">
-          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Administradores</p>
-              <p className="text-sm font-bold text-green-600">{userStats.totalAdmins}</p>
-            </div>
-            <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-400" />
-          </CardContent>
-        </Card>
+            <Card className="bg-green-50 border-green-100">
+              <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Administradores</p>
+                  <p className="text-sm font-bold text-green-600">{userStats.totalAdmins}</p>
+                </div>
+                <Shield className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-400" />
+              </CardContent>
+            </Card>
 
-        <Card className="bg-yellow-50 border-yellow-100">
-          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Conductores</p>
-              <p className="text-sm font-bold text-yellow-600">{userStats.totalDrivers}</p>
-            </div>
-            <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400" />
-          </CardContent>
-        </Card>
+            <Card className="bg-yellow-50 border-yellow-100">
+              <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Conductores</p>
+                  <p className="text-sm font-bold text-yellow-600">{userStats.totalDrivers}</p>
+                </div>
+                <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400" />
+              </CardContent>
+            </Card>
 
-        <Card className="bg-purple-50 border-purple-100">
-          <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Asistentes</p>
-              <p className="text-sm font-bold text-purple-600">{userStats.totalAssistants}</p>
-            </div>
-            <HeartPulse className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-400" />
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="bg-purple-50 border-purple-100">
+              <CardContent className="p-1 sm:p-1.5 md:p-2 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Asistentes</p>
+                  <p className="text-sm font-bold text-purple-600">{userStats.totalAssistants}</p>
+                </div>
+                <HeartPulse className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-400" />
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Contenido principal con pestañas */}
-      <div className="bg-card rounded-lg shadow-sm border p-0.5 sm:p-1">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-3 h-7 sm:h-8">
-            <TabsTrigger value="list" className="text-[10px] sm:text-xs">Listado</TabsTrigger>
-            <TabsTrigger value="form" className="text-[10px] sm:text-xs">{editingUser ? "Editar" : "Nuevo"}</TabsTrigger>
-            <TabsTrigger value="inactive" className="text-[10px] sm:text-xs">Inactivos</TabsTrigger>
-          </TabsList>
+          {/* Contenido principal con pestañas */}
+          <div className="bg-card rounded-lg shadow-sm border p-0.5 sm:p-1">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full grid grid-cols-3 h-7 sm:h-8">
+                <TabsTrigger value="list" className="text-[10px] sm:text-xs">Listado</TabsTrigger>
+                <TabsTrigger value="form" className="text-[10px] sm:text-xs">{editingUser ? "Editar" : "Nuevo"}</TabsTrigger>
+                <TabsTrigger value="inactive" className="text-[10px] sm:text-xs">Inactivos</TabsTrigger>
+              </TabsList>
           
           <TabsContent value="list" className="mt-1 p-1 sm:p-2">
             {/* Barra de búsqueda */}
@@ -783,6 +813,8 @@ export default function Users() {
           </TabsContent>
         </Tabs>
       </div>
+        </>
+      )}
     </div>
   );
 }
