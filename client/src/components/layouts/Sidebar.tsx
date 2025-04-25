@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import {
   Users,
   Route,
@@ -39,6 +41,7 @@ import {
   ScrollText,
   LucideProps,
   Target,
+  LogOut,
 } from "lucide-react";
 
 // Colores más modernos con un esquema basado en tonos gradientes
@@ -187,8 +190,44 @@ const AnimatedIcon = ({ icon: Icon, color, isActive, className, ...props }: {
 
 export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
   const { t } = useTranslation();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [activeItems, setActiveItems] = useState<string[]>([]);
+  const { toast } = useToast();
+  
+  // Función para cerrar sesión
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Error al cerrar sesión");
+      }
+      
+      // Limpiar el estado de autenticación en el cliente
+      queryClient.setQueryData(["/api/user"], null);
+      
+      toast({
+        title: "Sesión cerrada",
+        description: "Has cerrado sesión correctamente",
+      });
+      
+      // Redirigir a la página de login después de cerrar sesión
+      window.location.href = "/auth/login";
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      toast({
+        title: "Error al cerrar sesión",
+        description: "No se pudo cerrar la sesión",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Manejador para abrir y cerrar menús al hacer clic
   const handleItemClick = (label: string) => {
@@ -249,7 +288,7 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         </Link>
       </div>
 
-      <UISidebarMenu className="px-5 mt-2">
+      <UISidebarMenu className="px-5 mt-2 flex-1">
         {sidebarItems.map((item) => {
           const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
           const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
