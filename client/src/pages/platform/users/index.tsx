@@ -37,9 +37,17 @@ import {
   Search,
   User,
   ShieldCheck,
-  Building2
+  Building2,
+  Loader2,
+  MoreVertical
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { 
   Select,
   SelectContent,
@@ -68,6 +76,17 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [userToDelete, setUserToDelete] = useState<PlatformUser | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  // Detectar si es móvil al cargar y en cambios de tamaño de pantalla
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Consulta para obtener todos los usuarios de plataforma
   const { data: users, isLoading, refetch } = useQuery({
@@ -144,6 +163,18 @@ export default function UsersPage() {
     }
   };
 
+  // Traducir el rol para mostrar versión corta (móvil)
+  const translateRoleShort = (role: string) => {
+    switch (role) {
+      case 'platform_admin':
+        return 'Admin Plataforma';
+      case 'company_admin':
+        return 'Admin Empresa';
+      default:
+        return role;
+    }
+  };
+
   // Formatear fecha
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
@@ -155,18 +186,100 @@ export default function UsersPage() {
     }).format(date);
   };
 
+  // Formatear fecha corta (móvil)
+  const formatDateShort = (dateString: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('es', { 
+      year: 'numeric', 
+      month: 'numeric', 
+      day: 'numeric' 
+    }).format(date);
+  };
+
+  // Renderizar tarjetas de usuario para visualización móvil
+  const renderUserCards = () => {
+    return filteredUsers.map((user: PlatformUser) => (
+      <Card key={user.id} className="mb-3">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-base">{user.name}</CardTitle>
+              <CardDescription className="text-xs mt-1">{user.email}</CardDescription>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLocation(`/platform/users/${user.id}`)}>
+                  <PencilIcon className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => handleDeleteUser(user)}
+                >
+                  <TrashIcon className="mr-2 h-4 w-4" />
+                  Eliminar
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </CardHeader>
+        <CardContent className="pb-3">
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Rol</p>
+              <div className="mt-1">
+                <Badge variant={user.role === 'platform_admin' ? 'default' : 'outline'} className="text-xs">
+                  {user.role === 'platform_admin' ? (
+                    <ShieldCheck className="mr-1 h-3 w-3" />
+                  ) : (
+                    <Building2 className="mr-1 h-3 w-3" />
+                  )}
+                  {translateRoleShort(user.role)}
+                </Badge>
+              </div>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Empresa</p>
+              <p className="mt-1 text-xs">
+                {user.companyId ? (
+                  <span>#{user.companyId}</span>
+                ) : (
+                  <span className="text-muted-foreground">Ninguna</span>
+                )}
+              </p>
+            </div>
+            <div className="col-span-2 mt-1">
+              <p className="text-muted-foreground text-xs">Registro</p>
+              <p className="text-xs">{formatDateShort(user.createdAt || '')}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ));
+  };
+
   return (
     <PlatformLayout>
       <div className="space-y-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
           <div>
-            <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-xl md:text-2xl font-bold">Gestión de Usuarios</h1>
+            <p className="text-sm text-muted-foreground">
               Administra los usuarios de la plataforma y sus permisos
             </p>
           </div>
-          <Button onClick={() => setLocation("/platform/users/new")}>
-            <PlusIcon className="mr-2 h-4 w-4" /> Nuevo Usuario
+          <Button 
+            size={isMobile ? "sm" : "default"}
+            onClick={() => setLocation("/platform/users/new")}
+          >
+            <PlusIcon className="mr-2 h-4 w-4" /> 
+            {isMobile ? "Nuevo" : "Nuevo Usuario"}
           </Button>
         </div>
 
@@ -176,8 +289,8 @@ export default function UsersPage() {
             <CardDescription>
               Lista de administradores de plataforma y empresas
             </CardDescription>
-            <div className="flex items-center mt-2 gap-2">
-              <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center mt-2 gap-2">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
@@ -187,48 +300,58 @@ export default function UsersPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Select
-                value={roleFilter}
-                onValueChange={setRoleFilter}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filtrar por rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los roles</SelectItem>
-                  <SelectItem value="platform_admin">Administrador de Plataforma</SelectItem>
-                  <SelectItem value="company_admin">Administrador de Empresa</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="icon" onClick={() => refetch()}>
-                <RefreshCw className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-none">
+                  <Select
+                    value={roleFilter}
+                    onValueChange={setRoleFilter}
+                  >
+                    <SelectTrigger className="sm:w-[180px] w-full">
+                      <SelectValue placeholder="Filtrar por rol" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los roles</SelectItem>
+                      <SelectItem value="platform_admin">Administrador de Plataforma</SelectItem>
+                      <SelectItem value="company_admin">Administrador de Empresa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button variant="outline" size="icon" onClick={() => refetch()}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="flex justify-center items-center py-8">
-                <div className="animate-spin">
-                  <RefreshCw className="h-8 w-8 text-primary" />
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span>Cargando usuarios...</span>
                 </div>
               </div>
             ) : filteredUsers.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <User className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <h3 className="mt-2 text-lg font-medium">No hay usuarios</h3>
-                <p className="mt-1">
+                <p className="mt-1 text-sm">
                   {searchTerm || roleFilter !== "all"
                     ? "No se encontraron usuarios con los filtros aplicados" 
                     : "Aún no hay usuarios registrados en la plataforma"}
                 </p>
                 <Button 
                   className="mt-4" 
+                  size="sm"
                   onClick={() => setLocation("/platform/users/new")}
                 >
                   <PlusIcon className="mr-2 h-4 w-4" /> Crear Usuario
                 </Button>
               </div>
+            ) : isMobile ? (
+              // Vista móvil: tarjetas
+              <div>{renderUserCards()}</div>
             ) : (
+              // Vista desktop: tabla
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -307,8 +430,8 @@ export default function UsersPage() {
               </p>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUserToDelete(null)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setUserToDelete(null)} className="sm:mt-0 mt-2">
               Cancelar
             </Button>
             <Button 
@@ -316,7 +439,12 @@ export default function UsersPage() {
               onClick={confirmDelete}
               disabled={deleteUserMutation.isPending}
             >
-              {deleteUserMutation.isPending ? "Eliminando..." : "Eliminar"}
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Eliminando...
+                </>
+              ) : "Eliminar"}
             </Button>
           </DialogFooter>
         </DialogContent>
