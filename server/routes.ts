@@ -3051,6 +3051,18 @@ export async function registerRoutes(router: express.Router) {
       const range = req.query.range || 'month';
       let dateFilter;
 
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener reporte de ventas. Usando valor predeterminado.");
+      }
+      
+      console.log(`GET /api/reports/sales - Obteniendo reporte para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
+
       // Calcular el rango de fechas
       const now = new Date();
       switch(range) {
@@ -3079,7 +3091,10 @@ export async function registerRoutes(router: express.Router) {
           amount: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number)
         })
         .from(invoices)
-        .where(dateFilter)
+        .where(and(
+          dateFilter,
+          eq(invoices.companyId, effectiveCompanyId)
+        ))
         .groupBy(sql`DATE_TRUNC('day', ${invoices.date})`)
         .orderBy(sql`DATE_TRUNC('day', ${invoices.date})`);
 
@@ -3095,6 +3110,18 @@ export async function registerRoutes(router: express.Router) {
     try {
       const range = req.query.range || 'month';
       let dateFilter;
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en contexto, usar un valor predeterminado (1)
+      const effectiveCompanyId = companyId || 1;
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener reporte de pagos. Usando valor predeterminado.");
+      }
+      
+      console.log(`GET /api/reports/payments - Obteniendo reporte para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
 
       // Calcular el rango de fechas
       const now = new Date();
@@ -3125,7 +3152,10 @@ export async function registerRoutes(router: express.Router) {
           pending: sql`COALESCE(SUM(CASE WHEN status = 'pending' THEN total::numeric ELSE 0 END), 0)`.mapWith(Number)
         })
         .from(invoices)
-        .where(dateFilter)
+        .where(and(
+          dateFilter,
+          eq(invoices.companyId, effectiveCompanyId)
+        ))
         .groupBy(sql`DATE_TRUNC('day', ${invoices.date})`)
         .orderBy(sql`DATE_TRUNC('day', ${invoices.date})`);
 
