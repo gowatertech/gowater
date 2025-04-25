@@ -90,103 +90,23 @@ export default function Dashboard() {
   // Consultas para obtener los datos del dashboard
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
-    queryFn: async () => {
-      console.log("Iniciando solicitud GET a /api/dashboard/stats");
-      try {
-        const response = await fetch("/api/dashboard/stats", {
-          credentials: "include",
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const jsonData = await response.json();
-        console.log("Respuesta de /api/dashboard/stats:", jsonData);
-        return jsonData;
-      } catch (error) {
-        console.error("Error en solicitud GET a /api/dashboard/stats:", error);
-        throw error;
-      }
-    },
-    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
+    refetchInterval: 30000 // Refresca cada 30 segundos
   });
 
   const { data: paymentStats, isLoading: paymentsLoading } = useQuery<PaymentStats>({
     queryKey: ["/api/dashboard/payments-stats"],
-    queryFn: async () => {
-      console.log("Iniciando solicitud GET a /api/dashboard/payments-stats");
-      try {
-        const response = await fetch("/api/dashboard/payments-stats", {
-          credentials: "include",
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const jsonData = await response.json();
-        console.log("Respuesta de /api/dashboard/payments-stats:", jsonData);
-        return jsonData;
-      } catch (error) {
-        console.error("Error en solicitud GET a /api/dashboard/payments-stats:", error);
-        throw error;
-      }
-    },
-    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
+    refetchInterval: 30000 // Refresca cada 30 segundos
   });
 
   // Consultas para obtener datos adicionales
   const { data: routeStats, isLoading: routesLoading } = useQuery<RouteStats>({
     queryKey: ["/api/dashboard/route-stats"],
-    queryFn: async () => {
-      console.log("Iniciando solicitud GET a /api/dashboard/route-stats");
-      try {
-        const response = await fetch("/api/dashboard/route-stats", {
-          credentials: "include",
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const jsonData = await response.json();
-        console.log("Respuesta de /api/dashboard/route-stats:", jsonData);
-        return jsonData;
-      } catch (error) {
-        console.error("Error en solicitud GET a /api/dashboard/route-stats:", error);
-        throw error;
-      }
-    },
-    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
+    refetchInterval: 30000 // Refresca cada 30 segundos
   });
 
   const { data: bottleStats, isLoading: bottlesLoading } = useQuery<BottleStats>({
     queryKey: ["/api/dashboard/bottle-stats"],
-    queryFn: async () => {
-      console.log("Iniciando solicitud GET a /api/dashboard/bottle-stats");
-      try {
-        const response = await fetch("/api/dashboard/bottle-stats", {
-          credentials: "include",
-          headers: {
-            "Accept": "application/json"
-          }
-        });
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
-        }
-        const jsonData = await response.json();
-        console.log("Respuesta de /api/dashboard/bottle-stats:", jsonData);
-        return jsonData;
-      } catch (error) {
-        console.error("Error en solicitud GET a /api/dashboard/bottle-stats:", error);
-        throw error;
-      }
-    },
-    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
+    refetchInterval: 30000 // Refresca cada 30 segundos
   });
 
   // Función para formatear moneda
@@ -344,24 +264,6 @@ export default function Dashboard() {
             <LogOut className="h-4 w-4 mr-1" />
             <span className="hidden xs:inline">{t("Cerrar sesión")}</span>
           </Button>
-        </div>
-      </div>
-      
-      {/* DEBUG INFO - Mostrar estados de carga y datos actuales */}
-      <div className="p-2 border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-xs">
-        <div className="font-semibold mb-1">DEBUG INFO (Estados de carga):</div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          <div>Stats: {statsLoading ? "Cargando..." : "Cargado"}</div>
-          <div>Payments: {paymentsLoading ? "Cargando..." : "Cargado"}</div>
-          <div>Routes: {routesLoading ? "Cargando..." : "Cargado"}</div>
-          <div>Bottles: {bottlesLoading ? "Cargando..." : "Cargado"}</div>
-        </div>
-        <div className="font-semibold mt-2 mb-1">DEBUG INFO (Datos):</div>
-        <div className="overflow-hidden">
-          <div><strong>Stats:</strong> {JSON.stringify(stats)}</div>
-          <div><strong>PaymentStats:</strong> {JSON.stringify(paymentStats)}</div>
-          <div><strong>RouteStats:</strong> {JSON.stringify(routeStats)}</div>
-          <div><strong>BottleStats:</strong> {JSON.stringify(bottleStats)}</div>
         </div>
       </div>
 
