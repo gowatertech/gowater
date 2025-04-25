@@ -83,11 +83,10 @@ export default function OrdersList() {
   const { data: companySettings } = useQuery<any>({
     queryKey: ["/api/settings"],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/settings`);
-      if (!response.ok) {
-        throw new Error('Error al cargar la configuración de la empresa');
-      }
-      return response.json();
+      return await apiRequest({
+        url: `/api/settings`,
+        method: "GET"
+      });
     },
   });
 

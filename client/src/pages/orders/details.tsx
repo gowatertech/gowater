@@ -143,11 +143,10 @@ export default function OrderDetails() {
   const { data: companySettings } = useQuery<any>({
     queryKey: ["/api/settings"],
     queryFn: async () => {
-      const response = await apiRequest("GET", `/api/settings`);
-      if (!response.ok) {
-        throw new Error('Error al cargar la configuración de la empresa');
-      }
-      return response.json();
+      return await apiRequest({
+        url: `/api/settings`,
+        method: "GET"
+      });
     },
   });
 
@@ -156,12 +155,11 @@ export default function OrderDetails() {
     mutationFn: async ({ status }: { status: string }) => {
       if (!orderId) throw new Error('ID de pedido no válido');
       
-      const response = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar el estado del pedido');
-      }
-      return response.json();
+      return await apiRequest({
+        url: `/api/orders/${orderId}/status`,
+        method: "PATCH",
+        data: { status }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
