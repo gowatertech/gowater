@@ -29,12 +29,17 @@ export const insertUserSchema = z.object({
   email: z.string().email("El email debe ser válido").optional(), // Email puede ser opcional
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val))
+  ]),
   phone: z.string().optional(),
   license: z.string().optional(),
   licenseExpiry: z.string().optional(),
   emergencyContact: z.string().optional(),
   currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   active: z.boolean().default(true),
+  hire_date: z.date().optional(),
 });
 
 // Products

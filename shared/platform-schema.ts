@@ -116,7 +116,8 @@ export const platformUsers = pgTable("platform_users", {
   role: text("role", {
     enum: ["platform_admin", "company_admin", "support"]
   }).notNull(),
-  // Removido el campo isPlatformUser que no existe en la base de datos
+  // Campo para almacenar la compañía principal del usuario (especialmente para company_admin)
+  companyId: integer("company_id").references(() => companies.id),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -154,6 +155,12 @@ export const insertPlatformUserSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   role: z.enum(["platform_admin", "company_admin", "support"]),
+  // CompanyId es opcional, principalmente para usuarios company_admin
+  companyId: z.union([
+    z.number().int().positive(),
+    z.string().transform(val => parseInt(val)),
+    z.undefined()
+  ]).optional(),
   active: z.boolean().default(true),
 });
 

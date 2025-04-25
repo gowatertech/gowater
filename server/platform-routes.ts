@@ -22,7 +22,7 @@ import { platformDb } from "./platform-db";
 import { eq, inArray, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import * as companyDbHelper from "./company-db";
-import { users } from "../shared/schema";
+import { users, insertUserSchema } from "../shared/schema";
 import { PlatformUser } from "../shared/platform-schema";
 
 /**
@@ -40,9 +40,11 @@ async function createCompanyUserFromPlatformUser(
   }
   
   const companyId = platformUser.companyId;
+  console.log(`[SYNC USER] Iniciando creación de usuario en compañía ${companyId} para ${platformUser.email}`);
   
   // Establecer companyId temporalmente para la búsqueda
   const currentCompanyId = companyDbHelper.getCurrentCompanyId();
+  console.log(`[SYNC USER] CompanyId actual: ${currentCompanyId || 'ninguno'}, cambiando a: ${companyId}`);
   companyDbHelper.setCurrentCompanyId(companyId);
   
   try {
@@ -53,25 +55,33 @@ async function createCompanyUserFromPlatformUser(
     }
     
     const possibleUsername = `${platformUser.email.split('@')[0]}_${companyId}`;
+    console.log(`[SYNC USER] Buscando usuario existente con email ${platformUser.email} en compañía ${companyId}`);
+    
     const existingUserByEmail = await db
       .select()
       .from(users)
       .where(eq(users.email, platformUser.email))
       .limit(1);
+    
+    console.log(`[SYNC USER] Resultado búsqueda por email: ${existingUserByEmail.length} usuarios encontrados`);
       
     if (existingUserByEmail.length > 0) {
-      console.log(`[SYNC USER] El usuario ya existe con el email ${platformUser.email}`);
+      console.log(`[SYNC USER] El usuario ya existe con el email ${platformUser.email} en compañía ${companyId}`);
       return;
     }
     
     // Determinar el rol equivalente en la compañía
     const companyRole = platformUser.role === 'company_admin' ? 'admin' : 'supervisor';
+    console.log(`[SYNC USER] Rol asignado al usuario de compañía: ${companyRole}`);
     
     // Hash de la contraseña para usuario de compañía
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(plainPassword, salt);
     
-    // Crear el usuario en la compañía
+    // Crear el usuario en la compañía con la fecha actual
+    const hireDate = new Date();
+    
+    // Crear el usuario en la compañía usando el esquema de inserción correcto
     const userData = {
       name: platformUser.name,
       username: possibleUsername,
@@ -79,17 +89,32 @@ async function createCompanyUserFromPlatformUser(
       password: hashedPassword,
       role: companyRole,
       companyId,
-      active: true
+      active: true,
+      hire_date: hireDate
     };
     
-    await db.insert(users).values(userData).returning();
-    console.log(`[SYNC USER] Usuario de compañía creado para ${platformUser.email} en compañía ${companyId}`);
+    console.log(`[SYNC USER] Insertando usuario en compañía ${companyId} con datos:`, {
+      ...userData,
+      password: "[REDACTED]"
+    });
+    
+    // Validar los datos usando el esquema para asegurar consistencia
+    const validatedData = insertUserSchema.parse(userData);
+    
+    // Insertar el usuario, asegurándose de tener el contexto de compañía correcto
+    const [newUser] = await db.insert(users).values(validatedData).returning();
+    console.log(`[SYNC USER] Usuario de compañía creado exitosamente para ${platformUser.email} en compañía ${companyId}`);
+    console.log(`[SYNC USER] Datos del usuario creado:`, newUser);
   } catch (error) {
     console.error(`[SYNC USER] Error al crear usuario de compañía:`, error);
   } finally {
     // Restaurar el companyId original
+    console.log(`[SYNC USER] Restaurando companyId original: ${currentCompanyId || 'ninguno'}`);
     if (currentCompanyId) {
       companyDbHelper.setCurrentCompanyId(currentCompanyId);
+    } else {
+      // Si no había companyId previo, limpiamos el contexto
+      companyDbHelper.setCurrentCompanyId(undefined);
     }
   }
 }
@@ -570,18 +595,34 @@ export function registerPlatformRoutes(router: Router) {
     try {
       const userData = { ...req.body };
       const originalPassword = userData.password; // Guardar la contraseña original antes de hashearla
+      const selectedCompanies = req.body.selectedCompanies || [];
+      
+      // Configuración opcional del companyId si el usuario es admin de empresa
+      if (userData.role === 'company_admin' && selectedCompanies.length > 0) {
+        // Establecer primera compañía seleccionada como companyId principal
+        userData.companyId = selectedCompanies[0];
+        console.log(`[PLATFORM] Configurando companyId=${userData.companyId} para usuario ${userData.email}`);
+      }
       
       // Hash de la contraseña
       const salt = await bcrypt.genSalt(10);
       userData.password = await bcrypt.hash(userData.password, salt);
       
+      // Validar y crear el usuario
       const validatedData = insertPlatformUserSchema.parse(userData);
+      console.log("[PLATFORM] Creando usuario con datos:", { 
+        ...validatedData, 
+        password: "[REDACTED]",
+        selectedCompanies 
+      });
+      
       const user = await platformStorage.createPlatformUser(validatedData);
+      console.log(`[PLATFORM] Usuario creado con ID ${user.id} y companyId ${user.companyId}`);
       
       // No devolver la contraseña en la respuesta
       const { password, ...userWithoutPassword } = user;
       
-      // Guarda el ID del usuario para realizar operaciones adicionales
+      // Guarda el ID del usuario para operaciones adicionales
       const userId = user.id;
       
       // La respuesta que se enviará al cliente
@@ -589,36 +630,37 @@ export function registerPlatformRoutes(router: Router) {
         ...userWithoutPassword
       };
       
-      // Procesar respuesta inmediatamente para no bloquear al cliente
-      res.status(201).json(responseData);
-      
-      // Procesar asignaciones de usuario a compañías después de enviar respuesta
-      // Esto viene en el cuerpo de la petición como selectedCompanies
-      const selectedCompanies = req.body.selectedCompanies || [];
-      
+      // Crear asignaciones de empresas para el usuario
       if (user.role === 'company_admin' && selectedCompanies.length > 0) {
         try {
           console.log(`[PLATFORM] Asignando usuario ${user.email} a ${selectedCompanies.length} compañías`);
           
-          // Tomar la primera compañía seleccionada para establecerla como companyId principal
-          const primaryCompanyId = selectedCompanies[0];
+          // Crear asignaciones en la tabla user_companies
+          for (const companyId of selectedCompanies) {
+            await platformDb.insert(userCompanies).values({
+              userId: user.id,
+              companyId,
+              role: 'admin',
+              assignedAt: new Date()
+            });
+            
+            console.log(`[PLATFORM] Usuario ${user.id} asignado a compañía ${companyId}`);
+          }
           
-          // Actualizar el campo companyId del usuario
-          await platformStorage.updatePlatformUser(userId, { 
-            companyId: primaryCompanyId 
-          });
-          
-          // Obtener el usuario actualizado para pasarlo a la función de creación
-          const updatedUser = await platformStorage.getPlatformUser(userId);
-          
-          if (updatedUser) {
-            console.log(`[PLATFORM] Creando usuario de compañía para el admin de empresa ${updatedUser.email} en compañía ${updatedUser.companyId}`);
-            await createCompanyUserFromPlatformUser(updatedUser, originalPassword);
+          // Ahora crear el usuario en la compañía
+          if (user.companyId) {
+            console.log(`[PLATFORM] Creando usuario de compañía para ${user.email} en compañía ${user.companyId}`);
+            await createCompanyUserFromPlatformUser(user, originalPassword);
+          } else {
+            console.error(`[PLATFORM] Error: Usuario ${user.id} no tiene companyId asignado`);
           }
         } catch (error) {
-          console.error("[PLATFORM] Error al procesar asignaciones de compañía después de crear usuario:", error);
+          console.error("[PLATFORM] Error al procesar asignaciones de compañía:", error);
         }
       }
+      
+      // Enviar respuesta al cliente
+      res.status(201).json(responseData);
       
     } catch (error: any) {
       console.error("Error al crear usuario:", error);
