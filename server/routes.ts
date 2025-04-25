@@ -2760,38 +2760,50 @@ export async function registerRoutes(router: express.Router) {
       
       const companyId = req.session.companyId || 1;
       
-      console.log(`GET /api/orders/${orderId} - Buscando pedido`);
+      console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${companyId}`);
       
-      // Primero comprobar si existe la orden
-      const orderExists = await db
-        .select({ count: sql`count(*)` })
-        .from(orders)
-        .where(and(
-          eq(orders.id, orderId),
-          eq(orders.companyId, companyId)
-        ));
+      // Consulta SQL directa para evitar problemas con drizzle
+      const query = `
+        SELECT 
+          id, company_id as "companyId", customer_id as "customerId", 
+          route_id as "routeId", total, status, payment_method as "paymentMethod", 
+          date, estimated_delivery_time as "estimatedDeliveryTime",
+          actual_delivery_time as "actualDeliveryTime", 
+          delivery_sequence as "deliverySequence",
+          delivery_coordinates as "deliveryCoordinates", 
+          notes, cash_collected as "cashCollected",
+          driver_commission as "driverCommission", 
+          assistant_commission as "assistantCommission"
+        FROM orders 
+        WHERE id = $1 AND company_id = $2
+        LIMIT 1
+      `;
       
-      if (!orderExists || !orderExists.length || orderExists[0].count === 0) {
-        console.log(`GET /api/orders/${orderId} - Pedido no encontrado`);
+      const result = await db.execute(query, [orderId, companyId]);
+      
+      if (!result.rows || result.rows.length === 0) {
+        console.log(`GET /api/orders/${orderId} - Pedido no encontrado para compañía ${companyId}`);
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
       
-      // Si existe, obtener los datos completos
-      const orderData = await db
-        .select()
-        .from(orders)
-        .where(and(
-          eq(orders.id, orderId),
-          eq(orders.companyId, companyId)
-        ))
-        .limit(1);
+      const orderData = result.rows[0];
       
-      if (!orderData || !orderData.length) {
-        return res.status(404).json({ error: "No se pudieron obtener los datos del pedido" });
+      // Asegurarse de que la fecha sea una cadena ISO
+      if (orderData.date && orderData.date instanceof Date) {
+        orderData.date = orderData.date.toISOString();
       }
       
-      console.log(`GET /api/orders/${orderId} - Retornando datos del pedido:`, orderData[0]);
-      res.json(orderData[0]);
+      // Asegurarse de que los otros timestamps también sean cadenas ISO si existen
+      if (orderData.estimatedDeliveryTime && orderData.estimatedDeliveryTime instanceof Date) {
+        orderData.estimatedDeliveryTime = orderData.estimatedDeliveryTime.toISOString();
+      }
+      
+      if (orderData.actualDeliveryTime && orderData.actualDeliveryTime instanceof Date) {
+        orderData.actualDeliveryTime = orderData.actualDeliveryTime.toISOString();
+      }
+      
+      console.log(`GET /api/orders/${orderId} - Retornando datos del pedido:`, orderData);
+      res.json(orderData);
     } catch (error) {
       console.error(`Error al obtener pedido ${req.params.id}:`, error);      
       res.status(500).json({ error: String(error) });
