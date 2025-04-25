@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { AlertCard } from "@/components/dashboard/AlertCard";
@@ -80,6 +81,9 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const [_, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
+  usePreventBackNavigation('/');
 
   // Consultas para obtener los datos del dashboard
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
