@@ -288,18 +288,19 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
         </Link>
       </div>
 
-      <UISidebarMenu className="px-5 mt-2 flex-1">
-        {sidebarItems.map((item) => {
-          const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
-          const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
-          const isExpanded = isActive || activeItems.includes(item.label);
+      <UISidebarMenu className="px-5 mt-2 flex-1 flex flex-col">
+        <div className="flex-1">
+          {sidebarItems.map((item) => {
+            const isActive = location === item.href || (item.subItems?.some(sub => location === sub.href));
+            const itemColor = menuColors[item.label.toLowerCase().split('/')[0] as keyof typeof menuColors] || menuColors.dashboard;
+            const isExpanded = isActive || activeItems.includes(item.label);
           
-          return (
-            <UISidebarMenuItem
-              key={item.href}
-              className="relative group mb-1.5"
-            >
-              {!item.subItems ? (
+            return (
+              <UISidebarMenuItem
+                key={item.href}
+                className="relative group mb-1.5"
+              >
+                {!item.subItems ? (
                 <Link href={item.href}>
                   <UISidebarMenuButton
                     isActive={isActive}
@@ -416,6 +417,21 @@ export function Sidebar({ openMobile, setOpenMobile }: SidebarProps) {
             </UISidebarMenuItem>
           );
         })}
+        </div>
+        
+        {/* Botón de Cerrar Sesión en la parte inferior */}
+        <div className="mt-auto pt-4 pb-4 border-t border-gray-200 dark:border-gray-800">
+          <UISidebarMenuItem className="mb-0">
+            <UISidebarMenuButton
+              tooltip={t("Cerrar Sesión")}
+              className="w-full justify-start gap-4 rounded-lg hover:bg-red-100/10 transition-all duration-200 text-red-500 hover:text-red-600"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              <span className="font-medium">{t("Cerrar Sesión")}</span>
+            </UISidebarMenuButton>
+          </UISidebarMenuItem>
+        </div>
       </UISidebarMenu>
     </div>
   );
