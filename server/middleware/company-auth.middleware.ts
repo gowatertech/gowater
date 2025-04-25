@@ -71,7 +71,7 @@ export async function loginWithEmail(req: Request, res: Response) {
       console.log(`Login fallido: Usuario con email ${email} no encontrado`);
       return res.status(401).json({ 
         success: false, 
-        message: "Credenciales inválidas" 
+        message: "No encontramos una cuenta con ese correo electrónico. Por favor, verifica tus datos o contacta con soporte." 
       });
     }
     
@@ -119,7 +119,7 @@ export async function loginWithEmail(req: Request, res: Response) {
       console.log(`Login fallido: Contraseña incorrecta para usuario: ${email}`);
       return res.status(401).json({ 
         success: false, 
-        message: "Credenciales inválidas" 
+        message: "La contraseña ingresada es incorrecta. Por favor intenta nuevamente." 
       });
     }
     
