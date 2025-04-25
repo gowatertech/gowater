@@ -14,7 +14,7 @@ import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
 import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
-import { loginRateLimitMiddleware } from "./middleware/rate-limit.middleware";
+import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
 
 const app = express();
 
@@ -24,6 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Aplicar rate limiting para evitar ataques de fuerza bruta
 app.use(loginRateLimitMiddleware);
+app.use(rateLimitMiddleware);
 
 // Configuración de sesión
 const sessionConfig = {
