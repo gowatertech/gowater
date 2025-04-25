@@ -7,8 +7,10 @@ import { setCurrentCompanyId } from "./company-db";
 export function registerTestAPIRoutes(router: Router) {
   // Solo habilitado en desarrollo
   if (process.env.NODE_ENV !== "production") {
+    console.log("Registrando endpoints de prueba...");
+    
     // Endpoint para iniciar sesión de prueba automáticamente (admin@gowater.com)
-    router.get("/api/test/login", async (req: Request, res: Response) => {
+    router.get("/test/login", async (req: Request, res: Response) => {
       try {
         // Buscar usuario admin
         const [user] = await db
@@ -53,7 +55,7 @@ export function registerTestAPIRoutes(router: Router) {
     });
     
     // Endpoint para probar la actualización de estado de un pedido
-    router.get("/api/test/order/:id/status/:status", async (req: Request, res: Response) => {
+    router.get("/test/order/:id/status/:status", async (req: Request, res: Response) => {
       try {
         const orderId = parseInt(req.params.id);
         const status = req.params.status;
@@ -70,7 +72,7 @@ export function registerTestAPIRoutes(router: Router) {
         if (!req.session || !req.session.user) {
           return res.status(401).json({ 
             success: false, 
-            message: "No autenticado. Primero debes usar /api/test/login" 
+            message: "No autenticado. Primero debes usar /test/login" 
           });
         }
         
@@ -84,13 +86,30 @@ export function registerTestAPIRoutes(router: Router) {
           body: JSON.stringify({ status })
         });
         
-        const data = await result.json();
-        
-        res.json({
-          success: result.ok,
-          statusCode: result.status,
-          data
-        });
+        try {
+          const responseText = await result.text();
+          console.log('Respuesta recibida:', responseText);
+          
+          // Intentar parsear como JSON si es posible
+          let data;
+          try {
+            data = JSON.parse(responseText);
+          } catch (e) {
+            data = { error: 'No es un JSON válido', text: responseText };
+          }
+          
+          res.json({
+            success: result.ok,
+            statusCode: result.status,
+            data
+          });
+        } catch (err) {
+          res.status(500).json({
+            success: false,
+            message: `Error procesando respuesta: ${err}`,
+            statusCode: result.status
+          });
+        }
       } catch (error) {
         console.error("Error en test de actualización de estado:", error);
         res.status(500).json({ success: false, message: String(error) });

@@ -107,6 +107,12 @@ app.use((req, res, next) => {
     app.use("/api", interestedCompaniesRoutes);
     log("Interested companies routes registered successfully");
     
+    // Registrar rutas de prueba (solo en desarrollo)
+    if (process.env.NODE_ENV !== "production") {
+      registerTestAPIRoutes(app);
+      log("Test API routes registered successfully");
+    }
+    
     // Crear servidor HTTP
     server = createServer(app);
     
