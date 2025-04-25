@@ -1438,7 +1438,16 @@ export async function registerRoutes(router: express.Router) {
   // Endpoints para estadísticas del dashboard
   router.get("/dashboard/stats", async (req, res) => {
     try {
-      console.log("GET /api/dashboard/stats - Obteniendo estadísticas del dashboard");
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      console.log(`GET /api/dashboard/stats - Obteniendo estadísticas del dashboard para empresa ${companyId}`);
+      
       // Obtener el año actual y fechas
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
@@ -1446,32 +1455,48 @@ export async function registerRoutes(router: express.Router) {
       today.setHours(0, 0, 0, 0);
       
       console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
+      
       // Consulta para obtener el total de ventas del año actual
-      const totalSales = await companyDb
+      const totalSales = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
         .from(invoices)
-        .where(sql`EXTRACT(YEAR FROM date) = ${currentYear}`);
+        .where(
+          and(
+            sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
+            eq(invoices.companyId, companyId)
+          )
+        );
 
       // Consulta para obtener el total de facturas pendientes de pago
-      const pendingPayments = await companyDb
+      const pendingPayments = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
         .from(invoices)
-        .where(eq(invoices.status, "pending"));
+        .where(
+          and(
+            eq(invoices.status, "pending"),
+            eq(invoices.companyId, companyId)
+          )
+        );
 
       // Consulta para obtener el total de pedidos pendientes
-      const pendingOrders = await companyDb
+      const pendingOrders = await db
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
         .from(orders)
-        .where(eq(orders.status, "pending"));
+        .where(
+          and(
+            eq(orders.status, "pending"),
+            eq(orders.companyId, companyId)
+          )
+        );
 
       // Consulta para obtener el total de pedidos entregados del mes actual
-      const deliveredOrders = await companyDb
+      const deliveredOrders = await db
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1480,34 +1505,50 @@ export async function registerRoutes(router: express.Router) {
           and(
             eq(orders.status, "delivered"),
             sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
-            sql`EXTRACT(MONTH FROM date) = ${currentMonth}`
+            sql`EXTRACT(MONTH FROM date) = ${currentMonth}`,
+            eq(orders.companyId, companyId)
           )
         );
 
       // Consulta para obtener el total de pedidos cancelados
-      const cancelledOrders = await companyDb
+      const cancelledOrders = await db
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
         .from(orders)
-        .where(eq(orders.status, "cancelled"));
+        .where(
+          and(
+            eq(orders.status, "cancelled"),
+            eq(orders.companyId, companyId)
+          )
+        );
         
       // Consulta para obtener ventas diarias (hoy)
-      const dailySales = await companyDb
+      const dailySales = await db
         .select({
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
         .from(invoices)
-        .where(sql`DATE(date) = DATE(${today})`);
+        .where(
+          and(
+            sql`DATE(date) = DATE(${today})`,
+            eq(invoices.companyId, companyId)
+          )
+        );
         
       // Consulta para obtener tendencia de ventas semanales
-      const weeklyTrend = await companyDb
+      const weeklyTrend = await db
         .select({
           day: sql`DATE(date)`,
           total: sql`COALESCE(SUM(total::numeric), 0)`.mapWith(Number),
         })
         .from(invoices)
-        .where(sql`date >= CURRENT_DATE - INTERVAL '7 days'`)
+        .where(
+          and(
+            sql`date >= CURRENT_DATE - INTERVAL '7 days'`,
+            eq(invoices.companyId, companyId)
+          )
+        )
         .groupBy(sql`DATE(date)`)
         .orderBy(sql`DATE(date)`);
 
@@ -1531,7 +1572,16 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/dashboard/payments-stats", async (req, res) => {
     try {
-      console.log("GET /api/dashboard/payments-stats - Obteniendo estadísticas de pagos");
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de pagos");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      console.log(`GET /api/dashboard/payments-stats - Obteniendo estadísticas de pagos para empresa ${companyId}`);
+      
       // Obtener el año actual y mes
       const currentYear = new Date().getFullYear();
       const currentMonth = new Date().getMonth() + 1;
@@ -1539,15 +1589,7 @@ export async function registerRoutes(router: express.Router) {
       console.log(`Año actual: ${currentYear}, Mes actual: ${currentMonth}`);
       
       // Consulta para obtener el total de pagos del año
-      const yearlyPayments = await companyDb
-        .select({
-          total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
-        })
-        .from(payments)
-        .where(sql`EXTRACT(YEAR FROM date) = ${currentYear}`);
-
-      // Consulta para obtener el total de pagos del mes actual
-      const monthlyPayments = await companyDb
+      const yearlyPayments = await db
         .select({
           total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
         })
@@ -1555,7 +1597,21 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
-            sql`EXTRACT(MONTH FROM date) = ${currentMonth}`
+            eq(payments.companyId, companyId)
+          )
+        );
+
+      // Consulta para obtener el total de pagos del mes actual
+      const monthlyPayments = await db
+        .select({
+          total: sql`COALESCE(SUM(amount::numeric), 0)`.mapWith(Number),
+        })
+        .from(payments)
+        .where(
+          and(
+            sql`EXTRACT(YEAR FROM date) = ${currentYear}`,
+            sql`EXTRACT(MONTH FROM date) = ${currentMonth}`,
+            eq(payments.companyId, companyId)
           )
         );
 
@@ -1574,14 +1630,28 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para estadísticas de rutas
   router.get("/dashboard/route-stats", async (req, res) => {
     try {
-      console.log("GET /api/dashboard/route-stats - Obteniendo estadísticas de rutas");
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de rutas");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      console.log(`GET /api/dashboard/route-stats - Obteniendo estadísticas de rutas para empresa ${companyId}`);
+      
       // Obtener rutas activas
-      const activeRoutes = await companyDb
+      const activeRoutes = await db
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
         .from(routes)
-        .where(inArray(routes.status, ["pending", "in_progress"]));
+        .where(
+          and(
+            inArray(routes.status, ["pending", "in_progress"]),
+            eq(routes.companyId, companyId)
+          )
+        );
       
       // Obtener rutas completadas hoy
       const today = new Date();
@@ -1589,7 +1659,7 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Buscando rutas completadas hoy: ${today.toISOString().split('T')[0]}`);
       
-      const completedTodayRoutes = await companyDb
+      const completedTodayRoutes = await db
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1597,12 +1667,13 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             eq(routes.status, "completed"),
-            sql`DATE(date) = DATE(${today})`
+            sql`DATE(date) = DATE(${today})`,
+            eq(routes.companyId, companyId)
           )
         );
 
       // Obtener estadísticas de eficiencia de rutas
-      const routeEfficiency = await companyDb
+      const routeEfficiency = await db
         .select({
           avgEfficiency: sql`CASE 
             WHEN AVG(CASE WHEN estimated_duration > 0 AND actual_duration > 0 
@@ -1614,7 +1685,12 @@ export async function registerRoutes(router: express.Router) {
             END`.mapWith(Number),
         })
         .from(routes)
-        .where(eq(routes.status, "completed"));
+        .where(
+          and(
+            eq(routes.status, "completed"),
+            eq(routes.companyId, companyId)
+          )
+        );
 
       const stats = {
         activeRoutes: activeRoutes[0]?.count || 0,
@@ -1632,9 +1708,18 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para estadísticas de envases
   router.get("/dashboard/bottle-stats", async (req, res) => {
     try {
-      console.log("GET /api/dashboard/bottle-stats - Obteniendo estadísticas de envases");
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de envases");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
+      console.log(`GET /api/dashboard/bottle-stats - Obteniendo estadísticas de envases para empresa ${companyId}`);
+      
       // Obtener envases pendientes de devolución
-      const pendingReturns = await companyDb
+      const pendingReturns = await db
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
           totalQty: sql`COALESCE(SUM(expected_quantity), 0)`.mapWith(Number),
@@ -1642,7 +1727,10 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(bottleReturns)
         .where(
-          sql`expected_quantity > returned_quantity`
+          and(
+            sql`expected_quantity > returned_quantity`,
+            eq(bottleReturns.companyId, companyId)
+          )
         );
       
       // Envases con devolución vencida (más de 30 días)
@@ -1651,7 +1739,7 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`Buscando devoluciones vencidas anteriores a: ${thirtyDaysAgo.toISOString().split('T')[0]}`);
       
-      const overdueReturns = await companyDb
+      const overdueReturns = await db
         .select({
           count: sql`COUNT(*)`.mapWith(Number),
         })
@@ -1659,7 +1747,8 @@ export async function registerRoutes(router: express.Router) {
         .where(
           and(
             sql`expected_quantity > returned_quantity`,
-            sql`return_date < ${thirtyDaysAgo}`
+            sql`return_date < ${thirtyDaysAgo}`,
+            eq(bottleReturns.companyId, companyId)
           )
         );
 
@@ -1678,13 +1767,22 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/stats/sales", async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener estadísticas de ventas");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
       // Obtener el total de ventas de las facturas
       const salesStats = await db
         .select({
           total: sql`SUM(total)`.mapWith(Number),
           count: sql`COUNT(*)`.mapWith(Number)
         })
-        .from(invoices);
+        .from(invoices)
+        .where(eq(invoices.companyId, companyId));
 
       const result = {
         total: salesStats[0]?.total || 0,
@@ -1701,6 +1799,14 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/stats/sales-trend", async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener tendencia de ventas");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
       // Obtener las últimas 7 ventas para tendencia
       const salesData = await db
         .select({
@@ -1708,6 +1814,7 @@ export async function registerRoutes(router: express.Router) {
           sales: invoices.total
         })
         .from(invoices)
+        .where(eq(invoices.companyId, companyId))
         .orderBy(invoices.date)
         .limit(7);
 
