@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiRequest } from "@/lib/queryClient";
 import { User, LogOut, Building2, Users, Package, Clock, CreditCard } from "lucide-react";
+import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
 
 import { PlatformLayout } from "./_components/PlatformLayout";
 
 export default function PlatformDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  
+  // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
+  usePreventBackNavigation('/platform');
 
   // Consulta para obtener el recuento de empresas
   const companiesQuery = useQuery({

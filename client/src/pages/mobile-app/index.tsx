@@ -28,6 +28,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useQuery } from "@tanstack/react-query";
+import { usePreventBackNavigation } from "@/hooks/use-prevent-back-navigation";
 
 // Componentes internos
 import { MobileHeader } from "./components/MobileHeader";
@@ -83,6 +84,9 @@ export default function GoWaterDriverApp() {
   const { companyName } = useCompanySettings();
   const [darkMode, setDarkMode] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  
+  // Usar el hook para prevenir navegación hacia atrás después de cerrar sesión
+  usePreventBackNavigation('/mobile-app/login');
   
   // Consulta para obtener rutas pendientes (compatible con multitenant)
   const { data: routes = [], isLoading: isLoadingRoutes, refetch: refetchRoutes } = useQuery<Route[]>({
