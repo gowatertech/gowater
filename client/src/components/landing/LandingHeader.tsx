@@ -2,7 +2,14 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { Droplet, Menu } from "lucide-react";
+import { 
+  Droplet, 
+  Menu, 
+  ChevronDown, 
+  Building2, 
+  ServerCog, 
+  Smartphone 
+} from "lucide-react";
 
 export function LandingHeader() {
   const [location] = useLocation();
@@ -102,24 +109,34 @@ export function LandingHeader() {
                   </Link>
                 </nav>
                 <div className="pt-6 border-t space-y-4">
+                  <h3 className="font-medium text-sm text-muted-foreground mb-2">ACCESOS</h3>
                   <SheetClose asChild>
                     <Link href="/dashboard">
-                      <Button variant="outline" className="w-full">Iniciar sesión</Button>
+                      <div className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
+                        <Building2 className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Iniciar sesión</span>
+                      </div>
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
                     <Link href="/platform/login">
-                      <Button variant="outline" className="w-full">Login ADM</Button>
+                      <div className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
+                        <ServerCog className="h-4 w-4 text-amber-600" />
+                        <span className="font-medium">Administración</span>
+                      </div>
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
                     <Link href="/mobile-app/login">
-                      <Button variant="outline" className="w-full">Login APP</Button>
+                      <div className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
+                        <Smartphone className="h-4 w-4 text-emerald-600" />
+                        <span className="font-medium">App Móvil</span>
+                      </div>
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
                     <Link href="/register-interest">
-                      <Button className="w-full">Registrar interés</Button>
+                      <Button className="w-full mt-2">Registrar interés</Button>
                     </Link>
                   </SheetClose>
                 </div>
@@ -130,15 +147,31 @@ export function LandingHeader() {
 
         {/* Action buttons */}
         <div className="hidden md:flex gap-4 items-center">
-          <Link href="/dashboard">
-            <Button variant="ghost">Iniciar sesión</Button>
-          </Link>
-          <Link href="/platform/login">
-            <Button variant="ghost">Login ADM</Button>
-          </Link>
-          <Link href="/mobile-app/login">
-            <Button variant="ghost">Login APP</Button>
-          </Link>
+          <div className="relative group">
+            <Button variant="ghost" className="group-hover:bg-accent">
+              Accesos <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
+            </Button>
+            <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-md opacity-0 -translate-y-1 invisible group-hover:opacity-100 group-hover:translate-y-0 group-hover:visible transition-all duration-200 py-1">
+              <Link href="/dashboard">
+                <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span>Iniciar sesión</span>
+                </div>
+              </Link>
+              <Link href="/platform/login">
+                <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer">
+                  <ServerCog className="h-4 w-4 text-amber-600" />
+                  <span>Administración</span>
+                </div>
+              </Link>
+              <Link href="/mobile-app/login">
+                <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer">
+                  <Smartphone className="h-4 w-4 text-emerald-600" />
+                  <span>App Móvil</span>
+                </div>
+              </Link>
+            </div>
+          </div>
           <Link href="/register-interest">
             <Button>Registrar interés</Button>
           </Link>
