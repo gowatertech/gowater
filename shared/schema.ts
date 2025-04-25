@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   username: text("username").notNull().unique(),
-  email: text("email").notNull().unique(), // Campo de email único y requerido
+  email: text("email"), // Email puede ser opcional en registros antiguos
   password: text("password").notNull(),
   role: text("role", {
     enum: ["admin", "supervisor", "cashier", "driver", "assistant"]
@@ -26,7 +26,7 @@ export const users = pgTable("users", {
 export const insertUserSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   username: z.string().min(1, "El nombre de usuario es requerido"),
-  email: z.string().email("El email debe ser válido").min(1, "El email es requerido"),
+  email: z.string().email("El email debe ser válido").optional(), // Email puede ser opcional
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
   role: z.enum(["admin", "supervisor", "cashier", "driver", "assistant"]),
   phone: z.string().optional(),

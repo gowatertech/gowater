@@ -128,7 +128,19 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    // Intentar buscar usuario por email
+    let [user] = await db.select().from(users).where(eq(users.email, email));
+    
+    // Si no se encuentra por email, intentar por username para compatibilidad
+    if (!user && email.includes('@')) {
+      console.log(`Usuario no encontrado por email: ${email}, intentando por username`);
+      const username = email.split('@')[0]; // Tomar la parte antes del @
+      [user] = await db.select().from(users).where(eq(users.username, username));
+      if (user) {
+        console.log(`Usuario encontrado por username: ${username}`);
+      }
+    }
+    
     return user;
   }
 
