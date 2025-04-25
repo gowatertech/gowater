@@ -18,14 +18,17 @@ const rateLimitByIP = new Map<string, RateLimitEntry>();
 // Key: IP+path, Value: información de rate limit específica para rutas sensibles
 const rateLimitByPath = new Map<string, RateLimitEntry>();
 
+// Detectar si es entorno de desarrollo
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 // Configuración para endpoints generales
-const GENERAL_MAX_REQUESTS = 100;  // Máximo de solicitudes permitidas en la ventana de tiempo
+const GENERAL_MAX_REQUESTS = isDevelopment ? 5000 : 100;  // Mucho más alto en desarrollo
 const GENERAL_WINDOW_MS = 60 * 1000;  // Ventana de tiempo en ms (1 minuto)
 
 // Configuración para endpoints de login/autenticación
-const LOGIN_MAX_REQUESTS = 5;  // Máximo de intentos de login permitidos
+const LOGIN_MAX_REQUESTS = isDevelopment ? 100 : 5;  // Más permisivo en desarrollo
 const LOGIN_WINDOW_MS = 5 * 60 * 1000;  // Ventana de tiempo en ms (5 minutos)
-const LOGIN_BLOCK_DURATION = 15 * 60 * 1000;  // Tiempo de bloqueo tras exceder límite (15 minutos)
+const LOGIN_BLOCK_DURATION = isDevelopment ? 1 * 60 * 1000 : 15 * 60 * 1000;  // Menos tiempo de bloqueo en desarrollo
 
 // Limpiar entradas expiradas periódicamente
 setInterval(() => {
@@ -48,6 +51,21 @@ setInterval(() => {
  * Middleware general de rate limiting para todas las rutas
  */
 export function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
+  // No aplicar rate limiting a assets estáticos en desarrollo
+  if (isDevelopment && (
+      req.path.includes('.js') || 
+      req.path.includes('.css') || 
+      req.path.includes('.png') || 
+      req.path.includes('.jpg') || 
+      req.path.includes('.svg') ||
+      req.path.includes('.ico') ||
+      req.path.includes('.woff') ||
+      req.path.includes('.ttf') ||
+      req.path.startsWith('/src/')
+  )) {
+    return next();
+  }
+  
   const ip = req.ip || req.connection.remoteAddress || 'unknown';
   const now = Date.now();
   
