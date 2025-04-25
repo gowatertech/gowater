@@ -334,12 +334,11 @@ export default function OrdersPage() {
   // Mutación para actualizar el estado del pedido
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: number, status: string }) => {
-      const response = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar el estado del pedido');
-      }
-      return response.json();
+      return await apiRequest({
+        url: `/api/orders/${orderId}/status`,
+        method: "PATCH",
+        data: { status }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -414,6 +413,8 @@ export default function OrdersPage() {
         return "border-l-green-500";
       case "pending":
         return "border-l-yellow-500";
+      case "in_transit":
+        return "border-l-blue-500";
       case "cancelled":
         return "border-l-red-500";
       default:
@@ -510,6 +511,12 @@ export default function OrdersPage() {
                     <div className="flex items-center gap-1">
                       <Clock className="h-2.5 w-2.5 text-yellow-600" />
                       <span>Pendientes</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="in_transit" className="text-xs">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-2.5 w-2.5 text-blue-600" />
+                      <span>En Tránsito</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="delivered" className="text-xs">
@@ -1003,7 +1010,7 @@ export default function OrdersPage() {
               </SelectContent>
             </Select>
             
-            <div className="grid grid-cols-3 gap-3 pt-3">
+            <div className="grid grid-cols-2 gap-3 pt-3">
               <Button
                 variant={newStatus === "pending" ? "default" : "outline"}
                 className={newStatus === "pending" ? "bg-yellow-600 hover:bg-yellow-700" : ""}
@@ -1012,6 +1019,16 @@ export default function OrdersPage() {
                 <div className="flex flex-col items-center w-full">
                   <Clock className="h-8 w-8 mb-1 text-yellow-600" />
                   <span className="text-xs">Pendiente</span>
+                </div>
+              </Button>
+              <Button 
+                variant={newStatus === "in_transit" ? "default" : "outline"}
+                className={newStatus === "in_transit" ? "bg-blue-600 hover:bg-blue-700" : ""}
+                onClick={() => setNewStatus("in_transit")}
+              >
+                <div className="flex flex-col items-center w-full">
+                  <Clock className="h-8 w-8 mb-1 text-blue-600" />
+                  <span className="text-xs">En Tránsito</span>
                 </div>
               </Button>
               <Button 
