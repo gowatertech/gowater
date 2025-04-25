@@ -2827,8 +2827,7 @@ export async function registerRoutes(router: express.Router) {
           SELECT 
             id, order_id as "orderId", product_id as "productId",
             quantity, price as "unitPrice", 
-            (quantity * price::numeric) as "total", 
-            discount, notes
+            (quantity * price::numeric) as "total"
           FROM order_items
           WHERE order_id = $1
         `;
@@ -2846,9 +2845,9 @@ export async function registerRoutes(router: express.Router) {
           if (productIds.length > 0) {
             const productsQuery = `
               SELECT 
-                id, name, description, price, 
-                category, image_url as "imageUrl", 
-                sku, bottle_deposit as "bottleDeposit"
+                id, name, price,
+                icon as "imageUrl",
+                deposit_amount as "bottleDeposit"
               FROM products
               WHERE id = ANY($1) AND company_id = $2
             `;
