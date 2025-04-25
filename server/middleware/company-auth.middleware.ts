@@ -85,7 +85,19 @@ export async function loginWithEmail(req: Request, res: Response) {
     }
     
     // Verificar la contraseña
-    const validPassword = await bcrypt.compare(password, user.password);
+    // Primero comprobar si es una contraseña en texto plano (para compatibilidad)
+    let validPassword = password === user.password;
+    
+    // Si no coincide como texto plano, intentar con bcrypt (para futuras implementaciones)
+    if (!validPassword) {
+      try {
+        validPassword = await bcrypt.compare(password, user.password);
+      } catch (e) {
+        // Si hay error en bcrypt, probablemente no es un hash válido
+        validPassword = false;
+      }
+    }
+    
     if (!validPassword) {
       console.log(`Login fallido: Contraseña incorrecta para usuario: ${email}`);
       return res.status(401).json({ 
