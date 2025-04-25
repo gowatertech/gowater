@@ -117,28 +117,76 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/payments-stats"],
     queryFn: async () => {
       console.log("Iniciando solicitud GET a /api/dashboard/payments-stats");
-      const response = await apiRequest("GET", "/api/dashboard/payments-stats");
-      const jsonData = await response.json();
-      console.log("Respuesta de /api/dashboard/payments-stats:", jsonData);
-      return jsonData;
-    }
+      try {
+        const response = await fetch("/api/dashboard/payments-stats", {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const jsonData = await response.json();
+        console.log("Respuesta de /api/dashboard/payments-stats:", jsonData);
+        return jsonData;
+      } catch (error) {
+        console.error("Error en solicitud GET a /api/dashboard/payments-stats:", error);
+        throw error;
+      }
+    },
+    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
   });
 
   // Consultas para obtener datos adicionales
   const { data: routeStats, isLoading: routesLoading } = useQuery<RouteStats>({
     queryKey: ["/api/dashboard/route-stats"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/dashboard/route-stats");
-      return response.json();
-    }
+      console.log("Iniciando solicitud GET a /api/dashboard/route-stats");
+      try {
+        const response = await fetch("/api/dashboard/route-stats", {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const jsonData = await response.json();
+        console.log("Respuesta de /api/dashboard/route-stats:", jsonData);
+        return jsonData;
+      } catch (error) {
+        console.error("Error en solicitud GET a /api/dashboard/route-stats:", error);
+        throw error;
+      }
+    },
+    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
   });
 
   const { data: bottleStats, isLoading: bottlesLoading } = useQuery<BottleStats>({
     queryKey: ["/api/dashboard/bottle-stats"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/dashboard/bottle-stats");
-      return response.json();
-    }
+      console.log("Iniciando solicitud GET a /api/dashboard/bottle-stats");
+      try {
+        const response = await fetch("/api/dashboard/bottle-stats", {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+        }
+        const jsonData = await response.json();
+        console.log("Respuesta de /api/dashboard/bottle-stats:", jsonData);
+        return jsonData;
+      } catch (error) {
+        console.error("Error en solicitud GET a /api/dashboard/bottle-stats:", error);
+        throw error;
+      }
+    },
+    refetchInterval: 5000 // Refresca cada 5 segundos para pruebas
   });
 
   // Función para formatear moneda
@@ -296,6 +344,24 @@ export default function Dashboard() {
             <LogOut className="h-4 w-4 mr-1" />
             <span className="hidden xs:inline">{t("Cerrar sesión")}</span>
           </Button>
+        </div>
+      </div>
+      
+      {/* DEBUG INFO - Mostrar estados de carga y datos actuales */}
+      <div className="p-2 border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 rounded-md text-xs">
+        <div className="font-semibold mb-1">DEBUG INFO (Estados de carga):</div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <div>Stats: {statsLoading ? "Cargando..." : "Cargado"}</div>
+          <div>Payments: {paymentsLoading ? "Cargando..." : "Cargado"}</div>
+          <div>Routes: {routesLoading ? "Cargando..." : "Cargado"}</div>
+          <div>Bottles: {bottlesLoading ? "Cargando..." : "Cargado"}</div>
+        </div>
+        <div className="font-semibold mt-2 mb-1">DEBUG INFO (Datos):</div>
+        <div className="overflow-hidden">
+          <div><strong>Stats:</strong> {JSON.stringify(stats)}</div>
+          <div><strong>PaymentStats:</strong> {JSON.stringify(paymentStats)}</div>
+          <div><strong>RouteStats:</strong> {JSON.stringify(routeStats)}</div>
+          <div><strong>BottleStats:</strong> {JSON.stringify(bottleStats)}</div>
         </div>
       </div>
 
