@@ -225,13 +225,26 @@ export default function Dashboard() {
   const { toast } = useToast();
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
-      // Redirigir inmediatamente después de cerrar sesión
+      const response = await fetch("/api/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // Importante para enviar/recibir cookies
+      });
+      
+      if (!response.ok) {
+        throw new Error("Error al cerrar sesión");
+      }
+      
+      // Limpiar el estado de autenticación en el cliente
+      queryClient.setQueryData(["/api/user"], null);
+      
+      // Redirigir a la página de login después de cerrar sesión
       window.location.href = "/auth/login";
       return null;
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente",

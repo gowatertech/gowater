@@ -85,16 +85,29 @@ export async function loginWithEmail(req: Request, res: Response) {
     }
     
     // Verificar la contraseña
-    // Primero comprobar si es una contraseña en texto plano (para compatibilidad)
-    let validPassword = password === user.password;
+    let validPassword = false;
     
-    // Si no coincide como texto plano, intentar con bcrypt (para futuras implementaciones)
-    if (!validPassword) {
-      try {
-        validPassword = await bcrypt.compare(password, user.password);
-      } catch (e) {
-        // Si hay error en bcrypt, probablemente no es un hash válido
-        validPassword = false;
+    // Intentar verificar con bcrypt primero
+    try {
+      validPassword = await bcrypt.compare(password, user.password);
+    } catch (e) {
+      console.log(`Error en la verificación de bcrypt: ${e.message}`);
+      
+      // Solo como fallback para cuentas antiguas (TEMPORAL - se debe migrar a bcrypt)
+      // NOTA: Esta verificación debe eliminarse una vez que todas las contraseñas sean hashes bcrypt
+      if (process.env.NODE_ENV !== 'production') {
+        validPassword = password === user.password;
+        
+        // Si coincide con la versión de texto plano, deberíamos actualizar a hash bcrypt
+        if (validPassword) {
+          console.log(`ADVERTENCIA: Usuario ${email} tiene contraseña en texto plano. Actualizando a bcrypt...`);
+          try {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await storage.updateUserPassword(user.id, hashedPassword);
+          } catch (hashError) {
+            console.error(`Error al actualizar contraseña a bcrypt: ${hashError.message}`);
+          }
+        }
       }
     }
     
