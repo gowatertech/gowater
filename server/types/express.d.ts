@@ -1,18 +1,26 @@
 import { User } from '@shared/schema';
 
-declare global {
-  namespace Express {
-    interface Request {
-      // Define las propiedades personalizadas para req
-      session: any;
-    }
-    
-    // Extendemos la interfaz de sesión para incluir nuestras propiedades
-    interface Session {
-      user?: Omit<User, 'password'>;
-      companyId?: number;
-    }
+declare module 'express-session' {
+  interface SessionData {
+    user?: {
+      id: number;
+      name: string;
+      email: string;
+      role: string;
+      companyId: number;
+      active: boolean;
+      username?: string;
+      // Otros campos del usuario (sin contraseña)
+    };
+    companyId?: number;
   }
 }
 
-export {};
+declare global {
+  namespace Express {
+    interface Request {
+      // Asegurarse de que el tipo de session incluya nuestros campos personalizados
+      session: import('express-session').Session & import('express-session').SessionData;
+    }
+  }
+}

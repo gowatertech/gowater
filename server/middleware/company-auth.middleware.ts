@@ -1,58 +1,66 @@
 import { Request, Response, NextFunction } from 'express';
-import { storage } from '../storage';
-import { setCurrentCompanyId } from '../company-db';
 import bcrypt from 'bcrypt';
+import { setCurrentCompanyId } from '../company-db';
+import { storage } from '../storage';
 
 /**
- * Middleware que verifica si el usuario está autenticado para el panel de empresa
- * Este middleware es para proteger rutas que requieren autenticación
+ * Middleware que autentica las solicitudes para el panel de empresa.
+ * Verifica que el usuario tenga sesión y los permisos adecuados.
  */
 export function companyAuthMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Si el usuario ya está autenticado en la sesión, permitir acceso
-  if (req.session.user) {
-    console.log(`Usuario ya autenticado: ${req.session.user.name} (${req.session.user.email})`);
-    return next();
-  }
-  
-  // Si no está autenticado y no es una ruta de autenticación, denegar acceso
-  if (req.path !== '/api/login' && req.path !== '/api/register' && req.path !== '/api/forgot-password') {
-    console.log(`Acceso denegado a ${req.path}: Usuario no autenticado`);
+  // Verificar si la sesión existe y contiene la información del usuario
+  if (!req.session || !req.session.user) {
+    console.log('Auth middleware: No hay sesión de usuario');
     return res.status(401).json({
       success: false,
-      message: 'Por favor inicie sesión para acceder'
+      message: 'No autenticado'
+    });
+  }
+
+  // Verificar si el usuario tiene un rol permitido para el panel de empresa
+  const allowedRoles = ['admin', 'supervisor', 'cashier'];
+  if (!allowedRoles.includes(req.session.user.role)) {
+    console.log(`Auth middleware: Rol no permitido: ${req.session.user.role}`);
+    return res.status(403).json({
+      success: false,
+      message: 'No tiene permisos para acceder al panel de empresa'
     });
   }
   
-  // Dejar pasar las rutas de autenticación (login, register, etc.)
+  // Si el usuario está autenticado y tiene los permisos correctos,
+  // establecer el ID de compañía en el contexto para filtrado multi-tenant
+  setCurrentCompanyId(req.session.companyId || req.session.user.companyId);
+  
+  // Continuar con la siguiente función de middleware o ruta
   next();
 }
 
 /**
- * Middleware para establecer el ID de la empresa en el contexto
- * Este middleware establece el companyId del usuario autenticado para ser usado por la DB multitenant
+ * Middleware que establece el contexto de multi-tenant basado en la sesión.
+ * A diferencia del middleware de autenticación, este no exige autenticación.
  */
 export function companyTenantMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Si el usuario está autenticado, establecer el companyId del contexto
-  if (req.session.user && req.session.user.companyId) {
-    console.log(`Estableciendo companyId=${req.session.user.companyId} para usuario ${req.session.user.id}`);
-    setCurrentCompanyId(req.session.user.companyId);
-    req.session.companyId = req.session.user.companyId;
+  if (req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+    const companyId = req.session.companyId || (req.session.user ? req.session.user.companyId : null);
+    if (companyId) {
+      setCurrentCompanyId(companyId);
+    }
   }
-  
   next();
 }
 
 /**
- * Función para iniciar sesión con email y contraseña
+ * Handler para el login con email y contraseña
  */
 export async function loginWithEmail(req: Request, res: Response) {
   try {
+    console.log("POST /api/login - Recibido:", JSON.stringify(req.body));
     const { email, password } = req.body;
     
     if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Por favor proporcione email y contraseña'
+      return res.status(400).json({ 
+        success: false, 
+        message: "Email y contraseña son requeridos" 
       });
     }
     
@@ -60,112 +68,123 @@ export async function loginWithEmail(req: Request, res: Response) {
     const user = await storage.getUserByEmail(email);
     
     if (!user) {
-      console.log(`Intento de login fallido: Email ${email} no encontrado`);
-      return res.status(401).json({
-        success: false,
-        message: 'Email o contraseña incorrectos'
+      console.log(`Login fallido: Usuario con email ${email} no encontrado`);
+      return res.status(401).json({ 
+        success: false, 
+        message: "Credenciales inválidas" 
       });
     }
     
-    // Verificar si el usuario está activo
+    // Verificar que el usuario está activo
     if (!user.active) {
-      console.log(`Intento de login fallido: Usuario ${email} está inactivo`);
-      return res.status(401).json({
-        success: false,
-        message: 'Su cuenta ha sido desactivada. Contacte al administrador.'
+      console.log(`Login fallido: Usuario inactivo: ${email}`);
+      return res.status(401).json({ 
+        success: false, 
+        message: "La cuenta está desactivada" 
       });
     }
     
-    // Verificar contraseña
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    
-    if (!isValidPassword) {
-      console.log(`Intento de login fallido: Contraseña incorrecta para ${email}`);
-      return res.status(401).json({
-        success: false,
-        message: 'Email o contraseña incorrectos'
+    // Verificar la contraseña
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      console.log(`Login fallido: Contraseña incorrecta para usuario: ${email}`);
+      return res.status(401).json({ 
+        success: false, 
+        message: "Credenciales inválidas" 
       });
     }
     
-    // Si todo es correcto, crear sesión
-    const userSession = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      companyId: user.companyId
-    };
+    // Verificar roles permitidos para el panel de empresa
+    const allowedRoles = ['admin', 'supervisor', 'cashier'];
+    if (!allowedRoles.includes(user.role)) {
+      console.log(`Login fallido: Rol no permitido: ${user.role} para usuario: ${email}`);
+      return res.status(403).json({ 
+        success: false, 
+        message: "No tienes permiso para acceder al panel de administración" 
+      });
+    }
     
-    // Guardar el usuario en la sesión
-    req.session.user = userSession;
+    // Crear objeto de usuario sin la contraseña para la sesión
+    const { password: pwd, ...userWithoutPassword } = user;
     
-    // También establecer el companyId en el contexto del request
+    // Guardar información del usuario y companyId en la sesión
+    req.session.user = userWithoutPassword;
     req.session.companyId = user.companyId;
     
-    console.log(`Login exitoso: ${user.name} (${user.email}) de empresa ${user.companyId}`);
+    console.log(`Login exitoso - Usuario: ${email}, ID: ${user.id}, Empresa: ${user.companyId}`);
     
-    // Devolver información del usuario (sin contraseña)
+    // Responder con éxito y los datos del usuario (sin contraseña)
     return res.status(200).json({
       success: true,
-      message: `Bienvenido, ${user.name}`,
-      user: userSession
+      message: "Login exitoso",
+      user: userWithoutPassword
     });
-    
   } catch (error) {
-    console.error('Error en loginWithEmail:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error al procesar el inicio de sesión'
+    console.error("Error en login:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Error en el servidor al procesar el login"
     });
   }
 }
 
 /**
- * Función para cerrar sesión
+ * Handler para el logout
  */
 export function logout(req: Request, res: Response) {
-  // Si hay una sesión activa, destruirla
-  if (req.session.user) {
-    const userName = req.session.user.name;
-    
-    // Destruir la sesión
-    req.session.destroy((err) => {
-      if (err) {
-        console.error('Error al cerrar sesión:', err);
-        return res.status(500).json({
-          success: false,
-          message: 'Error al cerrar sesión'
-        });
-      }
-      
-      console.log(`Sesión cerrada para ${userName}`);
-      return res.status(200).json({
-        success: true,
-        message: 'Sesión cerrada correctamente'
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error al cerrar sesión:", err);
+      return res.status(500).json({
+        success: false, 
+        message: "Error al cerrar sesión"
       });
-    });
-  } else {
-    // Si no hay sesión activa, simplemente devolver éxito
+    }
+    
     return res.status(200).json({
-      success: true,
-      message: 'No había sesión activa'
+      success: true, 
+      message: "Sesión cerrada correctamente"
     });
-  }
+  });
 }
 
 /**
- * Función para obtener el usuario actual
+ * Handler para obtener la información del usuario actual
  */
 export function getCurrentUser(req: Request, res: Response) {
-  if (req.session.user) {
-    return res.status(200).json({
-      success: true,
-      user: req.session.user
-    });
-  } else {
+  if (!req.session || !req.session.user) {
     return res.status(401).json({
       success: false,
-      message: 'No hay sesión activa'
+      message: "No autenticado"
     });
   }
+  
+  return res.status(200).json({
+    success: true,
+    user: req.session.user
+  });
+}
+
+/**
+ * Verifica los permisos específicos de un usuario basado en su rol.
+ * @param requiredRoles - Array de roles permitidos.
+ */
+export function checkRoleMiddleware(requiredRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({
+        success: false,
+        message: "No autenticado"
+      });
+    }
+
+    if (!requiredRoles.includes(req.session.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes permisos para realizar esta acción"
+      });
+    }
+
+    next();
+  };
 }

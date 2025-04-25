@@ -1,82 +1,89 @@
 import { Request, Response, NextFunction } from 'express';
 
-// Estructura simple para el rate limiting por IP
+/**
+ * Una simple implementación de rate limiting en memoria para proteger
+ * contra ataques de fuerza bruta. En un entorno de producción real, 
+ * se debería usar una solución más robusta como Redis.
+ */
+
 interface RateLimitEntry {
   count: number;
   resetTime: number;
   blockedUntil?: number;
 }
 
-// Mapa para almacenar los intentos por IP
-const ipAttempts = new Map<string, RateLimitEntry>();
+// Key: IP, Value: información de rate limit
+const rateLimitByIP = new Map<string, RateLimitEntry>();
 
-// Configuración de límites
-const MAX_ATTEMPTS = 5; // Máximo de intentos permitidos
-const WINDOW_MS = 15 * 60 * 1000; // Ventana de tiempo (15 minutos)
-const BLOCK_DURATION_MS = 30 * 60 * 1000; // Duración del bloqueo (30 minutos)
+// Key: IP+path, Value: información de rate limit específica para rutas sensibles
+const rateLimitByPath = new Map<string, RateLimitEntry>();
+
+// Configuración para endpoints generales
+const GENERAL_MAX_REQUESTS = 100;  // Máximo de solicitudes permitidas en la ventana de tiempo
+const GENERAL_WINDOW_MS = 60 * 1000;  // Ventana de tiempo en ms (1 minuto)
+
+// Configuración para endpoints de login/autenticación
+const LOGIN_MAX_REQUESTS = 5;  // Máximo de intentos de login permitidos
+const LOGIN_WINDOW_MS = 5 * 60 * 1000;  // Ventana de tiempo en ms (5 minutos)
+const LOGIN_BLOCK_DURATION = 15 * 60 * 1000;  // Tiempo de bloqueo tras exceder límite (15 minutos)
+
+// Limpiar entradas expiradas periódicamente
+setInterval(() => {
+  const now = Date.now();
+  rateLimitByIP.forEach((entry, key) => {
+    if (entry.resetTime < now && !entry.blockedUntil) {
+      rateLimitByIP.delete(key);
+    }
+  });
+  
+  rateLimitByPath.forEach((entry, key) => {
+    if ((entry.resetTime < now && !entry.blockedUntil) || 
+        (entry.blockedUntil && entry.blockedUntil < now)) {
+      rateLimitByPath.delete(key);
+    }
+  });
+}, 10 * 60 * 1000); // Limpiar cada 10 minutos
 
 /**
- * Middleware para limitar la cantidad de intentos de login por IP
- * Protege contra ataques de fuerza bruta
+ * Middleware general de rate limiting para todas las rutas
  */
 export function rateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Obtener la IP del cliente
-  const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
-  
-  // Obtener la hora actual
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
   const now = Date.now();
   
-  // Verificar si la IP está en el mapa y obtener sus datos
-  let entry = ipAttempts.get(clientIp);
-  
-  // Si no existe entrada para esta IP, crearla
+  // Obtener o crear entrada para esta IP
+  let entry = rateLimitByIP.get(ip);
   if (!entry) {
     entry = {
       count: 0,
-      resetTime: now + WINDOW_MS
+      resetTime: now + GENERAL_WINDOW_MS
     };
-    ipAttempts.set(clientIp, entry);
+    rateLimitByIP.set(ip, entry);
   }
   
-  // Verificar si la IP está bloqueada
-  if (entry.blockedUntil && entry.blockedUntil > now) {
-    const remainingTimeMin = Math.ceil((entry.blockedUntil - now) / 60000);
-    console.log(`IP ${clientIp} bloqueada. Tiempo restante: ${remainingTimeMin} minutos`);
-    return res.status(429).json({
-      success: false,
-      message: `Demasiados intentos. Por favor, intenta de nuevo en ${remainingTimeMin} minutos.`
-    });
-  }
-  
-  // Si el tiempo de reset ya pasó, reiniciar contador
-  if (entry.resetTime <= now) {
+  // Verificar si la entrada debe reiniciarse
+  if (entry.resetTime < now) {
     entry.count = 0;
-    entry.resetTime = now + WINDOW_MS;
-    // Si estaba bloqueada, quitar el bloqueo
-    if (entry.blockedUntil) {
-      delete entry.blockedUntil;
-    }
+    entry.resetTime = now + GENERAL_WINDOW_MS;
   }
   
-  // Incrementar contador de intentos
+  // Incrementar contador
   entry.count++;
   
-  // Si excede el máximo de intentos, bloquear la IP
-  if (entry.count > MAX_ATTEMPTS) {
-    entry.blockedUntil = now + BLOCK_DURATION_MS;
-    console.log(`IP ${clientIp} bloqueada por ${BLOCK_DURATION_MS/60000} minutos por exceder intentos`);
+  // Verificar límite
+  if (entry.count > GENERAL_MAX_REQUESTS) {
+    console.log(`Rate limit excedido para IP: ${ip}`);
     return res.status(429).json({
       success: false,
-      message: `Demasiados intentos. Por favor, intenta de nuevo en ${BLOCK_DURATION_MS/60000} minutos.`
+      message: 'Demasiadas solicitudes, por favor intente más tarde'
     });
   }
   
-  // Agregar encabezados para informar sobre el límite
-  res.setHeader('X-RateLimit-Limit', MAX_ATTEMPTS.toString());
-  res.setHeader('X-RateLimit-Remaining', (MAX_ATTEMPTS - entry.count).toString());
-  res.setHeader('X-RateLimit-Reset', Math.ceil(entry.resetTime / 1000).toString());
+  // Establecer headers de rate limit
+  res.setHeader('X-RateLimit-Limit', GENERAL_MAX_REQUESTS.toString());
+  res.setHeader('X-RateLimit-Remaining', (GENERAL_MAX_REQUESTS - entry.count).toString());
+  res.setHeader('X-RateLimit-Reset', entry.resetTime.toString());
   
-  // Permitir la solicitud si no excede el límite
   next();
 }
 
@@ -84,11 +91,59 @@ export function rateLimitMiddleware(req: Request, res: Response, next: NextFunct
  * Middleware específico para rutas de login/autenticación
  */
 export function loginRateLimitMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Solo aplicar en rutas de login
-  if (req.path === '/api/login' && req.method === 'POST') {
-    return rateLimitMiddleware(req, res, next);
+  // Solo aplicar a rutas de login y registro
+  if (req.path !== '/api/login' && req.path !== '/api/register' && req.path !== '/api/forgot-password') {
+    return next();
   }
   
-  // Para otras rutas, pasar directamente
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const key = `${ip}:${req.path}`;
+  const now = Date.now();
+  
+  // Obtener o crear entrada para esta IP+path
+  let entry = rateLimitByPath.get(key);
+  if (!entry) {
+    entry = {
+      count: 0,
+      resetTime: now + LOGIN_WINDOW_MS
+    };
+    rateLimitByPath.set(key, entry);
+  }
+  
+  // Verificar si está bloqueado
+  if (entry.blockedUntil && entry.blockedUntil > now) {
+    const waitTimeMinutes = Math.ceil((entry.blockedUntil - now) / (60 * 1000));
+    console.log(`Intento de login bloqueado para ${key}. Bloqueado por ${waitTimeMinutes} minutos más.`);
+    return res.status(429).json({
+      success: false,
+      message: `Demasiados intentos fallidos. Por favor intente nuevamente en ${waitTimeMinutes} minutos.`
+    });
+  }
+  
+  // Verificar si la entrada debe reiniciarse
+  if (entry.resetTime < now) {
+    entry.count = 0;
+    entry.resetTime = now + LOGIN_WINDOW_MS;
+    delete entry.blockedUntil;
+  }
+  
+  // Incrementar contador
+  entry.count++;
+  
+  // Verificar límite
+  if (entry.count > LOGIN_MAX_REQUESTS) {
+    console.log(`Rate limit de login excedido para ${key}. Bloqueando por ${LOGIN_BLOCK_DURATION/60000} minutos.`);
+    entry.blockedUntil = now + LOGIN_BLOCK_DURATION;
+    return res.status(429).json({
+      success: false,
+      message: `Demasiados intentos fallidos. Por favor intente nuevamente en ${LOGIN_BLOCK_DURATION/60000} minutos.`
+    });
+  }
+  
+  // Establecer headers de rate limit
+  res.setHeader('X-RateLimit-Limit', LOGIN_MAX_REQUESTS.toString());
+  res.setHeader('X-RateLimit-Remaining', (LOGIN_MAX_REQUESTS - entry.count).toString());
+  res.setHeader('X-RateLimit-Reset', entry.resetTime.toString());
+  
   next();
 }
