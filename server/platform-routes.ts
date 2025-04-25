@@ -679,18 +679,20 @@ export function registerPlatformRoutes(router: Router) {
       
       // Crear usuario en la compañía si no existe
       try {
-        // Importamos bcrypt para hash de contraseña
+        // Importamos lo necesario
         const bcrypt = require('bcrypt');
-        
-        // Importamos lo necesario para crear usuario en compañía
-        const { DatabaseStorage } = require('./storage');
-        const storage = new DatabaseStorage();
+        const { db } = require('./db');
+        const { users } = require('../shared/schema');
+        const { eq } = require('drizzle-orm');
         
         // Verificar si el usuario ya existe en la compañía por email
-        const existingUser = await storage.getUserByEmail(platformUser.email);
+        const [existingUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, platformUser.email));
         
         if (!existingUser) {
-          // Determinar el rol equivalente en la compañía según el rol de plataforma
+          // Determinar el rol equivalente en la compañía según el rol en plataforma
           let companyRole = 'admin';
           if (platformUser.role === 'support') {
             companyRole = 'supervisor';
@@ -701,15 +703,29 @@ export function registerPlatformRoutes(router: Router) {
           const hashedPassword = await bcrypt.hash(platformUser.password, salt);
           
           // Crear usuario en la compañía
-          await storage.createUser({
+          const username = `${platformUser.email.split('@')[0]}_${companyId}`; // Genera username único
+          
+          // Obtener companyId actual para restaurarlo después
+          const currentCompanyId = require('./company-db').getCurrentCompanyId();
+          
+          // Establecer companyId temporalmente para la inserción
+          require('./company-db').setCurrentCompanyId(companyId);
+          
+          // Insertar usuario en la compañía
+          await db.insert(users).values({
             name: platformUser.name,
-            username: `${platformUser.email.split('@')[0]}_${companyId}`, // Genera un username único
+            username: username,
             email: platformUser.email,
             password: hashedPassword,
             role: companyRole,
             companyId: companyId,
             active: true
           });
+          
+          // Restaurar companyId anterior
+          if (currentCompanyId) {
+            require('./company-db').setCurrentCompanyId(currentCompanyId);
+          }
           
           console.log(`Usuario de compañía creado automáticamente para ${platformUser.email} en compañía ${companyId}`);
         } else {
@@ -743,12 +759,8 @@ export function registerPlatformRoutes(router: Router) {
       // Eliminar directamente usando el esquema actualizado
       const result = await platformDb
         .delete(userCompanies)
-        .where(
-          and(
-            eq(userCompanies.userId, userId),
-            eq(userCompanies.companyId, companyId)
-          )
-        );
+        .where(eq(userCompanies.userId, userId))
+        .where(eq(userCompanies.companyId, companyId));
       
       res.status(204).end();
     } catch (error) {
@@ -792,7 +804,7 @@ export function registerPlatformRoutes(router: Router) {
         .where(inArray(companies.id, companyIds));
       
       // Combinar con los roles de asignación
-      const companiesWithRoles = companies.map(company => {
+      const companiesWithRoles = companiesData.map(company => {
         const assignment = assignments.find(a => a.companyId === company.id);
         return {
           ...company,
