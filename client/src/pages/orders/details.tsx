@@ -66,25 +66,31 @@ export default function OrderDetails() {
       
       console.log(`Obteniendo datos del pedido ${orderId} para mostrar detalles`);
       
-      // Usamos fetch directamente para tener mejor control del manejo de errores
-      const response = await fetch(`/api/orders/${orderId}`, {
-        credentials: "include",
-        headers: {
-          "Accept": "application/json"
+      try {
+        // Usamos apiRequest de nuestro queryClient para garantizar cookies y headers correctos
+        const response = await fetch(`/api/orders/${orderId}`, {
+          credentials: "include",
+          headers: {
+            "Accept": "application/json"
+          }
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error HTTP ${response.status} al cargar pedido: ${errorText}`);
+          throw new Error(`Error al cargar el pedido: ${response.status} ${response.statusText}`);
         }
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error HTTP ${response.status} al cargar pedido: ${errorText}`);
-        throw new Error(`Error al cargar el pedido: ${response.status} ${response.statusText}`);
+        
+        const orderData = await response.json();
+        console.log(`Datos del pedido ${orderId} obtenidos correctamente:`, orderData);
+        return orderData;
+      } catch (error) {
+        console.error(`ERROR CRÍTICO al obtener pedido ${orderId}:`, error);
+        throw new Error(`Error al obtener datos: ${error instanceof Error ? error.message : String(error)}`);
       }
-      
-      const orderData = await response.json();
-      console.log(`Datos del pedido ${orderId} obtenidos correctamente:`, orderData);
-      return orderData;
     },
     enabled: !!orderId,
+    retry: 2  // Intentar hasta 2 veces en caso de error
   });
 
   // Actualizar el estado inicial después de cargar el pedido

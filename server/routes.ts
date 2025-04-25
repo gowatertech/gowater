@@ -2758,11 +2758,13 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de pedido inválido, debe ser un número" });
       }
       
-      const companyId = req.session.companyId || 1;
+      // Forzamos companyId = 1 para depuración
+      const companyId = 1;
       
-      console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${companyId}`);
+      console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${companyId} (Debug mode)`);
       
-      // Consulta SQL directa para evitar problemas con drizzle
+      // Primero comprobar si existe la orden con SQL simple
+      const { pool } = require('./db');
       const query = `
         SELECT 
           id, company_id as "companyId", customer_id as "customerId", 
@@ -2779,7 +2781,8 @@ export async function registerRoutes(router: express.Router) {
         LIMIT 1
       `;
       
-      const result = await db.execute(query, [orderId, companyId]);
+      console.log(`Ejecutando query SQL directa para pedido ${orderId} y compañía ${companyId}`);
+      const result = await pool.query(query, [orderId, companyId]);
       
       if (!result.rows || result.rows.length === 0) {
         console.log(`GET /api/orders/${orderId} - Pedido no encontrado para compañía ${companyId}`);
