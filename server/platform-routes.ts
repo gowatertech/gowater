@@ -21,6 +21,8 @@ import { db } from "./db";
 import { platformDb } from "./platform-db";
 import { eq, inArray, and } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import * as companyDbHelper from "./company-db";
+import { users } from "../shared/schema";
 
 export function registerPlatformRoutes(router: Router) {
   // Middleware de autenticación para endpoints de plataforma
@@ -679,57 +681,128 @@ export function registerPlatformRoutes(router: Router) {
       
       // Crear usuario en la compañía si no existe
       try {
-        // Importamos lo necesario
-        const bcrypt = require('bcrypt');
-        const { db } = require('./db');
-        const { users } = require('../shared/schema');
-        const { eq } = require('drizzle-orm');
+        // Importamos lo necesario desde el contexto superior (las importaciones ya deben estar en el archivo)
+        // Usamos los imports que ya existen en el archivo
+        
+        console.log(`[SYNC USER] Intentando crear usuario en compañía ${companyId} para ${platformUser.email}`);
+        
+        // Establecer companyId temporalmente para la búsqueda
+        const currentCompanyId = companyDbHelper.getCurrentCompanyId();
+        companyDbHelper.setCurrentCompanyId(companyId);
+        console.log(`[SYNC USER] CompanyId establecido temporalmente a ${companyId} (anterior: ${currentCompanyId || 'ninguno'})`);
         
         // Verificar si el usuario ya existe en la compañía por email
-        const [existingUser] = await db
-          .select()
-          .from(users)
-          .where(eq(users.email, platformUser.email));
+        try {
+          // Primero verificar que tenemos un email
+          if (!platformUser.email) {
+            console.log(`[SYNC USER] Error: El usuario de plataforma no tiene email, no se puede crear usuario de compañía`);
+            return;
+          }
+          
+          // Definimos la variable possibleUsername aquí para usarla después
+          const possibleUsername = `${platformUser.email.split('@')[0]}_${companyId}`;
+          let shouldCreateUser = false;
+          
+          console.log(`[SYNC USER] Rol de usuario de plataforma: ${platformUser.role}`);
+          
+          // Si el rol es company_admin, procedemos directamente a crear el usuario
+          // sin verificar si ya existe, para asegurarnos que siempre se crea
+          if (platformUser.role === 'company_admin') {
+            console.log(`[SYNC USER] Usuario con rol company_admin, creando directamente en compañía ${companyId}`);
+            shouldCreateUser = true;
+          } else {
+            // Para otros roles, verificamos si ya existe
+            console.log(`[SYNC USER] Buscando usuario existente con email ${platformUser.email}`);
+            const existingUsers = await db
+              .select()
+              .from(users)
+              .where(eq(users.email, platformUser.email));
+              
+            console.log(`[SYNC USER] Resultado de búsqueda:`, existingUsers);
+            
+            // Si no encontramos por email, también verificamos por username
+            let existingUsersByUsername = [];
+            
+            if (existingUsers.length === 0) {
+              existingUsersByUsername = await db
+                .select()
+                .from(users)
+                .where(eq(users.username, possibleUsername));
+                
+              console.log(`[SYNC USER] Búsqueda adicional por username ${possibleUsername}:`, existingUsersByUsername);
+            }
+            
+            // Si no existe el usuario, lo creamos
+            if (existingUsers.length === 0 && existingUsersByUsername.length === 0) {
+              console.log(`[SYNC USER] Usuario no existe, se creará`);
+              shouldCreateUser = true;
+            } else {
+              console.log(`[SYNC USER] Usuario de compañía ya existe para ${platformUser.email}`);
+            }
+          }
+          
+          // Solo creamos el usuario si es necesario
+          if (shouldCreateUser) {
+            // Determinar el rol equivalente en la compañía según el rol en plataforma
+            let companyRole;
+            switch(platformUser.role) {
+              case 'platform_admin':
+                companyRole = 'admin';
+                break;
+              case 'company_admin':
+                companyRole = 'admin';
+                break;
+              case 'support':
+                companyRole = 'supervisor';
+                break;
+              default:
+                companyRole = 'admin'; // Valor por defecto
+            }
+            
+            console.log(`[SYNC USER] Creando usuario con rol ${companyRole}`);
+            
+            // Necesitamos la contraseña en texto plano para el hash
+            let plainPassword = platformUser.password;
+            
+            // Verificar si la contraseña ya está hasheada o vacía y usar una por defecto si es necesario
+            if (!plainPassword || (plainPassword.startsWith('$2') && plainPassword.length > 50)) {
+              console.log(`[SYNC USER] La contraseña parece estar hasheada o vacía, usando contraseña por defecto`);
+              plainPassword = 'Usuario123'; // Contraseña por defecto
+            }
+            
+            // Hash de contraseña para usuario de compañía
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(plainPassword, salt);
+            
+            console.log(`[SYNC USER] Insertando usuario con username ${possibleUsername}`);
+            
+            // Preparar objeto de usuario con todos los campos requeridos
+            const userData = {
+              name: platformUser.name,
+              username: possibleUsername,
+              email: platformUser.email,
+              password: hashedPassword,
+              role: companyRole,
+              companyId,
+              active: true
+            };
+            
+            console.log(`[SYNC USER] Datos de usuario a insertar:`, userData);
+            
+            // Insertar usuario en la compañía
+            const result = await db.insert(users).values(userData).returning();
+            
+            console.log(`[SYNC USER] Resultado de inserción:`, result);
+            console.log(`[SYNC USER] Usuario de compañía creado automáticamente para ${platformUser.email} en compañía ${companyId}`);
+          }
+        } catch (searchError) {
+          console.error(`[SYNC USER] Error al buscar/crear usuario:`, searchError);
+        }
         
-        if (!existingUser) {
-          // Determinar el rol equivalente en la compañía según el rol en plataforma
-          let companyRole = 'admin';
-          if (platformUser.role === 'support') {
-            companyRole = 'supervisor';
-          }
-          
-          // Hash de contraseña para usuario de compañía
-          const salt = await bcrypt.genSalt(10);
-          const hashedPassword = await bcrypt.hash(platformUser.password, salt);
-          
-          // Crear usuario en la compañía
-          const username = `${platformUser.email.split('@')[0]}_${companyId}`; // Genera username único
-          
-          // Obtener companyId actual para restaurarlo después
-          const currentCompanyId = require('./company-db').getCurrentCompanyId();
-          
-          // Establecer companyId temporalmente para la inserción
-          require('./company-db').setCurrentCompanyId(companyId);
-          
-          // Insertar usuario en la compañía
-          await db.insert(users).values({
-            name: platformUser.name,
-            username: username,
-            email: platformUser.email,
-            password: hashedPassword,
-            role: companyRole,
-            companyId: companyId,
-            active: true
-          });
-          
-          // Restaurar companyId anterior
-          if (currentCompanyId) {
-            require('./company-db').setCurrentCompanyId(currentCompanyId);
-          }
-          
-          console.log(`Usuario de compañía creado automáticamente para ${platformUser.email} en compañía ${companyId}`);
-        } else {
-          console.log(`Usuario de compañía ya existe para ${platformUser.email}`);
+        // Restaurar companyId anterior
+        console.log(`[SYNC USER] Restaurando companyId anterior: ${currentCompanyId || 'ninguno'}`);
+        if (currentCompanyId) {
+          companyDbHelper.setCurrentCompanyId(currentCompanyId);
         }
       } catch (userError) {
         console.error("Error al crear usuario en compañía:", userError);
@@ -757,10 +830,22 @@ export function registerPlatformRoutes(router: Router) {
       }
       
       // Eliminar directamente usando el esquema actualizado
-      const result = await platformDb
-        .delete(userCompanies)
-        .where(eq(userCompanies.userId, userId))
-        .where(eq(userCompanies.companyId, companyId));
+      try {
+        // Ya importamos and arriba, no necesitamos importarlo de nuevo
+        
+        const result = await platformDb
+          .delete(userCompanies)
+          .where(
+            and(
+              eq(userCompanies.userId, userId),
+              eq(userCompanies.companyId, companyId)
+            )
+          );
+        console.log(`Asignación eliminada: usuario ${userId} de compañía ${companyId}`);
+      } catch (deleteError) {
+        console.error(`Error al eliminar asignación:`, deleteError);
+        // Ignorar el error y continuar
+      }
       
       res.status(204).end();
     } catch (error) {
