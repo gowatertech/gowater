@@ -91,16 +91,22 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     queryFn: async () => {
+      console.log("Iniciando solicitud GET a /api/dashboard/stats");
       const response = await apiRequest("GET", "/api/dashboard/stats");
-      return response.json();
+      const jsonData = await response.json();
+      console.log("Respuesta de /api/dashboard/stats:", jsonData);
+      return jsonData;
     }
   });
 
   const { data: paymentStats, isLoading: paymentsLoading } = useQuery<PaymentStats>({
     queryKey: ["/api/dashboard/payments-stats"],
     queryFn: async () => {
+      console.log("Iniciando solicitud GET a /api/dashboard/payments-stats");
       const response = await apiRequest("GET", "/api/dashboard/payments-stats");
-      return response.json();
+      const jsonData = await response.json();
+      console.log("Respuesta de /api/dashboard/payments-stats:", jsonData);
+      return jsonData;
     }
   });
 
