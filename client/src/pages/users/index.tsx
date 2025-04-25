@@ -65,9 +65,26 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   // Consulta de usuarios
-  const { data: users = [] } = useQuery<User[]>({
+  const { data: usersResponse = [], isLoading } = useQuery({
     queryKey: ["/api/users"],
+    onSuccess: (data) => {
+      console.log("Datos de usuarios recibidos:", data);
+    },
+    onError: (error) => {
+      console.error("Error al cargar usuarios:", error);
+    }
   });
+  
+  // Asegurarnos de que siempre tenemos un array de usuarios
+  // La API puede devolver directamente el array o un objeto con formato { success, data }
+  const users = useMemo(() => {
+    if (Array.isArray(usersResponse)) {
+      return usersResponse as User[];
+    } else if (usersResponse && typeof usersResponse === 'object' && 'data' in usersResponse) {
+      return (usersResponse as any).data as User[];
+    }
+    return [] as User[];
+  }, [usersResponse]);
 
   // Formulario con esquema de validación condicional
   const formSchema = editingUser
