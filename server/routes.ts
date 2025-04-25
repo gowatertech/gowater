@@ -1833,6 +1833,14 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/stats/order-status", async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener estado de pedidos");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
       // Obtener conteo de pedidos por estado
       const orderStatusData = await db
         .select({
@@ -1840,6 +1848,7 @@ export async function registerRoutes(router: express.Router) {
           count: sql`COUNT(*)`.mapWith(Number)
         })
         .from(orders)
+        .where(eq(orders.companyId, companyId))
         .groupBy(orders.status);
 
       // Formatear datos para el gráfico de pie
@@ -1872,6 +1881,14 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/stats/top-customers", async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.warn("No se encontró companyId en el contexto para obtener top clientes");
+        return res.status(400).json({ error: "ID de empresa no encontrado en el contexto" });
+      }
+      
       // Obtener los clientes con más pedidos
       const topCustomersData = await db
         .select({
@@ -1882,6 +1899,7 @@ export async function registerRoutes(router: express.Router) {
         })
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(eq(orders.companyId, companyId))
         .groupBy(orders.customerId, customers.businessname)
         .orderBy(desc(orders.id))
         .limit(5);
