@@ -665,11 +665,60 @@ export function registerPlatformRoutes(router: Router) {
         role
       });
       
+      // Obtener el usuario de plataforma
+      const platformUser = await platformStorage.getPlatformUser(userId);
+      if (!platformUser) {
+        return res.status(404).json({ message: 'Usuario de plataforma no encontrado' });
+      }
+      
       // Insertar la asignación directamente
       const [assignment] = await platformDb
         .insert(userCompanies)
         .values(validatedData)
         .returning();
+      
+      // Crear usuario en la compañía si no existe
+      try {
+        // Importamos bcrypt para hash de contraseña
+        const bcrypt = require('bcrypt');
+        
+        // Importamos lo necesario para crear usuario en compañía
+        const { DatabaseStorage } = require('./storage');
+        const storage = new DatabaseStorage();
+        
+        // Verificar si el usuario ya existe en la compañía por email
+        const existingUser = await storage.getUserByEmail(platformUser.email);
+        
+        if (!existingUser) {
+          // Determinar el rol equivalente en la compañía según el rol de plataforma
+          let companyRole = 'admin';
+          if (platformUser.role === 'support') {
+            companyRole = 'supervisor';
+          }
+          
+          // Hash de contraseña para usuario de compañía
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash(platformUser.password, salt);
+          
+          // Crear usuario en la compañía
+          await storage.createUser({
+            name: platformUser.name,
+            username: `${platformUser.email.split('@')[0]}_${companyId}`, // Genera un username único
+            email: platformUser.email,
+            password: hashedPassword,
+            role: companyRole,
+            companyId: companyId,
+            active: true
+          });
+          
+          console.log(`Usuario de compañía creado automáticamente para ${platformUser.email} en compañía ${companyId}`);
+        } else {
+          console.log(`Usuario de compañía ya existe para ${platformUser.email}`);
+        }
+      } catch (userError) {
+        console.error("Error al crear usuario en compañía:", userError);
+        // No devolvemos error porque la asignación se completó correctamente
+      }
       
       res.status(201).json({ 
         message: "Usuario asignado a empresa correctamente",
@@ -737,10 +786,10 @@ export function registerPlatformRoutes(router: Router) {
       const companyIds = assignments.map(assignment => assignment.companyId);
       
       // Buscar los detalles de las compañías
-      const companies = await platformDb
+      const companiesData = await platformDb
         .select()
-        .from(platformCompanies)
-        .where(inArray(platformCompanies.id, companyIds));
+        .from(companies)
+        .where(inArray(companies.id, companyIds));
       
       // Combinar con los roles de asignación
       const companiesWithRoles = companies.map(company => {
