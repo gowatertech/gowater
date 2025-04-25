@@ -415,13 +415,16 @@ export class DatabaseStorage implements IStorage {
     
     console.log(`Actualizando pedido ${id} al estado '${status}'`);
 
-    // Usamos withCompanyUpdate para asegurar que solo se modifiquen registros de la empresa actual
-    // withCompanyUpdate se encarga de añadir el where clause para el company_id
-    const updateQuery = withCompanyUpdate(orders, { status });
-    
-    // Añadimos la condición del ID del pedido
-    const [updatedOrder] = await updateQuery
-      .where(eq(orders.id, id))
+    // Método directo sin usar withCompanyUpdate
+    const [updatedOrder] = await db
+      .update(orders)
+      .set({ status })
+      .where(
+        and(
+          eq(orders.id, id),
+          eq(orders.companyId, getCurrentCompanyId() || 0)
+        )
+      )
       .returning();
     
     console.log(`Pedido ${id} actualizado a '${status}'`, updatedOrder);
