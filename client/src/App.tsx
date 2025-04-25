@@ -433,7 +433,7 @@ export default function App() {
   const isPlatformRoute = location.startsWith("/platform");
   const isMobileApp = location.startsWith("/mobile-app");
   const isPublicPage = location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register";
-  const shouldShowLogo = !isPlatformRoute && !isMobileApp && !isPublicPage;
+  const shouldShowLogo = false; // Logo centrado desactivado en todas las páginas
   
   return (
     <I18nextProvider i18n={i18n}>
