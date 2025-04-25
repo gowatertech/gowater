@@ -79,14 +79,38 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   logout: async () => {
     set({ isLoading: true, error: null });
     try {
+      // Guardar la URL actual antes de hacer logout para determinar a dónde redirigir
+      const currentPath = window.location.pathname;
+      let redirectPath = '/';
+      
+      // Determinar el tipo de interfaz (company, mobile, platform)
+      if (currentPath.startsWith('/mobile-app')) {
+        redirectPath = '/mobile-app/login';
+      } else if (currentPath.startsWith('/platform')) {
+        redirectPath = '/platform/login';
+      } else {
+        redirectPath = '/';
+      }
+      
       // Intentar primero con el endpoint regular
       try {
         await apiRequest('POST', '/api/logout');
       } catch {
         // Si falla, intentar con el endpoint móvil
-        await apiRequest('POST', '/api/mobile/logout');
+        try {
+          await apiRequest('POST', '/api/mobile/logout');
+        } catch {
+          // Si también falla, intentar con el endpoint de platform
+          await apiRequest('POST', '/api/platform/platform-logout');
+        }
       }
+      
+      // Eliminar usuario del estado después de cerrar sesión
       set({ user: null, isLoading: false });
+      
+      // Limpiar el historial actual para prevenir navegación hacia atrás
+      // Esto es crucial para evitar que el usuario pueda volver a páginas protegidas
+      window.history.replaceState(null, "", redirectPath);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       set({ error: error as Error, isLoading: false });
