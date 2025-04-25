@@ -226,10 +226,12 @@ export default function Dashboard() {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
+      // Redirigir inmediatamente después de cerrar sesión
+      window.location.href = "/auth/login";
+      return null;
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
-      navigate("/auth/login");
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente",
