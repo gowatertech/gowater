@@ -2721,6 +2721,8 @@ export async function registerRoutes(router: express.Router) {
   // Pedidos
   router.get("/orders", async (req, res) => {
     try {
+      const companyId = req.session.companyId || 1;
+      
       const allOrders = await db
         .select({
           id: orders.id,
@@ -2729,16 +2731,62 @@ export async function registerRoutes(router: express.Router) {
           status: orders.status,
           date: orders.date,          
           customerName: customers.businessname,
-          address: customers.street
+          address: customers.street,
+          paymentMethod: orders.paymentMethod,
+          routeId: orders.routeId,
+          companyId: orders.companyId
         })
         .from(orders)
         .leftJoin(customers, eq(orders.customerId, customers.id))
-        .orderBy(orders.date);
+        .where(eq(orders.companyId, companyId))
+        .orderBy(desc(orders.date));
 
       console.log("GET /api/orders - Retornando:", allOrders.length, "pedidos");
       res.json(allOrders);
     } catch (error) {
       console.error("Error al obtener pedidos:", error);      
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Ruta para obtener un pedido específico por ID
+  router.get("/orders/:id", async (req, res) => {
+    try {
+      const orderId = parseInt(req.params.id);
+      const companyId = req.session.companyId || 1;
+      
+      console.log(`GET /api/orders/${orderId} - Buscando pedido`);
+      
+      const order = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
+          status: orders.status,
+          date: orders.date,
+          paymentMethod: orders.paymentMethod,
+          routeId: orders.routeId,
+          driverId: orders.driverId,
+          companyId: orders.companyId,
+          assistantId: orders.assistantId,
+          comments: orders.comments,
+          reference: orders.reference
+        })
+        .from(orders)
+        .where(and(
+          eq(orders.id, orderId),
+          eq(orders.companyId, companyId)
+        ))
+        .limit(1);
+      
+      if (!order || !order.length) {
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+      
+      console.log(`GET /api/orders/${orderId} - Retornando datos del pedido:`, order[0]);
+      res.json(order[0]);
+    } catch (error) {
+      console.error(`Error al obtener pedido ${req.params.id}:`, error);      
       res.status(500).json({ error: String(error) });
     }
   });
