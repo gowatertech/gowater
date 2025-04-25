@@ -51,17 +51,15 @@ export default function LoginPage() {
   // Manejar la autenticación
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", data);
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Error al iniciar sesión");
-      }
-      return await res.json();
+      return await apiRequest("/api/login", {
+        method: "POST",
+        data
+      });
     },
     onSuccess: () => {
       toast({
         title: "Inicio de sesión exitoso",
-        description: "Bienvenido al panel de control",
+        description: "Bienvenido al panel de control"
       });
       navigate("/dashboard");
     },
@@ -69,7 +67,7 @@ export default function LoginPage() {
       toast({
         title: "Error al iniciar sesión",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   });

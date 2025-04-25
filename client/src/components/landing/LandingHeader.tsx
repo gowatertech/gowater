@@ -111,7 +111,7 @@ export function LandingHeader() {
                 <div className="pt-6 border-t space-y-4">
                   <h3 className="font-medium text-sm text-muted-foreground mb-2">ACCESOS</h3>
                   <SheetClose asChild>
-                    <Link href="/dashboard">
+                    <Link href="/auth/login">
                       <div className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
                         <Building2 className="h-4 w-4 text-primary" />
                         <span className="font-medium">Iniciar sesión</span>
@@ -152,7 +152,7 @@ export function LandingHeader() {
               Accesos <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
             </Button>
             <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-md opacity-0 -translate-y-1 invisible group-hover:opacity-100 group-hover:translate-y-0 group-hover:visible transition-all duration-200 py-1">
-              <Link href="/dashboard">
+              <Link href="/auth/login">
                 <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer">
                   <Building2 className="h-4 w-4 text-primary" />
                   <span>Iniciar sesión</span>
