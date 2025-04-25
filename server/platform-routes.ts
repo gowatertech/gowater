@@ -931,6 +931,43 @@ export function registerPlatformRoutes(router: Router) {
     }
   });
 
+  // Endpoint para sincronizar manualmente usuarios de plataforma a empresa
+  router.post("/sync-users-to-company/:companyId", requirePlatformAdmin, async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.companyId);
+      
+      // Obtener todos los usuarios company_admin asignados a esta empresa
+      const companyAdmins = await platformDb
+        .select()
+        .from(platformUsers)
+        .where(
+          and(
+            eq(platformUsers.role, 'company_admin'),
+            eq(platformUsers.companyId, companyId)
+          )
+        );
+      
+      console.log(`[SYNC] Encontrados ${companyAdmins.length} administradores de empresa para la empresa ${companyId}`);
+      
+      // Para cada admin de empresa, crear su usuario correspondiente
+      let createdCount = 0;
+      for (const admin of companyAdmins) {
+        // Generar una contraseña temporal segura
+        const tempPassword = 'AdminTemp' + Math.floor(100000 + Math.random() * 900000);
+        
+        await createCompanyUserFromPlatformUser(admin, tempPassword);
+        createdCount++;
+      }
+      
+      res.json({
+        message: `Sincronización completada. Se procesaron ${companyAdmins.length} usuarios, se crearon ${createdCount} usuarios de compañía.`
+      });
+    } catch (error) {
+      console.error("Error al sincronizar usuarios:", error);
+      res.status(500).json({ message: "Error al sincronizar usuarios a empresa" });
+    }
+  });
+
   // Endpoint para obtener las empresas asignadas a un usuario
   router.get("/platform-users/:id/companies", requirePlatformAdmin, async (req: Request, res: Response) => {
     try {
