@@ -14,12 +14,16 @@ import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
 import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
+import { loginRateLimitMiddleware } from "./middleware/rate-limit.middleware";
 
 const app = express();
 
 // Basic middleware for parsing JSON and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Aplicar rate limiting para evitar ataques de fuerza bruta
+app.use(loginRateLimitMiddleware);
 
 // Configuración de sesión
 const sessionConfig = {
