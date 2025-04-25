@@ -48,11 +48,10 @@ export default function OrderStatus() {
     queryKey: ["/api/orders", orderId],
     queryFn: async () => {
       if (!orderId) return null;
-      const response = await apiRequest("GET", `/api/orders/${orderId}`);
-      if (!response.ok) {
-        throw new Error('Error al cargar el pedido');
-      }
-      return response.json();
+      return apiRequest({
+        method: "GET",
+        url: `/api/orders/${orderId}`
+      });
     },
     enabled: !!orderId,
   });
@@ -69,12 +68,10 @@ export default function OrderStatus() {
     mutationFn: async ({ status }: { status: string }) => {
       if (!orderId) throw new Error('ID de pedido no válido');
       
-      const response = await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al actualizar el estado del pedido');
-      }
-      return response.json();
+      return apiRequest(`/api/orders/${orderId}/status`, {
+        method: "PATCH", 
+        data: { status }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -84,7 +81,9 @@ export default function OrderStatus() {
         ? "entregado" 
         : newStatus === "cancelled" 
           ? "cancelado" 
-          : "pendiente";
+          : newStatus === "in_transit"
+            ? "en tránsito"
+            : "pendiente";
           
       toast({
         title: "Estado actualizado",
@@ -118,6 +117,10 @@ export default function OrderStatus() {
       case "pending":
         return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 flex items-center gap-1">
           <Clock className="h-3 w-3" /> Pendiente
+        </Badge>;
+      case "in_transit":
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200 flex items-center gap-1">
+          <Clock className="h-3 w-3" /> En Tránsito
         </Badge>;
       case "cancelled":
         return <Badge className="bg-red-100 text-red-800 border-red-300 hover:bg-red-200 flex items-center gap-1">
@@ -243,6 +246,12 @@ export default function OrderStatus() {
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-yellow-500" />
                         <span>Pendiente</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="in_transit">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        <span>En Tránsito</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="delivered">
