@@ -2775,7 +2775,7 @@ export async function registerRoutes(router: express.Router) {
       console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${companyId}`);
       
       // Consulta SQL para obtener la orden y sus detalles en un solo viaje a la base de datos
-      const { pool } = require('./db');
+      const { pool } = await import('./db');
       const query = `
         SELECT 
           o.id, o.company_id as "companyId", o.customer_id as "customerId", 
@@ -2790,7 +2790,7 @@ export async function registerRoutes(router: express.Router) {
           c.businessname as "customerName", 
           c.email as "customerEmail", 
           c.phone as "customerPhone",
-          c.address as "customerAddress"
+          c.street as "customerStreet"
         FROM orders o
         LEFT JOIN customers c ON o.customer_id = c.id
         WHERE o.id = $1 AND o.company_id = $2
@@ -2832,6 +2832,7 @@ export async function registerRoutes(router: express.Router) {
           WHERE order_id = $1
         `;
         
+        // Usamos el pool ya importado
         const itemsResult = await pool.query(itemsQuery, [orderId]);
         
         // Si hay items, agregarlos a la respuesta
