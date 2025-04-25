@@ -173,22 +173,43 @@ export default function OrdersList() {
         description: "Procesando...",
       });
       
+      console.log(`Obteniendo datos del pedido ${orderId} para imprimir`);
+      
       // Primero obtener los detalles del pedido con manejo adecuado de errores
-      const response = await apiRequest("GET", `/api/orders/${orderId}`);
+      const response = await fetch(`/api/orders/${orderId}`, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+      
       if (!response.ok) {
-        throw new Error('Error al cargar el pedido: ' + await response.text());
+        console.error(`Error HTTP ${response.status} al cargar el pedido: ${await response.text()}`);
+        throw new Error(`Error al cargar el pedido: ${response.status} ${response.statusText}`);
       }
+      
       const order = await response.json();
+      console.log(`Datos del pedido ${orderId} obtenidos:`, order);
       
       // Obtener los items del pedido con manejo adecuado de errores
-      const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
+      const itemsResponse = await fetch(`/api/orders/${orderId}/items`, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+      
       if (!itemsResponse.ok) {
-        throw new Error('Error al cargar los items del pedido: ' + await itemsResponse.text());
+        console.error(`Error HTTP ${itemsResponse.status} al cargar items: ${await itemsResponse.text()}`);
+        throw new Error(`Error al cargar los items del pedido: ${itemsResponse.status} ${itemsResponse.statusText}`);
       }
+      
       const orderItems = await itemsResponse.json();
+      console.log(`Items del pedido ${orderId} obtenidos:`, orderItems);
       
       // Verificar que tengamos la configuración de la empresa
       if (!companySettings) {
+        console.error('No se pudo cargar la configuración de la empresa');
         throw new Error('No se pudo cargar la configuración de la empresa');
       }
       
@@ -204,11 +225,19 @@ export default function OrdersList() {
       }
       
       // Usar el servicio PrinterService centralizado con manejo de errores mejorado
+      console.log(`Enviando a imprimir pedido ${orderId} con los siguientes datos:`, {
+        order: { ...order },
+        items: orderItems || [],
+        customer: customer || {},
+        settings: { ...companySettings },
+        productsCount: (products || []).length
+      });
+      
       await PrinterService.printOrder(
-        {...order},  // Usar copia para evitar problemas de mutabilidad
+        { ...order },  // Usar copia para evitar problemas de mutabilidad
         orderItems || [], 
-        customer || {}, 
-        {...companySettings}, 
+        customer || { businessname: "Cliente", address: "", phone: "" }, 
+        { ...companySettings }, 
         products || []
       );
       
@@ -234,22 +263,43 @@ export default function OrdersList() {
         description: "Procesando...",
       });
       
+      console.log(`Obteniendo datos del pedido ${orderId} para PDF`);
+      
       // Primero obtener los detalles del pedido con manejo adecuado de errores
-      const response = await apiRequest("GET", `/api/orders/${orderId}`);
+      const response = await fetch(`/api/orders/${orderId}`, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+      
       if (!response.ok) {
-        throw new Error('Error al cargar el pedido: ' + await response.text());
+        console.error(`Error HTTP ${response.status} al cargar el pedido: ${await response.text()}`);
+        throw new Error(`Error al cargar el pedido: ${response.status} ${response.statusText}`);
       }
+      
       const order = await response.json();
+      console.log(`Datos del pedido ${orderId} obtenidos para PDF:`, order);
       
       // Obtener los items del pedido con manejo adecuado de errores
-      const itemsResponse = await apiRequest("GET", `/api/orders/${orderId}/items`);
+      const itemsResponse = await fetch(`/api/orders/${orderId}/items`, {
+        credentials: "include",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+      
       if (!itemsResponse.ok) {
-        throw new Error('Error al cargar los items del pedido: ' + await itemsResponse.text());
+        console.error(`Error HTTP ${itemsResponse.status} al cargar items: ${await itemsResponse.text()}`);
+        throw new Error(`Error al cargar los items del pedido: ${itemsResponse.status} ${itemsResponse.statusText}`);
       }
+      
       const orderItems = await itemsResponse.json();
+      console.log(`Items del pedido ${orderId} obtenidos para PDF:`, orderItems);
       
       // Verificar que tengamos la configuración de la empresa
       if (!companySettings) {
+        console.error('No se pudo cargar la configuración de la empresa');
         throw new Error('No se pudo cargar la configuración de la empresa');
       }
       
@@ -265,11 +315,19 @@ export default function OrdersList() {
       }
       
       // Usar el servicio PrinterService centralizado con manejo de errores mejorado
+      console.log(`Generando PDF para pedido ${orderId} con los siguientes datos:`, {
+        order: { ...order },
+        items: orderItems || [],
+        customer: customer || {},
+        settings: { ...companySettings },
+        productsCount: (products || []).length
+      });
+      
       await PrinterService.generateOrderPDF(
-        {...order},  // Usar copia para evitar problemas de mutabilidad
+        { ...order },  // Usar copia para evitar problemas de mutabilidad
         orderItems || [], 
-        customer || {}, 
-        {...companySettings}, 
+        customer || { businessname: "Cliente", address: "", phone: "" }, 
+        { ...companySettings }, 
         products || []
       );
       
