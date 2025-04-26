@@ -42,10 +42,14 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
       const companyId = getCurrentCompanyId() || 1; // Default a companyId 1 si no hay contexto
       console.log(`Actualización para companyId: ${companyId}`);
       
-      // Verificamos el estado actual
-      const currentOrder = await db.select().from(orders).where(
-        sql`${orders.id} = ${orderIdNum} AND ${orders.companyId} = ${companyId}`
-      );
+      // Verificamos el estado actual usando SQL directo para evitar problemas de mapeo de columnas
+      const checkQuery = `
+        SELECT * FROM orders 
+        WHERE id = $1 AND company_id = $2;
+      `;
+      
+      const checkResult = await pool.query(checkQuery, [orderIdNum, companyId]);
+      const currentOrder = checkResult.rows;
       
       console.log("Resultado de consulta inicial:", currentOrder);
       

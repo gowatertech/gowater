@@ -405,37 +405,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: "pending" | "in_transit" | "delivered" | "cancelled"): Promise<Order> {
-    // Primero verificamos que el pedido exista para la empresa actual
-    const [order] = await db
-      .select()
-      .from(orders)
-      .where(eq(orders.id, id));
-
-    if (!order) throw new Error("Order not found");
-    
     console.log(`Actualizando pedido ${id} al estado '${status}'`);
 
     // Obtenemos el companyId del contexto
-    const companyId = getCurrentCompanyId();
+    const companyId = getCurrentCompanyId() || 1;
     console.log(`CompanyId del contexto: ${companyId}`);
 
-    // Método directo usando la sintaxis más simple
-    console.log(`Ejecutando actualización: UPDATE orders SET status = '${status}' WHERE id = ${id} AND companyId = ${companyId}`);
-    
-    // Primero verificamos el SQL que se va a ejecutar
-    const query = db
-      .update(orders)
-      .set({ status })
-      .where(eq(orders.id, id))
-      .where(eq(orders.companyId, companyId || 0));
-    
-    console.log("Query SQL a ejecutar:", query);
-    
-    const [updatedOrder] = await query.returning();
-    
-    console.log(`Pedido ${id} actualizado a '${status}'`, updatedOrder);
-
-    return updatedOrder;
+    try {
+      // SOLUCIÓN: Usar directamente SQL con los nombres de columnas correctos (company_id en lugar de companyId)
+      const updateQuery = `
+        UPDATE orders 
+        SET status = $1 
+        WHERE id = $2 AND company_id = $3
+        RETURNING *;
+      `;
+      
+      console.log(`Ejecutando query SQL: ${updateQuery} con valores: [${status}, ${id}, ${companyId}]`);
+      
+      const result = await pool.query(updateQuery, [status, id, companyId]);
+      
+      if (result.rowCount === 0) {
+        throw new Error(`Pedido no encontrado o no pertenece a la empresa (ID: ${id}, Company: ${companyId})`);
+      }
+      
+      console.log(`Pedido ${id} actualizado a '${status}'`, result.rows[0]);
+      return result.rows[0];
+    } catch (error) {
+      console.error("Error en actualización de estado:", error);
+      throw error;
+    }
   }
 
   // Order Items
