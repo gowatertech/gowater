@@ -17,7 +17,7 @@ import {
   type RecurringOrder, type InsertRecurringOrder,
   type RecurringOrderItem, type InsertRecurringOrderItem
 } from "@shared/schema";
-import { db, pool } from "./db";
+import { db } from "./db";
 import { getCurrentCompanyId, withCompanyUpdate } from "./company-db";
 import { eq, inArray, and } from "drizzle-orm";
 
@@ -129,49 +129,20 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    try {
-      console.log(`Buscando usuario por email: ${email}`);
-      
-      // Usar SQL directo para evitar problemas de mapeo de columnas
-      const query = `
-        SELECT * FROM users 
-        WHERE email = $1
-      `;
-      
-      const result = await pool.query(query, [email]);
-      let user = result.rows.length > 0 ? result.rows[0] : null;
-      
-      // Si no se encuentra por email, intentar por username para compatibilidad
-      if (!user && email.includes('@')) {
-        console.log(`Usuario no encontrado por email: ${email}, intentando por username`);
-        const username = email.split('@')[0]; // Tomar la parte antes del @
-        
-        const usernameQuery = `
-          SELECT * FROM users 
-          WHERE username = $1
-        `;
-        
-        const usernameResult = await pool.query(usernameQuery, [username]);
-        user = usernameResult.rows.length > 0 ? usernameResult.rows[0] : null;
-        
-        if (user) {
-          console.log(`Usuario encontrado por username: ${username}`);
-        }
+    // Intentar buscar usuario por email
+    let [user] = await db.select().from(users).where(eq(users.email, email));
+    
+    // Si no se encuentra por email, intentar por username para compatibilidad
+    if (!user && email.includes('@')) {
+      console.log(`Usuario no encontrado por email: ${email}, intentando por username`);
+      const username = email.split('@')[0]; // Tomar la parte antes del @
+      [user] = await db.select().from(users).where(eq(users.username, username));
+      if (user) {
+        console.log(`Usuario encontrado por username: ${username}`);
       }
-      
-      return user || undefined;
-    } catch (error) {
-      console.error(`Error al buscar usuario por email: ${email}`, error);
-      // Intentar método tradicional como fallback
-      let [user] = await db.select().from(users).where(eq(users.email, email));
-      
-      if (!user && email.includes('@')) {
-        const username = email.split('@')[0];
-        [user] = await db.select().from(users).where(eq(users.username, username));
-      }
-      
-      return user;
     }
+    
+    return user;
   }
 
   async createUser(user: InsertUser): Promise<User> {
@@ -434,35 +405,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateOrderStatus(id: number, status: "pending" | "in_transit" | "delivered" | "cancelled"): Promise<Order> {
+    // Primero verificamos que el pedido exista para la empresa actual
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, id));
+
+    if (!order) throw new Error("Order not found");
+    
     console.log(`Actualizando pedido ${id} al estado '${status}'`);
 
     // Obtenemos el companyId del contexto
-    const companyId = getCurrentCompanyId() || 1;
+    const companyId = getCurrentCompanyId();
     console.log(`CompanyId del contexto: ${companyId}`);
 
-    try {
-      // SOLUCIÓN: Usar directamente SQL con los nombres de columnas correctos (company_id en lugar de companyId)
-      const updateQuery = `
-        UPDATE orders 
-        SET status = $1 
-        WHERE id = $2 AND company_id = $3
-        RETURNING *;
-      `;
-      
-      console.log(`Ejecutando query SQL: ${updateQuery} con valores: [${status}, ${id}, ${companyId}]`);
-      
-      const result = await pool.query(updateQuery, [status, id, companyId]);
-      
-      if (result.rowCount === 0) {
-        throw new Error(`Pedido no encontrado o no pertenece a la empresa (ID: ${id}, Company: ${companyId})`);
-      }
-      
-      console.log(`Pedido ${id} actualizado a '${status}'`, result.rows[0]);
-      return result.rows[0];
-    } catch (error) {
-      console.error("Error en actualización de estado:", error);
-      throw error;
-    }
+    // Método directo usando la sintaxis más simple
+    console.log(`Ejecutando actualización: UPDATE orders SET status = '${status}' WHERE id = ${id} AND companyId = ${companyId}`);
+    
+    // Primero verificamos el SQL que se va a ejecutar
+    const query = db
+      .update(orders)
+      .set({ status })
+      .where(eq(orders.id, id))
+      .where(eq(orders.companyId, companyId || 0));
+    
+    console.log("Query SQL a ejecutar:", query);
+    
+    const [updatedOrder] = await query.returning();
+    
+    console.log(`Pedido ${id} actualizado a '${status}'`, updatedOrder);
+
+    return updatedOrder;
   }
 
   // Order Items
