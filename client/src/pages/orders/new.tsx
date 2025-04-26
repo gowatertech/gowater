@@ -150,8 +150,8 @@ export default function NewOrder() {
         paymentMethod: paymentMethod as "cash" | "credit" | "card",
         date: new Date().toISOString(), // Formato ISO completo
         routeId: null as number | null,
-        notes: notes || "",
-        companyId: user?.companyId || 1 // Usar el companyId del usuario actual
+        notes: notes || ""
+        // El companyId se obtiene del contexto en el servidor
       };
 
       console.log("Datos del pedido a enviar:", orderData);
