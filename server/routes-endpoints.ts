@@ -1,7 +1,7 @@
 import { Router, Express } from "express";
 import { storage } from "./storage";
 import { insertRecurringOrderSchema, insertRecurringOrderItemSchema } from "../shared/schema";
-import { createOrdersEndpoints } from "./routes/orders";
+// Nota: Los endpoints de órdenes están ahora directamente en ordersRouter en ./routes/orders.ts
 
 // Función para crear endpoints de pedidos recurrentes
 export const createRecurringOrdersEndpoints = (router: Router) => {
@@ -336,6 +336,6 @@ export function registerRoutesEndpoints(router: Router) {
   // Registrar endpoints para pedidos recurrentes
   createRecurringOrdersEndpoints(router);
   
-  // Registrar endpoints de pedidos estándar
-  createOrdersEndpoints(router);
+  // Nota: Los endpoints de órdenes estándar ahora son manejados por ordersRouter
+  // y están montados directamente en app.use() en el index.ts
 }

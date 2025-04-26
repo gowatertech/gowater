@@ -1,141 +1,181 @@
-//orders.ts
-import { Router } from "express";
-import { db } from '../db';
-import { orders, orderItems } from "@shared/schema";
-import { eq, and, desc } from 'drizzle-orm';
-import { storage } from "../storage";
-import { getCurrentCompanyId } from "../company-db";
+import express, { Request, Response } from 'express';
+import { pool } from '../db';
 
-export const createOrdersEndpoints = (router: Router) => {
+// Router para manejar órdenes
+const ordersRouter = express.Router();
 
-  // Obtener todos los pedidos
-  router.get("/api/orders", async (req, res) => {
-    try {
-      const allOrders = await db
-        .select()
-        .from(orders)
-        .orderBy(desc(orders.id));
-
-      console.log(`GET /api/orders - Retornando: ${allOrders.length} pedidos`);
-      res.json(allOrders);
-    } catch (error) {
-      console.error("Error al obtener pedidos:", error);
-      res.status(500).json({ error: String(error) });
+// Endpoint para crear órdenes
+ordersRouter.post("/api/orders", async (req: Request, res: Response) => {
+  console.log("🔴 INICIO /api/orders - Intento de crear pedido");
+  console.log("📣 POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
+  
+  // Extraer items para procesarlos después
+  const orderItemsData = req.body.items || [];
+  console.log(`📦 Items recibidos para procesar: ${orderItemsData.length}`);
+  
+  // Verificar cliente
+  if (!req.body.customerId) {
+    console.error("❌ ERROR: ID de cliente obligatorio");
+    return res.status(400).json({ error: "El ID de cliente es obligatorio" });
+  }
+  
+  // Iniciar transacción
+  const client = await pool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    console.log("🔄 Transacción iniciada");
+    
+    // Preparar datos del pedido
+    const companyId = 1; // Valor por defecto
+    const orderData = {
+      customerId: parseInt(req.body.customerId),
+      total: req.body.total,
+      status: req.body.status || "pending",
+      paymentMethod: req.body.paymentMethod || "cash",
+      date: new Date(req.body.date || new Date()).toISOString(),
+      routeId: req.body.routeId || null,
+      notes: req.body.notes || "",
+      companyId: companyId
+    };
+    
+    console.log("🧾 Datos de orden a insertar:", orderData);
+    
+    // 1. Crear la orden
+    const orderQuery = `
+      INSERT INTO orders (
+        company_id, customer_id, total, status, payment_method, date, 
+        route_id, notes, cash_collected, driver_commission, assistant_commission
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+      ) RETURNING *
+    `;
+    
+    const orderParams = [
+      companyId,
+      orderData.customerId,
+      orderData.total,
+      orderData.status,
+      orderData.paymentMethod,
+      orderData.date,
+      orderData.routeId,
+      orderData.notes,
+      '0.00',  // cash_collected
+      '0.00',  // driver_commission
+      '0.00'   // assistant_commission
+    ];
+    
+    console.log("🔄 Ejecutando query de orden");
+    const orderResult = await client.query(orderQuery, orderParams);
+    
+    if (orderResult.rows.length === 0) {
+      throw new Error("No se pudo crear la orden. La inserción no devolvió datos.");
     }
-  });
-
-  // Obtener un pedido específico por ID
-  router.get("/api/orders/:id", async (req, res) => {
-    try {
-      const orderId = parseInt(req.params.id);
-      if (isNaN(orderId)) {
-        return res.status(400).json({ error: "ID de pedido inválido" });
+    
+    const order = orderResult.rows[0];
+    console.log("✅ Orden creada con ID:", order.id);
+    
+    // 2. Crear los items de la orden
+    const createdItems: any[] = [];
+    
+    if (orderItemsData && orderItemsData.length > 0) {
+      console.log(`🔄 Procesando ${orderItemsData.length} items para la orden #${order.id}`);
+      
+      for (const item of orderItemsData) {
+        // Validar item (soportamos tanto productId como code para compatibilidad)
+        const productId = parseInt(item.productId || item.code);
+        
+        if (!productId || isNaN(productId)) {
+          console.warn("⚠️ Item sin ID de producto válido, saltando:", item);
+          continue;
+        }
+        
+        const quantity = parseInt(item.quantity) || 1;
+        // Asegurar que price y total son strings formateados correctamente
+        const price = typeof item.price === 'string' ? item.price : 
+                     (typeof item.price === 'number' ? item.price.toFixed(2) : '0.00');
+        
+        const total = typeof item.total === 'string' ? item.total : 
+                     (typeof item.total === 'number' ? item.total.toFixed(2) : 
+                     (parseFloat(price) * quantity).toFixed(2));
+        
+        const itemQuery = `
+          INSERT INTO order_items (
+            order_id, product_id, quantity, price, total, company_id
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6
+          ) RETURNING *
+        `;
+        
+        const itemParams = [
+          order.id,
+          productId,
+          quantity,
+          price,
+          total,
+          companyId
+        ];
+        
+        console.log(`🔄 Insertando item para orden #${order.id} con params:`, 
+                   {orderId: order.id, productId, quantity, price, total, companyId});
+        
+        try {
+          const itemResult = await client.query(itemQuery, itemParams);
+          
+          if (itemResult.rows.length > 0) {
+            console.log(`✅ Item creado con ID: ${itemResult.rows[0].id}`);
+            createdItems.push(itemResult.rows[0]);
+          } else {
+            console.error(`❌ No se pudo crear el item para orden #${order.id}`);
+          }
+        } catch (itemError) {
+          console.error(`❌ Error al crear item para orden #${order.id}:`, itemError);
+          throw itemError; // Re-lanzar para que se maneje en el catch principal
+        }
       }
-
-      const order = await storage.getOrder(orderId);
-      if (!order) {
-        return res.status(404).json({ error: "Pedido no encontrado" });
-      }
-
-      console.log(`GET /api/orders/${orderId} - Pedido encontrado:`, order);
-      res.json(order);
-    } catch (error) {
-      console.error(`Error al obtener pedido ${req.params.id}:`, error);
-      res.status(500).json({ error: String(error) });
+    } else {
+      console.warn(`⚠️ No hay items para procesar en la orden #${order.id}`);
     }
-  });
-
-  // Obtener items de un pedido específico
-  router.get("/api/orders/:id/items", async (req, res) => {
+    
+    // Confirmar la transacción
+    await client.query('COMMIT');
+    console.log("✅ Transacción confirmada (COMMIT)");
+    
+    // Convertir nombre de propiedades snake_case a camelCase para la respuesta
+    const formattedOrder = {
+      id: order.id,
+      companyId: order.company_id,
+      customerId: order.customer_id,
+      routeId: order.route_id,
+      total: order.total,
+      status: order.status,
+      paymentMethod: order.payment_method,
+      date: order.date,
+      notes: order.notes,
+      items: createdItems.length
+    };
+    
+    console.log("🔄 Respuesta final del servidor:", formattedOrder);
+    res.json(formattedOrder);
+  } catch (error) {
+    // En caso de error, revertir la transacción
+    console.error("❌ ERROR al crear pedido:", error);
     try {
-      const orderId = parseInt(req.params.id);
-      if (isNaN(orderId)) {
-        return res.status(400).json({ error: "ID de pedido inválido" });
-      }
-
-      const items = await storage.listOrderItems(orderId);
-
-      console.log(`GET /api/orders/${orderId}/items - Items encontrados:`, items.length);
-      res.json(items);
-    } catch (error) {
-      console.error(`Error al obtener items del pedido ${req.params.id}:`, error);
-      res.status(500).json({ error: String(error) });
+      await client.query('ROLLBACK');
+      console.log("🔄 Transacción revertida (ROLLBACK)");
+    } catch (rollbackError) {
+      console.error("❌ Error adicional durante ROLLBACK:", rollbackError);
     }
-  });
-
-  // Actualizar estado de un pedido
-  router.patch("/api/orders/:id/status", async (req, res) => {
+    res.status(500).json({ error: String(error) });
+  } finally {
+    // Siempre liberar el cliente
     try {
-      console.log("======= INICIO DE ACTUALIZACIÓN DE ESTADO =======");
-      console.log("Request body:", req.body);
-      const orderId = parseInt(req.params.id);
-      const { status } = req.body;
-
-      console.log(`Pedido ID: ${orderId}, Estado solicitado: ${status}`);
-
-      if (isNaN(orderId)) {
-        console.log("ID de pedido inválido");
-        return res.status(400).json({ error: "ID de pedido inválido" });
-      }
-
-      if (!status || !["pending", "in_transit", "delivered", "cancelled"].includes(status)) {
-        console.log(`Estado inválido: ${status}`);
-        return res.status(400).json({ error: "Estado inválido" });
-      }
-
-      // Verificar que el pedido exista
-      const [existingOrder] = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.id, orderId));
-
-      console.log("Pedido existente:", existingOrder);
-
-      if (!existingOrder) {
-        console.log(`Pedido ${orderId} no encontrado`);
-        return res.status(404).json({ error: "Pedido no encontrado" });
-      }
-
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
-      console.log(`CompanyId del contexto: ${companyId}`);
-
-      // Verificar que el pedido pertenezca a la compañía
-      if (existingOrder.companyId !== companyId) {
-        console.log(`El pedido pertenece a la compañía ${existingOrder.companyId}, no a ${companyId}`);
-        return res.status(403).json({ error: "No tienes permiso para modificar este pedido" });
-      }
-
-      console.log(`Estado actual del pedido: ${existingOrder.status}, Nuevo estado: ${status}`);
-
-      // Método directo: ejecutar SQL directamente
-      console.log("Ejecutando SQL UPDATE...");
-
-      // Construcción de la consulta
-      const query = db
-        .update(orders)
-        .set({ status })
-        .where(eq(orders.id, orderId));
-
-      console.log("Query SQL:", query.toSQL());
-
-      const result = await query.returning();
-      console.log("Resultado de la actualización:", result);
-
-      const [updatedOrder] = result;
-
-      if (!updatedOrder) {
-        console.log("No se actualizó ningún registro");
-        return res.status(404).json({ error: "No se pudo actualizar el pedido" });
-      }
-
-      console.log(`Pedido ${orderId} actualizado de '${existingOrder.status}' a '${status}'`);
-      console.log("======= FIN DE ACTUALIZACIÓN DE ESTADO =======");
-
-      res.json(updatedOrder);
-    } catch (error) {
-      console.error(`Error al actualizar estado del pedido ${req.params.id}:`, error);
-      res.status(500).json({ error: String(error) });
+      client.release();
+      console.log("🔄 Cliente de conexión liberado");
+    } catch (releaseError) {
+      console.error("❌ Error al liberar el cliente:", releaseError);
     }
-  });
-};
+  }
+});
+
+export default ordersRouter;

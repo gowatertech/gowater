@@ -16,6 +16,8 @@ import interestedCompaniesRoutes from "./routes/api/interested-companies";
 import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
 import { registerTestAPIRoutes } from "./test-api";
 import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
+// Importamos el router de órdenes
+import ordersRouter from "./routes/orders";
 
 const app = express();
 
@@ -98,6 +100,10 @@ app.use((req, res, next) => {
     // Register regular API routes for company operations
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
+    
+    // Usar el router de órdenes personalizado
+    app.use(ordersRouter);
+    log("Custom orders router registered successfully");
     
     // Montar las rutas públicas para registro de empresas interesadas
     app.use("/api/leads", leadsRoutes);
