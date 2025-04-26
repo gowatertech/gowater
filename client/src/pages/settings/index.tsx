@@ -124,7 +124,7 @@ export default function SettingsPage() {
       const formData = new FormData();
 
       // Manejar archivo de logo
-      if (data.logo instanceof File) {
+      if (data.logo && typeof data.logo !== 'string') {
         formData.append('logo', data.logo);
       }
 

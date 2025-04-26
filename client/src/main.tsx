@@ -3,10 +3,11 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import "./styles/map-responsive.css";
-import { initSyncService } from "./lib/syncService";
+// import { initSyncService } from "./lib/syncService";
 
 // Inicializar el servicio de sincronización
-initSyncService();
+// Comentado temporalmente para solucionar problemas de conexión
+// initSyncService();
 
 // Registrar el service worker para PWA
 if ('serviceWorker' in navigator) {
