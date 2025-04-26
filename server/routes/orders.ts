@@ -26,6 +26,82 @@ const validateCompanyAccess = (req: any, resourceCompanyId: number) => {
 };
 
 export function registerOrdersEndpoints(router: Router) {
+  // Endpoint de prueba para actualizar órdenes sin autenticación
+  router.put('/update-order-status', async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(403).json({
+          success: false,
+          message: "No hay contexto de empresa establecido"
+        });
+      }
+      
+      const { orderId, status, notes } = req.body;
+      if (!orderId || isNaN(parseInt(orderId))) {
+        return res.status(400).json({
+          success: false,
+          message: "ID de pedido no válido"
+        });
+      }
+      
+      const id = parseInt(orderId);
+      
+      // Verificar que el pedido pertenezca a esta empresa
+      const [orderToUpdate] = await db.select()
+        .from(orders)
+        .where(and(
+          eq(orders.id, id),
+          eq(orders.companyId, companyId)
+        ));
+      
+      if (!orderToUpdate) {
+        return res.status(404).json({
+          success: false,
+          message: "Pedido no encontrado o sin acceso"
+        });
+      }
+      
+      // Validar el estado
+      if (!["pending", "in_progress", "completed", "cancelled"].includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: "Estado no válido"
+        });
+      }
+      
+      logTenantOperation(req, 'test-update-order-status', { 
+        companyId, 
+        orderId: id, 
+        oldStatus: orderToUpdate.status,
+        newStatus: status
+      });
+      
+      // Actualizar el estado
+      const [updatedOrder] = await db.update(orders)
+        .set({
+          status: status,
+          notes: notes || orderToUpdate.notes,
+          lastUpdate: new Date()
+        })
+        .where(and(
+          eq(orders.id, id),
+          eq(orders.companyId, companyId)
+        ))
+        .returning();
+      
+      res.json({
+        success: true,
+        data: updatedOrder
+      });
+    } catch (error) {
+      console.error('Error al actualizar estado del pedido:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al actualizar el estado del pedido'
+      });
+    }
+  });
   // Obtener todos los pedidos (filtrados por companyId)
   router.get('/orders', async (req, res) => {
     try {
