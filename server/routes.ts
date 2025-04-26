@@ -2923,8 +2923,13 @@ export async function registerRoutes(router: express.Router) {
       // Validar los datos del pedido antes de la inserción
       const validationResult = insertOrderSchema.safeParse(orderData);
       if (!validationResult.success) {
-        console.error("Error de validación:", validationResult.error.format());
-        return res.status(400).json({ error: "Datos de pedido inválidos", details: validationResult.error.format() });
+        console.error("Error de validación en pedido:", JSON.stringify(orderData));
+        console.error("Detalles del error:", JSON.stringify(validationResult.error.format(), null, 2));
+        return res.status(400).json({ 
+          error: "Error al procesar la orden JSON", 
+          details: validationResult.error.format(),
+          received: orderData
+        });
       }
 
       // Crear el pedido
@@ -3060,8 +3065,13 @@ export async function registerRoutes(router: express.Router) {
       // Validar datos con el esquema
       const validationResult = insertOrderItemSchema.safeParse(itemData);
       if (!validationResult.success) {
-        console.error("Error de validación:", validationResult.error.format());
-        return res.status(400).json({ error: "Datos del item inválidos", details: validationResult.error.format() });
+        console.error("Error de validación de item:", JSON.stringify(itemData));
+        console.error("Detalles del error:", JSON.stringify(validationResult.error.format(), null, 2));
+        return res.status(400).json({ 
+          error: "Datos del item inválidos", 
+          details: validationResult.error.format(),
+          received: itemData
+        });
       }
       
       // Crear el item del pedido

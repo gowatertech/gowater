@@ -169,20 +169,35 @@ export default function NewOrder() {
 
       // 5. Crear los items del pedido
       for (const item of validItems) {
-        const itemData = {
-          orderId: order.id,
-          productId: parseInt(item.code),
-          quantity: item.quantity,
-          price: item.price.toFixed(2), // Formato exacto: "0.00"
-          total: item.total.toFixed(2) // Formato exacto: "0.00" - Campo requerido por el esquema
-          // El companyId se obtiene del contexto en el servidor
-        };
+        try {
+          console.log("Ítem a procesar:", item);
+          
+          // Asegurar que el total sea un número antes de aplicar toFixed
+          const itemTotal = typeof item.total === 'number' 
+            ? item.total.toFixed(2) 
+            : parseFloat(String(item.total)).toFixed(2);
+            
+          const itemData = {
+            orderId: order.id,
+            productId: parseInt(item.code),
+            quantity: item.quantity,
+            price: item.price.toFixed(2), // Formato exacto: "0.00"
+            total: itemTotal // Formato exacto: "0.00" - Campo requerido por el esquema
+            // El companyId se obtiene del contexto en el servidor
+          };
 
-        console.log("Agregando item al pedido:", itemData);
-        const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
-        if (!itemResponse.ok) {
-          console.error("Error al crear item:", await itemResponse.text());
-          throw new Error('Error al crear items del pedido');
+          console.log("Agregando item al pedido:", JSON.stringify(itemData));
+          const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
+          if (!itemResponse.ok) {
+            const errorText = await itemResponse.text();
+            console.error("Error al crear item:", errorText);
+            throw new Error(`Error al crear item: ${errorText}`);
+          } else {
+            console.log("Ítem creado correctamente");
+          }
+        } catch (itemError) {
+          console.error("Error procesando ítem:", itemError);
+          throw new Error(`Error al crear items del pedido: ${itemError.message}`);
         }
       }
 
