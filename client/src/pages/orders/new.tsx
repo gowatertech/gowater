@@ -149,7 +149,7 @@ export default function NewOrder() {
         status: "pending" as const,
         paymentMethod: paymentMethod as "cash" | "credit" | "card",
         date: new Date().toISOString(), // Formato ISO completo
-        routeId: null as number | null,
+        routeId: null,
         notes: notes || ""
         // El companyId se obtiene del contexto en el servidor
       };
