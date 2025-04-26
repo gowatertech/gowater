@@ -357,9 +357,12 @@ export default function OrderDetails() {
             <AlertTriangle className="h-10 w-10 text-muted-foreground mb-4" />
             <p className="text-lg font-medium mb-2">No se encontró el pedido</p>
             <p className="text-sm text-muted-foreground mb-4">El pedido solicitado no existe o ha sido eliminado</p>
-            <Button onClick={() => setLocation("/orders/list")}>
+            <a 
+              href="/orders/list"
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
               Ir a la lista de pedidos
-            </Button>
+            </a>
           </CardContent>
         </Card>
       </div>
@@ -396,15 +399,13 @@ export default function OrderDetails() {
             <FileDown className="h-4 w-4 mr-1" />
             PDF
           </Button>
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={() => setLocation("/orders/list")}
-            className={isMobile ? "flex-1" : ""}
+          <a 
+            href="/orders/list"
+            className={`inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 ${isMobile ? "flex-1" : ""}`}
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Volver
-          </Button>
+          </a>
         </div>
       </div>
       

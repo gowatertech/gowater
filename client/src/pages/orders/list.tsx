@@ -522,31 +522,20 @@ export default function OrdersList() {
                       <div className="flex justify-between items-center">
                         <div>{getStatusBadge(order.status)}</div>
                         <div className="flex gap-1 flex-wrap justify-end">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={() => {
-                              console.log("Navegando a detalles de pedido:", order.id);
-                              try {
-                                setLocation(`/orders/details/${order.id}`);
-                              } catch (error) {
-                                console.error("Error al navegar a detalles:", error);
-                              }
-                            }}
+                          <a 
+                            href={`/orders/details/${order.id}`}
+                            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 text-xs"
                           >
                             <Eye className="h-3.5 w-3.5 mr-1" />
                             Ver
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={() => setLocation(`/orders/status/${order.id}`)}
+                          </a>
+                          <a 
+                            href={`/orders/status/${order.id}`}
+                            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 text-xs"
                           >
                             <Tag className="h-3.5 w-3.5 mr-1" />
                             Estado
-                          </Button>
+                          </a>
                           <Button
                             variant="outline"
                             size="sm"
@@ -611,31 +600,20 @@ export default function OrdersList() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              onClick={() => {
-                                console.log("Navegando a detalles de pedido (vista desktop):", order.id);
-                                try {
-                                  setLocation(`/orders/details/${order.id}`);
-                                } catch (error) {
-                                  console.error("Error al navegar a detalles (vista desktop):", error);
-                                }
-                              }}
+                            <a 
+                              href={`/orders/details/${order.id}`}
+                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
                             >
                               <Eye className="h-3.5 w-3.5 mr-1" />
                               Ver
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                              onClick={() => setLocation(`/orders/status/${order.id}`)}
+                            </a>
+                            <a 
+                              href={`/orders/status/${order.id}`}
+                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
                             >
                               <Tag className="h-3.5 w-3.5 mr-1" />
                               Estado
-                            </Button>
+                            </a>
                             <Button
                               variant="outline"
                               size="sm"
