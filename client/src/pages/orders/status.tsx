@@ -148,12 +148,86 @@ export default function OrderStatus() {
     }
   });
 
-  const handleUpdateStatus = () => {
-    if (!newStatus) return;
+  const handleUpdateStatus = async () => {
+    if (!newStatus || !orderId) return;
     
-    updateStatusMutation.mutate({
-      status: newStatus
-    });
+    try {
+      // En lugar de usar la mutación, enviaremos la solicitud directamente
+      console.log(`Enviando actualización directa: pedido ${orderId}, estado ${newStatus}`);
+      
+      const response = await fetch('/api/update-order-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          orderId: orderId.toString(),
+          status: newStatus 
+        }),
+        credentials: 'include'
+      });
+      
+      console.log("Estado HTTP directo:", response.status);
+      console.log("Respuesta headers:", [...response.headers.entries()]);
+      
+      if (!response.ok) {
+        console.error("Error en la respuesta:", response.status);
+        const errorText = await response.text();
+        console.error("Detalle del error:", errorText);
+        toast({
+          variant: "destructive",
+          title: "Error al actualizar",
+          description: `Error ${response.status}: ${errorText.substring(0, 100)}...`,
+        });
+        return;
+      }
+      
+      let responseData;
+      try {
+        // Intenta convertir explícitamente la respuesta a JSON
+        const jsonText = await response.text();
+        console.log("Respuesta en texto:", jsonText);
+        responseData = JSON.parse(jsonText);
+      } catch (parseError) {
+        console.error("Error al analizar JSON:", parseError);
+        toast({
+          variant: "destructive",
+          title: "Error al procesar respuesta",
+          description: "La respuesta no es un JSON válido",
+        });
+        return;
+      }
+      
+      console.log("Datos de respuesta:", responseData);
+      
+      // Actualizar la UI y el caché
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders", orderId] });
+      
+      const statusText = newStatus === "delivered" 
+        ? "entregado" 
+        : newStatus === "cancelled" 
+          ? "cancelado" 
+          : newStatus === "in_transit"
+            ? "en tránsito"
+            : "pendiente";
+      
+      toast({
+        title: "Estado actualizado",
+        description: `El pedido ahora está ${statusText}`,
+      });
+      
+      // Cerrar modal o redireccionar si es necesario
+      setIsModalOpen(false);
+      
+    } catch (error) {
+      console.error("Error en la actualización directa:", error);
+      toast({
+        variant: "destructive",
+        title: "Error inesperado",
+        description: error.message || "No se pudo actualizar el estado",
+      });
+    }
   };
 
   // Función para renderizar el estado con color apropiado
@@ -321,16 +395,9 @@ export default function OrderStatus() {
               <Button
                 className="w-full sm:w-auto"
                 onClick={handleUpdateStatus}
-                disabled={updateStatusMutation.isPending || newStatus === order.status}
+                disabled={newStatus === order.status}
               >
-                {updateStatusMutation.isPending ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                    Actualizando...
-                  </>
-                ) : (
-                  "Actualizar Estado"
-                )}
+                Actualizar Estado
               </Button>
             </div>
           </div>
