@@ -14,6 +14,179 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+// Endpoint para listar todas las órdenes
+ordersRouter.get("/api/orders", authMiddleware, async (req: Request, res: Response) => {
+  try {
+    // Obtener el companyId del contexto
+    const companyId = getCurrentCompanyId() || 1;
+    
+    console.log(`📋 Listando órdenes para compañía ${companyId}`);
+    
+    // Query para obtener todas las órdenes con información del cliente
+    const query = `
+      SELECT o.*, c.businessname as customer_name, c.phone as customer_phone,
+             COUNT(oi.id) as items_count
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      WHERE o.company_id = $1
+      GROUP BY o.id, c.businessname, c.phone
+      ORDER BY o.id DESC
+    `;
+    
+    const result = await pool.query(query, [companyId]);
+    console.log(`✅ Encontradas ${result.rows.length} órdenes`);
+    
+    // Formatear la respuesta
+    const orders = result.rows.map(order => ({
+      id: order.id,
+      companyId: order.company_id,
+      customerId: order.customer_id,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone,
+      routeId: order.route_id,
+      total: order.total,
+      status: order.status,
+      paymentMethod: order.payment_method,
+      date: order.date,
+      notes: order.notes,
+      itemsCount: parseInt(order.items_count || '0')
+    }));
+    
+    res.json(orders);
+  } catch (error) {
+    console.error("❌ Error al listar órdenes:", error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Endpoint para obtener una orden específica con sus detalles
+ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = parseInt(req.params.orderId);
+  
+  if (!orderId || isNaN(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${getCurrentCompanyId() || 1}`);
+  
+  try {
+    // Obtener el companyId del contexto
+    const companyId = getCurrentCompanyId() || 1;
+    
+    // Query para obtener la orden
+    const orderQuery = `
+      SELECT o.*, c.businessname as customer_name, c.phone as customer_phone 
+      FROM orders o
+      LEFT JOIN customers c ON o.customer_id = c.id
+      WHERE o.id = $1 AND o.company_id = $2
+    `;
+    
+    const orderResult = await pool.query(orderQuery, [orderId, companyId]);
+    
+    if (orderResult.rows.length === 0) {
+      console.log(`❌ Orden #${orderId} no encontrada`);
+      return res.status(404).json({ error: "Orden no encontrada" });
+    }
+    
+    // Obtener los items de la orden
+    const itemsQuery = `
+      SELECT oi.*, p.name as product_name, p.description as product_description,
+             p.price as product_price, p.code as product_code
+      FROM order_items oi
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = $1 AND oi.company_id = $2
+    `;
+    
+    const itemsResult = await pool.query(itemsQuery, [orderId, companyId]);
+    console.log(`GET /api/orders/${orderId} - Encontrados ${itemsResult.rows.length} items`);
+    
+    // Formatear la respuesta
+    const order = orderResult.rows[0];
+    const items = itemsResult.rows.map(item => ({
+      id: item.id,
+      orderId: item.order_id,
+      productId: item.product_id,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.total,
+      productName: item.product_name,
+      productDescription: item.product_description,
+      productPrice: item.product_price,
+      productCode: item.product_code
+    }));
+    
+    const formattedOrder = {
+      id: order.id,
+      companyId: order.company_id,
+      customerId: order.customer_id,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone,
+      routeId: order.route_id,
+      total: order.total,
+      status: order.status,
+      paymentMethod: order.payment_method,
+      date: order.date,
+      notes: order.notes,
+      items: items
+    };
+    
+    console.log(`GET /api/orders/${orderId} - Retornando datos completos del pedido`);
+    res.json(formattedOrder);
+  } catch (error) {
+    console.error(`❌ Error al obtener la orden #${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Endpoint para obtener items de una orden específica
+ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = parseInt(req.params.orderId);
+  
+  if (!orderId || isNaN(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  console.log(`🔍 Buscando items para la orden #${orderId}`);
+  
+  try {
+    // Obtener el companyId del contexto
+    const companyId = getCurrentCompanyId() || 1;
+    
+    // Query para obtener items con información de productos
+    const itemsQuery = `
+      SELECT oi.*, p.name as product_name, p.description as product_description, 
+             p.price as product_price, p.code as product_code
+      FROM order_items oi
+      LEFT JOIN products p ON oi.product_id = p.id
+      WHERE oi.order_id = $1 AND oi.company_id = $2
+    `;
+    
+    const result = await pool.query(itemsQuery, [orderId, companyId]);
+    console.log(`✅ Encontrados ${result.rows.length} items para la orden #${orderId}`);
+    
+    // Formatear respuesta para camelCase
+    const formattedItems = result.rows.map(item => ({
+      id: item.id,
+      orderId: item.order_id,
+      productId: item.product_id,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.total,
+      companyId: item.company_id,
+      productName: item.product_name,
+      productDescription: item.product_description,
+      productPrice: item.product_price,
+      productCode: item.product_code
+    }));
+    
+    res.json(formattedItems);
+  } catch (error) {
+    console.error(`❌ Error al obtener items de la orden #${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 // Endpoint para crear órdenes
 ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Response) => {
   console.log("🔴 INICIO /api/orders - Intento de crear pedido");
