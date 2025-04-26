@@ -2943,21 +2943,33 @@ export async function registerRoutes(router: express.Router) {
       console.log("Items del pedido a insertar:", orderItemsData);
 
       // Validar los datos del pedido antes de la inserción
-      const validationResult = insertOrderSchema.safeParse(orderData);
-      if (!validationResult.success) {
-        console.error("Error de validación en pedido:", JSON.stringify(orderData));
-        console.error("Detalles del error:", JSON.stringify(validationResult.error.format(), null, 2));
-        return res.status(400).json({ 
-          error: "Error al procesar la orden JSON", 
-          details: validationResult.error.format(),
+      // Validar los datos del pedido antes de la inserción - se usa try-catch para capturar cualquier error inesperado
+      let validatedOrderData;
+      try {
+        const validationResult = insertOrderSchema.safeParse(orderData);
+        if (!validationResult.success) {
+          console.error("Error de validación en pedido:", JSON.stringify(orderData));
+          console.error("Detalles del error:", JSON.stringify(validationResult.error.format(), null, 2));
+          return res.status(400).json({ 
+            error: "Datos de pedido inválidos", 
+            details: validationResult.error.format(),
+            received: orderData
+          });
+        }
+        validatedOrderData = validationResult.data;
+      } catch (validationError) {
+        console.error("Error inesperado al validar el pedido:", validationError);
+        return res.status(400).json({
+          error: "Error al procesar los datos del pedido",
+          details: String(validationError),
           received: orderData
         });
       }
 
-      // Crear el pedido
+      // Crear el pedido con los datos validados
       const [order] = await db
         .insert(orders)
-        .values(validationResult.data)
+        .values(validatedOrderData)
         .returning();
 
       // Si hay items, crearlos
