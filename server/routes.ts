@@ -1305,8 +1305,16 @@ export async function registerRoutes(router: express.Router) {
   // Endpoints para los ajustes
   router.get("/settings", async (req, res) => {
     try {
-      const settings = await storage.getSettings();
-      console.log("GET /api/settings - Retornando:", settings);
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/settings - Obteniendo configuración para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
+      const settings = await storage.getSettings(companyId);
+      console.log(`GET /api/settings - Retornando configuración para empresa ${companyId}:`, settings);
       res.json(settings || {});
     } catch (error) {
       console.error("Error al obtener configuración:", error);
@@ -3711,7 +3719,16 @@ export async function registerRoutes(router: express.Router) {
   // Trucks endpoints
   router.get("/trucks", async (req, res) => {
     try {
-      const allTrucks = await storage.listTrucks();
+      // Obtenemos el ID de la compañía desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/trucks - Obteniendo vehículos para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
+      const allTrucks = await storage.listTrucks(companyId);
+      console.log(`GET /api/trucks - Retornando ${allTrucks.length} vehículos para empresa ${companyId}`);
       res.json(allTrucks);
     } catch (error) {
       console.error("Error al obtener camiones:", error);
@@ -3794,12 +3811,21 @@ export async function registerRoutes(router: express.Router) {
   // Vehicle Loading endpoints
   router.get("/vehicle-loading", async (req, res) => {
     try {
+      // Obtener ID de la compañía desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/vehicle-loading - Obteniendo cargas para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const allLoadings = await db
         .select()
         .from(vehicleLoading)
+        .where(eq(vehicleLoading.companyId, companyId))
         .orderBy(vehicleLoading.date);
 
-      console.log("GET /api/vehicle-loading - Retornando:", allLoadings.length, "cargas");
+      console.log(`GET /api/vehicle-loading - Retornando: ${allLoadings.length} cargas para empresa ${companyId}`);
       res.json(allLoadings);
     } catch (error) {
       console.error("Error al obtener cargas de vehículos:", error);

@@ -704,8 +704,20 @@ export class DatabaseStorage implements IStorage {
     return newTruck;
   }
 
-  async listTrucks(): Promise<Truck[]> {
-    return db.select().from(trucks);
+  async listTrucks(companyId?: number): Promise<Truck[]> {
+    // Si se proporciona un companyId específico, lo usamos; de lo contrario, intentamos obtenerlo del contexto
+    const effectiveCompanyId = companyId || getCurrentCompanyId();
+    
+    if (!effectiveCompanyId) {
+      console.warn("Storage - listTrucks: No hay companyId disponible");
+      return [];
+    }
+    
+    console.log(`Storage - listTrucks: Buscando camiones para compañía ${effectiveCompanyId}`);
+    return db
+      .select()
+      .from(trucks)
+      .where(eq(trucks.companyId, effectiveCompanyId));
   }
 
   async updateTruck(id: number, truck: Partial<InsertTruck>): Promise<Truck> {
