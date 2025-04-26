@@ -212,13 +212,23 @@ export default function OrderStatus() {
         description: `El pedido ahora está ${statusText}`,
       });
       
-      // SOLUCIÓN DEFINITIVA:
-      // 1. Primero mostramos el mensaje de éxito
-      // 2. Esperamos un segundo para que el backend termine
-      // 3. Forzamos una recarga completa de la página
+      // SOLUCIÓN DE EMERGENCIA:
+      // 1. Mostrar mensaje con un toast
+      // 2. Actualizar manualmente el estado en la UI sin esperar por el servidor
+      // 3. Forzar un reload completo para asegurar consistencia
+      
+      // Primero, actualizar la UI inmediatamente para feedback instantáneo
+      if (order) {
+        queryClient.setQueryData(["/api/orders", orderId], {
+          ...order,
+          status: newStatus
+        });
+      }
+      
+      // Después de un segundo, hacer un hard reload
       setTimeout(() => {
-        // Recargar la página para mostrar el nuevo estado
-        window.location.href = `/orders/details/${orderId}`;
+        console.log("Recargando página completamente...");
+        window.location.href = `/orders/details/${orderId}?nocache=${Date.now()}`;
       }, 1000);
       
     } catch (error) {

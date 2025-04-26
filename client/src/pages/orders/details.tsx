@@ -59,7 +59,7 @@ export default function OrderDetails() {
   const [newStatus, setNewStatus] = useState<string>("");
 
   // Obtener los detalles del pedido
-  const { data: order, isLoading: isOrderLoading } = useQuery<any>({
+  const { data: order, isLoading: isOrderLoading, refetch } = useQuery<any>({
     queryKey: ["/api/orders", orderId],
     queryFn: async () => {
       if (!orderId) return null;
@@ -68,10 +68,12 @@ export default function OrderDetails() {
       
       try {
         // Usamos apiRequest de nuestro queryClient para garantizar cookies y headers correctos
-        const response = await fetch(`/api/orders/${orderId}`, {
+        // Agregamos un timestamp para evitar caché
+        const response = await fetch(`/api/orders/${orderId}?time=${Date.now()}`, {
           credentials: "include",
           headers: {
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate"
           }
         });
         
@@ -90,8 +92,20 @@ export default function OrderDetails() {
       }
     },
     enabled: !!orderId,
-    retry: 2  // Intentar hasta 2 veces en caso de error
+    retry: 2,  // Intentar hasta 2 veces en caso de error
+    staleTime: 0,  // Datos siempre obsoletos (forzar refetch)
+    cacheTime: 0   // No cachear entre renderizados
   });
+  
+  // Actualizar datos periódicamente para mantener sincronización
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log("Refrescando datos del pedido automáticamente...");
+      refetch();
+    }, 3000); // Cada 3 segundos
+    
+    return () => clearInterval(intervalId);
+  }, [refetch]);
 
   // Actualizar el estado inicial después de cargar el pedido
   useEffect(() => {
