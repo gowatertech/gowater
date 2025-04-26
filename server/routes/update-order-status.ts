@@ -6,11 +6,16 @@ import { db } from '../db';
 
 // Endpoint especializado para actualización de estado de pedidos
 export function createUpdateOrderStatusEndpoint(router: Router) {
+  console.log("Registrando endpoint /api/update-order-status");
+  
   router.post("/api/update-order-status", async (req, res) => {
     try {
       // Log detallado de la solicitud
       console.log("------ SOLICITUD DE ACTUALIZACIÓN DE ESTADO ------");
       console.log("Cuerpo de la solicitud:", req.body);
+      console.log("Método:", req.method);
+      console.log("URL:", req.url);
+      console.log("Headers:", req.headers);
       
       const { orderId, status } = req.body;
       

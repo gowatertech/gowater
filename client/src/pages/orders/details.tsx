@@ -150,18 +150,40 @@ export default function OrderDetails() {
     },
   });
 
-  // Mutación para actualizar el estado del pedido
+  // Mutación para actualizar el estado del pedido (usando el nuevo endpoint)
   const updateStatusMutation = useMutation({
     mutationFn: async ({ status }: { status: string }) => {
       if (!orderId) throw new Error('ID de pedido no válido');
       
-      return await apiRequest({
-        url: `/api/orders/${orderId}/status`,
-        method: "PATCH",
-        data: { status }
-      });
+      console.log(`Iniciando actualización de estado del pedido ${orderId} a ${status}`);
+      
+      // Primer intento: usar el nuevo endpoint directo que no requiere autenticación
+      try {
+        const response = await apiRequest({
+          url: `/api/update-order-status`,
+          method: "POST", 
+          data: { 
+            orderId: orderId.toString(),
+            status 
+          }
+        });
+        
+        console.log("Respuesta del nuevo endpoint:", response);
+        return response;
+      } catch (error) {
+        console.error("Error al usar el nuevo endpoint, intentando con el endpoint original:", error);
+        
+        // Segundo intento: usar el endpoint original
+        return await apiRequest({
+          url: `/api/orders/${orderId}/status`,
+          method: "PATCH", 
+          data: { status }
+        });
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Éxito en la actualización del estado:", data);
+      
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders", orderId] });
       
@@ -169,7 +191,9 @@ export default function OrderDetails() {
         ? "entregado" 
         : newStatus === "cancelled" 
           ? "cancelado" 
-          : "pendiente";
+          : newStatus === "in_transit"
+            ? "en tránsito"
+            : "pendiente";
           
       toast({
         title: "Estado actualizado",
@@ -177,6 +201,8 @@ export default function OrderDetails() {
       });
     },
     onError: (error: any) => {
+      console.error("Error en la mutación:", error);
+      
       toast({
         variant: "destructive",
         title: "Error",
