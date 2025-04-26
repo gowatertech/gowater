@@ -273,10 +273,20 @@ export async function registerRoutes(router: express.Router) {
   // Zonas
   router.get("/zones", async (req, res) => {
     try {
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/zones - Obteniendo zonas para empresa ${companyId}`);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+
       const allZones = await db
         .select()
-        .from(zones);
+        .from(zones)
+        .where(eq(zones.companyId, companyId)); // Filtramos por companyId
 
+      console.log(`Encontradas ${allZones.length} zonas para la empresa ${companyId}`);
       res.json(allZones);
     } catch (error) {
       console.error("Error al obtener zonas:", error);
@@ -291,10 +301,21 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
 
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/zones/${zoneId} - Para empresa ${companyId}`);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+
       const zone = await db
         .select()
         .from(zones)
-        .where(eq(zones.id, zoneId))
+        .where(and(
+          eq(zones.id, zoneId),
+          eq(zones.companyId, companyId) // Filtramos por companyId
+        ))
         .limit(1);
 
       if (zone.length === 0) {
@@ -2632,6 +2653,14 @@ export async function registerRoutes(router: express.Router) {
   // Pagos
   router.get("/payments", async (req, res) => {
     try {
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/payments - Obteniendo pagos para empresa ${companyId}`);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const allPayments = await db        
         .select({
           id: payments.id,
@@ -2641,14 +2670,16 @@ export async function registerRoutes(router: express.Router) {
           notes: payments.notes,
           method: payments.paymentMethod,
           customerName: customers.businessname,
-          invoiceNumber: invoices.invoiceNumber
+          invoiceNumber: invoices.invoiceNumber,
+          companyId: payments.companyId
         })
         .from(payments)
         .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
         .leftJoin(customers, eq(invoices.customerId, customers.id))
+        .where(eq(payments.companyId, companyId)) // Filtramos por companyId
         .orderBy(payments.date);
 
-      console.log("GET /api/payments - Retornando:", allPayments.length, "pagos");
+      console.log(`GET /api/payments - Retornando: ${allPayments.length} pagos para empresa ${companyId}`);
       res.json(allPayments);
     } catch (error) {
       console.error("Error al obtener pagos:", error);
