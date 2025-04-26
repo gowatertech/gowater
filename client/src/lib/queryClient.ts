@@ -52,6 +52,9 @@ export async function apiRequest(
 
   const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
   const fullUrl = `${getBaseUrl()}${apiUrl}`;
+  
+  console.log(`[apiRequest] Iniciando ${method} a ${fullUrl}`, 
+    data ? JSON.stringify(data, null, 2) : 'Sin datos');
 
   try {
     const res = await fetch(fullUrl, {
@@ -63,17 +66,40 @@ export async function apiRequest(
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
     });
+    
+    console.log(`[apiRequest] Respuesta recibida de ${fullUrl}:`, {
+      status: res.status,
+      statusText: res.statusText,
+      headers: Object.fromEntries([...res.headers]),
+    });
 
-    await throwIfResNotOk(res);
+    if (!res.ok) {
+      let errorText = await res.text();
+      try {
+        // Intentar parsearlo como JSON para mostrar un error más descriptivo
+        const errorJson = JSON.parse(errorText);
+        console.error(`[apiRequest] Error respuesta JSON:`, errorJson);
+        throw new Error(`Error ${res.status}: ${errorJson.error || errorJson.message || res.statusText}`);
+      } catch (parseError) {
+        // Si no es JSON, mostrar el texto tal cual
+        console.error(`[apiRequest] Error respuesta texto:`, errorText);
+        throw new Error(`Error ${res.status}: ${errorText || res.statusText}`);
+      }
+    }
     
     // Intentar analizar la respuesta como JSON, si falla, devolver la respuesta directa
     try {
-      return await res.json();
+      const jsonResponse = await res.json();
+      console.log(`[apiRequest] Respuesta JSON de ${fullUrl}:`, jsonResponse);
+      return jsonResponse;
     } catch (e) {
-      return res;
+      const textResponse = await res.text();
+      console.log(`[apiRequest] Respuesta texto de ${fullUrl}:`, 
+        textResponse.length > 100 ? `${textResponse.substring(0, 100)}...` : textResponse);
+      return textResponse;
     }
   } catch (error) {
-    console.error(`API Request Error (${method} ${fullUrl}):`, error);
+    console.error(`[apiRequest] Error en ${method} ${fullUrl}:`, error);
     throw error;
   }
 }
