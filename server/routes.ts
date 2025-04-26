@@ -509,6 +509,14 @@ export async function registerRoutes(router: express.Router) {
   // Users
   router.get("/users", async (req, res) => {
     try {
+      // Obtener companyId de la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/users - Obteniendo usuarios para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const role = req.query.role as string;
       let usersList;
 
@@ -516,12 +524,21 @@ export async function registerRoutes(router: express.Router) {
         usersList = await db
           .select()
           .from(usersSimple) // Usar esquema sin email
-          .where(eq(usersSimple.role, role));
+          .where(
+            and(
+              eq(usersSimple.role, role),
+              eq(usersSimple.companyId, companyId)
+            )
+          );
       } else {
         usersList = await db
           .select()
-          .from(usersSimple); // Usar esquema sin email
+          .from(usersSimple) // Usar esquema sin email
+          .where(eq(usersSimple.companyId, companyId));
       }
+      
+      console.log(`GET /api/users - Retornando ${usersList.length} usuarios para la empresa ${companyId}`);
+      
 
       res.json(usersList);
     } catch (error) {
@@ -3436,7 +3453,21 @@ export async function registerRoutes(router: express.Router) {
   // Endpoints para envases faltantes
   router.get("/envases/faltantes/clientes", async (req, res) => {
     try {
-      // Datos de ejemplo para pruebas
+      // Obtenemos el ID de la compañía desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/envases/faltantes/clientes - Obteniendo faltantes para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
+      // En un futuro, obtener datos reales filtrados por companyId
+      // const bottleReturnsData = await db
+      //   .select()
+      //   .from(bottleReturns)
+      //   .where(eq(bottleReturns.companyId, companyId));
+      
+      // Por ahora, datos de ejemplo para pruebas
       const faltantesPorCliente = [
         {
           id: 1,
@@ -3471,7 +3502,21 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/envases/faltantes/choferes", async (req, res) => {
     try {
-      // Datos de ejemplo para pruebas
+      // Obtenemos el ID de la compañía desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/envases/faltantes/choferes - Obteniendo faltantes para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
+      // En un futuro, obtener datos reales filtrados por companyId
+      // const bottleReturnsData = await db
+      //   .select()
+      //   .from(bottleReturns)
+      //   .where(eq(bottleReturns.companyId, companyId));
+      
+      // Por ahora, datos de ejemplo para pruebas
       const faltantesPorChofer = [
         {
           id: 3,
