@@ -65,35 +65,72 @@ export const createOrdersEndpoints = (router: Router) => {
   // Actualizar estado de un pedido
   router.patch("/api/orders/:id/status", async (req, res) => {
     try {
+      console.log("======= INICIO DE ACTUALIZACIÓN DE ESTADO =======");
+      console.log("Request body:", req.body);
       const orderId = parseInt(req.params.id);
       const { status } = req.body;
       
+      console.log(`Pedido ID: ${orderId}, Estado solicitado: ${status}`);
+      
       if (isNaN(orderId)) {
+        console.log("ID de pedido inválido");
         return res.status(400).json({ error: "ID de pedido inválido" });
       }
       
       if (!status || !["pending", "in_transit", "delivered", "cancelled"].includes(status)) {
+        console.log(`Estado inválido: ${status}`);
         return res.status(400).json({ error: "Estado inválido" });
       }
       
-      // Obtenemos el companyId del contexto
-      const companyId = getCurrentCompanyId();
-      console.log(`Actualizando pedido ${orderId} al estado '${status}' para compañía ${companyId}`);
+      // Verificar que el pedido exista
+      const [existingOrder] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.id, orderId));
       
-      // Método directo: actualizar directamente en la base de datos
-      const [updatedOrder] = await db
-        .update(orders)
-        .set({ status })
-        .where(eq(orders.id, orderId))
-        .where(eq(orders.companyId, companyId || 0))
-        .returning();
+      console.log("Pedido existente:", existingOrder);
       
-      if (!updatedOrder) {
-        console.error(`No se encontró el pedido ${orderId} para la compañía ${companyId}`);
+      if (!existingOrder) {
+        console.log(`Pedido ${orderId} no encontrado`);
         return res.status(404).json({ error: "Pedido no encontrado" });
       }
       
-      console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a '${status}'`, updatedOrder);
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      console.log(`CompanyId del contexto: ${companyId}`);
+      
+      // Verificar que el pedido pertenezca a la compañía
+      if (existingOrder.companyId !== companyId) {
+        console.log(`El pedido pertenece a la compañía ${existingOrder.companyId}, no a ${companyId}`);
+        return res.status(403).json({ error: "No tienes permiso para modificar este pedido" });
+      }
+      
+      console.log(`Estado actual del pedido: ${existingOrder.status}, Nuevo estado: ${status}`);
+      
+      // Método directo: ejecutar SQL directamente
+      console.log("Ejecutando SQL UPDATE...");
+      
+      // Construcción de la consulta
+      const query = db
+        .update(orders)
+        .set({ status })
+        .where(eq(orders.id, orderId));
+      
+      console.log("Query SQL:", query.toSQL());
+      
+      const result = await query.returning();
+      console.log("Resultado de la actualización:", result);
+      
+      const [updatedOrder] = result;
+      
+      if (!updatedOrder) {
+        console.log("No se actualizó ningún registro");
+        return res.status(404).json({ error: "No se pudo actualizar el pedido" });
+      }
+      
+      console.log(`Pedido ${orderId} actualizado de '${existingOrder.status}' a '${status}'`);
+      console.log("======= FIN DE ACTUALIZACIÓN DE ESTADO =======");
+      
       res.json(updatedOrder);
     } catch (error) {
       console.error(`Error al actualizar estado del pedido ${req.params.id}:`, error);
