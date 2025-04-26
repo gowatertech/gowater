@@ -526,7 +526,14 @@ export default function OrdersList() {
                             variant="outline"
                             size="sm"
                             className="h-8 text-xs"
-                            onClick={() => setLocation(`/orders/details/${order.id}`)}
+                            onClick={() => {
+                              console.log("Navegando a detalles de pedido:", order.id);
+                              try {
+                                setLocation(`/orders/details/${order.id}`);
+                              } catch (error) {
+                                console.error("Error al navegar a detalles:", error);
+                              }
+                            }}
                           >
                             <Eye className="h-3.5 w-3.5 mr-1" />
                             Ver
@@ -608,7 +615,14 @@ export default function OrdersList() {
                               variant="outline"
                               size="sm"
                               className="h-8"
-                              onClick={() => setLocation(`/orders/details/${order.id}`)}
+                              onClick={() => {
+                                console.log("Navegando a detalles de pedido (vista desktop):", order.id);
+                                try {
+                                  setLocation(`/orders/details/${order.id}`);
+                                } catch (error) {
+                                  console.error("Error al navegar a detalles (vista desktop):", error);
+                                }
+                              }}
                             >
                               <Eye className="h-3.5 w-3.5 mr-1" />
                               Ver

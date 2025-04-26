@@ -24,16 +24,30 @@ export default function Orders() {
   // Estado para controlar las pestañas
   const [activeTab, setActiveTab] = useState("list");
 
-  // Determinar la pestaña activa basado en la URL
+  // Determinar la pestaña activa basado en la URL y actualizarla cuando cambia la ruta
   useEffect(() => {
-    const pathname = window.location.pathname;
-    if (pathname.includes("/orders/new")) {
-      setActiveTab("new");
-    } else if (pathname.includes("/orders/details/")) {
-      setActiveTab("details");
-    } else {
-      setActiveTab("list");
-    }
+    const updateActiveTab = () => {
+      const pathname = window.location.pathname;
+      console.log("URL actual:", pathname);
+      if (pathname.includes("/orders/new")) {
+        setActiveTab("new");
+      } else if (pathname.includes("/orders/details/")) {
+        setActiveTab("details");
+      } else {
+        setActiveTab("list");
+      }
+    };
+
+    // Actualizar la pestaña al montar el componente
+    updateActiveTab();
+
+    // Agregar un listener para cambios en la URL
+    window.addEventListener('popstate', updateActiveTab);
+    
+    // Limpiar el listener al desmontar
+    return () => {
+      window.removeEventListener('popstate', updateActiveTab);
+    };
   }, []);
 
   // Manejar cambios de pestaña y actualizar la URL
