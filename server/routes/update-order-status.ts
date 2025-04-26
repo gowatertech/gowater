@@ -60,6 +60,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
         
         if (result.rowCount === 0) {
           console.log(`No se pudo actualizar. Pedido ${orderIdNum} no encontrado para companyId ${companyId}`);
+          res.setHeader('Content-Type', 'application/json');
           return res.status(404).json({ 
             success: false, 
             message: "Pedido no encontrado o no pertenece a la empresa" 
@@ -71,7 +72,9 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
         console.log(`Status anterior: ${status}, Status nuevo: ${updatedOrder.status}`);
         console.log("------ FIN DE ACTUALIZACIÓN DE ESTADO ------");
         
-        return res.json({ 
+        // Asegurarnos de establecer el tipo de contenido explícitamente
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(200).json({ 
           success: true, 
           message: "Estado actualizado correctamente", 
           order: updatedOrder
@@ -93,19 +96,23 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           console.log("Resultado de actualización con Drizzle:", updateResult);
           
           if (updateResult.length === 0) {
+            res.setHeader('Content-Type', 'application/json');
             return res.status(404).json({ 
               success: false, 
               message: "Pedido no encontrado o no pertenece a la empresa" 
             });
           }
           
-          return res.json({ 
+          // También establecer el tipo de contenido para el método alternativo
+          res.setHeader('Content-Type', 'application/json');
+          return res.status(200).json({ 
             success: true, 
             message: "Estado actualizado correctamente usando método alternativo", 
             order: updateResult[0] 
           });
         } catch (ormError) {
           console.error("Error en actualización con Drizzle ORM:", ormError);
+          res.setHeader('Content-Type', 'application/json');
           return res.status(500).json({ 
             success: false, 
             message: "Error en ambos métodos de actualización", 
@@ -116,6 +123,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
       }
     } catch (error) {
       console.error("Error general:", error);
+      res.setHeader('Content-Type', 'application/json');
       res.status(500).json({ 
         success: false, 
         message: "Error en el servidor", 
