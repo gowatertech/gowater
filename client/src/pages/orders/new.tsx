@@ -71,16 +71,21 @@ export default function NewOrder() {
   const { data: customers = [] } = useQuery<any[]>({
     queryKey: ["/api/customers"],
     queryFn: async () => {
-      const response = await apiRequest({
+      return apiRequest({
         method: "GET",
         url: "/api/customers"
       });
-      return response;
     }
   });
 
   const { data: products = [] } = useQuery<any[]>({
     queryKey: ["/api/products"],
+    queryFn: async () => {
+      return apiRequest({
+        method: "GET",
+        url: "/api/products"
+      });
+    }
   });
 
   // Función para agregar un nuevo producto vacío al arreglo
