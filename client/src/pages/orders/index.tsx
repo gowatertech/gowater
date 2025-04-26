@@ -38,23 +38,28 @@ export default function Orders() {
 
   // Manejar cambios de pestaña y actualizar la URL
   const handleTabChange = (value: string) => {
+    console.log("Cambiando a pestaña:", value);
     setActiveTab(value);
-    switch (value) {
-      case "list":
-        setLocation("/orders/list");
-        break;
-      case "new":
-        setLocation("/orders/new");
-        break;
-      case "details":
-        // Solo navegar a details si hay un pedido seleccionado
-        if (orderId) {
-          setLocation(`/orders/details/${orderId}`);
-        } else {
-          // Si no hay pedido seleccionado, volver a la lista
+    try {
+      switch (value) {
+        case "list":
           setLocation("/orders/list");
-        }
-        break;
+          break;
+        case "new":
+          setLocation("/orders/new");
+          break;
+        case "details":
+          // Solo navegar a details si hay un pedido seleccionado
+          if (orderId) {
+            setLocation(`/orders/details/${orderId}`);
+          } else {
+            // Si no hay pedido seleccionado, volver a la lista
+            setLocation("/orders/list");
+          }
+          break;
+      }
+    } catch (error) {
+      console.error("Error al cambiar de pestaña:", error);
     }
   };
 

@@ -50,6 +50,7 @@ interface OrderItem {
 }
 
 export default function NewOrder() {
+  console.log("Cargando componente NewOrder");
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
