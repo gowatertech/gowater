@@ -2923,11 +2923,11 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de empresa no encontrado en el contexto", details: "Para asegurar la separación de datos entre empresas, se requiere el ID de empresa" });
       }
 
-      // Extraer datos de los items antes de preparar los datos del pedido
+      // Extraer datos de los items antes de preparar los datos del pedido (si existen)
       const orderItemsData = req.body.items || [];
       
       // Preparar datos del pedido (excluir items para no guardarlos en la tabla orders)
-      const { items, ...orderDataRaw } = req.body;
+      const { items, ...orderDataRaw } = req.body; // Extraer y descartar el campo items
       
       // Procesar datos adicionales del pedido
       const orderData = {

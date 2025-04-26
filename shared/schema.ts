@@ -350,7 +350,7 @@ export const insertOrderSchema = z.object({
   cashCollected: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   driverCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   assistantCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-}).strict();
+});
 
 export const insertOrderItemSchema = z.object({
   orderId: z.number(),

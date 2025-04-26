@@ -71,11 +71,11 @@ export default function NewOrder() {
   const { data: customers = [] } = useQuery<any[]>({
     queryKey: ["/api/customers"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/customers");
-      if (!response.ok) {
-        throw new Error('Error al cargar los clientes');
-      }
-      return response.json();
+      const response = await apiRequest({
+        method: "GET",
+        url: "/api/customers"
+      });
+      return response;
     }
   });
 
@@ -156,21 +156,21 @@ export default function NewOrder() {
         paymentMethod: paymentMethod as "cash" | "credit" | "card",
         date: dateStr, // Formato ISO completo
         routeId: null,
-        notes: notes || "",
-        items: validItems
+        notes: notes || ""
+        // Ya no enviamos 'items' en el mismo objeto
       };
 
       console.log("Datos del pedido a enviar:", orderData);
 
       // 4. Crear el pedido con los datos validados
-      const orderResponse = await apiRequest("POST", "/api/orders", orderData);
+      const orderResponse = await apiRequest({
+        method: "POST",
+        url: "/api/orders",
+        data: orderData
+      });
       
-      if (!orderResponse.ok) {
-        console.error("Error en la respuesta:", await orderResponse.text());
-        throw new Error('Error al crear el pedido. Revise los datos enviados.');
-      }
-
-      const order = await orderResponse.json();
+      // Como ahora apiRequest devuelve directamente la respuesta JSON, no necesitamos llamar a .json()
+      const order = orderResponse;
       console.log("Pedido creado:", order);
 
       // 5. Crear los items del pedido
@@ -193,15 +193,18 @@ export default function NewOrder() {
           };
 
           console.log("Agregando item al pedido:", JSON.stringify(itemData));
-          const itemResponse = await apiRequest("POST", `/api/orders/${order.id}/items`, itemData);
-          if (!itemResponse.ok) {
-            const errorText = await itemResponse.text();
-            console.error("Error al crear item:", errorText);
-            throw new Error(`Error al crear item: ${errorText}`);
-          } else {
-            console.log("Ítem creado correctamente");
+          try {
+            const itemResponse = await apiRequest({
+              method: "POST",
+              url: `/api/orders/${order.id}/items`,
+              data: itemData
+            });
+            console.log("Ítem creado correctamente:", itemResponse);
+          } catch (error) {
+            console.error("Error al crear item:", error);
+            throw new Error(`Error al crear item: ${error}`);
           }
-        } catch (itemError) {
+        } catch (itemError: any) {
           console.error("Error procesando ítem:", itemError);
           throw new Error(`Error al crear items del pedido: ${itemError.message}`);
         }
