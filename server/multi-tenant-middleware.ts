@@ -17,6 +17,8 @@ declare module "express-session" {
   }
 }
 
+import { setCurrentCompanyId } from "./company-db";
+
 /**
  * Middleware para detectar y establecer el tenant (empresa) actual
  * basado en subdominios, headers o sesión
@@ -43,7 +45,9 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
     // Para rutas de páginas, seguir sin companyId (se manejará por otra vía)
     console.log(`[Tenant Middleware] No hay companyId en sesión. Continuando sin empresa.`);
   } else {
+    // IMPORTANTE: Sincronizar el companyId con el asyncLocalStorage para getCurrentCompanyId()
     console.log(`[Tenant Middleware] Usando companyId de sesión: ${req.session.companyId}`);
+    setCurrentCompanyId(req.session.companyId);
   }
   
   return next();
