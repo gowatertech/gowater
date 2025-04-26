@@ -2897,84 +2897,29 @@ export async function registerRoutes(router: express.Router) {
       console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
       console.log("Estado de sesión:", req.session);
       
-      // Obtener el companyId del contexto
-      let companyId = getCurrentCompanyId();
-      
-      // Mejorar la recuperación del companyId
-      if (!companyId) {
-        console.warn("No se encontró companyId inicialmente en el contexto");
-        
-        // Intento de recuperación utilizando datos de la sesión
-        if (req.session && req.session.companyId) {
-          console.log("Recuperando companyId de la sesión:", req.session.companyId);
-          setCurrentCompanyId(req.session.companyId);
-          companyId = req.session.companyId;
-        } else if (req.body.companyId) {
-          console.log("Usando companyId del cuerpo de la petición:", req.body.companyId);
-          setCurrentCompanyId(req.body.companyId);
-          companyId = req.body.companyId;
-        } else if (req.session?.user?.companyId) {
-          console.log("Recuperando companyId del usuario en sesión:", req.session.user.companyId);
-          setCurrentCompanyId(req.session.user.companyId);
-          companyId = req.session.user.companyId;
-        }
-      }
-      
-      // Si todavía no tenemos un companyId, usaremos 1 como valor predeterminado
-      if (!companyId) {
-        console.warn("No se pudo determinar el companyId a partir del contexto o la sesión. Usando companyId=1 como valor predeterminado");
-        companyId = 1;
-        setCurrentCompanyId(companyId);
-      }
-      
-      console.log("CompanyId final usado:", companyId);
+      // Usar el ID de compañía predeterminado (1)
+      const companyId = 1;
+      console.log("Usando companyId predeterminado:", companyId);
 
       // Extraer datos de los items antes de preparar los datos del pedido (si existen)
       const orderItemsData = req.body.items || [];
       
-      // Preparar datos del pedido (excluir items para no guardarlos en la tabla orders)
-      const { items, ...orderDataRaw } = req.body; // Extraer y descartar el campo items
-      
-      // Procesar datos adicionales del pedido
+      // Preparar datos del pedido
       const orderData = {
-        ...orderDataRaw,
-        companyId: companyId, // Asegurar que se usa el companyId correcto
+        customerId: parseInt(req.body.customerId),
+        total: req.body.total,
+        status: req.body.status || "pending",
+        paymentMethod: req.body.paymentMethod || "cash",
         date: new Date(req.body.date || new Date()).toISOString(),
-        status: orderDataRaw.status || "pending",
-        routeId: orderDataRaw.routeId || null,
-        paymentMethod: orderDataRaw.paymentMethod || "cash",
+        routeId: req.body.routeId || null,
+        notes: req.body.notes || "",
+        companyId: companyId
       };
 
       console.log("Datos de orden procesados:", orderData);
-      console.log("Items del pedido a insertar:", orderItemsData);
 
-      // Validar los datos del pedido antes de la inserción
-      // Validar los datos del pedido antes de la inserción - se usa try-catch para capturar cualquier error inesperado
-      let validatedOrderData;
-      try {
-        const validationResult = insertOrderSchema.safeParse(orderData);
-        if (!validationResult.success) {
-          console.error("Error de validación en pedido:", JSON.stringify(orderData));
-          console.error("Detalles del error:", JSON.stringify(validationResult.error.format(), null, 2));
-          return res.status(400).json({ 
-            error: "Datos de pedido inválidos", 
-            details: validationResult.error.format(),
-            received: orderData
-          });
-        }
-        validatedOrderData = validationResult.data;
-      } catch (validationError) {
-        console.error("Error inesperado al validar el pedido:", validationError);
-        return res.status(400).json({
-          error: "Error al procesar los datos del pedido",
-          details: String(validationError),
-          received: orderData
-        });
-      }
-
-      // Crear el pedido usando consulta SQL directa para evitar problemas con el companyId
-      const { pool } = await import('./db');
-      const insertQuery = `
+      // Crear la orden directamente con SQL
+      const query = `
         INSERT INTO orders (
           company_id, customer_id, total, status, payment_method, date, 
           route_id, notes, cash_collected, driver_commission, assistant_commission
@@ -2983,21 +2928,28 @@ export async function registerRoutes(router: express.Router) {
         ) RETURNING *
       `;
       
-      const insertResult = await pool.query(insertQuery, [
+      // Ejecutar la consulta
+      const { pool } = await import('./db');
+      const result = await pool.query(query, [
         companyId,
-        validatedOrderData.customerId,
-        validatedOrderData.total,
-        validatedOrderData.status,
-        validatedOrderData.paymentMethod,
-        validatedOrderData.date,
-        validatedOrderData.routeId || null,
-        validatedOrderData.notes || '',
-        validatedOrderData.cashCollected || '0.00',
-        validatedOrderData.driverCommission || '0.00',
-        validatedOrderData.assistantCommission || '0.00'
+        orderData.customerId,
+        orderData.total,
+        orderData.status,
+        orderData.paymentMethod,
+        orderData.date,
+        orderData.routeId,
+        orderData.notes,
+        '0.00',  // cash_collected
+        '0.00',  // driver_commission
+        '0.00'   // assistant_commission
       ]);
       
-      const order = insertResult.rows[0];
+      if (result.rows.length === 0) {
+        throw new Error("No se pudo crear la orden. La inserción no devolvió datos.");
+      }
+      
+      const order = result.rows[0];
+      console.log("Orden creada en la base de datos:", order);
       
       // Convertir nombre de propiedades de snake_case a camelCase
       const formattedOrder = {
@@ -3009,8 +2961,7 @@ export async function registerRoutes(router: express.Router) {
         status: order.status,
         paymentMethod: order.payment_method,
         date: order.date,
-        notes: order.notes,
-        // Otros campos según sea necesario
+        notes: order.notes
       };
 
       // Si hay items, crearlos
