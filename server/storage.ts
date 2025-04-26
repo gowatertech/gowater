@@ -596,54 +596,25 @@ export class DatabaseStorage implements IStorage {
       
       console.log('Buscando provincias disponibles...');
       // Buscar la primera provincia disponible
-      const provincesResult = await db.select().from(provinces)
-        .where(eq(provinces.companyId, baseCompanyId))
-        .limit(1);
+      // Buscar la primera provincia disponible sin filtrar por compañía
+      const provincesResult = await db.select().from(provinces).limit(1);
       console.log('Provincias encontradas:', provincesResult);
       
       if (!provincesResult || provincesResult.length === 0) {
         console.error("No se encontraron provincias en la base de datos");
-        console.log("Intentando buscar provincias sin filtrar por compañía...");
-        
-        // Intento alternativo: buscar cualquier provincia sin filtrar por compañía
-        const anyProvinces = await db.select().from(provinces).limit(1);
-        if (!anyProvinces || anyProvinces.length === 0) {
-          console.error("No se encontraron provincias en absoluto");
-          return undefined;
-        }
-        
-        console.log("Se encontraron provincias sin filtrar:", anyProvinces);
-        provincesResult[0] = anyProvinces[0];
+        return undefined;
       }
       
       console.log('Buscando municipios para provincia:', provincesResult[0].id);
       // Buscar el primer municipio disponible para esa provincia
       const municipalitiesResult = await db.select().from(municipalities)
-        .where(
-          and(
-            eq(municipalities.provinceId, provincesResult[0].id),
-            eq(municipalities.companyId, baseCompanyId)
-          )
-        )
+        .where(eq(municipalities.provinceId, provincesResult[0].id))
         .limit(1);
       console.log('Municipios encontrados:', municipalitiesResult);
       
       if (!municipalitiesResult || municipalitiesResult.length === 0) {
-        console.error("No se encontraron municipios filtrados por compañía para la provincia");
-        console.log("Intentando buscar municipios solo por provincia...");
-        
-        // Intento alternativo: buscar municipios solo por provincia
-        const anyMunicipalities = await db.select().from(municipalities)
-          .where(eq(municipalities.provinceId, provincesResult[0].id))
-          .limit(1);
-        
-        if (!anyMunicipalities || anyMunicipalities.length === 0) {
-          console.error("No se encontraron municipios para la provincia");
-          return undefined;
-        }
-        
-        console.log("Se encontraron municipios sin filtrar por compañía:", anyMunicipalities);
-        municipalitiesResult[0] = anyMunicipalities[0];
+        console.error("No se encontraron municipios para la provincia");
+        return undefined;
       }
       
       console.log(`Insertando configuración para compañía ${companyId} con provincia=${provincesResult[0].id} y municipio=${municipalitiesResult[0].id}`);
