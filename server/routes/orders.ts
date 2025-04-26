@@ -94,9 +94,7 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       SELECT oi.*, 
              p.id as product_id,
              p.name as product_name, 
-             p.description as product_description,
-             p.price as product_price, 
-             p.code as product_code,
+             p.price as product_price,
              p.is_returnable,
              p.deposit_amount,
              p.icon as product_icon
@@ -175,8 +173,13 @@ ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Reque
     
     // Query para obtener items con información de productos
     const itemsQuery = `
-      SELECT oi.*, p.name as product_name, p.description as product_description, 
-             p.price as product_price, p.code as product_code
+      SELECT oi.*, 
+             p.id as product_id,
+             p.name as product_name, 
+             p.price as product_price,
+             p.is_returnable,
+             p.deposit_amount,
+             p.icon as product_icon
       FROM order_items oi
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = $1 AND oi.company_id = $2
@@ -185,19 +188,21 @@ ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Reque
     const result = await pool.query(itemsQuery, [orderId, companyId]);
     console.log(`✅ Encontrados ${result.rows.length} items para la orden #${orderId}`);
     
-    // Formatear respuesta para camelCase
+    // Formatear respuesta para incluir información detallada del producto
     const formattedItems = result.rows.map(item => ({
       id: item.id,
       orderId: item.order_id,
       productId: item.product_id,
       quantity: item.quantity,
-      price: item.price,
+      unitPrice: item.price, // Cambiado de 'price' a 'unitPrice' para que coincida con el frontend
       total: item.total,
-      companyId: item.company_id,
-      productName: item.product_name,
-      productDescription: item.product_description,
-      productPrice: item.product_price,
-      productCode: item.product_code
+      product: {
+        id: item.product_id,
+        name: item.product_name,
+        price: item.product_price,
+        imageUrl: item.product_icon,
+        bottleDeposit: item.deposit_amount
+      }
     }));
     
     res.json(formattedItems);
