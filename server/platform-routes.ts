@@ -377,6 +377,24 @@ export function registerPlatformRoutes(router: Router) {
     try {
       const validatedData = insertCompanySchema.parse(req.body);
       const company = await platformStorage.createCompany(validatedData);
+      
+      // Crear configuración por defecto para la nueva empresa
+      console.log(`Creando configuración por defecto para la nueva empresa ${company.id}: ${company.name}`);
+      try {
+        // Importamos storage para usar createDefaultSettings
+        const { storage } = await import('./storage');
+        
+        const defaultSettings = await storage.createDefaultSettings(company.id, company.name);
+        if (defaultSettings) {
+          console.log(`Configuración por defecto creada con éxito para empresa ${company.id}`);
+        } else {
+          console.warn(`No se pudo crear la configuración por defecto para empresa ${company.id}`);
+        }
+      } catch (settingsError) {
+        console.error(`Error al crear configuración por defecto para empresa ${company.id}:`, settingsError);
+        // No interrumpimos el flujo si hay error, solo lo registramos
+      }
+      
       res.status(201).json(company);
     } catch (error: any) {
       console.error("Error al crear empresa:", error);

@@ -80,6 +80,7 @@ export interface IStorage {
 
   // Settings
   getSettings(companyId: number): Promise<Settings | undefined>;
+  createDefaultSettings(companyId: number, companyName: string): Promise<Settings | undefined>;
   updateSettings(settings: Partial<InsertSettings>): Promise<Settings>;
 
   // Métodos para manejo de envases retornables
@@ -571,6 +572,52 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Storage - getSettings: Error al obtener configuración para compañía ${companyId}:`, error);
       throw error;
+    }
+  }
+  
+  async createDefaultSettings(companyId: number, companyName: string): Promise<Settings | undefined> {
+    try {
+      console.log(`Storage - createDefaultSettings: Creando configuración por defecto para compañía ${companyId}: ${companyName}`);
+      
+      // Buscar la primera provincia disponible
+      const provincesResult = await db.select().from(schema.provinces).limit(1);
+      if (!provincesResult || provincesResult.length === 0) {
+        console.error("No se encontraron provincias en la base de datos");
+        return undefined;
+      }
+      
+      // Buscar el primer municipio disponible para esa provincia
+      const municipalitiesResult = await db.select().from(schema.municipalities)
+        .where(eq(schema.municipalities.provinceId, provincesResult[0].id))
+        .limit(1);
+      
+      if (!municipalities || municipalities.length === 0) {
+        console.error("No se encontraron municipios en la base de datos");
+        return undefined;
+      }
+      
+      // Crear configuración mínima con sólo el ID y nombre de la empresa
+      const [newSettings] = await db
+        .insert(settingsTable)
+        .values({
+          companyId,
+          name: companyName,
+          street: "Por definir",
+          streetNumber: "0",
+          provinceId: provinces[0].id,
+          municipalityId: municipalities[0].id,
+          contactPhone: "0000000000",
+          country: "República Dominicana",
+          currency: "DOP",
+          tax: "0.00"
+        })
+        .returning();
+      
+      console.log(`Configuración por defecto creada para compañía ${companyId}`);
+      return newSettings;
+    } catch (error) {
+      console.error(`Storage - createDefaultSettings: Error al crear configuración para compañía ${companyId}:`, error);
+      return undefined;
     }
   }
 
