@@ -591,11 +591,10 @@ export class DatabaseStorage implements IStorage {
       console.log(`CompanyId actual: ${companyIdBeforeOperation}, estableciendo a: ${companyId}`);
       setCurrentCompanyId(companyId);
       
-      // Usamos ID 1 para provincias y municipios ya que pertenecen a la compañía base (ID 1)
-      // Esto es porque las provincias y municipios son datos compartidos y no específicos por compañía
-      const baseCompanyId = 1;
+      // Las provincias y municipios son datos geográficos que aplican para todo el país
+      // No están filtrados por compañía
       
-      console.log('Buscando provincias disponibles para compañía base...');
+      console.log('Buscando provincias disponibles...');
       // Buscar la primera provincia disponible
       const provincesResult = await db.select().from(provinces)
         .where(eq(provinces.companyId, baseCompanyId))

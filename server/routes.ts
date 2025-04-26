@@ -215,10 +215,15 @@ export async function registerRoutes(router: express.Router) {
   // Endpoints para el manejo de direcciones
   router.get("/provinces", async (req, res) => {
     try {
-      const allProvinces = await db
+      console.log(`GET /api/provinces - Consultando todas las provincias`);
+      
+      // Obtenemos todas las provincias sin filtrar por compañía
+      let allProvinces = await db
         .select()
         .from(provinces)
         .orderBy(provinces.name);
+
+      console.log(`Provincias encontradas:`, allProvinces.length);
       res.json(allProvinces);
     } catch (error) {
       console.error("Error al obtener provincias:", error);
@@ -233,48 +238,14 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de provincia inválido" });
       }
       
-      // Obtener companyId de la sesión o usar 1 como fallback para los datos base
-      const companyId = req.session.companyId || 1;
-      console.log(`GET /api/municipalities/${provinceId} - Buscando municipios para compañía ${companyId}`);
+      console.log(`GET /api/municipalities/${provinceId} - Consultando todos los municipios`);
 
-      // Primero intentamos encontrar municipios filtrando por companyId
+      // Obtenemos todos los municipios para esta provincia sin filtrar por compañía
       let municipalitiesInProvince = await db
         .select()
         .from(municipalities)
-        .where(
-          and(
-            eq(municipalities.provinceId, provinceId),
-            eq(municipalities.companyId, companyId)
-          )
-        )
+        .where(eq(municipalities.provinceId, provinceId))
         .orderBy(municipalities.name);
-
-      // Si no hay resultados y companyId no es 1, intentamos con companyId=1 (datos base)
-      if (municipalitiesInProvince.length === 0 && companyId !== 1) {
-        console.log(`No se encontraron municipios para provincia ${provinceId} y compañía ${companyId}. Buscando en compañía base (1)`);
-        
-        municipalitiesInProvince = await db
-          .select()
-          .from(municipalities)
-          .where(
-            and(
-              eq(municipalities.provinceId, provinceId),
-              eq(municipalities.companyId, 1)
-            )
-          )
-          .orderBy(municipalities.name);
-      }
-      
-      // Si aún no hay resultados, intentamos solo por provinceId sin filtrar por compañía
-      if (municipalitiesInProvince.length === 0) {
-        console.log(`No se encontraron municipios para provincia ${provinceId} en ninguna compañía. Buscando sin filtro de compañía`);
-        
-        municipalitiesInProvince = await db
-          .select()
-          .from(municipalities)
-          .where(eq(municipalities.provinceId, provinceId))
-          .orderBy(municipalities.name);
-      }
 
       console.log(`Municipios encontrados para provincia ${provinceId}:`, municipalitiesInProvince.length);
       res.json(municipalitiesInProvince);

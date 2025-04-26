@@ -74,14 +74,12 @@ export const insertProductSchema = z.object({
 // Provincias y Municipios
 export const provinces = pgTable("provinces", {
   id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
 });
 
 export const municipalities = pgTable("municipalities", {
   id: serial("id").primaryKey(),
-  companyId: integer("company_id").notNull(), // Añadido companyId
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   provinceId: integer("province_id").notNull().references(() => provinces.id),
