@@ -3,6 +3,7 @@ import { db } from '../db';
 import { orders, orderItems } from "@shared/schema";
 import { eq, and, desc } from 'drizzle-orm';
 import { storage } from "../storage";
+import { getCurrentCompanyId } from "../company-db";
 
 export const createOrdersEndpoints = (router: Router) => {
   
@@ -75,9 +76,24 @@ export const createOrdersEndpoints = (router: Router) => {
         return res.status(400).json({ error: "Estado inválido" });
       }
       
-      const updatedOrder = await storage.updateOrderStatus(orderId, status);
+      // Obtenemos el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      console.log(`Actualizando pedido ${orderId} al estado '${status}' para compañía ${companyId}`);
       
-      console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a '${status}'`);
+      // Método directo: actualizar directamente en la base de datos
+      const [updatedOrder] = await db
+        .update(orders)
+        .set({ status })
+        .where(eq(orders.id, orderId))
+        .where(eq(orders.companyId, companyId || 0))
+        .returning();
+      
+      if (!updatedOrder) {
+        console.error(`No se encontró el pedido ${orderId} para la compañía ${companyId}`);
+        return res.status(404).json({ error: "Pedido no encontrado" });
+      }
+      
+      console.log(`PATCH /api/orders/${orderId}/status - Pedido actualizado a '${status}'`, updatedOrder);
       res.json(updatedOrder);
     } catch (error) {
       console.error(`Error al actualizar estado del pedido ${req.params.id}:`, error);
