@@ -53,27 +53,72 @@ export default function Orders() {
   // Manejar cambios de pestaña y actualizar la URL
   const handleTabChange = (value: string) => {
     console.log("Cambiando a pestaña:", value);
+    
+    // Primero actualizamos el estado local
     setActiveTab(value);
+    
     try {
+      // Luego navegamos a la URL correspondiente
       switch (value) {
         case "list":
+          console.log("Navegando a la lista de pedidos");
           setLocation("/orders/list");
           break;
         case "new":
+          console.log("Navegando a nuevo pedido");
           setLocation("/orders/new");
           break;
         case "details":
           // Solo navegar a details si hay un pedido seleccionado
           if (orderId) {
-            setLocation(`/orders/details/${orderId}`);
+            console.log("Navegando a detalles del pedido:", orderId);
+            try {
+              // Usamos setTimeout para asegurar que la navegación sucede después de la actualización del estado
+              setTimeout(() => {
+                setLocation(`/orders/details/${orderId}`);
+              }, 0);
+            } catch (innerError) {
+              console.error("Error al navegar a detalles:", innerError);
+              // Método alternativo si falla el router wouter
+              window.location.href = `/orders/details/${orderId}`;
+            }
           } else {
-            // Si no hay pedido seleccionado, volver a la lista
+            console.log("No hay pedido seleccionado, redirigiendo a lista");
             setLocation("/orders/list");
+            
+            // Por seguridad, también actualizamos el estado para reflejar donde estamos realmente
+            setActiveTab("list");
           }
+          break;
+        default:
+          console.warn("Valor de pestaña no reconocido:", value);
+          setLocation("/orders/list");
           break;
       }
     } catch (error) {
       console.error("Error al cambiar de pestaña:", error);
+      
+      // Intentar usar un método alternativo si falla el router
+      try {
+        console.log("Intentando método alternativo de navegación");
+        switch (value) {
+          case "list":
+            window.location.href = "/orders/list";
+            break;
+          case "new":
+            window.location.href = "/orders/new";
+            break;
+          case "details":
+            if (orderId) {
+              window.location.href = `/orders/details/${orderId}`;
+            } else {
+              window.location.href = "/orders/list";
+            }
+            break;
+        }
+      } catch (fallbackError) {
+        console.error("Error crítico en navegación:", fallbackError);
+      }
     }
   };
 
