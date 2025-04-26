@@ -89,10 +89,17 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       return res.status(404).json({ error: "Orden no encontrada" });
     }
     
-    // Obtener los items de la orden
+    // Obtener los items de la orden con información detallada de productos
     const itemsQuery = `
-      SELECT oi.*, p.name as product_name, p.description as product_description,
-             p.price as product_price, p.code as product_code
+      SELECT oi.*, 
+             p.id as product_id,
+             p.name as product_name, 
+             p.description as product_description,
+             p.price as product_price, 
+             p.code as product_code,
+             p.is_returnable,
+             p.deposit_amount,
+             p.icon as product_icon
       FROM order_items oi
       LEFT JOIN products p ON oi.product_id = p.id
       WHERE oi.order_id = $1 AND oi.company_id = $2
@@ -103,17 +110,22 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
     
     // Formatear la respuesta
     const order = orderResult.rows[0];
+    
+    // Formatear los items para que incluyan información detallada del producto
     const items = itemsResult.rows.map(item => ({
       id: item.id,
       orderId: item.order_id,
       productId: item.product_id,
       quantity: item.quantity,
-      price: item.price,
+      unitPrice: item.price, // Cambiado de 'price' a 'unitPrice' para que coincida con el frontend
       total: item.total,
-      productName: item.product_name,
-      productDescription: item.product_description,
-      productPrice: item.product_price,
-      productCode: item.product_code
+      product: {
+        id: item.product_id,
+        name: item.product_name,
+        price: item.product_price,
+        imageUrl: item.product_icon,
+        bottleDeposit: item.deposit_amount
+      }
     }));
     
     const formattedOrder = {
@@ -121,13 +133,21 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
       companyId: order.company_id,
       customerId: order.customer_id,
       customerName: order.customer_name,
+      customerEmail: order.customer_email,
       customerPhone: order.customer_phone,
       routeId: order.route_id,
       total: order.total,
       status: order.status,
       paymentMethod: order.payment_method,
       date: order.date,
+      estimatedDeliveryTime: order.estimated_delivery_time,
+      actualDeliveryTime: order.actual_delivery_time,
+      deliverySequence: order.delivery_sequence,
+      deliveryCoordinates: order.delivery_coordinates,
       notes: order.notes,
+      cashCollected: order.cash_collected || '0.00',
+      driverCommission: order.driver_commission || '0.00',
+      assistantCommission: order.assistant_commission || '0.00',
       items: items
     };
     
