@@ -11,9 +11,14 @@ export function getCurrentCompanyId(): number | undefined {
 }
 
 // Helper para configurar el companyId en el contexto
-export function setCurrentCompanyId(companyId: number): void {
-  console.log(`Configurando companyId=${companyId} en el contexto`);
-  asyncLocalStorage.set('companyId', companyId);
+export function setCurrentCompanyId(companyId: number | undefined): void {
+  if (companyId === undefined) {
+    console.log(`Limpiando companyId del contexto`);
+    asyncLocalStorage.delete('companyId');
+  } else {
+    console.log(`Configurando companyId=${companyId} en el contexto`);
+    asyncLocalStorage.set('companyId', companyId);
+  }
 }
 
 // Helper para usar companyDb solo cuando sea necesario, durante la fase de migración
@@ -43,6 +48,9 @@ export function companyDbMiddleware(req: Request, res: any, next: any) {
   if (companyId) {
     // Configurar el companyId en el contexto
     setCurrentCompanyId(companyId);
+  } else {
+    // Si no hay companyId en la sesión, limpiar el contexto
+    setCurrentCompanyId(undefined);
   }
   
   next();

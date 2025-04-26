@@ -45,6 +45,9 @@ export function companyTenantMiddleware(req: Request, res: Response, next: NextF
     if (companyId) {
       setCurrentCompanyId(companyId);
     }
+  } else {
+    // Si no hay sesión o no tiene companyId, limpiar el contexto
+    setCurrentCompanyId(undefined);
   }
   next();
 }
