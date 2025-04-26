@@ -17,6 +17,7 @@ import { registerMobileApiEndpoints } from "./routes/mobile-api";
 import commissionsRoutes from "./routes/commissions";
 import { registerMultiTenantTestEndpoint } from "./routes/test-tenant";
 import { registerTestSessionRoutes } from "./test-session";
+import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, companyTenantMiddleware, loginWithEmail, logout, getCurrentUser } from './middleware/company-auth.middleware';
 
@@ -46,6 +47,9 @@ export async function registerRoutes(router: express.Router) {
   // Registrar endpoint de prueba para multi-tenant
   registerMultiTenantTestEndpoint(router);
 
+  // Registrar nuevo endpoint para actualización de estado de pedidos
+  createUpdateOrderStatusEndpoint(router);
+  
   // Registrar endpoints para comisiones
   router.use('/commissions', commissionsRoutes);
   
