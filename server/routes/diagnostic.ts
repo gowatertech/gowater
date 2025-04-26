@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getCurrentCompanyId } from "../company-db";
+import { logTenantOperation } from "../middleware/company.middleware";
 
 /**
  * Registra un endpoint para diagnóstico del contexto multi-tenant
