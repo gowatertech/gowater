@@ -370,14 +370,14 @@ export default function Customers() {
       {/* Cabecera - formato exacto como rutas */}
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-lg font-bold flex items-center">
-          <Users className="h-4 w-4 mr-1 text-blue-600" />
+          <Users className="h-4 w-4 mr-1 text-gray-600" />
           Clientes
         </h1>
         <div className="flex gap-1">
           {!isMobile && (
             <Button 
               onClick={() => setActiveTab("new")} 
-              className="bg-blue-600 hover:bg-blue-700 h-7 text-xs px-2 py-0.5"
+              className="bg-gray-100 hover:bg-gray-100 h-7 text-xs px-2 py-0.5"
             >
               <PlusCircle className="h-3 w-3 mr-1" />
               Crear Cliente
@@ -415,7 +415,7 @@ export default function Customers() {
                   <p className="text-xs text-muted-foreground">Total Clientes</p>
                   <p className="text-base font-bold">{stats.totalCustomers}</p>
                 </div>
-                <Users className="h-5 w-5 text-blue-500" />
+                <Users className="h-5 w-5 text-gray-600" />
               </CardContent>
             </Card>
             
@@ -474,10 +474,10 @@ export default function Customers() {
 
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
-                <Building2 className="h-4 w-4 text-blue-600" />
+                <Building2 className="h-4 w-4 text-gray-600" />
                 <h2 className="font-semibold text-sm">Directorio de Clientes</h2>
               </div>
-              <Badge className="px-2 py-0 h-5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 border-l-4 border-l-blue-500">{filteredCustomers.length} clientes</Badge>
+              <Badge className="px-2 py-0 h-5 text-[10px] bg-gray-50 text-gray-700 border-gray-200 border-l-4 border-l-gray-500">{filteredCustomers.length} clientes</Badge>
             </div>
 
             <div className="overflow-hidden rounded-md border">
@@ -526,7 +526,7 @@ export default function Customers() {
                                 )}
                                 <div 
                                   className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] z-10 ${
-                                    customer.zoneid === 1 ? 'bg-blue-500' : 
+                                    customer.zoneid === 1 ? 'bg-gray-100' : 
                                     customer.zoneid === 2 ? 'bg-red-500' : 
                                     customer.zoneid === 3 ? 'bg-green-500' : 
                                     'bg-gray-500'
@@ -551,11 +551,11 @@ export default function Customers() {
                             
                             <div className="grid grid-cols-2 gap-1 p-2 text-xs">
                               <div className="flex items-center text-gray-700">
-                                <User className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                 <span className="truncate">{customer.managername}</span>
                               </div>
                               <div className="flex items-center text-gray-700">
-                                <Phone className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                 <span className="truncate">{customer.phone}</span>
                               </div>
                             </div>
@@ -583,7 +583,7 @@ export default function Customers() {
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="h-6 px-2 py-0 text-[10px] bg-blue-50 text-blue-700"
+                                className="h-6 px-2 py-0 text-[10px] bg-gray-50 text-gray-700"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleViewCustomer(customer);
@@ -641,12 +641,12 @@ export default function Customers() {
                                       </div>
                                     ) : (
                                       <div className="w-9 h-9 bg-gradient-to-br from-blue-50 to-white rounded-md flex items-center justify-center border shadow-sm">
-                                        <Building2 className="h-5 w-5 text-blue-500" />
+                                        <Building2 className="h-5 w-5 text-gray-600" />
                                       </div>
                                     )}
                                     <div 
                                       className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
-                                        customer.zoneid === 1 ? 'bg-blue-500' : 
+                                        customer.zoneid === 1 ? 'bg-gray-100' : 
                                         customer.zoneid === 2 ? 'bg-red-500' : 
                                         customer.zoneid === 3 ? 'bg-green-500' : 
                                         'bg-gray-500'
@@ -669,16 +669,16 @@ export default function Customers() {
                               <td className="py-2.5 px-4 align-middle">
                                 <div className="space-y-1">
                                   <div className="flex items-center text-xs text-gray-700">
-                                    <User className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                    <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                     <span className="truncate">{customer.managername}</span>
                                   </div>
                                   <div className="flex items-center text-xs text-gray-700">
-                                    <Phone className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                    <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                     <span className="truncate">{customer.phone}</span>
                                   </div>
                                   {customer.email && (
                                     <div className="flex items-center text-xs text-gray-700">
-                                      <Mail className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                      <Mail className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                       <span className="truncate max-w-[150px]">{customer.email}</span>
                                     </div>
                                   )}
@@ -689,11 +689,11 @@ export default function Customers() {
                               <td className="py-2.5 px-4 align-middle max-w-[200px]">
                                 <div className="space-y-1">
                                   <div className="flex items-start text-xs text-gray-700">
-                                    <Home className="h-3 w-3 mr-1.5 mt-0.5 text-blue-600 flex-shrink-0" />
+                                    <Home className="h-3 w-3 mr-1.5 mt-0.5 text-gray-500 flex-shrink-0" />
                                     <span className="truncate">{`${customer.street} #${customer.streetnumber}`}</span>
                                   </div>
                                   <div className="flex items-center text-xs text-gray-700">
-                                    <MapPin className="h-3 w-3 mr-1.5 text-blue-600 flex-shrink-0" />
+                                    <MapPin className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                     <span className="truncate">{customer.municipalityName || ''}, {provinces.find(p => p.id === customer.provinceid)?.name || ''}</span>
                                   </div>
                                 </div>
@@ -703,7 +703,7 @@ export default function Customers() {
                               <td className="py-2.5 px-4 align-middle">
                                 <Badge 
                                   className={`px-2 py-0.5 ${
-                                    customer.zoneid === 1 ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                                    customer.zoneid === 1 ? 'bg-gray-100 text-gray-600 border-blue-200' : 
                                     customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
                                     customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
                                     'bg-gray-50 text-gray-700 border-gray-200'
@@ -771,7 +771,7 @@ export default function Customers() {
           <div className="border rounded-md p-2 bg-white">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
+                <PlusCircle className="h-3.5 w-3.5 text-gray-600" />
                 <h3 className="text-sm font-medium">Registrar Cliente</h3>
               </div>
             </div>
@@ -1113,7 +1113,7 @@ export default function Customers() {
             <CardHeader className="px-0 pt-0 pb-2">
               <div className="flex flex-row justify-between items-center mb-1">
                 <CardTitle className="text-lg font-bold flex items-center">
-                  <Building2 className="h-4 w-4 mr-1.5 text-blue-600" />
+                  <Building2 className="h-4 w-4 mr-1.5 text-gray-600" />
                   {isEditing ? 'Editar Cliente' : 'Detalles del Cliente'}
                 </CardTitle>
                 {!isEditing ? (
@@ -1226,7 +1226,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <Building2 className="h-3.5 w-3.5 text-blue-600" />
+                        <Building2 className="h-3.5 w-3.5 text-gray-600" />
                         <span>Nombre del Negocio</span>
                       </FormLabel>
                       <FormControl>
@@ -1243,7 +1243,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <User className="h-3.5 w-3.5 text-blue-600" />
+                        <User className="h-3.5 w-3.5 text-gray-600" />
                         <span>Nombre del Encargado</span>
                       </FormLabel>
                       <FormControl>
@@ -1260,7 +1260,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5 text-blue-600" />
+                        <Phone className="h-3.5 w-3.5 text-gray-600" />
                         <span>Teléfono</span>
                       </FormLabel>
                       <FormControl>
@@ -1277,7 +1277,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <Mail className="h-3.5 w-3.5 text-blue-600" />
+                        <Mail className="h-3.5 w-3.5 text-gray-600" />
                         <span>Email</span>
                       </FormLabel>
                       <FormControl>
@@ -1294,7 +1294,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
                         <span>Zona</span>
                       </FormLabel>
                       {isEditing ? (
@@ -1335,7 +1335,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <Home className="h-3.5 w-3.5 text-blue-600" />
+                        <Home className="h-3.5 w-3.5 text-gray-600" />
                         <span>Calle</span>
                       </FormLabel>
                       <FormControl>
@@ -1352,7 +1352,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5 text-blue-600" />
+                        <FileText className="h-3.5 w-3.5 text-gray-600" />
                         <span>Número</span>
                       </FormLabel>
                       <FormControl>
@@ -1369,7 +1369,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
                         <span>Provincia</span>
                       </FormLabel>
                       {isEditing ? (
@@ -1413,7 +1413,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
                         <span>Municipio</span>
                       </FormLabel>
                       {isEditing ? (
@@ -1454,7 +1454,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
                       <FormLabel className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5 text-blue-600" />
+                        <FileText className="h-3.5 w-3.5 text-gray-600" />
                         <span>Referencia</span>
                       </FormLabel>
                       <FormControl>
@@ -1471,7 +1471,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem className="md:col-span-3">
                       <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-blue-600" /> 
+                        <MapPin className="h-3.5 w-3.5 text-gray-600" /> 
                         <span>Ubicación en Mapa</span>
                       </FormLabel>
                       <FormControl>
@@ -1499,7 +1499,7 @@ export default function Customers() {
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
                       <FormLabel className="flex items-center gap-1">
-                        <DollarSign className="h-3.5 w-3.5 text-blue-600" />
+                        <DollarSign className="h-3.5 w-3.5 text-gray-600" />
                         <span>Límite de Crédito</span>
                       </FormLabel>
                       <FormControl>
