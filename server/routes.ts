@@ -3,7 +3,7 @@ import multer from 'multer';
 import { storage } from "./storage";
 import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema } from "@shared/schema";
 import { db, usersSimple } from './db';
-import { companyDb, getCurrentCompanyId } from './company-db';
+import { companyDb, getCurrentCompanyId, setCurrentCompanyId } from './company-db';
 import { eq, and, sql, inArray, desc } from 'drizzle-orm';
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
@@ -2892,12 +2892,31 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  router.post("/orders", async (req, res) => {
+  router.post("/api/orders", async (req, res) => {
     try {
       console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
-
+      console.log("Estado de sesión:", req.session);
+      
       // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
+      let companyId = getCurrentCompanyId();
+      
+      // Mejorar la recuperación del companyId
+      if (!companyId) {
+        console.warn("No se encontró companyId inicialmente en el contexto");
+        
+        // Intento de recuperación utilizando datos de la sesión
+        if (req.session && req.session.companyId) {
+          console.log("Recuperando companyId de la sesión:", req.session.companyId);
+          setCurrentCompanyId(req.session.companyId);
+          companyId = req.session.companyId;
+        } else if (req.body.companyId) {
+          console.log("Usando companyId del cuerpo de la petición:", req.body.companyId);
+          setCurrentCompanyId(req.body.companyId);
+          companyId = req.body.companyId;
+        }
+      }
+      
+      console.log("CompanyId final usado:", companyId);
       
       if (!companyId) {
         console.warn("No se encontró companyId en el contexto para crear pedido");
@@ -2995,7 +3014,7 @@ export async function registerRoutes(router: express.Router) {
     }
   });
 
-  router.get("/orders/:id/items", async (req, res) => {
+  router.get("/api/orders/:id/items", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       console.log("Buscando items para el pedido:", orderId);
@@ -3033,7 +3052,7 @@ export async function registerRoutes(router: express.Router) {
   });
   
   // Endpoint para agregar items a un pedido existente
-  router.post("/orders/:id/items", async (req, res) => {
+  router.post("/api/orders/:id/items", async (req, res) => {
     try {
       const orderId = parseInt(req.params.id);
       if (isNaN(orderId)) {
