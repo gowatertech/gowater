@@ -50,7 +50,6 @@ interface OrderItem {
 }
 
 export default function NewOrder() {
-  console.log("Cargando componente NewOrder");
   const { t } = useTranslation();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -94,38 +93,22 @@ export default function NewOrder() {
 
   // Manejo de cambios en productos y cantidades
   const handleProductChange = (index: number, code: string) => {
-    console.log("Producto seleccionado:", code, "en posición:", index);
-    try {
-      // Buscar el producto por ID
-      const product = products?.find((p: any) => p.id.toString() === code);
-      console.log("Producto encontrado:", product);
-      
-      if (!product) {
-        console.error("Producto no encontrado con ID:", code);
-        return;
-      }
+    const product = products?.find((p: any) => p.id.toString() === code);
+    if (!product) return;
 
-      // Crear un nuevo array para evitar mutaciones
-      const newItems = [...orderItems];
-      
-      // Actualizar el item
-      newItems[index] = {
-        code,
-        description: product.name,
-        quantity: 1,
-        price: parseFloat(product.price.toString()),
-        total: parseFloat(product.price.toString())
-      };
-      
-      console.log("Nuevos items antes de actualizar:", newItems);
-      setOrderItems(newItems);
-      
-      // Si este es el último elemento del arreglo, agregar uno nuevo
-      if (index === orderItems.length - 1) {
-        addEmptyProduct();
-      }
-    } catch (error) {
-      console.error("Error al cambiar producto:", error);
+    const newItems = [...orderItems];
+    newItems[index] = {
+      code,
+      description: product.name,
+      quantity: 1,
+      price: parseFloat(product.price.toString()),
+      total: parseFloat(product.price.toString())
+    };
+    setOrderItems(newItems);
+    
+    // Si este es el último elemento del arreglo, agregar uno nuevo
+    if (index === orderItems.length - 1) {
+      addEmptyProduct();
     }
   };
 
@@ -307,40 +290,23 @@ export default function NewOrder() {
                 <label className="text-xs font-medium text-muted-foreground">Seleccione un Cliente</label>
                 <Select
                   onValueChange={(value) => {
-                    console.log("Cliente seleccionado:", value);
-                    try {
-                      // Buscar el cliente por ID
-                      const customer = customers.find((c: any) => c.id === parseInt(value));
-                      console.log("Objeto cliente encontrado:", customer);
-                      
-                      // Actualizar estado solo si encontramos el cliente
-                      if (customer) {
-                        setSelectedCustomer(customer);
-                      }
-                    } catch (error) {
-                      console.error("Error al seleccionar cliente:", error);
-                    }
+                    const customer = customers.find((c: any) => c.id === parseInt(value));
+                    setSelectedCustomer(customer || null);
                   }}
                 >
                   <SelectTrigger className="h-9 text-sm w-full">
                     <SelectValue placeholder="Seleccionar Cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {customers && customers.length > 0 ? (
-                      customers.map((customer: any) => (
-                        <SelectItem
-                          key={customer.id}
-                          value={customer.id.toString()}
-                          className="text-sm"
-                        >
-                          {customer.businessname}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <div className="p-2 text-sm text-muted-foreground">
-                        No hay clientes disponibles
-                      </div>
-                    )}
+                    {customers.map((customer: any) => (
+                      <SelectItem
+                        key={customer.id}
+                        value={customer.id.toString()}
+                        className="text-sm"
+                      >
+                        {customer.businessname}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

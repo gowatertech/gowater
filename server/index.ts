@@ -4,7 +4,7 @@ import { registerPlatformEndpoints } from "./platform-routes-register";
 import { setupVite, log } from "./vite";
 import path from "path";
 import session from "express-session";
-import { companyFilterMiddleware } from "./multi-tenant-middleware";
+import { tenantMiddleware, companyFilterMiddleware } from "./multi-tenant-middleware";
 import { platformStorage } from "./platform-storage";
 import { setupPlatform } from "./platform-db-setup";
 import { companyDbMiddleware } from "./company-db";
@@ -13,10 +13,9 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
-import { consolidatedCompanyMiddleware } from "./middleware/company.middleware";
+import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
 import { registerTestAPIRoutes } from "./test-api";
 import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
-import { registerDiagnosticEndpoint } from "./routes/diagnostic";
 
 const app = express();
 
@@ -41,22 +40,18 @@ const sessionConfig = {
 
 app.use(session(sessionConfig));
 
-// Creamos routers separados para diferentes propósitos
+// Creamos routers separados para APIs de empresas y plataforma
 const companyApiRouter = express.Router();
 const platformApiRouter = express.Router();
-const diagnosticsRouter = express.Router();
 
 // Solo aplicamos los middlewares de multi-tenancy al router de empresas
-companyApiRouter.use(consolidatedCompanyMiddleware);
+companyApiRouter.use(tenantMiddleware);
 companyApiRouter.use(companyDbMiddleware);
 companyApiRouter.use(companyFilterMiddleware);
-
-// El router de diagnósticos solo necesita el middleware de company context
-diagnosticsRouter.use(consolidatedCompanyMiddleware);
+companyApiRouter.use(companyTenantMiddleware);
 
 // Montamos los routers en sus respectivas rutas
 app.use("/api/platform", platformApiRouter);
-app.use("/api/diagnostic", diagnosticsRouter);
 app.use("/api", companyApiRouter);
 
 // Logging middleware
@@ -100,10 +95,6 @@ app.use((req, res, next) => {
     registerPlatformEndpoints(platformApiRouter);
     log("Platform routes registered successfully");
     
-    // Register diagnostic endpoints for debugging
-    registerDiagnosticEndpoint(diagnosticsRouter);
-    log("Diagnostic routes registered successfully");
-
     // Register regular API routes for company operations
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");

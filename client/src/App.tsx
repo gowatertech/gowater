@@ -380,7 +380,6 @@ function Router() {
         <Route path="/orders/new" component={NewOrder} />
         <Route path="/orders/details/:id" component={OrderDetails} />
         <Route path="/orders/status/:id" component={OrderStatus} />
-        <Route path="/orders/select-test" component={React.lazy(() => import('@/pages/orders/SelectTest'))} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/trucks" component={TrucksPage} />

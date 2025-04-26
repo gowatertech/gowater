@@ -522,52 +522,20 @@ export default function OrdersList() {
                       <div className="flex justify-between items-center">
                         <div>{getStatusBadge(order.status)}</div>
                         <div className="flex gap-1 flex-wrap justify-end">
-                          <Button 
+                          <Button
                             variant="outline"
                             size="sm"
                             className="h-8 text-xs"
-                            onClick={() => {
-                              console.log("Navegando a detalles de pedido (vista móvil):", order.id);
-                              try {
-                                // Intentar primero con el router
-                                setLocation(`/orders/details/${order.id}`);
-                                // Método de respaldo por si falla el router
-                                setTimeout(() => {
-                                  if (window.location.pathname !== `/orders/details/${order.id}`) {
-                                    console.log("Forzando navegación mediante window.location (móvil)");
-                                    window.location.href = `/orders/details/${order.id}`;
-                                  }
-                                }, 300);
-                              } catch (error) {
-                                console.error("Error al navegar a detalles (vista móvil):", error);
-                                window.location.href = `/orders/details/${order.id}`;
-                              }
-                            }}
+                            onClick={() => setLocation(`/orders/details/${order.id}`)}
                           >
                             <Eye className="h-3.5 w-3.5 mr-1" />
                             Ver
                           </Button>
-                          <Button 
+                          <Button
                             variant="outline"
                             size="sm"
                             className="h-8 text-xs"
-                            onClick={() => {
-                              console.log("Navegando a estado de pedido (vista móvil):", order.id);
-                              try {
-                                // Intentar primero con el router
-                                setLocation(`/orders/status/${order.id}`);
-                                // Método de respaldo por si falla el router
-                                setTimeout(() => {
-                                  if (window.location.pathname !== `/orders/status/${order.id}`) {
-                                    console.log("Forzando navegación de estado mediante window.location (móvil)");
-                                    window.location.href = `/orders/status/${order.id}`;
-                                  }
-                                }, 300);
-                              } catch (error) {
-                                console.error("Error al navegar a estado (vista móvil):", error);
-                                window.location.href = `/orders/status/${order.id}`;
-                              }
-                            }}
+                            onClick={() => setLocation(`/orders/status/${order.id}`)}
                           >
                             <Tag className="h-3.5 w-3.5 mr-1" />
                             Estado
@@ -636,52 +604,20 @@ export default function OrdersList() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button 
+                            <Button
                               variant="outline"
                               size="sm"
                               className="h-8"
-                              onClick={() => {
-                                console.log("Navegando a detalles de pedido (vista desktop):", order.id);
-                                try {
-                                  // Intentar primero con el router
-                                  setLocation(`/orders/details/${order.id}`);
-                                  // Método de respaldo por si falla el router
-                                  setTimeout(() => {
-                                    if (window.location.pathname !== `/orders/details/${order.id}`) {
-                                      console.log("Forzando navegación mediante window.location");
-                                      window.location.href = `/orders/details/${order.id}`;
-                                    }
-                                  }, 300);
-                                } catch (error) {
-                                  console.error("Error al navegar a detalles (vista desktop):", error);
-                                  window.location.href = `/orders/details/${order.id}`;
-                                }
-                              }}
+                              onClick={() => setLocation(`/orders/details/${order.id}`)}
                             >
                               <Eye className="h-3.5 w-3.5 mr-1" />
                               Ver
                             </Button>
-                            <Button 
+                            <Button
                               variant="outline"
                               size="sm"
                               className="h-8"
-                              onClick={() => {
-                                console.log("Navegando a estado de pedido (vista desktop):", order.id);
-                                try {
-                                  // Intentar primero con el router
-                                  setLocation(`/orders/status/${order.id}`);
-                                  // Método de respaldo por si falla el router
-                                  setTimeout(() => {
-                                    if (window.location.pathname !== `/orders/status/${order.id}`) {
-                                      console.log("Forzando navegación de estado mediante window.location");
-                                      window.location.href = `/orders/status/${order.id}`;
-                                    }
-                                  }, 300);
-                                } catch (error) {
-                                  console.error("Error al navegar a estado (vista desktop):", error);
-                                  window.location.href = `/orders/status/${order.id}`;
-                                }
-                              }}
+                              onClick={() => setLocation(`/orders/status/${order.id}`)}
                             >
                               <Tag className="h-3.5 w-3.5 mr-1" />
                               Estado
