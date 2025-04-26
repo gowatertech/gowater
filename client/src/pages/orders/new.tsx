@@ -137,10 +137,13 @@ export default function NewOrder() {
         throw new Error('Debe agregar al menos un producto');
       }
 
-      // 2. Calcular totales
-      const subtotal = validItems.reduce((sum, item) => sum + item.total, 0);
-      const tax = subtotal * 0.18;
-      const total = subtotal + tax;
+      // 2. Calcular totales con precisión decimal
+      const subtotal = validItems.reduce((sum, item) => {
+        const itemTotal = parseFloat((item.total || 0).toFixed(2));
+        return parseFloat((sum + itemTotal).toFixed(2));
+      }, 0);
+      const tax = parseFloat((subtotal * 0.18).toFixed(2));
+      const total = parseFloat((subtotal + tax).toFixed(2));
 
       // 3. Preparar datos del pedido
       const now = new Date();
