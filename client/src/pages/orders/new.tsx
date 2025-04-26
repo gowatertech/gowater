@@ -143,15 +143,18 @@ export default function NewOrder() {
       const total = subtotal + tax;
 
       // 3. Preparar datos del pedido
+      const now = new Date();
+      const dateStr = now.toISOString();
+      
       const orderData = {
         customerId: parseInt(data.customerId),
         total: total.toFixed(2), // Formato exacto: "0.00"
         status: "pending" as const,
         paymentMethod: paymentMethod as "cash" | "credit" | "card",
-        date: new Date().toISOString(), // Formato ISO completo
+        date: dateStr, // Formato ISO completo
         routeId: null,
-        notes: notes || ""
-        // El companyId se obtiene del contexto en el servidor
+        notes: notes || "",
+        items: validItems
       };
 
       console.log("Datos del pedido a enviar:", orderData);

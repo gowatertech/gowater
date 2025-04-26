@@ -2914,7 +2914,10 @@ export async function registerRoutes(router: express.Router) {
       const orderData = {
         ...orderDataRaw,
         companyId: companyId, // Asegurar que se usa el companyId correcto
-        date: new Date(req.body.date || new Date()),
+        date: new Date(req.body.date || new Date()).toISOString(),
+        status: orderDataRaw.status || "pending",
+        routeId: orderDataRaw.routeId || null,
+        paymentMethod: orderDataRaw.paymentMethod || "cash",
       };
 
       console.log("Datos de orden procesados:", orderData);
@@ -2961,6 +2964,7 @@ export async function registerRoutes(router: express.Router) {
             productId: productId,
             quantity: parseInt(item.quantity) || 1,
             price: typeof item.price === 'string' ? item.price : item.price.toFixed(2),
+            total: typeof item.total === 'string' ? item.total : (item.total ? item.total.toFixed(2) : (item.price * (parseInt(item.quantity) || 1)).toFixed(2)),
             companyId: companyId // Asegurar que items también tengan companyId
           };
           
