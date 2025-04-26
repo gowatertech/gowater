@@ -2899,6 +2899,7 @@ export async function registerRoutes(router: express.Router) {
     
     try {
       console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
+      console.log("⚠️ Tipo de req.body:", typeof req.body, "Array items?", Array.isArray(req.body.items));
       
       // Usar el ID de compañía predeterminado (1)
       const companyId = 1;
