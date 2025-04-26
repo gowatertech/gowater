@@ -47,6 +47,8 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
         sql`${orders.id} = ${orderIdNum} AND ${orders.companyId} = ${companyId}`
       );
       
+      console.log("Resultado de consulta inicial:", currentOrder);
+      
       if (currentOrder.length === 0) {
         console.log(`Pedido ${orderIdNum} no encontrado para companyId ${companyId}`);
         return res.status(404).json({ 
@@ -87,7 +89,7 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
           const updateQuery = `
             UPDATE orders 
             SET status = $1 
-            WHERE id = $2 AND "companyId" = $3
+            WHERE id = $2 AND company_id = $3
             RETURNING *;
           `;
           
