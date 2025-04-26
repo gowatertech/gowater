@@ -140,7 +140,11 @@ export async function loginWithEmail(req: Request, res: Response) {
     req.session.user = userWithoutPassword;
     req.session.companyId = user.companyId;
     
-    console.log(`Login exitoso - Usuario: ${email}, ID: ${user.id}, Empresa: ${user.companyId}`);
+    // IMPORTANTE: Sincronizar el companyId con asyncLocalStorage
+    // Esto asegura que getCurrentCompanyId() devuelva el valor correcto
+    setCurrentCompanyId(user.companyId);
+    
+    console.log(`Login exitoso - Usuario: ${email}, ID: ${user.id}, Empresa: ${user.companyId} (sincronizado en contexto)`);
     
     // Responder con éxito y los datos del usuario (sin contraseña)
     return res.status(200).json({
@@ -161,6 +165,9 @@ export async function loginWithEmail(req: Request, res: Response) {
  * Handler para el logout
  */
 export function logout(req: Request, res: Response) {
+  // Limpiar el companyId del contexto antes de destruir la sesión
+  setCurrentCompanyId(undefined);
+
   req.session.destroy((err) => {
     if (err) {
       console.error("Error al cerrar sesión:", err);
