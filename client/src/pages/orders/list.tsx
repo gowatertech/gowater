@@ -161,6 +161,8 @@ export default function OrdersList() {
         return "border-l-green-500";
       case "pending":
         return "border-l-yellow-500";
+      case "in_transit":
+        return "border-l-blue-500";
       case "cancelled":
         return "border-l-red-500";
       default:

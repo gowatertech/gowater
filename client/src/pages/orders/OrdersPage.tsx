@@ -334,13 +334,35 @@ export default function OrdersPage() {
   // Mutación para actualizar el estado del pedido
   const updateStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: number, status: string }) => {
-      return await apiRequest({
-        url: `/api/orders/${orderId}/status`,
-        method: "PATCH",
-        data: { status }
+      const response = await fetch('/api/update-order-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          orderId: orderId.toString(),
+          status 
+        }),
+        credentials: 'include'
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error al actualizar estado: ${errorText}`);
+      }
+
+      return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (!data.success) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: data.message || "No se pudo actualizar el estado"
+        });
+        return;
+      }
+
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       setIsStatusDialogOpen(false);
       
