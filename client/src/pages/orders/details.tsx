@@ -503,11 +503,11 @@ export default function OrderDetails() {
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">Precio</div>
-                          <div>RD$ {parseFloat(item.price).toFixed(2)}</div>
+                          <div>RD$ {parseFloat(item.unitPrice || "0").toFixed(2)}</div>
                         </div>
                         <div>
                           <div className="text-xs text-muted-foreground">Total</div>
-                          <div className="font-medium">RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}</div>
+                          <div className="font-medium">RD$ {(parseFloat(item.unitPrice || "0") * item.quantity).toFixed(2)}</div>
                         </div>
                       </div>
                     </div>
@@ -544,9 +544,9 @@ export default function OrderDetails() {
                           {products.find((p: any) => p.id === item.productId)?.name || "Producto"}
                         </TableCell>
                         <TableCell className="text-right p-2">{item.quantity}</TableCell>
-                        <TableCell className="text-right p-2">RD$ {parseFloat(item.price).toFixed(2)}</TableCell>
+                        <TableCell className="text-right p-2">RD$ {parseFloat(item.unitPrice || "0").toFixed(2)}</TableCell>
                         <TableCell className="text-right font-medium p-2">
-                          RD$ {(parseFloat(item.price) * item.quantity).toFixed(2)}
+                          RD$ {(parseFloat(item.unitPrice || "0") * item.quantity).toFixed(2)}
                         </TableCell>
                       </TableRow>
                     ))
