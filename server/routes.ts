@@ -2898,16 +2898,26 @@ export async function registerRoutes(router: express.Router) {
     const client = await pool.connect();
     
     try {
-      console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
-      console.log("⚠️ Tipo de req.body:", typeof req.body, "Array items?", Array.isArray(req.body.items));
+      console.log("📣 POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
+      console.log("📊 Tipo de req.body:", typeof req.body);
+      console.log("📋 Items recibidos:", Array.isArray(req.body.items) ? req.body.items.length : 'ninguno');
       
-      // Usar el ID de compañía predeterminado (1)
-      const companyId = 1;
-      console.log("Usando companyId predeterminado:", companyId);
+      if (!req.body.customerId) {
+        throw new Error("El ID de cliente es obligatorio");
+      }
 
       // Extraer datos de los items antes de preparar los datos del pedido (si existen)
       const orderItemsData = req.body.items || [];
+      console.log("📦 Items para procesar:", orderItemsData.length);
       
+      if (orderItemsData.length === 0) {
+        console.warn("⚠️ No se han recibido items para la orden");
+      }
+      
+      // Usar el ID de compañía predeterminado (1)
+      const companyId = 1;
+      console.log("🏢 Usando companyId:", companyId);
+
       // Preparar datos del pedido
       const orderData = {
         customerId: parseInt(req.body.customerId),
@@ -2920,10 +2930,22 @@ export async function registerRoutes(router: express.Router) {
         companyId: companyId
       };
 
-      console.log("Datos de orden procesados:", orderData);
+      console.log("🧾 Datos de orden procesados:", orderData);
+      
+      // Verificación de estructura de tabla vs. datos
+      console.log("🔍 Comparación con estructura de tabla 'orders':");
+      console.log("📌 company_id:", typeof companyId === 'number' ? '✅ OK' : '❌ ERROR');
+      console.log("📌 customer_id:", typeof orderData.customerId === 'number' ? '✅ OK' : '❌ ERROR');
+      console.log("📌 total:", orderData.total, typeof orderData.total);
+      console.log("📌 status:", orderData.status);
+      console.log("📌 payment_method:", orderData.paymentMethod);
+      console.log("📌 date:", orderData.date);
+      console.log("📌 route_id:", orderData.routeId);
+      console.log("📌 notes:", orderData.notes);
       
       // Iniciar transacción
       await client.query('BEGIN');
+      console.log("🔄 Transacción iniciada");
       
       // 1. Crear la orden
       const orderQuery = `
@@ -2935,7 +2957,7 @@ export async function registerRoutes(router: express.Router) {
         ) RETURNING *
       `;
       
-      const orderResult = await client.query(orderQuery, [
+      const orderParams = [
         companyId,
         orderData.customerId,
         orderData.total,
@@ -2947,24 +2969,31 @@ export async function registerRoutes(router: express.Router) {
         '0.00',  // cash_collected
         '0.00',  // driver_commission
         '0.00'   // assistant_commission
-      ]);
+      ];
+      
+      console.log("🔄 Ejecutando query de orden con parámetros:", orderParams);
+      
+      const orderResult = await client.query(orderQuery, orderParams);
       
       if (orderResult.rows.length === 0) {
         throw new Error("No se pudo crear la orden. La inserción no devolvió datos.");
       }
       
       const order = orderResult.rows[0];
-      console.log("Orden creada en la base de datos:", JSON.stringify(order));
+      console.log("✅ Orden creada con ID:", order.id);
+      console.log("📝 Detalles de la orden creada:", JSON.stringify(order));
       
       // 2. Crear los items de la orden
       if (orderItemsData && orderItemsData.length > 0) {
-        console.log(`Procesando ${orderItemsData.length} items para la orden #${order.id}`);
+        console.log(`🔄 Procesando ${orderItemsData.length} items para la orden #${order.id}`);
         
         for (const item of orderItemsData) {
           // Validar item (soportamos tanto productId como code para compatibilidad)
           const productId = parseInt(item.productId || item.code);
+          console.log(`📦 Procesando item con productId: ${productId}`, item);
+          
           if (!productId || isNaN(productId)) {
-            console.warn("Item sin ID de producto válido, saltando:", item);
+            console.warn("⚠️ Item sin ID de producto válido, saltando:", item);
             continue;
           }
           
@@ -2985,21 +3014,37 @@ export async function registerRoutes(router: express.Router) {
                        (typeof item.total === 'number' ? item.total.toFixed(2) : 
                        (parseFloat(price) * quantity).toFixed(2));
           
-          const itemResult = await client.query(itemQuery, [
+          const itemParams = [
             order.id,
             productId,
             quantity,
             price,
             total,
             companyId
-          ]);
+          ];
           
-          console.log(`Item creado para orden #${order.id}:`, itemResult.rows[0]);
+          console.log(`🔄 Insertando item para orden #${order.id} con parámetros:`, itemParams);
+          
+          try {
+            const itemResult = await client.query(itemQuery, itemParams);
+            if (itemResult.rows.length > 0) {
+              console.log(`✅ Item creado con ID: ${itemResult.rows[0].id}`);
+              console.log(`📝 Detalles del item:`, JSON.stringify(itemResult.rows[0]));
+            } else {
+              console.error(`❌ No se pudo crear el item para orden #${order.id}`);
+            }
+          } catch (itemError) {
+            console.error(`❌ Error al crear item para orden #${order.id}:`, itemError);
+            throw itemError; // Re-lanzar para que se maneje en el catch principal
+          }
         }
+      } else {
+        console.warn(`⚠️ No hay items para procesar en la orden #${order.id}`);
       }
       
       // Confirmar la transacción
       await client.query('COMMIT');
+      console.log("✅ Transacción confirmada (COMMIT)");
       
       // Convertir nombre de propiedades de snake_case a camelCase para la respuesta
       const formattedOrder = {
@@ -3015,16 +3060,26 @@ export async function registerRoutes(router: express.Router) {
         items: orderItemsData.length
       };
       
-      console.log("Respuesta final del servidor con la orden formateada:", formattedOrder);
+      console.log("🔄 Respuesta final del servidor:", formattedOrder);
       res.json(formattedOrder);
     } catch (error) {
       // En caso de error, revertir la transacción
-      await client.query('ROLLBACK');
-      console.error("Error al crear pedido:", error);
+      console.error("❌ ERROR al crear pedido:", error);
+      try {
+        await client.query('ROLLBACK');
+        console.log("🔄 Transacción revertida (ROLLBACK)");
+      } catch (rollbackError) {
+        console.error("❌ Error adicional durante ROLLBACK:", rollbackError);
+      }
       res.status(500).json({ error: String(error) });
     } finally {
       // Siempre liberar el cliente
-      client.release();
+      try {
+        client.release();
+        console.log("🔄 Cliente de conexión liberado");
+      } catch (releaseError) {
+        console.error("❌ Error al liberar el cliente:", releaseError);
+      }
     }
   });
 
