@@ -499,7 +499,7 @@ export default function Customers() {
                             className={`border rounded-md overflow-hidden cursor-pointer hover:shadow-md transition-all bg-white`}
                             style={{ 
                               borderLeftWidth: '4px',
-                              borderLeftColor: customer.zoneid === 1 ? '#3b82f6' : 
+                              borderLeftColor: customer.zoneid === 1 ? '#9333ea' : 
                                               customer.zoneid === 2 ? '#ef4444' : 
                                               customer.zoneid === 3 ? '#22c55e' : 
                                               '#6b7280' 
@@ -526,7 +526,7 @@ export default function Customers() {
                                 )}
                                 <div 
                                   className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] z-10 ${
-                                    customer.zoneid === 1 ? 'bg-gray-100' : 
+                                    customer.zoneid === 1 ? 'bg-purple-500' : 
                                     customer.zoneid === 2 ? 'bg-red-500' : 
                                     customer.zoneid === 3 ? 'bg-green-500' : 
                                     'bg-gray-500'
@@ -640,13 +640,13 @@ export default function Customers() {
                                         />
                                       </div>
                                     ) : (
-                                      <div className="w-9 h-9 bg-gradient-to-br from-blue-50 to-white rounded-md flex items-center justify-center border shadow-sm">
+                                      <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-white rounded-md flex items-center justify-center border shadow-sm">
                                         <Building2 className="h-5 w-5 text-gray-600" />
                                       </div>
                                     )}
                                     <div 
                                       className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
-                                        customer.zoneid === 1 ? 'bg-gray-100' : 
+                                        customer.zoneid === 1 ? 'bg-purple-500' : 
                                         customer.zoneid === 2 ? 'bg-red-500' : 
                                         customer.zoneid === 3 ? 'bg-green-500' : 
                                         'bg-gray-500'
@@ -703,7 +703,7 @@ export default function Customers() {
                               <td className="py-2.5 px-4 align-middle">
                                 <Badge 
                                   className={`px-2 py-0.5 ${
-                                    customer.zoneid === 1 ? 'bg-gray-100 text-gray-600 border-blue-200' : 
+                                    customer.zoneid === 1 ? 'bg-purple-50 text-purple-700 border-purple-200' : 
                                     customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
                                     customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
                                     'bg-gray-50 text-gray-700 border-gray-200'
