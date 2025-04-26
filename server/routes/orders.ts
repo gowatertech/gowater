@@ -63,10 +63,10 @@ export function registerOrdersEndpoints(router: Router) {
       }
       
       // Validar el estado
-      if (!["pending", "in_progress", "completed", "cancelled"].includes(status)) {
+      if (!["pending", "in_transit", "delivered", "cancelled"].includes(status)) {
         return res.status(400).json({
           success: false,
-          message: "Estado no válido"
+          message: "Estado no válido. Use: pending, in_transit, delivered, cancelled"
         });
       }
       
@@ -213,12 +213,13 @@ export function registerOrdersEndpoints(router: Router) {
       const orderSchema = z.object({
         customerId: z.number(),
         date: z.string().transform(str => new Date(str)),
-        status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
+        status: z.enum(["pending", "in_transit", "delivered", "cancelled"]),
         total: z.string(),
         notes: z.string().optional(),
         preferredDeliveryTime: z.string().transform(str => new Date(str)).optional(),
         orderType: z.enum(["regular", "wholesale", "special"]).optional(),
         paymentStatus: z.enum(["pending", "partial", "paid"]).optional(),
+        paymentMethod: z.enum(["cash", "credit", "card"]).optional(),
         items: z.array(z.object({
           productId: z.number(),
           quantity: z.number(),
@@ -316,7 +317,7 @@ export function registerOrdersEndpoints(router: Router) {
       
       // Validar el esquema de entrada
       const statusSchema = z.object({
-        status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
+        status: z.enum(["pending", "in_transit", "delivered", "cancelled"]),
         notes: z.string().optional()
       });
       
