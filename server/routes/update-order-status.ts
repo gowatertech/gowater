@@ -62,60 +62,38 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
       
       let updateResult;
       
+      // SOLUCIÓN DIRECTA: Usar solo SQL directo que sabemos funciona correctamente
       try {
-        // Intentar actualizar con Drizzle ORM primero (más seguro y tipado)
-        updateResult = await db.update(orders)
-          .set({ status: status })
-          .where(
-            sql`${orders.id} = ${orderIdNum} AND ${orders.companyId} = ${companyId}`
-          )
-          .returning();
-          
-        console.log("Resultado de actualización con Drizzle:", updateResult);
+        // Usar la conexión directa a la base de datos con el nombre de columna correcto (company_id)
+        const updateQuery = `
+          UPDATE orders 
+          SET status = $1 
+          WHERE id = $2 AND company_id = $3
+          RETURNING *;
+        `;
         
-        if (updateResult.length === 0) {
+        console.log(`Ejecutando query SQL: ${updateQuery} con valores: [${status}, ${orderIdNum}, ${companyId}]`);
+        
+        const result = await pool.query(updateQuery, [status, orderIdNum, companyId]);
+        
+        console.log("Resultado SQL directo:", result);
+        
+        if (result.rowCount === 0) {
           return res.status(404).json({ 
             success: false, 
-            message: "Pedido no encontrado o no pertenece a la empresa (después de intentar actualizar)" 
+            message: "Pedido no encontrado o no pertenece a la empresa (SQL directo)" 
           });
         }
-          
-      } catch (ormError) {
-        console.error("Error en actualización con Drizzle ORM:", ormError);
         
-        // Si falla Drizzle, intentar con SQL directo
-        try {
-          // Usar la conexión directa a la base de datos
-          const updateQuery = `
-            UPDATE orders 
-            SET status = $1 
-            WHERE id = $2 AND company_id = $3
-            RETURNING *;
-          `;
-          
-          console.log(`Ejecutando query SQL: ${updateQuery} con valores: [${status}, ${orderIdNum}, ${companyId}]`);
-          
-          const result = await pool.query(updateQuery, [status, orderIdNum, companyId]);
-          
-          console.log("Resultado SQL directo:", result);
-          
-          if (result.rowCount === 0) {
-            return res.status(404).json({ 
-              success: false, 
-              message: "Pedido no encontrado o no pertenece a la empresa (SQL directo)" 
-            });
-          }
-          
-          updateResult = result.rows;
-          
-        } catch (sqlError) {
-          console.error("Error en SQL directo:", sqlError);
-          return res.status(500).json({ 
-            success: false, 
-            message: "Error en la actualización de la base de datos", 
-            error: String(sqlError)
-          });
-        }
+        updateResult = result.rows;
+        
+      } catch (sqlError) {
+        console.error("Error en SQL directo:", sqlError);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Error en la actualización de la base de datos", 
+          error: String(sqlError)
+        });
       }
       
       // Verificación adicional del resultado
