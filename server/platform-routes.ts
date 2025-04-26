@@ -384,6 +384,12 @@ export function registerPlatformRoutes(router: Router) {
         // Importamos storage para usar createDefaultSettings
         const { storage } = await import('./storage');
         
+        // Configuración explícita para el contexto de compañía
+        // para asegurar que se cree la configuración con el ID correcto
+        const { setCurrentCompanyId } = await import('./company-db');
+        console.log(`Estableciendo companyId=${company.id} como contexto para crear configuración`);
+        setCurrentCompanyId(company.id);
+        
         const defaultSettings = await storage.createDefaultSettings(company.id, company.name);
         if (defaultSettings) {
           console.log(`Configuración por defecto creada con éxito para empresa ${company.id}`);
@@ -392,6 +398,7 @@ export function registerPlatformRoutes(router: Router) {
         }
       } catch (settingsError) {
         console.error(`Error al crear configuración por defecto para empresa ${company.id}:`, settingsError);
+        console.error('Detalles del error:', settingsError.stack || settingsError.message || settingsError);
         // No interrumpimos el flujo si hay error, solo lo registramos
       }
       

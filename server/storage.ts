@@ -579,31 +579,44 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Storage - createDefaultSettings: Creando configuración por defecto para compañía ${companyId}: ${companyName}`);
       
-      // Importar tablas específicas para evitar referencias circulares
-      const { provinces, municipalities } = await import('@shared/schema');
+      // Acceder a tablas directamente desde el schema compartido
+      const schema = await import('@shared/schema');
       
+      // Establecer companyId en el contexto para asegurar filtrado correcto
+      const { getCurrentCompanyId, setCurrentCompanyId } = await import('./company-db');
+      const companyIdBeforeOperation = getCurrentCompanyId();
+      console.log(`CompanyId actual: ${companyIdBeforeOperation}, estableciendo a: ${companyId}`);
+      setCurrentCompanyId(companyId);
+      
+      console.log('Buscando provincias disponibles...');
       // Buscar la primera provincia disponible
-      const provincesResult = await db.select().from(provinces).limit(1);
+      const provincesResult = await db.select().from(schema.provinces).limit(1);
+      console.log('Provincias encontradas:', provincesResult);
+      
       if (!provincesResult || provincesResult.length === 0) {
         console.error("No se encontraron provincias en la base de datos");
         return undefined;
       }
       
+      console.log('Buscando municipios para provincia:', provincesResult[0].id);
       // Buscar el primer municipio disponible para esa provincia
-      const municipalitiesResult = await db.select().from(municipalities)
-        .where(eq(municipalities.provinceId, provincesResult[0].id))
+      const municipalitiesResult = await db.select().from(schema.municipalities)
+        .where(eq(schema.municipalities.provinceId, provincesResult[0].id))
         .limit(1);
+      console.log('Municipios encontrados:', municipalitiesResult);
       
       if (!municipalitiesResult || municipalitiesResult.length === 0) {
         console.error("No se encontraron municipios en la base de datos");
         return undefined;
       }
       
+      console.log(`Insertando configuración para compañía ${companyId} con provincia=${provincesResult[0].id} y municipio=${municipalitiesResult[0].id}`);
+      
       // Crear configuración mínima con sólo el ID y nombre de la empresa
       const [newSettings] = await db
-        .insert(settingsTable)
+        .insert(schema.settingsTable)
         .values({
-          companyId,
+          companyId: companyId,  // Explícitamente asignamos el ID
           name: companyName,
           street: "Por definir",
           streetNumber: "0",
