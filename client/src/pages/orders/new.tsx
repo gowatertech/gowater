@@ -150,72 +150,48 @@ export default function NewOrder() {
       const tax = parseFloat((subtotal * 0.18).toFixed(2));
       const total = parseFloat((subtotal + tax).toFixed(2));
 
-      // 3. Preparar datos del pedido
+      // 3. Preparar datos del pedido con los items incluidos
       const now = new Date();
       const dateStr = now.toISOString();
       
-      const orderData = {
+      // Formatear los items para la API
+      const formattedItems = validItems.map(item => ({
+        productId: parseInt(item.code),
+        quantity: item.quantity,
+        price: typeof item.price === 'number' ? item.price.toFixed(2) : item.price,
+        total: typeof item.total === 'number' ? item.total.toFixed(2) : 
+              parseFloat(String(item.total || 0)).toFixed(2)
+      }));
+      
+      // Crear un payload completo que incluye los datos de la orden y los items
+      const completeOrderData = {
         customerId: parseInt(data.customerId),
         total: total.toFixed(2), // Formato exacto: "0.00"
         status: "pending" as const,
         paymentMethod: paymentMethod as "cash" | "credit" | "card",
         date: dateStr, // Formato ISO completo
         routeId: null,
-        notes: notes || ""
-        // Ya no enviamos 'items' en el mismo objeto
+        notes: notes || "",
+        items: formattedItems, // Incluir los items directamente en el payload
+        companyId: 1 // Usar el ID de compañía por defecto para evitar problemas de contexto
       };
 
-      console.log("Datos del pedido a enviar:", orderData);
+      console.log("Datos completos del pedido a enviar:", JSON.stringify(completeOrderData, null, 2));
 
-      // 4. Crear el pedido con los datos validados
-      const orderResponse = await apiRequest({
-        method: "POST",
-        url: "/api/orders",
-        data: orderData
-      });
-      
-      // Como ahora apiRequest devuelve directamente la respuesta JSON, no necesitamos llamar a .json()
-      const order = orderResponse;
-      console.log("Pedido creado:", order);
-
-      // 5. Crear los items del pedido
-      for (const item of validItems) {
-        try {
-          console.log("Ítem a procesar:", item);
-          
-          // Asegurar que el total sea un número antes de aplicar toFixed
-          const itemTotal = typeof item.total === 'number' 
-            ? item.total.toFixed(2) 
-            : parseFloat(String(item.total)).toFixed(2);
-            
-          const itemData = {
-            orderId: order.id,
-            productId: parseInt(item.code),
-            quantity: item.quantity,
-            price: item.price.toFixed(2), // Formato exacto: "0.00"
-            total: itemTotal // Formato exacto: "0.00" - Campo requerido por el esquema
-            // El companyId se obtiene del contexto en el servidor
-          };
-
-          console.log("Agregando item al pedido:", JSON.stringify(itemData));
-          try {
-            const itemResponse = await apiRequest({
-              method: "POST",
-              url: `/api/orders/${order.id}/items`,
-              data: itemData
-            });
-            console.log("Ítem creado correctamente:", itemResponse);
-          } catch (error) {
-            console.error("Error al crear item:", error);
-            throw new Error(`Error al crear item: ${error}`);
-          }
-        } catch (itemError: any) {
-          console.error("Error procesando ítem:", itemError);
-          throw new Error(`Error al crear items del pedido: ${itemError.message}`);
-        }
+      // 4. Enviar la orden completa (con items) en una sola llamada
+      try {
+        const orderResponse = await apiRequest({
+          method: "POST",
+          url: "/api/orders",
+          data: completeOrderData
+        });
+        
+        console.log("Respuesta del servidor:", orderResponse);
+        return orderResponse;
+      } catch (error) {
+        console.error("Error al crear el pedido:", error);
+        throw error;
       }
-
-      return order;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });

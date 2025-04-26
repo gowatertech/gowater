@@ -2893,9 +2893,12 @@ export async function registerRoutes(router: express.Router) {
   });
 
   router.post("/api/orders", async (req, res) => {
+    // Comenzar una transacción para asegurar que tanto la orden como sus items se insertan correctamente
+    const { pool } = await import('./db');
+    const client = await pool.connect();
+    
     try {
       console.log("POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
-      console.log("Estado de sesión:", req.session);
       
       // Usar el ID de compañía predeterminado (1)
       const companyId = 1;
@@ -2917,9 +2920,12 @@ export async function registerRoutes(router: express.Router) {
       };
 
       console.log("Datos de orden procesados:", orderData);
-
-      // Crear la orden directamente con SQL
-      const query = `
+      
+      // Iniciar transacción
+      await client.query('BEGIN');
+      
+      // 1. Crear la orden
+      const orderQuery = `
         INSERT INTO orders (
           company_id, customer_id, total, status, payment_method, date, 
           route_id, notes, cash_collected, driver_commission, assistant_commission
@@ -2928,9 +2934,7 @@ export async function registerRoutes(router: express.Router) {
         ) RETURNING *
       `;
       
-      // Ejecutar la consulta
-      const { pool } = await import('./db');
-      const result = await pool.query(query, [
+      const orderResult = await client.query(orderQuery, [
         companyId,
         orderData.customerId,
         orderData.total,
@@ -2944,14 +2948,59 @@ export async function registerRoutes(router: express.Router) {
         '0.00'   // assistant_commission
       ]);
       
-      if (result.rows.length === 0) {
+      if (orderResult.rows.length === 0) {
         throw new Error("No se pudo crear la orden. La inserción no devolvió datos.");
       }
       
-      const order = result.rows[0];
-      console.log("Orden creada en la base de datos:", order);
+      const order = orderResult.rows[0];
+      console.log("Orden creada en la base de datos:", JSON.stringify(order));
       
-      // Convertir nombre de propiedades de snake_case a camelCase
+      // 2. Crear los items de la orden
+      if (orderItemsData && orderItemsData.length > 0) {
+        console.log(`Procesando ${orderItemsData.length} items para la orden #${order.id}`);
+        
+        for (const item of orderItemsData) {
+          // Validar item (soportamos tanto productId como code para compatibilidad)
+          const productId = parseInt(item.productId || item.code);
+          if (!productId || isNaN(productId)) {
+            console.warn("Item sin ID de producto válido, saltando:", item);
+            continue;
+          }
+          
+          const itemQuery = `
+            INSERT INTO order_items (
+              order_id, product_id, quantity, price, total, company_id
+            ) VALUES (
+              $1, $2, $3, $4, $5, $6
+            ) RETURNING *
+          `;
+          
+          const quantity = parseInt(item.quantity) || 1;
+          // Asegurar que price y total son strings formateados correctamente
+          const price = typeof item.price === 'string' ? item.price : 
+                       (typeof item.price === 'number' ? item.price.toFixed(2) : '0.00');
+          
+          const total = typeof item.total === 'string' ? item.total : 
+                       (typeof item.total === 'number' ? item.total.toFixed(2) : 
+                       (parseFloat(price) * quantity).toFixed(2));
+          
+          const itemResult = await client.query(itemQuery, [
+            order.id,
+            productId,
+            quantity,
+            price,
+            total,
+            companyId
+          ]);
+          
+          console.log(`Item creado para orden #${order.id}:`, itemResult.rows[0]);
+        }
+      }
+      
+      // Confirmar la transacción
+      await client.query('COMMIT');
+      
+      // Convertir nombre de propiedades de snake_case a camelCase para la respuesta
       const formattedOrder = {
         id: order.id,
         companyId: order.company_id,
@@ -2961,70 +3010,20 @@ export async function registerRoutes(router: express.Router) {
         status: order.status,
         paymentMethod: order.payment_method,
         date: order.date,
-        notes: order.notes
+        notes: order.notes,
+        items: orderItemsData.length
       };
-
-      // Si hay items, crearlos
-      if (orderItemsData && Array.isArray(orderItemsData) && orderItemsData.length > 0) {
-        console.log(`Insertando ${orderItemsData.length} items para el pedido #${order.id}`);
-        
-        for (const item of orderItemsData) {
-          // Validar que el item tiene los datos necesarios
-          if (!item.code && !item.productId) {
-            console.warn("Item sin código de producto:", item);
-            continue;
-          }
-          
-          const productId = parseInt(item.code || item.productId);
-          
-          if (isNaN(productId)) {
-            console.warn(`ID de producto inválido: ${item.code || item.productId}`);
-            continue;
-          }
-          
-          // Usar consulta SQL directa para inserción de items
-          try {
-            const insertItemQuery = `
-              INSERT INTO order_items (
-                order_id, product_id, quantity, price, total, company_id
-              ) VALUES (
-                $1, $2, $3, $4, $5, $6
-              ) RETURNING *
-            `;
-            
-            const quantity = parseInt(item.quantity) || 1;
-            const price = typeof item.price === 'string' ? item.price : item.price.toFixed(2);
-            const total = typeof item.total === 'string' ? item.total : 
-                         (item.total ? item.total.toFixed(2) : 
-                         (item.price * quantity).toFixed(2));
-            
-            const itemInsertResult = await pool.query(insertItemQuery, [
-              order.id,
-              productId,
-              quantity,
-              price,
-              total,
-              companyId
-            ]);
-            
-            console.log("Item insertado:", itemInsertResult.rows[0]);
-          } catch (itemError) {
-            console.error("Error al insertar item:", itemError);
-            // Continuar con el siguiente item en caso de error
-            continue;
-          }
-        }
-        
-        console.log(`Items insertados correctamente para el pedido #${order.id}`);
-      } else {
-        console.log("No se recibieron items para este pedido");
-      }
-
-      console.log("POST /api/orders - Pedido creado:", order);
+      
+      console.log("Respuesta final del servidor con la orden formateada:", formattedOrder);
       res.json(formattedOrder);
     } catch (error) {
+      // En caso de error, revertir la transacción
+      await client.query('ROLLBACK');
       console.error("Error al crear pedido:", error);
       res.status(500).json({ error: String(error) });
+    } finally {
+      // Siempre liberar el cliente
+      client.release();
     }
   });
 
