@@ -187,6 +187,16 @@ export default function OrderStatus() {
         // Intenta convertir explícitamente la respuesta a JSON
         const jsonText = await response.text();
         console.log("Respuesta en texto:", jsonText);
+        // Verificación adicional antes de parsear
+        if (!jsonText || jsonText.trim() === '') {
+          console.error("Respuesta vacía del servidor");
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "El servidor devolvió una respuesta vacía",
+          });
+          return;
+        }
         responseData = JSON.parse(jsonText);
       } catch (parseError) {
         console.error("Error al analizar JSON:", parseError);
