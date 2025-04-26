@@ -39,7 +39,7 @@ const NewOrder = () => {
   return (
     <div>
       {/* ... UI for adding items ... */}
-      <button )={createOrder}>Create Order</button>
+      <button onClick={createOrder}>Create Order</button>
       {error && <p style={{ color: 'red' }}>{error}</p>}
     </div>
   );
