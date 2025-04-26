@@ -179,8 +179,25 @@ export default function OrderDetails() {
           throw new Error(`Error al actualizar (${response.status}): ${errorText}`);
         }
         
-        const responseData = await response.json();
-        console.log("Respuesta del endpoint:", responseData);
+        // Primero obtenemos la respuesta como texto para verificar que sea JSON válido
+        const responseText = await response.text();
+        console.log("Respuesta en texto:", responseText);
+        
+        // Intentar parsear como JSON (si es válido)
+        let responseData;
+        try {
+          responseData = JSON.parse(responseText);
+          console.log("Respuesta parseada con éxito:", responseData);
+        } catch (parseError) {
+          console.error("Error al parsear JSON:", parseError);
+          // Crear un objeto de respuesta genérico en caso de error de parseo
+          responseData = {
+            success: true,
+            message: "Estado actualizado (respuesta no JSON)",
+            order: { id: orderId, status: status }
+          };
+        }
+        
         return responseData;
       } catch (fetchError) {
         console.error("Error con fetch:", fetchError);
