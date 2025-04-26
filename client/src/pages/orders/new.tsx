@@ -173,8 +173,8 @@ export default function NewOrder() {
           orderId: order.id,
           productId: parseInt(item.code),
           quantity: item.quantity,
-          price: item.price.toFixed(2), // Formato exacto: "0.00"
-          companyId: user?.companyId || 1 // Usar el companyId del usuario actual
+          price: item.price.toFixed(2) // Formato exacto: "0.00"
+          // El companyId se obtiene del contexto en el servidor
         };
 
         console.log("Agregando item al pedido:", itemData);
