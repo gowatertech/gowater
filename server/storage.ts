@@ -560,10 +560,13 @@ export class DatabaseStorage implements IStorage {
         throw new Error("Se requiere un ID de compañía válido");
       }
       
+      // Importar tabla de settings
+      const { settings } = await import('@shared/schema');
+      
       const result = await db
         .select()
-        .from(settingsTable)
-        .where(eq(settingsTable.companyId, companyId));
+        .from(settings)
+        .where(eq(settings.companyId, companyId));
       
       console.log(`Storage - getSettings: Resultado para compañía ${companyId}:`, 
         result.length > 0 ? "Configuración encontrada" : "Configuración no encontrada");
@@ -580,7 +583,7 @@ export class DatabaseStorage implements IStorage {
       console.log(`Storage - createDefaultSettings: Creando configuración por defecto para compañía ${companyId}: ${companyName}`);
       
       // Acceder a tablas directamente desde el schema compartido
-      const schema = await import('@shared/schema');
+      const { settings, provinces, municipalities } = await import('@shared/schema');
       
       // Establecer companyId en el contexto para asegurar filtrado correcto
       const { getCurrentCompanyId, setCurrentCompanyId } = await import('./company-db');
@@ -590,7 +593,7 @@ export class DatabaseStorage implements IStorage {
       
       console.log('Buscando provincias disponibles...');
       // Buscar la primera provincia disponible
-      const provincesResult = await db.select().from(schema.provinces).limit(1);
+      const provincesResult = await db.select().from(provinces).limit(1);
       console.log('Provincias encontradas:', provincesResult);
       
       if (!provincesResult || provincesResult.length === 0) {
@@ -600,8 +603,8 @@ export class DatabaseStorage implements IStorage {
       
       console.log('Buscando municipios para provincia:', provincesResult[0].id);
       // Buscar el primer municipio disponible para esa provincia
-      const municipalitiesResult = await db.select().from(schema.municipalities)
-        .where(eq(schema.municipalities.provinceId, provincesResult[0].id))
+      const municipalitiesResult = await db.select().from(municipalities)
+        .where(eq(municipalities.provinceId, provincesResult[0].id))
         .limit(1);
       console.log('Municipios encontrados:', municipalitiesResult);
       
@@ -614,7 +617,7 @@ export class DatabaseStorage implements IStorage {
       
       // Crear configuración mínima con sólo el ID y nombre de la empresa
       const [newSettings] = await db
-        .insert(schema.settingsTable)
+        .insert(settings)
         .values({
           companyId: companyId,  // Explícitamente asignamos el ID
           name: companyName,
@@ -655,20 +658,23 @@ export class DatabaseStorage implements IStorage {
         console.log("Storage - ADVERTENCIA: municipalityId no presente");
       }
 
+      // Importar tabla de settings
+      const { settings } = await import('@shared/schema');
+
       // Buscar configuración existente para esta compañía específica
       const [existingSettings] = await db
         .select()
-        .from(settingsTable)
-        .where(eq(settingsTable.companyId, companyId));
+        .from(settings)
+        .where(eq(settings.companyId, companyId));
 
       if (existingSettings) {
         console.log(`Storage - updateSettings: Actualizando configuración existente para compañía ${companyId}`);
         
         // Actualizar asegurando que solo se modifique la configuración de esta compañía
         const [updatedSettings] = await db
-          .update(settingsTable)
+          .update(settings)
           .set(settingsData)
-          .where(eq(settingsTable.companyId, companyId))
+          .where(eq(settings.companyId, companyId))
           .returning();
           
         return updatedSettings;
@@ -677,7 +683,7 @@ export class DatabaseStorage implements IStorage {
         
         // Crear nueva configuración para esta compañía específica
         const [newSettings] = await db
-          .insert(settingsTable)
+          .insert(settings)
           .values(settingsData as InsertSettings)
           .returning();
           
