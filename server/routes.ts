@@ -1071,6 +1071,14 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/customers", async (req, res) => {
     try {
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/customers - Obteniendo clientes para empresa ${companyId}`);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+
       const allCustomers = await db
         .select({
           id: customers.id,
@@ -1090,11 +1098,14 @@ export async function registerRoutes(router: express.Router) {
           coordinates: customers.coordinates,
           municipalityName: municipalities.name,
           provinceName: provinces.name,
+          companyId: customers.companyId,
         })
         .from(customers)
         .leftJoin(provinces, eq(customers.provinceid, provinces.id))
-        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id));
+        .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id))
+        .where(eq(customers.companyId, companyId)); // Filtramos por companyId
 
+      console.log(`Encontrados ${allCustomers.length} clientes para la empresa ${companyId}`);
       res.json(allCustomers);
     } catch (error) {
       console.error("Error al obtener clientes:", error);
@@ -1108,6 +1119,14 @@ export async function registerRoutes(router: express.Router) {
       
       if (isNaN(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
+      }
+      
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/customers/by-zone - Zona ${zoneId}, Empresa ${companyId}`);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
       }
 
       const customersInZone = await db
@@ -1124,9 +1143,15 @@ export async function registerRoutes(router: express.Router) {
           municipalityid: customers.municipalityid,
           reference: customers.reference,
           coordinates: customers.coordinates,
+          companyId: customers.companyId,
         })
         .from(customers)
-        .where(eq(customers.zoneid, zoneId));
+        .where(and(
+          eq(customers.zoneid, zoneId),
+          eq(customers.companyId, companyId) // Filtramos por companyId
+        ));
+
+      console.log(`Encontrados ${customersInZone.length} clientes en zona ${zoneId} para empresa ${companyId}`);
 
       // Obtener información de provincia y municipio para cada cliente
       const customersWithDetails = await Promise.all(
@@ -1160,6 +1185,14 @@ export async function registerRoutes(router: express.Router) {
     try {
       const customerId = parseInt(req.params.id);
       
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/customers/${customerId} - Empresa ${companyId}`);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       // Select specific fields from customers table instead of spreading the entire table
       const [customer] = await db
         .select({
@@ -1181,11 +1214,15 @@ export async function registerRoutes(router: express.Router) {
           balance: customers.balance,
           provinceName: provinces.name,
           municipalityName: municipalities.name,
+          companyId: customers.companyId,
         })
         .from(customers)
         .leftJoin(provinces, eq(customers.provinceid, provinces.id))
         .leftJoin(municipalities, eq(customers.municipalityid, municipalities.id))
-        .where(eq(customers.id, customerId));
+        .where(and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId) // Filtramos por companyId
+        ));
 
       if (!customer) {
         return res.status(404).json({ error: "Cliente no encontrado" });

@@ -191,7 +191,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listCustomers(): Promise<Customer[]> {
-    return db.select().from(customers);
+    // Utilizamos la función withCompany para asegurar que se aplique el filtro de compañía
+    // Esto garantiza que solo se devuelvan los clientes de la compañía actual
+    const companyId = getCurrentCompanyId();
+    console.log(`listCustomers() - Obteniendo clientes para compañía: ${companyId}`);
+    
+    return db.select()
+      .from(customers)
+      .where(eq(customers.companyId, companyId || 0));
   }
 
   async updateCustomerBalance(id: number, amount: number): Promise<Customer> {
