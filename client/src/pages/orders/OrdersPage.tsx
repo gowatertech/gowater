@@ -144,8 +144,8 @@ export default function OrdersPage() {
           code: item.id.toString(),
           description: item.name || "Producto",
           quantity: item.quantity,
-          price: parseFloat(item.price.toString()),
-          total: parseFloat(item.price.toString()) * item.quantity
+          price: parseFloat(item.unitPrice ? item.unitPrice.toString() : "0"),
+          total: parseFloat(item.unitPrice ? item.unitPrice.toString() : "0") * item.quantity
         }));
       } catch (error) {
         console.error("Error cargando detalles del pedido:", error);
@@ -224,7 +224,7 @@ export default function OrdersPage() {
           orderId: order.id,
           productId: parseInt(item.code),
           quantity: item.quantity,
-          price: item.price.toFixed(2) // Formato exacto: "0.00"
+          unitPrice: item.price.toFixed(2) // Formato exacto: "0.00"
         };
 
         console.log("Agregando item al pedido:", itemData);
