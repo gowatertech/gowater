@@ -79,7 +79,7 @@ export interface IStorage {
   getDriverLocation(driverId: number): Promise<DriverLocation | null>;
 
   // Settings
-  getSettings(): Promise<Settings | undefined>;
+  getSettings(companyId: number): Promise<Settings | undefined>;
   updateSettings(settings: Partial<InsertSettings>): Promise<Settings>;
 
   // Métodos para manejo de envases retornables
@@ -550,21 +550,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Settings
-  async getSettings(): Promise<Settings | undefined> {
+  async getSettings(companyId: number): Promise<Settings | undefined> {
     try {
-      console.log("Storage - getSettings: Consultando base de datos");
-      const result = await db.select().from(settingsTable);
-      console.log("Storage - getSettings: Resultado:", result);
-      return result[0];
+      console.log(`Storage - getSettings: Consultando configuración para compañía ${companyId}`);
+      
+      if (!companyId) {
+        console.error("Storage - getSettings: No se proporcionó un ID de compañía válido");
+        throw new Error("Se requiere un ID de compañía válido");
+      }
+      
+      const result = await db
+        .select()
+        .from(settingsTable)
+        .where(eq(settingsTable.companyId, companyId));
+      
+      console.log(`Storage - getSettings: Resultado para compañía ${companyId}:`, 
+        result.length > 0 ? "Configuración encontrada" : "Configuración no encontrada");
+      
+      return result.length > 0 ? result[0] : undefined;
     } catch (error) {
-      console.error("Error al obtener configuración:", error);
+      console.error(`Storage - getSettings: Error al obtener configuración para compañía ${companyId}:`, error);
       throw error;
     }
   }
 
   async updateSettings(settingsData: Partial<InsertSettings>): Promise<Settings> {
     try {
-      console.log("Storage - updateSettings: Datos recibidos:", settingsData);
+      // Obtener companyId de los datos o del contexto
+      const companyId = settingsData.companyId;
+      console.log(`Storage - updateSettings: Datos recibidos para compañía ${companyId}:`, settingsData);
+      
+      if (!companyId) {
+        console.error("Storage - updateSettings: No se proporcionó un ID de compañía válido");
+        throw new Error("Se requiere un ID de compañía válido para actualizar la configuración");
+      }
 
       // Verificación adicional para municipalityId
       if (settingsData.municipalityId) {
@@ -573,26 +592,36 @@ export class DatabaseStorage implements IStorage {
         console.log("Storage - ADVERTENCIA: municipalityId no presente");
       }
 
-      const [existingSettings] = await db.select().from(settingsTable);
+      // Buscar configuración existente para esta compañía específica
+      const [existingSettings] = await db
+        .select()
+        .from(settingsTable)
+        .where(eq(settingsTable.companyId, companyId));
 
       if (existingSettings) {
-        console.log("Storage - updateSettings: Actualizando configuración existente");
+        console.log(`Storage - updateSettings: Actualizando configuración existente para compañía ${companyId}`);
+        
+        // Actualizar asegurando que solo se modifique la configuración de esta compañía
         const [updatedSettings] = await db
           .update(settingsTable)
           .set(settingsData)
-          .where(eq(settingsTable.id, existingSettings.id))
+          .where(eq(settingsTable.companyId, companyId))
           .returning();
+          
         return updatedSettings;
       } else {
-        console.log("Storage - updateSettings: Creando nueva configuración");
+        console.log(`Storage - updateSettings: Creando nueva configuración para compañía ${companyId}`);
+        
+        // Crear nueva configuración para esta compañía específica
         const [newSettings] = await db
           .insert(settingsTable)
-          .values({ id: 1, ...settingsData as InsertSettings })
+          .values(settingsData as InsertSettings)
           .returning();
+          
         return newSettings;
       }
     } catch (error) {
-      console.error("Error al actualizar configuración:", error);
+      console.error(`Storage - updateSettings: Error al actualizar configuración:`, error);
       throw error;
     }
   }

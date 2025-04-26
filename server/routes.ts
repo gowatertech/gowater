@@ -1359,27 +1359,42 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "Se requiere una sesión con companyId" });
       }
       
+      // Llamamos a getSettings con el companyId específico
       const settings = await storage.getSettings(companyId);
-      console.log(`GET /api/settings - Retornando configuración para empresa ${companyId}:`, settings);
-      res.json(settings || {});
+      
+      if (!settings) {
+        console.log(`GET /api/settings - No se encontró configuración para la empresa ${companyId}`);
+        return res.status(404).json({ error: "No se encontró configuración para esta empresa" });
+      }
+      
+      console.log(`GET /api/settings - Retornando configuración para empresa ${companyId}`);
+      res.json(settings);
     } catch (error) {
-      console.error("Error al obtener configuración:", error);
+      console.error(`Error al obtener configuración: ${error}`);
       res.status(500).json({ error: String(error) });
     }
   });
 
   router.post("/settings", upload.single('logo'), async (req, res) => {
     try {
-      console.log("POST /api/settings - Body recibido:", req.body);
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`POST /api/settings - Body recibido para compañía ${companyId}:`, req.body);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const settingsData = {
         ...req.body,
+        companyId: companyId, // Asegurar que siempre tenga el companyId del contexto
         logo: req.file ? req.file.buffer.toString('base64') : undefined,
       };
 
       // Verificar y convertir provinceId
       if (settingsData.provinceId) {
         settingsData.provinceId = Number(settingsData.provinceId);
-        console.log("provinceId convertido:", settingsData.provinceId);
+        console.log(`provinceId convertido: ${settingsData.provinceId}`);
         if (isNaN(settingsData.provinceId)) {
           return res.status(400).json({ error: "ID de provincia inválido" });
         }
@@ -1388,26 +1403,26 @@ export async function registerRoutes(router: express.Router) {
       // Verificar y convertir municipalityId
       if (settingsData.municipalityId) {
         settingsData.municipalityId = Number(settingsData.municipalityId);
-        console.log("municipalityId convertido:", settingsData.municipalityId);
+        console.log(`municipalityId convertido: ${settingsData.municipalityId}`);
         if (isNaN(settingsData.municipalityId)) {
           return res.status(400).json({ error: "ID de municipio inválido" });
         }
       }
 
-      console.log("POST /api/settings - Datos procesados:", {
+      console.log(`POST /api/settings - Datos procesados para compañía ${companyId}:`, {
         ...settingsData,
         logo: settingsData.logo ? 'Base64 image data present' : 'No logo data'
       });
 
       const updatedSettings = await storage.updateSettings(settingsData);
-      console.log("POST /api/settings - Configuración actualizada:", {
+      console.log(`POST /api/settings - Configuración actualizada para compañía ${companyId}:`, {
         ...updatedSettings,
         logo: updatedSettings.logo ? 'Base64 image data present' : 'No logo data'
       });
 
       res.json(updatedSettings);
     } catch (error) {
-      console.error("Error al actualizar configuración:", error);
+      console.error(`Error al actualizar configuración:`, error);
       res.status(500).json({ error: String(error) });
     }
   });
