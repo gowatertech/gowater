@@ -2898,10 +2898,18 @@ export async function registerRoutes(router: express.Router) {
     const client = await pool.connect();
     
     try {
+      console.log("🔴 INICIO /api/orders - Intento de crear pedido");
       console.log("📣 POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
       console.log("📊 Tipo de req.body:", typeof req.body);
       console.log("📋 Items recibidos:", Array.isArray(req.body.items) ? req.body.items.length : 'ninguno');
+      console.log("🔐 Usuario en sesión:", req.session?.user);
+      console.log("🏢 CompanyId en sesión:", req.session?.companyId);
       
+      // ALERTA: Verificando autenticación
+      if (!req.session?.user) {
+        console.log("⚠️ ALERTA: Usuario no autenticado");
+      }
+        
       if (!req.body.customerId) {
         throw new Error("El ID de cliente es obligatorio");
       }
@@ -2944,6 +2952,8 @@ export async function registerRoutes(router: express.Router) {
       console.log("📌 notes:", orderData.notes);
       
       // Iniciar transacción
+      const { pool } = await import('./db');
+      const client = await pool.connect();
       await client.query('BEGIN');
       console.log("🔄 Transacción iniciada");
       
