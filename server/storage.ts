@@ -579,19 +579,22 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Storage - createDefaultSettings: Creando configuración por defecto para compañía ${companyId}: ${companyName}`);
       
+      // Importar tablas específicas para evitar referencias circulares
+      const { provinces, municipalities } = await import('@shared/schema');
+      
       // Buscar la primera provincia disponible
-      const provincesResult = await db.select().from(schema.provinces).limit(1);
+      const provincesResult = await db.select().from(provinces).limit(1);
       if (!provincesResult || provincesResult.length === 0) {
         console.error("No se encontraron provincias en la base de datos");
         return undefined;
       }
       
       // Buscar el primer municipio disponible para esa provincia
-      const municipalitiesResult = await db.select().from(schema.municipalities)
-        .where(eq(schema.municipalities.provinceId, provincesResult[0].id))
+      const municipalitiesResult = await db.select().from(municipalities)
+        .where(eq(municipalities.provinceId, provincesResult[0].id))
         .limit(1);
       
-      if (!municipalities || municipalities.length === 0) {
+      if (!municipalitiesResult || municipalitiesResult.length === 0) {
         console.error("No se encontraron municipios en la base de datos");
         return undefined;
       }
@@ -604,8 +607,8 @@ export class DatabaseStorage implements IStorage {
           name: companyName,
           street: "Por definir",
           streetNumber: "0",
-          provinceId: provinces[0].id,
-          municipalityId: municipalities[0].id,
+          provinceId: provincesResult[0].id,
+          municipalityId: municipalitiesResult[0].id,
           contactPhone: "0000000000",
           country: "República Dominicana",
           currency: "DOP",
