@@ -173,7 +173,8 @@ export default function NewOrder() {
           orderId: order.id,
           productId: parseInt(item.code),
           quantity: item.quantity,
-          price: item.price.toFixed(2) // Formato exacto: "0.00"
+          price: item.price.toFixed(2), // Formato exacto: "0.00"
+          total: item.total.toFixed(2) // Formato exacto: "0.00" - Campo requerido por el esquema
           // El companyId se obtiene del contexto en el servidor
         };
 
