@@ -377,7 +377,7 @@ export default function Customers() {
           {!isMobile && (
             <Button 
               onClick={() => setActiveTab("new")} 
-              className="bg-gray-100 hover:bg-gray-100 h-7 text-xs px-2 py-0.5"
+              className="bg-blue-500 hover:bg-blue-600 text-white h-7 text-xs px-2 py-0.5"
             >
               <PlusCircle className="h-3 w-3 mr-1" />
               Crear Cliente
@@ -394,7 +394,7 @@ export default function Customers() {
             <span>Lista</span>
           </TabsTrigger>
           <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2 py-0">
-            <PlusCircle className="h-3 w-3" />
+            <PlusCircle className="h-3 w-3 text-blue-500" />
             <span>Nuevo</span>
           </TabsTrigger>
           {!isMobile && (
@@ -771,7 +771,7 @@ export default function Customers() {
           <div className="border rounded-md p-2 bg-white">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5 text-gray-600" />
+                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
                 <h3 className="text-sm font-medium">Registrar Cliente</h3>
               </div>
             </div>
