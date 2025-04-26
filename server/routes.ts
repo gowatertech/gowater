@@ -128,12 +128,21 @@ export async function registerRoutes(router: express.Router) {
   // Warehouses endpoints
   router.get("/warehouses", async (req, res) => {
     try {
+      // Obtenemos el companyId del contexto de la solicitud
+      const companyId = req.session.companyId;
+      console.log(`GET /api/warehouses - Obteniendo almacenes para empresa ${companyId}`);
+
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const allWarehouses = await db
         .select()
         .from(warehouses)
+        .where(eq(warehouses.companyId, companyId)) // Filtramos por companyId
         .orderBy(warehouses.code);
 
-      console.log("GET /api/warehouses - Retornando:", allWarehouses.length, "almacenes");
+      console.log(`GET /api/warehouses - Retornando: ${allWarehouses.length} almacenes para empresa ${companyId}`);
       res.json(allWarehouses);
     } catch (error) {
       console.error("Error al obtener almacenes:", error);
