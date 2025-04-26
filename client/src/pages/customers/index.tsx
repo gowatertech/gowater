@@ -520,8 +520,8 @@ export default function Customers() {
                                     />
                                   </div>
                                 ) : (
-                                  <div className="w-8 h-8 bg-blue-50 rounded-md flex items-center justify-center border">
-                                    <Building2 className="h-4 w-4 text-blue-500" />
+                                  <div className="w-8 h-8 bg-gray-50 rounded-md flex items-center justify-center border">
+                                    <Building2 className="h-4 w-4 text-gray-500" />
                                   </div>
                                 )}
                                 <div 
@@ -618,7 +618,7 @@ export default function Customers() {
                           {filteredCustomers.map((customer, index) => (
                             <tr 
                               key={customer.id} 
-                              className="hover:bg-blue-50/30 transition-colors cursor-pointer"
+                              className="hover:bg-gray-50/30 transition-colors cursor-pointer"
                               onClick={() => {
                                 handleViewCustomer(customer);
                                 setActiveTab("details");
@@ -743,7 +743,7 @@ export default function Customers() {
                                 <Button 
                                   variant="ghost" 
                                   size="sm" 
-                                  className="h-7 px-2 py-0 text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                                  className="h-7 px-2 py-0 text-xs bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-800"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleViewCustomer(customer);
