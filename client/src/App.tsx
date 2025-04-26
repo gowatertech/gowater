@@ -375,23 +375,11 @@ function Router() {
         <Route path="/inventory/products" component={InventoryPage} />
         <Route path="/inventory" component={InventoryPage} />
 
-        {/* Enrutamiento de pedidos - usamos el componente Orders como router*/}
-        <Route path="/orders/list">
-          <Orders />
-        </Route>
-        <Route path="/orders/new">
-          <Orders />
-        </Route>
-        <Route path="/orders/details/:id">
-          <Orders />
-        </Route>
-        <Route path="/orders/status/:id">
-          <Orders />
-        </Route>
-        {/* Ruta principal de pedidos - siempre debe ir después de las rutas específicas */}
-        <Route path="/orders">
-          <Orders />
-        </Route>
+        <Route path="/orders" component={Orders} />
+        <Route path="/orders/list" component={OrdersList} />
+        <Route path="/orders/new" component={NewOrder} />
+        <Route path="/orders/details/:id" component={OrderDetails} />
+        <Route path="/orders/status/:id" component={OrderStatus} />
         <Route path="/orders/select-test" component={React.lazy(() => import('@/pages/orders/SelectTest'))} />
         <Route path="/routes/settlements" component={RouteSettlementPage} />
         <Route path="/vehicle-settlement" component={VehicleSettlementPage} />
