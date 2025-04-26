@@ -1,10 +1,11 @@
 //orders.ts
 import { Router } from "express";
 import { db } from '../db';
-import { orders, orderItems } from "@shared/schema";
+import { orders, orderItems, products } from "@shared/schema";
 import { eq, and, desc } from 'drizzle-orm';
 import { storage } from "../storage";
-import { getCurrentCompanyId } from "../company-db";
+import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
+import { logTenantOperation } from "../middleware/company.middleware";
 
 export const createOrdersEndpoints = (router: Router) => {
 

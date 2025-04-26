@@ -14,7 +14,7 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
   }
   
   // 2. Prioridad para el token JWT (si está implementado)
-  if (req.user && 'companyId' in req.user) {
+  if (req.user && 'companyId' in req.user && typeof req.user.companyId === 'number') {
     setCurrentCompanyId(req.user.companyId);
     console.log(`[Company Middleware] Usando companyId de token: ${req.user.companyId}`);
     return next();

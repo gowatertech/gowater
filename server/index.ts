@@ -4,7 +4,7 @@ import { registerPlatformEndpoints } from "./platform-routes-register";
 import { setupVite, log } from "./vite";
 import path from "path";
 import session from "express-session";
-import { tenantMiddleware, companyFilterMiddleware } from "./multi-tenant-middleware";
+import { companyFilterMiddleware } from "./multi-tenant-middleware";
 import { platformStorage } from "./platform-storage";
 import { setupPlatform } from "./platform-db-setup";
 import { companyDbMiddleware } from "./company-db";
@@ -13,7 +13,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
-import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
+import { consolidatedCompanyMiddleware } from "./middleware/company.middleware";
 import { registerTestAPIRoutes } from "./test-api";
 import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
 
@@ -45,10 +45,9 @@ const companyApiRouter = express.Router();
 const platformApiRouter = express.Router();
 
 // Solo aplicamos los middlewares de multi-tenancy al router de empresas
-companyApiRouter.use(tenantMiddleware);
+companyApiRouter.use(consolidatedCompanyMiddleware);
 companyApiRouter.use(companyDbMiddleware);
 companyApiRouter.use(companyFilterMiddleware);
-companyApiRouter.use(companyTenantMiddleware);
 
 // Montamos los routers en sus respectivas rutas
 app.use("/api/platform", platformApiRouter);
