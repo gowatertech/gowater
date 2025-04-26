@@ -222,6 +222,11 @@ export default function OrderDetails() {
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders", orderId] });
       
+      // Forzar una recarga de la página para mostrar el cambio
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
       // También podríamos actualizar manualmente el cache para una actualización más rápida
       const orderData = data.order;
       if (orderData && orderData.id) {

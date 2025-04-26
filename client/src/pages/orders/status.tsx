@@ -168,7 +168,6 @@ export default function OrderStatus() {
       });
       
       console.log("Estado HTTP directo:", response.status);
-      console.log("Respuesta headers:", [...response.headers.entries()]);
       
       if (!response.ok) {
         console.error("Error en la respuesta:", response.status);
@@ -184,46 +183,19 @@ export default function OrderStatus() {
       
       let responseData;
       try {
-        // Intenta convertir explícitamente la respuesta a JSON
-        const jsonText = await response.text();
-        console.log("Respuesta en texto:", jsonText);
-        
-        // Verificación adicional antes de parsear
-        if (!jsonText || jsonText.trim() === '') {
-          console.log("Respuesta vacía, asumiendo éxito");
-          // Crear un objeto de respuesta genérico en caso de respuesta vacía
-          return {
-            success: true,
-            message: "Estado actualizado correctamente",
-            order: { id: orderId, status: newStatus }
-          };
-        }
-        
-        try {
-          responseData = JSON.parse(jsonText);
-        } catch (parseError) {
-          console.error("Error al analizar JSON:", parseError);
-          console.log("Respuesta no JSON, asumiendo éxito");
-          // Crear un objeto de respuesta genérico en caso de error de parseo
-          return {
-            success: true,
-            message: "Estado actualizado (respuesta no JSON)",
-            order: { id: orderId, status: newStatus }
-          };
-        }
+        responseData = await response.json();
       } catch (parseError) {
-        console.error("Error general al procesar la respuesta:", parseError);
-        // Crear un objeto de respuesta genérico en caso de error de procesamiento
-        return {
+        console.error("Error al parsear la respuesta JSON:", parseError);
+        responseData = {
           success: true,
-          message: "Estado actualizado (error controlado)",
+          message: "Estado actualizado (respuesta no JSON)",
           order: { id: orderId, status: newStatus }
         };
       }
       
       console.log("Datos de respuesta:", responseData);
       
-      // Actualizar la UI y el caché
+      // Limpiar caché y forzar recarga
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders", orderId] });
       
@@ -240,8 +212,14 @@ export default function OrderStatus() {
         description: `El pedido ahora está ${statusText}`,
       });
       
-      // Cerrar modal o redireccionar si es necesario
-      setIsModalOpen(false);
+      // SOLUCIÓN DEFINITIVA:
+      // 1. Primero mostramos el mensaje de éxito
+      // 2. Esperamos un segundo para que el backend termine
+      // 3. Forzamos una recarga completa de la página
+      setTimeout(() => {
+        // Recargar la página para mostrar el nuevo estado
+        window.location.href = `/orders/details/${orderId}`;
+      }, 1000);
       
     } catch (error) {
       console.error("Error en la actualización directa:", error);
