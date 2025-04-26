@@ -42,89 +42,110 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
       const companyId = getCurrentCompanyId() || 1; // Default a companyId 1 si no hay contexto
       console.log(`Actualización para companyId: ${companyId}`);
       
-      // Ejecutar SQL directo para la actualización (más seguro y directo)
-      const updateQuery = `
-        UPDATE orders 
-        SET status = $1 
-        WHERE id = $2 AND "companyId" = $3
-        RETURNING *;
-      `;
+      // Verificamos el estado actual
+      const currentOrder = await db.select().from(orders).where(
+        sql`${orders.id} = ${orderIdNum} AND ${orders.companyId} = ${companyId}`
+      );
       
-      console.log(`Ejecutando query SQL: ${updateQuery} con valores: [${status}, ${orderIdNum}, ${companyId}]`);
+      if (currentOrder.length === 0) {
+        console.log(`Pedido ${orderIdNum} no encontrado para companyId ${companyId}`);
+        return res.status(404).json({ 
+          success: false, 
+          message: "Pedido no encontrado o no pertenece a la empresa" 
+        });
+      }
+      
+      console.log(`Estado actual del pedido ${orderIdNum}: ${currentOrder[0].status}`);
+      console.log(`Nuevo estado a aplicar: ${status}`);
+      
+      let updateResult;
       
       try {
-        // Usar la conexión directa a la base de datos
-        const result = await pool.query(updateQuery, [status, orderIdNum, companyId]);
+        // Intentar actualizar con Drizzle ORM primero (más seguro y tipado)
+        updateResult = await db.update(orders)
+          .set({ status: status })
+          .where(
+            sql`${orders.id} = ${orderIdNum} AND ${orders.companyId} = ${companyId}`
+          )
+          .returning();
+          
+        console.log("Resultado de actualización con Drizzle:", updateResult);
         
-        console.log("Resultado completo de la actualización SQL:", result);
-        
-        if (result.rowCount === 0) {
-          console.log(`No se pudo actualizar. Pedido ${orderIdNum} no encontrado para companyId ${companyId}`);
-          res.setHeader('Content-Type', 'application/json');
+        if (updateResult.length === 0) {
           return res.status(404).json({ 
             success: false, 
-            message: "Pedido no encontrado o no pertenece a la empresa" 
+            message: "Pedido no encontrado o no pertenece a la empresa (después de intentar actualizar)" 
           });
         }
-        
-        const updatedOrder = result.rows[0];
-        console.log("Pedido actualizado:", updatedOrder);
-        console.log(`Status anterior: ${status}, Status nuevo: ${updatedOrder.status}`);
-        console.log("------ FIN DE ACTUALIZACIÓN DE ESTADO ------");
-        
-        // Asegurarnos de establecer el tipo de contenido explícitamente
-        res.setHeader('Content-Type', 'application/json');
-        return res.status(200).json({ 
-          success: true, 
-          message: "Estado actualizado correctamente", 
-          order: updatedOrder
-        });
-      } catch (updateError) {
-        console.error("Error en la actualización SQL:", updateError);
-        
-        // Intento alternativo con Drizzle ORM si falla el SQL directo
-        console.log("Intentando actualización con Drizzle ORM como alternativa");
-        
-        try {
-          const updateResult = await db.update(orders)
-            .set({ status: status })
-            .where(
-              sql`${orders.id} = ${orderIdNum} AND ${orders.companyId} = ${companyId}`
-            )
-            .returning();
-            
-          console.log("Resultado de actualización con Drizzle:", updateResult);
           
-          if (updateResult.length === 0) {
-            res.setHeader('Content-Type', 'application/json');
+      } catch (ormError) {
+        console.error("Error en actualización con Drizzle ORM:", ormError);
+        
+        // Si falla Drizzle, intentar con SQL directo
+        try {
+          // Usar la conexión directa a la base de datos
+          const updateQuery = `
+            UPDATE orders 
+            SET status = $1 
+            WHERE id = $2 AND "companyId" = $3
+            RETURNING *;
+          `;
+          
+          console.log(`Ejecutando query SQL: ${updateQuery} con valores: [${status}, ${orderIdNum}, ${companyId}]`);
+          
+          const result = await pool.query(updateQuery, [status, orderIdNum, companyId]);
+          
+          console.log("Resultado SQL directo:", result);
+          
+          if (result.rowCount === 0) {
             return res.status(404).json({ 
               success: false, 
-              message: "Pedido no encontrado o no pertenece a la empresa" 
+              message: "Pedido no encontrado o no pertenece a la empresa (SQL directo)" 
             });
           }
           
-          // También establecer el tipo de contenido para el método alternativo
-          res.setHeader('Content-Type', 'application/json');
-          return res.status(200).json({ 
-            success: true, 
-            message: "Estado actualizado correctamente usando método alternativo", 
-            order: updateResult[0] 
-          });
-        } catch (ormError) {
-          console.error("Error en actualización con Drizzle ORM:", ormError);
-          res.setHeader('Content-Type', 'application/json');
+          updateResult = result.rows;
+          
+        } catch (sqlError) {
+          console.error("Error en SQL directo:", sqlError);
           return res.status(500).json({ 
             success: false, 
-            message: "Error en ambos métodos de actualización", 
-            sqlError: String(updateError),
-            ormError: String(ormError)
+            message: "Error en la actualización de la base de datos", 
+            error: String(sqlError)
           });
         }
       }
+      
+      // Verificación adicional del resultado
+      if (!updateResult || updateResult.length === 0) {
+        console.error("Resultado de actualización indefinido o vacío");
+        return res.status(500).json({ 
+          success: false, 
+          message: "Error en la actualización (resultado indefinido)"
+        });
+      }
+      
+      const updatedOrder = Array.isArray(updateResult) ? updateResult[0] : updateResult;
+      console.log("Pedido actualizado:", updatedOrder);
+      console.log(`Status anterior: ${currentOrder[0].status}, Status nuevo: ${updatedOrder.status}`);
+      
+      // Verificar que el estado realmente cambió
+      if (updatedOrder.status !== status) {
+        console.error(`¡ADVERTENCIA! El estado no se actualizó correctamente. Esperado: ${status}, Actual: ${updatedOrder.status}`);
+      }
+      
+      console.log("------ FIN DE ACTUALIZACIÓN DE ESTADO ------");
+      
+      // Respuesta exitosa con resultado de la actualización
+      return res.status(200).json({ 
+        success: true, 
+        message: "Estado actualizado correctamente", 
+        order: updatedOrder
+      });
+      
     } catch (error) {
-      console.error("Error general:", error);
-      res.setHeader('Content-Type', 'application/json');
-      res.status(500).json({ 
+      console.error("Error general en actualización de estado:", error);
+      return res.status(500).json({ 
         success: false, 
         message: "Error en el servidor", 
         error: String(error) 
