@@ -212,66 +212,11 @@ export async function registerRoutes(router: express.Router) {
   });
 
 
-  // Endpoints para el manejo de direcciones
-  router.get("/provinces", async (req, res) => {
-    try {
-      console.log(`GET /api/provinces - Consultando todas las provincias`);
-      
-      // Obtenemos todas las provincias sin filtrar por compañía
-      let allProvinces = await db
-        .select()
-        .from(provinces)
-        .orderBy(provinces.name);
+  // Las rutas para provincias y municipios se movieron al router de datos geográficos
+  // Ver: server/routes/geo-data.ts
 
-      console.log(`Provincias encontradas:`, allProvinces.length);
-      res.json(allProvinces);
-    } catch (error) {
-      console.error("Error al obtener provincias:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  router.get("/municipalities/:provinceId", async (req, res) => {
-    try {
-      const provinceId = parseInt(req.params.provinceId);
-      if (isNaN(provinceId)) {
-        return res.status(400).json({ error: "ID de provincia inválido" });
-      }
-      
-      console.log(`GET /api/municipalities/${provinceId} - Consultando todos los municipios`);
-
-      // Obtenemos todos los municipios para esta provincia sin filtrar por compañía
-      let municipalitiesInProvince = await db
-        .select()
-        .from(municipalities)
-        .where(eq(municipalities.provinceId, provinceId))
-        .orderBy(municipalities.name);
-
-      console.log(`Municipios encontrados para provincia ${provinceId}:`, municipalitiesInProvince.length);
-      res.json(municipalitiesInProvince);
-    } catch (error) {
-      console.error("Error al obtener municipios:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  router.get("/cities/:provinceId", async (req, res) => {
-    try {
-      const provinceId = parseInt(req.params.provinceId);
-      const citiesInProvince = await db
-        .select()
-        .from(cities)
-        .innerJoin(
-          municipalities,
-          eq(cities.municipalityId, municipalities.id)
-        )
-        .where(eq(municipalities.provinceId, provinceId));
-      res.json(citiesInProvince);
-    } catch (error) {
-      console.error("Error al obtener ciudades:", error);
-      res.status(500).json({ error: String(error) });
-    }
-  });
+  // La ruta para ciudades se movió al router de datos geográficos
+  // Ver: server/routes/geo-data.ts
 
   router.get("/sectors/:cityId", async (req, res) => {
     try {

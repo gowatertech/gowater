@@ -78,15 +78,15 @@ function Settings() {
 
   // Fetch provinces
   const { data: provinces = [] } = useQuery<Province[]>({
-    queryKey: ["/api/provinces"],
+    queryKey: ["/api/geo/provinces"],
   });
 
   // Fetch municipalities based on selected province
   const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery<Municipality[]>({
-    queryKey: ["/api/municipalities", form.watch("provinceId")],
+    queryKey: ["/api/geo/municipalities", form.watch("provinceId")],
     queryFn: async () => {
       if (!form.watch("provinceId")) return [];
-      const response = await apiRequest("GET", `/api/municipalities/${form.watch("provinceId")}`);
+      const response = await apiRequest("GET", `/api/geo/municipalities/${form.watch("provinceId")}`);
       return response.json();
     },
     enabled: !!form.watch("provinceId"),

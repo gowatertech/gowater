@@ -18,6 +18,8 @@ import { registerTestAPIRoutes } from "./test-api";
 import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
 // Importamos el router de órdenes
 import ordersRouter from "./routes/orders";
+// Importamos las rutas para datos geográficos
+import { registerGeoDataRoutes } from "./routes/geo-data";
 
 const app = express();
 
@@ -42,9 +44,10 @@ const sessionConfig = {
 
 app.use(session(sessionConfig));
 
-// Creamos routers separados para APIs de empresas y plataforma
+// Creamos routers separados para APIs de empresas, plataforma y datos geográficos
 const companyApiRouter = express.Router();
 const platformApiRouter = express.Router();
+const geoDataApiRouter = express.Router(); // Router para datos geográficos sin autenticación
 
 // Solo aplicamos los middlewares de multi-tenancy al router de empresas
 companyApiRouter.use(tenantMiddleware);
@@ -54,6 +57,7 @@ companyApiRouter.use(companyTenantMiddleware);
 
 // Montamos los routers en sus respectivas rutas
 app.use("/api/platform", platformApiRouter);
+app.use("/api/geo", geoDataApiRouter); // Para datos geográficos sin autenticación
 app.use("/api", companyApiRouter);
 
 // Logging middleware
@@ -96,6 +100,10 @@ app.use((req, res, next) => {
     // Register Platform API routes first (for admin platform)
     registerPlatformEndpoints(platformApiRouter);
     log("Platform routes registered successfully");
+    
+    // Register geographic data routes that don't require authentication
+    registerGeoDataRoutes(geoDataApiRouter);
+    log("Geographic data routes registered successfully");
     
     // Register regular API routes for company operations
     await registerRoutes(companyApiRouter);
