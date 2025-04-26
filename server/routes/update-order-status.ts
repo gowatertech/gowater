@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { PgDatabase } from "drizzle-orm/pg-core";
 import { orders } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from '../db';
+import { pool } from '../db';
+import { getCurrentCompanyId } from '../company-db';
 
 // Endpoint especializado para actualización de estado de pedidos
 export function createUpdateOrderStatusEndpoint(router: Router) {
@@ -15,7 +16,6 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
       console.log("Cuerpo de la solicitud:", req.body);
       console.log("Método:", req.method);
       console.log("URL:", req.url);
-      console.log("Headers:", req.headers);
       
       const { orderId, status } = req.body;
       
@@ -38,52 +38,81 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
       // Convertir a número
       const orderIdNum = parseInt(orderId);
       
-      // Verificar si el pedido existe
-      const existingOrder = await db.select()
-        .from(orders)
-        .where(eq(orders.id, orderIdNum));
+      // Determinar el companyId actual
+      const companyId = getCurrentCompanyId() || 1; // Default a companyId 1 si no hay contexto
+      console.log(`Actualización para companyId: ${companyId}`);
       
-      if (!existingOrder || existingOrder.length === 0) {
-        console.log(`Error: Pedido ${orderIdNum} no encontrado`);
-        return res.status(404).json({ 
-          success: false, 
-          message: "Pedido no encontrado" 
-        });
-      }
+      // Ejecutar SQL directo para la actualización (más seguro y directo)
+      const updateQuery = `
+        UPDATE orders 
+        SET status = $1 
+        WHERE id = $2 AND "companyId" = $3
+        RETURNING *;
+      `;
       
-      console.log(`Pedido encontrado: ${orderIdNum}, estado actual: ${existingOrder[0].status}`);
-      
-      // Usar un update simple y directo
-      console.log(`Actualizando pedido ${orderIdNum} al estado: ${status}`);
+      console.log(`Ejecutando query SQL: ${updateQuery} con valores: [${status}, ${orderIdNum}, ${companyId}]`);
       
       try {
-        // Actualización directa con SQL simple
-        const updateResult = await db.update(orders)
-          .set({ status: status })
-          .where(eq(orders.id, orderIdNum));
+        // Usar la conexión directa a la base de datos
+        const result = await pool.query(updateQuery, [status, orderIdNum, companyId]);
         
-        console.log("Resultado de la actualización:", updateResult);
+        console.log("Resultado completo de la actualización SQL:", result);
         
-        // Obtener el pedido actualizado
-        const updatedOrder = await db.select()
-          .from(orders)
-          .where(eq(orders.id, orderIdNum));
+        if (result.rowCount === 0) {
+          console.log(`No se pudo actualizar. Pedido ${orderIdNum} no encontrado para companyId ${companyId}`);
+          return res.status(404).json({ 
+            success: false, 
+            message: "Pedido no encontrado o no pertenece a la empresa" 
+          });
+        }
         
-        console.log(`Pedido actualizado a: ${updatedOrder[0].status}`);
+        const updatedOrder = result.rows[0];
+        console.log("Pedido actualizado:", updatedOrder);
+        console.log(`Status anterior: ${status}, Status nuevo: ${updatedOrder.status}`);
         console.log("------ FIN DE ACTUALIZACIÓN DE ESTADO ------");
         
         return res.json({ 
           success: true, 
           message: "Estado actualizado correctamente", 
-          order: updatedOrder[0] 
+          order: updatedOrder
         });
       } catch (updateError) {
-        console.error("Error en la actualización:", updateError);
-        return res.status(500).json({ 
-          success: false, 
-          message: "Error al actualizar el estado", 
-          error: String(updateError) 
-        });
+        console.error("Error en la actualización SQL:", updateError);
+        
+        // Intento alternativo con Drizzle ORM si falla el SQL directo
+        console.log("Intentando actualización con Drizzle ORM como alternativa");
+        
+        try {
+          const updateResult = await db.update(orders)
+            .set({ status: status })
+            .where(
+              sql`${orders.id} = ${orderIdNum} AND ${orders.companyId} = ${companyId}`
+            )
+            .returning();
+            
+          console.log("Resultado de actualización con Drizzle:", updateResult);
+          
+          if (updateResult.length === 0) {
+            return res.status(404).json({ 
+              success: false, 
+              message: "Pedido no encontrado o no pertenece a la empresa" 
+            });
+          }
+          
+          return res.json({ 
+            success: true, 
+            message: "Estado actualizado correctamente usando método alternativo", 
+            order: updateResult[0] 
+          });
+        } catch (ormError) {
+          console.error("Error en actualización con Drizzle ORM:", ormError);
+          return res.status(500).json({ 
+            success: false, 
+            message: "Error en ambos métodos de actualización", 
+            sqlError: String(updateError),
+            ormError: String(ormError)
+          });
+        }
       }
     } catch (error) {
       console.error("Error general:", error);

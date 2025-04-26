@@ -157,35 +157,59 @@ export default function OrderDetails() {
       
       console.log(`Iniciando actualización de estado del pedido ${orderId} a ${status}`);
       
-      // Primer intento: usar el nuevo endpoint directo que no requiere autenticación
+      // Usar solo el nuevo endpoint directo para mayor claridad y consistencia
       try {
-        const response = await apiRequest({
-          url: `/api/update-order-status`,
-          method: "POST", 
-          data: { 
+        const response = await fetch('/api/update-order-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
             orderId: orderId.toString(),
             status 
-          }
+          }),
+          credentials: 'include' // Importante para cookies/sesión
         });
         
-        console.log("Respuesta del nuevo endpoint:", response);
-        return response;
-      } catch (error) {
-        console.error("Error al usar el nuevo endpoint, intentando con el endpoint original:", error);
+        console.log("Respuesta HTTP:", response.status);
         
-        // Segundo intento: usar el endpoint original
-        return await apiRequest({
-          url: `/api/orders/${orderId}/status`,
-          method: "PATCH", 
-          data: { status }
-        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error HTTP:", response.status, errorText);
+          throw new Error(`Error al actualizar (${response.status}): ${errorText}`);
+        }
+        
+        const responseData = await response.json();
+        console.log("Respuesta del endpoint:", responseData);
+        return responseData;
+      } catch (fetchError) {
+        console.error("Error con fetch:", fetchError);
+        throw fetchError;
       }
     },
     onSuccess: (data) => {
       console.log("Éxito en la actualización del estado:", data);
       
+      // Verificar que la respuesta sea la esperada
+      if (!data || !data.success) {
+        console.error("La respuesta indica error:", data);
+        toast({
+          variant: "destructive",
+          title: "Error en el servidor",
+          description: data?.message || "No se pudo actualizar el estado",
+        });
+        return;
+      }
+      
+      // Invalidar todas las consultas relacionadas con pedidos
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/orders", orderId] });
+      
+      // También podríamos actualizar manualmente el cache para una actualización más rápida
+      const orderData = data.order;
+      if (orderData && orderData.id) {
+        queryClient.setQueryData(["/api/orders", orderData.id], orderData);
+      }
       
       const statusText = newStatus === "delivered" 
         ? "entregado" 
@@ -194,7 +218,7 @@ export default function OrderDetails() {
           : newStatus === "in_transit"
             ? "en tránsito"
             : "pendiente";
-          
+            
       toast({
         title: "Estado actualizado",
         description: `El pedido ahora está ${statusText}`,
@@ -205,8 +229,8 @@ export default function OrderDetails() {
       
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message,
+        title: "Error al actualizar",
+        description: error.message || "No se pudo actualizar el estado del pedido",
       });
     }
   });
