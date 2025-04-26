@@ -550,12 +550,25 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para obtener conductores y ayudantes
   router.get("/users/drivers", async (req, res) => {
     try {
+      // Obtener ID de compañía de la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/users/drivers - Obteniendo conductores para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const role = req.query.role as string;
       const drivers = await db
         .select()
         .from(usersSimple)
         .where(
-          role ? eq(usersSimple.role, role) : sql`${usersSimple.role} IN ('driver', 'assistant')`
+          role 
+            ? and(eq(usersSimple.role, role), eq(usersSimple.companyId, companyId))
+            : and(
+                sql`${usersSimple.role} IN ('driver', 'assistant')`,
+                eq(usersSimple.companyId, companyId)
+              )
         )
         .orderBy(usersSimple.name);
 
@@ -570,16 +583,32 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para obtener un usuario por ID
   router.get("/users/:id", async (req, res) => {
     try {
+      // Obtener ID de compañía de la sesión
+      const companyId = req.session.companyId;
       const userId = parseInt(req.params.id);
+      
+      console.log(`GET /api/users/${userId} - Obteniendo usuario para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
+      // Buscar usuario asegurando que pertenezca a la compañía correcta
       const [user] = await db
         .select()
         .from(usersSimple)
-        .where(eq(usersSimple.id, userId));
+        .where(
+          and(
+            eq(usersSimple.id, userId),
+            eq(usersSimple.companyId, companyId)
+          )
+        );
       
       if (!user) {
         return res.status(404).json({ error: "Usuario no encontrado" });
       }
       
+      console.log(`GET /api/users/${userId} - Usuario encontrado`);
       res.json(user);
     } catch (error) {
       console.error("Error al obtener usuario:", error);
@@ -3962,16 +3991,39 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/driver/cash-balance", async (req, res) => {
     try {
+      // Obtener ID de compañía de la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/driver/cash-balance - Obteniendo balance para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
+      // En un futuro, obtener datos reales filtrados por companyId
+      // const payments = await db
+      //   .select({
+      //     total: sql`SUM(amount)`.mapWith(Number)
+      //   })
+      //   .from(payments)
+      //   .where(
+      //     and(
+      //       gte(payments.date, today),
+      //       eq(payments.companyId, companyId)
+      //     )
+      //   );
+
+      // Por ahora, datos de ejemplo
       const cashBalance = {
         initialBalance: "1000.00", // Example fixed value
         cashIn: "2500.00",        // Sum of today's payments
         cashOut: "500.00",        // Sum of today's expenses
         finalBalance: "3000.00"   // Calculated balance
       };
-
+      
+      console.log(`GET /api/driver/cash-balance - Retornando balance para empresa ${companyId}`);
       res.json(cashBalance);
     } catch (error) {
       console.error("Error al obtener balance:", error);
@@ -3981,13 +4033,34 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/driver/performance", async (req, res) => {
     try {
-      // Example performance metrics
+      // Obtener ID de compañía de la sesión
+      const companyId = req.session.companyId;
+      console.log(`GET /api/driver/performance - Obteniendo rendimiento para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
+      // En un futuro, obtener métricas reales filtradas por companyId desde la base de datos
+      // Por ejemplo:
+      // const deliveredOrders = await db
+      //   .select({ count: sql`COUNT(*)`.mapWith(Number) })
+      //   .from(orders)
+      //   .where(
+      //     and(
+      //       eq(orders.status, "delivered"),
+      //       eq(orders.companyId, companyId)
+      //     )
+      //   );
+
+      // Por ahora, datos de ejemplo
       const performance = {
         deliveredOrders: 8,
         totalOrders: 10,
         onTimeDeliveries: 7
       };
 
+      console.log(`GET /api/driver/performance - Retornando rendimiento para empresa ${companyId}`);
       res.json(performance);
     } catch (error) {
       console.error("Error al obtener rendimiento:", error);
