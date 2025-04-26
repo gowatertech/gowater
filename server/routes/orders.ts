@@ -1,11 +1,21 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
+import { getCurrentCompanyId } from '../company-db';
 
 // Router para manejar órdenes
 const ordersRouter = express.Router();
 
+// Middleware para verificar autenticación
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session?.user) {
+    console.log("❌ Acceso denegado: Usuario no autenticado");
+    return res.status(401).json({ success: false, message: "No autenticado" });
+  }
+  next();
+};
+
 // Endpoint para crear órdenes
-ordersRouter.post("/api/orders", async (req: Request, res: Response) => {
+ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Response) => {
   console.log("🔴 INICIO /api/orders - Intento de crear pedido");
   console.log("📣 POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
   
@@ -26,8 +36,8 @@ ordersRouter.post("/api/orders", async (req: Request, res: Response) => {
     await client.query('BEGIN');
     console.log("🔄 Transacción iniciada");
     
-    // Preparar datos del pedido
-    const companyId = 1; // Valor por defecto
+    // Obtener el ID de la empresa del contexto
+    const companyId = getCurrentCompanyId() || 1; // Obtener del contexto o usar valor por defecto
     const orderData = {
       customerId: parseInt(req.body.customerId),
       total: req.body.total,
