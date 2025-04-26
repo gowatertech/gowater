@@ -138,7 +138,7 @@ export const printOrderTicket = (
         const productName = product?.name || "Producto";
         const quantity = item?.quantity || 0;
         const price = parseFloat(item?.unitPrice || item?.price || 0);
-        const total = price * quantity;
+        const total = parseFloat(item?.total || (price * quantity).toString());
         
         tableHtml += `
           <tr style="border-bottom: 1px solid #eee;">
@@ -453,7 +453,7 @@ export const generateOrderPdf = (
         const productName = product?.name || "Producto";
         const quantity = item?.quantity || 0;
         const price = parseFloat(item?.unitPrice || item?.price || 0);
-        const total = price * quantity;
+        const total = parseFloat(item?.total || (price * quantity).toString());
         
         // Asegurar que el texto del producto no exceda el ancho disponible
         let displayName = productName;
