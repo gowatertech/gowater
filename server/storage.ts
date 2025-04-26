@@ -17,7 +17,7 @@ import {
   type RecurringOrder, type InsertRecurringOrder,
   type RecurringOrderItem, type InsertRecurringOrderItem
 } from "@shared/schema";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { getCurrentCompanyId, withCompanyUpdate } from "./company-db";
 import { eq, inArray, and } from "drizzle-orm";
 
@@ -129,20 +129,49 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    // Intentar buscar usuario por email
-    let [user] = await db.select().from(users).where(eq(users.email, email));
-    
-    // Si no se encuentra por email, intentar por username para compatibilidad
-    if (!user && email.includes('@')) {
-      console.log(`Usuario no encontrado por email: ${email}, intentando por username`);
-      const username = email.split('@')[0]; // Tomar la parte antes del @
-      [user] = await db.select().from(users).where(eq(users.username, username));
-      if (user) {
-        console.log(`Usuario encontrado por username: ${username}`);
+    try {
+      console.log(`Buscando usuario por email: ${email}`);
+      
+      // Usar SQL directo para evitar problemas de mapeo de columnas
+      const query = `
+        SELECT * FROM users 
+        WHERE email = $1
+      `;
+      
+      const result = await pool.query(query, [email]);
+      let user = result.rows.length > 0 ? result.rows[0] : null;
+      
+      // Si no se encuentra por email, intentar por username para compatibilidad
+      if (!user && email.includes('@')) {
+        console.log(`Usuario no encontrado por email: ${email}, intentando por username`);
+        const username = email.split('@')[0]; // Tomar la parte antes del @
+        
+        const usernameQuery = `
+          SELECT * FROM users 
+          WHERE username = $1
+        `;
+        
+        const usernameResult = await pool.query(usernameQuery, [username]);
+        user = usernameResult.rows.length > 0 ? usernameResult.rows[0] : null;
+        
+        if (user) {
+          console.log(`Usuario encontrado por username: ${username}`);
+        }
       }
+      
+      return user || undefined;
+    } catch (error) {
+      console.error(`Error al buscar usuario por email: ${email}`, error);
+      // Intentar método tradicional como fallback
+      let [user] = await db.select().from(users).where(eq(users.email, email));
+      
+      if (!user && email.includes('@')) {
+        const username = email.split('@')[0];
+        [user] = await db.select().from(users).where(eq(users.username, username));
+      }
+      
+      return user;
     }
-    
-    return user;
   }
 
   async createUser(user: InsertUser): Promise<User> {
