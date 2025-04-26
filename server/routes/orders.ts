@@ -1,290 +1,355 @@
-//orders.ts
 import { Router } from "express";
-import { db } from '../db';
+import { db } from "../db";
 import { orders, orderItems, products } from "@shared/schema";
-import { eq, and, desc } from 'drizzle-orm';
-import { storage } from "../storage";
-import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
+import { z } from "zod";
+import { eq, and, inArray, sql } from "drizzle-orm";
+import { getCurrentCompanyId } from "../company-db";
 import { logTenantOperation } from "../middleware/company.middleware";
 
-export const createOrdersEndpoints = (router: Router) => {
+const validateCompanyAccess = (req: any, resourceCompanyId: number) => {
+  const currentCompanyId = getCurrentCompanyId();
+  if (!currentCompanyId) {
+    return {
+      success: false,
+      message: "No hay contexto de empresa establecido"
+    };
+  }
   
-  // Endpoint para crear un nuevo pedido
-  router.post("/orders", async (req, res) => {
+  if (currentCompanyId !== resourceCompanyId) {
+    return {
+      success: false,
+      message: "No tiene permisos para acceder a recursos de otra empresa"
+    };
+  }
+  
+  return { success: true };
+};
+
+export function registerOrdersEndpoints(router: Router) {
+  // Obtener todos los pedidos (filtrados por companyId)
+  router.get('/orders', async (req, res) => {
     try {
-      console.log("POST /orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
-      
-      // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
-      
       if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para crear pedido");
-        logTenantOperation(req, "ORDER_CREATE_FAILED", { reason: "No companyId" });
-        return res.status(401).json({ 
-          error: "Autenticación requerida", 
-          details: "Debe iniciar sesión para crear pedidos" 
+        return res.status(403).json({
+          success: false,
+          message: "No hay contexto de empresa establecido"
         });
       }
       
-      // Añadir el companyId a los datos del pedido
-      const orderData = {
-        ...req.body,
-        companyId: companyId
-      };
+      logTenantOperation(req, 'get-orders', { companyId });
       
-      console.log("Datos del pedido con companyId:", orderData);
+      const results = await db.select()
+        .from(orders)
+        .where(eq(orders.companyId, companyId));
       
-      // Crear el pedido
-      const newOrder = await storage.createOrder(orderData);
+      res.json({
+        success: true,
+        data: results
+      });
+    } catch (error) {
+      console.error('Error al obtener pedidos:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener los pedidos'
+      });
+    }
+  });
+
+  // Obtener un pedido específico por ID (verificando que pertenezca a la compañía actual)
+  router.get('/orders/:id', async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(403).json({
+          success: false,
+          message: "No hay contexto de empresa establecido"
+        });
+      }
       
-      console.log("Pedido creado exitosamente:", newOrder);
-      logTenantOperation(req, "ORDER_CREATED", { orderId: newOrder.id, companyId });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID de pedido no válido"
+        });
+      }
       
-      // Si hay items en el cuerpo de la solicitud, crearlos también
-      if (req.body.items && Array.isArray(req.body.items) && req.body.items.length > 0) {
-        console.log(`Procesando ${req.body.items.length} items para el pedido #${newOrder.id}`);
+      logTenantOperation(req, 'get-order-detail', { companyId, orderId: id });
+      
+      const [order] = await db.select()
+        .from(orders)
+        .where(and(
+          eq(orders.id, id),
+          eq(orders.companyId, companyId)
+        ));
+      
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Pedido no encontrado o sin acceso"
+        });
+      }
+      
+      // Obtener los items del pedido
+      const items = await db.select({
+        id: orderItems.id,
+        productId: orderItems.productId,
+        quantity: orderItems.quantity,
+        unitPrice: orderItems.unitPrice,
+        subtotal: orderItems.subtotal,
+        productName: products.name
+      })
+      .from(orderItems)
+      .leftJoin(products, eq(orderItems.productId, products.id))
+      .where(eq(orderItems.orderId, id));
+      
+      res.json({
+        success: true,
+        data: {
+          ...order,
+          items
+        }
+      });
+    } catch (error) {
+      console.error('Error al obtener detalle del pedido:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al obtener el detalle del pedido'
+      });
+    }
+  });
+
+  // Crear un nuevo pedido (con contexto de empresa)
+  router.post('/orders', async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(403).json({
+          success: false,
+          message: "No hay contexto de empresa establecido"
+        });
+      }
+      
+      logTenantOperation(req, 'create-order', { companyId, body: req.body });
+      
+      // Validar el esquema de entrada
+      const orderSchema = z.object({
+        customerId: z.number(),
+        date: z.string().transform(str => new Date(str)),
+        status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
+        total: z.string(),
+        notes: z.string().optional(),
+        preferredDeliveryTime: z.string().transform(str => new Date(str)).optional(),
+        orderType: z.enum(["regular", "wholesale", "special"]).optional(),
+        paymentStatus: z.enum(["pending", "partial", "paid"]).optional(),
+        items: z.array(z.object({
+          productId: z.number(),
+          quantity: z.number(),
+          unitPrice: z.string()
+        })).optional()
+      });
+      
+      const parsedData = orderSchema.parse(req.body);
+      
+      // Crear transacción para insertar pedido e items
+      const orderResult = await db.transaction(async (tx) => {
+        // Insertar el pedido
+        const [newOrder] = await tx.insert(orders).values({
+          companyId,
+          customerId: parsedData.customerId,
+          date: parsedData.date,
+          status: parsedData.status,
+          total: parsedData.total,
+          notes: parsedData.notes,
+          preferredDeliveryTime: parsedData.preferredDeliveryTime,
+          orderType: parsedData.orderType || "regular",
+          paymentStatus: parsedData.paymentStatus || "pending",
+          createdAt: new Date()
+        }).returning();
         
-        for (const item of req.body.items) {
-          const orderItem = {
-            ...item,
+        // Insertar items del pedido si existen
+        if (parsedData.items && parsedData.items.length > 0) {
+          const itemsToInsert = parsedData.items.map(item => ({
             orderId: newOrder.id,
-            companyId: companyId
-          };
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            subtotal: (parseFloat(item.unitPrice) * item.quantity).toString()
+          }));
           
-          console.log("Creando item de pedido:", orderItem);
-          await storage.createOrderItem(orderItem);
+          await tx.insert(orderItems).values(itemsToInsert);
         }
         
-        console.log("Items de pedido creados exitosamente");
-      }
-      
-      res.status(201).json(newOrder);
-    } catch (error) {
-      console.error("Error al crear pedido:", error);
-      logTenantOperation(req, "ORDER_CREATE_ERROR", { error: String(error) });
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  // Obtener todos los pedidos (filtrados por companyId)
-  router.get("/api/orders", async (req, res) => {
-    try {
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
-      
-      if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para listar pedidos");
-        logTenantOperation(req, "ORDER_LIST_FAILED", { reason: "No companyId" });
-        return res.status(401).json({ 
-          error: "Autenticación requerida", 
-          details: "Debe iniciar sesión para ver pedidos" 
-        });
-      }
-      
-      // Filtrar pedidos por companyId
-      const allOrders = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.companyId, companyId))
-        .orderBy(desc(orders.id));
-
-      console.log(`GET /api/orders - Retornando: ${allOrders.length} pedidos para companyId ${companyId}`);
-      logTenantOperation(req, "ORDER_LIST", { count: allOrders.length, companyId });
-      res.json(allOrders);
-    } catch (error) {
-      console.error("Error al obtener pedidos:", error);
-      logTenantOperation(req, "ORDER_LIST_ERROR", { error: String(error) });
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  // Obtener un pedido específico por ID (verificando pertenencia a la compañía)
-  router.get("/api/orders/:id", async (req, res) => {
-    try {
-      const orderId = parseInt(req.params.id);
-      if (isNaN(orderId)) {
-        return res.status(400).json({ error: "ID de pedido inválido" });
-      }
-      
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
-      
-      if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener pedido");
-        logTenantOperation(req, "ORDER_GET_FAILED", { reason: "No companyId", orderId });
-        return res.status(401).json({ 
-          error: "Autenticación requerida", 
-          details: "Debe iniciar sesión para ver este pedido" 
-        });
-      }
-      
-      // Buscar pedido asegurándose que pertenezca a la compañía actual
-      const [order] = await db
-        .select()
-        .from(orders)
-        .where(and(
-          eq(orders.id, orderId),
-          eq(orders.companyId, companyId)
-        ));
-      
-      if (!order) {
-        console.log(`Pedido ${orderId} no encontrado o no pertenece a la compañía ${companyId}`);
-        logTenantOperation(req, "ORDER_NOT_FOUND", { orderId, companyId });
-        return res.status(404).json({ error: "Pedido no encontrado" });
-      }
-
-      console.log(`GET /api/orders/${orderId} - Pedido encontrado para companyId ${companyId}:`, order);
-      logTenantOperation(req, "ORDER_GET", { orderId, companyId });
-      res.json(order);
-    } catch (error) {
-      console.error(`Error al obtener pedido ${req.params.id}:`, error);
-      logTenantOperation(req, "ORDER_GET_ERROR", { orderId: req.params.id, error: String(error) });
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  // Obtener items de un pedido específico (con verificación de pertenencia a la compañía)
-  router.get("/api/orders/:id/items", async (req, res) => {
-    try {
-      const orderId = parseInt(req.params.id);
-      if (isNaN(orderId)) {
-        return res.status(400).json({ error: "ID de pedido inválido" });
-      }
-      
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
-      
-      if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener items del pedido");
-        logTenantOperation(req, "ORDER_ITEMS_GET_FAILED", { reason: "No companyId", orderId });
-        return res.status(401).json({ 
-          error: "Autenticación requerida", 
-          details: "Debe iniciar sesión para ver estos items" 
-        });
-      }
-      
-      // Primero verificar que el pedido pertenezca a la compañía actual
-      const [order] = await db
-        .select()
-        .from(orders)
-        .where(and(
-          eq(orders.id, orderId),
-          eq(orders.companyId, companyId)
-        ));
-      
-      if (!order) {
-        console.log(`Pedido ${orderId} no encontrado o no pertenece a la compañía ${companyId}`);
-        logTenantOperation(req, "ORDER_NOT_FOUND_FOR_ITEMS", { orderId, companyId });
-        return res.status(404).json({ error: "Pedido no encontrado" });
-      }
-      
-      // Obtener los items con su información de producto
-      const items = await db
-        .select({
-          id: orderItems.id,
-          orderId: orderItems.orderId,
-          productId: orderItems.productId,
-          quantity: orderItems.quantity,
-          price: orderItems.price,
-          productName: products.name
-        })
-        .from(orderItems)
-        .leftJoin(products, eq(orderItems.productId, products.id))
-        .where(and(
-          eq(orderItems.orderId, orderId),
-          eq(orderItems.companyId, companyId)
-        ));
-
-      console.log(`GET /api/orders/${orderId}/items - Items encontrados para companyId ${companyId}:`, items.length);
-      logTenantOperation(req, "ORDER_ITEMS_GET", { orderId, itemCount: items.length, companyId });
-      res.json(items);
-    } catch (error) {
-      console.error(`Error al obtener items del pedido ${req.params.id}:`, error);
-      logTenantOperation(req, "ORDER_ITEMS_GET_ERROR", { orderId: req.params.id, error: String(error) });
-      res.status(500).json({ error: String(error) });
-    }
-  });
-
-  // Actualizar estado de un pedido
-  router.patch("/api/orders/:id/status", async (req, res) => {
-    try {
-      console.log("======= INICIO DE ACTUALIZACIÓN DE ESTADO =======");
-      console.log("Request body:", req.body);
-      const orderId = parseInt(req.params.id);
-      const { status } = req.body;
-
-      console.log(`Pedido ID: ${orderId}, Estado solicitado: ${status}`);
-
-      if (isNaN(orderId)) {
-        console.log("ID de pedido inválido");
-        return res.status(400).json({ error: "ID de pedido inválido" });
-      }
-
-      if (!status || !["pending", "in_transit", "delivered", "cancelled"].includes(status)) {
-        console.log(`Estado inválido: ${status}`);
-        return res.status(400).json({ error: "Estado inválido" });
-      }
-
-      // Verificar que el pedido exista
-      const [existingOrder] = await db
-        .select()
-        .from(orders)
-        .where(eq(orders.id, orderId));
-
-      console.log("Pedido existente:", existingOrder);
-
-      if (!existingOrder) {
-        console.log(`Pedido ${orderId} no encontrado`);
-        return res.status(404).json({ error: "Pedido no encontrado" });
-      }
-
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
-      console.log(`CompanyId del contexto: ${companyId}`);
-
-      // Verificar que el pedido pertenezca a la compañía
-      if (existingOrder.companyId !== companyId) {
-        console.log(`El pedido pertenece a la compañía ${existingOrder.companyId}, no a ${companyId}`);
-        return res.status(403).json({ error: "No tienes permiso para modificar este pedido" });
-      }
-
-      console.log(`Estado actual del pedido: ${existingOrder.status}, Nuevo estado: ${status}`);
-
-      // Método directo: ejecutar SQL directamente
-      console.log("Ejecutando SQL UPDATE...");
-
-      // Construcción de la consulta
-      const query = db
-        .update(orders)
-        .set({ status })
-        .where(eq(orders.id, orderId));
-
-      console.log("Query SQL:", query.toSQL());
-
-      const result = await query.returning();
-      console.log("Resultado de la actualización:", result);
-
-      const [updatedOrder] = result;
-
-      if (!updatedOrder) {
-        console.log("No se actualizó ningún registro");
-        return res.status(404).json({ error: "No se pudo actualizar el pedido" });
-      }
-
-      console.log(`Pedido ${orderId} actualizado de '${existingOrder.status}' a '${status}'`);
-      console.log("======= FIN DE ACTUALIZACIÓN DE ESTADO =======");
-      
-      logTenantOperation(req, "ORDER_STATUS_UPDATED", { 
-        orderId, 
-        oldStatus: existingOrder.status, 
-        newStatus: status, 
-        companyId 
+        return newOrder;
       });
-
-      res.json(updatedOrder);
+      
+      res.status(201).json({
+        success: true,
+        data: orderResult
+      });
     } catch (error) {
-      console.error(`Error al actualizar estado del pedido ${req.params.id}:`, error);
-      res.status(500).json({ error: String(error) });
+      console.error('Error al crear pedido:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Datos de pedido inválidos',
+          errors: error.errors
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Error al crear el pedido'
+      });
     }
   });
-};
+
+  // Actualizar el estado de un pedido (verificando que pertenezca a la compañía actual)
+  router.put('/orders/:id/status', async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(403).json({
+          success: false,
+          message: "No hay contexto de empresa establecido"
+        });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID de pedido no válido"
+        });
+      }
+      
+      // Verificar que el pedido pertenezca a esta empresa
+      const [orderToUpdate] = await db.select()
+        .from(orders)
+        .where(and(
+          eq(orders.id, id),
+          eq(orders.companyId, companyId)
+        ));
+      
+      if (!orderToUpdate) {
+        return res.status(404).json({
+          success: false,
+          message: "Pedido no encontrado o sin acceso"
+        });
+      }
+      
+      // Validar el esquema de entrada
+      const statusSchema = z.object({
+        status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
+        notes: z.string().optional()
+      });
+      
+      const parsedData = statusSchema.parse(req.body);
+      
+      logTenantOperation(req, 'update-order-status', { 
+        companyId, 
+        orderId: id, 
+        oldStatus: orderToUpdate.status,
+        newStatus: parsedData.status
+      });
+      
+      // Actualizar el estado
+      const [updatedOrder] = await db.update(orders)
+        .set({
+          status: parsedData.status,
+          notes: parsedData.notes || orderToUpdate.notes,
+          lastUpdate: new Date()
+        })
+        .where(and(
+          eq(orders.id, id),
+          eq(orders.companyId, companyId)
+        ))
+        .returning();
+      
+      res.json({
+        success: true,
+        data: updatedOrder
+      });
+    } catch (error) {
+      console.error('Error al actualizar estado del pedido:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Datos de estado inválidos',
+          errors: error.errors
+        });
+      }
+      res.status(500).json({
+        success: false,
+        message: 'Error al actualizar el estado del pedido'
+      });
+    }
+  });
+
+  // Eliminar un pedido (verificando que pertenezca a la compañía actual)
+  router.delete('/orders/:id', async (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      if (!companyId) {
+        return res.status(403).json({
+          success: false,
+          message: "No hay contexto de empresa establecido"
+        });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: "ID de pedido no válido"
+        });
+      }
+      
+      // Verificar que el pedido pertenezca a esta empresa
+      const [orderToDelete] = await db.select()
+        .from(orders)
+        .where(and(
+          eq(orders.id, id),
+          eq(orders.companyId, companyId)
+        ));
+      
+      if (!orderToDelete) {
+        return res.status(404).json({
+          success: false,
+          message: "Pedido no encontrado o sin acceso"
+        });
+      }
+      
+      logTenantOperation(req, 'delete-order', { 
+        companyId, 
+        orderId: id, 
+        orderStatus: orderToDelete.status
+      });
+      
+      // Eliminar en transacción para asegurar integridad
+      await db.transaction(async (tx) => {
+        // Primero eliminar los items del pedido
+        await tx.delete(orderItems)
+          .where(eq(orderItems.orderId, id));
+        
+        // Luego eliminar el pedido
+        await tx.delete(orders)
+          .where(and(
+            eq(orders.id, id),
+            eq(orders.companyId, companyId)
+          ));
+      });
+      
+      res.json({
+        success: true,
+        message: "Pedido eliminado correctamente"
+      });
+    } catch (error) {
+      console.error('Error al eliminar pedido:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error al eliminar el pedido'
+      });
+    }
+  });
+}

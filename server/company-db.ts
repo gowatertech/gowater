@@ -11,7 +11,11 @@ export function getCurrentCompanyId(): number | undefined {
 }
 
 // Helper para configurar el companyId en el contexto
-export function setCurrentCompanyId(companyId: number): void {
+export function setCurrentCompanyId(companyId: number | undefined): void {
+  if (companyId === undefined) {
+    asyncLocalStorage.delete('companyId');
+    return;
+  }
   console.log(`Configurando companyId=${companyId} en el contexto`);
   asyncLocalStorage.set('companyId', companyId);
 }

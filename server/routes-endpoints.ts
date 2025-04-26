@@ -1,7 +1,7 @@
 import { Router, Express } from "express";
 import { storage } from "./storage";
 import { insertRecurringOrderSchema, insertRecurringOrderItemSchema } from "../shared/schema";
-import { createOrdersEndpoints } from "./routes/orders";
+import { registerOrdersEndpoints } from "./routes/orders";
 
 // Función para crear endpoints de pedidos recurrentes
 export const createRecurringOrdersEndpoints = (router: Router) => {
@@ -337,5 +337,5 @@ export function registerRoutesEndpoints(router: Router) {
   createRecurringOrdersEndpoints(router);
   
   // Registrar endpoints de pedidos estándar
-  createOrdersEndpoints(router);
+  registerOrdersEndpoints(router);
 }
