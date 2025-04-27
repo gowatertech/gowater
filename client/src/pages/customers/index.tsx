@@ -394,7 +394,7 @@ export default function Customers() {
             <span>Lista</span>
           </TabsTrigger>
           <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2 py-0">
-            <PlusCircle className="h-3 w-3 text-blue-500" />
+            <PlusCircle className="h-3 w-3 text-gray-500" />
             <span>Nuevo</span>
           </TabsTrigger>
           {!isMobile && (
@@ -409,7 +409,7 @@ export default function Customers() {
         <TabsContent value="list" className="space-y-4">
           {/* Estadísticas - versión compacta que coincide exactamente con la vista de rutas */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-            <Card className="border-l-4 border-l-blue-500 shadow-sm">
+            <Card className="border-l-4 border-l-gray-500 shadow-sm">
               <CardContent className="p-2 flex justify-between items-center">
                 <div>
                   <p className="text-xs text-muted-foreground">Total Clientes</p>
@@ -771,7 +771,7 @@ export default function Customers() {
           <div className="border rounded-md p-2 bg-white">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
+                <PlusCircle className="h-3.5 w-3.5 text-gray-600" />
                 <h3 className="text-sm font-medium">Registrar Cliente</h3>
               </div>
             </div>
