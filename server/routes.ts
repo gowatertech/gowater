@@ -152,6 +152,14 @@ export async function registerRoutes(router: express.Router) {
 
   router.post("/warehouses", async (req, res) => {
     try {
+      // Obtenemos el ID de la compañía desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`POST /api/warehouses - Creando almacén para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       console.log("POST /api/warehouses - Datos recibidos:", req.body);
 
       const result = insertWarehouseSchema.safeParse(req.body);
@@ -162,12 +170,18 @@ export async function registerRoutes(router: express.Router) {
         });
       }
 
+      // Añadimos el companyId a los datos del almacén
+      const warehouseData = {
+        ...result.data,
+        companyId
+      };
+
       const [warehouse] = await db
         .insert(warehouses)
-        .values(result.data)
+        .values(warehouseData)
         .returning();
 
-      console.log("POST /api/warehouses - Almacén creado:", warehouse);
+      console.log(`POST /api/warehouses - Almacén creado para empresa ${companyId}:`, warehouse.id);
       res.json(warehouse);
     } catch (error) {
       console.error("Error al crear almacén:", error);
@@ -357,12 +371,20 @@ export async function registerRoutes(router: express.Router) {
   });
 
   router.post("/zones", async (req, res) => {
-    const result = insertZoneSchema.safeParse(req.body);
-    if (!result.success) {
-      return res.status(400).json({ error: result.error.format() });
-    }
-
     try {
+      // Obtenemos el ID de la compañía desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`POST /api/zones - Creando zona para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
+      const result = insertZoneSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error.format() });
+      }
+
       const coordinates = result.data.coordinates;
       if (!Array.isArray(coordinates) || coordinates.length < 3) {
         throw new Error("Se requieren al menos 3 puntos para crear una zona");
@@ -374,11 +396,18 @@ export async function registerRoutes(router: express.Router) {
         }
       }
 
+      // Añadimos el companyId a los datos de la zona
+      const zoneData = {
+        ...result.data,
+        companyId
+      };
+
       const [zone] = await db
         .insert(zones)
-        .values(result.data)
+        .values(zoneData)
         .returning();
 
+      console.log(`POST /api/zones - Zona creada para empresa ${companyId}:`, zone.id);
       res.json(zone);
     } catch (error) {
       console.error("Error al crear zona:", error);
@@ -3796,12 +3825,27 @@ export async function registerRoutes(router: express.Router) {
 
   router.post("/trucks", async (req, res) => {
     try {
+      // Obtenemos el ID de la compañía desde la sesión
+      const companyId = req.session.companyId;
+      console.log(`POST /api/trucks - Creando vehículo para empresa ${companyId}`);
+      
+      if (!companyId) {
+        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+      }
+      
       const result = insertTruckSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ error: result.error.format() });
       }
 
-      const truck = await storage.createTruck(result.data);
+      // Añadimos el companyId a los datos del camión
+      const truckData = {
+        ...result.data,
+        companyId
+      };
+
+      const truck = await storage.createTruck(truckData);
+      console.log(`POST /api/trucks - Vehículo creado exitosamente para empresa ${companyId}:`, truck.id);
       res.json(truck);
     } catch (error) {
       console.error("Error al crear camión:", error);
