@@ -94,8 +94,11 @@ export default function TrucksPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: TruckFormData) => {
-      const response = await apiRequest("POST", "/api/trucks", data);
-      return response.json();
+      return await apiRequest({
+        method: "POST",
+        url: "/api/trucks",
+        data
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -127,8 +130,11 @@ export default function TrucksPage() {
   const updateMutation = useMutation({
     mutationFn: async (data: TruckFormData & { id: number }) => {
       const { id, ...updateData } = data;
-      const response = await apiRequest("PUT", `/api/trucks/${id}`, updateData);
-      return response.json();
+      return await apiRequest({
+        method: "PUT",
+        url: `/api/trucks/${id}`,
+        data: updateData
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
@@ -151,8 +157,11 @@ export default function TrucksPage() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: "disponible" | "en_reparacion" | "en_ruta" }) => {
-      const response = await apiRequest("PATCH", `/api/trucks/${id}/status`, { status });
-      return response.json();
+      return await apiRequest({
+        method: "PATCH",
+        url: `/api/trucks/${id}/status`,
+        data: { status }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/trucks"] });
