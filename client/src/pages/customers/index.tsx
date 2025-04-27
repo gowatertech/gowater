@@ -89,16 +89,26 @@ export default function Customers() {
 
   // Obtener provincias
   const { data: provinces = [] } = useQuery<Province[]>({
-    queryKey: ["/api/provinces"],
+    queryKey: ["/api/geo/provinces"],
+    queryFn: async () => {
+      const response = await fetch('/api/geo/provinces');
+      if (!response.ok) {
+        throw new Error('Error al cargar provincias');
+      }
+      return await response.json();
+    }
   });
 
   // Obtener municipios cuando se selecciona una provincia
   const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery<Municipality[]>({
-    queryKey: ["/api/municipalities", selectedProvinceId],
+    queryKey: ["/api/geo/municipalities", selectedProvinceId],
     queryFn: async () => {
       if (!selectedProvinceId) return [];
-      const response = await apiRequest("GET", `/api/municipalities/${selectedProvinceId}`);
-      return response.json();
+      const response = await fetch(`/api/geo/municipalities/${selectedProvinceId}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar municipios');
+      }
+      return await response.json();
     },
     enabled: !!selectedProvinceId,
   });
