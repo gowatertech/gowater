@@ -802,6 +802,12 @@ export default function Customers() {
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
+                {/* Mostramos los errores del formulario para debug */}
+                {Object.keys(form.formState.errors).length > 0 && (
+                  <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
+                    Errores en el formulario: {JSON.stringify(form.formState.errors)}
+                  </div>
+                )}
               <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-1">
                   <FormField
                     control={form.control}
