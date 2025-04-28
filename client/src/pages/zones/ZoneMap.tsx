@@ -246,13 +246,13 @@ export default function ZoneMap({
   });
 
   const createZoneMutation = useMutation({
-    mutationFn: async (data: { name: string; color: string; coordinates: string[] }) => {
-      const response = await apiRequest("POST", "/api/zones", data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al crear la zona');
-      }
-      return response.json();
+    mutationFn: async (data: { name: string; color: string; coordinates: string[]; companyId: number }) => {
+      // Usamos el nuevo formato de apiRequest con objeto
+      return await apiRequest({
+        method: "POST",
+        url: "/api/zones", 
+        data: data
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/zones"] });
@@ -304,10 +304,18 @@ export default function ZoneMap({
       });
 
       // Crear la zona
+      // Agregar companyId (este valor será sobrescrito por el backend)
+      console.log("Creando zona con datos:", {
+        name: newZoneName,
+        color: selectedColor,
+        coordinates: coordStrings
+      });
+      
       createZoneMutation.mutate({
         name: newZoneName,
         color: selectedColor,
         coordinates: coordStrings,
+        companyId: 0 // Este valor será sobrescrito por el backend usando la sesión
       });
     } catch (error) {
       console.error("Error processing coordinates:", error);
