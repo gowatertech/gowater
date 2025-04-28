@@ -157,6 +157,9 @@ export default function Customers() {
       console.log("Submitting form data:", data);
       const formData = new FormData();
 
+      // Añadir companyId - será sobrescrito en el backend pero aseguramos que siempre exista
+      formData.append('companyId', '0');
+
       // Manejar cada campo, incluyendo el archivo del logo
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined && value !== "") {

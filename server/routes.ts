@@ -1130,10 +1130,17 @@ export async function registerRoutes(router: express.Router) {
         });
       }
 
+      console.log(`POST /api/customers - Datos procesados para empresa ${companyId}:`, {
+        ...customerData,
+        logo: customerData.logo ? 'Base64 image data present' : 'No logo data'
+      });
+      
       const [customer] = await db
         .insert(customers)
         .values(customerData)
         .returning();
+        
+      console.log(`POST /api/customers - Cliente creado con ID: ${customer.id} para empresa ${companyId}`);
 
       res.json(customer);
     } catch (error) {
@@ -1200,13 +1207,18 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
-      // Obtenemos el companyId del contexto de la solicitud
-      const companyId = req.session.companyId;
-      console.log(`GET /api/customers/by-zone - Zona ${zoneId}, Empresa ${companyId}`);
-
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
+      console.log(`GET /api/customers/by-zone - Zona ${zoneId}, Empresa ${companyId}`);
 
       const customersInZone = await db
         .select({
@@ -1264,13 +1276,18 @@ export async function registerRoutes(router: express.Router) {
     try {
       const customerId = parseInt(req.params.id);
       
-      // Obtenemos el companyId del contexto de la solicitud
-      const companyId = req.session.companyId;
-      console.log(`GET /api/customers/${customerId} - Empresa ${companyId}`);
-
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
+      console.log(`GET /api/customers/${customerId} - Empresa ${companyId}`);
       
       // Select specific fields from customers table instead of spreading the entire table
       const [customer] = await db
@@ -1318,6 +1335,19 @@ export async function registerRoutes(router: express.Router) {
   router.patch("/customers/:id", upload.single('logo'), async (req, res) => {
     try {
       const customerId = parseInt(req.params.id);
+      
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      console.log(`PATCH /api/customers/${customerId} - Empresa ${companyId}`);
 
       // Preparar los datos para actualizar
       const updateData = {
@@ -1337,7 +1367,10 @@ export async function registerRoutes(router: express.Router) {
       const [updatedCustomer] = await db
         .update(customers)
         .set(updateData)
-        .where(eq(customers.id, customerId))
+        .where(and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId) // Asegurarnos que solo actualice clientes de esta empresa
+        ))
         .returning();
 
       if (!updatedCustomer) {
