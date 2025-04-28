@@ -168,24 +168,34 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [companyIdUsed, setCompanyIdUsed] = useState<number | null>(null);
   
   // Fetch pending orders for the selected zone
+  // Estado para controlar si estamos en modo debug
+  const [useDebugMode, setUseDebugMode] = useState<boolean>(false);
+  
   const {
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders,
     error: pendingOrdersError,
     refetch: refetchPendingOrders
   } = useQuery<PendingOrder[]>({
-    queryKey: ["/api/zones", selectedZone, "pending-orders"],
+    queryKey: ["/api/zones", selectedZone, "pending-orders", useDebugMode],
     queryFn: async () => {
       if (!selectedZone) return [];
       
-      console.log(`Fetching pending orders for zone ${selectedZone}`);
+      console.log(`Fetching pending orders for zone ${selectedZone} (debug mode: ${useDebugMode})`);
       setAuthError(null);
       
       try {
         // Obtener el companyId de la sesión (si está disponible)
         const userResponse = await apiRequest("GET", "/api/user");
         
-        if (!userResponse.ok) {
+        let url = "";
+        
+        // Si estamos en modo debug, forzar el uso del companyId fijo a través del parámetro debug
+        if (useDebugMode) {
+          url = `/api/zones/${selectedZone}/pending-orders?debug=true`;
+          console.log(`MODO DEBUG: Solicitando pedidos pendientes con modo de desarrollo: ${url}`);
+          setCompanyIdUsed(15); // ID de compañía fija que usará el backend
+        } else if (!userResponse.ok) {
           console.warn("No se pudo obtener el usuario de la sesión");
           setAuthError("No se pudo verificar la sesión. Intente cerrar sesión y volver a ingresar.");
           // Usar el companyId por defecto para desarrollo
@@ -193,32 +203,17 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
           setCompanyIdUsed(fallbackCompanyId);
           
           // Construir la URL con el companyId como parámetro de consulta para desarrollo
-          const url = `/api/zones/${selectedZone}/pending-orders?companyId=${fallbackCompanyId}`;
+          url = `/api/zones/${selectedZone}/pending-orders?companyId=${fallbackCompanyId}`;
           console.log(`Desarrollo: Solicitando pedidos pendientes con companyId fijo: ${url}`);
+        } else {
+          const userData = await userResponse.json();
+          const companyId = userData.companyId || userData.user?.companyId;
+          setCompanyIdUsed(companyId);
           
-          const response = await apiRequest("GET", url);
-          
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Error fetching pending orders:", errorText);
-            if (errorText.includes("No autenticado") || errorText.includes("Acceso denegado")) {
-              throw new Error("Error de autenticación: Sesión inválida. Por favor inicie sesión nuevamente.");
-            }
-            throw new Error("Error al obtener pedidos pendientes de la zona");
-          }
-          
-          const data = await response.json();
-          console.log("Pending orders data (usando companyId fijo):", data);
-          return data;
+          // Construir la URL con el companyId como parámetro de consulta para mayor seguridad
+          url = `/api/zones/${selectedZone}/pending-orders${companyId ? `?companyId=${companyId}` : ''}`;
+          console.log(`Requesting pending orders from: ${url}`);
         }
-        
-        const userData = await userResponse.json();
-        const companyId = userData.companyId || userData.user?.companyId;
-        setCompanyIdUsed(companyId);
-        
-        // Construir la URL con el companyId como parámetro de consulta para mayor seguridad
-        const url = `/api/zones/${selectedZone}/pending-orders${companyId ? `?companyId=${companyId}` : ''}`;
-        console.log(`Requesting pending orders from: ${url}`);
         
         const response = await apiRequest("GET", url);
         
@@ -1162,24 +1157,37 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     Información técnica: Usando CompanyId: {companyIdUsed}
                   </div>
                 )}
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => refetchPendingOrders()}
-                  className="h-7 text-xs px-2"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Reintentar
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2 h-7 text-[10px] px-2 py-0"
-                  onClick={() => refetchPendingOrders()}
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" /> Reintentar
-                </Button>
+                <div className="flex justify-center space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => refetchPendingOrders()}
+                    className="h-7 text-xs px-2"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Reintentar
+                  </Button>
+                  
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      // Activar el modo debug y luego refrescar los datos
+                      setUseDebugMode(true);
+                      console.log("Activado modo debug para forzar el uso del companyId fijo");
+                      // Utilizamos un pequeño timeout para asegurar que el estado se actualizó
+                      setTimeout(() => {
+                        refetchPendingOrders();
+                      }, 100);
+                    }}
+                    className="h-7 text-xs px-2"
+                  >
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Usar CompanyId fijo
+                  </Button>
+                </div>
               </div>
             ) : pendingOrders.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground text-xs">

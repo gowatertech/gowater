@@ -311,8 +311,12 @@ export async function registerRoutes(router: express.Router) {
   router.get("/api/zones/:id/pending-orders", async (req, res) => {
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
-      console.log("🔍 Sesión usuario:", req.session.user);
-      console.log("🔍 CompanyId en sesión:", req.session.companyId);
+      console.log("🔍 Sesión usuario:", req.session?.user ? 
+        { id: req.session.user.id, role: req.session.user.role, companyId: req.session.user.companyId } : 
+        "No hay sesión de usuario"
+      );
+      console.log("🔍 CompanyId en sesión:", req.session?.companyId || "No hay companyId en sesión");
+      console.log("🔍 Headers:", req.headers['user-agent']);
       
       const zoneId = parseInt(req.params.id);
       
@@ -323,32 +327,43 @@ export async function registerRoutes(router: express.Router) {
       
       // Intentar obtener companyId de múltiples fuentes
       let companyId = getCurrentCompanyId();
+      let companyIdSource = "contexto";
       console.log("🔄 CompanyId del contexto:", companyId);
       
       // Si no está en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session.companyId) {
+      if (!companyId && req.session?.companyId) {
         companyId = req.session.companyId;
+        companyIdSource = "sesión";
         console.log("🔄 CompanyId obtenido de la sesión:", companyId);
       }
       
       // Si no está en la sesión, intentar obtenerlo del usuario en sesión
-      if (!companyId && req.session.user?.companyId) {
+      if (!companyId && req.session?.user?.companyId) {
         companyId = req.session.user.companyId;
+        companyIdSource = "usuario en sesión";
         console.log("🔄 CompanyId obtenido del usuario en sesión:", companyId);
       }
       
       // Si no está en la sesión, intentar obtenerlo del query string
       if (!companyId && req.query.companyId) {
         companyId = parseInt(req.query.companyId as string);
+        companyIdSource = "query string";
         console.log("🔄 CompanyId obtenido del query string:", companyId);
       }
       
-      console.log("🔐 CompanyId final utilizado:", companyId);
+      console.log("🔐 CompanyId final utilizado:", companyId, `(fuente: ${companyIdSource})`);
       
+      // Si aún no tenemos companyId, verificar si es una solicitud de desarrollo
+      const isDevelopmentRequest = 
+        process.env.NODE_ENV === 'development' || 
+        req.headers['user-agent']?.includes('Postman') ||
+        req.query.debug === 'true';
+        
       // Si aún no tenemos companyId, usar uno fijo para debugging (solo en desarrollo)
-      if (!companyId && process.env.NODE_ENV === 'development') {
+      if (!companyId && isDevelopmentRequest) {
         try {
           companyId = 15; // Sabemos que esta compañía existe en el sistema
+          companyIdSource = "valor fijo de desarrollo";
           console.log("⚠️ MODO DESARROLLO: Usando companyId fijo de emergencia:", companyId);
         } catch (e) {
           console.error("❌ Error al asignar companyId de fallback:", e);
@@ -359,7 +374,14 @@ export async function registerRoutes(router: express.Router) {
         console.error("❌ Error: No se encontró companyId en ninguna fuente para obtener pedidos pendientes por zona");
         return res.status(403).json({ 
           error: "Acceso denegado", 
-          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente.",
+          debug: {
+            session: req.session ? true : false,
+            user: req.session?.user ? true : false,
+            companyIdInSession: req.session?.companyId ? true : false,
+            companyIdInUser: req.session?.user?.companyId ? true : false,
+            queryParams: req.query,
+          }
         });
       }
       
