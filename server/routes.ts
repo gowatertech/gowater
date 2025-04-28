@@ -309,6 +309,9 @@ export async function registerRoutes(router: express.Router) {
   router.get("/api/zones/:id/pending-orders", async (req, res) => {
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
+      console.log("🔍 Sesión usuario:", req.session.user);
+      console.log("🔍 CompanyId en sesión:", req.session.companyId);
+      
       const zoneId = parseInt(req.params.id);
       
       if (isNaN(zoneId)) {
@@ -318,11 +321,18 @@ export async function registerRoutes(router: express.Router) {
       
       // Intentar obtener companyId de múltiples fuentes
       let companyId = getCurrentCompanyId();
+      console.log("🔄 CompanyId del contexto:", companyId);
       
       // Si no está en el contexto, intentar obtenerlo de la sesión
       if (!companyId && req.session.companyId) {
         companyId = req.session.companyId;
         console.log("🔄 CompanyId obtenido de la sesión:", companyId);
+      }
+      
+      // Si no está en la sesión, intentar obtenerlo del usuario en sesión
+      if (!companyId && req.session.user?.companyId) {
+        companyId = req.session.user.companyId;
+        console.log("🔄 CompanyId obtenido del usuario en sesión:", companyId);
       }
       
       // Si no está en la sesión, intentar obtenerlo del query string
@@ -332,6 +342,16 @@ export async function registerRoutes(router: express.Router) {
       }
       
       console.log("🔐 CompanyId final utilizado:", companyId);
+      
+      // Si aún no tenemos companyId, usar uno fijo para debugging (solo en desarrollo)
+      if (!companyId && process.env.NODE_ENV === 'development') {
+        try {
+          companyId = 15; // Sabemos que esta compañía existe en el sistema
+          console.log("⚠️ MODO DESARROLLO: Usando companyId fijo de emergencia:", companyId);
+        } catch (e) {
+          console.error("❌ Error al asignar companyId de fallback:", e);
+        }
+      }
       
       if (!companyId) {
         console.error("❌ Error: No se encontró companyId en ninguna fuente para obtener pedidos pendientes por zona");

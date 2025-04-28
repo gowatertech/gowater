@@ -22,7 +22,9 @@ import {
   Package,
   ShoppingCart,
   DollarSign,
-  Map as MapIcon
+  Map as MapIcon,
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
