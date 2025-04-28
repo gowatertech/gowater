@@ -111,6 +111,47 @@ export async function registerRoutes(router: express.Router) {
     }
   });
   
+  // Herramienta de diagnóstico para verificar el estado del contexto multi-tenant
+  router.get("/api/diagnostic/context", (req, res) => {
+    try {
+      const companyId = getCurrentCompanyId();
+      const sessionCompanyId = req.session?.companyId;
+      const userCompanyId = req.session?.user?.companyId;
+      
+      // Función helper para logging consistente
+      const logCompanyContext = (location: string, cId: number | undefined, details: any = {}) => {
+        console.log(`[${location}] CompanyId=${cId || 'NONE'}, Details:`, details);
+      };
+      
+      // Registrar información de diagnóstico
+      logCompanyContext("Diagnostic", companyId, {
+        sessionCompanyId,
+        userCompanyId,
+        path: req.path,
+        headers: {
+          userAgent: req.headers['user-agent'],
+          host: req.headers.host
+        }
+      });
+      
+      res.json({
+        contextCompanyId: companyId,
+        sessionCompanyId: sessionCompanyId,
+        userCompanyId: userCompanyId,
+        isAuthenticated: !!req.session?.user,
+        sessionExists: !!req.session,
+        environment: process.env.NODE_ENV || 'development',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error en endpoint de diagnóstico:", error);
+      res.status(500).json({ 
+        error: "Error en diagnóstico", 
+        message: String(error)
+      });
+    }
+  });
+  
   // Endpoint para obtener el usuario actual (redundante con /user, pero se mantiene por compatibilidad)
   router.get("/me", (req, res) => {
     if (!req.session || !req.session.user) {
@@ -311,80 +352,74 @@ export async function registerRoutes(router: express.Router) {
   router.get("/api/zones/:id/pending-orders", async (req, res) => {
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
-      console.log("🔍 Sesión usuario:", req.session?.user ? 
-        { id: req.session.user.id, role: req.session.user.role, companyId: req.session.user.companyId } : 
-        "No hay sesión de usuario"
-      );
-      console.log("🔍 CompanyId en sesión:", req.session?.companyId || "No hay companyId en sesión");
-      console.log("🔍 Headers:", req.headers['user-agent']);
       
       const zoneId = parseInt(req.params.id);
-      
       if (isNaN(zoneId)) {
-        console.error("❌ ID de zona inválido:", req.params.id);
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
-      // Intentar obtener companyId de múltiples fuentes
+      // Intentar obtener companyId con mejor manejo de errores
       let companyId = getCurrentCompanyId();
       let companyIdSource = "contexto";
       console.log("🔄 CompanyId del contexto:", companyId);
       
-      // Si no está en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session?.companyId) {
-        companyId = req.session.companyId;
-        companyIdSource = "sesión";
-        console.log("🔄 CompanyId obtenido de la sesión:", companyId);
+      // Verificar si es una solicitud en modo debug
+      const isDebugMode = req.query.debug === 'true' || process.env.NODE_ENV === 'development';
+      
+      if (!companyId) {
+        // Si no está en el contexto, intentar obtenerlo de la sesión
+        if (req.session?.companyId) {
+          companyId = req.session.companyId;
+          companyIdSource = "sesión";
+          console.log("🔄 CompanyId obtenido de la sesión:", companyId);
+        } 
+        // Si no está en la sesión, intentar obtenerlo del usuario en sesión
+        else if (req.session?.user?.companyId) {
+          companyId = req.session.user.companyId;
+          companyIdSource = "usuario en sesión";
+          console.log("🔄 CompanyId obtenido del usuario en sesión:", companyId);
+        }
       }
       
-      // Si no está en la sesión, intentar obtenerlo del usuario en sesión
-      if (!companyId && req.session?.user?.companyId) {
-        companyId = req.session.user.companyId;
-        companyIdSource = "usuario en sesión";
-        console.log("🔄 CompanyId obtenido del usuario en sesión:", companyId);
-      }
-      
-      // Si no está en la sesión, intentar obtenerlo del query string
-      if (!companyId && req.query.companyId) {
-        companyId = parseInt(req.query.companyId as string);
-        companyIdSource = "query string";
-        console.log("🔄 CompanyId obtenido del query string:", companyId);
+      // Si aún no tenemos companyId y estamos en modo de depuración
+      if (!companyId && isDebugMode) {
+        console.log("🔧 MODO DEBUG: No se encontró companyId. Intentando obtenerlo de los parámetros de consulta...");
+        
+        // Intentar obtener de query params para pruebas
+        if (req.query.companyId) {
+          companyId = parseInt(req.query.companyId as string);
+          if (!isNaN(companyId)) {
+            companyIdSource = "parámetros de consulta (debug)";
+            console.log(`🔧 MODO DEBUG: Usando companyId=${companyId} de los parámetros de consulta`);
+          }
+        }
       }
       
       console.log("🔐 CompanyId final utilizado:", companyId, `(fuente: ${companyIdSource})`);
       
-      // Verificar si es una solicitud en modo debug
-      const isDebugMode = req.query.debug === 'true';
-      
-      if (isDebugMode) {
-        // En modo debug, obtenemos el companyId de la sesión activa si está disponible
-        if (req.session?.companyId) {
-          companyId = req.session.companyId;
-          companyIdSource = "debug-sesión";
-          console.log("🔧 MODO DEBUG: Usando companyId de la sesión:", companyId);
-        } else {
-          // Si no hay companyId en la sesión, intentamos recuperarlo desde la base de datos
-          // Pero no asignamos ningún valor hardcodeado
-          console.log("🔧 MODO DEBUG: Activado, pero no hay companyId disponible en la sesión");
-        }
-      }
-      
       if (!companyId) {
         console.error("❌ Error: No se encontró companyId en ninguna fuente para obtener pedidos pendientes por zona");
+        
+        if (isDebugMode) {
+          // En modo debug, mostrar información detallada pero no devolver datos sensibles
+          return res.status(403).json({
+            error: "Acceso denegado (modo debug)",
+            message: "No se ha encontrado un contexto de compañía válido incluso en modo debug.",
+            debug: {
+              isDebugMode,
+              session: req.session ? true : false,
+              user: req.session?.user ? true : false
+            }
+          });
+        }
+        
         return res.status(403).json({ 
           error: "Acceso denegado", 
-          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente.",
-          debug: {
-            session: req.session ? true : false,
-            user: req.session?.user ? true : false,
-            companyIdInSession: req.session?.companyId ? true : false,
-            companyIdInUser: req.session?.user?.companyId ? true : false,
-            queryParams: req.query,
-          }
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente."
         });
       }
       
-      console.log(`🔍 GET /zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
+      console.log(`🔍 GET /api/zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
       
       // Verificar que la zona existe para esta compañía
       const zonaExiste = await db
@@ -401,7 +436,10 @@ export async function registerRoutes(router: express.Router) {
       
       if (zonaExiste.length === 0) {
         console.error(`❌ La zona ${zoneId} no pertenece a la compañía ${companyId}`);
-        return res.json([]);
+        return res.status(404).json({ 
+          error: "Zona no encontrada", 
+          message: `La zona con ID ${zoneId} no existe o no pertenece a la compañía actual.`
+        });
       }
       
       // Primero obtenemos los clientes de la zona QUE PERTENECEN A LA COMPAÑÍA
@@ -420,7 +458,10 @@ export async function registerRoutes(router: express.Router) {
       
       if (zoneCustomers.length === 0) {
         console.log(`⚠️ No hay clientes en la zona ${zoneId} para la compañía ${companyId}`);
-        return res.json([]);
+        return res.status(200).json({ 
+          message: "No hay clientes en esta zona", 
+          data: []
+        });
       }
       
       // Extraemos los IDs de clientes
@@ -486,7 +527,10 @@ export async function registerRoutes(router: express.Router) {
       res.json(pendingOrders);
     } catch (error) {
       console.error(`❌ Error al obtener pedidos pendientes para la zona ${req.params.id}:`, error);
-      res.status(500).json({ error: String(error) });
+      res.status(500).json({ 
+        error: "Error interno del servidor", 
+        message: "Ocurrió un problema al procesar la solicitud. Por favor intente nuevamente."
+      });
     }
   });
 
