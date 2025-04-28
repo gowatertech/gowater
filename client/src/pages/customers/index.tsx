@@ -1057,7 +1057,7 @@ export default function Customers() {
                       <FormItem className="md:col-span-3 space-y-1">
                         <FormLabel className="text-xs">Ubicación en Mapa</FormLabel>
                         <FormControl>
-                          <div className="h-[180px] w-full">
+                          <div className="h-[180px] w-full border rounded-md overflow-hidden">
                             <LocationSelector 
                               value={field.value || ""} 
                               onChange={field.onChange} 
@@ -1108,13 +1108,15 @@ export default function Customers() {
                   />
                 </div>
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={createMutation.isPending}
-                >
-                  {createMutation.isPending ? "Guardando..." : "Guardar"}
-                </Button>
+                <div className="mt-4 mb-4">
+                  <Button
+                    type="submit"
+                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                    disabled={createMutation.isPending}
+                  >
+                    {createMutation.isPending ? "Guardando..." : "Guardar"}
+                  </Button>
+                </div>
               </form>
             </Form>
           </div>
