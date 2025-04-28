@@ -781,109 +781,69 @@ export default function Customers() {
         
         {/* Contenido del Tab de Nuevo Cliente */}
         <TabsContent value="new">
-          <div className="border rounded-md bg-white p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <PlusCircle className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold">Registrar Nuevo Cliente</h2>
-            </div>
+          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h2 className="text-xl font-semibold mb-6 flex items-center">
+              <PlusCircle className="h-5 w-5 mr-2 text-blue-500" />
+              Formulario de Creación de Cliente
+            </h2>
             
-            <form className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Nombre del Negocio*
-                  </label>
-                  <Input 
-                    value={form.getValues("businessname") || ""}
-                    onChange={(e) => form.setValue("businessname", e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Nombre del Encargado*
-                  </label>
-                  <Input 
-                    value={form.getValues("managername") || ""}
-                    onChange={(e) => form.setValue("managername", e.target.value)}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Teléfono*
-                  </label>
-                  <Input 
-                    value={form.getValues("phone") || ""}
-                    onChange={(e) => form.setValue("phone", e.target.value)}
-                    className="w-full"
-                  />
-                </div>
+            <div className="grid grid-cols-1 gap-6 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre del Negocio*</label>
+                <Input
+                  placeholder="Nombre del negocio"
+                  className="w-full"
+                  value={form.getValues("businessname") || ""}
+                  onChange={(e) => form.setValue("businessname", e.target.value)}
+                />
               </div>
               
-              <div className="flex justify-end pt-4">
-                <Button
-                  type="button"
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
-                  disabled={createMutation.isPending}
-                  onClick={() => {
-                    console.log("Submit button clicked");
-                    
-                    const businessname = form.getValues("businessname");
-                    const managername = form.getValues("managername");
-                    const phone = form.getValues("phone");
-                    
-                    // Validamos datos mínimos
-                    if (!businessname) {
-                      toast({
-                        variant: "destructive",
-                        title: "Error",
-                        description: "El nombre del negocio es obligatorio",
-                      });
-                      return;
-                    }
-                    
-                    if (!managername) {
-                      toast({
-                        variant: "destructive",
-                        title: "Error",
-                        description: "El nombre del encargado es obligatorio",
-                      });
-                      return;
-                    }
-                    
-                    if (!phone) {
-                      toast({
-                        variant: "destructive",
-                        title: "Error",
-                        description: "El teléfono es obligatorio",
-                      });
-                      return;
-                    }
-                    
-                    // Creamos objeto con todos los campos requeridos
-                    const data = {
-                      businessname,
-                      managername,
-                      phone,
-                      street: "",
-                      streetnumber: "",
-                      provinceid: 1,
-                      municipalityid: 1,
-                      creditlimit: "0.00",
-                      balance: "0.00"
-                    };
-                    
-                    console.log("Datos preparados:", data);
-                    createMutation.mutate(data);
-                  }}
-                >
-                  {createMutation.isPending ? "Guardando..." : "Guardar Cliente"}
-                </Button>
+              <div>
+                <label className="block text-sm font-medium mb-1">Nombre del Encargado*</label>
+                <Input
+                  placeholder="Nombre del encargado"
+                  className="w-full"
+                  value={form.getValues("managername") || ""}
+                  onChange={(e) => form.setValue("managername", e.target.value)}
+                />
               </div>
-            </form>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Teléfono*</label>
+                <Input
+                  placeholder="Teléfono"
+                  className="w-full"
+                  value={form.getValues("phone") || ""}
+                  onChange={(e) => form.setValue("phone", e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+                onClick={() => {
+                  console.log("Botón de guardar clickeado");
+                  
+                  const data = {
+                    businessname: form.getValues("businessname") || "",
+                    managername: form.getValues("managername") || "",
+                    phone: form.getValues("phone") || "",
+                    street: "",
+                    streetnumber: "",
+                    provinceid: 1,
+                    municipalityid: 1,
+                    creditlimit: "0.00",
+                    balance: "0.00"
+                  };
+                  
+                  createMutation.mutate(data);
+                }}
+              >
+                Guardar Cliente
+              </Button>
+            </div>
           </div>
         </TabsContent>
         
