@@ -309,13 +309,38 @@ export default function Customers() {
   const onSubmit = async (data: CustomerFormData) => {
     try {
       console.log("Formulario enviado con datos:", data);
+      
+      // Asegurarse de que todos los campos requeridos estén presentes
+      // Para provinceid, municipalityid y otros campos, validar que no sean undefined
+      if (!data.provinceid || !data.municipalityid) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Por favor complete todos los campos requeridos",
+        });
+        return;
+      }
+
+      // Agregar companyId explícitamente (será sobrescrito en el backend)
+      const formDataWithCompany = {
+        ...data,
+        companyId: 15 // El ID de compañía real vendrá del backend
+      };
+      
+      console.log("Datos finales a enviar:", formDataWithCompany);
+      
       if (isEditing && selectedCustomer) {
-        await updateMutation.mutateAsync({ ...data, id: selectedCustomer.id });
+        await updateMutation.mutateAsync({ ...formDataWithCompany, id: selectedCustomer.id });
       } else {
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(formDataWithCompany);
       }
     } catch (error) {
       console.error("Error en el envío del formulario:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Hubo un problema al guardar los datos. Intente nuevamente.",
+      });
     }
   };
 
