@@ -1109,7 +1109,7 @@ export default function Customers() {
                             type="text"
                             inputMode="decimal"
                             className="h-7 text-xs px-2 py-0"
-                            {...field}
+                            value={field.value || "0.00"}
                             onChange={(e) => {
                               const value = e.target.value.replace(/[^\d.]/g, '');
                               const parts = value.split('.');
@@ -1124,7 +1124,6 @@ export default function Customers() {
                                 field.onChange(number.toFixed(2));
                               }
                             }}
-                            defaultValue="0.00"
                           />
                         </FormControl>
                         <FormMessage className="text-[10px]" />
@@ -1135,9 +1134,15 @@ export default function Customers() {
 
                 <div className="mt-4 mb-4">
                   <Button
-                    type="submit"
+                    type="button"
                     className="bg-blue-500 hover:bg-blue-600 text-white"
                     disabled={createMutation.isPending}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log("Botón guardar clickeado");
+                      console.log("Datos del formulario:", form.getValues());
+                      form.handleSubmit(onSubmit)(e);
+                    }}
                   >
                     {createMutation.isPending ? "Guardando..." : "Guardar"}
                   </Button>
