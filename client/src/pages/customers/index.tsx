@@ -84,6 +84,7 @@ export default function Customers() {
   const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("list");
+  console.log("activeTab inicializado como:", activeTab);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const queryClient = useQueryClient();
 
@@ -393,7 +394,13 @@ export default function Customers() {
       </div>
       
       {/* Tabs de navegación - formato exacto como rutas */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs 
+        value={activeTab} 
+        onValueChange={(value) => {
+          console.log("Cambiando activeTab a:", value);
+          setActiveTab(value);
+        }} 
+        className="w-full">
         <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : activeTab === "details" ? 'grid-cols-3' : 'grid-cols-3'} mb-2 h-7`}>
           <TabsTrigger value="list" className="flex items-center gap-1 text-xs px-2 py-0">
             <Users className="h-3 w-3" />
