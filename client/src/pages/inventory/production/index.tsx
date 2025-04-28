@@ -119,6 +119,7 @@ export default function ProductionRegistration() {
       warehouseId: 0,
       notes: "",
       status: "completed" as const,
+      companyId: 0, // Este valor será sobrescrito por el backend
       items: []
     }
   });
@@ -207,6 +208,7 @@ export default function ProductionRegistration() {
       warehouseId: data.warehouseId,
       notes: data.notes || "",
       status: "completed",
+      companyId: 0, // Este valor será sobrescrito por el backend usando el ID de la sesión
       items: batchItems.map(item => ({
         productId: item.productId,
         quantity: item.quantity,
