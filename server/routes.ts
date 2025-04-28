@@ -306,31 +306,54 @@ export async function registerRoutes(router: express.Router) {
   });
   
   // Endpoint para obtener pedidos pendientes por zona
-  router.get("/zones/:id/pending-orders", async (req, res) => {
+  router.get("/api/zones/:id/pending-orders", async (req, res) => {
     try {
+      console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
       const zoneId = parseInt(req.params.id);
       
       if (isNaN(zoneId)) {
+        console.error("❌ ID de zona inválido:", req.params.id);
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
       // Obtener el companyId del contexto
       const companyId = getCurrentCompanyId();
       
+      console.log("🔐 CompanyId desde el contexto:", companyId);
+      
       if (!companyId) {
-        console.error("Error: No se encontró companyId en el contexto para obtener pedidos pendientes por zona");
+        console.error("❌ Error: No se encontró companyId en el contexto para obtener pedidos pendientes por zona");
         return res.status(403).json({ 
           error: "Acceso denegado", 
           message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
         });
       }
       
-      console.log(`GET /zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
+      console.log(`🔍 GET /zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
+      
+      // Verificar que la zona existe para esta compañía
+      const zonaExiste = await db
+        .select({ id: zones.id, name: zones.name })
+        .from(zones)
+        .where(
+          and(
+            eq(zones.id, zoneId),
+            eq(zones.companyId, companyId)
+          )
+        );
+      
+      console.log(`🗺️ Zona encontrada:`, zonaExiste);
+      
+      if (zonaExiste.length === 0) {
+        console.error(`❌ La zona ${zoneId} no pertenece a la compañía ${companyId}`);
+        return res.json([]);
+      }
       
       // Primero obtenemos los clientes de la zona QUE PERTENECEN A LA COMPAÑÍA
       const zoneCustomers = await db
         .select({
           id: customers.id,
+          name: customers.businessname
         })
         .from(customers)
         .where(
@@ -341,14 +364,29 @@ export async function registerRoutes(router: express.Router) {
         );
       
       if (zoneCustomers.length === 0) {
-        console.log(`No hay clientes en la zona ${zoneId} para la compañía ${companyId}`);
+        console.log(`⚠️ No hay clientes en la zona ${zoneId} para la compañía ${companyId}`);
         return res.json([]);
       }
       
       // Extraemos los IDs de clientes
       const customerIds = zoneCustomers.map(customer => customer.id);
       
-      console.log(`Clientes encontrados en zona ${zoneId} para compañía ${companyId}:`, customerIds);
+      console.log(`👥 Clientes encontrados en zona ${zoneId} para compañía ${companyId}:`, zoneCustomers);
+      
+      // Verificar si hay pedidos pendientes para estos clientes
+      const ordersCount = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(orders)
+        .where(
+          and(
+            inArray(orders.customerId, customerIds),
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId)
+          )
+        );
+        
+      console.log(`📊 Conteo inicial de pedidos pendientes: ${ordersCount[0]?.count || 0}`);
       
       // Ahora buscamos todas las órdenes pendientes para esos clientes y que no estén asignadas a una ruta
       const pendingOrders = await db
@@ -378,11 +416,21 @@ export async function registerRoutes(router: express.Router) {
         )
         .orderBy(orders.date);
       
-      console.log(`Encontrados ${pendingOrders.length} pedidos pendientes para la zona ${zoneId} de compañía ${companyId}`);
+      console.log(`✅ Encontrados ${pendingOrders.length} pedidos pendientes para la zona ${zoneId} de compañía ${companyId}`);
+      
+      // Verificar y mostrar algunos detalles de los pedidos encontrados
+      if (pendingOrders.length > 0) {
+        console.log("📦 Primer pedido encontrado:", {
+          id: pendingOrders[0].id,
+          customerId: pendingOrders[0].customerId,
+          customerName: pendingOrders[0].customerName,
+          status: pendingOrders[0].status
+        });
+      }
       
       res.json(pendingOrders);
     } catch (error) {
-      console.error(`Error al obtener pedidos pendientes para la zona ${req.params.id}:`, error);
+      console.error(`❌ Error al obtener pedidos pendientes para la zona ${req.params.id}:`, error);
       res.status(500).json({ error: String(error) });
     }
   });
