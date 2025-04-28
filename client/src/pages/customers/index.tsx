@@ -133,7 +133,7 @@ export default function Customers() {
   );
 
   const form = useForm<CustomerFormData>({
-    resolver: zodResolver(insertCustomerSchema),
+    resolver: zodResolver(insertCustomerSchema.omit({ companyId: true })), // Omitimos companyId de la validación
     defaultValues: {
       logo: undefined,
       rnc: "",
