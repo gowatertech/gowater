@@ -358,10 +358,16 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
-      // Intentar obtener companyId con mejor manejo de errores
-      let companyId = getCurrentCompanyId();
-      let companyIdSource = "contexto";
-      console.log("🔄 CompanyId del contexto:", companyId);
+      // Intentar obtener companyId directamente de la sesión primero
+      let companyId = req.session?.companyId || (req.session?.user?.companyId);
+      // Luego establecer el contexto con este valor
+      if (companyId) {
+        setCurrentCompanyId(companyId);
+      }
+      // Finalmente, obtener el companyId del contexto
+      companyId = getCurrentCompanyId();
+      let companyIdSource = "contexto actualizado con sesión";
+      console.log("🔄 CompanyId de la sesión/usuario:", companyId);
       
       // Verificar si es una solicitud en modo debug
       const isDebugMode = req.query.debug === 'true' || process.env.NODE_ENV === 'development';
