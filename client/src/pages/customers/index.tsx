@@ -771,74 +771,62 @@ export default function Customers() {
         
         {/* Contenido del Tab de Nuevo Cliente */}
         <TabsContent value="new">
-          <Card className="bg-white">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
-                <CardTitle className="text-sm font-medium">Registrar Cliente</CardTitle>
-              </div>
-            </CardHeader>
+          <div className="border rounded-md bg-white p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <PlusCircle className="h-5 w-5 text-blue-600" />
+              <h2 className="text-lg font-semibold">Registrar Nuevo Cliente</h2>
+            </div>
             
-            <CardContent className="space-y-2">
-              {Object.keys(form.formState.errors).length > 0 && (
-                <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
-                  Errores en el formulario: {JSON.stringify(form.formState.errors)}
+            <form className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Nombre del Negocio*
+                  </label>
+                  <Input 
+                    value={form.getValues("businessname") || ""}
+                    onChange={(e) => form.setValue("businessname", e.target.value)}
+                    className="w-full"
+                  />
                 </div>
-              )}
-              
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
-                <FormField
-                  control={form.control}
-                  name="businessname"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
-                      <FormControl>
-                        <Input className="h-7 text-xs px-2 py-0" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
                 
-                <FormField
-                  control={form.control}
-                  name="managername"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
-                      <FormControl>
-                        <Input className="h-7 text-xs px-2 py-0" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Nombre del Encargado*
+                  </label>
+                  <Input 
+                    value={form.getValues("managername") || ""}
+                    onChange={(e) => form.setValue("managername", e.target.value)}
+                    className="w-full"
+                  />
+                </div>
                 
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Teléfono</FormLabel>
-                      <FormControl>
-                        <Input className="h-7 text-xs px-2 py-0" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Teléfono*
+                  </label>
+                  <Input 
+                    value={form.getValues("phone") || ""}
+                    onChange={(e) => form.setValue("phone", e.target.value)}
+                    className="w-full"
+                  />
+                </div>
               </div>
               
-              <div className="flex justify-end">
+              <div className="flex justify-end pt-4">
                 <Button
+                  type="button"
                   className="bg-blue-500 hover:bg-blue-600 text-white"
                   disabled={createMutation.isPending}
                   onClick={() => {
                     console.log("Submit button clicked");
                     
+                    const businessname = form.getValues("businessname");
+                    const managername = form.getValues("managername");
+                    const phone = form.getValues("phone");
+                    
                     // Validamos datos mínimos
-                    if (!form.getValues("businessname")) {
+                    if (!businessname) {
                       toast({
                         variant: "destructive",
                         title: "Error",
@@ -847,7 +835,7 @@ export default function Customers() {
                       return;
                     }
                     
-                    if (!form.getValues("managername")) {
+                    if (!managername) {
                       toast({
                         variant: "destructive",
                         title: "Error",
@@ -856,7 +844,7 @@ export default function Customers() {
                       return;
                     }
                     
-                    if (!form.getValues("phone")) {
+                    if (!phone) {
                       toast({
                         variant: "destructive",
                         title: "Error",
@@ -867,9 +855,9 @@ export default function Customers() {
                     
                     // Creamos objeto con todos los campos requeridos
                     const data = {
-                      businessname: form.getValues("businessname"),
-                      managername: form.getValues("managername"),
-                      phone: form.getValues("phone"),
+                      businessname,
+                      managername,
+                      phone,
                       street: "",
                       streetnumber: "",
                       provinceid: 1,
@@ -882,11 +870,11 @@ export default function Customers() {
                     createMutation.mutate(data);
                   }}
                 >
-                  {createMutation.isPending ? "Guardando..." : "Guardar"}
+                  {createMutation.isPending ? "Guardando..." : "Guardar Cliente"}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </form>
+          </div>
         </TabsContent>
         
         {/* Contenido del Tab de Detalles de Cliente */}
