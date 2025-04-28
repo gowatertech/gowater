@@ -803,341 +803,79 @@ export default function Customers() {
               </div>
             </div>
             
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-1">
-                {/* Mostramos los errores del formulario para debug */}
-                {Object.keys(form.formState.errors).length > 0 && (
-                  <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
-                    Errores en el formulario: {JSON.stringify(form.formState.errors)}
-                  </div>
-                )}
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-1">
-                  <FormField
-                    control={form.control}
-                    name="logo"
-                    render={({ field: { value, onChange, ...field } }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="flex items-center justify-between text-xs">
-                          <div className="flex items-center">
-                            <Badge className="px-2 py-0 h-5 text-[10px] bg-slate-50 text-slate-700 border-slate-200 border-l-4 border-l-slate-500 mr-1">
-                              Logo (JPG/PNG, máx. 5MB)
-                            </Badge>
-                          </div>
-                          <ImageIcon className="h-4 w-4 text-slate-500" />
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            className="h-7 text-xs px-2 py-0"
-                            type="file"
-                            accept="image/jpeg,image/png"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                // Validar el tamaño (5MB)
-                                if (file.size > 5 * 1024 * 1024) {
-                                  toast({
-                                    variant: "destructive",
-                                    title: "Error",
-                                    description: "El archivo debe ser menor a 5MB",
-                                  });
-                                  e.target.value = '';
-                                  return;
-                                }
-
-                                // Validar el tipo
-                                if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                                  toast({
-                                    variant: "destructive",
-                                    title: "Error",
-                                    description: "El archivo debe ser JPG o PNG",
-                                  });
-                                  e.target.value = '';
-                                  return;
-                                }
-
-                                onChange(file);
-                              }
-                            }}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="rnc"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">RNC</FormLabel>
-                        <FormControl>
-                          <Input 
-                            className="h-7 text-xs px-2 py-0" 
-                            {...field} 
-                            value={field.value || ""} 
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="businessname"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="managername"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Teléfono</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Email</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" type="email" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="zoneid"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Zona</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Seleccione una zona" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {zones.map((zone) => (
-                              <SelectItem key={zone.id} value={zone.id.toString()} className="text-xs">
-                                {zone.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="street"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Calle</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="streetnumber"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Número</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="provinceid"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Provincia</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(parseInt(value));
-                            setSelectedProvinceId(parseInt(value));
-                          }}
-                          value={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Seleccione una provincia" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {provinces.map((province) => (
-                              <SelectItem key={province.id} value={province.id.toString()} className="text-xs">
-                                {province.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="municipalityid"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Municipio</FormLabel>
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                          disabled={!selectedProvinceId || isLoadingMunicipalities}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue placeholder="Seleccione un municipio" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {municipalities.map((municipality) => (
-                              <SelectItem key={municipality.id} value={municipality.id.toString()} className="text-xs">
-                                {municipality.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="reference"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2 space-y-1">
-                        <FormLabel className="text-xs">Referencia</FormLabel>
-                        <FormControl>
-                          <Input className="h-7 text-xs px-2 py-0" {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="coordinates"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-3 space-y-1">
-                        <FormLabel className="text-xs">Ubicación en Mapa</FormLabel>
-                        <FormControl>
-                          <div className="h-[180px] w-full border rounded-md overflow-hidden">
-                            <LocationSelector 
-                              value={field.value || ""} 
-                              onChange={field.onChange} 
-                              initialCenter={[19.075380, -70.128822]} 
-                            />
-                          </div>
-                        </FormControl>
-                        <div className="text-[10px] text-muted-foreground mt-0.5">
-                          Mueva el marcador para seleccionar la ubicación exacta del cliente
-                        </div>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="creditlimit"
-                    render={({ field }) => (
-                      <FormItem className="md:col-span-2 space-y-1">
-                        <FormLabel className="text-xs">Límite de Crédito</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            className="h-7 text-xs px-2 py-0"
-                            value={field.value || "0.00"}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^\d.]/g, '');
-                              const parts = value.split('.');
-                              if (parts.length > 2) return;
-                              if (parts[1]?.length > 2) return;
-                              field.onChange(value);
-                            }}
-                            onBlur={(e) => {
-                              const value = e.target.value || '0';
-                              const number = parseFloat(value);
-                              if (!isNaN(number)) {
-                                field.onChange(number.toFixed(2));
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage className="text-[10px]" />
-                      </FormItem>
-                    )}
-                  />
+            <div className="space-y-2">
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
+                  Errores en el formulario: {JSON.stringify(form.formState.errors)}
                 </div>
-
-                <div className="flex justify-end mt-4 mb-4">
-                  <Button
-                    type="submit"
-                    className="bg-blue-500 hover:bg-blue-600 text-white"
-                    disabled={createMutation.isPending}
-                  >
-                    {createMutation.isPending ? "Guardando..." : "Guardar"}
-                  </Button>
-                </div>
-              </form>
-            </Form>
+              )}
+              
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+                <FormField
+                  control={form.control}
+                  name="businessname"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="managername"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Teléfono</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="flex justify-end">
+                <Button
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  disabled={createMutation.isPending}
+                  onClick={() => {
+                    console.log("Submit button clicked");
+                    // Creamos objeto con datos mínimos requeridos
+                    const data = {
+                      businessname: form.getValues("businessname"),
+                      managername: form.getValues("managername"),
+                      phone: form.getValues("phone"),
+                      creditlimit: "0.00"
+                    };
+                    
+                    console.log("Datos preparados:", data);
+                    createMutation.mutate(data);
+                  }}
+                >
+                  {createMutation.isPending ? "Guardando..." : "Guardar"}
+                </Button>
+              </div>
+            </div>
           </div>
         </TabsContent>
         
