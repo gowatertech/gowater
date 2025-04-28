@@ -177,6 +177,7 @@ export const insertCustomerSchema = z.object({
   coordinates: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   balance: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  companyId: z.number().int().positive(),
 });
 
 // Trucks (Vehículos)

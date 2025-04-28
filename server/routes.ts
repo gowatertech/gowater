@@ -1091,6 +1091,20 @@ export async function registerRoutes(router: express.Router) {
   // Customer endpoints
   router.post("/customers", upload.single('logo'), async (req, res) => {
     try {
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
+      if (!companyId) {
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      console.log(`POST /api/customers - Creando cliente para empresa ${companyId}`);
+      
       // Validar los datos del cliente
       const customerData = {
         ...req.body,
@@ -1103,6 +1117,7 @@ export async function registerRoutes(router: express.Router) {
         streetnumber: req.body.streetnumber,
         provinceid: req.body.provinceid,
         municipalityid: req.body.municipalityid,
+        companyId: companyId // Agregar companyId al cliente
       };
 
       const requiredFields = ['businessname', 'managername', 'phone', 'street', 'streetnumber', 'provinceid', 'municipalityid'];
@@ -1129,13 +1144,19 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/customers", async (req, res) => {
     try {
-      // Obtenemos el companyId del contexto de la solicitud
-      const companyId = req.session.companyId;
-      console.log(`GET /api/customers - Obteniendo clientes para empresa ${companyId}`);
-
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Validación de seguridad: No permitir acceso a datos si no hay companyId
       if (!companyId) {
-        return res.status(400).json({ error: "Se requiere una sesión con companyId" });
+        console.error("Error de seguridad: No se encontró un ID de compañía válido en el contexto");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
       }
+      
+      console.log(`GET /api/customers - Obteniendo clientes para empresa ${companyId}`);
 
       const allCustomers = await db
         .select({
