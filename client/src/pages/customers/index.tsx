@@ -379,7 +379,10 @@ export default function Customers() {
         <div className="flex gap-1">
           {!isMobile && (
             <Button 
-              onClick={() => setActiveTab("new")} 
+              onClick={() => {
+                console.log("Cambiando a pestaña de creación");
+                setActiveTab("new");
+              }} 
               className="bg-blue-500 hover:bg-blue-600 text-white h-7 text-xs px-2 py-0.5"
             >
               <PlusCircle className="h-3 w-3 mr-1" />
