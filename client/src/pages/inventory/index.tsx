@@ -182,8 +182,11 @@ export default function Inventory() {
         depositAmount: data.isReturnable ? Number(data.depositAmount).toFixed(2) : "0.00",
         hasCommission: !!data.hasCommission
       };
-      const res = await apiRequest("POST", "/api/products", formattedData);
-      return res.json();
+      return await apiRequest({
+        method: "POST",
+        url: "/api/products",
+        data: formattedData
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -217,8 +220,11 @@ export default function Inventory() {
         hasCommission: !!data.hasCommission
       };
       
-      const res = await apiRequest("PATCH", `/api/products/${editingProduct?.id}`, formattedData);
-      return res.json();
+      return await apiRequest({
+        method: "PATCH",
+        url: `/api/products/${editingProduct?.id}`,
+        data: formattedData
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -243,16 +249,11 @@ export default function Inventory() {
     mutationFn: async (id: number) => {
       // Intentar eliminar el producto con manejo de errores mejorado
       try {
-        const res = await apiRequest("DELETE", `/api/products/${id}`);
-        if (!res.ok) {
-          const errorData = await res.text();
-          // Verificar si la respuesta contiene un mensaje sobre clave foránea
-          if (errorData.includes("foreign key constraint") || errorData.includes("vehicle_loading_items")) {
-            throw new Error(`El producto está siendo utilizado en carga de vehículos y no puede ser eliminado.`);
-          }
-          throw new Error(`Error al eliminar el producto: ${errorData || res.statusText}`);
-        }
-        return await res.json();
+        const response = await apiRequest({
+          method: "DELETE",
+          url: `/api/products/${id}`
+        });
+        return response;
       } catch (error) {
         console.error("Error en deleteMutation:", error);
         throw error;
