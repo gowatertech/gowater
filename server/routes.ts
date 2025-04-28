@@ -316,13 +316,25 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
+      // Intentar obtener companyId de múltiples fuentes
+      let companyId = getCurrentCompanyId();
       
-      console.log("🔐 CompanyId desde el contexto:", companyId);
+      // Si no está en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session.companyId) {
+        companyId = req.session.companyId;
+        console.log("🔄 CompanyId obtenido de la sesión:", companyId);
+      }
+      
+      // Si no está en la sesión, intentar obtenerlo del query string
+      if (!companyId && req.query.companyId) {
+        companyId = parseInt(req.query.companyId as string);
+        console.log("🔄 CompanyId obtenido del query string:", companyId);
+      }
+      
+      console.log("🔐 CompanyId final utilizado:", companyId);
       
       if (!companyId) {
-        console.error("❌ Error: No se encontró companyId en el contexto para obtener pedidos pendientes por zona");
+        console.error("❌ Error: No se encontró companyId en ninguna fuente para obtener pedidos pendientes por zona");
         return res.status(403).json({ 
           error: "Acceso denegado", 
           message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 

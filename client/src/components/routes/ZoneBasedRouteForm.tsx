@@ -164,21 +164,44 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   // Fetch pending orders for the selected zone
   const {
     data: pendingOrders = [],
-    isLoading: isLoadingPendingOrders
+    isLoading: isLoadingPendingOrders,
+    error: pendingOrdersError,
+    refetch: refetchPendingOrders
   } = useQuery<PendingOrder[]>({
     queryKey: ["/api/zones", selectedZone, "pending-orders"],
     queryFn: async () => {
       if (!selectedZone) return [];
+      
       console.log(`Fetching pending orders for zone ${selectedZone}`);
-      const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
+      
+      // Obtener el companyId de la sesión (si está disponible)
+      const userResponse = await apiRequest("GET", "/api/user");
+      const userData = await userResponse.json();
+      const companyId = userData.user?.companyId;
+      
+      // Construir la URL con el companyId como parámetro de consulta para mayor seguridad
+      const url = `/api/zones/${selectedZone}/pending-orders${companyId ? `?companyId=${companyId}` : ''}`;
+      console.log(`Requesting pending orders from: ${url}`);
+      
+      const response = await apiRequest("GET", url);
+      
       if (!response.ok) {
+        console.error("Error fetching pending orders:", await response.text());
         throw new Error("Error al obtener pedidos pendientes de la zona");
       }
+      
       const data = await response.json();
       console.log("Pending orders data:", data);
+      
+      if (Array.isArray(data) && data.length === 0) {
+        console.log("No se encontraron pedidos pendientes para esta zona");
+      }
+      
       return data;
     },
     enabled: !!selectedZone,
+    retry: 1, // Reintentar una vez en caso de error
+    retryDelay: 1000, // Esperar 1 segundo entre reintentos
   });
 
   const form = useForm({
@@ -1075,9 +1098,26 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   </Card>
                 ))}
               </div>
+            ) : pendingOrdersError ? (
+              <div className="text-center py-4 text-red-500 text-xs">
+                <AlertTriangle className="h-4 w-4 mx-auto mb-1" />
+                Error al cargar pedidos pendientes. Por favor, inténtalo de nuevo.
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2 h-7 text-[10px] px-2 py-0"
+                  onClick={() => refetchPendingOrders()}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" /> Reintentar
+                </Button>
+              </div>
             ) : pendingOrders.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground text-xs">
+                <Package className="h-4 w-4 mx-auto mb-1 opacity-30" />
                 No hay pedidos pendientes sin asignar en esta zona
+                <div className="text-[10px] mt-1 text-muted-foreground">
+                  Comprueba que tienes pedidos con estado "pendiente" asignados a clientes de esta zona
+                </div>
               </div>
             ) : (
               <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
