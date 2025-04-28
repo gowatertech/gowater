@@ -169,15 +169,6 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   // Estado para controlar si estamos en modo debug
   const [useDebugMode, setUseDebugMode] = useState<boolean>(false);
   
-  // Función para alternar el modo debug
-  const toggleDebugMode = () => {
-    setUseDebugMode(prev => !prev);
-    // Limpiar estado cuando cambiamos de modo
-    setAuthError(null);
-    setSelectedCustomers([]);
-    setOptimizedRoute([]);
-  };
-  
   const {
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders,
@@ -189,95 +180,54 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       if (!selectedZone) return [];
       
       console.log(`Fetching pending orders for zone ${selectedZone} (debug mode: ${useDebugMode})`);
-      setAuthError(null); // Limpiar errores anteriores
+      setAuthError(null);
       
       try {
-        // Primero verificar si hay sesión activa
+        // Obtener el companyId de la sesión (si está disponible)
         const userResponse = await apiRequest("GET", "/api/user");
         
-        if (!userResponse.ok) {
-          setAuthError("Error de autenticación: Por favor inicie sesión nuevamente.");
-          throw new Error("No hay sesión activa");
-        }
+        let url = "";
         
-        // Obtenemos el diagnóstico del contexto
-        console.log("Verificando contexto multi-tenant...");
-        const diagResponse = await apiRequest("GET", "/api/diagnostic/context");
-        
-        if (diagResponse.ok) {
-          const diagData = await diagResponse.json();
-          console.log("Diagnóstico de contexto:", diagData);
-          
-          if (!diagData.contextCompanyId && !diagData.sessionCompanyId && !diagData.userCompanyId) {
-            console.warn("No se encontró un ID de compañía en ningún contexto");
-          }
-        }
-        
-        // Construir la URL según el modo
-        let url = `/api/zones/${selectedZone}/pending-orders`;
+        // Si estamos en modo debug, solicitar con el parámetro debug=true
         if (useDebugMode) {
-          url += "?debug=true";
+          url = `/api/zones/${selectedZone}/pending-orders?debug=true`;
           console.log(`MODO DEBUG: Solicitando pedidos pendientes en modo desarrollo: ${url}`);
+        } else if (!userResponse.ok) {
+          console.warn("No se pudo obtener el usuario de la sesión");
+          setAuthError("Error de autenticación: No se encontró una sesión válida. Por favor inicie sesión nuevamente.");
+          // No utilizamos un valor hardcodeado, solo reportamos el error
+          throw new Error("Sin sesión de usuario válida");
         } else {
+          // Usuario está autenticado, obtenemos sus datos
+          const userData = await userResponse.json();
+          
+          // Usamos la URL normal ya que el backend obtendrá el companyId de la sesión
+          url = `/api/zones/${selectedZone}/pending-orders`;
           console.log(`Solicitando pedidos pendientes con sesión activa para zona ${selectedZone}`);
         }
         
-        // Si hay sesión, intentar obtener pedidos pendientes
         const response = await apiRequest("GET", url);
         
         if (!response.ok) {
-          // Manejar diferentes tipos de errores
-          const errorStatus = response.status;
-          
-          try {
-            const errorData = await response.json();
-            console.error("Error response data:", errorData);
-            
-            if (errorData.error && errorData.message) {
-              setAuthError(`${errorData.error}: ${errorData.message}`);
-            }
-          } catch (e) {
-            // Si no es JSON, intentar obtener el texto
-            const errorText = await response.text();
-            console.error("Error response text:", errorText);
-          }
-          
-          if (errorStatus === 403 || errorStatus === 401) {
-            setAuthError("Error de autenticación: No tiene acceso a esta zona o la sesión ha expirado.");
+          const errorText = await response.text();
+          console.error("Error fetching pending orders:", errorText);
+          if (errorText.includes("No autenticado") || errorText.includes("Acceso denegado")) {
+            setAuthError("Error de autenticación: Sesión inválida. Por favor inicie sesión nuevamente.");
             throw new Error("Error de autenticación");
-          } else if (errorStatus === 404) {
-            setAuthError("La zona solicitada no existe o no pertenece a su empresa.");
-            return []; // Zona no encontrada, devolver array vacío
-          } else {
-            throw new Error(`Error ${errorStatus} al obtener pedidos pendientes`);
           }
+          throw new Error("Error al obtener pedidos pendientes de la zona");
         }
         
-        // Procesar la respuesta
         const data = await response.json();
+        console.log("Pending orders data:", data);
         
-        // Si la respuesta es un objeto con mensaje y datos vacíos, es una respuesta válida pero sin pedidos
-        if (data && data.message && Array.isArray(data.data)) {
-          console.log(data.message);
-          return data.data; // Retornar el array vacío de datos
+        if (Array.isArray(data) && data.length === 0) {
+          console.log("No se encontraron pedidos pendientes para esta zona");
         }
         
-        // Si es un array directamente, retornarlo
-        if (Array.isArray(data)) {
-          console.log(`Obtenidos ${data.length} pedidos pendientes para la zona ${selectedZone}`);
-          
-          if (data.length === 0) {
-            console.log("No se encontraron pedidos pendientes para esta zona");
-          }
-          
-          return data;
-        }
-        
-        // Si llegamos aquí, la respuesta tiene un formato inesperado
-        console.warn("Formato de respuesta inesperado:", data);
-        return [];
+        return data;
       } catch (error) {
-        console.error("Error obteniendo pedidos pendientes:", error);
+        console.error("Error en la consulta de pedidos pendientes:", error);
         throw error;
       }
     },
@@ -694,7 +644,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       });
       // Invalidate queries to refresh lists
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      queryClient.invalidateQueries({ queryKey: ["/zones", selectedZone, "pending-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
       // Reset form and state
       form.reset();
       setSelectedZone(null);
@@ -806,7 +756,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       
       // Invalidate queries to refresh lists
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      queryClient.invalidateQueries({ queryKey: ["/zones", selectedZone, "pending-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
       
       // Reset form and state
       form.reset();
@@ -955,23 +905,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 name="zoneId"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <FormLabel className="text-xs">Zona de Entrega</FormLabel>
-                      {process.env.NODE_ENV === "development" && (
-                        <Button
-                          type="button"
-                          variant={useDebugMode ? "default" : "outline"}
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            toggleDebugMode();
-                          }}
-                          className="h-5 text-[10px] py-0 px-2"
-                        >
-                          {useDebugMode ? "🛠️ Debug ON" : "🔍 Debug OFF"}
-                        </Button>
-                      )}
-                    </div>
+                    <FormLabel className="text-xs">Zona de Entrega</FormLabel>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(Number(value));
@@ -1178,14 +1112,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         <TabsContent value="pending_orders" className="mt-2">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium">Pedidos Pendientes</h3>
-                {useDebugMode && (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-50 text-[10px] py-0 px-1 h-4">
-                    Modo Debug
-                  </Badge>
-                )}
-              </div>
+              <h3 className="text-sm font-medium">Pedidos Pendientes</h3>
               <Badge variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-50 text-[10px] py-0 px-1.5 h-4">
                 {pendingOrders.length} pedidos sin asignar
               </Badge>
@@ -1216,10 +1143,9 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     "Error al cargar pedidos pendientes. Por favor, inténtalo de nuevo."
                   )}
                 </div>
-                {/* Mostramos información de debug si está activado */}
-                {useDebugMode && (
+                {companyIdUsed && (
                   <div className="text-blue-500 text-[10px] bg-blue-50 p-1 rounded">
-                    Información técnica: Modo Debug Activado
+                    Información técnica: Usando CompanyId: {companyIdUsed}
                   </div>
                 )}
                 <div className="flex justify-center space-x-2">

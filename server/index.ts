@@ -19,12 +19,8 @@ import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate
 import { consolidatedCompanyMiddleware } from "./middleware/consolidated-company.middleware";
 // Importamos el router de órdenes
 import ordersRouter from "./routes/orders";
-// Importamos las rutas para zonas
-import { registerZonesRoutes } from "./routes/zones-routes";
 // Importamos las rutas para datos geográficos
 import { registerGeoDataRoutes } from "./routes/geo-data";
-// Importamos las rutas de diagnóstico
-import { registerDiagnosticRoutes } from "./routes/diagnostic-routes";
 
 const app = express();
 
@@ -117,10 +113,6 @@ app.use((req, res, next) => {
     app.use(consolidatedCompanyMiddleware, ordersRouter);
     log("Custom orders router registered successfully with consolidated company middleware");
     
-    // Registrar rutas de zonas
-    registerZonesRoutes(app);
-    log("Zones routes registered successfully with consolidated company middleware");
-    
     // Montar las rutas públicas para registro de empresas interesadas
     app.use("/api/leads", leadsRoutes);
     log("Lead registration routes registered successfully");
@@ -133,10 +125,6 @@ app.use((req, res, next) => {
     if (process.env.NODE_ENV !== "production") {
       registerTestAPIRoutes(app);
       log("Test API routes registered successfully");
-      
-      // Registrar rutas de diagnóstico sin autenticación (antes de cualquier middleware de autenticación)
-      registerDiagnosticRoutes(app);
-      log("Diagnostic routes registered successfully");
     }
     
     // Crear servidor HTTP
