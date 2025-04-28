@@ -398,7 +398,7 @@ export default function Customers() {
           </TabsTrigger>
           <TabsTrigger value="new" className="flex items-center gap-1 text-xs px-2 py-0">
             <PlusCircle className="h-3 w-3 text-blue-500" />
-            <span>Nuevo</span>
+            <span>Crear Cliente</span>
           </TabsTrigger>
           {!isMobile && (
             <TabsTrigger value="details" disabled={!selectedCustomer} className="flex items-center gap-1 text-xs px-2 py-0">
