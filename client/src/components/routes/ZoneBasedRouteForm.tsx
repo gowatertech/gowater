@@ -955,7 +955,23 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 name="zoneId"
                 render={({ field }) => (
                   <FormItem className="space-y-1">
-                    <FormLabel className="text-xs">Zona de Entrega</FormLabel>
+                    <div className="flex justify-between items-center">
+                      <FormLabel className="text-xs">Zona de Entrega</FormLabel>
+                      {process.env.NODE_ENV === "development" && (
+                        <Button
+                          type="button"
+                          variant={useDebugMode ? "default" : "outline"}
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleDebugMode();
+                          }}
+                          className="h-5 text-[10px] py-0 px-2"
+                        >
+                          {useDebugMode ? "🛠️ Debug ON" : "🔍 Debug OFF"}
+                        </Button>
+                      )}
+                    </div>
                     <Select
                       onValueChange={(value) => {
                         field.onChange(Number(value));
@@ -1162,7 +1178,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         <TabsContent value="pending_orders" className="mt-2">
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium">Pedidos Pendientes</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium">Pedidos Pendientes</h3>
+                {useDebugMode && (
+                  <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-50 text-[10px] py-0 px-1 h-4">
+                    Modo Debug
+                  </Badge>
+                )}
+              </div>
               <Badge variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-50 text-[10px] py-0 px-1.5 h-4">
                 {pendingOrders.length} pedidos sin asignar
               </Badge>
@@ -1193,9 +1216,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                     "Error al cargar pedidos pendientes. Por favor, inténtalo de nuevo."
                   )}
                 </div>
-                {companyIdUsed && (
+                {/* Mostramos información de debug si está activado */}
+                {useDebugMode && (
                   <div className="text-blue-500 text-[10px] bg-blue-50 p-1 rounded">
-                    Información técnica: Usando CompanyId: {companyIdUsed}
+                    Información técnica: Modo Debug Activado
                   </div>
                 )}
                 <div className="flex justify-center space-x-2">
