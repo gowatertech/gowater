@@ -153,46 +153,22 @@ export default function Customers() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: CustomerFormData) => {
+    mutationFn: async (data: any) => {
       console.log("Submitting form data:", data);
       
-      if (data.logo instanceof File) {
-        // Si hay un archivo de logo, usamos FormData
-        const formData = new FormData();
-        
-        // Añadir todos los campos al FormData
-        Object.entries(data).forEach(([key, value]) => {
-          if (value !== undefined && value !== "") {
-            if (key === 'logo' && value instanceof File) {
-              formData.append('logo', value);
-            } else {
-              formData.append(key, String(value));
-            }
-          }
-        });
-        
-        // Enviar la solicitud con fetch para manejar FormData
-        const response = await fetch('/api/customers', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Error al crear cliente:", errorText);
-          throw new Error('Error al crear el cliente: ' + errorText);
-        }
-        
-        return await response.json();
-      } else {
-        // Si no hay logo, usamos JSON con apiRequest exactamente como en almacén
-        console.log("Enviando datos sin logo:", data);
-        return await apiRequest({
+      try {
+        // Enfoque simplificado - usar siempre JSON
+        console.log("Enviando datos:", data);
+        const result = await apiRequest({
           method: "POST",
           url: "/api/customers",
           data: data
         });
+        console.log("Respuesta del servidor:", result);
+        return result;
+      } catch (error) {
+        console.error("Error al crear cliente:", error);
+        throw error;
       }
     },
     onSuccess: () => {
@@ -860,12 +836,17 @@ export default function Customers() {
                   disabled={createMutation.isPending}
                   onClick={() => {
                     console.log("Submit button clicked");
-                    // Creamos objeto con datos mínimos requeridos
+                    // Creamos objeto con todos los campos requeridos
                     const data = {
                       businessname: form.getValues("businessname"),
                       managername: form.getValues("managername"),
                       phone: form.getValues("phone"),
-                      creditlimit: "0.00"
+                      street: "",
+                      streetnumber: "",
+                      provinceid: 1,
+                      municipalityid: 1,
+                      creditlimit: "0.00",
+                      balance: "0.00"
                     };
                     
                     console.log("Datos preparados:", data);
