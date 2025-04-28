@@ -77,27 +77,30 @@ export default function ProductionRegistration() {
   const { data: products = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["/api/products"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/products");
-      if (!response.ok) throw new Error("Error al obtener productos");
-      return response.json();
+      return await apiRequest({
+        method: "GET",
+        url: "/api/products"
+      });
     }
   });
 
   const { data: warehouses = [], isLoading: isLoadingWarehouses } = useQuery({
     queryKey: ["/api/warehouses"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/warehouses");
-      if (!response.ok) throw new Error("Error al obtener almacenes");
-      return response.json();
+      return await apiRequest({
+        method: "GET",
+        url: "/api/warehouses"
+      });
     }
   });
 
   const { data: productionBatches = [], isLoading: isLoadingBatches } = useQuery({
     queryKey: ["/api/production-batches"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/production-batches");
-      if (!response.ok) throw new Error("Error al obtener lotes");
-      return response.json();
+      return await apiRequest({
+        method: "GET",
+        url: "/api/production-batches"
+      });
     }
   });
 
@@ -123,11 +126,11 @@ export default function ProductionRegistration() {
   // Mutation
   const createBatchMutation = useMutation({
     mutationFn: async (data: InsertProductionBatch) => {
-      const response = await apiRequest("POST", "/api/production-batches", data);
-      if (!response.ok) {
-        throw new Error("Error al crear lote de producción");
-      }
-      return response.json();
+      return await apiRequest({
+        method: "POST",
+        url: "/api/production-batches",
+        data: data
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-batches"] });
