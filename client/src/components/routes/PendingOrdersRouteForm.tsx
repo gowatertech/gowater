@@ -149,9 +149,34 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   // Fetch pending orders for the selected zone
   const {
     data: pendingOrders = [],
-    isLoading: isLoadingPendingOrders
+    isLoading: isLoadingPendingOrders,
+    error: pendingOrdersError,
+    refetch: refetchPendingOrders
   } = useQuery<OrderWithCustomer[]>({
     queryKey: ["/api/zones", selectedZone, "pending-orders"],
+    queryFn: async () => {
+      if (!selectedZone) return [];
+      
+      try {
+        const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Error al obtener pedidos pendientes");
+        }
+        
+        const data = await response.json();
+        return data.map((order: any) => ({
+          ...order,
+          coordinates: order.deliveryCoordinates || order.coordinates || null,
+          customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
+          customerPhone: order.customerPhone || "",
+          products: order.products || []
+        }));
+      } catch (error) {
+        console.error("Error en la consulta de pedidos pendientes:", error);
+        throw error;
+      }
+    },
     queryFn: async () => {
       if (!selectedZone) return [];
       console.log(`Fetching pending orders for zone ${selectedZone}`);

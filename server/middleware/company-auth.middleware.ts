@@ -8,14 +8,29 @@ import { storage } from '../storage';
  * Verifica que el usuario tenga sesión y los permisos adecuados.
  */
 export function companyAuthMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Verificar si la sesión existe y contiene la información del usuario
+  console.log("🔒 Verificando autenticación...");
+
   if (!req.session || !req.session.user) {
-    console.log('Auth middleware: No hay sesión de usuario');
+    console.log("❌ No hay sesión de usuario");
     return res.status(401).json({
       success: false,
-      message: 'No autenticado'
+      message: "No autenticado"
     });
   }
+
+  // Verificar y establecer el companyId
+  const companyId = req.session.companyId || req.session.user.companyId;
+  if (!companyId) {
+    console.log("❌ No hay companyId en la sesión");
+    return res.status(403).json({
+      success: false,
+      message: "No se encontró el ID de compañía"
+    });
+  }
+
+  // Establecer el companyId en el contexto
+  setCurrentCompanyId(companyId);
+  console.log(`✅ CompanyId establecido: ${companyId}`);
 
   // Verificar si el usuario tiene un rol permitido para el panel de empresa
   const allowedRoles = ['admin', 'supervisor', 'cashier'];
@@ -26,11 +41,7 @@ export function companyAuthMiddleware(req: Request, res: Response, next: NextFun
       message: 'No tiene permisos para acceder al panel de empresa'
     });
   }
-  
-  // Si el usuario está autenticado y tiene los permisos correctos,
-  // establecer el ID de compañía en el contexto para filtrado multi-tenant
-  setCurrentCompanyId(req.session.companyId || req.session.user.companyId);
-  
+
   // Continuar con la siguiente función de middleware o ruta
   next();
 }
@@ -59,17 +70,17 @@ export async function loginWithEmail(req: Request, res: Response) {
   try {
     console.log("POST /api/login - Recibido:", JSON.stringify(req.body));
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({ 
         success: false, 
         message: "Email y contraseña son requeridos" 
       });
     }
-    
+
     // Buscar usuario por email
     const user = await storage.getUserByEmail(email);
-    
+
     if (!user) {
       console.log(`Login fallido: Usuario con email ${email} no encontrado`);
       return res.status(401).json({ 
@@ -77,7 +88,7 @@ export async function loginWithEmail(req: Request, res: Response) {
         message: "No encontramos una cuenta con ese correo electrónico. Por favor, verifica tus datos o contacta con soporte." 
       });
     }
-    
+
     // Verificar que el usuario está activo
     if (!user.active) {
       console.log(`Login fallido: Usuario inactivo: ${email}`);
@@ -86,13 +97,13 @@ export async function loginWithEmail(req: Request, res: Response) {
         message: "La cuenta está desactivada" 
       });
     }
-    
+
     // Verificar la contraseña
     let validPassword = false;
-    
+
     // La mayoría de las contraseñas aún están en texto plano, así que comprobamos primero eso
     validPassword = password === user.password;
-    
+
     // Si la contraseña de texto plano coincide, debemos actualizar a bcrypt (si no estamos en producción)
     if (validPassword && process.env.NODE_ENV !== 'production') {
       console.log(`ADVERTENCIA: Usuario ${email} tiene contraseña en texto plano. Debería actualizarse a bcrypt.`);
@@ -107,7 +118,7 @@ export async function loginWithEmail(req: Request, res: Response) {
       }
       */
     }
-    
+
     // Si no coincide como texto plano, intentamos con bcrypt
     if (!validPassword) {
       try {
@@ -117,7 +128,7 @@ export async function loginWithEmail(req: Request, res: Response) {
         // Esto es normal si la contraseña no está hasheada con bcrypt
       }
     }
-    
+
     if (!validPassword) {
       console.log(`Login fallido: Contraseña incorrecta para usuario: ${email}`);
       return res.status(401).json({ 
@@ -125,7 +136,7 @@ export async function loginWithEmail(req: Request, res: Response) {
         message: "La contraseña ingresada es incorrecta. Por favor intenta nuevamente." 
       });
     }
-    
+
     // Verificar roles permitidos para el panel de empresa
     const allowedRoles = ['admin', 'supervisor', 'cashier'];
     if (!allowedRoles.includes(user.role)) {
@@ -135,20 +146,20 @@ export async function loginWithEmail(req: Request, res: Response) {
         message: "No tienes permiso para acceder al panel de administración" 
       });
     }
-    
+
     // Crear objeto de usuario sin la contraseña para la sesión
     const { password: pwd, ...userWithoutPassword } = user;
-    
+
     // Guardar información del usuario y companyId en la sesión
     req.session.user = userWithoutPassword;
     req.session.companyId = user.companyId;
-    
+
     // IMPORTANTE: Sincronizar el companyId con asyncLocalStorage
     // Esto asegura que getCurrentCompanyId() devuelva el valor correcto
     setCurrentCompanyId(user.companyId);
-    
+
     console.log(`Login exitoso - Usuario: ${email}, ID: ${user.id}, Empresa: ${user.companyId} (sincronizado en contexto)`);
-    
+
     // Responder con éxito y los datos del usuario (sin contraseña)
     return res.status(200).json({
       success: true,
@@ -179,7 +190,7 @@ export function logout(req: Request, res: Response) {
         message: "Error al cerrar sesión"
       });
     }
-    
+
     return res.status(200).json({
       success: true, 
       message: "Sesión cerrada correctamente"
@@ -197,7 +208,7 @@ export function getCurrentUser(req: Request, res: Response) {
       message: "No autenticado"
     });
   }
-  
+
   return res.status(200).json({
     success: true,
     user: req.session.user
