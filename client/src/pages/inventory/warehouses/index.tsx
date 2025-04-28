@@ -90,11 +90,11 @@ export default function WarehousesPage() {
   // Create warehouse mutation
   const createWarehouseMutation = useMutation({
     mutationFn: async (data: InsertWarehouse) => {
-      const response = await apiRequest("POST", "/api/warehouses", data);
-      if (!response.ok) {
-        throw new Error("Error al crear almacén");
-      }
-      return response.json();
+      return await apiRequest({
+        method: "POST",
+        url: "/api/warehouses",
+        data
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/warehouses"] });
@@ -117,14 +117,12 @@ export default function WarehousesPage() {
   // Update warehouse mutation
   const updateWarehouseMutation = useMutation({
     mutationFn: async (data: InsertWarehouse & { id: number }) => {
-      const response = await apiRequest("PATCH", `/api/warehouses/${data.id}`, {
-        name: data.name,
-        status: data.status
+      const { id, ...updateData } = data;
+      return await apiRequest({
+        method: "PATCH",
+        url: `/api/warehouses/${id}`,
+        data: updateData
       });
-      if (!response.ok) {
-        throw new Error("Error al actualizar almacén");
-      }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/warehouses"] });
