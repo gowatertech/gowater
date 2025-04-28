@@ -543,7 +543,16 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         // Asegurar que enviamos datos bien formados y la URL es correcta
         console.log("URL de envío: /api/routes");
         console.log("Data enviada:", routeData);
-        const response = await apiRequest("POST", "/api/routes", routeData);
+        
+        // Usar el nuevo formato de apiRequest con objeto
+        return await apiRequest({
+          method: "POST", 
+          url: "/api/routes", 
+          data: {
+            ...routeData,
+            companyId: 0 // Este valor será sobrescrito por el backend
+          }
+        });
         
         // Verificar el tipo de contenido de la respuesta
         const contentType = response.headers.get("content-type");
@@ -663,13 +672,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       
       console.log("Enviando datos a /api/routes:", routeData);
       
-      const response = await fetch('/api/routes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(routeData)
+      // Usar el nuevo formato de apiRequest con objeto
+      const response = await apiRequest({
+        method: "POST", 
+        url: "/api/routes", 
+        data: {
+          ...routeData,
+          companyId: 0 // Este valor será sobrescrito por el backend
+        }
       });
       
       const contentType = response.headers.get("content-type");
