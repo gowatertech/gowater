@@ -55,6 +55,7 @@ interface BatchItem {
   quantity: number;
   cost: string;
   total: string;
+  productName?: string; // Nombre del producto para visualización
 }
 
 interface ProductionStats {
@@ -186,6 +187,9 @@ export default function ProductionRegistration() {
 
   // Handlers
   const onSubmit = (data: InsertProductionBatch) => {
+    console.log("Ejecutando onSubmit con data:", data);
+    console.log("Número de productos en lote:", batchItems.length);
+    
     if (!data.warehouseId) {
       toast({
         title: "Error",
@@ -216,6 +220,14 @@ export default function ProductionRegistration() {
       }))
     };
 
+    console.log("Enviando datos de lote:", batchData);
+    
+    // Confirmar la creación del lote
+    toast({
+      title: "Procesando",
+      description: "Creando lote de producción...",
+    });
+    
     createBatchMutation.mutate(batchData);
   };
 
@@ -261,16 +273,41 @@ export default function ProductionRegistration() {
       return;
     }
 
+    // Buscar el nombre del producto seleccionado
+    const selectedProduct = products.find((p: any) => p.id === data.productId);
+    const productName = selectedProduct ? selectedProduct.name : `Producto ${data.productId}`;
+
     const total = (parseFloat(formattedCost) * data.quantity).toFixed(2);
-    setBatchItems(prev => [...prev, { 
-      ...data, 
+    
+    // Agregamos el elemento al lote con información adicional
+    const newBatchItem: BatchItem = { 
+      productId: data.productId,
+      quantity: data.quantity,
       cost: formattedCost,
-      total 
-    }]);
+      total,
+      // Datos adicionales para visualización
+      productName
+    };
+    
+    console.log("Agregando producto al lote:", newBatchItem);
+    
+    // Actualizamos el estado con el nuevo item
+    setBatchItems(prevItems => {
+      const newItems = [...prevItems, newBatchItem];
+      console.log("Nueva lista de productos:", newItems);
+      return newItems;
+    });
+    
+    // Reiniciamos el formulario de agregar producto
     itemForm.reset({
       productId: 0,
       quantity: 0,
       cost: "0.00"
+    });
+    
+    toast({
+      title: "Producto agregado",
+      description: `${productName} agregado al lote`,
     });
   };
 
