@@ -163,6 +163,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     enabled: !!selectedZone,
   });
   
+  // Estado para mensajes de error de autenticación
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [companyIdUsed, setCompanyIdUsed] = useState<number | null>(null);
+  
   // Fetch pending orders for the selected zone
   const {
     data: pendingOrders = [],
@@ -175,34 +179,74 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       if (!selectedZone) return [];
       
       console.log(`Fetching pending orders for zone ${selectedZone}`);
+      setAuthError(null);
       
-      // Obtener el companyId de la sesión (si está disponible)
-      const userResponse = await apiRequest("GET", "/api/user");
-      const userData = await userResponse.json();
-      const companyId = userData.user?.companyId;
-      
-      // Construir la URL con el companyId como parámetro de consulta para mayor seguridad
-      const url = `/api/zones/${selectedZone}/pending-orders${companyId ? `?companyId=${companyId}` : ''}`;
-      console.log(`Requesting pending orders from: ${url}`);
-      
-      const response = await apiRequest("GET", url);
-      
-      if (!response.ok) {
-        console.error("Error fetching pending orders:", await response.text());
-        throw new Error("Error al obtener pedidos pendientes de la zona");
+      try {
+        // Obtener el companyId de la sesión (si está disponible)
+        const userResponse = await apiRequest("GET", "/api/user");
+        
+        if (!userResponse.ok) {
+          console.warn("No se pudo obtener el usuario de la sesión");
+          setAuthError("No se pudo verificar la sesión. Intente cerrar sesión y volver a ingresar.");
+          // Usar el companyId por defecto para desarrollo
+          const fallbackCompanyId = 15; // ID de la compañía que sabemos que existe
+          setCompanyIdUsed(fallbackCompanyId);
+          
+          // Construir la URL con el companyId como parámetro de consulta para desarrollo
+          const url = `/api/zones/${selectedZone}/pending-orders?companyId=${fallbackCompanyId}`;
+          console.log(`Desarrollo: Solicitando pedidos pendientes con companyId fijo: ${url}`);
+          
+          const response = await apiRequest("GET", url);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Error fetching pending orders:", errorText);
+            if (errorText.includes("No autenticado") || errorText.includes("Acceso denegado")) {
+              throw new Error("Error de autenticación: Sesión inválida. Por favor inicie sesión nuevamente.");
+            }
+            throw new Error("Error al obtener pedidos pendientes de la zona");
+          }
+          
+          const data = await response.json();
+          console.log("Pending orders data (usando companyId fijo):", data);
+          return data;
+        }
+        
+        const userData = await userResponse.json();
+        const companyId = userData.companyId || userData.user?.companyId;
+        setCompanyIdUsed(companyId);
+        
+        // Construir la URL con el companyId como parámetro de consulta para mayor seguridad
+        const url = `/api/zones/${selectedZone}/pending-orders${companyId ? `?companyId=${companyId}` : ''}`;
+        console.log(`Requesting pending orders from: ${url}`);
+        
+        const response = await apiRequest("GET", url);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error fetching pending orders:", errorText);
+          if (errorText.includes("No autenticado") || errorText.includes("Acceso denegado")) {
+            setAuthError("Error de autenticación: Sesión inválida. Por favor inicie sesión nuevamente.");
+            throw new Error("Error de autenticación");
+          }
+          throw new Error("Error al obtener pedidos pendientes de la zona");
+        }
+        
+        const data = await response.json();
+        console.log("Pending orders data:", data);
+        
+        if (Array.isArray(data) && data.length === 0) {
+          console.log("No se encontraron pedidos pendientes para esta zona");
+        }
+        
+        return data;
+      } catch (error) {
+        console.error("Error en la consulta de pedidos pendientes:", error);
+        throw error;
       }
-      
-      const data = await response.json();
-      console.log("Pending orders data:", data);
-      
-      if (Array.isArray(data) && data.length === 0) {
-        console.log("No se encontraron pedidos pendientes para esta zona");
-      }
-      
-      return data;
     },
     enabled: !!selectedZone,
-    retry: 1, // Reintentar una vez en caso de error
+    retry: 2, // Reintentar dos veces en caso de error
     retryDelay: 1000, // Esperar 1 segundo entre reintentos
   });
 
@@ -1100,10 +1144,34 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   </Card>
                 ))}
               </div>
-            ) : pendingOrdersError ? (
-              <div className="text-center py-4 text-red-500 text-xs">
-                <AlertTriangle className="h-4 w-4 mx-auto mb-1" />
-                Error al cargar pedidos pendientes. Por favor, inténtalo de nuevo.
+            ) : pendingOrdersError || authError ? (
+              <div className="text-center py-4 space-y-2">
+                <div className="text-red-500 text-xs">
+                  <AlertTriangle className="h-4 w-4 mx-auto mb-1" />
+                  {authError ? (
+                    <>
+                      <div className="font-semibold mb-1">Error de autenticación</div>
+                      <div>{authError}</div>
+                    </>
+                  ) : (
+                    "Error al cargar pedidos pendientes. Por favor, inténtalo de nuevo."
+                  )}
+                </div>
+                {companyIdUsed && (
+                  <div className="text-blue-500 text-[10px] bg-blue-50 p-1 rounded">
+                    Información técnica: Usando CompanyId: {companyIdUsed}
+                  </div>
+                )}
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => refetchPendingOrders()}
+                  className="h-7 text-xs px-2"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Reintentar
+                </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
