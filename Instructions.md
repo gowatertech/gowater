@@ -1,266 +1,308 @@
-# Análisis y Solución: Implementación y Arreglo de Creación de Pedidos y Cambio de Status en Sistema Multi-Tenant
+# Análisis y Solución: Implementación y Corrección de Rutas y Pedidos Pendientes por Zona en Sistema Multi-Tenant
 
 ## 1. Análisis del Problema
 
-Después de un análisis exhaustivo del código, he identificado los siguientes problemas que están afectando la creación de pedidos y cambio de status en el sistema multi-tenant:
+Después de un análisis exhaustivo del código, he identificado los siguientes problemas que están afectando la obtención de pedidos pendientes por zona en el sistema multi-tenant:
 
-### 1.1. Problemas en la Creación de Pedidos
+### 1.1. Problemas en la Obtención de CompanyId
 
 1. **Inconsistencia en la Obtención del CompanyId:** 
-   - En `POST /api/orders`, el sistema intenta recuperar el `companyId` de múltiples fuentes pero puede fallar si ninguna está disponible:
+   - En el endpoint `/api/zones/:id/pending-orders`, el sistema intenta recuperar el `companyId` de múltiples fuentes pero puede fallar si el contexto se pierde:
      ```javascript
      let companyId = getCurrentCompanyId();
-     if (!companyId) {
-       if (req.session && req.session.companyId) {
-         companyId = req.session.companyId;
-       } else if (req.body.companyId) {
-         companyId = req.body.companyId;
+     if (!companyId && req.session?.companyId) {
+       companyId = req.session.companyId;
+     }
+     ```
+   - Si no se encuentra el `companyId`, devuelve un error: "Acceso denegado" sin ofrecer alternativas.
+
+2. **Problemas con el Ciclo de Vida del Contexto:**
+   - El middleware `consolidatedCompanyMiddleware` está configurado para establecer el `companyId` en el contexto, pero cuando hay múltiples peticiones simultáneas, el contexto puede perderse o mezclarse.
+   - Los logs muestran: "Limpiando companyId del contexto" frecuentemente, lo que indica que hay problemas con la persistencia del contexto.
+
+3. **Debug Mode Inconsistente:**
+   - El modo debug para desarrollo no está completamente implementado, lo que dificulta las pruebas.
+
+### 1.2. Problemas con el Filtrado de Datos por Zona
+
+1. **Filtrado Incompleto por Compañía:**
+   - Al recuperar los clientes de una zona, se aplica el filtro `companyId` correctamente, pero podría mejorarse:
+     ```javascript
+     const zoneCustomers = await db
+       .select({
+         id: customers.id,
+         name: customers.businessname
+       })
+       .from(customers)
+       .where(
+         and(
+           eq(customers.zoneid, zoneId),
+           eq(customers.companyId, companyId)
+         )
+       );
+     ```
+
+2. **Verificación de Zonas por Compañía:**
+   - La verificación de que la zona pertenezca a la compañía es correcta, pero la respuesta cuando no pertenece es un array vacío en lugar de un error más descriptivo.
+
+## 2. Solución Propuesta
+
+### 2.1. Mejora del Middleware Multi-tenant
+
+1. **Reforzar el `consolidatedCompanyMiddleware`:**
+   - Agregar logs más detallados para diagnosticar problemas.
+   - Mejorar el manejo de casos especiales como la ruta de pedidos pendientes.
+
+   ```javascript
+   // En server/middleware/consolidated-company.middleware.ts
+   export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
+     // Log para depuración
+     console.log(`[Company Middleware] Procesando ruta: ${req.path}`);
+     
+     // Para rutas de plataforma, no alteramos nada
+     if (req.path.startsWith('/api/platform') || req.path === '/api/login' || req.path === '/api/logout') {
+       console.log(`[Company Middleware] Ruta excluida: ${req.path}`);
+       return next();
+     }
+
+     // Resto del código actual...
+
+     // Mejorar el manejo del modo debug
+     const isDebugMode = (
+       req.path.includes('/zones/') && 
+       req.path.includes('/pending-orders') && 
+       (req.query.debug === 'true' || process.env.NODE_ENV === 'development')
+     );
+     
+     if (isDebugMode && !companyId) {
+       console.log(`[Company Middleware] Modo debug activado para ${req.path}. Buscando compañía alternativa...`);
+       
+       // En modo debug, intentar obtener una compañía válida para pruebas
+       // pero SOLO si estamos en entorno de desarrollo
+       if (process.env.NODE_ENV === 'development') {
+         // No asignamos un valor hardcodeado, sino que dejamos que el endpoint
+         // maneje la situación según sus propias reglas
+         console.log(`[Company Middleware] En desarrollo, permitiendo continuar sin companyId para pruebas`);
        }
      }
-     ```
-   - Si no se encuentra el `companyId`, devuelve un error: "ID de empresa no encontrado en el contexto".
-
-2. **Problemas con el Middleware Multi-tenant:**
-   - El middleware `companyDbMiddleware` está configurado para establecer el `companyId` en el contexto, pero hay varias capas de middleware que pueden interferir entre sí:
-     ```javascript
-     companyApiRouter.use(tenantMiddleware);
-     companyApiRouter.use(companyDbMiddleware);
-     companyApiRouter.use(companyFilterMiddleware);
-     companyApiRouter.use(companyTenantMiddleware);
-     ```
-   - La comunicación entre estos middleware puede ser inconsistente, causando que el `companyId` no se establezca correctamente para algunas rutas.
-
-3. **Estructuración Inconsistente de Rutas:**
-   - Existen rutas duplicadas o con patrones inconsistentes:
-     - La ruta principal de pedidos está definida como `router.post("/api/orders", ...)`, pero también hay referencias a `router.post("/orders", ...)` en otras partes del código.
-   - Esto puede causar confusión al cliente sobre qué ruta usar, y posible bypassing de middleware.
-
-### 1.2. Problemas en el Cambio de Status de Pedidos
-
-1. **Manejo del CompanyId en el Endpoint de Actualización:**
-   - En `update-order-status.ts`, hay un fallback potencialmente peligroso cuando no se encuentra el `companyId`:
-     ```javascript
-     const companyId = getCurrentCompanyId() || 1; // Default a companyId 1 si no hay contexto
-     ```
-   - Usar el valor por defecto de 1 podría permitir modificaciones accidentales a pedidos de otra empresa.
-
-2. **Inconsistencia entre Métodos de Actualización:**
-   - El endpoint utiliza dos enfoques diferentes para actualizar el estado:
-     1. SQL directo: `UPDATE orders SET status = $1 WHERE id = $2 AND "companyId" = $3`
-     2. Drizzle ORM como fallback
-   - Aunque es un buen mecanismo de respaldo, esta dualidad puede causar comportamientos inconsistentes.
-
-## 2. Plan de Implementación y Corrección
-
-A continuación, presento un plan para resolver los problemas identificados:
-
-### 2.1. Corrección del Middleware Multi-tenant
-
-1. **Refactorizar el Middleware de Empresa:**
-   - Consolidar el middleware para evitar repeticiones y garantizar que el `companyId` se establezca de manera consistente:
-
-   ```javascript
-   // Archivo: server/middleware/company.middleware.ts
-   export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
-     // 1. Prioridad para la sesión
-     if (req.session && req.session.companyId) {
-       setCurrentCompanyId(req.session.companyId);
-       console.log(`[Company Middleware] Usando companyId de sesión: ${req.session.companyId}`);
-       return next();
-     }
      
-     // 2. Prioridad para el token JWT (si está implementado)
-     if (req.user && 'companyId' in req.user) {
-       setCurrentCompanyId(req.user.companyId);
-       console.log(`[Company Middleware] Usando companyId de token: ${req.user.companyId}`);
-       return next();
-     }
-     
-     // 3. Para rutas de API, requerir autenticación
-     if (req.path.startsWith('/api/') && 
-         !req.path.startsWith('/api/public/') && 
-         !req.path.startsWith('/api/login')) {
-       console.log(`[Company Middleware] No hay companyId para ruta protegida: ${req.path}`);
-       return res.status(401).json({ error: "Autenticación requerida" });
-     }
-     
-     // 4. Para otras rutas, continuar sin companyId
-     console.log(`[Company Middleware] Ruta no protegida, continuando: ${req.path}`);
-     next();
+     // Resto del código actual...
    }
    ```
 
-2. **Simplificar Configuración en index.ts:**
+### 2.2. Corrección del Endpoint de Pedidos Pendientes por Zona
+
+1. **Mejorar el manejo de errores y el modo debug:**
    ```javascript
-   // Reemplazar los múltiples middleware con el consolidado
-   companyApiRouter.use(consolidatedCompanyMiddleware);
-   ```
-
-### 2.2. Corrección de Creación de Pedidos
-
-1. **Estandarizar Ruta de Creación de Pedidos:**
-   - Modificar `server/routes.ts` para usar una ruta única y consistente:
-
-   ```javascript
-   // Reemplazar
-   router.post("/api/orders", async (req, res) => { ... });
-   
-   // Con una función específica que registre la ruta
-   function registerOrdersEndpoints(router: Router) {
-     router.post("/orders", async (req, res) => { ... });
-   }
-   
-   // Y luego llamarla desde registerRoutes
-   export async function registerRoutes(router: express.Router) {
-     // ... otras registraciones
-     registerOrdersEndpoints(router);
-   }
-   ```
-
-2. **Mejorar Manejo del CompanyId en Creación de Pedidos:**
-   ```javascript
-   router.post("/orders", async (req, res) => {
+   // En server/routes.ts, endpoint /api/zones/:id/pending-orders
+   router.get("/api/zones/:id/pending-orders", async (req, res) => {
      try {
-       console.log("POST /orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
+       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
        
-       // Obtener el companyId del contexto
-       const companyId = getCurrentCompanyId();
+       const zoneId = parseInt(req.params.id);
+       if (isNaN(zoneId)) {
+         return res.status(400).json({ error: "ID de zona inválido" });
+       }
+       
+       // Intentar obtener companyId con mejor manejo de errores
+       let companyId = getCurrentCompanyId();
+       let companyIdSource = "contexto";
+       console.log("🔄 CompanyId del contexto:", companyId);
+       
+       // Verificar si es una solicitud en modo debug
+       const isDebugMode = req.query.debug === 'true' || process.env.NODE_ENV === 'development';
        
        if (!companyId) {
-         console.warn("No se encontró companyId en el contexto para crear pedido");
-         return res.status(401).json({ 
-           error: "Autenticación requerida", 
-           details: "Debe iniciar sesión para crear pedidos" 
+         // Si no está en el contexto, intentar obtenerlo de la sesión
+         if (req.session?.companyId) {
+           companyId = req.session.companyId;
+           companyIdSource = "sesión";
+           console.log("🔄 CompanyId obtenido de la sesión:", companyId);
+         } 
+         // Si no está en la sesión, intentar obtenerlo del usuario en sesión
+         else if (req.session?.user?.companyId) {
+           companyId = req.session.user.companyId;
+           companyIdSource = "usuario en sesión";
+           console.log("🔄 CompanyId obtenido del usuario en sesión:", companyId);
+         }
+       }
+       
+       // Si aún no tenemos companyId y estamos en modo de depuración
+       if (!companyId && isDebugMode) {
+         console.log("🔧 MODO DEBUG: No se encontró companyId. Intentando obtenerlo de los parámetros de consulta...");
+         
+         // Intentar obtener de query params para pruebas
+         if (req.query.companyId) {
+           companyId = parseInt(req.query.companyId as string);
+           if (!isNaN(companyId)) {
+             companyIdSource = "parámetros de consulta (debug)";
+             console.log(`🔧 MODO DEBUG: Usando companyId=${companyId} de los parámetros de consulta`);
+           }
+         }
+       }
+       
+       if (!companyId) {
+         console.error("❌ Error: No se encontró companyId en ninguna fuente para obtener pedidos pendientes por zona");
+         
+         if (isDebugMode) {
+           // En modo debug, mostrar información detallada pero no devolver datos sensibles
+           return res.status(403).json({
+             error: "Acceso denegado (modo debug)",
+             message: "No se ha encontrado un contexto de compañía válido incluso en modo debug.",
+             debug: {
+               isDebugMode,
+               session: req.session ? true : false,
+               user: req.session?.user ? true : false
+             }
+           });
+         }
+         
+         return res.status(403).json({ 
+           error: "Acceso denegado", 
+           message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente."
          });
        }
        
-       // Resto del código de creación de pedido
-       // ...
+       // Resto del código actual para buscar pedidos...
      } catch (error) {
-       // Manejo de errores
+       console.error("Error al obtener pedidos pendientes por zona:", error);
+       res.status(500).json({ error: String(error) });
      }
    });
    ```
 
-### 2.3. Corrección de Cambio de Status de Pedidos
-
-1. **Eliminar el Valor por Defecto para CompanyId:**
+2. **Mejorar la respuesta cuando no hay zonas o clientes:**
    ```javascript
-   // En update-order-status.ts
-   
-   // Reemplazar
-   const companyId = getCurrentCompanyId() || 1;
-   
-   // Con
-   const companyId = getCurrentCompanyId();
-   if (!companyId) {
-     console.warn("No se encontró companyId en el contexto para actualizar pedido");
-     return res.status(401).json({ 
-       success: false, 
-       message: "Autenticación requerida para actualizar pedidos" 
+   // En la verificación de zona existente
+   if (zonaExiste.length === 0) {
+     console.error(`❌ La zona ${zoneId} no pertenece a la compañía ${companyId}`);
+     return res.status(404).json({ 
+       error: "Zona no encontrada", 
+       message: `La zona con ID ${zoneId} no existe o no pertenece a la compañía actual.`
      });
    }
-   ```
-
-2. **Unificar Método de Actualización:**
-   - Priorizar un único método para actualizar el estado, preferiblemente el ORM:
-
-   ```javascript
-   try {
-     // Usar Drizzle ORM como método principal
-     const updateResult = await db.update(orders)
-       .set({ status })
-       .where(
-         and(
-           eq(orders.id, orderIdNum),
-           eq(orders.companyId, companyId)
-         )
-       )
-       .returning();
-       
-     if (updateResult.length === 0) {
-       return res.status(404).json({ 
-         success: false, 
-         message: "Pedido no encontrado o no pertenece a la empresa" 
-       });
-     }
-     
+   
+   // En la verificación de clientes en la zona
+   if (zoneCustomers.length === 0) {
+     console.log(`⚠️ No hay clientes en la zona ${zoneId} para la compañía ${companyId}`);
      return res.status(200).json({ 
-       success: true, 
-       message: "Estado actualizado correctamente", 
-       order: updateResult[0] 
+       message: "No hay clientes en esta zona", 
+       data: []
      });
-   } catch (error) {
-     // Solo en caso de error usar SQL directo como fallback
-     // ...resto del código de fallback
    }
    ```
 
-### 2.4. Implementación de Pruebas y Validación
+### 2.3. Mejoras en el Componente Frontend
 
-1. **Crear Endpoint de Diagnóstico:**
-   - Implementar un endpoint para verificar el estado del contexto multi-tenant:
-
+1. **Mejorar el manejo de errores en `ZoneBasedRouteForm.tsx`:**
    ```javascript
-   // Archivo: server/routes/diagnostic.ts
-   
-   export function registerDiagnosticEndpoint(router: Router) {
-     router.get("/diagnostic/tenant-context", (req, res) => {
-       const companyId = getCurrentCompanyId();
-       const sessionCompanyId = req.session?.companyId;
-       const userCompanyId = req.user?.companyId;
+   const {
+     data: pendingOrders = [],
+     isLoading: isLoadingPendingOrders,
+     error: pendingOrdersError,
+     refetch: refetchPendingOrders
+   } = useQuery<PendingOrder[]>({
+     queryKey: ["/api/zones", selectedZone, "pending-orders"],
+     queryFn: async () => {
+       if (!selectedZone) return [];
        
-       res.json({
-         contextCompanyId: companyId,
-         sessionCompanyId: sessionCompanyId,
-         userCompanyId: userCompanyId,
-         sessionData: req.session,
-         authenticated: !!req.user,
-         timestamp: new Date().toISOString()
-       });
-     });
-   }
+       setAuthError(null); // Limpiar errores anteriores
+       
+       try {
+         // Primero verificar si hay sesión activa
+         const userResponse = await apiRequest("GET", "/api/user");
+         
+         if (!userResponse.ok) {
+           setAuthError("Error de autenticación: Por favor inicie sesión nuevamente.");
+           throw new Error("No hay sesión activa");
+         }
+         
+         // Si hay sesión, intentar obtener pedidos pendientes
+         const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
+         
+         if (!response.ok) {
+           // Manejar diferentes tipos de errores
+           const errorStatus = response.status;
+           
+           if (errorStatus === 403 || errorStatus === 401) {
+             setAuthError("Error de autenticación: No tiene acceso a esta zona o la sesión ha expirado.");
+             throw new Error("Error de autenticación");
+           } else if (errorStatus === 404) {
+             return []; // Zona no encontrada, devolver array vacío
+           } else {
+             throw new Error(`Error ${errorStatus} al obtener pedidos pendientes`);
+           }
+         }
+         
+         return await response.json();
+       } catch (error) {
+         console.error("Error obteniendo pedidos pendientes:", error);
+         throw error;
+       }
+     },
+     enabled: !!selectedZone
+   });
    ```
 
-2. **Agregar Logs Detallados para Debugging:**
-   - Implementar un sistema de logs específicos para el flujo multi-tenant:
+## 3. Pasos para la Implementación
 
-   ```javascript
-   // Archivo: server/utils/tenant-logger.ts
-   
-   export function logTenantOperation(req: Request, operation: string, details: any) {
-     console.log(`[TENANT-OP][${operation}] Path: ${req.path}, CompanyId: ${getCurrentCompanyId() || 'NONE'}, Details:`, details);
-   }
-   ```
+### 3.1 Mejorar el Middleware Consolidado
 
-## 3. Pasos de Implementación
+1. Actualizar `server/middleware/consolidated-company.middleware.ts` con las mejoras propuestas para el manejo del contexto multi-tenant.
 
-Recomiendo implementar estos cambios en el siguiente orden:
+### 3.2 Corregir el Endpoint de Pedidos Pendientes por Zona
 
-1. **Fase 1: Preparación y Diagnóstico**
-   - Implementar el endpoint de diagnóstico y las utilidades de logging
-   - Verificar el comportamiento actual con pruebas exhaustivas
+1. Actualizar el endpoint `/api/zones/:id/pending-orders` en `server/routes.ts` con el manejo mejorado de errores y el modo debug.
 
-2. **Fase 2: Corrección de Middleware**
-   - Implementar el middleware consolidado
-   - Actualizar la configuración en index.ts
+### 3.3 Mejorar el Componente Frontend
 
-3. **Fase 3: Corrección de Pedidos**
-   - Estandarizar las rutas de creación de pedidos
-   - Mejorar el manejo del companyId
-
-4. **Fase 4: Corrección de Status**
-   - Eliminar el valor por defecto para companyId
-   - Unificar el método de actualización
-
-5. **Fase 5: Pruebas y Validación**
-   - Verificar que la creación de pedidos funcione correctamente
-   - Verificar que el cambio de status funcione correctamente
-   - Validar que el contexto multi-tenant se mantenga consistente
+1. Modificar `client/src/components/routes/ZoneBasedRouteForm.tsx` para manejar mejor los errores y proporcionar información clara al usuario.
 
 ## 4. Consideraciones Adicionales
 
-- **Transaccionalidad:** Asegurar que todas las operaciones de base de datos para pedidos sean transaccionales para mantener integridad.
-- **Compensación de Errores:** Implementar mecanismos de compensación para revertir cambios parciales en caso de errores.
-- **Monitoreo:** Agregar métricas para supervisar la efectividad de las correcciones.
-- **Documentación:** Actualizar la documentación para reflejar los cambios realizados y proporcionar ejemplos de uso correcto.
+1. **Herramienta de Diagnóstico:** Crear un endpoint de diagnóstico para verificar el estado del contexto multi-tenant:
+   ```javascript
+   // En server/routes.ts
+   router.get("/api/diagnostic/context", (req, res) => {
+     const companyId = getCurrentCompanyId();
+     const sessionCompanyId = req.session?.companyId;
+     const userCompanyId = req.session?.user?.companyId;
+     
+     res.json({
+       contextCompanyId: companyId,
+       sessionCompanyId: sessionCompanyId,
+       userCompanyId: userCompanyId,
+       isAuthenticated: !!req.session?.user,
+       sessionExists: !!req.session
+     });
+   });
+   ```
+
+2. **Utilidades de Logging:** Implementar una función helper para logging consistente:
+   ```javascript
+   // En server/utils/logging.ts
+   export function logCompanyContext(location: string, companyId: number | undefined, details: any = {}) {
+     console.log(`[${location}] CompanyId=${companyId || 'NONE'}, Details:`, details);
+   }
+   ```
+
+## 5. Pruebas y Validación
+
+1. **Prueba 1: Verificar Contexto Multi-tenant**
+   - Iniciar sesión como usuario de compañía
+   - Acceder al endpoint de diagnóstico
+   - Verificar que `contextCompanyId` coincide con `sessionCompanyId`
+
+2. **Prueba 2: Obtener Pedidos Pendientes por Zona**
+   - Iniciar sesión como usuario de compañía
+   - Seleccionar una zona existente
+   - Verificar que se muestran los pedidos pendientes correctamente
+
+3. **Prueba 3: Manejo de Errores**
+   - Intentar acceder a una zona inexistente
+   - Verificar que se muestra un mensaje de error adecuado
+   - Cerrar sesión y verificar que no se puede acceder a los pedidos pendientes
+
+4. **Prueba 4: Modo Debug**
+   - En entorno de desarrollo, acceder a `/api/zones/:id/pending-orders?debug=true`
+   - Verificar que se proporciona información de diagnóstico útil
