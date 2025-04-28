@@ -314,25 +314,41 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
-      console.log(`GET /zones/${zoneId}/pending-orders - Buscando pedidos pendientes`);
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
       
-      // Primero obtenemos los clientes de la zona
+      if (!companyId) {
+        console.error("Error: No se encontró companyId en el contexto para obtener pedidos pendientes por zona");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      console.log(`GET /zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
+      
+      // Primero obtenemos los clientes de la zona QUE PERTENECEN A LA COMPAÑÍA
       const zoneCustomers = await db
         .select({
           id: customers.id,
         })
         .from(customers)
-        .where(eq(customers.zoneid, zoneId));
+        .where(
+          and(
+            eq(customers.zoneid, zoneId),
+            eq(customers.companyId, companyId) // Filtrar clientes por companyId
+          )
+        );
       
       if (zoneCustomers.length === 0) {
-        console.log(`No hay clientes en la zona ${zoneId}`);
+        console.log(`No hay clientes en la zona ${zoneId} para la compañía ${companyId}`);
         return res.json([]);
       }
       
       // Extraemos los IDs de clientes
       const customerIds = zoneCustomers.map(customer => customer.id);
       
-      console.log(`Clientes encontrados en zona ${zoneId}:`, customerIds);
+      console.log(`Clientes encontrados en zona ${zoneId} para compañía ${companyId}:`, customerIds);
       
       // Ahora buscamos todas las órdenes pendientes para esos clientes y que no estén asignadas a una ruta
       const pendingOrders = await db
@@ -356,12 +372,13 @@ export async function registerRoutes(router: express.Router) {
           and(
             inArray(orders.customerId, customerIds),
             eq(orders.status, "pending"),
-            sql`${orders.routeId} IS NULL`
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId) // Añadir filtro por companyId también para las órdenes
           )
         )
         .orderBy(orders.date);
       
-      console.log(`Encontrados ${pendingOrders.length} pedidos pendientes para la zona ${zoneId}`);
+      console.log(`Encontrados ${pendingOrders.length} pedidos pendientes para la zona ${zoneId} de compañía ${companyId}`);
       
       res.json(pendingOrders);
     } catch (error) {
