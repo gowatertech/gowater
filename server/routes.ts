@@ -71,6 +71,95 @@ export async function registerRoutes(router: express.Router) {
   // Registrar endpoints de prueba para sesiones (solo en desarrollo)
   registerTestSessionRoutes(router);
   
+  // Endpoint de diagnóstico sin autenticación
+  router.get("/api/diagnostic/no-auth/pending-orders", async (req, res) => {
+    try {
+      // Este endpoint es solo para pruebas internas, sin autenticación
+      const zoneId = parseInt(req.query.zoneId as string);
+      const companyId = parseInt(req.query.companyId as string);
+      
+      if (isNaN(zoneId) || isNaN(companyId)) {
+        return res.status(400).json({
+          error: "Parámetros inválidos",
+          message: "Se requieren los parámetros zoneId y companyId como números"
+        });
+      }
+      
+      console.log(`🔍 Diagnóstico SIN AUTH de pedidos pendientes para zona ${zoneId} y compañía ${companyId}`);
+      
+      // Establecer temporalmente el contexto de compañía para esta consulta
+      setCurrentCompanyId(companyId);
+      
+      // 1. Verificar si la zona existe
+      const zonaExiste = await db
+        .select()
+        .from(zones)
+        .where(
+          and(
+            eq(zones.id, zoneId),
+            eq(zones.companyId, companyId)
+          )
+        );
+      
+      // 2. Obtener clientes de la zona
+      const zoneCustomers = await db
+        .select()
+        .from(customers)
+        .where(
+          and(
+            eq(customers.zoneid, zoneId),
+            eq(customers.companyId, companyId)
+          )
+        );
+      
+      // 3. Obtener IDs de clientes
+      const customerIds = zoneCustomers.map(customer => customer.id);
+      
+      // 4. Buscar pedidos pendientes
+      const pendingOrders = await db
+        .select()
+        .from(orders)
+        .where(
+          and(
+            inArray(orders.customerId, customerIds),
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId)
+          )
+        );
+      
+      // Limpiar el contexto después de usarlo
+      setCurrentCompanyId(undefined);
+      
+      res.json({
+        diagnostico: {
+          zona: {
+            id: zoneId,
+            existe: zonaExiste.length > 0,
+            detalles: zonaExiste[0] || null
+          },
+          clientes: {
+            total: zoneCustomers.length,
+            ids: customerIds
+          },
+          pedidos_pendientes: {
+            enZona: pendingOrders.length,
+            detalle: pendingOrders
+          }
+        }
+      });
+    } catch (error) {
+      // Limpiar el contexto en caso de error
+      setCurrentCompanyId(undefined);
+      
+      console.error("Error en diagnóstico de pedidos pendientes:", error);
+      res.status(500).json({ 
+        error: "Error de diagnóstico", 
+        message: String(error) 
+      });
+    }
+  });
+  
   // Proteger todas las rutas siguientes con el middleware de autenticación
   router.use(companyAuthMiddleware);
   
@@ -108,6 +197,106 @@ export async function registerRoutes(router: express.Router) {
     } catch (error) {
       console.error("Error en prueba de filtrado multi-tenant:", error);
       res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoint para diagnosticar pedidos pendientes para una zona específica
+  // Este endpoint se agrega antes del middleware de autenticación para poder usarlo sin autenticación
+});
+
+// Proteger todas las rutas siguientes con el middleware de autenticación
+router.use(companyAuthMiddleware);
+
+// Endpoint de diagnóstico sin autenticación
+router.get("/api/diagnostic/pending-orders", async (req, res) => {
+    try {
+      // Este endpoint es solo para pruebas internas, no requiere autenticación
+      const zoneId = parseInt(req.query.zoneId as string);
+      const companyId = parseInt(req.query.companyId as string);
+      
+      if (isNaN(zoneId) || isNaN(companyId)) {
+        return res.status(400).json({
+          error: "Parámetros inválidos",
+          message: "Se requieren los parámetros zoneId y companyId como números"
+        });
+      }
+      
+      console.log(`🔍 Diagnóstico de pedidos pendientes para zona ${zoneId} y compañía ${companyId}`);
+      
+      // 1. Verificar si la zona existe
+      const zonaExiste = await db
+        .select()
+        .from(zones)
+        .where(
+          and(
+            eq(zones.id, zoneId),
+            eq(zones.companyId, companyId)
+          )
+        );
+      
+      // 2. Obtener clientes de la zona
+      const zoneCustomers = await db
+        .select()
+        .from(customers)
+        .where(
+          and(
+            eq(customers.zoneid, zoneId),
+            eq(customers.companyId, companyId)
+          )
+        );
+      
+      // 3. Obtener IDs de clientes
+      const customerIds = zoneCustomers.map(customer => customer.id);
+      
+      // 4. Buscar pedidos pendientes
+      const pendingOrders = await db
+        .select()
+        .from(orders)
+        .where(
+          and(
+            inArray(orders.customerId, customerIds),
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId)
+          )
+        );
+      
+      // Obtener TODOS los pedidos pendientes para la compañía
+      const allPendingOrders = await db
+        .select()
+        .from(orders)
+        .where(
+          and(
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId)
+          )
+        );
+      
+      res.json({
+        diagnostico: {
+          zona: {
+            id: zoneId,
+            existe: zonaExiste.length > 0,
+            detalles: zonaExiste[0] || null
+          },
+          clientes: {
+            total: zoneCustomers.length,
+            ids: customerIds
+          },
+          pedidos_pendientes: {
+            enZona: pendingOrders.length,
+            totalCompania: allPendingOrders.length,
+            detalle: pendingOrders
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Error en diagnóstico de pedidos pendientes:", error);
+      res.status(500).json({ 
+        error: "Error de diagnóstico", 
+        message: String(error) 
+      });
     }
   });
   
@@ -358,6 +547,10 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
+      // DEPURACIÓN: Mostrar información de sesión
+      console.log("👤 Información de usuario en sesión:", req.session?.user);
+      console.log("🏢 CompanyId en sesión:", req.session?.companyId);
+      
       // Intentar obtener companyId directamente de la sesión primero
       let companyId = req.session?.companyId || (req.session?.user?.companyId);
       // Luego establecer el contexto con este valor
@@ -448,6 +641,20 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
+      // DEPURACIÓN ADICIONAL: Verificar si existen clientes para la zona, incluso sin filtrar
+      const allZoneCustomers = await db
+        .select({
+          id: customers.id,
+          name: customers.businessname,
+          zoneid: customers.zoneid,
+          companyid: customers.companyId
+        })
+        .from(customers)
+        .where(eq(customers.zoneid, zoneId));
+        
+      console.log(`🔎 Clientes en la zona ${zoneId} (sin filtrar por compañía): ${allZoneCustomers.length}`);
+      allZoneCustomers.forEach(c => console.log(`  Cliente ${c.id} ${c.name} - Compañía ${c.companyid} - Zona ${c.zoneid}`));
+      
       // Primero obtenemos los clientes de la zona QUE PERTENECEN A LA COMPAÑÍA
       const zoneCustomers = await db
         .select({
@@ -461,6 +668,9 @@ export async function registerRoutes(router: express.Router) {
             eq(customers.companyId, companyId) // Filtrar clientes por companyId
           )
         );
+      
+      console.log(`👥 Clientes filtrados en zona ${zoneId} para compañía ${companyId}: ${zoneCustomers.length}`);
+      zoneCustomers.forEach(c => console.log(`  Cliente ${c.id} ${c.name}`));
       
       if (zoneCustomers.length === 0) {
         console.log(`⚠️ No hay clientes en la zona ${zoneId} para la compañía ${companyId}`);
