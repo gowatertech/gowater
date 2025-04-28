@@ -836,6 +836,35 @@ export default function Customers() {
                   disabled={createMutation.isPending}
                   onClick={() => {
                     console.log("Submit button clicked");
+                    
+                    // Validamos datos mínimos
+                    if (!form.getValues("businessname")) {
+                      toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: "El nombre del negocio es obligatorio",
+                      });
+                      return;
+                    }
+                    
+                    if (!form.getValues("managername")) {
+                      toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: "El nombre del encargado es obligatorio",
+                      });
+                      return;
+                    }
+                    
+                    if (!form.getValues("phone")) {
+                      toast({
+                        variant: "destructive",
+                        title: "Error",
+                        description: "El teléfono es obligatorio",
+                      });
+                      return;
+                    }
+                    
                     // Creamos objeto con todos los campos requeridos
                     const data = {
                       businessname: form.getValues("businessname"),
