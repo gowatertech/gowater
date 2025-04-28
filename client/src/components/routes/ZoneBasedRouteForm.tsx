@@ -165,9 +165,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   
   // Estado para mensajes de error de autenticación
   const [authError, setAuthError] = useState<string | null>(null);
-  const [companyIdUsed, setCompanyIdUsed] = useState<number | null>(null);
   
-  // Fetch pending orders for the selected zone
   // Estado para controlar si estamos en modo debug
   const [useDebugMode, setUseDebugMode] = useState<boolean>(false);
   
@@ -200,13 +198,12 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
           // No utilizamos un valor hardcodeado, solo reportamos el error
           throw new Error("Sin sesión de usuario válida");
         } else {
+          // Usuario está autenticado, obtenemos sus datos
           const userData = await userResponse.json();
-          const companyId = userData.companyId || userData.user?.companyId;
-          setCompanyIdUsed(companyId);
           
-          // Construir la URL con el companyId como parámetro de consulta para mayor seguridad
-          url = `/api/zones/${selectedZone}/pending-orders${companyId ? `?companyId=${companyId}` : ''}`;
-          console.log(`Requesting pending orders from: ${url}`);
+          // Usamos la URL normal ya que el backend obtendrá el companyId de la sesión
+          url = `/api/zones/${selectedZone}/pending-orders`;
+          console.log(`Solicitando pedidos pendientes con sesión activa para zona ${selectedZone}`);
         }
         
         const response = await apiRequest("GET", url);

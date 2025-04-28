@@ -353,20 +353,19 @@ export async function registerRoutes(router: express.Router) {
       
       console.log("🔐 CompanyId final utilizado:", companyId, `(fuente: ${companyIdSource})`);
       
-      // Si aún no tenemos companyId, verificar si es una solicitud de desarrollo
-      const isDevelopmentRequest = 
-        process.env.NODE_ENV === 'development' || 
-        req.headers['user-agent']?.includes('Postman') ||
-        req.query.debug === 'true';
-        
-      // Si aún no tenemos companyId, usar uno fijo para debugging (solo en desarrollo)
-      if (!companyId && isDevelopmentRequest) {
-        try {
-          companyId = 15; // Sabemos que esta compañía existe en el sistema
-          companyIdSource = "valor fijo de desarrollo";
-          console.log("⚠️ MODO DESARROLLO: Usando companyId fijo de emergencia:", companyId);
-        } catch (e) {
-          console.error("❌ Error al asignar companyId de fallback:", e);
+      // Verificar si es una solicitud en modo debug
+      const isDebugMode = req.query.debug === 'true';
+      
+      if (isDebugMode) {
+        // En modo debug, obtenemos el companyId de la sesión activa si está disponible
+        if (req.session?.companyId) {
+          companyId = req.session.companyId;
+          companyIdSource = "debug-sesión";
+          console.log("🔧 MODO DEBUG: Usando companyId de la sesión:", companyId);
+        } else {
+          // Si no hay companyId en la sesión, intentamos recuperarlo desde la base de datos
+          // Pero no asignamos ningún valor hardcodeado
+          console.log("🔧 MODO DEBUG: Activado, pero no hay companyId disponible en la sesión");
         }
       }
       
