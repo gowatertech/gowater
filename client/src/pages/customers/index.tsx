@@ -209,7 +209,9 @@ export default function Customers() {
 
   // Escucha cambios en la pestaña activa
   useEffect(() => {
+    console.log("useEffect se ejecutó, activeTab:", activeTab);
     if (activeTab === "new") {
+      console.log("Resetear formulario para nuevo cliente");
       // Resetear el formulario cuando se cambia a la pestaña de nuevo cliente
       form.reset({
         logo: undefined,
@@ -781,6 +783,7 @@ export default function Customers() {
         
         {/* Contenido del Tab de Nuevo Cliente */}
         <TabsContent value="new">
+          {console.log("Renderizando TabsContent 'new'")}
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-1">
@@ -790,6 +793,17 @@ export default function Customers() {
             </CardHeader>
             
             <CardContent className="space-y-2">
+              {console.log("Estado del form:", {
+                errors: form.formState.errors,
+                isValid: form.formState.isValid,
+                isDirty: form.formState.isDirty,
+                fields: {
+                  businessname: form.getValues("businessname"),
+                  managername: form.getValues("managername"),
+                  phone: form.getValues("phone")
+                }
+              })}
+              
               {Object.keys(form.formState.errors).length > 0 && (
                 <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
                   Errores en el formulario: {JSON.stringify(form.formState.errors)}
@@ -800,15 +814,18 @@ export default function Customers() {
                 <FormField
                   control={form.control}
                   name="businessname"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
-                      <FormControl>
-                        <Input className="h-7 text-xs px-2 py-0" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    console.log("Renderizando campo businessname:", field);
+                    return (
+                      <FormItem className="space-y-1">
+                        <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
+                        <FormControl>
+                          <Input className="h-7 text-xs px-2 py-0" {...field} />
+                        </FormControl>
+                        <FormMessage className="text-[10px]" />
+                      </FormItem>
+                    );
+                  }}
                 />
                 
                 <FormField
@@ -844,7 +861,11 @@ export default function Customers() {
                 <Button
                   className="bg-blue-500 hover:bg-blue-600 text-white"
                   disabled={createMutation.isPending}
-                  onClick={form.handleSubmit(onSubmit)}
+                  onClick={() => {
+                    console.log("Botón de guardar clickeado");
+                    console.log("Datos del form antes de submit:", form.getValues());
+                    form.handleSubmit(onSubmit)();
+                  }}
                 >
                   {createMutation.isPending ? "Guardando..." : "Guardar"}
                 </Button>
