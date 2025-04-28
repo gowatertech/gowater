@@ -214,7 +214,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         }
         
         // Construir la URL según el modo
-        let url = `/api/zones/${selectedZone}/pending-orders`;
+        let url = `/zones/${selectedZone}/pending-orders`;
         if (useDebugMode) {
           url += "?debug=true";
           console.log(`MODO DEBUG: Solicitando pedidos pendientes en modo desarrollo: ${url}`);

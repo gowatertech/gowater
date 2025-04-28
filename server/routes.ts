@@ -349,7 +349,7 @@ export async function registerRoutes(router: express.Router) {
   });
   
   // Endpoint para obtener pedidos pendientes por zona
-  router.get("/api/zones/:id/pending-orders", async (req, res) => {
+  router.get("/zones/:id/pending-orders", async (req, res) => {
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
       
@@ -419,7 +419,7 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
-      console.log(`🔍 GET /api/zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
+      console.log(`🔍 GET /zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
       
       // Verificar que la zona existe para esta compañía
       const zonaExiste = await db
