@@ -781,70 +781,76 @@ export default function Customers() {
         
         {/* Contenido del Tab de Nuevo Cliente */}
         <TabsContent value="new">
-          <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-            <h2 className="text-xl font-semibold mb-6 flex items-center">
-              <PlusCircle className="h-5 w-5 mr-2 text-blue-500" />
-              Formulario de Creación de Cliente
-            </h2>
+          <Card className="bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-1">
+                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
+                <CardTitle className="text-sm font-medium">Crear Cliente</CardTitle>
+              </div>
+            </CardHeader>
             
-            <div className="grid grid-cols-1 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Negocio*</label>
-                <Input
-                  placeholder="Nombre del negocio"
-                  className="w-full"
-                  value={form.getValues("businessname") || ""}
-                  onChange={(e) => form.setValue("businessname", e.target.value)}
+            <CardContent className="space-y-2">
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
+                  Errores en el formulario: {JSON.stringify(form.formState.errors)}
+                </div>
+              )}
+              
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+                <FormField
+                  control={form.control}
+                  name="businessname"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="managername"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Teléfono</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">Nombre del Encargado*</label>
-                <Input
-                  placeholder="Nombre del encargado"
-                  className="w-full"
-                  value={form.getValues("managername") || ""}
-                  onChange={(e) => form.setValue("managername", e.target.value)}
-                />
+              <div className="flex justify-end">
+                <Button
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  disabled={createMutation.isPending}
+                  onClick={form.handleSubmit(onSubmit)}
+                >
+                  {createMutation.isPending ? "Guardando..." : "Guardar"}
+                </Button>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Teléfono*</label>
-                <Input
-                  placeholder="Teléfono"
-                  className="w-full"
-                  value={form.getValues("phone") || ""}
-                  onChange={(e) => form.setValue("phone", e.target.value)}
-                />
-              </div>
-            </div>
-            
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-                onClick={() => {
-                  console.log("Botón de guardar clickeado");
-                  
-                  const data = {
-                    businessname: form.getValues("businessname") || "",
-                    managername: form.getValues("managername") || "",
-                    phone: form.getValues("phone") || "",
-                    street: "",
-                    streetnumber: "",
-                    provinceid: 1,
-                    municipalityid: 1,
-                    creditlimit: "0.00",
-                    balance: "0.00"
-                  };
-                  
-                  createMutation.mutate(data);
-                }}
-              >
-                Guardar Cliente
-              </Button>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         
         {/* Contenido del Tab de Detalles de Cliente */}
