@@ -128,7 +128,7 @@ app.use((req, res, next) => {
       registerTestAPIRoutes(app);
       log("Test API routes registered successfully");
       
-      // Registrar rutas de diagnóstico sin autenticación
+      // Registrar rutas de diagnóstico sin autenticación (antes de cualquier middleware de autenticación)
       registerDiagnosticRoutes(app);
       log("Diagnostic routes registered successfully");
     }
