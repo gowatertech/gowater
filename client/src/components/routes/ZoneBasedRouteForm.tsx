@@ -190,21 +190,15 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         
         let url = "";
         
-        // Si estamos en modo debug, forzar el uso del companyId fijo a través del parámetro debug
+        // Si estamos en modo debug, solicitar con el parámetro debug=true
         if (useDebugMode) {
           url = `/api/zones/${selectedZone}/pending-orders?debug=true`;
-          console.log(`MODO DEBUG: Solicitando pedidos pendientes con modo de desarrollo: ${url}`);
-          setCompanyIdUsed(15); // ID de compañía fija que usará el backend
+          console.log(`MODO DEBUG: Solicitando pedidos pendientes en modo desarrollo: ${url}`);
         } else if (!userResponse.ok) {
           console.warn("No se pudo obtener el usuario de la sesión");
-          setAuthError("No se pudo verificar la sesión. Intente cerrar sesión y volver a ingresar.");
-          // Usar el companyId por defecto para desarrollo
-          const fallbackCompanyId = 15; // ID de la compañía que sabemos que existe
-          setCompanyIdUsed(fallbackCompanyId);
-          
-          // Construir la URL con el companyId como parámetro de consulta para desarrollo
-          url = `/api/zones/${selectedZone}/pending-orders?companyId=${fallbackCompanyId}`;
-          console.log(`Desarrollo: Solicitando pedidos pendientes con companyId fijo: ${url}`);
+          setAuthError("Error de autenticación: No se encontró una sesión válida. Por favor inicie sesión nuevamente.");
+          // No utilizamos un valor hardcodeado, solo reportamos el error
+          throw new Error("Sin sesión de usuario válida");
         } else {
           const userData = await userResponse.json();
           const companyId = userData.companyId || userData.user?.companyId;
