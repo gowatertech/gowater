@@ -56,11 +56,23 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
     if (req.path.startsWith('/api/') && 
         !req.path.startsWith('/api/public/') && 
         !req.path.startsWith('/api/leads/')) {
-      console.log(`[Company Middleware] No se encontró companyId para ruta protegida: ${req.path}`);
-      return res.status(401).json({ 
-        error: "Autenticación requerida",
-        message: "Debe iniciar sesión con una cuenta de empresa válida"
-      });
+      
+      // Verificar si la ruta es para pedidos pendientes y tiene el parámetro debug=true
+      const isDebugMode = req.path.includes('/zones/') && 
+                          req.path.includes('/pending-orders') && 
+                          req.query.debug === 'true' && 
+                          process.env.NODE_ENV === 'development';
+                         
+      if (isDebugMode) {
+        console.log(`[Company Middleware] Modo debug activado para ruta: ${req.path}`);
+        // Continuar sin companyId para permitir que la lógica del endpoint determine qué hacer
+      } else {
+        console.log(`[Company Middleware] No se encontró companyId para ruta protegida: ${req.path}`);
+        return res.status(401).json({ 
+          error: "Autenticación requerida",
+          message: "Debe iniciar sesión con una cuenta de empresa válida"
+        });
+      }
     }
     console.log(`[Company Middleware] No hay companyId para ruta: ${req.path}`);
     setCurrentCompanyId(undefined);
