@@ -19,6 +19,8 @@ import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate
 import { consolidatedCompanyMiddleware } from "./middleware/consolidated-company.middleware";
 // Importamos el router de órdenes
 import ordersRouter from "./routes/orders";
+// Importamos las rutas para zonas
+import { registerZonesRoutes } from "./routes/zones-routes";
 // Importamos las rutas para datos geográficos
 import { registerGeoDataRoutes } from "./routes/geo-data";
 // Importamos las rutas de diagnóstico
@@ -114,6 +116,10 @@ app.use((req, res, next) => {
     // Usar el router de órdenes personalizado con el middleware consolidado
     app.use(consolidatedCompanyMiddleware, ordersRouter);
     log("Custom orders router registered successfully with consolidated company middleware");
+    
+    // Registrar rutas de zonas
+    registerZonesRoutes(app);
+    log("Zones routes registered successfully with consolidated company middleware");
     
     // Montar las rutas públicas para registro de empresas interesadas
     app.use("/api/leads", leadsRoutes);
