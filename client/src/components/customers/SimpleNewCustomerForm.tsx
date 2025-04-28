@@ -1,10 +1,26 @@
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle } from "lucide-react";
+import { 
+  PlusCircle, 
+  Building2, 
+  User, 
+  Phone, 
+  Mail, 
+  MapPin, 
+  Home,
+  CreditCard
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SimpleNewCustomerFormProps {
   onSuccess: () => void;
@@ -13,9 +29,55 @@ interface SimpleNewCustomerFormProps {
 export function SimpleNewCustomerForm({ onSuccess }: SimpleNewCustomerFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Datos básicos
   const [businessname, setBusinessname] = useState("");
   const [managername, setManagername] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [rnc, setRnc] = useState("");
+  
+  // Ubicación
+  const [street, setStreet] = useState("");
+  const [streetnumber, setStreetnumber] = useState("");
+  const [reference, setReference] = useState("");
+  const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
+  const [selectedMunicipalityId, setSelectedMunicipalityId] = useState<number | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+  
+  // Financiero
+  const [creditlimit, setCreditlimit] = useState("0.00");
+  
+  // Obtener provincias
+  const { data: provinces = [] } = useQuery({
+    queryKey: ["/api/geo/provinces"],
+    queryFn: async () => {
+      const response = await fetch('/api/geo/provinces');
+      if (!response.ok) {
+        throw new Error('Error al cargar provincias');
+      }
+      return await response.json();
+    }
+  });
+
+  // Obtener municipios cuando se selecciona una provincia
+  const { data: municipalities = [], isLoading: isLoadingMunicipalities } = useQuery({
+    queryKey: ["/api/geo/municipalities", selectedProvinceId],
+    queryFn: async () => {
+      if (!selectedProvinceId) return [];
+      const response = await fetch(`/api/geo/municipalities/${selectedProvinceId}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar municipios');
+      }
+      return await response.json();
+    },
+    enabled: !!selectedProvinceId,
+  });
+
+  // Obtener zonas
+  const { data: zones = [] } = useQuery({
+    queryKey: ["/api/zones"],
+  });
   
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -34,9 +96,7 @@ export function SimpleNewCustomerForm({ onSuccess }: SimpleNewCustomerFormProps)
         title: "Éxito",
         description: "Cliente creado correctamente",
       });
-      setBusinessname("");
-      setManagername("");
-      setPhone("");
+      resetForm();
       if (onSuccess) {
         onSuccess();
       }
@@ -50,6 +110,22 @@ export function SimpleNewCustomerForm({ onSuccess }: SimpleNewCustomerFormProps)
       });
     },
   });
+
+  const resetForm = () => {
+    // Limpiar todos los campos
+    setBusinessname("");
+    setManagername("");
+    setPhone("");
+    setEmail("");
+    setRnc("");
+    setStreet("");
+    setStreetnumber("");
+    setReference("");
+    setSelectedProvinceId(null);
+    setSelectedMunicipalityId(null);
+    setSelectedZoneId(null);
+    setCreditlimit("0.00");
+  };
 
   const handleSubmit = () => {
     // Validaciones básicas
@@ -79,17 +155,39 @@ export function SimpleNewCustomerForm({ onSuccess }: SimpleNewCustomerFormProps)
       });
       return;
     }
+
+    if (!selectedProvinceId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debe seleccionar una provincia",
+      });
+      return;
+    }
+
+    if (!selectedMunicipalityId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Debe seleccionar un municipio",
+      });
+      return;
+    }
     
-    // Datos mínimos requeridos para crear un cliente
+    // Datos completos para crear un cliente
     const data = {
       businessname,
       managername,
       phone,
-      street: "", // Campos obligatorios con valores por defecto
-      streetnumber: "",
-      provinceid: 1,
-      municipalityid: 1,
-      creditlimit: "0.00",
+      email: email || undefined,
+      rnc: rnc || undefined,
+      street: street || "",
+      streetnumber: streetnumber || "",
+      reference: reference || undefined,
+      provinceid: selectedProvinceId,
+      municipalityid: selectedMunicipalityId,
+      zoneid: selectedZoneId || undefined,
+      creditlimit: creditlimit || "0.00",
       balance: "0.00"
     };
     
@@ -107,39 +205,214 @@ export function SimpleNewCustomerForm({ onSuccess }: SimpleNewCustomerFormProps)
       </div>
       
       <div className="space-y-3">
-        <div>
-          <label className="block text-xs font-medium mb-1">Nombre del Negocio</label>
-          <Input 
-            value={businessname}
-            onChange={(e) => setBusinessname(e.target.value)}
-            placeholder="Nombre del negocio" 
-            className="h-9 text-sm"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Datos básicos */}
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <Building2 className="h-3.5 w-3.5 text-gray-600" />
+              Nombre del Negocio*
+            </label>
+            <Input 
+              value={businessname}
+              onChange={(e) => setBusinessname(e.target.value)}
+              placeholder="Nombre del negocio" 
+              className="h-8 text-sm"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <User className="h-3.5 w-3.5 text-gray-600" />
+              Nombre del Encargado*
+            </label>
+            <Input 
+              value={managername}
+              onChange={(e) => setManagername(e.target.value)}
+              placeholder="Nombre del encargado" 
+              className="h-8 text-sm"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <Phone className="h-3.5 w-3.5 text-gray-600" />
+              Teléfono*
+            </label>
+            <Input 
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Teléfono" 
+              className="h-8 text-sm"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <Mail className="h-3.5 w-3.5 text-gray-600" />
+              Email
+            </label>
+            <Input 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email" 
+              className="h-8 text-sm"
+              type="email"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <Building2 className="h-3.5 w-3.5 text-gray-600" />
+              RNC
+            </label>
+            <Input 
+              value={rnc}
+              onChange={(e) => setRnc(e.target.value)}
+              placeholder="RNC" 
+              className="h-8 text-sm"
+            />
+          </div>
+          
+          {/* Ubicación */}
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <MapPin className="h-3.5 w-3.5 text-gray-600" />
+              Provincia*
+            </label>
+            <Select 
+              value={selectedProvinceId?.toString()} 
+              onValueChange={(value) => {
+                const id = parseInt(value);
+                setSelectedProvinceId(id);
+                setSelectedMunicipalityId(null); // Resetear municipio al cambiar provincia
+              }}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Seleccionar provincia" />
+              </SelectTrigger>
+              <SelectContent>
+                {provinces.map((province: any) => (
+                  <SelectItem key={province.id} value={province.id.toString()}>
+                    {province.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <MapPin className="h-3.5 w-3.5 text-gray-600" />
+              Municipio*
+            </label>
+            <Select 
+              value={selectedMunicipalityId?.toString()} 
+              onValueChange={(value) => setSelectedMunicipalityId(parseInt(value))}
+              disabled={!selectedProvinceId || isLoadingMunicipalities}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder={isLoadingMunicipalities ? "Cargando..." : "Seleccionar municipio"} />
+              </SelectTrigger>
+              <SelectContent>
+                {municipalities.map((municipality: any) => (
+                  <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                    {municipality.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <MapPin className="h-3.5 w-3.5 text-gray-600" />
+              Zona
+            </label>
+            <Select 
+              value={selectedZoneId?.toString()} 
+              onValueChange={(value) => setSelectedZoneId(parseInt(value))}
+            >
+              <SelectTrigger className="h-8 text-sm">
+                <SelectValue placeholder="Seleccionar zona" />
+              </SelectTrigger>
+              <SelectContent>
+                {zones.map((zone: any) => (
+                  <SelectItem key={zone.id} value={zone.id.toString()}>
+                    {zone.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <Home className="h-3.5 w-3.5 text-gray-600" />
+              Calle
+            </label>
+            <Input 
+              value={street}
+              onChange={(e) => setStreet(e.target.value)}
+              placeholder="Calle" 
+              className="h-8 text-sm"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <Home className="h-3.5 w-3.5 text-gray-600" />
+              Número
+            </label>
+            <Input 
+              value={streetnumber}
+              onChange={(e) => setStreetnumber(e.target.value)}
+              placeholder="Número" 
+              className="h-8 text-sm"
+            />
+          </div>
+          
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <Home className="h-3.5 w-3.5 text-gray-600" />
+              Referencia
+            </label>
+            <Input 
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              placeholder="Referencia" 
+              className="h-8 text-sm"
+            />
+          </div>
+          
+          {/* Financiero */}
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium mb-1">
+              <CreditCard className="h-3.5 w-3.5 text-gray-600" />
+              Límite de Crédito (RD$)
+            </label>
+            <Input 
+              value={creditlimit}
+              onChange={(e) => setCreditlimit(e.target.value)}
+              placeholder="Límite de crédito" 
+              className="h-8 text-sm"
+              type="number"
+              step="0.01"
+            />
+          </div>
         </div>
         
-        <div>
-          <label className="block text-xs font-medium mb-1">Nombre del Encargado</label>
-          <Input 
-            value={managername}
-            onChange={(e) => setManagername(e.target.value)}
-            placeholder="Nombre del encargado" 
-            className="h-9 text-sm"
-          />
-        </div>
-        
-        <div>
-          <label className="block text-xs font-medium mb-1">Teléfono</label>
-          <Input 
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Teléfono" 
-            className="h-9 text-sm"
-          />
-        </div>
-        
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-between mt-4 pt-2 border-t">
           <Button
-            className="bg-blue-500 hover:bg-blue-600 text-white"
+            variant="outline"
+            size="sm"
+            onClick={resetForm}
+            className="h-8 text-xs"
+          >
+            Limpiar
+          </Button>
+          
+          <Button
+            className="bg-blue-500 hover:bg-blue-600 text-white h-8 text-xs"
             disabled={createMutation.isPending}
             onClick={handleSubmit}
           >
