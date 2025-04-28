@@ -21,6 +21,8 @@ import { consolidatedCompanyMiddleware } from "./middleware/consolidated-company
 import ordersRouter from "./routes/orders";
 // Importamos las rutas para datos geográficos
 import { registerGeoDataRoutes } from "./routes/geo-data";
+// Importamos las rutas de diagnóstico
+import { registerDiagnosticRoutes } from "./routes/diagnostic-routes";
 
 const app = express();
 
@@ -125,6 +127,10 @@ app.use((req, res, next) => {
     if (process.env.NODE_ENV !== "production") {
       registerTestAPIRoutes(app);
       log("Test API routes registered successfully");
+      
+      // Registrar rutas de diagnóstico sin autenticación
+      registerDiagnosticRoutes(app);
+      log("Diagnostic routes registered successfully");
     }
     
     // Crear servidor HTTP
