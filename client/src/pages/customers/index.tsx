@@ -8,6 +8,7 @@ import { insertCustomerSchema, CustomerWithDetails, Province, Municipality, Zone
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SimpleNewCustomerForm } from "@/components/customers/SimpleNewCustomerForm";
 import {
   Table,
   TableBody,
@@ -152,84 +153,6 @@ export default function Customers() {
     }
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log("Submitting form data:", data);
-      
-      try {
-        // Enfoque simplificado - usar siempre JSON
-        console.log("Enviando datos:", data);
-        const result = await apiRequest({
-          method: "POST",
-          url: "/api/customers",
-          data: data
-        });
-        console.log("Respuesta del servidor:", result);
-        return result;
-      } catch (error) {
-        console.error("Error al crear cliente:", error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
-      toast({
-        title: "Éxito",
-        description: "Cliente creado correctamente",
-      });
-      form.reset({
-        logo: undefined,
-        rnc: "",
-        businessname: "",
-        managername: "",
-        phone: "",
-        email: "",
-        zoneid: undefined,
-        street: "",
-        streetnumber: "",
-        provinceid: undefined,
-        municipalityid: undefined,
-        reference: "",
-        coordinates: "",
-        creditlimit: "0.00",
-      });
-      setActiveTab("list");
-      setSelectedProvinceId(null);
-    },
-    onError: (error) => {
-      console.error("Error creating customer:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message,
-      });
-    },
-  });
-
-  // Escucha cambios en la pestaña activa
-  useEffect(() => {
-    if (activeTab === "new") {
-      // Resetear el formulario cuando se cambia a la pestaña de nuevo cliente
-      form.reset({
-        logo: undefined,
-        rnc: "",
-        businessname: "",
-        managername: "",
-        phone: "",
-        email: "",
-        zoneid: undefined,
-        street: "",
-        streetnumber: "",
-        provinceid: undefined,
-        municipalityid: undefined,
-        reference: "",
-        coordinates: "",
-        creditlimit: "0.00",
-      });
-      setSelectedProvinceId(null);
-    }
-  }, [activeTab, form]);
-  
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
       const { id, ...updateData } = data;
@@ -301,11 +224,9 @@ export default function Customers() {
     
     console.log("Datos formateados para envío:", formattedData);
     
-    // Forma directa como en almacén
+    // Solo para actualización, la creación la manejamos con el SimpleNewCustomerForm
     if (isEditing && selectedCustomer) {
       updateMutation.mutate({ ...formattedData, id: selectedCustomer.id });
-    } else {
-      createMutation.mutate(formattedData);
     }
   };
 
@@ -484,38 +405,44 @@ export default function Customers() {
             </div>
 
             <div className="overflow-hidden rounded-md border">
-              {filteredCustomers.length === 0 ? (
-                <div className="text-center py-8 bg-gradient-to-b from-gray-50 to-white text-gray-500 border border-dashed border-gray-200">
-                  <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p className="font-medium">No se encontraron clientes</p>
-                  <p className="text-xs mt-1">Intente con otra búsqueda o cree un nuevo cliente</p>
-                </div>
-              ) : (
-                <>
-                  {/* Vista móvil - Cards verticales */}
-                  {isMobile ? (
-                    <ScrollArea className="h-[400px]">
-                      <div className="p-2 space-y-2">
-                        {filteredCustomers.map((customer, index) => (
-                          <div 
-                            key={customer.id}
-                            className={`border rounded-md overflow-hidden cursor-pointer hover:shadow-md transition-all bg-white`}
-                            style={{ 
-                              borderLeftWidth: '4px',
-                              borderLeftColor: customer.zoneid === 1 ? '#9333ea' : 
-                                              customer.zoneid === 2 ? '#ef4444' : 
-                                              customer.zoneid === 3 ? '#22c55e' : 
-                                              '#6b7280' 
-                            }}
-                            onClick={() => {
-                              handleViewCustomer(customer);
-                              setActiveTab("details");
-                            }}
-                          >
-                            <div className="flex items-center p-2 border-b">
-                              <div className="relative mr-2 flex-shrink-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow className="hover:bg-gray-50 border-b">
+                      <TableHead className="py-2 px-4 text-xs text-gray-500 font-medium">#</TableHead>
+                      <TableHead className="py-2 px-4 text-xs text-gray-500 font-medium">Negocio</TableHead>
+                      <TableHead className="py-2 px-4 text-xs text-gray-500 font-medium">Contacto</TableHead>
+                      <TableHead className="py-2 px-4 text-xs text-gray-500 font-medium">Dirección</TableHead>
+                      <TableHead className="py-2 px-4 text-xs text-gray-500 font-medium">Zona</TableHead>
+                      <TableHead className="py-2 px-4 text-xs text-gray-500 font-medium text-right">Crédito</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCustomers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-4 text-sm text-gray-500">
+                          No hay clientes para mostrar
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredCustomers.map((customer, index) => (
+                        <TableRow 
+                          key={customer.id} 
+                          className="hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                          onClick={() => {
+                            handleViewCustomer(customer);
+                            setActiveTab("details");
+                          }}
+                        >
+                          {/* Columna de índice */}
+                          <TableCell className="py-2 px-4 align-middle text-xs text-gray-500">{index + 1}</TableCell>
+                          
+                          {/* Columna de Negocio */}
+                          <TableCell className="py-2.5 px-4 align-middle">
+                            <div className="flex items-center gap-3">
+                              <div className="relative flex-shrink-0">
                                 {customer.logo ? (
-                                  <div className="w-8 h-8 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
+                                  <div className="w-9 h-9 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
                                     <img
                                       src={`data:image/jpeg;base64,${customer.logo}`}
                                       alt="Logo"
@@ -523,12 +450,12 @@ export default function Customers() {
                                     />
                                   </div>
                                 ) : (
-                                  <div className="w-8 h-8 bg-gray-50 rounded-md flex items-center justify-center border">
-                                    <Building2 className="h-4 w-4 text-gray-500" />
+                                  <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-white rounded-md flex items-center justify-center border shadow-sm">
+                                    <Building2 className="h-5 w-5 text-gray-600" />
                                   </div>
                                 )}
                                 <div 
-                                  className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] z-10 ${
+                                  className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
                                     customer.zoneid === 1 ? 'bg-purple-500' : 
                                     customer.zoneid === 2 ? 'bg-red-500' : 
                                     customer.zoneid === 3 ? 'bg-green-500' : 
@@ -536,328 +463,87 @@ export default function Customers() {
                                   }`}
                                   title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
                                 >
-                                  Z{customer.zoneid || "?"}
+                                  {customer.zoneid || "?"}
                                 </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex justify-between items-center">
-                                  <p className="font-medium text-sm truncate">
-                                    {customer.businessname}
-                                  </p>
-                                  <span className="text-xs text-gray-400 ml-1">#{index + 1}</span>
-                                </div>
+                              <div>
+                                <p className="font-medium text-sm line-clamp-1">{customer.businessname}</p>
                                 {customer.rnc && (
-                                  <p className="text-xs text-gray-500 truncate">RNC: {customer.rnc}</p>
+                                  <p className="text-xs text-gray-500">RNC: {customer.rnc}</p>
                                 )}
                               </div>
                             </div>
-                            
-                            <div className="grid grid-cols-2 gap-1 p-2 text-xs">
-                              <div className="flex items-center text-gray-700">
+                          </TableCell>
+                          
+                          {/* Columna de Contacto */}
+                          <TableCell className="py-2.5 px-4 align-middle">
+                            <div className="space-y-1">
+                              <div className="flex items-center text-xs text-gray-700">
                                 <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                 <span className="truncate">{customer.managername}</span>
                               </div>
-                              <div className="flex items-center text-gray-700">
+                              <div className="flex items-center text-xs text-gray-700">
                                 <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
                                 <span className="truncate">{customer.phone}</span>
                               </div>
+                              {customer.email && (
+                                <div className="flex items-center text-xs text-gray-700">
+                                  <Mail className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
+                                  <span className="truncate max-w-[150px]">{customer.email}</span>
+                                </div>
+                              )}
                             </div>
-                            
-                            <div className="flex justify-between items-center p-2 bg-gray-50 border-t">
-                              <Badge 
-                                variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
-                                className="px-2 py-0.5 text-[10px]"
-                              >
-                                <DollarSign className="h-2.5 w-2.5 mr-0.5 inline-block" />
-                                {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                              </Badge>
-                              
-                              <Badge variant="outline" className={`px-2 py-0.5 text-[10px] ${
-                                customer.coordinates 
-                                  ? 'bg-green-50 text-green-700 border-green-200' 
-                                  : 'bg-orange-50 text-orange-700 border-orange-200'
-                              }`}>
-                                {customer.coordinates 
-                                  ? <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> Sí</span> 
-                                  : <span className="flex items-center"><MapPin className="h-2 w-2 mr-0.5" /> No</span>
-                                }
-                              </Badge>
-                              
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-6 px-2 py-0 text-[10px] bg-gray-50 text-gray-700"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewCustomer(customer);
-                                  setActiveTab("details");
-                                }}
-                              >
-                                <Eye className="h-2.5 w-2.5 mr-0.5" />
-                                Ver
-                              </Button>
+                          </TableCell>
+                          
+                          {/* Columna de Dirección */}
+                          <TableCell className="py-2.5 px-4 align-middle max-w-[200px]">
+                            <div className="space-y-1">
+                              <div className="flex items-start text-xs text-gray-700">
+                                <Home className="h-3 w-3 mr-1.5 mt-0.5 text-gray-500 flex-shrink-0" />
+                                <span className="truncate">{`${customer.street} #${customer.streetnumber}`}</span>
+                              </div>
+                              <div className="flex items-center text-xs text-gray-700">
+                                <MapPin className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
+                                <span className="truncate">{customer.municipalityName || ''}, {provinces.find(p => p.id === customer.provinceid)?.name || ''}</span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  ) : (
-                    /* Vista de escritorio - Tabla responsiva */
-                    <div className="overflow-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50 border-b border-gray-200">
-                            <th className="py-2 px-4 text-left font-medium text-gray-500 w-8">#</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Negocio</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Contacto</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Ubicación</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Zona</th>
-                            <th className="py-2 px-4 text-left font-medium text-gray-500">Crédito</th>
-                            <th className="py-2 px-4 text-center font-medium text-gray-500">Mapa</th>
-                            <th className="py-2 px-4 text-right font-medium text-gray-500">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {filteredCustomers.map((customer, index) => (
-                            <tr 
-                              key={customer.id} 
-                              className="hover:bg-gray-50/30 transition-colors cursor-pointer"
-                              onClick={() => {
-                                handleViewCustomer(customer);
-                                setActiveTab("details");
-                              }}
+                          </TableCell>
+                          
+                          {/* Columna de Zona */}
+                          <TableCell className="py-2.5 px-4 align-middle">
+                            <Badge 
+                              className={`px-2 py-0.5 ${
+                                customer.zoneid === 1 ? 'bg-purple-50 text-purple-700 border-purple-200' : 
+                                customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
+                                customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
+                                'bg-gray-50 text-gray-700 border-gray-200'
+                              }`}
                             >
-                              {/* Columna de índice */}
-                              <td className="py-2 px-4 align-middle text-xs text-gray-500">{index + 1}</td>
-                              
-                              {/* Columna de Negocio */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <div className="flex items-center gap-3">
-                                  <div className="relative flex-shrink-0">
-                                    {customer.logo ? (
-                                      <div className="w-9 h-9 rounded-md p-0.5 border shadow-sm overflow-hidden bg-white">
-                                        <img
-                                          src={`data:image/jpeg;base64,${customer.logo}`}
-                                          alt="Logo"
-                                          className="w-full h-full object-contain"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div className="w-9 h-9 bg-gradient-to-br from-gray-50 to-white rounded-md flex items-center justify-center border shadow-sm">
-                                        <Building2 className="h-5 w-5 text-gray-600" />
-                                      </div>
-                                    )}
-                                    <div 
-                                      className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] shadow-sm ${
-                                        customer.zoneid === 1 ? 'bg-purple-500' : 
-                                        customer.zoneid === 2 ? 'bg-red-500' : 
-                                        customer.zoneid === 3 ? 'bg-green-500' : 
-                                        'bg-gray-500'
-                                      }`}
-                                      title={zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                                    >
-                                      {customer.zoneid || "?"}
-                                    </div>
-                                  </div>
-                                  <div>
-                                    <p className="font-medium text-sm line-clamp-1">{customer.businessname}</p>
-                                    {customer.rnc && (
-                                      <p className="text-xs text-gray-500">RNC: {customer.rnc}</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Contacto */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <div className="space-y-1">
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <User className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.managername}</span>
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <Phone className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.phone}</span>
-                                  </div>
-                                  {customer.email && (
-                                    <div className="flex items-center text-xs text-gray-700">
-                                      <Mail className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                      <span className="truncate max-w-[150px]">{customer.email}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Dirección */}
-                              <td className="py-2.5 px-4 align-middle max-w-[200px]">
-                                <div className="space-y-1">
-                                  <div className="flex items-start text-xs text-gray-700">
-                                    <Home className="h-3 w-3 mr-1.5 mt-0.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{`${customer.street} #${customer.streetnumber}`}</span>
-                                  </div>
-                                  <div className="flex items-center text-xs text-gray-700">
-                                    <MapPin className="h-3 w-3 mr-1.5 text-gray-500 flex-shrink-0" />
-                                    <span className="truncate">{customer.municipalityName || ''}, {provinces.find(p => p.id === customer.provinceid)?.name || ''}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              
-                              {/* Columna de Zona */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <Badge 
-                                  className={`px-2 py-0.5 ${
-                                    customer.zoneid === 1 ? 'bg-purple-50 text-purple-700 border-purple-200' : 
-                                    customer.zoneid === 2 ? 'bg-red-50 text-red-700 border-red-200' : 
-                                    customer.zoneid === 3 ? 'bg-green-50 text-green-700 border-green-200' : 
-                                    'bg-gray-50 text-gray-700 border-gray-200'
-                                  }`}
-                                >
-                                  {zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
-                                </Badge>
-                              </td>
-                              
-                              {/* Columna de Crédito */}
-                              <td className="py-2.5 px-4 align-middle">
-                                <Badge 
-                                  variant={parseFloat(customer.creditlimit.toString()) < 0 ? "destructive" : "outline"}
-                                  className="px-2 py-0.5 font-medium"
-                                >
-                                  <DollarSign className="h-3 w-3 mr-1 inline-block" />
-                                  {parseFloat(customer.creditlimit.toString()).toFixed(2)}
-                                </Badge>
-                              </td>
-                              
-                              {/* Columna de Mapa */}
-                              <td className="py-2.5 px-4 align-middle text-center">
-                                <Badge variant="outline" className={`px-2 py-0.5 text-xs ${
-                                  customer.coordinates 
-                                    ? 'bg-green-50 text-green-700 border-green-200' 
-                                    : 'bg-orange-50 text-orange-700 border-orange-200'
-                                }`}>
-                                  {customer.coordinates 
-                                    ? <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> Sí</span> 
-                                    : <span className="flex items-center"><MapPin className="h-2.5 w-2.5 mr-1" /> No</span>
-                                  }
-                                </Badge>
-                              </td>
-                              
-                              {/* Columna de Acciones */}
-                              <td className="py-2.5 px-4 align-middle text-right">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-7 px-2 py-0 text-xs bg-gray-50 text-gray-700 hover:bg-gray-100 hover:text-gray-800"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleViewCustomer(customer);
-                                    setActiveTab("details");
-                                  }}
-                                >
-                                  <Eye className="h-3 w-3 mr-1" />
-                                  Detalles
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </>
-              )}
+                              {zones.find(z => z.id === customer.zoneid)?.name || 'Sin zona'}
+                            </Badge>
+                          </TableCell>
+                          
+                          {/* Columna de Crédito */}
+                          <TableCell className="py-2.5 px-4 align-middle text-right">
+                            <div className="space-y-1">
+                              <p className="text-xs text-gray-700 font-medium">
+                                RD$ {parseFloat(customer.creditlimit.toString()).toFixed(2)}
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </Card>
         </TabsContent>
         
-        {/* Contenido del Tab de Nuevo Cliente */}
+        {/* Contenido del Tab de Nuevo Cliente - Simplificado con nuestro nuevo componente */}
         <TabsContent value="new">
-          <div className="border rounded-md p-2 bg-white">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1">
-                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
-                <h3 className="text-sm font-medium">Registrar Cliente</h3>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              {Object.keys(form.formState.errors).length > 0 && (
-                <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
-                  Errores en el formulario: {JSON.stringify(form.formState.errors)}
-                </div>
-              )}
-              
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
-                <FormField
-                  control={form.control}
-                  name="businessname"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
-                      <FormControl>
-                        <Input className="h-7 text-xs px-2 py-0" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="managername"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
-                      <FormControl>
-                        <Input className="h-7 text-xs px-2 py-0" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Teléfono</FormLabel>
-                      <FormControl>
-                        <Input className="h-7 text-xs px-2 py-0" {...field} />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <div className="flex justify-end">
-                <Button
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
-                  disabled={createMutation.isPending}
-                  onClick={() => {
-                    console.log("Submit button clicked");
-                    // Creamos objeto con todos los campos requeridos
-                    const data = {
-                      businessname: form.getValues("businessname"),
-                      managername: form.getValues("managername"),
-                      phone: form.getValues("phone"),
-                      street: "",
-                      streetnumber: "",
-                      provinceid: 1,
-                      municipalityid: 1,
-                      creditlimit: "0.00",
-                      balance: "0.00"
-                    };
-                    
-                    console.log("Datos preparados:", data);
-                    createMutation.mutate(data);
-                  }}
-                >
-                  {createMutation.isPending ? "Guardando..." : "Guardar"}
-                </Button>
-              </div>
-            </div>
-          </div>
+          <SimpleNewCustomerForm onSuccess={() => setActiveTab("list")} />
         </TabsContent>
         
         {/* Contenido del Tab de Detalles de Cliente */}
@@ -886,417 +572,379 @@ export default function Customers() {
               </CardDescription>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                <FormField
-                  control={form.control}
-                  name="logo"
-                  render={({ field: { value, onChange, ...field } }) => (
-                    <FormItem>
-                      <FormLabel>Logo</FormLabel>
-                      <FormControl>
-                        <div className="space-y-2">
-                          {/* Mostrar logo actual o placeholder */}
-                          {typeof value === 'string' ? (
-                            <img
-                              src={`data:image/jpeg;base64,${value}`}
-                              alt="Logo"
-                              className="w-32 h-32 object-contain"
-                            />
-                          ) : (
-                            <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
-                              No logo
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+                  <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                    <FormField
+                      control={form.control}
+                      name="logo"
+                      render={({ field: { value, onChange, ...field } }) => (
+                        <FormItem>
+                          <FormLabel>Logo</FormLabel>
+                          <FormControl>
+                            <div className="space-y-2">
+                              {/* Mostrar logo actual o placeholder */}
+                              {typeof value === 'string' ? (
+                                <img
+                                  src={`data:image/jpeg;base64,${value}`}
+                                  alt="Logo"
+                                  className="w-32 h-32 object-contain"
+                                />
+                              ) : (
+                                <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
+                                  No logo
+                                </div>
+                              )}
+
+                              {/* Input para actualizar logo */}
+                              {isEditing && (
+                                <Input
+                                  type="file"
+                                  accept="image/jpeg,image/png"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      console.log("Archivo seleccionado:", {
+                                        name: file.name,
+                                        size: file.size,
+                                        type: file.type
+                                      });
+
+                                      // Validar el tamaño (5MB)
+                                      if (file.size > 5 * 1024 * 1024) {
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Error",
+                                          description: "El archivo debe ser menor a 5MB",
+                                        });
+                                        e.target.value = '';
+                                        return;
+                                      }
+
+                                      // Validar el tipo
+                                      if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                                        toast({
+                                          variant: "destructive",
+                                          title: "Error",
+                                          description: "El archivo debe ser JPG o PNG",
+                                        });
+                                        e.target.value = '';
+                                        return;
+                                      }
+
+                                      onChange(file);
+                                    }
+                                  }}
+                                  {...field}
+                                />
+                              )}
                             </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="rnc"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>RNC</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} readOnly={!isEditing} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="businessname"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <Building2 className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Nombre del Negocio</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly={!isEditing} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="managername"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <User className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Nombre del Encargado</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly={!isEditing} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <Phone className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Teléfono</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly={!isEditing} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <Mail className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Email</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} readOnly={!isEditing} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="zoneid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Zona</span>
+                          </FormLabel>
+                          {isEditing ? (
+                            <Select
+                              onValueChange={(value) => field.onChange(parseInt(value))}
+                              value={field.value?.toString()}
+                              disabled={!isEditing}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccione una zona" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {zones.map((zone) => (
+                                  <SelectItem key={zone.id} value={zone.id.toString()}>
+                                    {zone.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <FormControl>
+                              <Input 
+                                value={zones.find(z => z.id === field.value)?.name || "No asignada"} 
+                                readOnly 
+                              />
+                            </FormControl>
                           )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                          {/* Input para actualizar logo */}
-                          {isEditing && (
-                            <Input
-                              type="file"
-                              accept="image/jpeg,image/png"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  console.log("Archivo seleccionado:", {
-                                    name: file.name,
-                                    size: file.size,
-                                    type: file.type
-                                  });
+                    <FormField
+                      control={form.control}
+                      name="street"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <Home className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Calle</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly={!isEditing} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                                  // Validar el tamaño (5MB)
-                                  if (file.size > 5 * 1024 * 1024) {
-                                    toast({
-                                      variant: "destructive",
-                                      title: "Error",
-                                      description: "El archivo debe ser menor a 5MB",
-                                    });
-                                    e.target.value = '';
-                                    return;
-                                  }
+                    <FormField
+                      control={form.control}
+                      name="streetnumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <FileText className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Número</span>
+                          </FormLabel>
+                          <FormControl>
+                            <Input {...field} readOnly={!isEditing} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                                  // Validar el tipo
-                                  if (!['image/jpeg', 'image/png'].includes(file.type)) {
-                                    toast({
-                                      variant: "destructive",
-                                      title: "Error",
-                                      description: "El archivo debe ser JPG o PNG",
-                                    });
-                                    e.target.value = '';
-                                    return;
-                                  }
-
-                                  onChange(file);
-                                }
+                    <FormField
+                      control={form.control}
+                      name="provinceid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Provincia</span>
+                          </FormLabel>
+                          {isEditing ? (
+                            <Select
+                              onValueChange={(value) => {
+                                const id = parseInt(value);
+                                field.onChange(id);
+                                setSelectedProvinceId(id);
                               }}
-                              {...field}
-                            />
+                              value={field.value?.toString()}
+                              disabled={!isEditing}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccione una provincia" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {provinces.map((province) => (
+                                  <SelectItem key={province.id} value={province.id.toString()}>
+                                    {province.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <FormControl>
+                              <Input 
+                                value={provinces.find(p => p.id === field.value)?.name || "No asignada"} 
+                                readOnly 
+                              />
+                            </FormControl>
                           )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="rnc"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>RNC</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="municipalityid"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Municipio</span>
+                          </FormLabel>
+                          {isEditing ? (
+                            <Select
+                              onValueChange={(value) => field.onChange(parseInt(value))}
+                              value={field.value?.toString()}
+                              disabled={!selectedProvinceId || isLoadingMunicipalities || !isEditing}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Seleccione un municipio" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {municipalities.map((municipality) => (
+                                  <SelectItem key={municipality.id} value={municipality.id.toString()}>
+                                    {municipality.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <FormControl>
+                              <Input 
+                                value={customer?.municipalityName || "No asignado"} 
+                                readOnly 
+                              />
+                            </FormControl>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="businessname"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Building2 className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Nombre del Negocio</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="managername"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <User className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Nombre del Encargado</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Teléfono</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Mail className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Email</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="zoneid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Zona</span>
-                      </FormLabel>
-                      {isEditing ? (
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                          disabled={!isEditing}
-                        >
+                    <FormField
+                      control={form.control}
+                      name="reference"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <FileText className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Referencia</span>
+                          </FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione una zona" />
-                            </SelectTrigger>
+                            <Input {...field} value={field.value || ""} readOnly={!isEditing} />
                           </FormControl>
-                          <SelectContent>
-                            {zones.map((zone) => (
-                              <SelectItem key={zone.id} value={zone.id.toString()}>
-                                {zone.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <FormControl>
-                          <Input 
-                            value={zones.find(z => z.id === field.value)?.name || "No asignada"} 
-                            readOnly 
-                          />
-                        </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="street"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <Home className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Calle</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="streetnumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Número</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="provinceid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Provincia</span>
-                      </FormLabel>
-                      {isEditing ? (
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(parseInt(value));
-                            setSelectedProvinceId(parseInt(value));
-                          }}
-                          value={field.value?.toString()}
-                          disabled={!isEditing}
-                        >
+                    <FormField
+                      control={form.control}
+                      name="creditlimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-1">
+                            <CreditCard className="h-3.5 w-3.5 text-gray-600" />
+                            <span>Límite de Crédito (RD$)</span>
+                          </FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione una provincia" />
-                            </SelectTrigger>
+                            <Input {...field} type="number" step="0.01" readOnly={!isEditing} />
                           </FormControl>
-                          <SelectContent>
-                            {provinces.map((province) => (
-                              <SelectItem key={province.id} value={province.id.toString()}>
-                                {province.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <FormControl>
-                          <Input 
-                            value={provinces.find(p => p.id === field.value)?.name || ""} 
-                            readOnly 
-                          />
-                        </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    />
+                  </div>
 
-                <FormField
-                  control={form.control}
-                  name="municipalityid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Municipio</span>
-                      </FormLabel>
-                      {isEditing ? (
-                        <Select
-                          onValueChange={(value) => field.onChange(parseInt(value))}
-                          value={field.value?.toString()}
-                          disabled={!selectedProvinceId || isLoadingMunicipalities || !isEditing}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Seleccione un municipio" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {municipalities.map((municipality) => (
-                              <SelectItem key={municipality.id} value={municipality.id.toString()}>
-                                {municipality.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <FormControl>
-                          <Input 
-                            value={municipalities.find(m => m.id === field.value)?.name || ""} 
-                            readOnly 
-                          />
-                        </FormControl>
-                      )}
-                      <FormMessage />
-                    </FormItem>
+                  {isEditing && (
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setIsEditing(false)}
+                        className="h-8 text-xs"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        type="submit"
+                        className="bg-blue-500 hover:bg-blue-600 text-white h-8 text-xs"
+                        disabled={updateMutation.isPending}
+                      >
+                        {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+                      </Button>
+                    </div>
                   )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="reference"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel className="flex items-center gap-1">
-                        <FileText className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Referencia</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} readOnly={!isEditing} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="coordinates"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-3">
-                      <FormLabel className="flex items-center gap-1">
-                        <MapPin className="h-3.5 w-3.5 text-gray-600" /> 
-                        <span>Ubicación en Mapa</span>
-                      </FormLabel>
-                      <FormControl>
-                        <div className="h-[200px] w-full">
-                          <LocationSelector 
-                            value={field.value || ""} 
-                            onChange={isEditing ? field.onChange : () => {}} 
-                            initialCenter={[19.075380, -70.128822]} 
-                          />
-                        </div>
-                      </FormControl>
-                      {isEditing && (
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Mueva el marcador para seleccionar la ubicación exacta
-                        </div>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="creditlimit"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel className="flex items-center gap-1">
-                        <DollarSign className="h-3.5 w-3.5 text-gray-600" />
-                        <span>Límite de Crédito</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          inputMode="decimal"
-                          {...field}
-                          onChange={(e) => {
-                            if (!isEditing) return;
-                            const value = e.target.value.replace(/[^\d.]/g, '');
-                            const parts = value.split('.');
-                            if (parts.length > 2) return;
-                            if (parts[1]?.length > 2) return;
-                            field.onChange(value);
-                          }}
-                          onBlur={(e) => {
-                            if (!isEditing) return;
-                            const value = e.target.value || '0';
-                            const number = parseFloat(value);
-                            if (!isNaN(number)) {
-                              field.onChange(number.toFixed(2));
-                            }
-                          }}
-                          readOnly={!isEditing}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {isEditing && (
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={updateMutation.isPending}
-                >
-                  {updateMutation.isPending ? "Guardando..." : "Guardar Cambios"}
-                </Button>
-              )}
-            </form>
-          </Form>
-          </CardContent>
+                </form>
+              </Form>
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
