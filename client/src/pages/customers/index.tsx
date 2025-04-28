@@ -155,32 +155,64 @@ export default function Customers() {
   const createMutation = useMutation({
     mutationFn: async (data: CustomerFormData) => {
       console.log("Submitting form data:", data);
-      const formData = new FormData();
+      
+      // Si hay un archivo de logo, necesitamos usar FormData
+      if (data.logo instanceof File) {
+        console.log("Usando FormData para enviar con archivo");
+        const formData = new FormData();
 
-      // Añadir companyId - será sobrescrito en el backend pero aseguramos que siempre exista
-      formData.append('companyId', '0');
+        // Añadir companyId - será sobrescrito en el backend pero aseguramos que siempre exista
+        formData.append('companyId', '15');
 
-      // Manejar cada campo, incluyendo el archivo del logo
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== "") {
-          if (key === 'logo' && value instanceof File) {
-            formData.append('logo', value);
-          } else {
-            formData.append(key, String(value));
+        // Manejar cada campo, incluyendo el archivo del logo
+        Object.entries(data).forEach(([key, value]) => {
+          if (value !== undefined && value !== "") {
+            if (key === 'logo' && value instanceof File) {
+              formData.append('logo', value);
+            } else {
+              formData.append(key, String(value));
+            }
           }
+        });
+
+        // Para FormData necesitamos usar fetch directamente
+        const res = await fetch('/api/customers', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Error al crear cliente:", errorText);
+          throw new Error(errorText || 'Error al crear el cliente');
         }
-      });
 
-      const res = await fetch('/api/customers', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!res.ok) {
-        throw new Error('Error al crear el cliente');
+        return res.json();
+      } else {
+        // Si no hay archivo, podemos usar apiRequest con JSON
+        console.log("Usando apiRequest para enviar como JSON");
+        
+        // Eliminar campos vacíos o undefined
+        const cleanData = Object.fromEntries(
+          Object.entries(data).filter(([_, v]) => v !== undefined && v !== "")
+        );
+        
+        // Añadir companyId (será sobrescrito en el backend)
+        const dataWithCompany = {
+          ...cleanData,
+          companyId: 15
+        };
+        
+        console.log("Datos a enviar:", dataWithCompany);
+        
+        // Usar apiRequest para datos JSON
+        return apiRequest({
+          url: '/customers',
+          method: 'POST',
+          data: dataWithCompany
+        });
       }
-
-      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
