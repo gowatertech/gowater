@@ -56,22 +56,21 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Submitting data:", data);
-      const response = await apiRequest("POST", "/api/routes", {
-        ...data,
-        date: new Date(data.date),
-        driverId: Number(data.driverId),
-        zoneId: Number(data.zoneId),
-        truckId: 1,
-        status: "pending",
-        isCompleted: false
+      // Usar el nuevo formato de apiRequest con objeto
+      return await apiRequest({
+        method: "POST", 
+        url: "/api/routes", 
+        data: {
+          ...data,
+          date: new Date(data.date),
+          driverId: Number(data.driverId),
+          zoneId: Number(data.zoneId),
+          truckId: 1,
+          status: "pending",
+          isCompleted: false,
+          companyId: 0 // Este valor será sobrescrito por el backend
+        }
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al crear la ruta');
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
