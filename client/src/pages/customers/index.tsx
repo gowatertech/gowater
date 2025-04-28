@@ -156,15 +156,11 @@ export default function Customers() {
     mutationFn: async (data: CustomerFormData) => {
       console.log("Submitting form data:", data);
       
-      // Si hay un archivo de logo, necesitamos usar FormData
       if (data.logo instanceof File) {
-        console.log("Usando FormData para enviar con archivo");
+        // Si hay un archivo de logo, usamos FormData
         const formData = new FormData();
-
-        // Añadir companyId - será sobrescrito en el backend pero aseguramos que siempre exista
-        formData.append('companyId', '15');
-
-        // Manejar cada campo, incluyendo el archivo del logo
+        
+        // Añadir todos los campos al FormData
         Object.entries(data).forEach(([key, value]) => {
           if (value !== undefined && value !== "") {
             if (key === 'logo' && value instanceof File) {
@@ -174,43 +170,33 @@ export default function Customers() {
             }
           }
         });
-
-        // Para FormData necesitamos usar fetch directamente
-        const res = await fetch('/api/customers', {
+        
+        // Añadir companyId (será sobrescrito en el backend)
+        formData.append('companyId', '15');
+        
+        // Enviar la solicitud con fetch para manejar FormData
+        const response = await fetch('/api/customers', {
           method: 'POST',
           body: formData,
           credentials: 'include'
         });
-
-        if (!res.ok) {
-          const errorText = await res.text();
+        
+        if (!response.ok) {
+          const errorText = await response.text();
           console.error("Error al crear cliente:", errorText);
-          throw new Error(errorText || 'Error al crear el cliente');
+          throw new Error('Error al crear el cliente');
         }
-
-        return res.json();
+        
+        return await response.json();
       } else {
-        // Si no hay archivo, podemos usar apiRequest con JSON
-        console.log("Usando apiRequest para enviar como JSON");
-        
-        // Eliminar campos vacíos o undefined
-        const cleanData = Object.fromEntries(
-          Object.entries(data).filter(([_, v]) => v !== undefined && v !== "")
-        );
-        
-        // Añadir companyId (será sobrescrito en el backend)
-        const dataWithCompany = {
-          ...cleanData,
-          companyId: 15
-        };
-        
-        console.log("Datos a enviar:", dataWithCompany);
-        
-        // Usar apiRequest para datos JSON
-        return apiRequest({
-          url: '/customers',
-          method: 'POST',
-          data: dataWithCompany
+        // Si no hay logo, usamos JSON con apiRequest exactamente como en almacén
+        return await apiRequest({
+          method: "POST",
+          url: "/api/customers",
+          data: {
+            ...data,
+            companyId: 15  // Será sobrescrito en el backend
+          }
         });
       }
     },
@@ -275,49 +261,44 @@ export default function Customers() {
   
   const updateMutation = useMutation({
     mutationFn: async (data: CustomerFormData & { id: number }) => {
-      const formData = new FormData();
-
-      console.log("Inicio de actualización:", { data });
-
-      // Agregar todos los campos excepto logo
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'logo' && value !== undefined && value !== null) {
-          formData.append(key, String(value));
-          console.log(`Añadiendo campo ${key}:`, value);
-        }
-      });
-
-      // Manejar el logo separadamente
+      const { id, ...updateData } = data;
+      
+      console.log("Actualizando cliente:", id, updateData);
+      
+      // Si hay un archivo de logo, usamos FormData
       if (data.logo instanceof File) {
-        console.log("Añadiendo archivo logo:", {
-          name: data.logo.name,
-          size: data.logo.size,
-          type: data.logo.type
+        const formData = new FormData();
+        
+        // Agregar todos los campos excepto logo
+        Object.entries(updateData).forEach(([key, value]) => {
+          if (key !== 'logo' && value !== undefined && value !== null) {
+            formData.append(key, String(value));
+          }
         });
+        
+        // Agregar el logo
         formData.append('logo', data.logo);
-      } else if (typeof data.logo === 'string') {
-        console.log("Manteniendo logo existente");
+        
+        // Enviar con fetch para manejar FormData
+        const response = await fetch(`/api/customers/${id}`, {
+          method: 'PATCH',
+          body: formData,
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error al actualizar el cliente');
+        }
+        
+        return await response.json();
+      } else {
+        // Si no hay logo, usamos JSON con apiRequest
+        return await apiRequest({
+          method: "PATCH",
+          url: `/api/customers/${id}`,
+          data: updateData
+        });
       }
-
-      console.log("FormData preparado:",
-        Array.from(formData.entries()).map(([key, value]) =>
-          `${key}: ${value instanceof File ? `File(${value.name})` : value}`
-        )
-      );
-
-      const response = await fetch(`/api/customers/${data.id}`, {
-        method: 'PATCH',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Error al actualizar el cliente');
-      }
-
-      const result = await response.json();
-      console.log("Respuesta del servidor:", result);
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
@@ -338,41 +319,14 @@ export default function Customers() {
     },
   });
 
-  const onSubmit = async (data: CustomerFormData) => {
-    try {
-      console.log("Formulario enviado con datos:", data);
-      
-      // Asegurarse de que todos los campos requeridos estén presentes
-      // Para provinceid, municipalityid y otros campos, validar que no sean undefined
-      if (!data.provinceid || !data.municipalityid) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Por favor complete todos los campos requeridos",
-        });
-        return;
-      }
-
-      // Agregar companyId explícitamente (será sobrescrito en el backend)
-      const formDataWithCompany = {
-        ...data,
-        companyId: 15 // El ID de compañía real vendrá del backend
-      };
-      
-      console.log("Datos finales a enviar:", formDataWithCompany);
-      
-      if (isEditing && selectedCustomer) {
-        await updateMutation.mutateAsync({ ...formDataWithCompany, id: selectedCustomer.id });
-      } else {
-        await createMutation.mutateAsync(formDataWithCompany);
-      }
-    } catch (error) {
-      console.error("Error en el envío del formulario:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Hubo un problema al guardar los datos. Intente nuevamente.",
-      });
+  const onSubmit = (data: CustomerFormData) => {
+    console.log("Formulario enviado con datos:", data);
+    
+    // Forma directa como en almacén
+    if (isEditing && selectedCustomer) {
+      updateMutation.mutate({ ...data, id: selectedCustomer.id });
+    } else {
+      createMutation.mutate(data);
     }
   };
 
@@ -1164,17 +1118,11 @@ export default function Customers() {
                   />
                 </div>
 
-                <div className="mt-4 mb-4">
+                <div className="flex justify-end mt-4 mb-4">
                   <Button
-                    type="button"
+                    type="submit"
                     className="bg-blue-500 hover:bg-blue-600 text-white"
                     disabled={createMutation.isPending}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      console.log("Botón guardar clickeado");
-                      console.log("Datos del formulario:", form.getValues());
-                      form.handleSubmit(onSubmit)(e);
-                    }}
                   >
                     {createMutation.isPending ? "Guardando..." : "Guardar"}
                   </Button>
