@@ -171,9 +171,6 @@ export default function Customers() {
           }
         });
         
-        // Añadir companyId (será sobrescrito en el backend)
-        formData.append('companyId', '15');
-        
         // Enviar la solicitud con fetch para manejar FormData
         const response = await fetch('/api/customers', {
           method: 'POST',
@@ -184,19 +181,17 @@ export default function Customers() {
         if (!response.ok) {
           const errorText = await response.text();
           console.error("Error al crear cliente:", errorText);
-          throw new Error('Error al crear el cliente');
+          throw new Error('Error al crear el cliente: ' + errorText);
         }
         
         return await response.json();
       } else {
         // Si no hay logo, usamos JSON con apiRequest exactamente como en almacén
+        console.log("Enviando datos sin logo:", data);
         return await apiRequest({
           method: "POST",
           url: "/api/customers",
-          data: {
-            ...data,
-            companyId: 15  // Será sobrescrito en el backend
-          }
+          data: data
         });
       }
     },
@@ -322,11 +317,19 @@ export default function Customers() {
   const onSubmit = (data: CustomerFormData) => {
     console.log("Formulario enviado con datos:", data);
     
+    // Aseguramos que creditlimit sea un string para evitar problemas de tipos
+    const formattedData = {
+      ...data,
+      creditlimit: data.creditlimit ? String(data.creditlimit) : "0.00"
+    };
+    
+    console.log("Datos formateados para envío:", formattedData);
+    
     // Forma directa como en almacén
     if (isEditing && selectedCustomer) {
-      updateMutation.mutate({ ...data, id: selectedCustomer.id });
+      updateMutation.mutate({ ...formattedData, id: selectedCustomer.id });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(formattedData);
     }
   };
 

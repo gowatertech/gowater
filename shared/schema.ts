@@ -167,17 +167,17 @@ export const insertCustomerSchema = z.object({
   businessname: z.string().min(1, "El nombre del negocio es requerido"),
   managername: z.string().min(1, "El nombre del encargado es requerido"),
   phone: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
-  email: z.union([z.string().email("Correo electrónico inválido"), z.null()]).optional(),
+  email: z.union([z.string().email("Correo electrónico inválido"), z.null(), z.string().length(0)]).optional(),
   zoneid: z.number().optional(),
   street: z.string().min(1, "La calle es requerida"),
   streetnumber: z.string().min(1, "El número es requerido"),
   provinceid: z.number({ required_error: "La provincia es requerida" }),
   municipalityid: z.number({ required_error: "El municipio es requerido" }),
   reference: z.string().optional(),
-  coordinates: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
-  creditlimit: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  coordinates: z.string().optional(), // Hacemos opcional la validación de coordenadas
+  creditlimit: z.string().default("0.00").or(z.number().transform(n => n.toString())), // Permitimos tanto string como number
   balance: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
-  companyId: z.number().int().positive(),
+  companyId: z.number().int().positive().optional(), // Hacemos el companyId opcional en el frontend
 });
 
 // Trucks (Vehículos)
