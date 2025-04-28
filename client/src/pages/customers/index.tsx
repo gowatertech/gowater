@@ -8,7 +8,6 @@ import { insertCustomerSchema, CustomerWithDetails, Province, Municipality, Zone
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { CreateCustomerTab } from "./CreateCustomerTab";
 import {
   Table,
   TableBody,
@@ -772,7 +771,93 @@ export default function Customers() {
         
         {/* Contenido del Tab de Nuevo Cliente */}
         <TabsContent value="new">
-          <CreateCustomerTab onSuccess={() => setActiveTab("list")} />
+          <Card className="bg-white">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-1">
+                <PlusCircle className="h-3.5 w-3.5 text-blue-600" />
+                <CardTitle className="text-sm font-medium">Registrar Cliente</CardTitle>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="space-y-2">
+              {Object.keys(form.formState.errors).length > 0 && (
+                <div className="text-red-500 text-xs bg-red-50 p-2 rounded mb-2">
+                  Errores en el formulario: {JSON.stringify(form.formState.errors)}
+                </div>
+              )}
+              
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+                <FormField
+                  control={form.control}
+                  name="businessname"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Nombre del Negocio</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="managername"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Nombre del Encargado</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs">Teléfono</FormLabel>
+                      <FormControl>
+                        <Input className="h-7 text-xs px-2 py-0" {...field} />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              
+              <div className="flex justify-end">
+                <Button
+                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  disabled={createMutation.isPending}
+                  onClick={() => {
+                    console.log("Submit button clicked");
+                    // Creamos objeto con todos los campos requeridos
+                    const data = {
+                      businessname: form.getValues("businessname"),
+                      managername: form.getValues("managername"),
+                      phone: form.getValues("phone"),
+                      street: "",
+                      streetnumber: "",
+                      provinceid: 1,
+                      municipalityid: 1,
+                      creditlimit: "0.00",
+                      balance: "0.00"
+                    };
+                    
+                    console.log("Datos preparados:", data);
+                    createMutation.mutate(data);
+                  }}
+                >
+                  {createMutation.isPending ? "Guardando..." : "Guardar"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
         
         {/* Contenido del Tab de Detalles de Cliente */}

@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Zone } from "@shared/schema";
 
 interface SimpleNewCustomerFormProps {
   onSuccess: () => void;
