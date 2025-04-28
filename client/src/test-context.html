@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prueba de Contexto</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 5px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Prueba de Diagnóstico de Contexto Multi-tenant</h1>
+  
+  <div>
+    <button id="testContext">Comprobar Contexto</button>
+    <button id="testZone1">Probar Zona 1 (Normal)</button>
+    <button id="testZone1Debug">Probar Zona 1 (Debug)</button>
+    <button id="clearResult">Limpiar Resultado</button>
+  </div>
+  
+  <h2>Resultado:</h2>
+  <pre id="result">Los resultados aparecerán aquí...</pre>
+  
+  <script>
+    document.getElementById('testContext').addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/diagnostic/context');
+        const data = await response.json();
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('result').textContent = 'Error: ' + error.message;
+      }
+    });
+    
+    document.getElementById('testZone1').addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/zones/1/pending-orders');
+        const data = await response.json();
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('result').textContent = 'Error: ' + error.message;
+      }
+    });
+    
+    document.getElementById('testZone1Debug').addEventListener('click', async () => {
+      try {
+        const response = await fetch('/api/zones/1/pending-orders?debug=true');
+        const data = await response.json();
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById('result').textContent = 'Error: ' + error.message;
+      }
+    });
+    
+    document.getElementById('clearResult').addEventListener('click', () => {
+      document.getElementById('result').textContent = 'Los resultados aparecerán aquí...';
+    });
+  </script>
+</body>
+</html>
