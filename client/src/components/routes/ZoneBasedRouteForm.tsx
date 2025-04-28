@@ -184,7 +184,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     error: pendingOrdersError,
     refetch: refetchPendingOrders
   } = useQuery<PendingOrder[]>({
-    queryKey: ["/zones", selectedZone, "pending-orders", useDebugMode],
+    queryKey: ["/api/zones", selectedZone, "pending-orders", useDebugMode],
     queryFn: async () => {
       if (!selectedZone) return [];
       
@@ -214,7 +214,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         }
         
         // Construir la URL según el modo
-        let url = `/zones/${selectedZone}/pending-orders`;
+        let url = `/api/zones/${selectedZone}/pending-orders`;
         if (useDebugMode) {
           url += "?debug=true";
           console.log(`MODO DEBUG: Solicitando pedidos pendientes en modo desarrollo: ${url}`);
