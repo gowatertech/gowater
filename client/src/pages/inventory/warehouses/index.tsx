@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
+// Aseguramos que estamos usando la implementación correcta de apiRequest
 import type { Warehouse, InsertWarehouse } from "@shared/schema";
 import {
   Table,
