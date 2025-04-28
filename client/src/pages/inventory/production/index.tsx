@@ -515,7 +515,7 @@ export default function ProductionRegistration() {
               </CardHeader>
               <CardContent className="p-3">
                 <Form {...mainForm}>
-                  <form className="space-y-3">
+                  <form onSubmit={mainForm.handleSubmit(onSubmit)} className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <FormField
                         control={mainForm.control}
@@ -720,9 +720,32 @@ export default function ProductionRegistration() {
                       Cancelar
                     </Button>
                     <Button 
-                      onClick={mainForm.handleSubmit(onSubmit)}
+                      type="button"
+                      onClick={() => {
+                        console.log("Click en botón crear lote");
+                        if (mainForm.getValues().warehouseId === 0) {
+                          toast({
+                            title: "Error",
+                            description: "Por favor seleccione un almacén",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        if (batchItems.length === 0) {
+                          toast({
+                            title: "Error",
+                            description: "Por favor agregue al menos un producto al lote",
+                            variant: "destructive"
+                          });
+                          return;
+                        }
+                        
+                        // Ejecutar directamente onSubmit con los valores actuales
+                        onSubmit(mainForm.getValues() as InsertProductionBatch);
+                      }}
                       className="text-xs h-8"
-                      disabled={batchItems.length === 0 || createBatchMutation.isPending}
+                      disabled={createBatchMutation.isPending}
                     >
                       {createBatchMutation.isPending ? "Guardando..." : "Crear Lote de Producción"}
                     </Button>
