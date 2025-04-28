@@ -18,7 +18,15 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
 ordersRouter.get("/api/orders", authMiddleware, async (req: Request, res: Response) => {
   try {
     // Obtener el companyId del contexto
-    const companyId = getCurrentCompanyId() || 1;
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error("❌ ERROR: No se encontró companyId en el contexto para listar órdenes");
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para ver órdenes"
+      });
+    }
     
     console.log(`📋 Listando órdenes para compañía ${companyId}`);
     
@@ -72,7 +80,15 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
   
   try {
     // Obtener el companyId del contexto
-    const companyId = getCurrentCompanyId() || 1;
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error(`❌ ERROR: No se encontró companyId en el contexto para obtener orden #${orderId}`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para ver detalles de órdenes"
+      });
+    }
     
     // Query para obtener la orden
     const orderQuery = `
@@ -169,7 +185,15 @@ ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Reque
   
   try {
     // Obtener el companyId del contexto
-    const companyId = getCurrentCompanyId() || 1;
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error(`❌ ERROR: No se encontró companyId en el contexto para obtener items de orden #${orderId}`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para ver detalles de items"
+      });
+    }
     
     // Query para obtener items con información de productos
     const itemsQuery = `
@@ -235,7 +259,13 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
     console.log("🔄 Transacción iniciada");
     
     // Obtener el ID de la empresa del contexto
-    const companyId = getCurrentCompanyId() || 1; // Obtener del contexto o usar valor por defecto
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error("❌ ERROR: No se encontró companyId en el contexto para crear pedido");
+      throw new Error("Autenticación requerida: Debe iniciar sesión para crear pedidos");
+    }
+    
     const orderData = {
       customerId: parseInt(req.body.customerId),
       total: req.body.total,

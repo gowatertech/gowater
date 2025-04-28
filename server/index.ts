@@ -16,6 +16,7 @@ import interestedCompaniesRoutes from "./routes/api/interested-companies";
 import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
 import { registerTestAPIRoutes } from "./test-api";
 import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
+import { consolidatedCompanyMiddleware } from "./middleware/consolidated-company.middleware";
 // Importamos el router de órdenes
 import ordersRouter from "./routes/orders";
 // Importamos las rutas para datos geográficos
@@ -49,10 +50,9 @@ const companyApiRouter = express.Router();
 const platformApiRouter = express.Router();
 const geoDataApiRouter = express.Router(); // Router para datos geográficos sin autenticación
 
-// Solo aplicamos los middlewares de multi-tenancy al router de empresas
-companyApiRouter.use(tenantMiddleware);
-companyApiRouter.use(companyDbMiddleware);
-companyApiRouter.use(companyFilterMiddleware);
+// Usamos el middleware consolidado para la gestión multi-tenant
+companyApiRouter.use(consolidatedCompanyMiddleware);
+// El middleware companyTenantMiddleware se mantiene para compatibilidad retroactiva
 companyApiRouter.use(companyTenantMiddleware);
 
 // Montamos los routers en sus respectivas rutas
@@ -109,9 +109,9 @@ app.use((req, res, next) => {
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
     
-    // Usar el router de órdenes personalizado
-    app.use(ordersRouter);
-    log("Custom orders router registered successfully");
+    // Usar el router de órdenes personalizado con el middleware consolidado
+    app.use(consolidatedCompanyMiddleware, ordersRouter);
+    log("Custom orders router registered successfully with consolidated company middleware");
     
     // Montar las rutas públicas para registro de empresas interesadas
     app.use("/api/leads", leadsRoutes);
