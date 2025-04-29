@@ -39,7 +39,7 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
         <h1 className="text-xl sm:text-2xl font-bold">{t(title)}</h1>
         <div className="flex items-center gap-2 text-sm mt-1">
           <Badge variant="secondary" className="px-2 py-0 font-semibold">
-            ID: {userData?.companyId || 'Cargando...'}
+            ID: {settings?.id || userData?.companyId || '1'}
           </Badge>
           <span className="font-medium text-primary">
             {settings?.name || userData?.companyName || 'Cargando nombre de empresa...'}
