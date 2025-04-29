@@ -260,7 +260,7 @@ export const insertRouteSchema = z.object({
   assistantId: z.coerce.number().optional().nullable(),
   truckId: z.coerce.number().optional().nullable(),
   date: z.date(),
-  zoneId: z.coerce.number({ required_error: "Se requiere una zona" }),
+  zoneId: z.coerce.number().optional().nullable(), // Ahora opcional
   status: z.enum(["pending", "in_progress", "completed"]).default("pending"),
   isCompleted: z.boolean().default(false),
   startTime: z.string().datetime().optional(),
@@ -276,6 +276,7 @@ export const insertRouteSchema = z.object({
   driverEndedAt: z.string().datetime().optional(),
   stops: z.array(z.string()).optional(),
   comments: z.string().optional(),
+  companyId: z.coerce.number().optional(), // Añadido companyId como opcional
 });
 
 // Orders
