@@ -151,24 +151,32 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     queryKey: ["/api/trucks"],
   });
 
+  // Estado para la zona seleccionada
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
+  
   // Estados para el filtrado por zona
   const [pendingOrdersLoaded, setPendingOrdersLoaded] = useState(false);
   const [filteredPendingOrders, setFilteredPendingOrders] = useState<OrderWithCustomer[]>([]);
 
-  // Fetch ALL pending orders without filtering by zone
+  // Fetch pending orders with optional zoneId filtering
   const {
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders,
     error: pendingOrdersError,
     refetch: refetchPendingOrders
   } = useQuery<OrderWithCustomer[]>({
-    queryKey: ["/api/orders/pending"],
+    queryKey: ["/api/orders/pending", selectedZoneId],
     queryFn: async () => {      
-      console.log("Fetching ALL pending orders");
+      console.log("Fetching pending orders, zoneId:", selectedZoneId || "No filter");
       
-      // Obtener todos los pedidos pendientes sin importar la zona
+      // Construir URL con opción de filtrado por zona
+      const url = selectedZoneId 
+        ? `/api/orders/pending?zoneId=${selectedZoneId}` 
+        : "/api/orders/pending";
+      
+      // Obtener pedidos pendientes con o sin filtro de zona
       const response = await apiRequest({
-        url: "/api/orders/pending",
+        url: url,
         method: "GET"
       });
       
@@ -201,10 +209,14 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     if (pendingOrdersLoaded && selectedZoneId) {
       console.log(`Filtrando pedidos para zona ID: ${selectedZoneId}`);
       // Filtrar pedidos por la zona seleccionada
-      const ordersInZone = pendingOrders.filter(order => 
-        // Si el cliente tiene zoneid y coincide con la zona seleccionada
-        order.zoneid === selectedZoneId
-      );
+      const ordersInZone = pendingOrders.filter(order => {
+        // Revisa en diferentes propiedades donde podría estar el ID de la zona
+        const orderZoneId = order.zoneid || order.zoneId || 
+          (order.customer && (order.customer.zoneid || order.customer.zoneId));
+        
+        console.log(`Pedido #${order.id} - zoneId:`, orderZoneId);
+        return orderZoneId === selectedZoneId;
+      });
       
       console.log(`Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
       setFilteredPendingOrders(ordersInZone);
@@ -238,9 +250,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   console.log("  - companyData?.companyId:", companyData?.companyId);
   console.log("  - pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId);
   console.log("  - currentCompanyId (final):", currentCompanyId);
-  
-  // Estado para la zona seleccionada
-  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
@@ -1199,6 +1208,51 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
                         <FormField
                           control={form.control}
+                          name="zoneId"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-xs">Zona</FormLabel>
+                              <Select 
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  handleZoneChange(Number(value));
+                                }} 
+                                defaultValue={field.value ? String(field.value) : undefined}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue placeholder="Selecciona zona" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {isLoadingZones ? (
+                                    <div className="p-1">
+                                      <Skeleton className="h-4 w-full" />
+                                    </div>
+                                  ) : zones.length === 0 ? (
+                                    <div className="p-1 text-center text-xs text-gray-500">
+                                      No hay zonas disponibles
+                                    </div>
+                                  ) : (
+                                    zones.map((zone: any) => (
+                                      <SelectItem 
+                                        key={zone.id} 
+                                        value={String(zone.id)}
+                                        className="text-xs"
+                                      >
+                                        {zone.name}
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage className="text-[10px]" />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
                           name="driverId"
                           render={({ field }) => (
                             <FormItem className="space-y-1">
@@ -1239,51 +1293,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="zoneId"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-xs">Zona</FormLabel>
-                              <Select 
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  handleZoneChange(Number(value));
-                                }}
-                                defaultValue={field.value ? String(field.value) : undefined}
-                                disabled={isCreatingRoute}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue placeholder="Selecciona zona" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {isLoadingZones ? (
-                                    <div className="p-1">
-                                      <Skeleton className="h-4 w-full" />
-                                    </div>
-                                  ) : zones.length === 0 ? (
-                                    <div className="p-1 text-center text-xs text-gray-500">
-                                      No hay zonas disponibles
-                                    </div>
-                                  ) : (
-                                    zones.map((zone: any) => (
-                                      <SelectItem 
-                                        key={zone.id} 
-                                        value={String(zone.id)}
-                                        className="text-xs"
-                                      >
-                                        {zone.name}
-                                      </SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage className="text-[10px]" />
-                            </FormItem>
-                          )}
-                        />
+
 
                         <FormField
                           control={form.control}
