@@ -551,6 +551,19 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         throw new Error("No se pudo obtener el ID de la compañía. Por favor, inicia sesión nuevamente.");
       }
       
+      // Verificar que el nombre de la ruta existe
+      if (!data.name) {
+        const defaultName = `Ruta ${new Date().toLocaleDateString()}`;
+        console.warn(`El nombre de ruta estaba vacío, usando valor predeterminado: ${defaultName}`);
+        data.name = defaultName;
+      }
+      
+      // Generar fecha si no existe
+      if (!data.date) {
+        console.warn("La fecha estaba vacía, usando fecha actual");
+        data.date = new Date();
+      }
+      
       // Prepare data for server
       const routeData = {
         name: data.name,
@@ -1157,6 +1170,20 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                             ))}
                           </ScrollArea>
                         </div>
+
+                        {/* Campo oculto para la ruta optimizada */}
+                        <input 
+                          type="hidden" 
+                          name="optimizedRoute" 
+                          value={JSON.stringify(optimizedRoute)} 
+                        />
+                        
+                        {/* Campo oculto para companyId */}
+                        <input 
+                          type="hidden" 
+                          name="companyId" 
+                          value={companyData?.companyId || pendingOrdersUserData?.companyId || ""} 
+                        />
 
                         <div className="flex justify-between pt-2">
                           <Button 
