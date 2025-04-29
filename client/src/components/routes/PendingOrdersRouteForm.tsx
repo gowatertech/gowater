@@ -535,76 +535,17 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   // Create route mutation
   const createRouteMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log("Iniciando envío de datos de ruta:", data);
+    mutationFn: async (routeData: any) => {
+      console.log("Iniciando envío de datos de ruta:", routeData);
       
-      if (optimizedRoute.length === 0) {
-        throw new Error("No hay pedidos seleccionados para crear la ruta");
+      if (!routeData || !routeData.deliverySequence || routeData.deliverySequence.length === 0) {
+        throw new Error("No hay una ruta definida para crear");
       }
       
-      // Calculate total distance of the optimized route
-      const totalDistance = calculateTotalRouteDistance(optimizedRoute);
-      
-      // Calculate estimated duration based on distance and number of stops
-      const estimatedDuration = calculateEstimatedDuration(totalDistance, optimizedRoute.length - 1);
-      
-      // Get order IDs from selected orders
-      const orderIds = selectedOrders.map(order => order.id);
-      
-      // Obtener el companyId desde:
-      // 1. Los datos de la empresa recibidos
-      // 2. Los datos del usuario (si tiene companyId)
-      // 3. Si todo falla, usar el valor fijo de respaldo
-      let effectiveCompanyId = companyData?.companyId;
-      
-      if (!effectiveCompanyId && pendingOrdersUserData?.companyId) {
-        effectiveCompanyId = pendingOrdersUserData.companyId;
-        console.log("Usando companyId del usuario:", effectiveCompanyId);
-      }
-      
-      if (!effectiveCompanyId) {
-        effectiveCompanyId = 1; // Respaldo
-        console.log("⚠️ USANDO COMPANYID FIJO (1) PARA PRUEBAS");
-      }
-      
-      console.log("CompanyId efectivo:", effectiveCompanyId);
-      console.log("Datos de usuario:", pendingOrdersUserData);
-      console.log("Datos de compañía:", companyData);
-      
-      // Verificar que el nombre de la ruta existe
-      if (!data.name) {
-        const defaultName = `Ruta ${new Date().toLocaleDateString()}`;
-        console.warn(`El nombre de ruta estaba vacío, usando valor predeterminado: ${defaultName}`);
-        data.name = defaultName;
-      }
-      
-      // Generar fecha si no existe
-      if (!data.date) {
-        console.warn("La fecha estaba vacía, usando fecha actual");
-        data.date = new Date();
-      }
-      
-      // Prepare data for server
-      const routeData = {
-        name: data.name,
-        date: new Date(data.date),
-        driverId: Number(data.driverId),
-        assistantId: data.assistantId && data.assistantId !== "null" ? Number(data.assistantId) : null,
-        truckId: data.truckId && data.truckId !== "null" ? Number(data.truckId) : null,
-        status: "pending",
-        isCompleted: false,
-        deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
-        stops: optimizedRoute.map(customer => customer.coordinates || ""),
-        totalDistance: totalDistance.toFixed(2),
-        estimatedDuration: estimatedDuration,
-        orderIds: orderIds, // Pass order IDs to assign to this route
-        companyId: effectiveCompanyId // Añadir companyId determinado automáticamente
-      };
-      
-      console.log("Enviando datos de ruta con companyId:", routeData);
+      console.log("Enviando datos a la API:", routeData);
       
       try {
-        // Usar queryClient para una mejor integración con el sistema multi-tenant
+        // Usar apiRequest para la comunicación con el servidor
         const result = await apiRequest({
           url: '/api/routes',
           method: 'POST',
@@ -616,7 +557,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       } catch (error) {
         console.error("Error al enviar datos de ruta:", error);
         
-        // Intentar capturar mensajes de error más específicos
+        // Capturar mensajes de error específicos
         let errorMessage = "Error al crear la ruta";
         
         if (error instanceof Error) {
@@ -677,13 +618,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       return;
     }
     
-    // Asegurarnos de tener un companyId válido
-    if (!data.companyId) {
-      console.log("Estableciendo companyId desde variables globales:", currentCompanyId);
-      data.companyId = currentCompanyId;
-    }
+    // Determinar el companyId efectivo
+    const effectiveCompanyId = data.companyId || currentCompanyId || companyData?.companyId || pendingOrdersUserData?.companyId;
     
-    if (!data.companyId) {
+    if (!effectiveCompanyId) {
       console.error("No se pudo obtener el companyId para la creación de ruta");
       toast({
         variant: "destructive",
@@ -702,21 +640,38 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       });
       return;
     }
+
+    // Extract order IDs from selected orders
+    const orderIds = selectedOrders.map(order => order.id);
     
-    // Verificar si se están enviando los datos correctamente
-    const formData = {
-      ...data,
+    // Calculate total distance of the optimized route
+    const totalDistance = calculateTotalRouteDistance(optimizedRoute);
+    
+    // Calculate estimated duration
+    const estimatedDuration = calculateEstimatedDuration(totalDistance, optimizedRoute.length - 1);
+    
+    // Prepare data for server in the format expected by the mutation function
+    const routeData = {
       name: data.name || `Ruta ${new Date().toLocaleDateString()}`,
-      date: data.date || new Date(),
-      optimizedRoute: optimizedRoute,
-      companyId: data.companyId
+      date: new Date(data.date || new Date()),
+      driverId: Number(data.driverId),
+      assistantId: data.assistantId && data.assistantId !== "null" ? Number(data.assistantId) : null,
+      truckId: data.truckId && data.truckId !== "null" ? Number(data.truckId) : null,
+      status: "pending",
+      isCompleted: false,
+      deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
+      stops: optimizedRoute.map(customer => customer.coordinates || ""),
+      totalDistance: totalDistance.toFixed(2),
+      estimatedDuration: estimatedDuration,
+      orderIds: orderIds,
+      companyId: effectiveCompanyId
     };
     
-    console.log("Datos de formulario preparados:", formData);
+    console.log("Datos de ruta preparados para enviar:", routeData);
     
     try {
-      // Llamar a la mutación con los datos
-      createRouteMutation.mutate(formData);
+      // Llamar a la mutación con los datos en el formato correcto
+      createRouteMutation.mutate(routeData);
       console.log("Mutación iniciada con éxito");
     } catch (error) {
       console.error("Error al iniciar la mutación:", error);
