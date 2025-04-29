@@ -326,30 +326,8 @@ export default function RoutesPage() {
           </div>
         );
         
-      case "create":
-        return (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Crear nueva ruta</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleCancelCreate}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancelar
-                </Button>
-              </div>
-              <CardDescription>Configurar una nueva ruta basada en pedidos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <StepRouteForm
-                onRouteCreated={handleRouteCreated}
-              />
-            </CardContent>
-          </Card>
-        );
+      // El caso "create" ahora se maneja directamente en el JSX principal
+      // para evitar posibles conflictos de renderizado
         
       default:
         return <div>Selecciona una opción para comenzar</div>;
@@ -379,28 +357,53 @@ export default function RoutesPage() {
 
       <Separator />
       
-      <Tabs defaultValue={selectedTab} onValueChange={(value) => setSelectedTab(value as any)}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger 
-            value="dashboard" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <LayoutGrid className="h-4 w-4 mr-2" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger 
-            value="routes" 
-            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-          >
-            <Truck className="h-4 w-4 mr-2" />
-            Rutas
-          </TabsTrigger>
-        </TabsList>
-        
-        <div className="mt-4">
-          {renderTabContent()}
-        </div>
-      </Tabs>
+      {/* Renderiza el contenido directamente basado en selectedTab */}
+      {selectedTab === "create" ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Crear nueva ruta</CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleCancelCreate}
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancelar
+              </Button>
+            </div>
+            <CardDescription>Configurar una nueva ruta basada en pedidos</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StepRouteForm
+              onRouteCreated={handleRouteCreated}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <Tabs defaultValue={selectedTab} onValueChange={(value) => setSelectedTab(value as any)}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger 
+              value="dashboard" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger 
+              value="routes" 
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <Truck className="h-4 w-4 mr-2" />
+              Rutas
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="mt-4">
+            {renderTabContent()}
+          </div>
+        </Tabs>
+      )}
     </div>
   );
 }
