@@ -151,6 +151,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     queryKey: ["/api/trucks"],
   });
 
+  // Estados para el filtrado por zona
+  const [pendingOrdersLoaded, setPendingOrdersLoaded] = useState(false);
+  const [filteredPendingOrders, setFilteredPendingOrders] = useState<OrderWithCustomer[]>([]);
+
   // Fetch ALL pending orders without filtering by zone
   const {
     data: pendingOrders = [],
@@ -175,7 +179,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       console.log("Pending orders data:", data);
       
       // Transformar los datos para que coincidan con el formato esperado por el componente
-      return data.map((order: any) => ({
+      const transformedOrders = data.map((order: any) => ({
         ...order,
         // Asegurarnos de que cada pedido tenga una propiedad coordinates
         coordinates: order.deliveryCoordinates || order.coordinates || null,
@@ -186,8 +190,41 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         // Inicializar un array vacío de productos (opcional, ya que hemos agregado la verificación)
         products: order.products || []
       }));
+      
+      setPendingOrdersLoaded(true);
+      return transformedOrders;
     },
   });
+  
+  // Efecto para filtrar pedidos por zona seleccionada
+  useEffect(() => {
+    if (pendingOrdersLoaded && selectedZoneId) {
+      console.log(`Filtrando pedidos para zona ID: ${selectedZoneId}`);
+      // Filtrar pedidos por la zona seleccionada
+      const ordersInZone = pendingOrders.filter(order => 
+        // Si el cliente tiene zoneid y coincide con la zona seleccionada
+        order.zoneid === selectedZoneId
+      );
+      
+      console.log(`Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
+      setFilteredPendingOrders(ordersInZone);
+      
+      // Limpiar la selección de pedidos anterior al cambiar de zona
+      setSelectedOrders([]);
+    } else {
+      // Si no hay zona seleccionada, mostrar todos los pedidos
+      setFilteredPendingOrders(pendingOrders);
+    }
+  }, [pendingOrders, selectedZoneId, pendingOrdersLoaded]);
+  
+  // Función para cambiar la zona seleccionada
+  const handleZoneChange = (zoneId: number) => {
+    console.log(`Cambiando a zona ID: ${zoneId}`);
+    setSelectedZoneId(zoneId);
+    
+    // Actualizar el formulario con la zona seleccionada
+    form.setValue("zoneId", zoneId);
+  };
 
   // Fetch zonas
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
@@ -1189,6 +1226,52 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
                         <FormField
                           control={form.control}
+                          name="zoneId"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-xs">Zona</FormLabel>
+                              <Select 
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  handleZoneChange(Number(value));
+                                }}
+                                defaultValue={field.value ? String(field.value) : undefined}
+                                disabled={isCreatingRoute}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-7 text-xs">
+                                    <SelectValue placeholder="Selecciona zona" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {isLoadingZones ? (
+                                    <div className="p-1">
+                                      <Skeleton className="h-4 w-full" />
+                                    </div>
+                                  ) : zones.length === 0 ? (
+                                    <div className="p-1 text-center text-xs text-gray-500">
+                                      No hay zonas disponibles
+                                    </div>
+                                  ) : (
+                                    zones.map((zone: any) => (
+                                      <SelectItem 
+                                        key={zone.id} 
+                                        value={String(zone.id)}
+                                        className="text-xs"
+                                      >
+                                        {zone.name}
+                                      </SelectItem>
+                                    ))
+                                  )}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage className="text-[10px]" />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
                           name="assistantId"
                           render={({ field }) => (
                             <FormItem className="space-y-1">
@@ -1302,6 +1385,13 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           type="hidden" 
                           name="companyId" 
                           value={companyData?.companyId || pendingOrdersUserData?.companyId || ""} 
+                        />
+                        
+                        {/* Campo oculto para zoneId */}
+                        <input 
+                          type="hidden" 
+                          name="zoneId" 
+                          value={selectedZoneId || ""} 
                         />
 
                         <div className="flex justify-between pt-2">
