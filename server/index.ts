@@ -123,6 +123,14 @@ app.use((req, res, next) => {
     registerRouteGeneratorEndpoints(companyApiRouter);
     log("Route generator endpoints registered directly to avoid Vite issues");
     
+    // Registrar la nueva API del generador de rutas
+    registerNewRouteGenerator(app);
+    log("New route generator API endpoints registered successfully");
+    
+    // Registrar las rutas simplificadas
+    registerSimplifiedRoutes(app);
+    log("Simplified routes registered successfully");
+    
     // Usar el router de órdenes personalizado con el middleware consolidado
     app.use(consolidatedCompanyMiddleware, ordersRouter);
     log("Custom orders router registered successfully with consolidated company middleware");
@@ -226,13 +234,8 @@ app.use((req, res, next) => {
     });
     log("Direct route-generator/orders/pending endpoint registered");
     
-    // Registrar las rutas simplificadas para el generador de rutas
-    registerSimplifiedRoutes(app);
-    log("Simplified routes registered successfully for direct route generator access");
-    
-    // Registrar la nueva implementación del generador de rutas
-    registerNewRouteGenerator(app);
-    log("New route generator API registered successfully at /newgen");
+    // Ya registramos estas rutas arriba
+    // No necesitamos registrarlas de nuevo
     
     // Registrar rutas de prueba (solo en desarrollo)
     if (process.env.NODE_ENV !== "production") {
