@@ -7,9 +7,24 @@ import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
  * y lo establece en el contexto para su uso en toda la aplicación.
  */
 export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Para rutas de plataforma, no alteramos nada
-  if (req.path.startsWith('/api/platform') || req.path === '/api/login' || req.path === '/api/logout') {
+  // Para rutas de plataforma o login/logout, no alteramos nada
+  if (req.path.startsWith('/api/platform') || 
+      req.path === '/api/login' || 
+      req.path === '/api/logout') {
     return next();
+  }
+  
+  // Verificar autenticación para rutas del generador de rutas
+  if (req.path.startsWith('/api/route-generator')) {
+    // Verificar si el usuario está autenticado
+    if (!req.session?.user) {
+      console.log(`🔒 Verificando autenticación para generador de rutas: ${req.path}`);
+      console.log(`❌ No hay sesión de usuario`);
+      return res.status(401).json({
+        success: false,
+        message: "No autenticado"
+      });
+    }
   }
 
   // Obtener el companyId de diversas fuentes, con prioridades
