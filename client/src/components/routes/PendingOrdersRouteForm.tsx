@@ -545,6 +545,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       console.log("Enviando datos a la API:", routeData);
       
       try {
+        // Verificar explícitamente el companyId
+        if (!routeData.companyId) {
+          console.error("No hay companyId en los datos", routeData);
+          routeData.companyId = 1; // Último recurso para asegurar que haya un companyId
+        }
+        
         // Usar apiRequest para la comunicación con el servidor
         const result = await apiRequest({
           url: '/api/routes',
