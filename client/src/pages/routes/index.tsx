@@ -40,7 +40,6 @@ import {
 
 // Sub-components
 import PendingOrdersRouteForm from "@/components/routes/PendingOrdersRouteForm";
-import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
 
 // Placeholders para componentes que necesitamos crear
@@ -98,8 +97,8 @@ export default function RoutesPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  // Estado para modo de creación de ruta
-  const [routeCreationMode, setRouteCreationMode] = useState<"customers" | "orders">("orders");
+  // Ya no necesitamos el modo de creación de ruta porque solo usamos un método
+  // const [routeCreationMode, setRouteCreationMode] = useState<"customers" | "orders">("orders");
   
   // Obtener rutas
   useEffect(() => {
@@ -345,36 +344,9 @@ export default function RoutesPage() {
               <CardDescription>Configurar una nueva ruta basada en pedidos</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="orders" className="mt-2">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger 
-                    value="orders" 
-                    onClick={() => setRouteCreationMode("orders")}
-                  >
-                    <Package className="h-4 w-4 mr-2" />
-                    Por Pedidos
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="zones" 
-                    onClick={() => setRouteCreationMode("zones")}
-                  >
-                    <MapIcon className="h-4 w-4 mr-2" />
-                    Por Zonas
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="orders" className="mt-0">
-                  <PendingOrdersRouteForm
-                    onRouteCreated={handleRouteCreated}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="zones" className="mt-0">
-                  <ZoneBasedRouteForm
-                    onRouteCreated={handleRouteCreated}
-                  />
-                </TabsContent>
-              </Tabs>
+              <PendingOrdersRouteForm
+                onRouteCreated={handleRouteCreated}
+              />
             </CardContent>
           </Card>
         );
