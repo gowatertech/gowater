@@ -40,7 +40,7 @@ import {
 
 // Sub-components
 import PendingOrdersRouteForm from "@/components/routes/PendingOrdersRouteForm";
-import ZoneBasedRouteFormSimple from "@/components/routes/ZoneBasedRouteFormSimple";
+import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
 
 // Placeholders para componentes que necesitamos crear
@@ -370,7 +370,7 @@ export default function RoutesPage() {
                 </TabsContent>
                 
                 <TabsContent value="zones" className="mt-0">
-                  <ZoneBasedRouteFormSimple
+                  <ZoneBasedRouteForm
                     onRouteCreated={handleRouteCreated}
                   />
                 </TabsContent>
