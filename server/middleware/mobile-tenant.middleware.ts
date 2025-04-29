@@ -50,18 +50,21 @@ export function mobileApiTenantMiddleware(req: Request, res: Response, next: Nex
     console.log("MobileAPI - Usando companyId del cuerpo de la solicitud:", companyId);
   }
 
-  // Si no tenemos companyId, intenta usar el valor por defecto de la sesión
-  if (!companyId && process.env.NODE_ENV !== 'production') {
+  // Si no tenemos companyId, manejamos según la ruta
+  if (!companyId) {
     console.log("MobileAPI - No se encontró companyId en la solicitud");
     
-    // Solo en modo de desarrollo, podemos usar un companyId por defecto
-    if (req.path === '/login') {
-      // Para login, no asignamos ningún companyId por defecto
-      console.log("MobileAPI - Omitiendo asignación de companyId por defecto para login");
+    // Para rutas públicas como login, no necesitamos un companyId
+    if (req.path === '/login' || req.path === '/register' || req.path.startsWith('/public/')) {
+      console.log("MobileAPI - Omitiendo asignación de companyId para ruta pública:", req.path);
     } else {
-      companyId = 1; // Compañía por defecto para pruebas/desarrollo
-      req.session.companyId = companyId;
-      console.log("MobileAPI - Asignando companyId por defecto (solo en desarrollo):", companyId);
+      // Para rutas que requieren autenticación, registramos la falta de companyId
+      // pero permitimos que la solicitud continúe para que las APIs puedan manejar
+      // la falta de contexto y devolver errores apropiados
+      console.log("MobileAPI - ADVERTENCIA: Solicitud sin companyId para ruta protegida:", req.path);
+      
+      // No asignamos un ID por defecto, dejamos que cada endpoint maneje el error
+      // ya que hemos actualizado todos para verificar correctamente el companyId
     }
   }
   
