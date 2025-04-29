@@ -1590,7 +1590,7 @@ export async function registerRoutes(router: express.Router) {
       
       console.log(`🔄 Usando companyId: ${numericCompanyId} (convertido de ${companyId}) para crear la ruta`);
       
-      // Requerimos conductor y opcionales asistente y camión
+      // Requerimos conductor, zona y opcionales asistente y camión
       const routeData = {
         name: req.body.name,
         date: new Date(req.body.date),
@@ -1598,6 +1598,8 @@ export async function registerRoutes(router: express.Router) {
         assistantId: req.body.assistantId ? Number(req.body.assistantId) : null,
         truckId: req.body.truckId ? Number(req.body.truckId) : null,
         companyId: numericCompanyId, // Usar el companyId convertido a número
+        // Agregar zoneId (obligatorio según el schema)
+        zoneId: req.body.zoneId ? Number(req.body.zoneId) : null, 
         status: "pending",
         isCompleted: false,
         // Campos opcionales si están presentes
