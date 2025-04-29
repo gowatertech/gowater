@@ -158,8 +158,20 @@ export default function MobileMap() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const { user } = useCurrentUser();
-  const { companyName } = useCompanySettings(); // Usamos el hook para obtener el nombre de la empresa
-  const [mapCenter] = useState<[number, number]>([19.075380, -70.128822]); // Centro inicial en el almacén principal AGUA HARRIS
+  const { companyName, settings } = useCompanySettings(); // Usamos el hook para obtener datos de la empresa
+  
+  // Centro del mapa basado en los ajustes de la compañía o valores predeterminados
+  const [mapCenter] = useState<[number, number]>(() => {
+    if (settings?.latitude && settings?.longitude) {
+      const lat = parseFloat(settings.latitude);
+      const lng = parseFloat(settings.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return [lat, lng];
+      }
+    }
+    return [19.0, -70.0]; // Valor predeterminado (centro de Rep. Dominicana)
+  });
+  
   const [userLocation, setUserLocation] = useState<MapLocation | null>(null);
 
   // Consulta para obtener rutas activas
@@ -222,8 +234,8 @@ export default function MobileMap() {
   // Crear una colección de todos los puntos para el ajuste automático del zoom
   const allMapPoints = useMemo(() => {
     const points: [number, number][] = [
-      // Siempre incluir el almacén principal
-      [19.075380, -70.128822]
+      // Siempre incluir el almacén principal (desde configuración o valor predeterminado)
+      mapCenter
     ];
     
     // Añadir todos los puntos de todas las rutas activas
@@ -239,7 +251,7 @@ export default function MobileMap() {
     }
     
     return points;
-  }, [activeRoutes]);
+  }, [activeRoutes, mapCenter]);
 
   // Si está cargando
   if (loadingRoutes) {
@@ -328,7 +340,7 @@ export default function MobileMap() {
               
               {/* Marcador permanente para el almacén principal */}
               <Marker 
-                position={[19.075380, -70.128822]}
+                position={mapCenter}
                 icon={L.divIcon({
                   className: 'custom-div-icon',
                   html: `<div class="bg-purple-600 text-white w-10 h-10 flex items-center justify-center rounded-full shadow-lg border-2 border-white">
