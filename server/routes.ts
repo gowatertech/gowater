@@ -3568,7 +3568,7 @@ export async function registerRoutes(router: express.Router) {
                   'name', p.name,
                   'quantity', oi.quantity,
                   'price', oi.price,
-                  'subtotal', oi.subtotal
+                  'subtotal', oi.total
                 )
               ) as products
             FROM order_items oi
