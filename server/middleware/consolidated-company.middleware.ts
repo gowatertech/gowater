@@ -7,60 +7,10 @@ import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
  * y lo establece en el contexto para su uso en toda la aplicación.
  */
 export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Permitir recursos de Vite y archivos estáticos/del cliente sin restricciones
-  if (req.path.startsWith('/@') || 
-      req.path.startsWith('/src/') || 
-      req.path.startsWith('/node_modules/') ||
-      req.path.startsWith('/assets/') ||
-      req.path === '/sw.js' ||
-      req.path === '/manifest.json' ||
-      req.path.startsWith('/images/') ||
-      req.path === '/favicon.ico' ||
-      req.path === '/route-generator' || 
-      req.path.startsWith('/route-generator/') || // Permitir acceso a todas las rutas bajo route-generator
-      req.path.startsWith('/dashboard') ||
-      req.path.startsWith('/index.css')) {
+  // Para rutas de plataforma, no alteramos nada
+  if (req.path.startsWith('/api/platform') || req.path === '/api/login' || req.path === '/api/logout') {
     return next();
   }
-
-  // Para rutas de plataforma o login/logout, no alteramos nada
-  if (req.path.startsWith('/platform') || 
-      req.path === '/login' || 
-      req.path === '/logout' ||
-      req.path === '/') {
-    return next();
-  }
-  
-  // Verificar autenticación para rutas de la API del generador de rutas
-  // Endpoint específicos del API del generador de rutas
-  let routeGeneratorPath = false;
-  let apiPath = req.originalUrl || req.path;
-  
-  // Permitir acceso a la nueva API del generador de rutas sin verificación de autenticación
-  if (apiPath.startsWith('/newgen')) {
-    // Para la nueva API, permitimos el acceso sin restricciones
-    console.log(`[Company Middleware] Permitiendo acceso a la API de diagnóstico: ${apiPath}`);
-    return next();
-  }
-  
-  if (apiPath.includes('/api/route-generator') || apiPath.endsWith('/route-generator/orders/pending')) {
-    routeGeneratorPath = true;
-    console.log(`🔒 Procesando ruta del generador: ${apiPath}`);
-    
-    // Verificar si el usuario está autenticado
-    if (!req.session?.user) {
-      console.log(`❌ No hay sesión de usuario para ruta protegida`);
-      return res.status(401).json({
-        success: false,
-        message: "No autenticado"
-      });
-    }
-    
-    console.log(`✅ Usuario autenticado: ${req.session.user.name}`);
-  }
-  
-  // Permitir que la ruta frontend '/route-generator' sea manejada por la aplicación de cliente
-  // sin restricciones (la autenticación se maneja en el cliente)
 
   // Obtener el companyId de diversas fuentes, con prioridades
   let companyId: number | undefined;
@@ -103,9 +53,9 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
     setCurrentCompanyId(companyId);
   } else {
     // Si no hay companyId y no es una ruta pública
-    if (req.path !== '/' && 
-        !req.path.startsWith('/public/') && 
-        !req.path.startsWith('/leads/')) {
+    if (req.path.startsWith('/api/') && 
+        !req.path.startsWith('/api/public/') && 
+        !req.path.startsWith('/api/leads/')) {
       
       // Verificar si la ruta es para pedidos pendientes y tiene el parámetro debug=true
       const isDebugMode = req.path.includes('/zones/') && 

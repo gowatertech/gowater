@@ -22,8 +22,6 @@ import { registerTestSessionRoutes } from "./test-session";
 import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, companyTenantMiddleware, loginWithEmail, logout, getCurrentUser } from './middleware/company-auth.middleware';
-import { registerAIAssistantRoutes } from './routes/ai-assistant/index';
-import { registerRouteGeneratorEndpoints } from './routes/route-generator/index';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -56,12 +54,6 @@ export async function registerRoutes(router: express.Router) {
   
   // Registrar endpoints para comisiones
   router.use('/commissions', commissionsRoutes);
-  
-  // Registrar endpoints del asistente de IA
-  registerAIAssistantRoutes(router);
-  
-  // Registrar los endpoints del generador de rutas
-  registerRouteGeneratorEndpoints(router);
   
   // Registrar endpoints de pedidos y pedidos recurrentes
   registerRoutesEndpoints(router);
@@ -317,6 +309,38 @@ export async function registerRoutes(router: express.Router) {
   
   // Endpoint para obtener pedidos pendientes por zona
   router.get("/api/zones/:id/pending-orders", async (req, res) => {
+    try {
+      console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
+      
+      const zoneId = parseInt(req.params.id);
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
+      
+      // Obtener el companyId del contexto
+      let companyId = getCurrentCompanyId();
+      let companyIdSource = "contexto";
+      
+      // Si no está en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session?.companyId) {
+        companyId = req.session.companyId;
+        companyIdSource = "sesión";
+      }
+      
+      // Si no está en la sesión, intentar obtenerlo del usuario en sesión
+      if (!companyId && req.session?.user?.companyId) {
+        companyId = req.session.user.companyId;
+        companyIdSource = "usuario en sesión";
+      }
+      
+      console.log(`🔄 CompanyId obtenido de ${companyIdSource}:`, companyId);
+      
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido"
+        });
+      }
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
       console.log("🔍 Sesión usuario:", req.session?.user ? 

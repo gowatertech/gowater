@@ -1,222 +1,158 @@
-/**
- * Servicio para la optimización de rutas de entrega
- * 
- * Este servicio proporciona funciones para:
- * - Calcular la ruta óptima entre múltiples puntos de entrega
- * - Estimar tiempos de llegada
- * - Calcular distancias entre puntos
- */
+import * as turf from '@turf/turf';
+import { addMinutes } from 'date-fns';
+import { type Order, type Route } from '@shared/schema';
 
-export interface DeliveryPoint {
-  orderId: number;
-  customerId: number;
-  customerName: string;
-  address: string;
-  coordinates?: string; // Podría ser "lat,lng" o una dirección
-  sequenceNumber: number;
-  estimatedArrivalTime?: Date | null;
+interface Point {
+  type: 'Feature';
+  properties: {
+    id: number;
+    type: 'depot' | 'delivery';
+    estimatedTime: number; // minutos
+  };
+  geometry: {
+    type: 'Point';
+    coordinates: [number, number];
+  };
 }
 
-export interface OptimizedPoint extends DeliveryPoint {
-  distance?: number; // distancia desde el punto anterior en metros
-  duration?: number; // tiempo estimado desde el punto anterior en segundos
+interface OptimizedRoute {
+  sequence: number[];
+  totalDistance: number;
+  estimatedDuration: number;
+  points: Point[];
+  truckId?: number;
+  assistantId?: number;
 }
 
-/**
- * Optimiza una ruta de entregas
- * 
- * Esta es una implementación simple. En un entorno de producción,
- * se debería usar un servicio como Google Maps Directions API,
- * GraphHopper, o similar para obtener la ruta óptima.
- * 
- * @param points Puntos de entrega que deben ser ordenados de manera óptima
- * @param startingPoint Punto de partida (opcional, por defecto se asume el almacén)
- * @returns Puntos de entrega ordenados de manera óptima
- */
-export function calculateOptimalRoute(
-  points: DeliveryPoint[], 
-  startingPoint?: { lat: number, lng: number }
-): OptimizedPoint[] {
-  console.log(`Calculando ruta óptima para ${points.length} puntos de entrega`);
-  
-  if (points.length === 0) {
-    return [];
-  }
-  
-  // Si solo hay un punto, simplemente devolvemos ese punto
-  if (points.length === 1) {
-    return [{
-      ...points[0],
-      sequenceNumber: 1,
-      distance: 0,
-      duration: 0
-    }];
-  }
-  
-  // Extraer coordenadas de los puntos (si están disponibles)
-  const pointsWithCoords = points.map(point => {
-    let lat = 0, lng = 0;
-    
-    if (point.coordinates) {
-      const [latStr, lngStr] = point.coordinates.split(',');
-      lat = parseFloat(latStr);
-      lng = parseFloat(lngStr);
+const AVERAGE_SPEED = 30; // km/h
+const DELIVERY_TIME = 10; // minutos por entrega
+const DEPOT_COORDINATES: [number, number] = [-69.8734, 18.4955]; // Santo Domingo
+
+export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
+  console.log("Optimizando ruta para pedidos:", orders.map(o => ({ id: o.id, coords: o.deliveryCoordinates })));
+
+  // Convertir órdenes a puntos para el cálculo
+  const points: Point[] = orders.map(order => {
+    if (!order.deliveryCoordinates) {
+      throw new Error(`Pedido ${order.id} no tiene coordenadas de entrega`);
     }
-    
+
+    const [lat, lng] = order.deliveryCoordinates.split(",").map(Number);
+    if (isNaN(lat) || isNaN(lng)) {
+      throw new Error(`Coordenadas inválidas para pedido ${order.id}: ${order.deliveryCoordinates}`);
+    }
+
     return {
-      ...point,
-      lat,
-      lng
+      type: 'Feature',
+      properties: {
+        id: order.id,
+        type: 'delivery',
+        estimatedTime: DELIVERY_TIME
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [lng, lat] as [number, number]
+      }
     };
   });
-  
-  // Crear una matriz de distancias entre todos los puntos
-  // En una implementación real, aquí se usaría una API como Google Maps Distance Matrix
-  const distanceMatrix = calculateDistanceMatrix(pointsWithCoords, startingPoint);
-  
-  // Implementación simple del problema del viajante (TSP) usando algoritmo greedy
-  const optimizedRoute: OptimizedPoint[] = [];
-  const visited = new Set<number>();
-  
-  // Punto actual, comenzamos desde el almacén (o el primer punto si no hay coordenadas)
-  let currentPoint = startingPoint 
-    ? { lat: startingPoint.lat, lng: startingPoint.lng } 
-    : { lat: pointsWithCoords[0].lat, lng: pointsWithCoords[0].lng };
-  
-  // Tiempo acumulado desde el inicio
-  let cumulativeTime = 0;
-  
-  // Mientras no hayamos visitado todos los puntos
-  while (visited.size < points.length) {
-    let minDistance = Number.MAX_VALUE;
-    let nextPointIndex = -1;
-    
-    // Encontrar el punto más cercano que no haya sido visitado
-    for (let i = 0; i < pointsWithCoords.length; i++) {
-      if (visited.has(i)) continue;
-      
-      const distance = calculateDistance(
-        currentPoint.lat, 
-        currentPoint.lng, 
-        pointsWithCoords[i].lat, 
-        pointsWithCoords[i].lng
-      );
-      
-      if (distance < minDistance) {
-        minDistance = distance;
-        nextPointIndex = i;
+
+  // Agregar el depósito como punto inicial y final
+  const depot: Point = {
+    type: 'Feature',
+    properties: {
+      id: 0,
+      type: 'depot',
+      estimatedTime: 0
+    },
+    geometry: {
+      type: 'Point',
+      coordinates: DEPOT_COORDINATES
+    }
+  };
+
+  points.unshift(depot);
+  points.push({ ...depot, properties: { ...depot.properties, id: -1 } });
+
+  // Crear matriz de distancias
+  const distances: number[][] = points.map((from, i) => 
+    points.map((to, j) => {
+      if (i === j) return 0;
+      return turf.distance(from, to, { units: 'kilometers' });
+    })
+  );
+
+  console.log("Matriz de distancias calculada:", distances);
+
+  // Algoritmo del vecino más cercano
+  const visited = new Set([0]);
+  const sequence = [0];
+  let totalDistance = 0;
+
+  while (visited.size < points.length - 1) {
+    const last = sequence[sequence.length - 1];
+    let nearest = -1;
+    let minDist = Infinity;
+
+    for (let i = 1; i < points.length - 1; i++) {
+      if (!visited.has(i) && distances[last][i] < minDist) {
+        nearest = i;
+        minDist = distances[last][i];
       }
     }
-    
-    if (nextPointIndex === -1) break; // No se encontraron más puntos válidos
-    
-    // Marcar este punto como visitado
-    visited.add(nextPointIndex);
-    
-    // Calcular el tiempo estimado basado en la distancia (asumiendo 30 km/h)
-    // 30 km/h = 8.33 m/s
-    const duration = Math.round(minDistance / 8.33);
-    cumulativeTime += duration;
-    
-    // Calcular tiempo estimado de llegada
-    const estimatedArrivalTime = new Date();
-    estimatedArrivalTime.setSeconds(estimatedArrivalTime.getSeconds() + cumulativeTime);
-    
-    // Agregar a la ruta optimizada
-    optimizedRoute.push({
-      ...points[nextPointIndex],
-      sequenceNumber: optimizedRoute.length + 1,
-      distance: Math.round(minDistance),
-      duration,
-      estimatedArrivalTime
-    });
-    
-    // Actualizar el punto actual
-    currentPoint = {
-      lat: pointsWithCoords[nextPointIndex].lat,
-      lng: pointsWithCoords[nextPointIndex].lng
+
+    if (nearest !== -1) {
+      sequence.push(nearest);
+      visited.add(nearest);
+      totalDistance += minDist;
+    }
+  }
+
+  // Agregar regreso al depósito
+  sequence.push(points.length - 1);
+  totalDistance += distances[sequence[sequence.length - 2]][points.length - 1];
+
+  // Calcular duración estimada
+  const estimatedDuration = Math.ceil(
+    (totalDistance / AVERAGE_SPEED) * 60 + // Tiempo de viaje en minutos
+    points.reduce((sum, p) => sum + p.properties.estimatedTime, 0) // Tiempo de entrega
+  );
+
+  console.log("Ruta optimizada:", {
+    sequence: sequence.slice(1, -1).map(i => points[i].properties.id),
+    totalDistance,
+    estimatedDuration
+  });
+
+  return {
+    sequence: sequence.slice(1, -1).map(i => points[i].properties.id),
+    totalDistance: Math.round(totalDistance * 100) / 100,
+    estimatedDuration,
+    points: points.slice(1, -1)
+  };
+}
+
+export function updateEstimatedDeliveryTimes(
+  route: Route,
+  orders: Order[],
+  startTime: Date = new Date()
+): Order[] {
+  const sequence = route.deliverySequence || [];
+  let currentTime = startTime;
+
+  return orders.map(order => {
+    const sequenceIndex = sequence.indexOf(order.id.toString());
+    if (sequenceIndex === -1) return order;
+
+    // Calcular tiempo estimado basado en la posición en la secuencia
+    const estimatedDeliveryTime = addMinutes(
+      currentTime,
+      sequenceIndex * (DELIVERY_TIME + 15) // 15 minutos promedio entre entregas
+    );
+
+    return {
+      ...order,
+      estimatedDeliveryTime: estimatedDeliveryTime.toISOString(),
+      deliverySequence: sequenceIndex + 1
     };
-  }
-  
-  console.log(`Ruta optimizada calculada: ${optimizedRoute.length} puntos`);
-  return optimizedRoute;
-}
-
-/**
- * Calcula la ruta más rápida entre múltiples paradas
- * 
- * @param origins Puntos de origen (por ejemplo, ubicación actual)
- * @param destinations Puntos de destino (por ejemplo, clientes)
- * @returns Matriz de distancias y duraciones
- */
-export function calculateDistanceMatrix(
-  points: Array<any>,
-  startingPoint?: { lat: number, lng: number }
-): Array<Array<number>> {
-  const n = points.length;
-  const matrix: number[][] = Array(n).fill(0).map(() => Array(n).fill(0));
-  
-  // Llenar la matriz con distancias euclidiana entre puntos
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      if (i === j) {
-        matrix[i][j] = 0;
-        continue;
-      }
-      
-      matrix[i][j] = calculateDistance(
-        points[i].lat, 
-        points[i].lng, 
-        points[j].lat, 
-        points[j].lng
-      );
-    }
-  }
-  
-  return matrix;
-}
-
-/**
- * Calcula la distancia en metros entre dos puntos usando la fórmula de Haversine
- * 
- * @param lat1 Latitud del punto 1
- * @param lng1 Longitud del punto 1
- * @param lat2 Latitud del punto 2
- * @param lng2 Longitud del punto 2
- * @returns Distancia en metros
- */
-function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  // Si no tenemos coordenadas válidas, devolvemos una distancia predeterminada
-  if (!lat1 || !lng1 || !lat2 || !lng2) {
-    return 1000; // 1 km por defecto
-  }
-  
-  const R = 6371e3; // Radio de la Tierra en metros
-  const φ1 = lat1 * Math.PI / 180;
-  const φ2 = lat2 * Math.PI / 180;
-  const Δφ = (lat2 - lat1) * Math.PI / 180;
-  const Δλ = (lng2 - lng1) * Math.PI / 180;
-  
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-            Math.cos(φ1) * Math.cos(φ2) *
-            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  
-  return distance;
-}
-
-/**
- * Estima el tiempo de viaje entre dos puntos
- * 
- * @param distance Distancia en metros
- * @param speedKmh Velocidad promedio en km/h (por defecto 30 km/h)
- * @returns Tiempo en segundos
- */
-export function estimateTravelTime(distance: number, speedKmh: number = 30): number {
-  // Convertir velocidad de km/h a m/s
-  const speedMs = speedKmh * 1000 / 3600;
-  
-  // Calcular tiempo en segundos
-  return Math.round(distance / speedMs);
+  });
 }

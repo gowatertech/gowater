@@ -21,18 +21,6 @@ import { consolidatedCompanyMiddleware } from "./middleware/consolidated-company
 import ordersRouter from "./routes/orders";
 // Importamos las rutas para datos geográficos
 import { registerGeoDataRoutes } from "./routes/geo-data";
-// Importamos el generador de rutas 
-import { registerRouteGeneratorEndpoints } from "./routes/route-generator";
-// Importamos la nueva implementación simplificada del generador de rutas
-import { registerSimplifiedRoutes } from "./simplified-routes";
-// Importamos la nueva API del generador de rutas
-import { registerNewRouteGenerator } from "./new-route-generator";
-// Importamos la API simple para el generador de rutas
-import { registerRouteGeneratorApi } from "./route-generator-api";
-// Importamos dependencies para las consultas directas
-import { db } from "./db";
-import { orders, customers, zones } from "../shared/schema";
-import { eq, and, isNull } from "drizzle-orm";
 
 const app = express();
 
@@ -121,22 +109,6 @@ app.use((req, res, next) => {
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
     
-    // Montar directamente las rutas del generador de rutas para evitar problemas con Vite
-    registerRouteGeneratorEndpoints(companyApiRouter);
-    log("Route generator endpoints registered directly to avoid Vite issues");
-    
-    // Registrar la nueva API del generador de rutas
-    registerNewRouteGenerator(app);
-    log("New route generator API endpoints registered successfully");
-    
-    // Registrar la API simple del generador de rutas
-    registerRouteGeneratorApi(app);
-    log("Simple route generator API endpoints registered successfully");
-    
-    // Registrar las rutas simplificadas
-    registerSimplifiedRoutes(app);
-    log("Simplified routes registered successfully");
-    
     // Usar el router de órdenes personalizado con el middleware consolidado
     app.use(consolidatedCompanyMiddleware, ordersRouter);
     log("Custom orders router registered successfully with consolidated company middleware");
@@ -148,100 +120,6 @@ app.use((req, res, next) => {
     // Montar las rutas para gestionar empresas interesadas
     app.use("/api", interestedCompaniesRoutes);
     log("Interested companies routes registered successfully");
-    
-    // Ruta directa para obtener pedidos pendientes sin pasar por Vite
-    app.get("/api/route-generator/orders/pending", async (req: Request, res: Response) => {
-      // Verificar si el usuario está autenticado
-      if (!req.session?.user) {
-        return res.status(401).json({ 
-          success: false, 
-          message: "No autenticado" 
-        });
-      }
-      
-      try {
-        // Obtener companyId del usuario
-        const companyId = req.session.user.companyId;
-        if (!companyId) {
-          return res.status(400).json({ 
-            error: "No se encontró ID de compañía" 
-          });
-        }
-        
-        console.log(`[API Direct] Obteniendo pedidos pendientes para compañía ${companyId}`);
-        
-        // Obtener pedidos pendientes
-        const pendingOrders = await db
-          .select({
-            id: orders.id,
-            customerId: orders.customerId,
-            status: orders.status,
-            date: orders.date,
-            total: orders.total,
-            paymentMethod: orders.paymentMethod,
-            deliveryCoordinates: orders.deliveryCoordinates,
-            notes: orders.notes
-          })
-          .from(orders)
-          .where(
-            and(
-              eq(orders.companyId, companyId),
-              eq(orders.status, 'pending'),
-              isNull(orders.routeId)
-            )
-          );
-        
-        // Para cada pedido, obtener datos del cliente y su zona
-        const result = await Promise.all(
-          pendingOrders.map(async (order) => {
-            const customer = await db
-              .select()
-              .from(customers)
-              .where(and(
-                eq(customers.id, order.customerId),
-                eq(customers.companyId, companyId)
-              ))
-              .limit(1);
-              
-            let zone = null;
-            if (customer[0]?.zoneid) {
-              const zoneData = await db
-                .select()
-                .from(zones)
-                .where(and(
-                  eq(zones.id, customer[0].zoneid),
-                  eq(zones.companyId, companyId)
-                ))
-                .limit(1);
-                
-              if (zoneData.length > 0) {
-                zone = zoneData[0];
-              }
-            }
-            
-            return {
-              ...order,
-              customer: customer.length > 0 ? customer[0] : null,
-              zone
-            };
-          })
-        );
-        
-        console.log(`[API Direct] Se encontraron ${result.length} pedidos pendientes`);
-        res.setHeader('Content-Type', 'application/json');
-        return res.json(result);
-      } catch (error) {
-        console.error('[API Direct] Error al obtener pedidos pendientes:', error);
-        return res.status(500).json({ 
-          error: "Error al obtener pedidos pendientes",
-          details: error instanceof Error ? error.message : String(error)
-        });
-      }
-    });
-    log("Direct route-generator/orders/pending endpoint registered");
-    
-    // Ya registramos estas rutas arriba
-    // No necesitamos registrarlas de nuevo
     
     // Registrar rutas de prueba (solo en desarrollo)
     if (process.env.NODE_ENV !== "production") {
@@ -315,11 +193,6 @@ app.use((req, res, next) => {
       // Handle static files
       app.use(express.static(distPath));
 
-      // Ruta de prueba para verificar el generador de rutas
-      app.get('/test-route-generator', (req, res) => {
-        res.sendFile(path.join(process.cwd(), 'test-route-generator.html'));
-      });
-      
       // Client-side routing - send index.html for non-API routes
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
@@ -328,11 +201,6 @@ app.use((req, res, next) => {
         res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
-      // Ruta de prueba para verificar el generador de rutas
-      app.get('/test-route-generator', (req, res) => {
-        res.sendFile(path.join(process.cwd(), 'test-route-generator.html'));
-      });
-      
       // Development mode - use Vite
       await setupVite(app, server);
       log("Development mode: Vite setup complete");
