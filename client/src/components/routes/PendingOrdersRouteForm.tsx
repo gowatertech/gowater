@@ -157,33 +157,17 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     queryFn: async () => {
       if (!selectedZone) return [];
       
-      try {
-        const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Error al obtener pedidos pendientes");
-        }
-        
-        const data = await response.json();
-        return data.map((order: any) => ({
-          ...order,
-          coordinates: order.deliveryCoordinates || order.coordinates || null,
-          customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
-          customerPhone: order.customerPhone || "",
-          products: order.products || []
-        }));
-      } catch (error) {
-        console.error("Error en la consulta de pedidos pendientes:", error);
-        throw error;
-      }
-    },
-    queryFn: async () => {
-      if (!selectedZone) return [];
       console.log(`Fetching pending orders for zone ${selectedZone}`);
-      const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
+      
+      // Añadir parámetro debug=true y companyId=15 para modo diagnóstico
+      const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders?debug=true&companyId=15`);
+      
       if (!response.ok) {
-        throw new Error("Error al obtener pedidos pendientes de la zona");
+        const errorData = await response.json();
+        console.error("Error en la consulta de pedidos pendientes:", errorData);
+        throw new Error(errorData.message || "Error al obtener pedidos pendientes");
       }
+      
       const data = await response.json();
       console.log("Pending orders data:", data);
       
