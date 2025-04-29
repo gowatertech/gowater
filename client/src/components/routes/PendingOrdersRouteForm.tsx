@@ -1248,6 +1248,15 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                               // Forzar validación del formulario
                               form.trigger().then(isValid => {
                                 console.log("Validación de formulario:", isValid, "Errores:", form.formState.errors);
+                                // Mostrar todos los errores de validación en detalle
+                                Object.entries(form.formState.errors).forEach(([fieldName, error]) => {
+                                  console.log(`Error en campo ${fieldName}:`, error);
+                                  toast({
+                                    variant: "destructive",
+                                    title: `Error en campo ${fieldName}`,
+                                    description: `El campo ${fieldName} es requerido o contiene un error.`,
+                                  });
+                                });
                                 
                                 if (isValid && selectedOrders.length > 0 && optimizedRoute.length > 0) {
                                   console.log("Formulario válido, enviando datos manualmente...");
