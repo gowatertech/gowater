@@ -6,6 +6,7 @@ import { insertRouteSchema } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { 
   Check, 
   Loader2, 
@@ -236,10 +237,25 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     }
   };
 
+  // Use company settings hook to get configured coordinates
+  const { settings } = useCompanySettings();
+  
+  // Get company location from settings or default to Dominican Republic center
+  const getCompanyCoordinates = (): [number, number] => {
+    if (settings?.latitude && settings?.longitude) {
+      const lat = parseFloat(settings.latitude);
+      const lng = parseFloat(settings.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return [lat, lng];
+      }
+    }
+    return [19.0, -70.0]; // Default center (Dominican Republic) if company coordinates not available
+  };
+  
   // Calculate map center and bounds based on optimized route coordinates
   const getMapCenter = () => {
     if (optimizedRoute.length === 0) {
-      return [19.0, -70.0]; // Default center if no route
+      return getCompanyCoordinates(); // Use company location as default center
     }
     
     const pointsWithCoords = optimizedRoute
@@ -250,7 +266,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       });
       
     if (pointsWithCoords.length === 0) {
-      return [19.0, -70.0]; // Default center if no coordinates
+      return getCompanyCoordinates(); // Use company coordinates as default
     }
     
     // Calculate center point
@@ -288,14 +304,16 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     setIsOptimizing(true);
 
     try {
-      // Define depot/almacén principal (empresa) - hardcoded coordinates
+      // Define depot/almacén principal (empresa) using company settings
       const depot: Customer = {
         id: 0, // Use 0 to represent depot
         businessname: "Almacén Principal",
         phone: "",
         street: "",
         streetnumber: "",
-        coordinates: "19.075380,-70.128822", // Coordenadas empresa
+        coordinates: settings?.latitude && settings?.longitude 
+          ? `${settings.latitude},${settings.longitude}` 
+          : "19.075380,-70.128822", // Use company coordinates or fallback
       };
 
       // Convert orders to customers for the route algorithm
@@ -308,7 +326,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
           street: order.customerAddress,
           streetnumber: "",
           // Si no hay coordenadas, usamos las coordenadas reales del cliente o un valor predeterminado
-          coordinates: order.deliveryCoordinates || order.coordinates || "19.105433,-70.086588", // Usar coordenadas reales o una ubicación predeterminada
+          coordinates: order.deliveryCoordinates || order.coordinates || 
+            (settings?.latitude && settings?.longitude ? `${settings.latitude},${settings.longitude}` : "19.105433,-70.086588"), // Use company coordinates as fallback
           orderId: order.id, // Añadir el ID del pedido para asociarlo con el cliente
         } as Customer;
         
@@ -415,7 +434,9 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         console.warn("Hay clientes sin coordenadas:", invalidCustomers);
         // Asignar coordenadas predeterminadas para permitir la optimización
         invalidCustomers.forEach(customer => {
-          customer.coordinates = "19.105433,-70.086588"; // Coordenada predeterminada en la zona
+          customer.coordinates = settings?.latitude && settings?.longitude 
+            ? `${settings.latitude},${settings.longitude}` 
+            : "19.105433,-70.086588"; // Use company coordinates as fallback
         });
       }
 
@@ -427,9 +448,14 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         let closestDistance = Infinity;
         
         for (let i = 0; i < unvisited.length; i++) {
+          // Get depot coordinates from company settings or use fallback
+          const depotCoordinates = settings?.latitude && settings?.longitude 
+            ? `${settings.latitude},${settings.longitude}` 
+            : "19.075380,-70.128822";
+            
           const distance = calculateDistance(
-            currentPoint.coordinates || "19.075380,-70.128822", // Coordenadas del depósito por defecto
-            unvisited[i].coordinates || "19.075380,-70.128822"  // Coordenadas del depósito por defecto
+            currentPoint.coordinates || depotCoordinates, 
+            unvisited[i].coordinates || depotCoordinates
           );
           
           console.log(`Distancia desde ${currentPoint.businessname} hasta ${unvisited[i].businessname}: ${distance} km`);
@@ -546,7 +572,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       };
       
       // Send route data to server
-      const response = await apiRequest("POST", "/api/routes", routeData);
+      const response = await apiRequest({
+        method: "POST", 
+        url: "/api/routes", 
+        data: routeData
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create route");
