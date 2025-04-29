@@ -385,6 +385,7 @@ function Router() {
         <Route path="/vehicle-settlement" component={VehicleSettlementPage} />
         <Route path="/routes/trucks" component={TrucksPage} />
         <Route path="/vehicle-loading" component={VehicleLoadingPage} />
+        <Route path="/route-generator" component={RouteGeneratorPage} />
         <Route path="/routes/:id" component={RouteDetails} />
         <Route path="/routes" component={Routes} />
         <Route path="/zones" component={Zones} />

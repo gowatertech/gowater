@@ -23,6 +23,8 @@ import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, companyTenantMiddleware, loginWithEmail, logout, getCurrentUser } from './middleware/company-auth.middleware';
 import { registerAIAssistantRoutes } from './routes/ai-assistant/index';
+import { registerRouteGeneratorEndpoints } from './routes/route-generator/index';
+import routeGeneratorOrdersRouter from './routes/route-generator/orders';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -58,6 +60,12 @@ export async function registerRoutes(router: express.Router) {
   
   // Registrar endpoints del asistente de IA
   registerAIAssistantRoutes(router);
+  
+  // Registrar los endpoints del generador de rutas
+  registerRouteGeneratorEndpoints(router);
+  
+  // Registrar el router de pedidos del generador de rutas
+  router.use('/api/route-generator/orders', routeGeneratorOrdersRouter);
   
   // Registrar endpoints de pedidos y pedidos recurrentes
   registerRoutesEndpoints(router);

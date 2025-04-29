@@ -232,6 +232,18 @@ export const routes = pgTable("routes", {
   comments: text("comments")  // Campo para comentarios al completar rutas
 });
 
+// Tabla para almacenar las paradas específicas en una ruta
+export const routeStops = pgTable("route_stops", {
+  id: serial("id").primaryKey(),
+  companyId: integer("company_id").notNull(), // Añadido companyId
+  routeId: integer("route_id").notNull().references(() => routes.id),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  sequenceNumber: integer("sequence_number").notNull(),
+  status: text("status", { enum: ["pending", "completed", "skipped"] }).notNull().default("pending"),
+  deliveredAt: timestamp("delivered_at"),
+  notes: text("notes")
+});
+
 // Relaciones para rutas
 export const routesRelations = relations(routes, ({ one, many }) => ({
   driver: one(users, {
