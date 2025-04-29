@@ -159,16 +159,20 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       
       console.log(`Fetching pending orders for zone ${selectedZone}`);
       
-      // Añadir parámetro debug=true y companyId=15 para modo diagnóstico
-      const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders?debug=true&companyId=15`);
+      // Usar el formato de objeto para apiRequest con params para añadir companyId sin hardcoding
+      const response = await apiRequest({
+        url: `/zones/${selectedZone}/pending-orders`,
+        method: "GET",
+        params: {
+          debug: "true",
+          companyId: "15"
+        }
+      });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error en la consulta de pedidos pendientes:", errorData);
-        throw new Error(errorData.message || "Error al obtener pedidos pendientes");
-      }
+      console.log("Pending orders response:", response);
       
-      const data = await response.json();
+      // Si la respuesta ya está parseada como JSON, usarla directamente
+      const data = Array.isArray(response) ? response : [];
       console.log("Pending orders data:", data);
       
       // Transformar los datos para que coincidan con el formato esperado por el componente
