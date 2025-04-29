@@ -3512,7 +3512,7 @@ export async function registerRoutes(router: express.Router) {
           const orderQuery = `
             SELECT 
               id, customer_id as "customerId", date, 
-              due_date as "dueDate", total, status, 
+              total, status, 
               payment_status as "paymentStatus", 
               delivery_coordinates as "deliveryCoordinates",
               notes
