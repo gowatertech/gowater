@@ -294,6 +294,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   // Convert selected orders to customers for route optimization
   const prepareOrdersForRouteOptimization = () => {
+    // Verificar session y companyId dinámicos
+    const sessionCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+    console.log("SessionCompanyId en prepareOrdersForRouteOptimization:", sessionCompanyId);
+    
     if (selectedOrders.length === 0) {
       toast({
         variant: "destructive",
@@ -1200,7 +1204,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           <Button 
                             type="button"
                             disabled={createRouteMutation.isPending}
-                            className="h-7 text-xs px-2"
+                            className="h-7 text-xs px-2 bg-primary hover:bg-primary/90"
                             onClick={() => {
                               console.log("Botón 'Crear Ruta' clickeado manualmente");
                               
