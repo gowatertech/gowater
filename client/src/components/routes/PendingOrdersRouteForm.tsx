@@ -715,13 +715,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
             <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
               <TabsTrigger 
-                value="zone" 
-                className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <MapPin className="h-3 w-3 mr-0.5" />
-                Zona
-              </TabsTrigger>
-              <TabsTrigger 
                 value="orders" 
                 className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
               >
@@ -738,121 +731,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="zone">
-              <div className="p-3">
-                <h3 className="text-sm font-medium mb-2">Selecciona la zona para la ruta</h3>
-                <Form {...form}>
-                  <form onSubmit={e => e.preventDefault()} className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="zoneId"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Zona</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              field.onChange(parseInt(value));
-                              setSelectedOrders([]);
-                            }}
-                            defaultValue={field.value ? String(field.value) : undefined}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="h-7 text-xs">
-                                <SelectValue placeholder="Selecciona una zona" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {isLoadingZones ? (
-                                <div className="p-1">
-                                  <Skeleton className="h-4 w-full" />
-                                  <Skeleton className="h-4 w-full mt-1" />
-                                </div>
-                              ) : zones.length === 0 ? (
-                                <div className="p-1 text-center text-xs text-gray-500">
-                                  No hay zonas disponibles
-                                </div>
-                              ) : (
-                                zones.map((zone: any) => (
-                                  <SelectItem 
-                                    key={zone.id} 
-                                    value={String(zone.id)}
-                                    className="text-xs"
-                                  >
-                                    {zone.name}
-                                  </SelectItem>
-                                ))
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage className="text-[10px]" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Nombre de la ruta</FormLabel>
-                          <FormControl>
-                            <Input {...field} className="h-7 text-xs" />
-                          </FormControl>
-                          <FormMessage className="text-[10px]" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col space-y-1">
-                          <FormLabel className="text-xs">Fecha</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant={"outline"}
-                                  className="w-full h-7 px-2 text-xs text-left font-normal"
-                                >
-                                  {field.value ? (
-                                    format(field.value, "PPP", { locale: es })
-                                  ) : (
-                                    <span>Selecciona una fecha</span>
-                                  )}
-                                  <Calendar className="ml-auto h-3 w-3 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <CalendarComponent
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) => date < new Date("1900-01-01")}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage className="text-[10px]" />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex justify-end pt-1">
-                      <Button 
-                        type="button" 
-                        onClick={() => setSelectedTab("orders")}
-                        className="h-7 text-xs px-2"
-                      >
-                        Siguiente
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </div>
-            </TabsContent>
+            {/* La pestaña Zone ha sido eliminada */}
 
             <TabsContent value="orders">
               <div className="p-3">
