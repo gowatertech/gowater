@@ -1391,6 +1391,15 @@ export async function registerRoutes(router: express.Router) {
     try {
       console.log("POST /api/routes - Datos recibidos:", req.body);
       
+      // Obtener companyId de la sesión
+      const companyId = req.session.companyId || req.session.user?.companyId;
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido."
+        });
+      }
+      
       // Requerimos conductor y opcionales asistente y camión
       const routeData = {
         name: req.body.name,
@@ -1398,7 +1407,7 @@ export async function registerRoutes(router: express.Router) {
         driverId: Number(req.body.driverId),
         assistantId: req.body.assistantId ? Number(req.body.assistantId) : null,
         truckId: req.body.truckId ? Number(req.body.truckId) : null,
-        zoneId: Number(req.body.zoneId),
+        companyId: companyId, // Usar companyId de la sesión
         status: "pending",
         isCompleted: false,
         // Campos opcionales si están presentes
@@ -1412,10 +1421,10 @@ export async function registerRoutes(router: express.Router) {
       console.log("Datos procesados para inserción:", routeData);
 
       // Validamos manualmente ya que el schema completo no coincide con nuestros datos actuales
-      if (!routeData.name || !routeData.driverId || !routeData.zoneId) {
+      if (!routeData.name || !routeData.driverId || !routeData.companyId) {
         return res.status(400).json({
           error: "Campos requeridos faltantes",
-          fields: ["name", "driverId", "zoneId"].filter(field => !routeData[field])
+          fields: ["name", "driverId", "companyId"].filter(field => !routeData[field])
         });
       }
 
