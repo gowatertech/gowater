@@ -768,11 +768,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-medium">Crear ruta basada en zona</h3>
-          {userData && (
-            <div className="text-xs text-muted-foreground">
-              CompanyId: {userData.companyId || "No definido"}
-            </div>
-          )}
+          <div className="text-xs text-muted-foreground">
+            CompanyId de usuario: {userData?.companyId || "No definido"}<br />
+            CompanyId de API: {apiCompanyId || "No definido"}
+          </div>
         </div>
         
         <Button 
