@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { insertRouteSchema } from "@shared/schema";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -136,14 +137,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Usar el hook de usuario actual
-  const { user: pendingOrdersUserData, isLoading: isLoadingUser } = useCurrentUser();
+  // Usar el contexto de autenticación para obtener el usuario y companyId
+  const { user: authUser, companyId: authCompanyId, isLoading: isLoadingAuth } = useAuth();
   
-  // Obtener el companyId directamente del servidor
-  const { data: companyData } = useQuery<{companyId: number}>({
-    queryKey: ['/api/companyid'],
-    enabled: !isLoadingUser,
-  });
+  // Usar el hook de usuario actual para compatibilidad con el código existente
+  const { user: pendingOrdersUserData, isLoading: isLoadingUser } = useCurrentUser();
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery<any[]>({
@@ -298,8 +296,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     queryKey: ["/api/zones"],
   });
 
-  // Obtener el companyId de manera dinámica, SIN VALOR POR DEFECTO
-  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+  // Obtener el companyId de manera dinámica, priorizando useAuth
+  const currentCompanyId = authCompanyId || authUser?.companyId || pendingOrdersUserData?.companyId;
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
@@ -674,32 +672,32 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         throw new Error("No hay una ruta definida para crear");
       }
       
-      // SOLUCIÓN: Forzar el companyId a un valor conocido y válido
-      // Primero intentamos todas las fuentes posibles
-      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || form.getValues("companyId");
+      // Obtener el companyId a partir del contexto de autenticación
+      // Estableciendo prioridades en las fuentes de datos
+      let effectiveCompanyId = authCompanyId || 
+                              (authUser ? authUser.companyId : null) || 
+                              (pendingOrdersUserData ? pendingOrdersUserData.companyId : null) || 
+                              form.getValues("companyId");
       
       console.log("Verificación de companyId:", {
-        "companyData?.companyId": companyData?.companyId,
+        "authCompanyId": authCompanyId,
+        "authUser?.companyId": authUser?.companyId,
         "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
         "form.getValues('companyId')": form.getValues("companyId"),
         "effectiveCompanyId seleccionado": effectiveCompanyId
       });
       
-      // Primero intentamos obtener companyId de todas las fuentes posibles
-      // Esto incluye el contexto de compañía y el usuario actual
-      
       try {
-        // Si no tenemos companyId, hacemos una petición al servidor para obtener la info del usuario actual
+        // Si no tenemos companyId después de intentar todas las fuentes locales,
+        // hacemos una última petición al servidor
         if (!effectiveCompanyId) {
           console.log("⚠️ No se encontró companyId en el contexto local, consultando API...");
           
-          // Intentar obtener información del usuario desde la API
           const response = await apiRequest({
             url: '/api/user',
             method: 'GET'
           });
           
-          // Verificar si la respuesta contiene datos del usuario
           if (response && response.companyId) {
             effectiveCompanyId = response.companyId;
             console.log("✅ CompanyId obtenido de API:", effectiveCompanyId);
