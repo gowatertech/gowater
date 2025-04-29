@@ -188,6 +188,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     },
   });
 
+  // Obtener companyId del contexto actual
+  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+  
+  console.log("CompanyId al inicializar formulario:", currentCompanyId);
+  
   const form = useForm({
     resolver: zodResolver(insertRouteSchema),
     defaultValues: {
@@ -198,15 +203,22 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       date: new Date(),
       status: "pending" as const,
       isCompleted: false,
-      stops: [] as string[]
+      stops: [] as string[],
+      companyId: currentCompanyId // Añadimos companyId como valor predeterminado
     },
   });
 
-  // Set a default route name when form initializes
+  // Set a default route name and update companyId when form initializes
   useEffect(() => {
     const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
     form.setValue("name", `Ruta ${today}`);
-  }, [form]);
+    
+    // Asegurarse de que companyId esté siempre establecido
+    if (currentCompanyId && (!form.getValues("companyId") || form.getValues("companyId") !== currentCompanyId)) {
+      console.log("Actualizando companyId en el formulario a:", currentCompanyId);
+      form.setValue("companyId", currentCompanyId);
+    }
+  }, [form, currentCompanyId]);
 
   // Toggle order selection
   const toggleOrderSelection = (order: PendingOrder) => {
@@ -678,11 +690,39 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       return;
     }
     
+    // Asegurarnos de tener un companyId válido
+    if (!data.companyId) {
+      console.log("Estableciendo companyId desde variables globales:", currentCompanyId);
+      data.companyId = currentCompanyId;
+    }
+    
+    if (!data.companyId) {
+      console.error("No se pudo obtener el companyId para la creación de ruta");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo determinar tu empresa. Por favor, vuelve a iniciar sesión.",
+      });
+      return;
+    }
+    
+    // Asegurar que tenemos la ruta optimizada
+    if (!optimizedRoute || optimizedRoute.length < 2) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No hay una ruta optimizada disponible. Por favor, selecciona pedidos y optimiza la ruta.",
+      });
+      return;
+    }
+    
     // Verificar si se están enviando los datos correctamente
     const formData = {
       ...data,
       name: data.name || `Ruta ${new Date().toLocaleDateString()}`,
       date: data.date || new Date(),
+      optimizedRoute: optimizedRoute,
+      companyId: data.companyId
     };
     
     console.log("Datos de formulario preparados:", formData);
