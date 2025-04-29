@@ -524,7 +524,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   // Create route mutation
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log("Submitting route data:", data);
+      console.log("Iniciando envío de datos de ruta:", data);
+      
+      if (optimizedRoute.length === 0) {
+        throw new Error("No hay pedidos seleccionados para crear la ruta");
+      }
       
       // Calculate total distance of the optimized route
       const totalDistance = calculateTotalRouteDistance(optimizedRoute);
@@ -535,8 +539,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       // Get order IDs from selected orders
       const orderIds = selectedOrders.map(order => order.id);
       
-      // Obtener companyId del contexto actual
+      // Obtener companyId del contexto actual (probamos múltiples fuentes)
       const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+      
+      console.log("CompanyId detectado:", currentCompanyId);
+      console.log("Datos de usuario:", pendingOrdersUserData);
+      console.log("Datos de compañía:", companyData);
       
       if (!currentCompanyId) {
         console.error("No se pudo obtener el companyId");
@@ -562,17 +570,26 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       
       console.log("Enviando datos de ruta con companyId:", routeData);
       
-      // Send route data to server
-      const response = await apiRequest({
-        method: "POST", 
-        url: "/api/routes", 
-        data: routeData
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to create route");
+      try {
+        // Send route data to server
+        const response = await apiRequest({
+          method: "POST", 
+          url: "/api/routes", 
+          data: routeData
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error en la respuesta del servidor:", errorText);
+          throw new Error(`Error al crear la ruta: ${errorText}`);
+        }
+      
+        return await response.json();
+      } catch (error) {
+        console.error("Error al enviar datos de ruta:", error);
+        throw error;
       }
-      return response.json();
+
     },
     onSuccess: () => {
       toast({
