@@ -691,7 +691,23 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       companyId: effectiveCompanyId
     };
     
-    console.log("Datos de ruta preparados para enviar:", routeData);
+    // Log detallado de todos los campos para revisión
+    console.log("==================== DETALLE DE CAMPOS A ENVIAR ====================");
+    console.log("name:", routeData.name);
+    console.log("date:", routeData.date);
+    console.log("driverId:", routeData.driverId, "tipo:", typeof routeData.driverId);
+    console.log("assistantId:", routeData.assistantId, "tipo:", typeof routeData.assistantId);
+    console.log("truckId:", routeData.truckId, "tipo:", typeof routeData.truckId);
+    console.log("status:", routeData.status);
+    console.log("isCompleted:", routeData.isCompleted);
+    console.log("deliverySequence:", routeData.deliverySequence);
+    console.log("stops:", routeData.stops);
+    console.log("totalDistance:", routeData.totalDistance, "tipo:", typeof routeData.totalDistance);
+    console.log("estimatedDuration:", routeData.estimatedDuration, "tipo:", typeof routeData.estimatedDuration);
+    console.log("orderIds:", routeData.orderIds);
+    console.log("companyId:", routeData.companyId, "tipo:", typeof routeData.companyId);
+    console.log("==================== FIN DETALLE DE CAMPOS ====================");
+    console.log("JSON completo:", JSON.stringify(routeData, null, 2));
     
     try {
       // Llamar a la mutación con los datos en el formato correcto
