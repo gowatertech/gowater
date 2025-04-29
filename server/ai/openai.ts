@@ -1,7 +1,15 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Función para obtener una instancia del cliente OpenAI
+// Solo se inicializa cuando es necesario para evitar errores si no existe la clave API
+const getOpenAIClient = () => {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error("La clave API de OpenAI no está configurada. Por favor configura la variable de entorno OPENAI_API_KEY.");
+  }
+  
+  // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+};
 
 /**
  * Realiza una pregunta al asistente de IA sobre gestión del agua y logística
@@ -31,6 +39,9 @@ export async function askWaterLogisticsAssistant(question: string): Promise<stri
       en gestión del agua y logística, y que tu conocimiento se limita a esos campos.
     `;
 
+    // Inicializamos el cliente de OpenAI solo cuando se necesita
+    const openai = getOpenAIClient();
+
     // Realizamos la consulta a la API de OpenAI
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -44,6 +55,12 @@ export async function askWaterLogisticsAssistant(question: string): Promise<stri
     return response.choices[0].message.content || "Lo siento, no pude generar una respuesta en este momento.";
   } catch (error) {
     console.error("Error al consultar OpenAI:", error);
+    
+    // Si el error es por falta de API key, devolvemos un mensaje específico
+    if (error instanceof Error && error.message.includes("OPENAI_API_KEY")) {
+      return "El servicio de IA no está configurado correctamente. Por favor, contacta al administrador del sistema para configurar la clave API de OpenAI.";
+    }
+    
     return "Ocurrió un error al procesar tu pregunta. Por favor, inténtalo de nuevo más tarde.";
   }
 }
@@ -74,6 +91,9 @@ export async function analyzeOrderData(orderData: any): Promise<any> {
       }
     `;
 
+    // Inicializamos el cliente de OpenAI solo cuando se necesita
+    const openai = getOpenAIClient();
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -86,6 +106,16 @@ export async function analyzeOrderData(orderData: any): Promise<any> {
     return JSON.parse(response.choices[0].message.content || "{}");
   } catch (error) {
     console.error("Error al analizar datos con OpenAI:", error);
+    
+    // Si el error es por falta de API key, devolvemos un mensaje específico
+    if (error instanceof Error && error.message.includes("OPENAI_API_KEY")) {
+      return {
+        keyInsights: ["El servicio de IA no está configurado correctamente."],
+        opportunityAreas: [],
+        recommendations: ["Contacta al administrador del sistema para configurar la clave API de OpenAI."]
+      };
+    }
+    
     return {
       keyInsights: ["No se pudieron generar insights debido a un error."],
       opportunityAreas: [],
@@ -120,6 +150,9 @@ export async function generateCustomerRecommendations(customerData: any): Promis
       }
     `;
 
+    // Inicializamos el cliente de OpenAI solo cuando se necesita
+    const openai = getOpenAIClient();
+
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -132,6 +165,17 @@ export async function generateCustomerRecommendations(customerData: any): Promis
     return JSON.parse(response.choices[0].message.content || "{}");
   } catch (error) {
     console.error("Error al generar recomendaciones con OpenAI:", error);
+    
+    // Si el error es por falta de API key, devolvemos un mensaje específico
+    if (error instanceof Error && error.message.includes("OPENAI_API_KEY")) {
+      return {
+        customerInsights: ["El servicio de IA no está configurado correctamente."],
+        recommendedProducts: [],
+        serviceImprovements: [],
+        retentionStrategies: ["Contacta al administrador del sistema para configurar la clave API de OpenAI."]
+      };
+    }
+    
     return {
       customerInsights: ["No se pudieron generar insights debido a un error."],
       recommendedProducts: [],

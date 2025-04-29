@@ -22,7 +22,7 @@ import { registerTestSessionRoutes } from "./test-session";
 import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, companyTenantMiddleware, loginWithEmail, logout, getCurrentUser } from './middleware/company-auth.middleware';
-import { registerAIAssistantRoutes } from './routes/ai-assistant';
+import { registerAIAssistantRoutes } from './routes/ai-assistant/index';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -55,6 +55,9 @@ export async function registerRoutes(router: express.Router) {
   
   // Registrar endpoints para comisiones
   router.use('/commissions', commissionsRoutes);
+  
+  // Registrar endpoints del asistente de IA
+  registerAIAssistantRoutes(router);
   
   // Registrar endpoints de pedidos y pedidos recurrentes
   registerRoutesEndpoints(router);
