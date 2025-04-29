@@ -685,15 +685,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         "effectiveCompanyId seleccionado": effectiveCompanyId
       });
       
-      // IMPORTANTE: Siempre asignamos un companyId válido
       if (effectiveCompanyId) {
         // Si tenemos un companyId válido, lo usamos
         routeData.companyId = Number(effectiveCompanyId);
         console.log("✅ Usando companyId:", routeData.companyId);
       } else {
-        // Si estamos en desarrollo, usamos el valor por defecto (15)
-        routeData.companyId = 15;
-        console.log("⚠️ Usando companyId por defecto:", routeData.companyId);
+        // Si no tenemos companyId, informamos al usuario
+        console.error("❌ No se pudo determinar el ID de la empresa");
+        throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
       }
       
       // Log de verificación final

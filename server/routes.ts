@@ -1608,11 +1608,16 @@ export async function registerRoutes(router: express.Router) {
         }
       }
       
-      // Si aún no hay companyId, usar un valor por defecto si estamos en modo desarrollo
-      // (SOLO PARA PROPÓSITOS DE DESARROLLO Y PRUEBAS)
+      // En desarrollo, tratamos de usar el companyId del body (si existe)
+      // sin hardcodear valores
       if (!companyId && process.env.NODE_ENV === 'development') {
-        console.warn("⚠️ USANDO COMPANYID POR DEFECTO EN MODO DESARROLLO");
-        companyId = req.body.companyId || 15; // Usar el valor enviado o 15 como fallback
+        if (req.body.companyId) {
+          const bodyCompanyId = Number(req.body.companyId);
+          if (!isNaN(bodyCompanyId) && bodyCompanyId > 0) {
+            companyId = bodyCompanyId;
+            console.warn(`⚠️ USANDO COMPANYID DEL BODY EN MODO DESARROLLO: ${companyId}`);
+          }
+        }
       }
       
       // Si aún no hay companyId, devolver error con información clara
@@ -1701,11 +1706,13 @@ export async function registerRoutes(router: express.Router) {
         tipoCompanyId: typeof routeData.companyId
       });
       
-      // SOLUCIÓN: Si no tenemos companyId pero estamos en desarrollo, usamos uno por defecto
+      // Verificación final de companyId en datos de ruta
       if (!routeData.companyId) {
-        // En producción esto debería dar error, pero para desarrollo usamos un valor por defecto
-        console.warn("⚠️ No hay companyId en los datos de la ruta. Usando valor por defecto para desarrollo");
-        routeData.companyId = 15; // El ID de compañía por defecto para testing
+        console.error("❌ Error: No hay companyId en los datos de la ruta después de todos los intentos");
+        return res.status(400).json({
+          error: "ID de compañía no disponible",
+          message: "No se pudo determinar el ID de empresa para la ruta. Por favor, inicie sesión nuevamente."
+        });
       }
       
       // Validación de otros campos obligatorios
