@@ -74,22 +74,25 @@ export function setupAuth(app: Express) {
     next();
   });
   
-  // Configurar estrategia de autenticación local (username + password)
-  passport.use(new LocalStrategy(async (username, password, done) => {
+  // Configurar estrategia de autenticación local (username/email + password)
+  passport.use(new LocalStrategy({
+    usernameField: 'email',    // Usar email como campo de usuario
+    passwordField: 'password'  // Campo de contraseña estándar
+  }, async (email, password, done) => {
     try {
-      // Buscar usuario por nombre de usuario
+      // Buscar usuario por email (que podría ser username o email real)
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.username, username));
+        .where(eq(users.email, email));
       
       if (!user) {
-        console.log(`Intento de login fallido: Usuario ${username} no encontrado`);
+        console.log(`Intento de login fallido: Usuario con email ${email} no encontrado`);
         return done(null, false, { message: 'Usuario no encontrado' });
       }
       
       if (!user.active) {
-        console.log(`Intento de login fallido: Usuario ${username} inactivo`);
+        console.log(`Intento de login fallido: Usuario con email ${email} inactivo`);
         return done(null, false, { message: 'Usuario inactivo' });
       }
       
@@ -106,7 +109,7 @@ export function setupAuth(app: Express) {
           await db.update(users)
             .set({ password: hashedPassword })
             .where(eq(users.id, user.id));
-          console.log(`⚠️ Contraseña de ${username} actualizada de texto plano a hash`);
+          console.log(`⚠️ Contraseña de ${email} actualizada de texto plano a hash`);
         } catch (error) {
           console.error(`Error al actualizar contraseña a hash:`, error);
         }
@@ -122,12 +125,12 @@ export function setupAuth(app: Express) {
       }
       
       if (!isPasswordValid) {
-        console.log(`Intento de login fallido: Contraseña incorrecta para ${username}`);
+        console.log(`Intento de login fallido: Contraseña incorrecta para ${email}`);
         return done(null, false, { message: 'Contraseña incorrecta' });
       }
       
       // Registrar el login exitoso
-      console.log(`✅ Login exitoso - Usuario: ${username}, ID: ${user.id}, Empresa: ${user.companyId}`);
+      console.log(`✅ Login exitoso - Usuario: ${email}, ID: ${user.id}, Empresa: ${user.companyId}`);
       
       // Devolver el usuario sin la contraseña
       const { password: _pwd, ...userWithoutPassword } = user;
