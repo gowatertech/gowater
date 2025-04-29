@@ -1758,7 +1758,12 @@ export async function registerRoutes(router: express.Router) {
       }
       
       console.log(`GET /api/settings - Retornando configuración para empresa ${companyId}`);
-      res.json(settings);
+      // Asegurarnos de que el campo companyId esté correctamente configurado
+      const settingsWithCompanyId = {
+        ...settings,
+        companyId: companyId // Aseguramos que el campo companyId tenga el valor correcto
+      };
+      res.json(settingsWithCompanyId);
     } catch (error) {
       console.error(`Error al obtener configuración: ${error}`);
       res.status(500).json({ error: String(error) });
