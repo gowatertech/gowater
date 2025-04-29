@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./Sidebar";
+import { DashboardHeader } from "./DashboardHeader";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   SidebarProvider,
@@ -41,6 +42,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <SidebarInset>
           <ScrollArea className="h-full">
             <div className="container mx-auto py-8 px-4 md:py-6 md:px-6">
+              {/* Encabezado fijo con información de la compañía */}
+              <DashboardHeader title="Panel de Control" />
               {children}
             </div>
           </ScrollArea>

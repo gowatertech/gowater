@@ -253,20 +253,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
-        <h1 className="text-xl sm:text-2xl font-bold">{t("Panel de Control")}</h1>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" onClick={() => navigateTo("/reports")}>
-            <FileBarChart className="h-4 w-4 mr-1" />
-            <span className="hidden xs:inline">{t("Reportes")}</span>
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-1" />
-            <span className="hidden xs:inline">{t("Cerrar sesión")}</span>
-          </Button>
-        </div>
-      </div>
-
       {/* Panel con pestañas para diferentes vistas */}
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-4 mb-4">
