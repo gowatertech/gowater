@@ -809,11 +809,15 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       return;
     }
     
-    // Determinar el companyId efectivo de manera dinámica - SIN VALOR POR DEFECTO
-    let effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
+    // Determinar el companyId efectivo de manera dinámica - usando useAuth
+    let effectiveCompanyId = authCompanyId || 
+                          (authUser ? authUser.companyId : null) || 
+                          pendingOrdersUserData?.companyId || 
+                          data.companyId;
     
     console.log("Verificación inicial de companyId:", {
-      "companyData?.companyId": companyData?.companyId,
+      "authCompanyId": authCompanyId,
+      "authUser?.companyId": authUser?.companyId,
       "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
       "form.companyId": data.companyId,
       "effectiveCompanyId seleccionado": effectiveCompanyId
@@ -974,8 +978,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
             <div>
               <h3 className="text-lg font-medium">Crear ruta con pedidos pendientes</h3>
               <div className="text-xs text-muted-foreground">
-                CompanyId: {companyData?.companyId || pendingOrdersUserData?.companyId || "No definido"} 
-                {pendingOrdersUserData?.role && ` | Rol: ${pendingOrdersUserData.role}`}
+                CompanyId: {authCompanyId || authUser?.companyId || pendingOrdersUserData?.companyId || "No definido"} 
+                {authUser?.role && ` | Rol: ${authUser.role}`}
+                {!authUser?.role && pendingOrdersUserData?.role && ` | Rol: ${pendingOrdersUserData.role}`}
               </div>
             </div>
             <Button 
@@ -984,8 +989,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
               onClick={() => {
                 // Crear un mensaje más amigable para el usuario
                 const diagnosticInfo = {
-                  companyId: companyData?.companyId || pendingOrdersUserData?.companyId || "No definido",
-                  role: pendingOrdersUserData?.role || "No definido",
+                  companyId: authCompanyId || authUser?.companyId || pendingOrdersUserData?.companyId || "No definido",
+                  role: authUser?.role || pendingOrdersUserData?.role || "No definido",
                   pendingOrdersCount: Array.isArray(pendingOrders) ? pendingOrders.length : 0,
                   filteringMode: selectedZoneId ? `Zona ID: ${selectedZoneId}` : "Todos los pedidos pendientes",
                   selectedOrdersCount: selectedOrders.length,
@@ -993,7 +998,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                   companyCoordinates: settings?.latitude && settings?.longitude 
                     ? `${settings.latitude},${settings.longitude}` 
                     : "No configuradas",
-                  companyIdFromApi: companyData?.companyId || "No disponible"
+                  authContextPresent: authUser ? "Sí" : "No"
                 };
                 
                 // Mostrar la información en una alerta
@@ -1002,7 +1007,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                   description: (
                     <div className="text-xs space-y-1">
                       <div><strong>CompanyId:</strong> {diagnosticInfo.companyId}</div>
-                      <div><strong>CompanyId (API):</strong> {diagnosticInfo.companyIdFromApi}</div>
+                      <div><strong>Contexto Auth:</strong> {diagnosticInfo.authContextPresent}</div>
                       <div><strong>Rol:</strong> {diagnosticInfo.role}</div>
                       <div><strong>Filtrado:</strong> {diagnosticInfo.filteringMode}</div>
                       <div><strong>Pedidos pendientes:</strong> {diagnosticInfo.pendingOrdersCount}</div>
