@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { 
   Card, 
   CardContent, 
@@ -68,6 +69,7 @@ import {
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 
 interface ZoneBasedRouteFormProps {
   onRouteCreated: () => void;
@@ -915,6 +917,70 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
             </TabsList>
 
         <TabsContent value="zone" className="mt-2">
+          {/* Debug Panel */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="mb-2 text-xs" 
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+          >
+            {showDebugPanel ? "Ocultar Panel Debug" : "Mostrar Panel Debug"}
+          </Button>
+          
+          {showDebugPanel && (
+            <Card className="shadow-sm border bg-yellow-50 mb-4">
+              <CardHeader className="pb-2 bg-yellow-100">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2 text-amber-900">
+                  <AlertTriangle size={18} /> Modo Desarrollador
+                </CardTitle>
+                <CardDescription className="text-amber-800">
+                  Este panel es solo para fines de desarrollo y pruebas.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Switch 
+                      checked={useDebugMode}
+                      onCheckedChange={setUseDebugMode}
+                      id="debug-mode"
+                    />
+                    <Label htmlFor="debug-mode" className="font-medium">
+                      Modo Debug {useDebugMode ? "(Activado)" : "(Desactivado)"}
+                    </Label>
+                  </div>
+                  
+                  {useDebugMode && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="debug-company-id">CompanyId</Label>
+                        <Input
+                          id="debug-company-id"
+                          type="number"
+                          value={debugCompanyId || ""}
+                          onChange={(e) => setDebugCompanyId(parseInt(e.target.value) || null)}
+                          placeholder="Ej: 15"
+                        />
+                        <p className="text-xs text-amber-800">Valor predeterminado: 15</p>
+                      </div>
+                      
+                      <div className="flex items-end">
+                        <Button 
+                          variant="outline" 
+                          className="h-10"
+                          onClick={() => refetchPendingOrders()}
+                        >
+                          <RefreshCw size={16} className="mr-2" />
+                          Refrescar Datos
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        
           <Form {...form}>
             <form className="space-y-2">
               <FormField
@@ -1134,6 +1200,20 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                 {pendingOrders.length} pedidos sin asignar
               </Badge>
             </div>
+            
+            {authError && (
+              <div className="p-2 bg-red-50 text-red-600 rounded-md text-xs">
+                <AlertTriangle className="h-3 w-3 inline-block mr-1" />
+                {authError}
+              </div>
+            )}
+            
+            {useDebugMode && selectedZone && (
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-md text-xs mb-2">
+                <div>Debug: Consultando zona {selectedZone} de compañía {debugCompanyId}</div>
+                <div className="text-[10px] mt-1">URL: {`/api/zones/${selectedZone}/pending-orders?debug=true&companyId=${debugCompanyId}`}</div>
+              </div>
+            )}
 
             {isLoadingPendingOrders ? (
               <div className="space-y-2">
