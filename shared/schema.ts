@@ -276,7 +276,7 @@ export const insertRouteSchema = z.object({
   driverEndedAt: z.string().datetime().optional(),
   stops: z.array(z.string()).optional().nullable(),
   comments: z.string().optional(),
-  companyId: z.coerce.number({ required_error: "Se requiere un ID de empresa" }), // Ahora es requerido sin valor por defecto
+  companyId: z.coerce.number().int().positive({ message: "Se requiere un ID de empresa válido" }),
 });
 
 // Orders

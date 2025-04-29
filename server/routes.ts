@@ -1566,10 +1566,13 @@ export async function registerRoutes(router: express.Router) {
                       req.session.user?.companyId || 
                       req.body.companyId;
       
-      // Si aún así no hay companyId, usar un valor por defecto SOLO para desarrollo
+      // Si no hay companyId, devolver error
       if (!companyId) {
-        console.warn("⚠️ ADVERTENCIA: Usando companyId por defecto (1) como último recurso");
-        companyId = 1; // Valor por defecto para desarrollo
+        console.error("❌ Error: No se pudo obtener un companyId para la ruta");
+        return res.status(400).json({ 
+          error: "Datos insuficientes", 
+          message: "No se pudo determinar el ID de empresa. Por favor, inicie sesión nuevamente." 
+        });
       }
       
       // Asegurar que sea un número
@@ -1627,11 +1630,7 @@ export async function registerRoutes(router: express.Router) {
         tipoCompanyId: typeof routeData.companyId
       });
       
-      // PERMITIR QUE LA CREACIÓN CONTINÚE INCLUSO CON CAMPOS FALTANTES PARA FINES DE DEPURACIÓN
-      console.log("⚠️ ATENCIÓN: Desactivando temporalmente la validación de campos obligatorios para depuración");
-      
-      // Comentamos la validación estricta para permitir que se cree la ruta
-      /*
+      // Validación estricta de campos obligatorios
       if (!routeData.name || !routeData.driverId || !routeData.companyId) {
         const missingFields = ["name", "driverId", "companyId"].filter(field => !routeData[field as keyof typeof routeData]);
         console.error("❌ Error: Campos requeridos faltantes:", missingFields);
@@ -1642,7 +1641,6 @@ export async function registerRoutes(router: express.Router) {
           fields: missingFields
         });
       }
-      */
 
       // Iniciar transacción para crear la ruta y asignar los pedidos
       const [route] = await db
