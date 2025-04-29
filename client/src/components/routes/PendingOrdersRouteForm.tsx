@@ -209,10 +209,9 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         }
       }
       
-      // Usar fallback para desarrollo si no hay companyId
+      // No usar ningún fallback para companyId
       if (!params.companyId) {
-        params.companyId = "1"; // Fallback para desarrollo
-        console.log("FALLBACK: Usando companyId=1 por defecto (solo para desarrollo)");
+        console.log("⚠️ No se encontró companyId en la sesión del usuario");
       }
       
       const response = await apiRequest({
@@ -364,7 +363,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         streetnumber: "",
         coordinates: settings?.latitude && settings?.longitude 
           ? `${settings.latitude},${settings.longitude}` 
-          : "19.075380,-70.128822", // Use company coordinates or fallback
+          : null, // Use company coordinates if available
       };
 
       // Convert orders to customers for the route algorithm
@@ -716,6 +715,36 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   return (
     <div className="w-full">
+      <Card className="mb-3">
+        <CardContent className="p-3">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-medium">Crear ruta con pedidos pendientes</h3>
+              {pendingOrdersUserData && (
+                <div className="text-xs text-muted-foreground">
+                  CompanyId: {pendingOrdersUserData.companyId || "No definido"} 
+                  {pendingOrdersUserData.role && ` | Rol: ${pendingOrdersUserData.role}`}
+                </div>
+              )}
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                console.log("Diagnóstico:", { 
+                  pendingOrdersUserData, 
+                  pendingOrders,
+                  selectedZone,
+                  settings
+                });
+              }}
+            >
+              Diagnóstico
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-0">
           <Tabs value={selectedTab} onValueChange={setSelectedTab}>
