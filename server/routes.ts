@@ -57,7 +57,7 @@ export async function registerRoutes(router: express.Router) {
   
   // Endpoint de diagnóstico para verificar pedidos pendientes por compañía
   // Endpoint para obtener el companyId de la sesión actual
-  router.get("/api/company-id", companyAuthMiddleware, (req, res) => {
+  router.get("/api/companyid", companyAuthMiddleware, (req, res) => {
     const companyId = getCurrentCompanyId();
     console.log(`🔍 Diagnóstico: Obteniendo companyId activo: ${companyId}`);
     res.json({ companyId });

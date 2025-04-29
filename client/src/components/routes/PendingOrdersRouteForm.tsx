@@ -131,7 +131,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   
   // Obtener el companyId directamente del servidor
   const { data: companyData } = useQuery<{companyId: number}>({
-    queryKey: ['/api/company-id'],
+    queryKey: ['/api/companyid'],
     enabled: !isLoadingUser,
   });
 
