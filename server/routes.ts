@@ -3542,10 +3542,12 @@ export async function registerRoutes(router: express.Router) {
     }
   });
   
-  // Endpoint para obtener todos los pedidos pendientes
+  // Endpoint para obtener todos los pedidos pendientes con filtro opcional por zona
   router.get("/orders/pending", async (req, res) => {
     try {
-      console.log("🔍 Iniciando búsqueda de TODOS los pedidos pendientes...");
+      // Obtener el parámetro de zona si existe
+      const zoneId = req.query.zoneId ? Number(req.query.zoneId) : null;
+      console.log(`🔍 Iniciando búsqueda de pedidos pendientes...${zoneId ? ` Filtrados por zona ${zoneId}` : ''}`);
       
       // Obtener companyId desde varias fuentes
       let companyId = req.session.companyId || req.session.user?.companyId;
@@ -3564,21 +3566,30 @@ export async function registerRoutes(router: express.Router) {
         }
       }
       
-      console.log(`🔍 GET /api/orders/pending - Buscando todos los pedidos pendientes para compañía ${companyId}`);
+      console.log(`🔍 GET /api/orders/pending - Buscando pedidos pendientes para compañía ${companyId}${zoneId ? ` en zona ${zoneId}` : ''}`);
       
       // Usar SQL plano para evitar problemas de conversión de tipos
       const { pool } = await import('./db');
       
-      // 1. Obtener IDs de pedidos pendientes
-      const pendingOrdersIdsQuery = `
-        SELECT id 
-        FROM orders 
-        WHERE status = 'pending' 
-        AND route_id IS NULL 
-        AND company_id = $1
+      // 1. Obtener IDs de pedidos pendientes con filtro opcional por zona
+      let pendingOrdersIdsQuery = `
+        SELECT o.id 
+        FROM orders o
+        LEFT JOIN customers c ON o.customer_id = c.id
+        WHERE o.status = 'pending' 
+        AND o.route_id IS NULL 
+        AND o.company_id = $1
       `;
       
-      const pendingOrdersIdsResult = await pool.query(pendingOrdersIdsQuery, [companyId]);
+      const queryParams = [companyId];
+      
+      // Agregar filtro por zona si se especificó
+      if (zoneId) {
+        pendingOrdersIdsQuery += ` AND c.zone_id = $2`;
+        queryParams.push(zoneId);
+      }
+      
+      const pendingOrdersIdsResult = await pool.query(pendingOrdersIdsQuery, queryParams);
       console.log(`Encontrados ${pendingOrdersIdsResult.rows.length} IDs de pedidos pendientes para la compañía ${companyId}`);
       
       // Si no hay pedidos pendientes, devolver un array vacío
