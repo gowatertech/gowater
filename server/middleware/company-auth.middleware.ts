@@ -104,11 +104,9 @@ export async function loginWithEmail(req: Request, res: Response) {
     // La mayoría de las contraseñas aún están en texto plano, así que comprobamos primero eso
     validPassword = password === user.password;
 
-    // Si la contraseña de texto plano coincide, debemos actualizar a bcrypt (si no estamos en producción)
-    if (validPassword && process.env.NODE_ENV !== 'production') {
-      console.log(`ADVERTENCIA: Usuario ${email} tiene contraseña en texto plano. Debería actualizarse a bcrypt.`);
-      // Descomentar para habilitar la actualización automática a bcrypt:
-      /*
+    // Si la contraseña de texto plano coincide, debemos actualizar a bcrypt
+    if (validPassword) {
+      console.log(`ADVERTENCIA: Usuario ${email} tiene contraseña en texto plano. Actualizando a bcrypt.`);
       try {
         const hashedPassword = await bcrypt.hash(password, 10);
         await storage.updateUserPassword(user.id, hashedPassword);
@@ -116,7 +114,6 @@ export async function loginWithEmail(req: Request, res: Response) {
       } catch (hashError) {
         console.error(`Error al actualizar contraseña a bcrypt: ${hashError}`);
       }
-      */
     }
 
     // Si no coincide como texto plano, intentamos con bcrypt
