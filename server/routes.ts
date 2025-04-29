@@ -1591,10 +1591,22 @@ export async function registerRoutes(router: express.Router) {
       console.log("Datos procesados para inserción:", routeData);
 
       // Validamos manualmente ya que el schema completo no coincide con nuestros datos actuales
+      console.log("🔍 Validación de campos requeridos:", {
+        name: routeData.name,
+        driverId: routeData.driverId,
+        companyId: routeData.companyId,
+        tipoDriverId: typeof routeData.driverId,
+        tipoCompanyId: typeof routeData.companyId
+      });
+      
       if (!routeData.name || !routeData.driverId || !routeData.companyId) {
+        const missingFields = ["name", "driverId", "companyId"].filter(field => !routeData[field as keyof typeof routeData]);
+        console.error("❌ Error: Campos requeridos faltantes:", missingFields);
+        
         return res.status(400).json({
           error: "Campos requeridos faltantes",
-          fields: ["name", "driverId", "companyId"].filter(field => !routeData[field])
+          message: "Por favor complete correctamente todos los campos requeridos",
+          fields: missingFields
         });
       }
 

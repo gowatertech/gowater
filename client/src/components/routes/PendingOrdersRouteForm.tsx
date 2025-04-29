@@ -557,13 +557,26 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       }
       
       // Asegurar que el companyId esté configurado correctamente
-      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || currentCompanyId;
       
       if (!effectiveCompanyId) {
+        // Si no podemos obtener un companyId válido, lanzamos un error y detenemos la ejecución
         console.error("No se pudo obtener el companyId del contexto");
+        throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
       } else {
         console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión)`);
-        routeData.companyId = effectiveCompanyId;
+        // Aseguramos que el companyId sea un número
+        routeData.companyId = Number(effectiveCompanyId);
+      }
+      
+      // Verificación final de seguridad para los campos requeridos
+      if (!routeData.name || !routeData.driverId || !routeData.companyId) {
+        const missingFields = [];
+        if (!routeData.name) missingFields.push("nombre de ruta");
+        if (!routeData.driverId) missingFields.push("conductor");
+        if (!routeData.companyId) missingFields.push("compañía");
+        
+        throw new Error(`Por favor complete todos los campos requeridos: ${missingFields.join(", ")}`);
       }
       
       console.log("Enviando datos a la API:", routeData);
@@ -643,7 +656,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     }
     
     // Determinar el companyId efectivo de manera dinámica
-    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
+    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId || currentCompanyId;
     
     if (!effectiveCompanyId) {
       console.error("No se pudo obtener el companyId para la ruta");
@@ -655,7 +668,20 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       return;
     }
     
-    console.log(`Usando companyId: ${effectiveCompanyId} para la ruta`);
+    // Asegurar que el companyId sea un número
+    const numericCompanyId = Number(effectiveCompanyId);
+    
+    if (isNaN(numericCompanyId)) {
+      console.error("El companyId no es un número válido:", effectiveCompanyId);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "El ID de la empresa no es válido. Por favor, vuelve a iniciar sesión.",
+      });
+      return;
+    }
+    
+    console.log(`Usando companyId: ${numericCompanyId} para la ruta (convertido de ${effectiveCompanyId})`);
     
     // Asegurar que tenemos la ruta optimizada
     if (!optimizedRoute || optimizedRoute.length < 2) {
@@ -690,7 +716,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       totalDistance: totalDistance.toFixed(2),
       estimatedDuration: estimatedDuration,
       orderIds: orderIds,
-      companyId: effectiveCompanyId
+      companyId: numericCompanyId // Usar el companyId convertido a número
     };
     
     // Log detallado de todos los campos para revisión
