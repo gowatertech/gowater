@@ -221,10 +221,15 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       
       console.log("Enviando solicitud con params:", params);
       
+      // Construir la URL correctamente para asegurarnos que el companyId se pasa como parámetro de consulta
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        queryParams.append(key, value);
+      });
+      
       const response = await apiRequest({
-        url: `/zones/${selectedZone}/pending-orders`,
-        method: "GET",
-        params
+        url: `/api/zones/${selectedZone}/pending-orders?${queryParams.toString()}`,
+        method: "GET"
       });
       
       console.log("Pending orders response:", response);
