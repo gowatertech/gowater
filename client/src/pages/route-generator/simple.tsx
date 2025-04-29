@@ -83,9 +83,13 @@ const SimpleRouteGenerator = () => {
   // Función para cargar conductores
   const loadDrivers = async () => {
     try {
-      const response = await fetch('/api/drivers');
-      if (!response.ok) return;
+      const response = await fetch('/api/route-generator/drivers');
+      if (!response.ok) {
+        console.error('Error al cargar conductores:', response.status, response.statusText);
+        return;
+      }
       const data = await response.json();
+      console.log('Conductores cargados:', data);
       setDrivers(data);
     } catch (error) {
       console.error('Error al cargar conductores:', error);
@@ -95,9 +99,13 @@ const SimpleRouteGenerator = () => {
   // Función para cargar vehículos
   const loadTrucks = async () => {
     try {
-      const response = await fetch('/api/trucks');
-      if (!response.ok) return;
+      const response = await fetch('/api/route-generator/trucks');
+      if (!response.ok) {
+        console.error('Error al cargar vehículos:', response.status, response.statusText);
+        return;
+      }
       const data = await response.json();
+      console.log('Vehículos cargados:', data);
       setTrucks(data);
     } catch (error) {
       console.error('Error al cargar vehículos:', error);
