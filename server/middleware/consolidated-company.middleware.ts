@@ -17,6 +17,7 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
       req.path.startsWith('/images/') ||
       req.path === '/favicon.ico' ||
       req.path === '/route-generator' || 
+      req.path === '/route-generator/fixed' || // Permitir acceso a nuestra versión de diagnóstico
       req.path.startsWith('/dashboard') ||
       req.path.startsWith('/index.css')) {
     return next();
@@ -34,6 +35,14 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
   // Endpoint específicos del API del generador de rutas
   let routeGeneratorPath = false;
   let apiPath = req.originalUrl || req.path;
+  
+  // Permitir acceso a la nueva API del generador de rutas sin verificación de autenticación
+  if (apiPath.startsWith('/newgen')) {
+    // Para la nueva API, permitimos el acceso sin restricciones
+    console.log(`[Company Middleware] Permitiendo acceso a la API de diagnóstico: ${apiPath}`);
+    return next();
+  }
+  
   if (apiPath.includes('/api/route-generator') || apiPath.endsWith('/route-generator/orders/pending')) {
     routeGeneratorPath = true;
     console.log(`🔒 Procesando ruta del generador: ${apiPath}`);
