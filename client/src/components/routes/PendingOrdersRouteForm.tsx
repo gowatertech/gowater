@@ -214,19 +214,26 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: currentCompanyId // Añadimos companyId como valor predeterminado
+      companyId: Number(currentCompanyId) || 1 // Asegurarnos de que sea un número
     },
   });
+  
+  // Log de depuración para monitorear el companyId
+  console.log("FORM CONFIG - companyId:", Number(currentCompanyId), "- tipo:", typeof Number(currentCompanyId));
 
   // Set a default route name and update companyId when form initializes
   useEffect(() => {
     const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
     form.setValue("name", `Ruta ${today}`);
     
-    // Asegurarse de que companyId esté siempre establecido
-    if (currentCompanyId && (!form.getValues("companyId") || form.getValues("companyId") !== currentCompanyId)) {
-      console.log("Actualizando companyId en el formulario a:", currentCompanyId);
-      form.setValue("companyId", currentCompanyId);
+    // Asegurarnos de que companyId siempre sea un número válido
+    const numericCompanyId = Number(currentCompanyId);
+    if (!isNaN(numericCompanyId) && numericCompanyId > 0) {
+      console.log("Actualizando companyId en el formulario a:", numericCompanyId, "(convertido a número)");
+      form.setValue("companyId", numericCompanyId);
+    } else {
+      console.log("Usando companyId por defecto (1) porque el valor actual no es válido:", currentCompanyId);
+      form.setValue("companyId", 1); // Valor por defecto si no hay un valor válido
     }
   }, [form, currentCompanyId]);
 
