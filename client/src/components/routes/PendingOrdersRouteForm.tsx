@@ -120,8 +120,8 @@ interface Truck {
 export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrdersRouteFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const [selectedTab, setSelectedTab] = useState("zone");
-  const [selectedZone, setSelectedZone] = useState<number | null>(null);
+  // Iniciar directamente en la selección de pedidos, ya no filtramos por zona
+  const [selectedTab, setSelectedTab] = useState("orders");
   const [selectedOrders, setSelectedOrders] = useState<PendingOrder[]>([]);
   const [optimizedRoute, setOptimizedRoute] = useState<Customer[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
