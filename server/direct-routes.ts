@@ -1,21 +1,27 @@
-import { Router, Request, Response } from 'express';
-import { orders, customers, zones } from '../../../shared/schema';
-import { db } from '../../db';
+import express, { Request, Response } from 'express';
+import { db } from './db';
+import { orders, customers, zones } from '../shared/schema';
 import { eq, and, isNull } from 'drizzle-orm';
-import { getCurrentCompanyId } from '../../company-db';
+import { getCurrentCompanyId } from './company-db';
 
-// Router para las operaciones relacionadas con pedidos en el generador de rutas
-export const ordersRouter = Router();
+// Router para rutas directas que necesitan evitar el manejo de Vite
+const directRouter = express.Router();
 
-// Middleware para logs
-ordersRouter.use((req, res, next) => {
-  console.log(`[Route Generator API] Request to ${req.originalUrl}`);
-  next();
-});
-
-// Endpoint para obtener todos los pedidos pendientes
-ordersRouter.get('/pending', async (req, res) => {
+// Endpoint para obtener todos los pedidos pendientes para el generador de rutas
+directRouter.get('/route-generator/orders/pending', async (req: Request, res: Response) => {
   try {
+    console.log(`[Direct API Route] Handling request for /api/route-generator/orders/pending`);
+    
+    // Verificar si el usuario está autenticado
+    if (!req.session?.user) {
+      console.log("❌ Usuario no autenticado intentando acceder a pedidos pendientes");
+      return res.status(401).json({ 
+        success: false, 
+        message: "No autenticado" 
+      });
+    }
+    
+    // Obtener company ID
     const companyId = getCurrentCompanyId();
     
     if (!companyId) {
@@ -90,7 +96,7 @@ ordersRouter.get('/pending', async (req, res) => {
     );
     
     console.log(`[Generador de Rutas] Se encontraron ${pendingOrdersWithCustomers.length} pedidos pendientes`);
-    
+    res.setHeader('Content-Type', 'application/json');
     return res.json(pendingOrdersWithCustomers);
   } catch (error) {
     console.error("[Generador de Rutas] Error al obtener pedidos pendientes:", error);
@@ -101,4 +107,7 @@ ordersRouter.get('/pending', async (req, res) => {
   }
 });
 
-export default ordersRouter;
+export function registerDirectRoutes(app: express.Express) {
+  app.use('/api', directRouter);
+  console.log('✅ Rutas directas registradas correctamente');
+}

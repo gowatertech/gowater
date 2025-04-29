@@ -31,16 +31,23 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
   }
   
   // Verificar autenticación para rutas de la API del generador de rutas
-  if (req.path.startsWith('/api/route-generator')) {
+  // Endpoint específicos del API del generador de rutas
+  let routeGeneratorPath = false;
+  let apiPath = req.originalUrl || req.path;
+  if (apiPath.includes('/api/route-generator') || apiPath.endsWith('/route-generator/orders/pending')) {
+    routeGeneratorPath = true;
+    console.log(`🔒 Procesando ruta del generador: ${apiPath}`);
+    
     // Verificar si el usuario está autenticado
     if (!req.session?.user) {
-      console.log(`🔒 Verificando autenticación para API del generador de rutas: ${req.path}`);
-      console.log(`❌ No hay sesión de usuario`);
+      console.log(`❌ No hay sesión de usuario para ruta protegida`);
       return res.status(401).json({
         success: false,
         message: "No autenticado"
       });
     }
+    
+    console.log(`✅ Usuario autenticado: ${req.session.user.name}`);
   }
   
   // Permitir que la ruta frontend '/route-generator' sea manejada por la aplicación de cliente

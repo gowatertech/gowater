@@ -109,6 +109,10 @@ app.use((req, res, next) => {
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
     
+    // Montar directamente las rutas del generador de rutas para evitar problemas con Vite
+    registerRouteGeneratorEndpoints(companyApiRouter);
+    log("Route generator endpoints registered directly to avoid Vite issues");
+    
     // Usar el router de órdenes personalizado con el middleware consolidado
     app.use(consolidatedCompanyMiddleware, ordersRouter);
     log("Custom orders router registered successfully with consolidated company middleware");
