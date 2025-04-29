@@ -39,12 +39,12 @@ export default function LoginPage() {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   
-  // Inicializar el formulario con react-hook-form
+  // Inicializar el formulario con react-hook-form y credenciales predefinidas
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: ""
+      email: "aguamoya@gmail.com",
+      password: "admin123"
     }
   });
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
     loginMutation.mutate(data);
   };
   
-  // Evitar que el usuario pueda volver a esta página después de iniciar sesión
+  // Efecto para verificar autenticación e iniciar sesión automáticamente
   useEffect(() => {
     // Verificar si hay un usuario ya autenticado
     const checkAuth = async () => {
@@ -87,6 +87,11 @@ export default function LoginPage() {
         if (response.ok) {
           // Usuario ya autenticado, redirigir al dashboard
           navigate('/dashboard', { replace: true });
+        } else {
+          // Usuario no autenticado, iniciar sesión automáticamente
+          console.log('Iniciando sesión automáticamente con aguamoya@gmail.com');
+          const formData = form.getValues();
+          loginMutation.mutate(formData);
         }
       } catch (error) {
         console.error('Error verificando autenticación:', error);
@@ -94,7 +99,7 @@ export default function LoginPage() {
     };
     
     checkAuth();
-  }, [navigate]);
+  }, [navigate, form, loginMutation]);
 
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col md:flex-row">
@@ -110,9 +115,9 @@ export default function LoginPage() {
                 GoWater
               </span>
             </div>
-            <CardTitle className="text-2xl font-bold">Iniciar sesión</CardTitle>
+            <CardTitle className="text-2xl font-bold">Inicio de sesión automático</CardTitle>
             <CardDescription>
-              Ingresa tus credenciales para acceder al panel de empresa
+              Iniciando sesión automáticamente con aguamoya@gmail.com
             </CardDescription>
           </CardHeader>
           <CardContent>
