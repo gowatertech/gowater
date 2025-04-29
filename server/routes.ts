@@ -754,9 +754,13 @@ export async function registerRoutes(router: express.Router) {
         });
       }
       
+      // Hash de la contraseña usando bcrypt antes de guardarla
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      
       // Preparar los datos para la inserción con licenseExpiry en formato Date
       const insertData = {
         ...userData,
+        password: hashedPassword, // Usar la contraseña hasheada
         licenseExpiry: userData.licenseExpiry ? new Date(userData.licenseExpiry) : null,
         hireDate: new Date()
       };
@@ -765,6 +769,8 @@ export async function registerRoutes(router: express.Router) {
       if (insertData.email) {
         delete insertData.email;
       }
+      
+      console.log(`Creando nuevo usuario ${userData.username} con contraseña hasheada`);
       
       // Crear el usuario usando usersSimple en lugar de users
       const [newUser] = await db
@@ -804,6 +810,10 @@ export async function registerRoutes(router: express.Router) {
       // Si la contraseña está vacía, no actualizarla
       if (!updateData.password) {
         delete updateData.password;
+      } else {
+        // Hash la contraseña si se está actualizando
+        console.log(`Actualizando contraseña para el usuario ${existingUser.username} a formato bcrypt`);
+        updateData.password = await bcrypt.hash(updateData.password, 10);
       }
       
       // Actualizar el usuario

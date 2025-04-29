@@ -52,10 +52,42 @@ export function createMobileAuthRoutes(): Router {
         });
       }
       
-      // Verificar la contraseña (comparando directamente ya que está en texto plano)
-      const validPassword = password === user.password;
+      // Verificar la contraseña
+      let validPassword = false;
+      
+      // Primero verificamos si coincide con texto plano (para usuarios antiguos)
+      validPassword = password === user.password;
+      
+      // Si la contraseña de texto plano coincide, debemos actualizar a bcrypt
+      if (validPassword) {
+        console.log(`ADVERTENCIA: Usuario ${username} tiene contraseña en texto plano. Actualizando a bcrypt.`);
+        try {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          
+          // Actualizar la contraseña en la base de datos
+          await db
+            .update(usersSimple)
+            .set({ password: hashedPassword })
+            .where(eq(usersSimple.id, user.id));
+            
+          console.log(`Contraseña de ${username} actualizada a formato bcrypt.`);
+        } catch (hashError) {
+          console.error(`Error al actualizar contraseña a bcrypt: ${hashError}`);
+        }
+      }
+      
+      // Si no coincide como texto plano, intentamos con bcrypt
       if (!validPassword) {
-        console.log(`Login fallido: Contraseña incorrecta para usuario: ${username}. Esperada: ${user.password}, Recibida: ${password}`);
+        try {
+          validPassword = await bcrypt.compare(password, user.password);
+        } catch (e) {
+          console.log(`Error en la verificación de bcrypt: ${e}`);
+          // Esto es normal si la contraseña no está hasheada con bcrypt
+        }
+      }
+      
+      if (!validPassword) {
+        console.log(`Login fallido: Contraseña incorrecta para usuario: ${username}`);
         return res.status(401).json({ 
           success: false, 
           message: "Credenciales inválidas"
