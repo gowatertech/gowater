@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 interface Settings {
   id: number;
+  companyId: number;  // Añadimos el campo companyId
   name: string;
   logo: string;
   rnc: string;

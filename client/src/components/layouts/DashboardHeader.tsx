@@ -38,9 +38,9 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
       <div className="flex flex-col">
         <h1 className="text-xl sm:text-2xl font-bold">{t(title)}</h1>
         <div className="flex items-center gap-2 text-sm mt-1">
-          {(settings?.id || userData?.companyId) ? (
+          {(settings?.companyId || userData?.companyId) ? (
             <Badge variant="secondary" className="px-2 py-0 font-semibold">
-              ID: {settings?.id || userData?.companyId}
+              ID: {settings?.companyId || userData?.companyId}
             </Badge>
           ) : (
             <Badge variant="outline" className="px-2 py-0">
