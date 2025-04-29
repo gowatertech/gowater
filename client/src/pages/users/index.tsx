@@ -115,6 +115,20 @@ export default function Users() {
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("createUserMutation - Datos del formulario:", data);
+      
+      // Asegurarse que el companyId esté presente incluso si no viene del formulario
+      if (!data.companyId && currentUser?.companyId) {
+        data.companyId = currentUser.companyId;
+        console.log("createUserMutation - Añadiendo companyId:", data.companyId);
+      }
+      
+      // Verificación final de companyId antes de enviar
+      if (!data.companyId) {
+        console.error("Error: No se pudo determinar el companyId");
+        throw new Error("No se pudo determinar el ID de la compañía para crear el usuario");
+      }
+      
       // Utilizar directamente apiRequest que ya maneja la lógica de errores y JSON
       return apiRequest({
         url: "/api/users",

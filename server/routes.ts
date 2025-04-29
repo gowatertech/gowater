@@ -954,24 +954,44 @@ export async function registerRoutes(router: express.Router) {
     try {
       const userData = req.body;
       
+      // Verificar y obtener el companyId, ya sea del cuerpo de la solicitud o del contexto
+      // Esta línea es crítica - el ID de la compañía debe estar presente
+      if (!userData.companyId) {
+        // Intentar obtener el companyId del contexto o la sesión
+        if (req.companyId) {
+          userData.companyId = req.companyId;
+        } else if (req.session?.user?.companyId) {
+          userData.companyId = req.session.user.companyId;
+        } else {
+          return res.status(400).json({
+            error: "No se proporcionó un ID de compañía",
+            message: "El ID de compañía es obligatorio para crear un usuario"
+          });
+        }
+      }
+      
+      console.log(`Intento de creación de usuario con companyId: ${userData.companyId}`);
+      
       // Validar el formato de los datos
       const result = insertUserSchema.safeParse(userData);
       if (!result.success) {
+        console.error("Error de validación:", result.error.format());
         return res.status(400).json({ 
           error: "Datos de usuario inválidos", 
           details: result.error.format() 
         });
       }
       
-      // Verificar si el username ya existe
+      // Verificar si el username ya existe para esta compañía
       const existingUser = await db
         .select()
         .from(usersSimple)
-        .where(eq(usersSimple.username, userData.username));
+        .where(eq(usersSimple.username, userData.username))
+        .where(eq(usersSimple.companyId, userData.companyId));
         
       if (existingUser.length > 0) {
         return res.status(400).json({ 
-          error: "Este nombre de usuario ya existe" 
+          error: "Este nombre de usuario ya existe en esta compañía" 
         });
       }
       
@@ -981,6 +1001,7 @@ export async function registerRoutes(router: express.Router) {
       // Preparar los datos para la inserción con licenseExpiry en formato Date
       const insertData = {
         ...userData,
+        companyId: userData.companyId, // Asegurarse de que esté incluido
         password: hashedPassword, // Usar la contraseña hasheada
         licenseExpiry: userData.licenseExpiry ? new Date(userData.licenseExpiry) : null,
         hireDate: new Date()
@@ -991,7 +1012,7 @@ export async function registerRoutes(router: express.Router) {
         delete insertData.email;
       }
       
-      console.log(`Creando nuevo usuario ${userData.username} con contraseña hasheada`);
+      console.log(`Creando nuevo usuario ${userData.username} para compañía ${userData.companyId} con contraseña hasheada`);
       
       // Crear el usuario usando usersSimple en lugar de users
       const [newUser] = await db
