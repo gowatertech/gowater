@@ -189,10 +189,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     },
   });
 
-  // SOLUCIÓN TEMPORAL: Establecer companyId fijo
-  const currentCompanyId = 1;
+  // Obtener el companyId de manera dinámica
+  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
   
-  console.log("⚠️ USANDO COMPANYID FIJO (1) AL INICIALIZAR FORMULARIO");
+  console.log("🔄 Usando companyId dinámico:", currentCompanyId);
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
@@ -207,7 +207,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     })),
     defaultValues: {
       name: "",
-      driverId: 1, // Valor predeterminado para el conductor
+      driverId: undefined, // El usuario debe seleccionar un conductor
       assistantId: null,
       truckId: null,
       date: new Date(),
@@ -552,15 +552,17 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         throw new Error("No hay una ruta definida para crear");
       }
       
+      // Asegurar que el companyId esté configurado correctamente
+      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+      
+      if (!routeData.companyId && effectiveCompanyId) {
+        console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión)`);
+        routeData.companyId = effectiveCompanyId;
+      }
+      
       console.log("Enviando datos a la API:", routeData);
       
       try {
-        // Verificar explícitamente el companyId
-        if (!routeData.companyId) {
-          console.error("No hay companyId en los datos", routeData);
-          routeData.companyId = 1; // Último recurso para asegurar que haya un companyId
-        }
-        
         // Usar apiRequest para la comunicación con el servidor
         const result = await apiRequest({
           url: '/api/routes',
@@ -634,8 +636,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       return;
     }
     
-    // Determinar el companyId efectivo
-    const effectiveCompanyId = data.companyId || currentCompanyId || companyData?.companyId || pendingOrdersUserData?.companyId;
+    // Determinar el companyId efectivo de manera dinámica
+    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
     
     if (!effectiveCompanyId) {
       console.error("No se pudo obtener el companyId para la creación de ruta");
@@ -646,6 +648,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       });
       return;
     }
+    
+    console.log(`Usando companyId: ${effectiveCompanyId} para la ruta`);
     
     // Asegurar que tenemos la ruta optimizada
     if (!optimizedRoute || optimizedRoute.length < 2) {
@@ -1208,9 +1212,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                                   console.log("Formulario válido, enviando datos manualmente...");
                                   const data = form.getValues();
                                   
-                                  // Asegurarnos que companyId está establecido
-                                  if (!data.companyId) {
-                                    data.companyId = currentCompanyId;
+                                  // Asegurarnos que companyId está establecido de manera dinámica
+                                  const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+                                  if (!data.companyId && effectiveCompanyId) {
+                                    console.log(`Aplicando companyId: ${effectiveCompanyId} obtenido dinámicamente`);
+                                    data.companyId = effectiveCompanyId;
                                   }
                                   
                                   console.log("Datos preparados:", data);
