@@ -45,6 +45,7 @@ import VehicleLoadingPage from "@/pages/vehicle-loading";
 import RouteSettlementPage from "@/pages/routes/settlements";
 import VehicleSettlementPage from "./pages/vehicle-settlement";
 import TrucksPage from "./pages/routes/trucks";
+import RouteGeneratorPage from "@/pages/route-generator";
 import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";

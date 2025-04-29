@@ -75,6 +75,7 @@ const sidebarItems = [
       { icon: Truck, label: "Vehículos", href: "/routes/trucks" },
       { icon: Target, label: "Zonas", href: "/zones" },
       { icon: MapPin, label: "Rutas", href: "/routes" },
+      { icon: Route, label: "Ruta Alterna", href: "/route-generator" },
       { icon: FileStack, label: "Carga de Vehículo", href: "/vehicle-loading" },
       { icon: ScrollText, label: "Cuadre de Vehículo", href: "/vehicle-settlement" },
       { icon: ReceiptText, label: "Pedidos", href: "/orders" },
