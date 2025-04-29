@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { LatLngExpression } from "leaflet";
 import { AddressSearchBox } from "./AddressSearchBox";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 
 interface LocationSelectorProps {
   value?: string;
@@ -39,14 +40,31 @@ function DraggableMarker({ position, onChange }: MapControlProps) {
   );
 }
 
-export function LocationSelector({ value, onChange, initialCenter = [19.075380, -70.128822] }: LocationSelectorProps) {
+export function LocationSelector({ value, onChange, initialCenter }: LocationSelectorProps) {
+  // Use useCompanySettings hook to get configured coordinates
+  const { settings } = useCompanySettings();
+  
+  // Default center from company settings or fallback to Dominican Republic
+  const defaultCenter: [number, number] = useMemo(() => {
+    if (initialCenter) {
+      return initialCenter;
+    }
+    if (settings?.latitude && settings?.longitude) {
+      const lat = parseFloat(settings.latitude);
+      const lng = parseFloat(settings.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return [lat, lng];
+      }
+    }
+    return [19.0, -70.0]; // Default center (Dominican Republic) if no other source
+  }, [initialCenter, settings?.latitude, settings?.longitude]);
   // Inicializar con el valor proporcionado o el centro predeterminado
   const [position, setPosition] = useState<LatLngExpression>(() => {
     if (value) {
       const [lat, lng] = value.split(',').map(parseFloat);
       return [lat, lng];
     }
-    return initialCenter;
+    return defaultCenter;
   });
 
   // Actualizar cuando cambie el valor externamente
