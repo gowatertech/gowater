@@ -709,6 +709,27 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     console.log("==================== FIN DETALLE DE CAMPOS ====================");
     console.log("JSON completo:", JSON.stringify(routeData, null, 2));
     
+    // Mostrar datos en una alerta para revisión
+    toast({
+      title: "Datos a enviar",
+      description: (
+        <div className="text-xs space-y-1 max-h-[300px] overflow-auto">
+          <div><strong>name:</strong> {routeData.name}</div>
+          <div><strong>date:</strong> {routeData.date.toString()}</div>
+          <div><strong>driverId:</strong> {routeData.driverId} ({typeof routeData.driverId})</div>
+          <div><strong>assistantId:</strong> {routeData.assistantId} ({typeof routeData.assistantId})</div>
+          <div><strong>truckId:</strong> {routeData.truckId} ({typeof routeData.truckId})</div>
+          <div><strong>companyId:</strong> {routeData.companyId} ({typeof routeData.companyId})</div>
+          <div><strong>status:</strong> {routeData.status}</div>
+          <div><strong>isCompleted:</strong> {String(routeData.isCompleted)}</div>
+          <div><strong>totalDistance:</strong> {routeData.totalDistance}</div>
+          <div><strong>estimatedDuration:</strong> {routeData.estimatedDuration}</div>
+          <div><strong>orderIds:</strong> {JSON.stringify(routeData.orderIds)}</div>
+        </div>
+      ),
+      duration: 15000, // 15 segundos
+    });
+    
     try {
       // Llamar a la mutación con los datos en el formato correcto
       createRouteMutation.mutate(routeData);
