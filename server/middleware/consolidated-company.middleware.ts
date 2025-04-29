@@ -7,10 +7,23 @@ import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
  * y lo establece en el contexto para su uso en toda la aplicación.
  */
 export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
+  // Permitir recursos de Vite y archivos estáticos/del cliente sin restricciones
+  if (req.path.startsWith('/@') || 
+      req.path.startsWith('/src/') || 
+      req.path.startsWith('/node_modules/') ||
+      req.path.startsWith('/assets/') ||
+      req.path === '/sw.js' ||
+      req.path === '/manifest.json' ||
+      req.path.startsWith('/images/') ||
+      req.path === '/favicon.ico') {
+    return next();
+  }
+
   // Para rutas de plataforma o login/logout, no alteramos nada
   if (req.path.startsWith('/platform') || 
       req.path === '/login' || 
-      req.path === '/logout') {
+      req.path === '/logout' ||
+      req.path === '/') {
     return next();
   }
   
