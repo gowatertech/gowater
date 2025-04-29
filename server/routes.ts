@@ -1551,16 +1551,17 @@ export async function registerRoutes(router: express.Router) {
     try {
       console.log("POST /api/routes - Datos recibidos:", req.body);
       
-      // Variables de depuración
-      console.log("==== DEPURACIÓN DE COMPANY ID ====");
+      // Variables de depuración detallada
+      console.log("==== DEPURACIÓN DETALLADA DE COMPANY ID EN SERVIDOR ====");
       console.log("req.session.companyId:", req.session.companyId);
       console.log("req.session.user?.companyId:", req.session.user?.companyId);
-      console.log("req.body.companyId:", req.body.companyId);
+      console.log("req.body.companyId:", req.body.companyId, "tipo:", typeof req.body.companyId);
       console.log("getCurrentCompanyId():", getCurrentCompanyId());
+      console.log("Headers:", JSON.stringify(req.headers, null, 2));
       console.log("==== FIN DEPURACIÓN ====");
       
-      // 1. FORZAR UN COMPANY ID VÁLIDO DE ALGUNA MANERA
-      // Intentar todas las posibles fuentes de companyId
+      // Ya NO forzamos un companyId por defecto
+      // Intentar fuentes confiables de companyId, sin valores por defecto
       let companyId = getCurrentCompanyId() || 
                       req.session.companyId || 
                       req.session.user?.companyId || 
