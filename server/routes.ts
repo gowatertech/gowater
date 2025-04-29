@@ -1621,6 +1621,14 @@ export async function registerRoutes(router: express.Router) {
         orderIds: Array.isArray(req.body.orderIds) ? req.body.orderIds.length + ' elementos' : 'NO ES ARRAY'
       }, null, 2));
       
+      // AGREGAR LOG DETALLADO PARA DEPURAR PROBLEMA DE COMPANYID
+      console.log("🔍 DEPURACIÓN DETALLADA DE ROUTE CREATION:");
+      console.log("  - Request Headers:", req.headers);
+      console.log("  - Session Info:", { 
+        companyId: req.session.companyId, 
+        userCompanyId: req.session.user?.companyId 
+      });
+      
       // Validamos manualmente ya que el schema completo no coincide con nuestros datos actuales
       console.log("🔍 Validación de campos requeridos:", {
         name: routeData.name,
