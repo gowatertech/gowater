@@ -627,7 +627,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
           
           <div className="text-xs text-muted-foreground space-y-1">
             <p>URL de diagnóstico: {selectedZone ? 
-              `/api/zones/${selectedZone}/pending-orders${useDebugMode ? `?debug=true&companyId=${debugCompanyId || 15}` : ""}`
+              `/api/zones/${selectedZone}/pending-orders${useDebugMode ? `?debug=true${debugCompanyId ? `&companyId=${debugCompanyId}` : ""}` : ""}`
               : "Seleccione una zona primero"
             }</p>
             
