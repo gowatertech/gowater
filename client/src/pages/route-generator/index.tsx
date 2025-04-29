@@ -200,6 +200,7 @@ const RouteGeneratorPage: React.FC = () => {
       return;
     }
     
+    // Enviamos directamente los IDs de los pedidos como espera el servidor
     optimizeRouteMutation.mutate(selectedOrders);
   };
   
