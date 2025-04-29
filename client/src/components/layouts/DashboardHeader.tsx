@@ -37,16 +37,14 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mb-4">
       <div className="flex flex-col">
         <h1 className="text-xl sm:text-2xl font-bold">{t(title)}</h1>
-        {userData?.companyId && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-            <Badge variant="outline" className="px-2 py-0">
-              ID: {userData.companyId}
-            </Badge>
-            {settings?.name && (
-              <span>{settings.name}</span>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-2 text-sm mt-1">
+          <Badge variant="secondary" className="px-2 py-0 font-semibold">
+            ID: {userData?.companyId || 'Cargando...'}
+          </Badge>
+          <span className="font-medium text-primary">
+            {settings?.name || userData?.companyName || 'Cargando nombre de empresa...'}
+          </span>
+        </div>
       </div>
       <div className="flex space-x-2">
         <Button variant="outline" size="sm" onClick={() => navigateTo("/reports")}>
