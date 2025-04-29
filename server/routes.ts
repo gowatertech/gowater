@@ -3513,7 +3513,6 @@ export async function registerRoutes(router: express.Router) {
             SELECT 
               id, customer_id as "customerId", date, 
               total, status, 
-              payment_status as "paymentStatus", 
               delivery_coordinates as "deliveryCoordinates",
               notes
             FROM orders

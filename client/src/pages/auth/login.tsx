@@ -78,7 +78,7 @@ export default function LoginPage() {
     loginMutation.mutate(data);
   };
   
-  // Efecto para verificar autenticación e iniciar sesión automáticamente
+  // Efecto para verificar autenticación solamente
   useEffect(() => {
     // Verificar si hay un usuario ya autenticado
     const checkAuth = async () => {
@@ -87,11 +87,6 @@ export default function LoginPage() {
         if (response.ok) {
           // Usuario ya autenticado, redirigir al dashboard
           navigate('/dashboard', { replace: true });
-        } else {
-          // Usuario no autenticado, iniciar sesión automáticamente
-          console.log('Iniciando sesión automáticamente con aguamoya@gmail.com');
-          const formData = form.getValues();
-          loginMutation.mutate(formData);
         }
       } catch (error) {
         console.error('Error verificando autenticación:', error);
@@ -99,7 +94,7 @@ export default function LoginPage() {
     };
     
     checkAuth();
-  }, [navigate, form, loginMutation]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-muted/40 flex flex-col md:flex-row">
@@ -115,9 +110,9 @@ export default function LoginPage() {
                 GoWater
               </span>
             </div>
-            <CardTitle className="text-2xl font-bold">Inicio de sesión automático</CardTitle>
+            <CardTitle className="text-2xl font-bold">Iniciar sesión</CardTitle>
             <CardDescription>
-              Iniciando sesión automáticamente con aguamoya@gmail.com
+              Ingrese sus credenciales para acceder al sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
