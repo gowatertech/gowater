@@ -724,6 +724,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       <div><strong>Rol:</strong> {diagnosticInfo.role}</div>
                       <div><strong>Zona:</strong> {diagnosticInfo.zoneId}</div>
                       <div><strong>Total Zonas:</strong> {diagnosticInfo.zonesCount}</div>
+                      <div><strong>Filtrado:</strong> {diagnosticInfo.filteringMode}</div>
                       <div><strong>Pedidos pendientes:</strong> {diagnosticInfo.pendingOrdersCount}</div>
                       <div><strong>Pedidos seleccionados:</strong> {diagnosticInfo.selectedOrdersCount}</div>
                       <div><strong>Coordenadas:</strong> {diagnosticInfo.companyCoordinates}</div>
@@ -753,7 +754,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
               <TabsTrigger 
                 value="orders" 
                 className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                disabled={!selectedZone}
               >
                 <Package className="h-3 w-3 mr-0.5" />
                 Pedidos
@@ -874,7 +874,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       <Button 
                         type="button" 
                         onClick={() => setSelectedTab("orders")}
-                        disabled={!selectedZone}
                         className="h-7 text-xs px-2"
                       >
                         Siguiente
