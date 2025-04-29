@@ -1179,7 +1179,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           
                           <Button 
                             type="submit"
-                            disabled={createRouteMutation.isPending || !form.watch("driverId")}
+                            disabled={createRouteMutation.isPending}
                             className="h-7 text-xs px-2"
                           >
                             {createRouteMutation.isPending ? (
