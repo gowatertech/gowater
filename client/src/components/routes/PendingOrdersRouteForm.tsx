@@ -126,6 +126,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const [optimizedRoute, setOptimizedRoute] = useState<Customer[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pendingOrdersUserData, setPendingOrdersUserData] = useState<any>(null);
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery<any[]>({
@@ -146,6 +147,28 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
     queryKey: ["/api/zones"],
   });
+
+  // Obtener información del usuario autenticado para mostrar companyId
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await apiRequest({
+          url: "/user",
+          method: "GET"
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPendingOrdersUserData(data);
+          console.log("Pending Orders - User data loaded:", data);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    
+    fetchUserData();
+  }, []);
 
   // Fetch pending orders for the selected zone
   const {
@@ -176,6 +199,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       if (userResponse.ok) {
         try {
           const userData = await userResponse.json();
+          setPendingOrdersUserData(userData);
           if (userData.companyId) {
             params.companyId = userData.companyId.toString();
             console.log(`Usando companyId=${userData.companyId} de la sesión del usuario`);
