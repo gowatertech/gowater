@@ -55,6 +55,71 @@ export async function registerRoutes(router: express.Router) {
   // Registrar endpoints para comisiones
   router.use('/commissions', commissionsRoutes);
   
+  // Endpoint de diagnóstico para verificar pedidos pendientes por compañía
+  router.get("/api/diagnostic/pending-orders", async (req, res) => {
+    try {
+      const companyId = parseInt(req.query.companyId as string) || 15; // Default a 15 si no se especifica
+      
+      console.log(`🔍 Diagnóstico: Buscando pedidos pendientes para compañía ${companyId}`);
+      
+      // Contar todos los pedidos pendientes para la compañía
+      const pendingOrdersCount = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(orders)
+        .where(
+          and(
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId)
+          )
+        );
+      
+      // Obtener detalles de los pedidos pendientes
+      const pendingOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          status: orders.status,
+          routeId: orders.routeId,
+          total: orders.total,
+          date: orders.date,
+          companyId: orders.companyId,
+          zoneid: customers.zoneid,
+          customerName: customers.businessname
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(
+          and(
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId),
+            eq(customers.companyId, companyId)
+          )
+        )
+        .limit(50);
+      
+      // Contar los clientes por zona
+      const customersByZone = await db
+        .select({
+          zoneid: customers.zoneid,
+          count: sql`COUNT(*)`
+        })
+        .from(customers)
+        .where(eq(customers.companyId, companyId))
+        .groupBy(customers.zoneid);
+      
+      res.json({ 
+        totalPendingOrders: pendingOrdersCount[0]?.count || 0,
+        pendingOrdersSample: pendingOrders,
+        customerCountByZone: customersByZone
+      });
+    } catch (error) {
+      console.error(`❌ Error en diagnóstico de pedidos pendientes:`, error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Registrar endpoints de pedidos y pedidos recurrentes
   registerRoutesEndpoints(router);
   
