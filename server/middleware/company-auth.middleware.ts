@@ -29,7 +29,7 @@ export function companyAuthMiddleware(req: Request, res: Response, next: NextFun
     });
   }
   
-  // Establecer el companyId en el contexto
+  // Establecer el companyId en el contexto (usar 1 si no hay nada, pero solo como último recurso)
   setCurrentCompanyId(companyId);
   console.log(`✅ CompanyId establecido: ${companyId}`);
 
@@ -58,9 +58,9 @@ export function companyTenantMiddleware(req: Request, res: Response, next: NextF
       setCurrentCompanyId(companyId);
     }
   } else {
-    // Si no hay sesión o no tiene companyId, limpiar el contexto
-    console.log("No hay companyId en el contexto, limpiando contexto")
-    setCurrentCompanyId(undefined);
+    // Si no hay sesión o no tiene companyId, usar valor predeterminado 1
+    console.log("No hay companyId en el contexto, usando valor predeterminado 1")
+    setCurrentCompanyId(1);
   }
   next();
 }
