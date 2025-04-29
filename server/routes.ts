@@ -312,6 +312,7 @@ export async function registerRoutes(router: express.Router) {
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
       
+      // Parse zoneId una sola vez aquí
       const zoneId = parseInt(req.params.id);
       if (isNaN(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
@@ -341,8 +342,8 @@ export async function registerRoutes(router: express.Router) {
           message: "No se ha encontrado un contexto de compañía válido"
         });
       }
-    try {
-      console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
+      
+      // Agregar logs adicionales
       console.log("🔍 Sesión usuario:", req.session?.user ? 
         { id: req.session.user.id, role: req.session.user.role, companyId: req.session.user.companyId } : 
         "No hay sesión de usuario"
@@ -350,37 +351,14 @@ export async function registerRoutes(router: express.Router) {
       console.log("🔍 CompanyId en sesión:", req.session?.companyId || "No hay companyId en sesión");
       console.log("🔍 Headers:", req.headers['user-agent']);
       
-      const zoneId = parseInt(req.params.id);
-      
-      if (isNaN(zoneId)) {
-        console.error("❌ ID de zona inválido:", req.params.id);
-        return res.status(400).json({ error: "ID de zona inválido" });
-      }
-      
-      // Intentar obtener companyId de múltiples fuentes
-      let companyId = getCurrentCompanyId();
-      let companyIdSource = "contexto";
-      console.log("🔄 CompanyId del contexto:", companyId);
-      
-      // Si no está en el contexto, intentar obtenerlo de la sesión
-      if (!companyId && req.session?.companyId) {
-        companyId = req.session.companyId;
-        companyIdSource = "sesión";
-        console.log("🔄 CompanyId obtenido de la sesión:", companyId);
-      }
-      
-      // Si no está en la sesión, intentar obtenerlo del usuario en sesión
-      if (!companyId && req.session?.user?.companyId) {
-        companyId = req.session.user.companyId;
-        companyIdSource = "usuario en sesión";
-        console.log("🔄 CompanyId obtenido del usuario en sesión:", companyId);
-      }
-      
-      // Si no está en la sesión, intentar obtenerlo del query string
-      if (!companyId && req.query.companyId) {
-        companyId = parseInt(req.query.companyId as string);
-        companyIdSource = "query string";
-        console.log("🔄 CompanyId obtenido del query string:", companyId);
+      // Si está en el query string, intentar usarlo como fuente adicional
+      if (req.query.companyId) {
+        const queryCompanyId = parseInt(req.query.companyId as string);
+        if (!isNaN(queryCompanyId)) {
+          companyId = queryCompanyId;
+          companyIdSource = "query string";
+          console.log("🔄 CompanyId obtenido del query string:", companyId);
+        }
       }
       
       console.log("🔐 CompanyId final utilizado:", companyId, `(fuente: ${companyIdSource})`);
