@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 
 // Sub-components
-import PendingOrdersRouteForm from "@/components/routes/PendingOrdersRouteForm";
+import StepRouteForm from "@/components/routes/StepRouteForm";
 import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
 
 // Placeholders para componentes que necesitamos crear
@@ -344,7 +344,7 @@ export default function RoutesPage() {
               <CardDescription>Configurar una nueva ruta basada en pedidos</CardDescription>
             </CardHeader>
             <CardContent>
-              <PendingOrdersRouteForm
+              <StepRouteForm
                 onRouteCreated={handleRouteCreated}
               />
             </CardContent>

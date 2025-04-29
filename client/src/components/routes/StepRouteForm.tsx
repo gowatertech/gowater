@@ -1,47 +1,29 @@
-import { useState, useEffect } from "react";
-import { useTranslation } from "react-i18next";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertRouteSchema } from "@shared/schema";
 import { z } from "zod";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-import { useCompanySettings } from "@/hooks/use-company-settings";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { 
-  Check, 
-  Loader2, 
-  MapPin, 
-  User, 
-  Truck, 
-  Calendar, 
-  Search, 
-  Route, 
-  Clock, 
-  Users,
-  CheckCircle,
-  FileText,
-  Package,
-  ShoppingCart,
-  DollarSign,
-  Map as MapIcon,
-  XCircle
-} from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { apiRequest } from "@/lib/queryClient";
+import { insertRouteSchema } from "@shared/schema";
+import { useCompanySettings } from "@/hooks/use-company-settings";
+import { useToast } from "@/hooks/use-toast";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
+// Components
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+  Card,
+  CardContent,
+  CardHeader,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -49,30 +31,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter 
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
-import { 
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface PendingOrdersRouteFormProps {
+// Icons
+import {
+  Package,
+  MapPin,
+  User,
+  Search,
+  Loader2,
+  XCircle,
+  Clock,
+  Route,
+  DollarSign,
+  CalendarIcon,
+  Check,
+  Map
+} from "lucide-react";
+
+interface StepRouteFormProps {
   onRouteCreated: () => void;
 }
 
@@ -85,6 +79,7 @@ interface Customer {
   coordinates?: string; // Format: "lat,lng"
   municipalityName?: string;
   provinceName?: string;
+  orderId?: number; // Para asociar el cliente con un pedido
 }
 
 interface PendingOrder {
@@ -96,7 +91,7 @@ interface PendingOrder {
   customerAddress: string;
   customerPhone: string;
   coordinates?: string;
-  deliveryCoordinates?: string; // Añadir esta propiedad
+  deliveryCoordinates?: string;
   date: string;
   products: {
     productId: number;
@@ -119,9 +114,11 @@ interface Truck {
   status: string;
 }
 
-export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrdersRouteFormProps) {
+export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   // Definir los pasos del flujo de creación de ruta
   const pasos = {
     SELECCIONAR_ZONA: "seleccionar_zona",
@@ -136,7 +133,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const [optimizedRoute, setOptimizedRoute] = useState<Customer[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  // Usar el hook de usuario actual en lugar del estado
+  
+  // Usar el hook de usuario actual
   const { user: pendingOrdersUserData, isLoading: isLoadingUser } = useCurrentUser();
   
   // Obtener el companyId directamente del servidor
@@ -189,11 +187,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         method: "GET"
       });
       
-      console.log("Pending orders response:", response);
-      
       // Si la respuesta ya está parseada como JSON, usarla directamente
       const data = Array.isArray(response) ? response : [];
-      console.log("Pending orders data:", data);
       
       // Transformar los datos para que coincidan con el formato esperado por el componente
       const transformedOrders = data.map((order: any) => ({
@@ -217,17 +212,17 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   useEffect(() => {
     if (pendingOrdersLoaded && selectedZoneId) {
       console.log(`Filtrando pedidos para zona ID: ${selectedZoneId}`);
+      
       // Filtrar pedidos por la zona seleccionada
       const ordersInZone = pendingOrders.filter(order => {
         // Revisa en diferentes propiedades donde podría estar el ID de la zona
-        const orderZoneId = order.zoneid || order.zoneId || 
-          (order.customer && (order.customer.zoneid || order.customer.zoneId));
+        // Esto es una adaptación - normalmente la API debería devolver una estructura consistente
+        const orderZoneId = order.zoneId || 
+          (order.customer && order.customer.zoneId);
         
-        console.log(`Pedido #${order.id} - zoneId:`, orderZoneId);
         return orderZoneId === selectedZoneId;
       });
       
-      console.log(`Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
       setFilteredPendingOrders(ordersInZone);
       
       // Limpiar la selección de pedidos anterior al cambiar de zona
@@ -306,11 +301,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   // Obtener el companyId de manera dinámica, SIN VALOR POR DEFECTO
   const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
   
-  console.log("🔍 DEPURACIÓN DE COMPANYID EN CLIENTE:");
-  console.log("  - companyData?.companyId:", companyData?.companyId);
-  console.log("  - pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId);
-  console.log("  - currentCompanyId (final):", currentCompanyId);
-  
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
       // Hacemos companyId obligatorio sin valor por defecto
@@ -337,9 +327,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     },
   });
   
-  // Log de depuración para monitorear el companyId
-  console.log("FORM CONFIG - companyId:", Number(currentCompanyId), "- tipo:", typeof Number(currentCompanyId));
-
   // Set a default route name and update companyId when form initializes
   useEffect(() => {
     const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
@@ -348,11 +335,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     // Asegurarnos de que companyId siempre sea un número válido
     const numericCompanyId = Number(currentCompanyId);
     if (!isNaN(numericCompanyId) && numericCompanyId > 0) {
-      console.log("Actualizando companyId en el formulario a:", numericCompanyId, "(convertido a número)");
       form.setValue("companyId", numericCompanyId);
-    } else {
-      console.log("⚠️ ADVERTENCIA: No se ha detectado un ID de compañía válido en el contexto:", currentCompanyId);
-      // Ya no establecemos un valor por defecto, esto forzará al formulario a mostrar un error
     }
   }, [form, currentCompanyId]);
 
@@ -420,10 +403,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   // Convert selected orders to customers for route optimization
   const prepareOrdersForRouteOptimization = () => {
-    // Verificar session y companyId dinámicos
-    const sessionCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
-    console.log("SessionCompanyId en prepareOrdersForRouteOptimization:", sessionCompanyId);
-    
     if (selectedOrders.length === 0) {
       toast({
         variant: "destructive",
@@ -463,7 +442,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
           orderId: order.id, // Añadir el ID del pedido para asociarlo con el cliente
         } as Customer;
         
-        console.log("Cliente para optimización:", customer);
         return customer;
       });
 
@@ -553,78 +531,94 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         return;
       }
       
-      // Start with depot
-      const unvisited = [...customersToVisit];
-      const optimized = [depot];
-
-      // Verificar que todos los clientes tengan coordenadas válidas
-      const invalidCustomers = unvisited.filter(
-        customer => !customer.coordinates || customer.coordinates === "null,null"
-      );
-      
-      if (invalidCustomers.length > 0) {
-        console.warn("Hay clientes sin coordenadas:", invalidCustomers);
-        // Asignar coordenadas predeterminadas para permitir la optimización
-        invalidCustomers.forEach(customer => {
-          // Usar coordenadas de la empresa desde la configuración si están disponibles
-          customer.coordinates = settings?.latitude && settings?.longitude 
-            ? `${settings.latitude},${settings.longitude}` 
-            : undefined;
+      if (!depot.coordinates) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "El almacén principal no tiene coordenadas definidas. Configúrelas en ajustes de compañía.",
         });
+        setIsOptimizing(false);
+        return;
       }
-
+      
+      // Implement nearest neighbor algorithm for route optimization
+      const unvisited = [...customersToVisit];
+      const path: Customer[] = [];
+      let current = depot;
+      
       while (unvisited.length > 0) {
-        const currentPoint = optimized[optimized.length - 1];
-        
-        // Find the closest unvisited point
-        let closestIdx = 0;
-        let closestDistance = Infinity;
+        // Find the nearest customer to the current position
+        let minDistance = Infinity;
+        let nearestIndex = -1;
         
         for (let i = 0; i < unvisited.length; i++) {
-          // Get depot coordinates from company settings
-          const depotCoordinates = settings?.latitude && settings?.longitude 
-            ? `${settings.latitude},${settings.longitude}` 
-            : "";
-            
+          if (!unvisited[i].coordinates) continue;
+          
           const distance = calculateDistance(
-            currentPoint.coordinates || depotCoordinates, 
-            unvisited[i].coordinates || depotCoordinates
+            current.coordinates || "", 
+            unvisited[i].coordinates || ""
           );
           
-          console.log(`Distancia desde ${currentPoint.businessname} hasta ${unvisited[i].businessname}: ${distance} km`);
-          
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closestIdx = i;
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestIndex = i;
           }
         }
         
-        // Add the closest point to our route
-        optimized.push(unvisited[closestIdx]);
-        console.log(`Añadiendo a la ruta: ${unvisited[closestIdx].businessname}`);
-        unvisited.splice(closestIdx, 1);
+        if (nearestIndex === -1) {
+          // No valid customer with coordinates found
+          console.warn("No se encontraron más clientes con coordenadas válidas");
+          break;
+        }
+        
+        // Add nearest customer to path and remove from unvisited
+        current = unvisited[nearestIndex];
+        path.push(current);
+        unvisited.splice(nearestIndex, 1);
       }
       
-      console.log("Ruta optimizada final:", optimized);
+      // Add any remaining customers without coordinates at the end
+      for (const customer of unvisited) {
+        path.push(customer);
+      }
       
-      // Set the optimized route
-      setOptimizedRoute(optimized);
+      // Final optimized path: depot + sorted customers
+      const optimizedPath = path;
       
-      // Calcular distancia total
-      const totalDistance = calculateTotalRouteDistance(optimized);
-      console.log(`Distancia total de la ruta: ${totalDistance.toFixed(2)} km`);
+      // Calculate total distance
+      let totalDistance = 0;
+      let prev = depot;
       
-      // Update stops in form with format esperado por el backend
-      const stops = optimized.map(customer => customer.coordinates || "");
-      form.setValue("stops", stops);
+      for (const customer of optimizedPath) {
+        if (customer.coordinates && prev.coordinates) {
+          totalDistance += calculateDistance(prev.coordinates, customer.coordinates);
+        }
+        prev = customer;
+      }
       
-      // No cambiamos pestaña, ahora se maneja con los pasos del flujo
+      console.log("Total distance:", totalDistance.toFixed(2), "km");
+      console.log("Optimized path:", optimizedPath);
       
-      // Mensaje de éxito
+      // Update the state with optimized route
+      setOptimizedRoute([depot, ...optimizedPath]);
+      
+      // Store selected orders in the optimal order that matches the route
+      const orderedSelectedOrders = optimizedPath.map(customer => {
+        if ('orderId' in customer) {
+          return selectedOrders.find(o => o.id === (customer as any).orderId)!;
+        }
+        return selectedOrders.find(o => o.customerId === customer.id)!;
+      }).filter(Boolean);
+      
+      setSelectedOrders(orderedSelectedOrders);
+      
+      setIsOptimizing(false);
+      
       toast({
         title: "Ruta optimizada",
-        description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes (${totalDistance.toFixed(2)} km)`,
+        description: `Ruta optimizada con ${optimizedPath.length} paradas y ${calculateTotalRouteDistance([depot, ...optimizedPath]).toFixed(2)} km de distancia total.`,
       });
+      
     } catch (error) {
       console.error("Error optimizing route:", error);
       toast({
@@ -632,11 +626,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         title: "Error",
         description: "No se pudo optimizar la ruta. Intenta nuevamente.",
       });
-    } finally {
       setIsOptimizing(false);
     }
   };
-  
+
   // Calculate total route distance in kilometers
   const calculateTotalRouteDistance = (route: Customer[]) => {
     if (route.length < 2) return 0;
@@ -686,20 +679,13 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       
       if (!effectiveCompanyId) {
         // Si no podemos obtener un companyId válido, lanzamos un error y detenemos la ejecución
-        console.error("⚠️ ERROR CRÍTICO: No se pudo obtener el companyId del contexto");
-        console.log("  - companyData:", companyData);
-        console.log("  - pendingOrdersUserData:", pendingOrdersUserData);
-        console.log("  - formData:", routeData);
-        
         throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
       } else {
-        console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión)`);
         // Aseguramos que el companyId sea un número
         routeData.companyId = Number(effectiveCompanyId);
         
         // Verificación adicional
         if (isNaN(routeData.companyId) || routeData.companyId <= 0) {
-          console.error(`⚠️ ERROR: CompanyId inválido después de conversión: ${routeData.companyId}`);
           throw new Error("El ID de la empresa no es válido. Debe ser un número positivo.");
         }
       }
@@ -714,8 +700,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         throw new Error(`Por favor complete todos los campos requeridos: ${missingFields.join(", ")}`);
       }
       
-      console.log("Enviando datos a la API:", routeData);
-      
       try {
         // Usar apiRequest para la comunicación con el servidor
         const result = await apiRequest({
@@ -724,7 +708,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
           data: routeData
         });
         
-        console.log("Ruta creada exitosamente:", result);
         return result;
       } catch (error) {
         console.error("Error al enviar datos de ruta:", error);
@@ -759,7 +742,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       onRouteCreated();
     },
     onError: (error: Error) => {
-      console.error("Error creating route:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -770,23 +752,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   // Handle form submission
   const onSubmit = (data: any) => {
-    console.log("======== INICIO LOG FORMULARIO DE RUTA ========");
-    console.log("¡Formulario enviado! Datos brutos:", data);
-    console.log("Campos críticos:");
-    console.log("- name:", data.name, "tipo:", typeof data.name);
-    console.log("- date:", data.date, "tipo:", typeof data.date);
-    console.log("- driverId:", data.driverId, "tipo:", typeof data.driverId);
-    console.log("- assistantId:", data.assistantId, "tipo:", typeof data.assistantId);
-    console.log("- truckId:", data.truckId, "tipo:", typeof data.truckId);
-    console.log("- companyId:", data.companyId, "tipo:", typeof data.companyId);
-    console.log("Información de contexto:");
-    console.log("- companyData?.companyId:", companyData?.companyId, "tipo:", typeof companyData?.companyId);
-    console.log("- pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId, "tipo:", typeof pendingOrdersUserData?.companyId);
-    console.log("- currentCompanyId:", currentCompanyId, "tipo:", typeof currentCompanyId); 
-    console.log("- selectedOrders.length:", selectedOrders.length);
-    console.log("- optimizedRoute.length:", optimizedRoute?.length || 0);
-    console.log("======== FIN LOG FORMULARIO DE RUTA ========");
-    
     if (selectedOrders.length === 0) {
       toast({
         variant: "destructive",
@@ -809,11 +774,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
     
     if (!effectiveCompanyId) {
-      console.error("⚠️ ERROR CRÍTICO: No se pudo obtener el companyId para la ruta");
-      console.log("  - companyData?.companyId:", companyData?.companyId);
-      console.log("  - pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId);
-      console.log("  - data.companyId:", data.companyId);
-      
       toast({
         variant: "destructive",
         title: "Error",
@@ -826,7 +786,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     const numericCompanyId = Number(effectiveCompanyId);
     
     if (isNaN(numericCompanyId)) {
-      console.error("El companyId no es un número válido:", effectiveCompanyId);
       toast({
         variant: "destructive",
         title: "Error",
@@ -834,8 +793,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       });
       return;
     }
-    
-    console.log(`Usando companyId: ${numericCompanyId} para la ruta (convertido de ${effectiveCompanyId})`);
     
     // Asegurar que tenemos la ruta optimizada
     if (!optimizedRoute || optimizedRoute.length < 2) {
@@ -870,60 +827,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       totalDistance: totalDistance.toFixed(2),
       estimatedDuration: estimatedDuration,
       orderIds: orderIds,
-      companyId: numericCompanyId // Usar el companyId convertido a número
+      companyId: numericCompanyId, // Usar el companyId convertido a número
+      zoneId: selectedZoneId // Agregar el zoneId seleccionado
     };
     
-    // Log detallado de todos los campos para revisión
-    console.log("==================== DETALLE DE CAMPOS A ENVIAR ====================");
-    console.log("name:", routeData.name);
-    console.log("date:", routeData.date);
-    console.log("driverId:", routeData.driverId, "tipo:", typeof routeData.driverId);
-    console.log("assistantId:", routeData.assistantId, "tipo:", typeof routeData.assistantId);
-    console.log("truckId:", routeData.truckId, "tipo:", typeof routeData.truckId);
-    console.log("status:", routeData.status);
-    console.log("isCompleted:", routeData.isCompleted);
-    console.log("deliverySequence:", routeData.deliverySequence);
-    console.log("stops:", routeData.stops);
-    console.log("totalDistance:", routeData.totalDistance, "tipo:", typeof routeData.totalDistance);
-    console.log("estimatedDuration:", routeData.estimatedDuration, "tipo:", typeof routeData.estimatedDuration);
-    console.log("orderIds:", routeData.orderIds);
-    console.log("companyId:", routeData.companyId, "tipo:", typeof routeData.companyId);
-    console.log("==================== FIN DETALLE DE CAMPOS ====================");
-    console.log("JSON completo:", JSON.stringify(routeData, null, 2));
-    
-    // Mostrar datos en una alerta para revisión
-    toast({
-      title: "Datos a enviar",
-      description: (
-        <div className="text-xs space-y-1 max-h-[300px] overflow-auto">
-          <div><strong>name:</strong> {routeData.name}</div>
-          <div><strong>date:</strong> {routeData.date.toString()}</div>
-          <div><strong>driverId:</strong> {routeData.driverId} ({typeof routeData.driverId})</div>
-          <div><strong>assistantId:</strong> {routeData.assistantId} ({typeof routeData.assistantId})</div>
-          <div><strong>truckId:</strong> {routeData.truckId} ({typeof routeData.truckId})</div>
-          <div><strong>companyId:</strong> {routeData.companyId} ({typeof routeData.companyId})</div>
-          <div><strong>status:</strong> {routeData.status}</div>
-          <div><strong>isCompleted:</strong> {String(routeData.isCompleted)}</div>
-          <div><strong>totalDistance:</strong> {routeData.totalDistance}</div>
-          <div><strong>estimatedDuration:</strong> {routeData.estimatedDuration}</div>
-          <div><strong>orderIds:</strong> {JSON.stringify(routeData.orderIds)}</div>
-        </div>
-      ),
-      duration: 15000, // 15 segundos
-    });
-    
-    try {
-      // Llamar a la mutación con los datos en el formato correcto
-      createRouteMutation.mutate(routeData);
-      console.log("Mutación iniciada con éxito");
-    } catch (error) {
-      console.error("Error al iniciar la mutación:", error);
-      toast({
-        variant: "destructive",
-        title: "Error interno",
-        description: "Ha ocurrido un error al procesar el formulario. Por favor, inténtalo de nuevo.",
-      });
-    }
+    // Llamar a la mutación con los datos en el formato correcto
+    createRouteMutation.mutate(routeData);
   };
 
   // Format price to currency
@@ -956,6 +865,16 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     totalValue: getTotalOrdersValue()
   };
 
+  // Create custom marker icon
+  const createIcon = (color: string, label: string) => {
+    return L.divIcon({
+      className: "custom-icon",
+      html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${label}</div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+  };
+
   return (
     <div className="w-full">
       <Card className="mb-3">
@@ -977,7 +896,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                   companyId: companyData?.companyId || pendingOrdersUserData?.companyId || "No definido",
                   role: pendingOrdersUserData?.role || "No definido",
                   pendingOrdersCount: Array.isArray(pendingOrders) ? pendingOrders.length : 0,
-                  filteringMode: "Todos los pedidos pendientes",
+                  filteringMode: selectedZoneId ? `Zona ID: ${selectedZoneId}` : "Todos los pedidos pendientes",
                   selectedOrdersCount: selectedOrders.length,
                   companySettings: settings ? "Configurados" : "No configurados",
                   companyCoordinates: settings?.latitude && settings?.longitude 
@@ -985,8 +904,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                     : "No configuradas",
                   companyIdFromApi: companyData?.companyId || "No disponible"
                 };
-                
-                console.log("Diagnóstico:", diagnosticInfo);
                 
                 // Mostrar la información en una alerta
                 toast({
@@ -1037,25 +954,80 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
           </div>
           
           {/* Contenido específico de cada paso */}
-                className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <Package className="h-3 w-3 mr-0.5" />
-                Pedidos
-              </TabsTrigger>
-              <TabsTrigger 
-                value="review" 
-                className="rounded-none border-b-2 border-transparent px-2 py-1 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                disabled={optimizedRoute.length === 0}
-              >
-                <Check className="h-3 w-3 mr-0.5" />
-                Revisar
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="orders">
-              <div className="p-3">
+          <div className="p-3">
+            {/* PASO 1: SELECCIONAR ZONA */}
+            {pasoActual === pasos.SELECCIONAR_ZONA && (
+              <div>
+                <h3 className="text-sm font-medium mb-3">Selecciona una zona para la ruta</h3>
+                
+                {isLoadingZones ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <FormField
+                      control={form.control}
+                      name="zoneId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Zona <span className="text-destructive">*</span></FormLabel>
+                          <Select 
+                            onValueChange={(val) => {
+                              const numericValue = Number(val);
+                              field.onChange(numericValue);
+                              handleZoneChange(numericValue);
+                            }}
+                            value={field.value?.toString() || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Selecciona una zona" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {zones.length === 0 ? (
+                                <SelectItem value="none" disabled>
+                                  No hay zonas disponibles
+                                </SelectItem>
+                              ) : (
+                                zones.map((zone) => (
+                                  <SelectItem key={zone.id} value={zone.id.toString()}>
+                                    {zone.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-[10px]">
+                            Zona a la que pertenece esta ruta
+                          </FormDescription>
+                          <FormMessage className="text-[10px]" />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end mt-4">
+                      <Button
+                        onClick={avanzarAlSiguientePaso}
+                        disabled={!selectedZoneId}
+                        className="h-8 text-xs"
+                      >
+                        Siguiente
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* PASO 2: SELECCIONAR PEDIDOS */}
+            {pasoActual === pasos.SELECCIONAR_PEDIDOS && (
+              <div>
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-sm font-medium">Selecciona pedidos</h3>
+                  <h3 className="text-sm font-medium">Selecciona pedidos para la ruta</h3>
                   <div className="flex items-center space-x-1">
                     <div className="relative">
                       <Search className="h-3 w-3 absolute left-2 top-[7px] text-gray-400" />
@@ -1076,7 +1048,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                     </div>
                   </div>
                 </div>
-
+                
                 <div className="mb-2">
                   <div className="flex items-center space-x-2 text-xs">
                     <Badge variant="outline" className="px-1.5 py-0.5 text-xs h-5">
@@ -1087,7 +1059,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                     </Badge>
                   </div>
                 </div>
-
+                
                 <ScrollArea className="h-[350px] pr-2">
                   {isLoadingPendingOrders ? (
                     Array.from({ length: 3 }).map((_, i) => (
@@ -1106,22 +1078,19 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       <Package className="h-8 w-8 mx-auto text-gray-300 mb-1" />
                       <h3 className="text-sm font-medium text-gray-700">No hay pedidos pendientes</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {selectedZoneId ? 
-                          "No hay pedidos pendientes disponibles en esta zona." : 
-                          "No hay pedidos pendientes disponibles."}
+                        No hay pedidos pendientes disponibles en esta zona.
                       </p>
-                      {selectedZoneId && (
-                        <Button 
-                          variant="outline" 
-                          className="mt-2 text-xs py-1 h-7"
-                          onClick={() => {
-                            setSelectedZoneId(null);
-                            form.setValue("zoneId", undefined);
-                          }}
-                        >
-                          Ver todas las zonas
-                        </Button>
-                      )}
+                      <Button 
+                        variant="outline" 
+                        className="mt-2 text-xs py-1 h-7"
+                        onClick={() => {
+                          setSelectedZoneId(null);
+                          form.setValue("zoneId", undefined);
+                          setPasoActual(pasos.SELECCIONAR_ZONA);
+                        }}
+                      >
+                        Seleccionar otra zona
+                      </Button>
                     </div>
                   ) : (
                     filteredPendingOrders
@@ -1203,471 +1172,451 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       ))
                   )}
                 </ScrollArea>
-
-                <div className="flex justify-end mt-3">
-                  <Button 
-                    onClick={prepareOrdersForRouteOptimization}
-                    disabled={isOptimizing || selectedOrders.length === 0}
+                
+                <div className="flex justify-between mt-3">
+                  <Button
+                    variant="outline"
+                    onClick={volverAlPasoAnterior}
                     className="h-7 text-xs px-2"
                   >
-                    {isOptimizing ? (
-                      <>
-                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                        Optimizando...
-                      </>
-                    ) : (
-                      'Optimizar Ruta'
-                    )}
+                    Volver
+                  </Button>
+                  
+                  <Button 
+                    onClick={avanzarAlSiguientePaso}
+                    disabled={selectedOrders.length === 0}
+                    className="h-7 text-xs px-2"
+                  >
+                    Siguiente
                   </Button>
                 </div>
               </div>
-            </TabsContent>
-
-            <TabsContent value="review">
-              <div className="p-3">
-                <div className="mb-3">
-                  <h3 className="text-sm font-medium mb-1">Revisar y confirmar ruta</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Revisa los detalles y selecciona conductor y vehículo para finalizar.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <Card className="p-2">
-                    <div className="flex items-center">
-                      <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
-                      <span className="text-xs">Duración</span>
-                    </div>
-                    <div className="text-sm font-bold mt-1">
-                      {routeStats.estimatedDuration} min
-                    </div>
-                  </Card>
-                  <Card className="p-2">
-                    <div className="flex items-center">
-                      <Route className="h-3 w-3 mr-1 text-muted-foreground" />
-                      <span className="text-xs">Distancia</span>
-                    </div>
-                    <div className="text-sm font-bold mt-1">
-                      {routeStats.totalDistance}
-                    </div>
-                  </Card>
-                  <Card className="p-2">
-                    <div className="flex items-center">
-                      <ShoppingCart className="h-3 w-3 mr-1 text-muted-foreground" />
-                      <span className="text-xs">Valor</span>
-                    </div>
-                    <div className="text-sm font-bold mt-1">
-                      {routeStats.totalValue}
-                    </div>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-                  <div className="col-span-1">
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2" autoComplete="off">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-xs">Nombre de la ruta</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="Nombre de la ruta" 
-                                  className="h-7 text-xs"
-                                  {...field} 
-                                />
-                              </FormControl>
-                              <FormMessage className="text-[10px]" />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="zoneId"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-xs">Zona</FormLabel>
-                              <Select 
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  handleZoneChange(Number(value));
-                                }} 
-                                defaultValue={field.value ? String(field.value) : undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue placeholder="Selecciona zona" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {isLoadingZones ? (
-                                    <div className="p-1">
-                                      <Skeleton className="h-4 w-full" />
-                                    </div>
-                                  ) : zones.length === 0 ? (
-                                    <div className="p-1 text-center text-xs text-gray-500">
-                                      No hay zonas disponibles
-                                    </div>
-                                  ) : (
-                                    zones.map((zone: any) => (
-                                      <SelectItem 
-                                        key={zone.id} 
-                                        value={String(zone.id)}
-                                        className="text-xs"
-                                      >
-                                        {zone.name}
-                                      </SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage className="text-[10px]" />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="driverId"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-xs">Conductor</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value ? String(field.value) : undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue placeholder="Selecciona conductor" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {isLoadingDrivers ? (
-                                    <div className="p-1">
-                                      <Skeleton className="h-4 w-full" />
-                                    </div>
-                                  ) : drivers.length === 0 ? (
-                                    <div className="p-1 text-center text-xs text-gray-500">
-                                      No hay conductores disponibles
-                                    </div>
-                                  ) : (
-                                    drivers.map((driver: any) => (
-                                      <SelectItem 
-                                        key={driver.id} 
-                                        value={String(driver.id)}
-                                        className="text-xs"
-                                      >
-                                        {driver.name}
-                                      </SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage className="text-[10px]" />
-                            </FormItem>
-                          )}
-                        />
-
-
-
-                        <FormField
-                          control={form.control}
-                          name="assistantId"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-xs">Asistente (opcional)</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value ? String(field.value) : undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue placeholder="Selecciona asistente" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="null" className="text-xs">Ninguno</SelectItem>
-                                  {isLoadingAssistants ? (
-                                    <div className="p-1">
-                                      <Skeleton className="h-4 w-full" />
-                                    </div>
-                                  ) : assistants.length === 0 ? (
-                                    <div className="p-1 text-center text-xs text-gray-500">
-                                      No hay asistentes disponibles
-                                    </div>
-                                  ) : (
-                                    assistants.map((assistant: any) => (
-                                      <SelectItem 
-                                        key={assistant.id} 
-                                        value={String(assistant.id)}
-                                        className="text-xs"
-                                      >
-                                        {assistant.name}
-                                      </SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage className="text-[10px]" />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="truckId"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-xs">Vehículo</FormLabel>
-                              <Select 
-                                onValueChange={field.onChange} 
-                                defaultValue={field.value ? String(field.value) : undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-7 text-xs">
-                                    <SelectValue placeholder="Selecciona vehículo" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="null" className="text-xs">Ninguno</SelectItem>
-                                  {isLoadingTrucks ? (
-                                    <div className="p-1">
-                                      <Skeleton className="h-4 w-full" />
-                                    </div>
-                                  ) : trucks.length === 0 ? (
-                                    <div className="p-1 text-center text-xs text-gray-500">
-                                      No hay vehículos disponibles
-                                    </div>
-                                  ) : (
-                                    trucks.map((truck) => (
-                                      <SelectItem 
-                                        key={truck.id} 
-                                        value={String(truck.id)}
-                                        className="text-xs"
-                                      >
-                                        {truck.brand} {truck.model} - {truck.plate}
-                                      </SelectItem>
-                                    ))
-                                  )}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage className="text-[10px]" />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="border rounded-md p-2 mb-2">
-                          <h4 className="text-xs font-medium mb-1">Pedidos en esta ruta</h4>
-                          <ScrollArea className="h-[100px]">
-                            {selectedOrders.map(order => (
-                              <div key={order.id} className="flex items-center justify-between mb-1 text-xs">
-                                <div className="flex items-center">
-                                  <Package className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
-                                  <span className="truncate max-w-[100px]">#{order.id} - {order.customerName}</span>
-                                </div>
-                                <Badge variant="outline" className="text-[10px] py-0 px-1 h-4">
-                                  {formatCurrency(Number(order.total))}
-                                </Badge>
-                              </div>
-                            ))}
-                          </ScrollArea>
-                        </div>
-
-                        {/* Campo oculto para la ruta optimizada */}
-                        <input 
-                          type="hidden" 
-                          name="optimizedRoute" 
-                          value={JSON.stringify(optimizedRoute)} 
-                        />
-                        
-                        {/* Campo oculto para companyId */}
-                        <input 
-                          type="hidden" 
-                          name="companyId" 
-                          value={companyData?.companyId || pendingOrdersUserData?.companyId || ""} 
-                        />
-                        
-                        {/* Campo oculto para zoneId */}
-                        <input 
-                          type="hidden" 
-                          name="zoneId" 
-                          value={selectedZoneId || ""} 
-                        />
-
-                        <div className="flex justify-between pt-2">
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={() => setSelectedTab("orders")}
-                            className="h-7 text-xs px-2"
-                          >
-                            Atrás
-                          </Button>
-                          
-                          <Button 
-                            type="button"
-                            disabled={createRouteMutation.isPending}
-                            className="h-7 text-xs px-2 bg-primary hover:bg-primary/90"
-                            onClick={() => {
-                              console.log("Botón 'Crear Ruta' clickeado manualmente");
-                              
-                              // Mostrar todos los valores actuales del formulario
-                              console.log("TODOS LOS VALORES DEL FORMULARIO:", form.getValues());
-                              
-                              // Forzar validación del formulario
-                              form.trigger().then(isValid => {
-                                console.log("Validación de formulario:", isValid, "Errores:", form.formState.errors);
-                                // Mostrar todos los errores de validación en detalle
-                                Object.entries(form.formState.errors).forEach(([fieldName, error]) => {
-                                  console.log(`Error en campo ${fieldName}:`, error);
-                                  toast({
-                                    variant: "destructive",
-                                    title: `Error en campo ${fieldName}`,
-                                    description: `El campo ${fieldName} es requerido o contiene un error.`,
-                                  });
-                                });
-                                
-                                if (isValid && selectedOrders.length > 0 && optimizedRoute.length > 0) {
-                                  console.log("Formulario válido, enviando datos manualmente...");
-                                  const data = form.getValues();
-                                  
-                                  // Asegurarnos que companyId está establecido de manera dinámica
-                                  const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
-                                  if (!data.companyId && effectiveCompanyId) {
-                                    console.log(`Aplicando companyId: ${effectiveCompanyId} obtenido dinámicamente`);
-                                    data.companyId = effectiveCompanyId;
-                                  }
-                                  
-                                  console.log("Datos preparados:", data);
-                                  onSubmit(data);
-                                } else {
-                                  if (selectedOrders.length === 0) {
-                                    toast({
-                                      variant: "destructive",
-                                      title: "Error en formulario",
-                                      description: "Debes seleccionar al menos un pedido para la ruta."
-                                    });
-                                  } else if (optimizedRoute.length === 0) {
-                                    toast({
-                                      variant: "destructive",
-                                      title: "Error en formulario",
-                                      description: "Debes optimizar la ruta antes de crearla."
-                                    });
-                                  } else {
-                                    console.error("Formulario inválido. Errores:", form.formState.errors);
-                                    toast({
-                                      variant: "destructive",
-                                      title: "Error en formulario",
-                                      description: "Por favor, complete correctamente todos los campos requeridos."
-                                    });
-                                  }
-                                }
-                              });
-                            }}
-                          >
-                            {createRouteMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                Creando...
-                              </>
-                            ) : (
-                              "Crear Ruta"
-                            )}
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
+            )}
+            
+            {/* PASO 3: OPTIMIZAR RUTA */}
+            {pasoActual === pasos.OPTIMIZAR_RUTA && (
+              <div>
+                <h3 className="text-sm font-medium mb-2">Optimizando ruta para entrega</h3>
+                
+                {isOptimizing ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <p className="mt-2 text-sm">Optimizando la ruta para los pedidos seleccionados...</p>
                   </div>
-
-                  <div className="col-span-2">
-                    <div className="border rounded-md overflow-hidden h-[250px]">
-                      <ResponsiveMapContainer>
-                        <MapContainer 
-                          center={getMapCenter() as [number, number]} 
-                          zoom={10} 
-                          style={{ height: "100%", width: "100%" }}
-                        >
-                          <TileLayer
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          />
-
-                          <MapCenterFixer />
-                          
-                          {optimizedRoute.length > 0 && (
-                            <>
-                              {/* Markers for each point */}
-                              {optimizedRoute.map((point, index) => {
-                                if (!point.coordinates) return null;
+                ) : (
+                  <>
+                    {optimizedRoute.length > 0 ? (
+                      <>
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <Card className="p-2">
+                            <div className="flex items-center">
+                              <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                              <span className="text-xs">Duración estimada</span>
+                            </div>
+                            <div className="text-sm font-bold mt-1">
+                              {routeStats.estimatedDuration} min
+                            </div>
+                          </Card>
+                          <Card className="p-2">
+                            <div className="flex items-center">
+                              <Route className="h-3 w-3 mr-1 text-muted-foreground" />
+                              <span className="text-xs">Distancia</span>
+                            </div>
+                            <div className="text-sm font-bold mt-1">
+                              {routeStats.totalDistance}
+                            </div>
+                          </Card>
+                          <Card className="p-2">
+                            <div className="flex items-center">
+                              <DollarSign className="h-3 w-3 mr-1 text-muted-foreground" />
+                              <span className="text-xs">Valor total</span>
+                            </div>
+                            <div className="text-sm font-bold mt-1">
+                              {routeStats.totalValue}
+                            </div>
+                          </Card>
+                        </div>
+                        
+                        <div className="mb-3">
+                          <h4 className="text-xs font-medium mb-2">Vista previa de ruta</h4>
+                          <div className="h-[250px] border rounded-md overflow-hidden">
+                            <MapContainer 
+                              center={getMapCenter()} 
+                              zoom={11} 
+                              style={{ height: '100%', width: '100%' }}
+                            >
+                              <TileLayer
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                              />
+                              
+                              {optimizedRoute.map((customer, index) => {
+                                if (!customer.coordinates) return null;
                                 
-                                const [lat, lng] = point.coordinates.split(',').map(parseFloat);
+                                const [lat, lng] = customer.coordinates
+                                  .split(',')
+                                  .map(parseFloat);
+                                  
                                 if (isNaN(lat) || isNaN(lng)) return null;
                                 
-                                // Almacén en verde, el resto en azul
-                                const icon = index === 0 
-                                  ? new L.Icon({
-                                      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                                      iconSize: [20, 33], // Smaller icons
-                                      iconAnchor: [10, 33],
-                                      popupAnchor: [1, -34],
-                                    })
-                                  : new L.Icon({
-                                      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-                                      iconSize: [20, 33], // Smaller icons
-                                      iconAnchor: [10, 33],
-                                      popupAnchor: [1, -34],
-                                    });
+                                const isDepot = index === 0;
+                                const icon = createIcon(isDepot ? '#1d4ed8' : '#059669', isDepot ? '0' : index.toString());
                                 
                                 return (
-                                  <Marker 
-                                    key={`point-${index}`} 
+                                  <Marker
+                                    key={`${customer.id}-${index}`}
                                     position={[lat, lng]}
                                     icon={icon}
                                   >
                                     <Popup>
                                       <div className="text-xs">
-                                        <strong>{point.businessname}</strong><br />
-                                        {index === 0 
-                                          ? 'Almacén (Parada 0)' 
-                                          : index === 1 
-                                            ? 'Parada 1'
-                                            : index === 2
-                                              ? 'Parada 2'
-                                              : `Parada ${index}`
-                                        }
+                                        <div className="font-semibold">
+                                          {isDepot ? 'Depósito' : `Parada ${index}`}
+                                        </div>
+                                        <div>{customer.businessname}</div>
                                       </div>
                                     </Popup>
                                   </Marker>
                                 );
                               })}
                               
-                              {/* Polyline for the route */}
-                              <Polyline 
-                                positions={
-                                  optimizedRoute
-                                    .filter(point => point.coordinates)
-                                    .map(point => {
-                                      const [lat, lng] = point.coordinates!.split(',').map(parseFloat);
-                                      return [lat, lng];
-                                    }) as [number, number][]
-                                }
-                                color="#0088FE"
-                                weight={2}
-                                opacity={0.7}
-                              />
-                            </>
-                          )}
-                        </MapContainer>
-                      </ResponsiveMapContainer>
-                    </div>
-                  </div>
-                </div>
+                              {/* Draw route lines between points */}
+                              {optimizedRoute.length > 1 && (
+                                <Polyline
+                                  positions={optimizedRoute
+                                    .filter(customer => customer.coordinates)
+                                    .map(customer => {
+                                      const [lat, lng] = customer.coordinates!
+                                        .split(',')
+                                        .map(parseFloat);
+                                      return [lat, lng] as [number, number];
+                                    })}
+                                  color="#1d4ed8"
+                                  weight={3}
+                                  opacity={0.7}
+                                  dashArray="5,10"
+                                />
+                              )}
+                              
+                              <MapCenterFixer />
+                            </MapContainer>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between mt-3">
+                          <Button
+                            variant="outline"
+                            onClick={volverAlPasoAnterior}
+                            className="h-7 text-xs px-2"
+                          >
+                            Volver
+                          </Button>
+                          
+                          <Button 
+                            onClick={avanzarAlSiguientePaso}
+                            className="h-7 text-xs px-2"
+                          >
+                            Siguiente
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-6">
+                        <Route className="h-8 w-8 mx-auto text-gray-300 mb-1" />
+                        <h3 className="text-sm font-medium text-gray-700">No hay ruta optimizada</h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Haz clic en optimizar para calcular la mejor ruta de entrega.
+                        </p>
+                        <div className="mt-3 flex justify-center">
+                          <Button 
+                            onClick={prepareOrdersForRouteOptimization}
+                            className="h-7 text-xs px-3"
+                          >
+                            Optimizar Ruta
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+            
+            {/* PASO 4: COMPLETAR DATOS */}
+            {pasoActual === pasos.COMPLETAR_DATOS && (
+              <div>
+                <h3 className="text-sm font-medium mb-3">Completa los datos de la ruta</h3>
+                
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+                    <div className="grid md:grid-cols-2 gap-x-3 gap-y-1">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Nombre de la ruta</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="Nombre para identificar la ruta" 
+                                className="h-8 text-xs" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription className="text-[10px]">
+                              Un nombre descriptivo para identificar la ruta
+                            </FormDescription>
+                            <FormMessage className="text-[10px]" />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="date"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                            <FormLabel className="text-xs">Fecha programada</FormLabel>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button
+                                    variant={"outline"}
+                                    className="h-8 pl-3 text-left font-normal text-xs"
+                                  >
+                                    {field.value ? (
+                                      format(field.value, "PPP", { locale: es })
+                                    ) : (
+                                      <span>Selecciona una fecha</span>
+                                    )}
+                                    <CalendarIcon className="ml-auto h-3 w-3 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={field.onChange}
+                                  disabled={(date) => date < new Date("1900-01-01")}
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                            <FormDescription className="text-[10px]">
+                              Fecha en que se realizará la ruta
+                            </FormDescription>
+                            <FormMessage className="text-[10px]" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-x-3 gap-y-1">
+                      <FormField
+                        control={form.control}
+                        name="driverId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Conductor <span className="text-destructive">*</span></FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value?.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Selecciona un conductor" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {isLoadingDrivers ? (
+                                  <SelectItem value="loading" disabled>
+                                    Cargando conductores...
+                                  </SelectItem>
+                                ) : drivers.length === 0 ? (
+                                  <SelectItem value="none" disabled>
+                                    No hay conductores disponibles
+                                  </SelectItem>
+                                ) : (
+                                  drivers.map((driver) => (
+                                    <SelectItem key={driver.id} value={driver.id.toString()}>
+                                      {driver.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription className="text-[10px]">
+                              Conductor asignado a esta ruta
+                            </FormDescription>
+                            <FormMessage className="text-[10px]" />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="assistantId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Ayudante</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange}
+                              value={field.value?.toString() || "null"}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Selecciona un ayudante (opcional)" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="null">Sin ayudante</SelectItem>
+                                {isLoadingAssistants ? (
+                                  <SelectItem value="loading" disabled>
+                                    Cargando ayudantes...
+                                  </SelectItem>
+                                ) : assistants.length === 0 ? (
+                                  <SelectItem value="none" disabled>
+                                    No hay ayudantes disponibles
+                                  </SelectItem>
+                                ) : (
+                                  assistants.map((assistant) => (
+                                    <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                                      {assistant.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription className="text-[10px]">
+                              Ayudante opcional para esta ruta
+                            </FormDescription>
+                            <FormMessage className="text-[10px]" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-x-3 gap-y-1">
+                      <FormField
+                        control={form.control}
+                        name="truckId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Vehículo</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange}
+                              value={field.value?.toString() || "null"}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Selecciona un vehículo (opcional)" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="null">Sin vehículo asignado</SelectItem>
+                                {isLoadingTrucks ? (
+                                  <SelectItem value="loading" disabled>
+                                    Cargando vehículos...
+                                  </SelectItem>
+                                ) : trucks.length === 0 ? (
+                                  <SelectItem value="none" disabled>
+                                    No hay vehículos disponibles
+                                  </SelectItem>
+                                ) : (
+                                  trucks.map((truck) => (
+                                    <SelectItem key={truck.id} value={truck.id.toString()}>
+                                      {truck.plate} - {truck.brand} {truck.model}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription className="text-[10px]">
+                              Vehículo para realizar la ruta
+                            </FormDescription>
+                            <FormMessage className="text-[10px]" />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="zoneId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Zona <span className="text-destructive">*</span></FormLabel>
+                            <Select 
+                              onValueChange={(val) => {
+                                const numericValue = Number(val);
+                                field.onChange(numericValue);
+                                handleZoneChange(numericValue);
+                              }}
+                              value={field.value?.toString() || ""}
+                              disabled
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-8 text-xs bg-muted">
+                                  <SelectValue placeholder="Selecciona una zona" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {isLoadingZones ? (
+                                  <SelectItem value="loading" disabled>
+                                    Cargando zonas...
+                                  </SelectItem>
+                                ) : zones.length === 0 ? (
+                                  <SelectItem value="none" disabled>
+                                    No hay zonas disponibles
+                                  </SelectItem>
+                                ) : (
+                                  zones.map((zone) => (
+                                    <SelectItem key={zone.id} value={zone.id.toString()}>
+                                      {zone.name}
+                                    </SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription className="text-[10px]">
+                              Zona a la que pertenece esta ruta (bloqueado después de seleccionar)
+                            </FormDescription>
+                            <FormMessage className="text-[10px]" />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    
+                    <div className="flex justify-between mt-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-8 text-xs"
+                        onClick={volverAlPasoAnterior}
+                      >
+                        Volver
+                      </Button>
+                      
+                      <Button 
+                        type="submit"
+                        className="h-8 text-xs"
+                        disabled={createRouteMutation.isPending}
+                      >
+                        {createRouteMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            Creando Ruta...
+                          </>
+                        ) : (
+                          'Crear Ruta'
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
