@@ -204,16 +204,28 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         // Construir parámetros basados en el modo
         const params: Record<string, any> = {};
         
-        if (useDebugMode) {
-          params.debug = "true";
-          if (debugCompanyId) {
-            params.companyId = debugCompanyId.toString();
-            console.log(`MODO DEBUG: Solicitando pedidos con companyId=${debugCompanyId}`);
-          } else {
-            console.log(`MODO DEBUG: Solicitando pedidos sin companyId específico`);
+        // Siempre incluir el modo debug para asegurar el manejo correcto del companyId
+        params.debug = "true";
+        
+        // Si tenemos un companyId específico en modo debug, usarlo
+        if (useDebugMode && debugCompanyId) {
+          params.companyId = debugCompanyId.toString();
+          console.log(`MODO DEBUG: Solicitando pedidos con companyId=${debugCompanyId}`);
+        } else if (userResponse.ok) {
+          // Si tenemos sesión activa, intentar obtener el companyId de la respuesta
+          try {
+            const userData = await userResponse.json();
+            if (userData.companyId) {
+              params.companyId = userData.companyId.toString();
+              console.log(`Usando companyId=${userData.companyId} de la sesión del usuario`);
+            }
+          } catch (e) {
+            console.warn("No se pudo obtener companyId del usuario:", e);
           }
         } else {
-          console.log(`Solicitando pedidos pendientes con sesión activa para zona ${selectedZone}`);
+          // Si no hay sesión ni companyId específico, usar un valor predeterminado (solo para desarrollo)
+          params.companyId = "1"; // Usar companyId=1 como fallback para desarrollo
+          console.log(`FALLBACK: Usando companyId=1 por defecto (solo para desarrollo)`);
         }
         
         // Usar el formato de objeto para apiRequest

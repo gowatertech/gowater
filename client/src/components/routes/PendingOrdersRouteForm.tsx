@@ -161,13 +161,40 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       console.log(`Fetching pending orders for zone ${selectedZone}`);
       
       // Usar el formato de objeto para apiRequest - sin hardcoding
+      // Obtener información del usuario primero para obtener su companyId
+      const userResponse = await apiRequest({
+        url: "/user",
+        method: "GET"
+      });
+      
+      // Preparar parámetros con modo debug activado
+      const params: Record<string, any> = {
+        debug: "true"
+      };
+      
+      // Si tenemos sesión de usuario, intentar obtener el companyId
+      if (userResponse.ok) {
+        try {
+          const userData = await userResponse.json();
+          if (userData.companyId) {
+            params.companyId = userData.companyId.toString();
+            console.log(`Usando companyId=${userData.companyId} de la sesión del usuario`);
+          }
+        } catch (e) {
+          console.warn("No se pudo obtener companyId del usuario:", e);
+        }
+      }
+      
+      // Usar fallback para desarrollo si no hay companyId
+      if (!params.companyId) {
+        params.companyId = "1"; // Fallback para desarrollo
+        console.log("FALLBACK: Usando companyId=1 por defecto (solo para desarrollo)");
+      }
+      
       const response = await apiRequest({
         url: `/zones/${selectedZone}/pending-orders`,
         method: "GET",
-        params: {
-          debug: "true"
-          // No agregamos companyId explícitamente, el backend lo obtendrá de la sesión
-        }
+        params
       });
       
       console.log("Pending orders response:", response);
