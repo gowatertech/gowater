@@ -635,7 +635,22 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   // Handle form submission
   const onSubmit = (data: any) => {
-    console.log("¡Formulario enviado! Datos:", data);
+    console.log("======== INICIO LOG FORMULARIO DE RUTA ========");
+    console.log("¡Formulario enviado! Datos brutos:", data);
+    console.log("Campos críticos:");
+    console.log("- name:", data.name, "tipo:", typeof data.name);
+    console.log("- date:", data.date, "tipo:", typeof data.date);
+    console.log("- driverId:", data.driverId, "tipo:", typeof data.driverId);
+    console.log("- assistantId:", data.assistantId, "tipo:", typeof data.assistantId);
+    console.log("- truckId:", data.truckId, "tipo:", typeof data.truckId);
+    console.log("- companyId:", data.companyId, "tipo:", typeof data.companyId);
+    console.log("Información de contexto:");
+    console.log("- companyData?.companyId:", companyData?.companyId, "tipo:", typeof companyData?.companyId);
+    console.log("- pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId, "tipo:", typeof pendingOrdersUserData?.companyId);
+    console.log("- currentCompanyId:", currentCompanyId, "tipo:", typeof currentCompanyId); 
+    console.log("- selectedOrders.length:", selectedOrders.length);
+    console.log("- optimizedRoute.length:", optimizedRoute?.length || 0);
+    console.log("======== FIN LOG FORMULARIO DE RUTA ========");
     
     if (selectedOrders.length === 0) {
       toast({
