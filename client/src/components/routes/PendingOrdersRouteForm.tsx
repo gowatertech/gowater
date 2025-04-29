@@ -551,11 +551,23 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       // Get order IDs from selected orders
       const orderIds = selectedOrders.map(order => order.id);
       
-      // SOLUCIÓN TEMPORAL: Usar una compañía fija para pruebas
-      const currentCompanyId = 1;
+      // Obtener el companyId desde:
+      // 1. Los datos de la empresa recibidos
+      // 2. Los datos del usuario (si tiene companyId)
+      // 3. Si todo falla, usar el valor fijo de respaldo
+      let effectiveCompanyId = companyData?.companyId;
       
-      console.log("⚠️ USANDO COMPANYID FIJO (1) PARA PRUEBAS");
-      console.log("CompanyId fijo:", currentCompanyId);
+      if (!effectiveCompanyId && pendingOrdersUserData?.companyId) {
+        effectiveCompanyId = pendingOrdersUserData.companyId;
+        console.log("Usando companyId del usuario:", effectiveCompanyId);
+      }
+      
+      if (!effectiveCompanyId) {
+        effectiveCompanyId = 1; // Respaldo
+        console.log("⚠️ USANDO COMPANYID FIJO (1) PARA PRUEBAS");
+      }
+      
+      console.log("CompanyId efectivo:", effectiveCompanyId);
       console.log("Datos de usuario:", pendingOrdersUserData);
       console.log("Datos de compañía:", companyData);
       
@@ -586,57 +598,36 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         totalDistance: totalDistance.toFixed(2),
         estimatedDuration: estimatedDuration,
         orderIds: orderIds, // Pass order IDs to assign to this route
-        companyId: currentCompanyId // Añadir companyId automáticamente
+        companyId: effectiveCompanyId // Añadir companyId determinado automáticamente
       };
       
       console.log("Enviando datos de ruta con companyId:", routeData);
       
       try {
-        // Realizar una llamada más directa y robusta a la API
-        const response = await fetch('/api/routes', {
+        // Usar queryClient para una mejor integración con el sistema multi-tenant
+        const result = await apiRequest({
+          url: '/api/routes',
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(routeData),
-          credentials: 'include'
+          data: routeData
         });
         
-        console.log("Respuesta del servidor:", response.status, response.statusText);
-        
-        // Si la respuesta no es exitosa, intentamos obtener detalles del error
-        if (!response.ok) {
-          let errorMessage = `Error al crear la ruta (${response.status})`;
-          
-          try {
-            // Intentar obtener el mensaje de error del cuerpo de la respuesta
-            const errorData = await response.json();
-            console.error("Detalles del error:", errorData);
-            errorMessage = errorData.error || errorData.message || errorMessage;
-          } catch (parseError) {
-            // Si no podemos analizar como JSON, intentamos obtener el texto
-            try {
-              const errorText = await response.text();
-              console.error("Texto del error:", errorText);
-              if (errorText) errorMessage += `: ${errorText}`;
-            } catch (textError) {
-              console.error("No se pudo obtener detalles del error");
-            }
-          }
-          
-          throw new Error(errorMessage);
-        }
-        
-        // Intentar analizar la respuesta como JSON
-        const result = await response.json();
         console.log("Ruta creada exitosamente:", result);
         return result;
       } catch (error) {
         console.error("Error al enviar datos de ruta:", error);
-        throw error;
+        
+        // Intentar capturar mensajes de error más específicos
+        let errorMessage = "Error al crear la ruta";
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'object' && error !== null) {
+          // @ts-ignore
+          errorMessage = error.message || error.error || JSON.stringify(error);
+        }
+        
+        throw new Error(errorMessage);
       }
-
     },
     onSuccess: () => {
       toast({

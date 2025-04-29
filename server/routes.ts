@@ -1551,10 +1551,22 @@ export async function registerRoutes(router: express.Router) {
     try {
       console.log("POST /api/routes - Datos recibidos:", req.body);
       
-      // SOLUCIÓN TEMPORAL: Usar un companyId fijo para pruebas
-      const companyId = 1;
+      // Obtener el companyId del contexto
+      const companyId = getCurrentCompanyId();
       
-      console.log("⚠️ USANDO COMPANYID FIJO (1) EN EL ENDPOINT DE RUTAS");
+      console.log(`POST /api/routes - Usando companyId=${companyId} del contexto`);
+      
+      // Verificar que tengamos un companyId válido
+      if (!companyId) {
+        console.error("❌ Error: No se encontró companyId en contexto para crear la ruta");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
+        });
+      }
+      
+      // Prioritizar el companyId del body si está presente (para compatibilidad con clientes existentes)
+      const effectiveCompanyId = req.body.companyId || companyId;
       
       // Requerimos conductor y opcionales asistente y camión
       const routeData = {
@@ -1563,7 +1575,7 @@ export async function registerRoutes(router: express.Router) {
         driverId: Number(req.body.driverId),
         assistantId: req.body.assistantId ? Number(req.body.assistantId) : null,
         truckId: req.body.truckId ? Number(req.body.truckId) : null,
-        companyId: companyId, // Usar companyId de la sesión
+        companyId: effectiveCompanyId, // Usar companyId del contexto o del body
         status: "pending",
         isCompleted: false,
         // Campos opcionales si están presentes
@@ -1602,7 +1614,7 @@ export async function registerRoutes(router: express.Router) {
             .where(
               and(
                 eq(orders.id, Number(orderId)),
-                eq(orders.companyId, companyId)
+                eq(orders.companyId, effectiveCompanyId)
               )
             );
         }
