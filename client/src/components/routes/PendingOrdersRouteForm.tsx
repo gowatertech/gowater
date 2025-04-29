@@ -189,15 +189,18 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     },
   });
 
-  // Obtener el companyId de manera dinámica
-  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || 1;
+  // Obtener el companyId de manera dinámica, SIN VALOR POR DEFECTO
+  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
   
-  console.log("🔄 Usando companyId dinámico:", currentCompanyId);
+  console.log("🔍 DEPURACIÓN DE COMPANYID EN CLIENTE:");
+  console.log("  - companyData?.companyId:", companyData?.companyId);
+  console.log("  - pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId);
+  console.log("  - currentCompanyId (final):", currentCompanyId);
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
-      // Hacemos opcionales los campos que podrían causar problemas
-      companyId: z.coerce.number().default(currentCompanyId || 1),
+      // Hacemos companyId obligatorio sin valor por defecto
+      companyId: z.coerce.number().positive("El ID de compañía debe ser un número positivo"),
       driverId: z.coerce.number(),
       assistantId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
         val === null || val === 'null' ? null : Number(val)),
@@ -214,7 +217,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: Number(currentCompanyId) || 1 // Asegurarnos de que sea un número
+      companyId: currentCompanyId ? Number(currentCompanyId) : undefined // Sin valor por defecto
     },
   });
   
@@ -232,8 +235,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       console.log("Actualizando companyId en el formulario a:", numericCompanyId, "(convertido a número)");
       form.setValue("companyId", numericCompanyId);
     } else {
-      console.log("Usando companyId por defecto (1) porque el valor actual no es válido:", currentCompanyId);
-      form.setValue("companyId", 1); // Valor por defecto si no hay un valor válido
+      console.log("⚠️ ADVERTENCIA: No se ha detectado un ID de compañía válido en el contexto:", currentCompanyId);
+      // Ya no establecemos un valor por defecto, esto forzará al formulario a mostrar un error
     }
   }, [form, currentCompanyId]);
 
@@ -563,17 +566,27 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         throw new Error("No hay una ruta definida para crear");
       }
       
-      // Asegurar que el companyId esté configurado correctamente
-      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || currentCompanyId;
+      // Asegurar que el companyId esté configurado correctamente - sin valor por defecto
+      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
       
       if (!effectiveCompanyId) {
         // Si no podemos obtener un companyId válido, lanzamos un error y detenemos la ejecución
-        console.error("No se pudo obtener el companyId del contexto");
+        console.error("⚠️ ERROR CRÍTICO: No se pudo obtener el companyId del contexto");
+        console.log("  - companyData:", companyData);
+        console.log("  - pendingOrdersUserData:", pendingOrdersUserData);
+        console.log("  - formData:", routeData);
+        
         throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
       } else {
         console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión)`);
         // Aseguramos que el companyId sea un número
         routeData.companyId = Number(effectiveCompanyId);
+        
+        // Verificación adicional
+        if (isNaN(routeData.companyId) || routeData.companyId <= 0) {
+          console.error(`⚠️ ERROR: CompanyId inválido después de conversión: ${routeData.companyId}`);
+          throw new Error("El ID de la empresa no es válido. Debe ser un número positivo.");
+        }
       }
       
       // Verificación final de seguridad para los campos requeridos
@@ -677,11 +690,15 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       return;
     }
     
-    // Determinar el companyId efectivo de manera dinámica
-    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId || currentCompanyId;
+    // Determinar el companyId efectivo de manera dinámica - SIN VALOR POR DEFECTO
+    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
     
     if (!effectiveCompanyId) {
-      console.error("No se pudo obtener el companyId para la ruta");
+      console.error("⚠️ ERROR CRÍTICO: No se pudo obtener el companyId para la ruta");
+      console.log("  - companyData?.companyId:", companyData?.companyId);
+      console.log("  - pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId);
+      console.log("  - data.companyId:", data.companyId);
+      
       toast({
         variant: "destructive",
         title: "Error",
