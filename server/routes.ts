@@ -3321,53 +3321,127 @@ export async function registerRoutes(router: express.Router) {
       console.log(`🔍 GET /api/orders/pending - Buscando todos los pedidos pendientes para compañía ${companyId}`);
       
       // Buscar todos los pedidos pendientes para esta compañía
-      const pendingOrders = await db
+      // Primero obtener los IDs de los pedidos pendientes para evitar problemas con joins
+      const pendingOrdersIds = await db
         .select({
           id: orders.id,
-          customerId: orders.customerId,
-          date: orders.date,
-          dueDate: orders.dueDate,
-          total: orders.total,
-          status: orders.status,
-          paymentStatus: orders.paymentStatus,
-          deliveryCoordinates: orders.deliveryCoordinates,
-          notes: orders.notes,
-          customerName: customers.businessname,
-          customerAddress: customers.street,
-          customerAddressNumber: customers.streetnumber,
-          customerPhone: customers.phone,
-          zoneName: zones.name,
-          zoneId: customers.zoneid,
-          products: sql<string>`(
-            SELECT jsonb_agg(
-              jsonb_build_object(
-                'id', oi.product_id,
-                'name', p.name,
-                'quantity', oi.quantity,
-                'price', oi.price,
-                'subtotal', oi.subtotal
-              )
-            )
-            FROM order_items oi
-            JOIN products p ON p.id = oi.product_id
-            WHERE oi.order_id = ${orders.id} AND p.company_id = ${companyId}
-          )`,
         })
         .from(orders)
-        .leftJoin(customers, eq(orders.customerId, customers.id))
-        .leftJoin(zones, eq(customers.zoneid, zones.id))
         .where(
           and(
             eq(orders.status, "pending"),
             sql`${orders.routeId} IS NULL`,
-            eq(orders.companyId, companyId),
-            eq(customers.companyId, companyId)
+            eq(orders.companyId, companyId)
           )
-        )
-        .orderBy(orders.date);
+        );
+        
+      console.log(`Encontrados ${pendingOrdersIds.length} IDs de pedidos pendientes para la compañía ${companyId}`);
       
-      console.log(`Encontrados ${pendingOrders.length} pedidos pendientes para la compañía ${companyId}`);
-      res.json(pendingOrders);
+      // Si no hay pedidos pendientes, devolver un array vacío
+      if (pendingOrdersIds.length === 0) {
+        return res.json([]);
+      }
+      
+      // Ahora obtener los detalles completos de esos pedidos
+      const pendingOrders = await Promise.all(
+        pendingOrdersIds.map(async (order) => {
+          try {
+            // Obtener datos básicos del pedido
+            const [orderData] = await db
+              .select({
+                id: orders.id,
+                customerId: orders.customerId,
+                date: orders.date,
+                dueDate: orders.dueDate,
+                total: orders.total,
+                status: orders.status,
+                paymentStatus: orders.paymentStatus,
+                deliveryCoordinates: orders.deliveryCoordinates,
+                notes: orders.notes,
+              })
+              .from(orders)
+              .where(eq(orders.id, order.id));
+              
+            // Obtener datos del cliente
+            const [customerData] = await db
+              .select({
+                businessname: customers.businessname,
+                street: customers.street,
+                streetnumber: customers.streetnumber,
+                phone: customers.phone,
+                zoneid: customers.zoneid,
+                coordinates: customers.coordinates,
+              })
+              .from(customers)
+              .where(
+                and(
+                  eq(customers.id, orderData.customerId),
+                  eq(customers.companyId, companyId)
+                )
+              );
+              
+            // Obtener datos de zona si existe
+            let zoneName = "Sin asignar";
+            if (customerData && customerData.zoneid) {
+              const [zoneData] = await db
+                .select({
+                  name: zones.name,
+                })
+                .from(zones)
+                .where(
+                  and(
+                    eq(zones.id, customerData.zoneid),
+                    eq(zones.companyId, companyId)
+                  )
+                );
+                
+              if (zoneData) {
+                zoneName = zoneData.name;
+              }
+            }
+            
+            // Obtener productos del pedido
+            const orderItems = await db.execute(sql`
+              SELECT jsonb_agg(
+                jsonb_build_object(
+                  'id', oi.product_id,
+                  'name', p.name,
+                  'quantity', oi.quantity,
+                  'price', oi.price,
+                  'subtotal', oi.subtotal
+                )
+              ) as products
+              FROM order_items oi
+              JOIN products p ON p.id = oi.product_id
+              WHERE oi.order_id = ${order.id} AND p.company_id = ${companyId}
+            `);
+            
+            // Combinar todos los datos
+            return {
+              ...orderData,
+              customerName: customerData?.businessname || "Cliente desconocido",
+              customerAddress: customerData?.street || "Dirección desconocida",
+              customerAddressNumber: customerData?.streetnumber || "",
+              customerPhone: customerData?.phone || "",
+              coordinates: customerData?.coordinates || null,
+              zoneName: zoneName,
+              zoneId: customerData?.zoneid || null,
+              products: orderItems[0]?.products || [],
+            };
+          } catch (error) {
+            console.error(`Error al obtener detalles del pedido ${order.id}:`, error);
+            return null;
+          }
+        })
+      );
+      
+      // Filtrar pedidos nulos (en caso de errores) y ordenar por fecha
+      const validOrders = pendingOrders
+        .filter(order => order !== null)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      
+      console.log(`Encontrados ${validOrders.length} pedidos pendientes para la compañía ${companyId}`);
+      res.json(validOrders);
     } catch (error) {
       console.error("Error al obtener todos los pedidos pendientes:", error);
       res.status(500).json({ error: String(error) });
