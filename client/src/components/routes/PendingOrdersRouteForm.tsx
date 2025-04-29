@@ -223,26 +223,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     },
   });
 
-  // When zone is selected in the form
+  // Set a default route name when form initializes
   useEffect(() => {
-    const zoneId = form.watch("zoneId");
-    if (zoneId !== selectedZone) {
-      setSelectedZone(zoneId || null);
-      setSelectedOrders([]);
-      setOptimizedRoute([]);
-    }
-  }, [form.watch("zoneId"), selectedZone]);
-
-  // Update form name when zone is selected
-  useEffect(() => {
-    if (selectedZone) {
-      const selectedZoneObj = zones && Array.isArray(zones) ? zones.find((z: any) => z.id === selectedZone) : null;
-      if (selectedZoneObj) {
-        const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
-        form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
-      }
-    }
-  }, [selectedZone, zones, form]);
+    const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+    form.setValue("name", `Ruta ${today}`);
+  }, [form]);
 
   // Toggle order selection
   const toggleOrderSelection = (order: PendingOrder) => {
@@ -578,7 +563,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         driverId: Number(data.driverId),
         assistantId: data.assistantId && data.assistantId !== "null" ? Number(data.assistantId) : null,
         truckId: data.truckId && data.truckId !== "null" ? Number(data.truckId) : null,
-        zoneId: Number(data.zoneId || selectedZone),
+        zoneId: data.zoneId ? Number(data.zoneId) : null,
         status: "pending",
         isCompleted: false,
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
@@ -607,13 +592,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       });
       // Invalidate queries to refresh lists
       queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
       // Reset form and state
       form.reset();
-      setSelectedZone(null);
       setSelectedOrders([]);
       setOptimizedRoute([]);
-      setSelectedTab("zone");
+      setSelectedTab("orders");
       // Call callback
       onRouteCreated();
     },
@@ -702,7 +686,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                 const diagnosticInfo = {
                   companyId: pendingOrdersUserData?.companyId || "No definido",
                   role: pendingOrdersUserData?.role || "No definido",
-                  zoneId: selectedZone || "No requerida (se muestran todos los pedidos)",
+                  zoneId: form.watch("zoneId") || "No requerida (se muestran todos los pedidos)",
                   zonesCount: Array.isArray(zones) ? zones.length : 0,
                   pendingOrdersCount: Array.isArray(pendingOrders) ? pendingOrders.length : 0,
                   filteringMode: "Todos los pedidos pendientes (sin filtrar por zona)",
