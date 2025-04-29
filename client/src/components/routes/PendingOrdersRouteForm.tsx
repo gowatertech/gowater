@@ -571,20 +571,46 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       console.log("Enviando datos de ruta con companyId:", routeData);
       
       try {
-        // Send route data to server
-        const response = await apiRequest({
-          method: "POST", 
-          url: "/api/routes", 
-          data: routeData
+        // Realizar una llamada más directa y robusta a la API
+        const response = await fetch('/api/routes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(routeData),
+          credentials: 'include'
         });
         
+        console.log("Respuesta del servidor:", response.status, response.statusText);
+        
+        // Si la respuesta no es exitosa, intentamos obtener detalles del error
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error("Error en la respuesta del servidor:", errorText);
-          throw new Error(`Error al crear la ruta: ${errorText}`);
+          let errorMessage = `Error al crear la ruta (${response.status})`;
+          
+          try {
+            // Intentar obtener el mensaje de error del cuerpo de la respuesta
+            const errorData = await response.json();
+            console.error("Detalles del error:", errorData);
+            errorMessage = errorData.error || errorData.message || errorMessage;
+          } catch (parseError) {
+            // Si no podemos analizar como JSON, intentamos obtener el texto
+            try {
+              const errorText = await response.text();
+              console.error("Texto del error:", errorText);
+              if (errorText) errorMessage += `: ${errorText}`;
+            } catch (textError) {
+              console.error("No se pudo obtener detalles del error");
+            }
+          }
+          
+          throw new Error(errorMessage);
         }
-      
-        return await response.json();
+        
+        // Intentar analizar la respuesta como JSON
+        const result = await response.json();
+        console.log("Ruta creada exitosamente:", result);
+        return result;
       } catch (error) {
         console.error("Error al enviar datos de ruta:", error);
         throw error;
