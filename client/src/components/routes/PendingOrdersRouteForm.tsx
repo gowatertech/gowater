@@ -214,6 +214,13 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         console.log("⚠️ No se encontró companyId en la sesión del usuario");
       }
       
+      // Ensure params always contains companyId from session user
+      if (!params.companyId && pendingOrdersUserData?.companyId) {
+        params.companyId = pendingOrdersUserData.companyId.toString();
+      }
+      
+      console.log("Enviando solicitud con params:", params);
+      
       const response = await apiRequest({
         url: `/zones/${selectedZone}/pending-orders`,
         method: "GET",
@@ -363,7 +370,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         streetnumber: "",
         coordinates: settings?.latitude && settings?.longitude 
           ? `${settings.latitude},${settings.longitude}` 
-          : null, // Use company coordinates if available
+          : undefined, // Use company coordinates if available
       };
 
       // Convert orders to customers for the route algorithm
@@ -732,11 +739,37 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
               variant="outline" 
               size="sm" 
               onClick={() => {
-                console.log("Diagnóstico:", { 
-                  pendingOrdersUserData, 
-                  pendingOrders,
-                  selectedZone,
-                  settings
+                // Crear un mensaje más amigable para el usuario
+                const diagnosticInfo = {
+                  companyId: pendingOrdersUserData?.companyId || "No definido",
+                  role: pendingOrdersUserData?.role || "No definido",
+                  zoneId: selectedZone || "No seleccionada",
+                  zonesCount: Array.isArray(zones) ? zones.length : 0,
+                  pendingOrdersCount: Array.isArray(pendingOrders) ? pendingOrders.length : 0,
+                  selectedOrdersCount: selectedOrders.length,
+                  companySettings: settings ? "Configurados" : "No configurados",
+                  companyCoordinates: settings?.latitude && settings?.longitude 
+                    ? `${settings.latitude},${settings.longitude}` 
+                    : "No configuradas"
+                };
+                
+                console.log("Diagnóstico:", diagnosticInfo);
+                
+                // Mostrar la información en una alerta
+                toast({
+                  title: "Diagnóstico",
+                  description: (
+                    <div className="text-xs space-y-1">
+                      <div><strong>CompanyId:</strong> {diagnosticInfo.companyId}</div>
+                      <div><strong>Rol:</strong> {diagnosticInfo.role}</div>
+                      <div><strong>Zona:</strong> {diagnosticInfo.zoneId}</div>
+                      <div><strong>Total Zonas:</strong> {diagnosticInfo.zonesCount}</div>
+                      <div><strong>Pedidos pendientes:</strong> {diagnosticInfo.pendingOrdersCount}</div>
+                      <div><strong>Pedidos seleccionados:</strong> {diagnosticInfo.selectedOrdersCount}</div>
+                      <div><strong>Coordenadas:</strong> {diagnosticInfo.companyCoordinates}</div>
+                    </div>
+                  ),
+                  duration: 10000, // 10 segundos
                 });
               }}
             >
