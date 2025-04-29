@@ -27,7 +27,7 @@ import {
   Package,
   ChevronLeft,
   ChevronRight,
-  Map,
+  Map as MapIcon,
   Loader2,
   Clock,
   Check,
@@ -35,10 +35,12 @@ import {
   Info,
   X,
   LayoutGrid,
+  AlertTriangle
 } from "lucide-react";
 
 // Sub-components
 import PendingOrdersRouteForm from "@/components/routes/PendingOrdersRouteForm";
+import ZoneBasedRouteForm from "@/components/routes/ZoneBasedRouteForm";
 import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
 
 // Placeholders para componentes que necesitamos crear
@@ -362,7 +364,7 @@ export default function RoutesPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="orders" className="mt-2">
-                <TabsList className="grid w-full grid-cols-1 mb-4">
+                <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger 
                     value="orders" 
                     onClick={() => setRouteCreationMode("orders")}
@@ -370,10 +372,23 @@ export default function RoutesPage() {
                     <Package className="h-4 w-4 mr-2" />
                     Por Pedidos
                   </TabsTrigger>
+                  <TabsTrigger 
+                    value="zones" 
+                    onClick={() => setRouteCreationMode("customers")}
+                  >
+                    <MapIcon className="h-4 w-4 mr-2" />
+                    Por Zonas
+                  </TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="orders" className="mt-0">
                   <PendingOrdersRouteForm
+                    onRouteCreated={handleRouteCreated}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="zones" className="mt-0">
+                  <ZoneBasedRouteForm
                     onRouteCreated={handleRouteCreated}
                   />
                 </TabsContent>

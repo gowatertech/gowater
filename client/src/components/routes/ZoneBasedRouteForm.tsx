@@ -123,6 +123,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [routeCreationMode, setRouteCreationMode] = useState<"customers" | "orders">("customers");
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
+  // Estados para panel de depuración
+  const [useDebugMode, setUseDebugMode] = useState<boolean>(true); // Activado por defecto para pruebas
+  const [debugCompanyId, setDebugCompanyId] = useState<number | null>(15); // Valor por defecto para pruebas
+  const [authError, setAuthError] = useState<string | null>(null);
+
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
     queryKey: ["/api/users?role=driver"]
@@ -140,12 +145,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
   // Fetch zones
   const { data: zones = [], isLoading: isLoadingZones } = useQuery({
-    queryKey: ["/api/zones"],
-    queryFn: async () => {
-      const response = await apiRequest("GET", "/api/zones");
-      console.log("Zonas cargadas en ZoneBasedRouteForm:", await response.clone().json());
-      return response.json();
-    }
+    queryKey: ["/api/zones"]
   });
 
   // Fetch customers for the selected zone
@@ -166,15 +166,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     enabled: !!selectedZone,
   });
   
-  // Estado para mensajes de error de autenticación
-  const [authError, setAuthError] = useState<string | null>(null);
-  
-  // Estado para controlar si estamos en modo debug
-  const [useDebugMode, setUseDebugMode] = useState<boolean>(true); // Cambiado a true por defecto para facilitar pruebas
-  
-  // Estado para almacenar el companyId en modo debug
-  const [debugCompanyId, setDebugCompanyId] = useState<number | null>(15); // Valor por defecto para pruebas
-  
+  // Fetch pending orders for the selected zone with debug support
   const {
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders,
@@ -351,13 +343,73 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       if (optimizedRoute.length > 0) {
         const center = getMapCenter();
         map.setView(center as [number, number], 11);
-        console.log("Mapa centrado en:", center);
       }
     }, [map, optimizedRoute]);
     
     return null;
   }
-  
+
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (coord1: string, coord2: string) => {
+    try {
+      if (!coord1 || !coord2 || typeof coord1 !== 'string' || typeof coord2 !== 'string') {
+        return Infinity;
+      }
+      
+      const [lat1Str, lng1Str] = coord1.split(',');
+      const [lat2Str, lng2Str] = coord2.split(',');
+      
+      if (!lat1Str || !lng1Str || !lat2Str || !lng2Str) {
+        return Infinity;
+      }
+      
+      const lat1 = parseFloat(lat1Str);
+      const lng1 = parseFloat(lng1Str);
+      const lat2 = parseFloat(lat2Str);
+      const lng2 = parseFloat(lng2Str);
+      
+      if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
+        return Infinity;
+      }
+      
+      // Haversine formula for more accurate distance calculation
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLng/2) * Math.sin(dLng/2);
+        
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c; // Distance in km
+      
+      return distance;
+    } catch (e) {
+      console.error("Error calculating distance:", e);
+      return Infinity;
+    }
+  };
+
+  // Calculate total route distance
+  const calculateTotalRouteDistance = (route: Customer[]) => {
+    if (route.length < 2) return 0;
+    
+    let totalDistance = 0;
+    for (let i = 0; i < route.length - 1; i++) {
+      const coord1 = route[i].coordinates || "";
+      const coord2 = route[i + 1].coordinates || "";
+      
+      const distance = calculateDistance(coord1, coord2);
+      if (distance !== Infinity) {
+        totalDistance += distance;
+      }
+    }
+    
+    return totalDistance;
+  };
+
   // Optimize route order based on proximity
   const optimizeRoute = async () => {
     if (selectedCustomers.length < 2) {
@@ -384,40 +436,25 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         provinceName: ""
       };
       
-      // Log para depuración
-      console.log("Optimizando ruta con clientes:", selectedCustomers.map(c => ({
-        id: c.id,
-        name: c.businessname,
-        coords: c.coordinates
-      })));
-      
       // Verificar que los clientes tengan coordenadas válidas
       const customersWithCoordinates = selectedCustomers.filter(customer => {
         if (!customer.coordinates) {
-          console.warn(`Cliente sin coordenadas: ID ${customer.id}, ${customer.businessname}. Se omitirá de la optimización.`);
+          console.warn(`Cliente ${customer.id} (${customer.businessname}) no tiene coordenadas`);
           return false;
         }
-        
-        try {
-          const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
-          if (isNaN(lat) || isNaN(lng)) {
-            console.warn(`Cliente con coordenadas inválidas: ID ${customer.id}, ${customer.businessname}, coords: ${customer.coordinates}`);
-            return false;
-          }
-          return true;
-        } catch (e) {
-          console.warn(`Error validando coordenadas del cliente: ID ${customer.id}`, e);
-          return false;
-        }
+        return true;
       });
       
-      if (customersWithCoordinates.length < 1) {
-        throw new Error("Ninguno de los clientes seleccionados tiene coordenadas válidas");
+      if (customersWithCoordinates.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Ninguno de los clientes seleccionados tiene coordenadas válidas",
+        });
+        setIsOptimizing(false);
+        return;
       }
-      
-      // This would normally be an API call to a route optimization service
-      // For this example, we'll use a very simple distance-based algorithm
-      
+
       // Start with depot
       const unvisited = [...customersWithCoordinates];
       const optimized = [depot];
@@ -431,8 +468,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         
         for (let i = 0; i < unvisited.length; i++) {
           const distance = calculateDistance(
-            currentPoint.coordinates || "19.0,-70.0", 
-            unvisited[i].coordinates || "19.0,-70.0"
+            currentPoint.coordinates || "19.075380,-70.128822", // Coordenadas del depósito por defecto
+            unvisited[i].coordinates || "19.075380,-70.128822"  // Coordenadas del depósito por defecto
           );
           
           if (distance < closestDistance) {
@@ -446,1036 +483,276 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         unvisited.splice(closestIdx, 1);
       }
       
-      // Set the optimized route and log for debugging
-      console.log("Ruta optimizada:", optimized);
+      console.log("Ruta optimizada final:", optimized);
       
-      // Establecemos la ruta optimizada
+      // Set the optimized route
       setOptimizedRoute(optimized);
+      
+      // Calcular distancia total
+      const totalDistance = calculateTotalRouteDistance(optimized);
+      console.log(`Distancia total de la ruta: ${totalDistance.toFixed(2)} km`);
+      
+      // Update stops in form with format esperado por el backend
+      const stops = optimized.map(customer => customer.coordinates || "");
+      form.setValue("stops", stops);
+      
+      // Cambiar automáticamente a la pestaña de revisión
+      setSelectedTab("review");
       
       // Mensaje de éxito
       toast({
         title: "Ruta optimizada",
-        description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes`, // -1 porque el depósito no es un cliente
+        description: `Se ha optimizado la ruta para ${optimized.length - 1} clientes (${totalDistance.toFixed(2)} km)`,
       });
-      
-      // Limpiar cualquier error anterior
-      form.clearErrors();
-      
-      // Generar un nombre de ruta automático si no hay uno
-      if (!form.getValues("name")) {
-        const today = new Date();
-        const dateStr = today.toLocaleDateString("es-DO", { day: '2-digit', month: '2-digit', year: 'numeric' });
-        form.setValue("name", `Ruta ${dateStr} - Zona ${selectedZone}`);
-      }
-      
-      // Cambiar automáticamente a la pestaña de revisión después de optimizar
-      setSelectedTab("review");
     } catch (error) {
       console.error("Error optimizing route:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "No se pudo optimizar la ruta. Intenta nuevamente.",
+        description: "No se pudo optimizar la ruta",
       });
     } finally {
       setIsOptimizing(false);
     }
   };
 
-  // Calculate distance between two coordinates using Haversine formula
-  const calculateDistance = (coord1: string, coord2: string) => {
+  // Submit route
+  const onSubmit = async (values: any) => {
     try {
-      // Verificar formato de coordenadas
-      console.log("Calculando distancia entre coordenadas:", coord1, coord2);
+      console.log("Creando ruta con datos:", values);
       
-      if (!coord1 || !coord2 || typeof coord1 !== 'string' || typeof coord2 !== 'string') {
-        console.error("Coordenadas inválidas:", { coord1, coord2 });
-        return Infinity;
-      }
-      
-      const [lat1Str, lng1Str] = coord1.split(',');
-      const [lat2Str, lng2Str] = coord2.split(',');
-      
-      if (!lat1Str || !lng1Str || !lat2Str || !lng2Str) {
-        console.error("Formato de coordenadas incorrecto:", { coord1, coord2 });
-        return Infinity;
-      }
-      
-      const lat1 = parseFloat(lat1Str);
-      const lng1 = parseFloat(lng1Str);
-      const lat2 = parseFloat(lat2Str);
-      const lng2 = parseFloat(lng2Str);
-      
-      if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
-        console.error("Coordenadas no son números válidos:", { lat1, lng1, lat2, lng2 });
-        return Infinity;
-      }
-      
-      // Haversine formula for more accurate distance calculation
-      const R = 6371; // Earth's radius in km
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLng = (lng2 - lng1) * Math.PI / 180;
-      
-      const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-        Math.sin(dLng/2) * Math.sin(dLng/2);
-        
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      const distance = R * c; // Distance in km
-      
-      return distance;
-    } catch (e) {
-      console.error("Error calculating distance:", e);
-      return Infinity;
-    }
-  };
-  
-  // Calculate total route distance in meters
-  const calculateTotalRouteDistance = (route: Customer[]) => {
-    if (route.length < 2) return 0;
-    
-    let totalDistance = 0;
-    
-    for (let i = 0; i < route.length - 1; i++) {
-      if (!route[i].coordinates || !route[i+1].coordinates) {
-        console.warn("Missing coordinates for distance calculation");
-        continue;
-      }
-      
-      totalDistance += calculateDistance(
-        route[i].coordinates || "",
-        route[i+1].coordinates || ""
-      );
-    }
-    
-    // Convert to meters
-    return Math.round(totalDistance * 1000);
-  };
-  
-  // Estimate duration in minutes based on distance and stops
-  const calculateEstimatedDuration = (distance: number, numStops: number) => {
-    const AVERAGE_SPEED = 30; // km/h
-    const TIME_PER_STOP = 5; // minutos por parada de entrega (ajustado a 5 min)
-    const EXTRA_TIME_PER_DELIVERY = 5; // 5 minutos adicionales por entrega
-    
-    // Calcular tiempo de viaje en minutos: distancia (km) / velocidad (km/h) * 60 min/h
-    const travelTimeMinutes = (distance / 1000) / AVERAGE_SPEED * 60;
-    
-    // Añadir tiempo para entregas (tiempo por parada + tiempo adicional por entrega)
-    const stopTimeMinutes = numStops * TIME_PER_STOP;
-    const deliveryTimeMinutes = numStops * EXTRA_TIME_PER_DELIVERY;
-    
-    // Total de minutos estimados, redondeado hacia arriba
-    return Math.ceil(travelTimeMinutes + stopTimeMinutes + deliveryTimeMinutes);
-  };
-
-  // Create route mutation
-  const createRouteMutation = useMutation({
-    mutationFn: async (data: any) => {
-      console.log("Submitting route data:", data);
-      
-      // Calcular la distancia total de la ruta optimizada
-      const totalDistance = calculateTotalRouteDistance(optimizedRoute);
-      
-      // Calcular la duración estimada basada en la distancia y el número de paradas
-      const estimatedDuration = calculateEstimatedDuration(totalDistance, optimizedRoute.length - 1); // -1 porque el depósito no es una parada
-      
-      console.log(`Ruta calculada: Distancia total: ${totalDistance} metros, Duración estimada: ${estimatedDuration} minutos`);
-      
-      // Preparar los datos para enviar al servidor
-      const routeData = {
-        name: data.name,
-        date: new Date(data.date),
-        driverId: Number(data.driverId),
-        assistantId: data.assistantId ? Number(data.assistantId) : undefined,
-        truckId: data.truckId ? Number(data.truckId) : undefined,
-        zoneId: Number(data.zoneId || selectedZone),
-        status: "pending",
-        isCompleted: false,
-        // Incluir datos de la ruta optimizada
-        deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
-        stops: optimizedRoute.map(customer => customer.coordinates || ""),
-        // Añadir información calculada
-        totalDistance: (totalDistance / 1000).toFixed(2), // Convertir a km y formatear a 2 decimales
-        estimatedDuration: estimatedDuration,
-        // Añadir IDs de órdenes si existen órdenes pendientes para los clientes seleccionados
-        orderIds: pendingOrders
-          .filter(order => 
-            // Filtrar solo las órdenes de los clientes seleccionados en la ruta
-            optimizedRoute.some(customer => 
-              customer.id !== 0 && // Excluir el depósito (ID 0)
-              customer.id === order.customerId
-            )
-          )
-          .map(order => order.id)
-      };
-      
-      console.log("Enviando órdenes para la ruta:", routeData.orderIds);
-      
-      try {
-        // Asegurar que enviamos datos bien formados y la URL es correcta
-        console.log("URL de envío: /api/routes");
-        console.log("Data enviada:", routeData);
-        
-        // Usar el nuevo formato de apiRequest con objeto
-        return await apiRequest({
-          method: "POST", 
-          url: "/api/routes", 
-          data: {
-            ...routeData,
-            companyId: 0 // Este valor será sobrescrito por el backend
-          }
+      // Check if stops is empty
+      if (!values.stops || values.stops.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "La ruta debe tener al menos una parada",
         });
-        
-        // Verificar el tipo de contenido de la respuesta
-        const contentType = response.headers.get("content-type");
-        console.log("Tipo de contenido de respuesta:", contentType);
-        
-        if (!response.ok) {
-          // Intentar leer el error como texto primero
-          const errorText = await response.text();
-          console.error("Error text from server:", errorText);
-          
-          // Si parece JSON, convertirlo
-          try {
-            if (contentType && contentType.includes("application/json")) {
-              const errorData = JSON.parse(errorText);
-              throw new Error(errorData.message || "Failed to create route");
-            }
-          } catch (jsonError) {
-            console.error("Error parsing JSON error response:", jsonError);
-          }
-          
-          throw new Error(errorText || "Failed to create route");
-        }
-        
-        return await response.json();
-      } catch (error) {
-        console.error("Error creating route:", error);
-        throw error;
+        return;
       }
-    },
-    onSuccess: () => {
-      toast({
-        title: "Ruta creada",
-        description: "La ruta se ha creado exitosamente",
-      });
-      // Invalidate queries to refresh lists
-      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
-      // Reset form and state
-      form.reset();
-      setSelectedZone(null);
-      setSelectedCustomers([]);
-      setOptimizedRoute([]);
-      setSelectedTab("zone");
-      // Call onRouteCreated callback
-      onRouteCreated();
-    },
-    onError: (error: Error) => {
-      console.error("Error creating route:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "No se pudo crear la ruta. Intenta nuevamente.",
-      });
-    }
-  });
-
-  // Form submission handler
-  const onSubmit = async (data: any) => {
-    console.log("Datos del formulario:", data);
-    
-    if (optimizedRoute.length < 2) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Debes optimizar la ruta antes de guardarla",
-      });
-      return;
-    }
-    
-    if (!data.driverId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Debes seleccionar un conductor para la ruta",
-      });
-      return;
-    }
-    
-    // Asegurar que los IDs son números
-    const cleanedData = {
-      ...data,
-      driverId: Number(data.driverId),
-      assistantId: data.assistantId ? Number(data.assistantId) : null,
-      truckId: data.truckId ? Number(data.truckId) : null,
-      zoneId: Number(data.zoneId || selectedZone)
-    };
-    
-    console.log("Datos procesados:", cleanedData);
-    
-    try {
-      // En lugar de usar la mutación, hacemos la solicitud directamente
-      // para tener más control sobre el proceso
-      const routeData = {
-        name: cleanedData.name,
-        date: new Date(cleanedData.date),
-        driverId: cleanedData.driverId,
-        assistantId: cleanedData.assistantId,
-        truckId: cleanedData.truckId,
-        zoneId: cleanedData.zoneId,
-        status: "pending",
-        isCompleted: false,
-        deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
-        stops: optimizedRoute.map(customer => customer.coordinates || ""),
-        totalDistance: (calculateTotalRouteDistance(optimizedRoute) / 1000).toFixed(2),
-        estimatedDuration: calculateEstimatedDuration(
-          calculateTotalRouteDistance(optimizedRoute), 
-          optimizedRoute.length - 1
-        ),
-        orderIds: pendingOrders
-          .filter(order => 
-            optimizedRoute.some(customer => 
-              customer.id !== 0 && customer.id === order.customerId
-            )
-          )
-          .map(order => order.id)
-      };
       
-      console.log("Enviando datos a /api/routes:", routeData);
-      
-      // Usar el nuevo formato de apiRequest con objeto
-      const response = await apiRequest({
-        method: "POST", 
-        url: "/api/routes", 
-        data: {
-          ...routeData,
-          companyId: 0 // Este valor será sobrescrito por el backend
-        }
-      });
-      
-      const contentType = response.headers.get("content-type");
-      console.log("Tipo de contenido de la respuesta:", contentType);
-      
+      const response = await apiRequest("POST", "/api/routes", values);
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error al crear ruta:", errorText);
-        throw new Error(errorText || "Error al crear la ruta");
+        throw new Error("Error al crear la ruta");
       }
-      
-      const responseData = await response.json();
-      console.log("Respuesta del servidor:", responseData);
       
       toast({
         title: "Ruta creada",
         description: "La ruta se ha creado exitosamente",
       });
       
-      // Invalidate queries to refresh lists
-      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/zones", selectedZone, "pending-orders"] });
-      
-      // Reset form and state
+      // Reset form
       form.reset();
-      setSelectedZone(null);
       setSelectedCustomers([]);
       setOptimizedRoute([]);
-      setSelectedTab("zone");
       
-      // Call onRouteCreated callback
+      // Notify parent component
       onRouteCreated();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating route:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "No se pudo crear la ruta. Intenta nuevamente.",
+        description: "No se pudo crear la ruta",
       });
     }
   };
 
-  // Calcular estadísticas de la ruta para mostrar en las tarjetas
-  const routeStats = {
-    totalDistance: optimizedRoute.length >= 2 
-      ? (calculateTotalRouteDistance(optimizedRoute) / 1000).toFixed(2) 
-      : "0.00",
-    estimatedDuration: optimizedRoute.length >= 2 
-      ? calculateEstimatedDuration(calculateTotalRouteDistance(optimizedRoute), optimizedRoute.length - 1) 
-      : 0
+  const handleZoneSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value.toLowerCase());
   };
-  
-  // Filtrar clientes de la zona que tienen pedidos pendientes
-  // Asegurarnos de que tenemos arreglos válidos para evitar errores
-  const safeZoneCustomers = Array.isArray(zoneCustomers) ? zoneCustomers : [];
-  const safePendingOrders = Array.isArray(pendingOrders) ? pendingOrders : [];
-  
-  // Mostrar todos los clientes en la pestaña Clientes en lugar de solo los que tienen pedidos pendientes
-  const customersWithPendingOrders = safeZoneCustomers;
-  
-  // Filtrar clientes por búsqueda (solo entre los que tienen pedidos pendientes)
-  const filteredZoneCustomers = searchQuery 
-    ? customersWithPendingOrders.filter((customer: Customer) => 
-        customer.businessname.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        customer.phone.includes(searchQuery)
-      )
-    : customersWithPendingOrders;
 
-  return (
-    <div className="p-1 md:p-2 space-y-2">
-      {/* Tarjetas de estadísticas en filas compactas */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-1 mb-2">
-        <Card className="border-l-4 border-l-blue-500 shadow-sm">
-          <CardContent className="p-2 flex justify-between items-center">
-            <div>
-              <p className="text-xs text-muted-foreground">Clientes</p>
-              <p className="text-sm font-bold">{selectedCustomers.length}</p>
-            </div>
-            <Users className="h-3.5 w-3.5 text-blue-500" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-yellow-500 shadow-sm">
-          <CardContent className="p-2 flex justify-between items-center">
-            <div>
-              <p className="text-xs text-muted-foreground">Distancia</p>
-              <p className="text-sm font-bold">{routeStats.totalDistance} km</p>
-            </div>
-            <Route className="h-3.5 w-3.5 text-yellow-500" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-l-4 border-l-green-500 shadow-sm">
-          <CardContent className="p-2 flex justify-between items-center">
-            <div>
-              <p className="text-xs text-muted-foreground">Duración</p>
-              <p className="text-sm font-bold">{routeStats.estimatedDuration} min</p>
-            </div>
-            <Clock className="h-3.5 w-3.5 text-green-500" />
-          </CardContent>
-        </Card>
-        
-        <Card className="border-l-4 border-l-purple-500 shadow-sm">
-          <CardContent className="p-2 flex justify-between items-center">
-            <div>
-              <p className="text-xs text-muted-foreground">Zona</p>
-              <p className="text-sm font-bold">{selectedZone ? '1' : '0'}</p>
-            </div>
-            <MapPin className="h-3.5 w-3.5 text-purple-500" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Contenido principal con pestañas */}
-      <Card className="shadow-sm">
-        <CardHeader className="border-b bg-muted/50 px-3 py-1.5">
-          <CardTitle className="flex items-center gap-1 text-sm">
-            <Truck className="h-3 w-3 text-primary" />
-            Planificación de Rutas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
-              <TabsTrigger 
-                value="zone" 
-                className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <MapPin className="h-4 w-4 mr-1" />
-                Zona
-              </TabsTrigger>
-              {!compact && (
-                <>
-                  <TabsTrigger 
-                    value="customers" 
-                    disabled={!selectedZone}
-                    className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                  >
-                    <User className="h-4 w-4 mr-1" />
-                    Clientes
-                  </TabsTrigger>
-                  
-                  <TabsTrigger 
-                    value="pending_orders" 
-                    disabled={!selectedZone}
-                    className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
-                  >
-                    <FileText className="h-4 w-4 mr-1" />
-                    Pedidos Pendientes
-                  </TabsTrigger>
-                </>
-              )}
-              <TabsTrigger 
-                value="review" 
-                disabled={selectedCustomers.length === 0}
-                className="rounded-none border-b-2 border-transparent px-3 py-2 text-sm data-[state=active]:border-primary data-[state=active]:bg-transparent"
-              >
-                <Truck className="h-4 w-4 mr-1" />
-                Revisar Ruta
-              </TabsTrigger>
-            </TabsList>
-
-        <TabsContent value="zone" className="mt-2">
-          {/* Debug Panel */}
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="mb-2 text-xs" 
-            onClick={() => setShowDebugPanel(!showDebugPanel)}
-          >
-            {showDebugPanel ? "Ocultar Panel Debug" : "Mostrar Panel Debug"}
-          </Button>
-          
-          {showDebugPanel && (
-            <Card className="shadow-sm border bg-yellow-50 mb-4">
-              <CardHeader className="pb-2 bg-yellow-100">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2 text-amber-900">
-                  <AlertTriangle size={18} /> Modo Desarrollador
-                </CardTitle>
-                <CardDescription className="text-amber-800">
-                  Este panel es solo para fines de desarrollo y pruebas.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Switch 
-                      checked={useDebugMode}
-                      onCheckedChange={setUseDebugMode}
-                      id="debug-mode"
-                    />
-                    <Label htmlFor="debug-mode" className="font-medium">
-                      Modo Debug {useDebugMode ? "(Activado)" : "(Desactivado)"}
-                    </Label>
-                  </div>
-                  
-                  {useDebugMode && (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="debug-company-id">CompanyId</Label>
-                        <Input
-                          id="debug-company-id"
-                          type="number"
-                          value={debugCompanyId || ""}
-                          onChange={(e) => setDebugCompanyId(parseInt(e.target.value) || null)}
-                          placeholder="Ej: 15"
-                        />
-                        <p className="text-xs text-amber-800">Valor predeterminado: 15</p>
-                      </div>
-                      
-                      <div className="flex items-end">
-                        <Button 
-                          variant="outline" 
-                          className="h-10"
-                          onClick={() => refetchPendingOrders()}
-                        >
-                          <RefreshCw size={16} className="mr-2" />
-                          Refrescar Datos
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        
-          <Form {...form}>
-            <form className="space-y-2">
-              <FormField
-                control={form.control}
-                name="zoneId"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-xs">Zona de Entrega</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(Number(value));
-                        
-                        const zoneIdValue = Number(value);
-                        setSelectedZone(zoneIdValue);
-                        
-                        // Generate an automatic name for the route
-                        const selectedZoneObj = zones && Array.isArray(zones) 
-                          ? zones.find((z: any) => z.id === zoneIdValue) 
-                          : null;
-                          
-                        if (selectedZoneObj) {
-                          const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
-                          form.setValue("name", `Ruta ${selectedZoneObj.name} - ${today}`);
-                          
-                          // No cambiamos automáticamente a la pestaña "customers"
-                          // para evitar la pantalla en blanco. El usuario debe hacer clic en la pestaña.
-                          // setSelectedTab("customers");
-                        }
-                      }}
-                      value={field.value ? String(field.value) : ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="h-7 text-xs">
-                          <SelectValue placeholder="Seleccionar una zona" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {isLoadingZones ? (
-                          <div className="p-1">
-                            <Skeleton className="h-4 w-full" />
-                            <Skeleton className="h-4 w-full mt-1" />
-                          </div>
-                        ) : (
-                          zones && Array.isArray(zones) && zones.map((zone: any) => (
-                            <SelectItem key={zone.id} value={zone.id.toString()} className="text-xs">
-                              {zone.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-[10px]" />
-                  </FormItem>
-                )}
-              />
-
-              {/* Los botones de selección de clientes se eliminaron porque ahora es automático */}
-            </form>
-          </Form>
-
-          {selectedZone && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-1">
-                  <MapIcon className="h-3 w-3 text-primary" />
-                  <h3 className="text-xs font-medium">Mapa de la Zona</h3>
-                </div>
-                {zones && Array.isArray(zones) && zones.find((z: any) => z.id === selectedZone) && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-600 border-blue-200 h-4">
-                    {zones.find((z: any) => z.id === selectedZone)?.name || ""}
-                  </Badge>
-                )}
-              </div>
-              <Card className="overflow-hidden shadow-sm">
-                <CardContent className="p-0">
-                  <ResponsiveMapContainer 
-                    fixedHeight 
-                    minHeight="200px"
-                    className="map-container"
-                  >
-                    {typeof window !== "undefined" && (
-                      <MapContainer
-                        center={[19.0, -70.0]}
-                        zoom={10}
-                        style={{ width: "100%" }}
-                        className="zone-map"
-                      >
-                        <TileLayer
-                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        />
-                        {zones && Array.isArray(zones) &&
-                          zones
-                          .filter((zone: any) => zone.id === selectedZone)
-                          .map((zone: any) => (
-                            <Polyline
-                              key={zone.id}
-                              positions={zone.coordinates.map((coord: string) => {
-                                const [lat, lng] = coord.split(",").map(parseFloat);
-                                return [lat, lng];
-                              })}
-                              color={zone.color}
-                              weight={3}
-                            />
-                          ))}
-                      </MapContainer>
-                    )}
-                  </ResponsiveMapContainer>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="customers" className="mt-2">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium">Clientes en la Zona</h3>
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                {selectedCustomers.length} seleccionados
-              </Badge>
-            </div>
-
-            {isLoadingCustomers ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-2">
-                      <Skeleton className="h-3 w-3/4" />
-                      <Skeleton className="h-2 w-1/2 mt-1" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : filteredZoneCustomers.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground text-xs">
-                No hay clientes registrados en esta zona
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-                {filteredZoneCustomers.map((customer: Customer) => (
-                  <Card 
-                    key={customer.id} 
-                    className={`cursor-pointer transition-colors ${
-                      selectedCustomers.some(c => c.id === customer.id)
-                        ? "border-primary bg-primary/5"
-                        : ""
-                    }`}
-                    onClick={() => toggleCustomerSelection(customer)}
-                  >
-                    <CardContent className="p-2 flex justify-between items-center">
-                      <div>
-                        <div className="font-medium text-xs">{customer.businessname}</div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {customer.street} {customer.streetnumber}, {customer.municipalityName}
-                        </div>
-                        <div className="text-[10px]">{customer.phone}</div>
-                      </div>
-                      <div>
-                        {selectedCustomers.some(c => c.id === customer.id) && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            <div className="flex justify-between pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setSelectedTab("zone")}
-                className="h-7 text-xs px-2"
-              >
-                Atrás
-              </Button>
-              
-              <div className="space-x-1">
-                {optimizedRoute.length > 0 && (
-                  <Button 
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setSelectedTab("review")}
-                    className="h-7 text-xs px-2"
-                  >
-                    Revisar Ruta
-                  </Button>
-                )}
-                
-                <Button 
-                  type="button"
-                  onClick={optimizeRoute}
-                  disabled={selectedCustomers.length < 2 || isOptimizing}
-                  className="h-7 text-xs px-2"
-                >
-                  {isOptimizing ? (
-                    <>
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      Optimizando...
-                    </>
-                  ) : (
-                    "Optimizar Ruta"
-                  )}
-                </Button>
-              </div>
-            </div>
+  const renderDebugPanel = () => {
+    if (!showDebugPanel) return null;
+    
+    return (
+      <Card className="mb-4 border-dashed border-yellow-500">
+        <CardHeader className="bg-yellow-50 dark:bg-yellow-950">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-base text-yellow-700 dark:text-yellow-400">Panel de Depuración</CardTitle>
+            <Badge variant="outline" className="text-yellow-600 border-yellow-300">DEBUG</Badge>
           </div>
-        </TabsContent>
-
-        <TabsContent value="pending_orders" className="mt-2">
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <h3 className="text-sm font-medium">Pedidos Pendientes</h3>
-              <Badge variant="secondary" className="bg-blue-50 text-blue-600 hover:bg-blue-50 text-[10px] py-0 px-1.5 h-4">
-                {pendingOrders.length} pedidos sin asignar
-              </Badge>
+          <CardDescription>Herramientas para diagnosticar problemas de carga de pedidos por zona</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="debug-mode" className="cursor-pointer">Modo Debug</Label>
+              <Switch 
+                id="debug-mode" 
+                checked={useDebugMode} 
+                onCheckedChange={setUseDebugMode}
+              />
             </div>
             
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="company-id">ID Compañía:</Label>
+              <Input 
+                id="company-id" 
+                value={debugCompanyId || ""} 
+                onChange={e => setDebugCompanyId(e.target.value ? parseInt(e.target.value) : null)}
+                className="w-16"
+                disabled={!useDebugMode}
+              />
+            </div>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                if (selectedZone) {
+                  refetchPendingOrders();
+                } else {
+                  toast({
+                    title: "Seleccione una zona",
+                    description: "Debe seleccionar una zona antes de recargar los pedidos",
+                  });
+                }
+              }}
+              disabled={!selectedZone}
+              className="h-8"
+            >
+              <RefreshCw className="h-3.5 w-3.5 mr-1" />
+              Recargar
+            </Button>
+          </div>
+          
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>URL de diagnóstico: {selectedZone ? 
+              `/api/zones/${selectedZone}/pending-orders${useDebugMode ? `?debug=true&companyId=${debugCompanyId || 15}` : ""}`
+              : "Seleccione una zona primero"
+            }</p>
+            
             {authError && (
-              <div className="p-2 bg-red-50 text-red-600 rounded-md text-xs">
-                <AlertTriangle className="h-3 w-3 inline-block mr-1" />
+              <div className="bg-red-50 dark:bg-red-950 p-2 rounded border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
+                <AlertTriangle className="h-3.5 w-3.5 inline-block mr-1" />
                 {authError}
               </div>
             )}
-            
-            {useDebugMode && selectedZone && (
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-md text-xs mb-2">
-                <div>Debug: Consultando zona {selectedZone} de compañía {debugCompanyId}</div>
-                <div className="text-[10px] mt-1">URL: {`/api/zones/${selectedZone}/pending-orders?debug=true&companyId=${debugCompanyId}`}</div>
-              </div>
-            )}
 
-            {isLoadingPendingOrders ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i}>
-                    <CardContent className="p-2">
-                      <Skeleton className="h-3 w-3/4" />
-                      <Skeleton className="h-2 w-1/2 mt-1" />
-                      <Skeleton className="h-2 w-1/4 mt-1" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : pendingOrdersError || authError ? (
-              <div className="text-center py-4 space-y-2">
-                <div className="text-red-500 text-xs">
-                  <AlertTriangle className="h-4 w-4 mx-auto mb-1" />
-                  {authError ? (
-                    <>
-                      <div className="font-semibold mb-1">Error de autenticación</div>
-                      <div>{authError}</div>
-                    </>
-                  ) : (
-                    "Error al cargar pedidos pendientes. Por favor, inténtalo de nuevo."
-                  )}
-                </div>
-                {companyIdUsed && (
-                  <div className="text-blue-500 text-[10px] bg-blue-50 p-1 rounded">
-                    Información técnica: Usando CompanyId: {companyIdUsed}
-                  </div>
-                )}
-                <div className="flex justify-center space-x-2">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => refetchPendingOrders()}
-                    className="h-7 text-xs px-2"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Reintentar
-                  </Button>
-                  
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      // Activar el modo debug y luego refrescar los datos
-                      setUseDebugMode(true);
-                      console.log("Activado modo debug para forzar el uso del companyId fijo");
-                      // Utilizamos un pequeño timeout para asegurar que el estado se actualizó
-                      setTimeout(() => {
-                        refetchPendingOrders();
-                      }, 100);
-                    }}
-                    className="h-7 text-xs px-2"
-                  >
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    Usar CompanyId fijo
-                  </Button>
-                </div>
-              </div>
-            ) : pendingOrders.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground text-xs">
-                <Package className="h-4 w-4 mx-auto mb-1 opacity-30" />
-                No hay pedidos pendientes sin asignar en esta zona
-                <div className="text-[10px] mt-1 text-muted-foreground">
-                  Comprueba que tienes pedidos con estado "pendiente" asignados a clientes de esta zona
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-1">
-                {pendingOrders.map((order: PendingOrder) => (
-                  <Card key={order.id} className="overflow-hidden">
-                    <CardHeader className="p-2 pb-1 bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium flex items-center text-xs">
-                            <User className="h-3 w-3 mr-1 text-primary" />
-                            {order.customerName}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground flex items-center mt-0.5">
-                            <MapPin className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
-                            {order.customerAddress}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground flex items-center mt-0.5">
-                            <Calendar className="h-2.5 w-2.5 mr-0.5 text-gray-400" />
-                            {new Date(order.date || new Date()).toLocaleDateString("es-ES", {
-                              day: '2-digit',
-                              month: '2-digit',
-                              year: 'numeric'
-                            })}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge className="bg-green-50 text-green-600 hover:bg-green-50 text-[10px] py-0 px-1.5 h-4">
-                            <DollarSign className="h-2.5 w-2.5 mr-0.5" />
-                            ${typeof order.total === 'string' ? parseFloat(order.total).toFixed(2) : order.total.toFixed(2)}
-                          </Badge>
-                          <div className="text-[9px] mt-0.5 text-muted-foreground">
-                            1 pedido
-                          </div>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="p-2 pt-0">
-                        <div className="text-[10px] font-medium text-muted-foreground mb-1">Detalles:</div>
-                        <div className="h-[60px] w-full rounded-md border p-2 flex flex-col justify-center">
-                          <div className="text-center text-[11px]">
-                            <span className="font-medium">Información del pedido</span>
-                            <div className="mt-1 text-[10px] text-muted-foreground">
-                              {order.notes || "Sin notas adicionales"}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            <div className="flex justify-between pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setSelectedTab("zone")}
-                className="h-7 text-xs px-2"
-              >
-                Atrás
-              </Button>
-              
-              <Button 
-                type="button"
-                variant="secondary"
-                onClick={() => setSelectedTab("customers")}
-                className="h-7 text-xs px-2"
-              >
-                Seleccionar Clientes
-              </Button>
+            <div className="bg-zinc-50 dark:bg-zinc-900 p-2 rounded">
+              <p>Estado: 
+                {isLoadingPendingOrders 
+                  ? <span className="text-blue-600 dark:text-blue-400 ml-1">Cargando pedidos...</span>
+                  : pendingOrdersError 
+                  ? <span className="text-red-600 dark:text-red-400 ml-1">Error al cargar pedidos</span>
+                  : <span className="text-green-600 dark:text-green-400 ml-1">
+                      {pendingOrders.length} pedidos encontrados para zona {selectedZone || "ninguna"}
+                    </span>
+                }
+              </p>
             </div>
           </div>
-        </TabsContent>
+        </CardContent>
+      </Card>
+    );
+  };
 
-        <TabsContent value="review" className="mt-2">
+  const filteredZones = zones.filter((zone: any) => 
+    zone.name.toLowerCase().includes(searchQuery)
+  );
+
+  // Filter customers in the selected zone
+  const filteredZoneCustomers = zoneCustomers.filter((customer: Customer) => 
+    customer.businessname.toLowerCase().includes(searchQuery) ||
+    customer.street.toLowerCase().includes(searchQuery)
+  );
+
+  // Filter customers with pending orders in the selected zone
+  const customersWithPendingOrders = pendingOrders.length > 0
+    ? zoneCustomers.filter((customer: Customer) => 
+        pendingOrders.some(order => order.customerId === customer.id)
+      )
+    : [];
+
+  return (
+    <div className={`space-y-6 ${compact ? 'p-0' : 'p-0 sm:p-4'}`}>
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium">Crear ruta basada en zona</h3>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowDebugPanel(!showDebugPanel)}
+        >
+          {showDebugPanel ? "Ocultar" : "Mostrar"} Panel Debug
+        </Button>
+      </div>
+      
+      {renderDebugPanel()}
+      
+      <Tabs defaultValue="zone" onValueChange={setSelectedTab}>
+        <TabsList className="w-full grid grid-cols-3">
+          <TabsTrigger value="zone">1. Selección de Zona</TabsTrigger>
+          <TabsTrigger value="customers">2. Selección de Clientes</TabsTrigger>
+          <TabsTrigger value="review">3. Revisión</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="zone" className="space-y-4 pt-4">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem className="space-y-1">
-                    <FormLabel className="text-xs">Nombre de Ruta</FormLabel>
-                    <FormControl>
-                      <Input {...field} className="h-7 text-xs" />
-                    </FormControl>
-                    <FormMessage className="text-[10px]" />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 gap-2">
+            <form className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
-                  name="driverId"
+                  name="zoneId"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Conductor</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value ? String(field.value) : ""}
+                    <FormItem>
+                      <FormLabel>Zona</FormLabel>
+                      <Select 
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString() || ""}
                       >
                         <FormControl>
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue placeholder="Seleccionar conductor" />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar zona" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {isLoadingDrivers ? (
-                            <div className="p-1">
-                              <Skeleton className="h-4 w-full" />
+                          {isLoadingZones ? (
+                            <div className="p-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
                             </div>
                           ) : (
-                            drivers && Array.isArray(drivers) && drivers.map((driver: any) => (
-                              <SelectItem key={driver.id} value={String(driver.id)} className="text-xs">
-                                {driver.name}
-                              </SelectItem>
-                            ))
+                            <>
+                              <div className="px-3 pb-2">
+                                <Input
+                                  placeholder="Buscar zona..."
+                                  value={searchQuery}
+                                  onChange={handleZoneSearch}
+                                  className="h-8 mt-1"
+                                />
+                              </div>
+                              <Separator className="mb-2" />
+                              {filteredZones.length === 0 ? (
+                                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                                  No se encontraron zonas
+                                </div>
+                              ) : (
+                                filteredZones.map((zone: any) => (
+                                  <SelectItem key={zone.id} value={zone.id.toString()}>
+                                    {zone.name}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </>
                           )}
                         </SelectContent>
                       </Select>
-                      <FormMessage className="text-[10px]" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-
+                
                 <FormField
                   control={form.control}
-                  name="assistantId"
+                  name="name"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Asistente</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value ? String(field.value) : ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue placeholder="Seleccionar asistente" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingAssistants ? (
-                            <div className="p-1">
-                              <Skeleton className="h-4 w-full" />
-                            </div>
-                          ) : (
-                            assistants && Array.isArray(assistants) && assistants.map((assistant: any) => (
-                              <SelectItem key={assistant.id} value={String(assistant.id)} className="text-xs">
-                                {assistant.name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="truckId"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel className="text-xs">Vehículo</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        value={field.value ? String(field.value) : ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-7 text-xs">
-                            <SelectValue placeholder="Seleccionar vehículo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {isLoadingTrucks ? (
-                            <div className="p-1">
-                              <Skeleton className="h-4 w-full" />
-                            </div>
-                          ) : (
-                            trucks && Array.isArray(trucks) && trucks.map((truck: any) => (
-                              <SelectItem key={truck.id} value={String(truck.id)} className="text-xs">
-                                {truck.plate} - {truck.brand} {truck.model}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-[10px]" />
+                    <FormItem>
+                      <FormLabel>Nombre de la Ruta</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -1484,23 +761,21 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   control={form.control}
                   name="date"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col space-y-1">
-                      <FormLabel className="text-xs">Fecha de Entrega</FormLabel>
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Fecha</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
                             <Button
-                              variant="outline"
-                              className={`w-full h-7 px-2 text-xs text-left font-normal flex justify-between items-center ${
-                                !field.value ? "text-muted-foreground" : ""
-                              }`}
+                              variant={"outline"}
+                              className="pl-3 text-left font-normal"
                             >
                               {field.value ? (
                                 format(field.value, "PPP", { locale: es })
                               ) : (
                                 <span>Seleccionar fecha</span>
                               )}
-                              <Calendar className="h-3 w-3 opacity-50" />
+                              <Calendar className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -1508,178 +783,552 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                           <CalendarComponent
                             mode="single"
                             selected={field.value}
-                            onSelect={(date) => {
-                              if (date) {
-                                date.setHours(12); // Set to noon to avoid timezone issues
-                                field.onChange(date);
-                              }
-                            }}
-                            disabled={(date) => date < new Date()}
+                            onSelect={field.onChange}
+                            disabled={(date) => date < new Date("1900-01-01")}
                             initialFocus
                           />
                         </PopoverContent>
                       </Popover>
-                      <FormMessage className="text-[10px]" />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="driverId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Conductor</FormLabel>
+                      <Select 
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString() || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar conductor" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingDrivers ? (
+                            <div className="p-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          ) : (
+                            drivers.map((driver: any) => (
+                              <SelectItem key={driver.id} value={driver.id.toString()}>
+                                {driver.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="assistantId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Auxiliar</FormLabel>
+                      <Select 
+                        onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
+                        value={field.value?.toString() || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar auxiliar (opcional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">Ninguno</SelectItem>
+                          {isLoadingAssistants ? (
+                            <div className="p-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          ) : (
+                            assistants.map((assistant: any) => (
+                              <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                                {assistant.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="truckId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vehículo</FormLabel>
+                      <Select 
+                        onValueChange={(value) => field.onChange(parseInt(value))}
+                        value={field.value?.toString() || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar vehículo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {isLoadingTrucks ? (
+                            <div className="p-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          ) : (
+                            trucks.map((truck) => (
+                              <SelectItem key={truck.id} value={truck.id.toString()}>
+                                {truck.brand} {truck.model} ({truck.plate})
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-
-              {optimizedRoute.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-medium mb-1">Secuencia de Paradas ({optimizedRoute.length})</h3>
-                  <div className="border rounded-md p-2 space-y-2 max-h-[250px] overflow-y-auto">
-                    {optimizedRoute.map((customer, index) => (
-                      <div key={customer.id} className="flex items-center">
-                        <Badge 
-                          variant={index === 0 ? "secondary" : "outline"} 
-                          className={`mr-2 h-5 w-5 rounded-full ${index === 0 ? "bg-primary text-white" : ""} text-[10px]`}
-                        >
-                          {index}
-                        </Badge>
-                        <div>
-                          <div className="font-medium text-xs">
-                            {customer.businessname}
-                            {index === 0 && <span className="ml-2 text-[10px] bg-primary text-white px-1.5 py-0 rounded-full">Inicio</span>}
-                          </div>
-                          <div className="text-[10px] text-muted-foreground">
-                            {customer.street} {customer.streetnumber}{customer.municipalityName ? `, ${customer.municipalityName}` : ''}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {optimizedRoute.length > 0 && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3 text-primary" />
-                      <h3 className="text-xs font-medium">Mapa de Ruta Optimizada</h3>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-green-50 text-green-600 border-green-200 h-4">
-                      {optimizedRoute.length} paradas
-                    </Badge>
-                  </div>
-                  <Card className="overflow-hidden shadow-sm">
-                    <CardContent className="p-0">
-                      <ResponsiveMapContainer 
-                        fixedHeight 
-                        minHeight="200px"
-                        className="map-container"
-                      >
-                        {typeof window !== "undefined" && (
-                          <MapContainer
-                            center={getMapCenter() as [number, number]}
-                            zoom={11}
-                            style={{ width: "100%" }}
-                            className="route-map"
-                          >
-                            <TileLayer
-                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                            />
-                            <MapCenterFixer />
-                            {/* Polyline para la ruta */}
-                            {optimizedRoute.length > 1 && (
-                              <Polyline
-                                positions={optimizedRoute
-                                  .filter(customer => customer.coordinates)
-                                  .map(customer => {
-                                    const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
-                                    return [lat, lng] as [number, number];
-                                  })}
-                                color="#3366ff"
-                                weight={3}
-                                opacity={0.7}
-                                dashArray="5,10"
-                              />
-                            )}
-                        
-                        {/* Markers for each point */}
-                        {optimizedRoute.map((customer, index) => {
-                          try {
-                            if (!customer.coordinates) {
-                              console.warn(`No coordinates for customer: ${customer.id}`);
-                              return null;
-                            }
-                            
-                            const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
-                            if (isNaN(lat) || isNaN(lng)) {
-                              console.warn(`Invalid coordinates for customer: ${customer.id}`, customer.coordinates);
-                              return null;
-                            }
-                            
-                            // Use Leaflet divIcon to customize marker appearance
-                            const customIcon = L.divIcon({
-                              className: 'custom-marker',
-                              html: `<div class="flex items-center justify-center ${index === 0 ? 'bg-green-600' : 'bg-primary'} text-white rounded-full w-6 h-6 text-sm font-semibold">${index}</div>`,
-                              iconSize: [24, 24],
-                              iconAnchor: [12, 12]
-                            });
-                            
-                            return (
-                              <Marker 
-                                key={`${customer.id}-${index}`}
-                                position={[lat, lng]}
-                                icon={customIcon}
-                              >
-                                <Popup>
-                                  <div className="text-sm">
-                                    <strong>{customer.businessname}</strong>
-                                    <br />
-                                    Parada #{index}
-                                    {index === 0 && " (Inicio)"}
-                                  </div>
-                                </Popup>
-                              </Marker>
-                            );
-                          } catch (e) {
-                            console.error("Error rendering marker:", e, customer);
-                            return null;
-                          }
-                        })}
-                      </MapContainer>
-                    )}
-                  </ResponsiveMapContainer>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              <div className="flex justify-between pt-2">
+              
+              <div className="flex justify-end">
                 <Button 
                   type="button" 
-                  variant="outline" 
-                  onClick={() => setSelectedTab("customers")}
-                  className="h-7 text-xs px-2"
+                  onClick={() => setSelectedTab("customers")} 
+                  disabled={!selectedZone}
                 >
-                  Atrás
-                </Button>
-                
-                <Button 
-                  type="submit"
-                  disabled={createRouteMutation.isPending || !form.watch("driverId")}
-                  className="h-7 text-xs px-2"
-                >
-                  {createRouteMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      Creando ruta...
-                    </>
-                  ) : (
-                    "Crear Ruta"
-                  )}
+                  Siguiente
                 </Button>
               </div>
             </form>
           </Form>
         </TabsContent>
-        </Tabs>
-        </CardContent>
-      </Card>
+        
+        <TabsContent value="customers" className="space-y-4 pt-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium">Clientes en la zona</h4>
+            <div className="relative w-[200px]">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar clientes..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={handleZoneSearch}
+              />
+            </div>
+          </div>
+          
+          <Tabs defaultValue="all">
+            <TabsList>
+              <TabsTrigger value="all">
+                Todos los clientes ({filteredZoneCustomers.length})
+              </TabsTrigger>
+              <TabsTrigger value="with-orders">
+                Con pedidos pendientes ({customersWithPendingOrders.length})
+              </TabsTrigger>
+              <TabsTrigger value="selected">
+                Seleccionados ({selectedCustomers.length})
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="all" className="pt-4">
+              {isLoadingCustomers ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                      <Skeleton className="h-10 flex-1" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredZoneCustomers.length === 0 ? (
+                <div className="text-center p-8">
+                  <User className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No hay clientes en esta zona</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2">
+                    {filteredZoneCustomers.map((customer: Customer) => (
+                      <div 
+                        key={customer.id}
+                        className={`flex items-center p-2 border rounded ${
+                          selectedCustomers.some(c => c.id === customer.id)
+                            ? "border-primary bg-primary/5"
+                            : "border-border"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={selectedCustomers.some(c => c.id === customer.id)}
+                          onCheckedChange={() => toggleCustomerSelection(customer)}
+                          className="mr-3"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{customer.businessname}</p>
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            <span>
+                              {customer.street} {customer.streetnumber}
+                              {customer.municipalityName && `, ${customer.municipalityName}`}
+                            </span>
+                          </div>
+                        </div>
+                        {customer.coordinates ? (
+                          <Badge variant="outline" className="text-xs ml-2">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            GPS
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs text-red-500 ml-2">
+                            <AlertTriangle className="h-3 w-3 mr-1" />
+                            Sin GPS
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="with-orders" className="pt-4">
+              {isLoadingPendingOrders ? (
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-4 w-4 rounded-full" />
+                      <Skeleton className="h-10 flex-1" />
+                    </div>
+                  ))}
+                </div>
+              ) : customersWithPendingOrders.length === 0 ? (
+                <div className="text-center p-8">
+                  <Package className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">No hay clientes con pedidos pendientes en esta zona</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2">
+                    {customersWithPendingOrders.map((customer: Customer) => (
+                      <div 
+                        key={customer.id}
+                        className={`flex items-center p-2 border rounded ${
+                          selectedCustomers.some(c => c.id === customer.id)
+                            ? "border-primary bg-primary/5"
+                            : "border-border"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={selectedCustomers.some(c => c.id === customer.id)}
+                          onCheckedChange={() => toggleCustomerSelection(customer)}
+                          className="mr-3"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{customer.businessname}</p>
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            <span>
+                              {customer.street} {customer.streetnumber}
+                              {customer.municipalityName && `, ${customer.municipalityName}`}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge className="ml-2 text-xs">
+                          <Package className="h-3 w-3 mr-1" />
+                          {pendingOrders.filter(order => order.customerId === customer.id).length} pedidos
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="selected" className="pt-4">
+              {selectedCustomers.length === 0 ? (
+                <div className="text-center p-8">
+                  <CheckCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-muted-foreground">Selecciona clientes para incluir en la ruta</p>
+                </div>
+              ) : (
+                <ScrollArea className="h-[300px]">
+                  <div className="space-y-2">
+                    {selectedCustomers.map((customer: Customer) => (
+                      <div 
+                        key={customer.id}
+                        className="flex items-center p-2 border rounded border-primary bg-primary/5"
+                      >
+                        <Checkbox
+                          checked={true}
+                          onCheckedChange={() => toggleCustomerSelection(customer)}
+                          className="mr-3"
+                        />
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{customer.businessname}</p>
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            <span>
+                              {customer.street} {customer.streetnumber}
+                              {customer.municipalityName && `, ${customer.municipalityName}`}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {pendingOrders.some(order => order.customerId === customer.id) && (
+                          <Badge className="ml-2 text-xs">
+                            <Package className="h-3 w-3 mr-1" />
+                            {pendingOrders.filter(order => order.customerId === customer.id).length} pedidos
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </TabsContent>
+          </Tabs>
+          
+          <div className="flex justify-between pt-4">
+            <Button variant="outline" onClick={() => setSelectedTab("zone")}>
+              Atrás
+            </Button>
+            <div className="flex space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={optimizeRoute}
+                disabled={selectedCustomers.length < 2 || isOptimizing}
+              >
+                {isOptimizing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Optimizar Ruta
+              </Button>
+              <Button 
+                onClick={() => setSelectedTab("review")}
+                disabled={selectedCustomers.length === 0}
+              >
+                Siguiente
+              </Button>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="review" className="space-y-4 pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Detalles de la Ruta</CardTitle>
+                <CardDescription>Información sobre la ruta que será creada</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="font-medium">Nombre:</div>
+                  <div>{form.getValues().name}</div>
+                  
+                  <div className="font-medium">Fecha:</div>
+                  <div>{format(form.getValues().date, "PPP", { locale: es })}</div>
+                  
+                  <div className="font-medium">Zona:</div>
+                  <div>
+                    {zones.find((z: any) => z.id === selectedZone)?.name || "No seleccionada"}
+                  </div>
+                  
+                  <div className="font-medium">Conductor:</div>
+                  <div>
+                    {drivers.find((d: any) => d.id === form.getValues().driverId)?.name || "No seleccionado"}
+                  </div>
+                  
+                  <div className="font-medium">Auxiliar:</div>
+                  <div>
+                    {assistants.find((a: any) => a.id === form.getValues().assistantId)?.name || "Ninguno"}
+                  </div>
+                  
+                  <div className="font-medium">Vehículo:</div>
+                  <div>
+                    {trucks.find((t) => t.id === form.getValues().truckId)?.plate || "No seleccionado"}
+                  </div>
+                  
+                  <div className="font-medium">Clientes:</div>
+                  <div>{optimizedRoute.length > 0 ? optimizedRoute.length - 1 : selectedCustomers.length}</div>
+                  
+                  <div className="font-medium">Distancia:</div>
+                  <div>
+                    {optimizedRoute.length > 0 
+                      ? `${calculateTotalRouteDistance(optimizedRoute).toFixed(2)} km`
+                      : "No calculada"
+                    }
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Previsualización de la Ruta</CardTitle>
+                <CardDescription>Mapa de la ruta optimizada</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {optimizedRoute.length > 0 ? (
+                  <ResponsiveMapContainer className="h-[300px]">
+                    <MapContainer
+                      center={getMapCenter() as [number, number]}
+                      zoom={11}
+                      style={{ height: "100%", width: "100%" }}
+                      zoomControl={false}
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      />
+                      
+                      <MapCenterFixer />
+                      
+                      {optimizedRoute.map((customer, index) => {
+                        if (!customer.coordinates) return null;
+                        
+                        const [lat, lng] = customer.coordinates.split(',').map(parseFloat);
+                        if (isNaN(lat) || isNaN(lng)) return null;
+                        
+                        const isDepot = index === 0;
+                        const icon = isDepot
+                          ? new L.Icon({
+                              iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+                              shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+                              iconSize: [25, 41],
+                              iconAnchor: [12, 41],
+                              popupAnchor: [1, -34],
+                              shadowSize: [41, 41]
+                            })
+                          : new L.Icon({
+                              iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+                              shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+                              iconSize: [25, 41],
+                              iconAnchor: [12, 41],
+                              popupAnchor: [1, -34],
+                              shadowSize: [41, 41]
+                            });
+                        
+                        return (
+                          <Marker 
+                            key={`${customer.id}-${index}`} 
+                            position={[lat, lng]}
+                            icon={icon}
+                          >
+                            <Popup>
+                              <div className="text-sm">
+                                <p className="font-semibold">{customer.businessname}</p>
+                                <p>{customer.street} {customer.streetnumber}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Parada #{index} {isDepot && "(Depósito)"}
+                                </p>
+                              </div>
+                            </Popup>
+                          </Marker>
+                        );
+                      })}
+                      
+                      {/* Draw the route line */}
+                      {optimizedRoute.length > 1 && (
+                        <Polyline
+                          positions={
+                            optimizedRoute
+                              .filter(customer => customer.coordinates)
+                              .map(customer => {
+                                const [lat, lng] = customer.coordinates!.split(',').map(parseFloat);
+                                return [lat, lng] as [number, number];
+                              })
+                          }
+                          color="#3b82f6"
+                          weight={3}
+                          opacity={0.7}
+                          dashArray="5, 10"
+                        />
+                      )}
+                    </MapContainer>
+                  </ResponsiveMapContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-[300px] bg-muted/20">
+                    <div className="text-center">
+                      <MapIcon className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Optimiza la ruta para visualizar el mapa
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="space-y-4">
+            <h4 className="text-sm font-medium mt-4">Secuencia de Paradas</h4>
+            
+            {optimizedRoute.length > 0 ? (
+              <ScrollArea className="h-[300px] border rounded-md">
+                <div className="p-4 space-y-2">
+                  {optimizedRoute.map((customer, index) => (
+                    <div 
+                      key={`${customer.id}-${index}`}
+                      className={`flex items-center p-2 border rounded ${index === 0 ? "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800" : ""}`}
+                    >
+                      <div className="flex-none w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                        <span className="text-sm font-semibold">{index}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">
+                          {index === 0 ? "Almacén Principal (Inicio/Fin)" : customer.businessname}
+                        </p>
+                        {index > 0 && (
+                          <div className="flex items-center text-xs text-muted-foreground">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            <span>
+                              {customer.street} {customer.streetnumber}
+                              {customer.municipalityName && `, ${customer.municipalityName}`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {index > 0 && pendingOrders.some(order => order.customerId === customer.id) && (
+                        <Badge className="ml-2 text-xs">
+                          <Package className="h-3 w-3 mr-1" />
+                          {pendingOrders.filter(order => order.customerId === customer.id).length} pedidos
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="flex items-center justify-center h-[200px] border rounded-md bg-muted/10">
+                <div className="text-center">
+                  <Route className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Optimiza la ruta para ver la secuencia de paradas
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-between pt-4">
+            <Button variant="outline" onClick={() => setSelectedTab("customers")}>
+              Atrás
+            </Button>
+            <Button 
+              onClick={form.handleSubmit(onSubmit)}
+              disabled={!selectedZone || selectedCustomers.length === 0 || optimizedRoute.length === 0 || !form.getValues().driverId || !form.getValues().truckId}
+            >
+              Crear Ruta
+            </Button>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
