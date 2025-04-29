@@ -39,7 +39,17 @@ export function createUpdateOrderStatusEndpoint(router: Router) {
       const orderIdNum = parseInt(orderId);
       
       // Determinar el companyId actual
-      const companyId = getCurrentCompanyId() || 1; // Default a companyId 1 si no hay contexto
+      const companyId = getCurrentCompanyId();
+      
+      // Verificar si tenemos un companyId válido
+      if (!companyId) {
+        console.error("No se pudo determinar el companyId para la actualización de estado");
+        return res.status(401).json({ 
+          success: false, 
+          message: "No se pudo determinar la empresa. Verifique su sesión o autenticación." 
+        });
+      }
+      
       console.log(`Actualización para companyId: ${companyId}`);
       
       // Verificamos el estado actual
