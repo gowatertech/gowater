@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { 
   Users as UsersIcon, 
   UserPlus, 
@@ -62,6 +63,7 @@ import { Badge } from "@/components/ui/badge";
 export default function Users() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { user: currentUser } = useCurrentUser();
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   // Consulta de usuarios
@@ -197,9 +199,20 @@ export default function Users() {
     try {
       // Si estamos editando, proceder con la actualización
       if (editingUser) {
-        // Preparar datos para la actualización
+        // Obtener el companyId del usuario actual
+        if (!currentUser?.companyId) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo obtener el ID de la compañía actual"
+          });
+          return;
+        }
+
+        // Preparar datos para la actualización e incluir el companyId
         const updateData = {
           ...data,
+          companyId: currentUser.companyId,
           licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
         };
 
@@ -207,6 +220,8 @@ export default function Users() {
         if (!updateData.password) {
           delete updateData.password;
         }
+
+        console.log("Enviando datos de actualización con companyId:", updateData);
 
         await updateUserMutation.mutateAsync({
           id: editingUser.id,
@@ -226,12 +241,25 @@ export default function Users() {
         return;
       }
 
-      // Formatear los datos antes de enviar
+      // Obtener el companyId del usuario actual
+      if (!currentUser?.companyId) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo obtener el ID de la compañía actual"
+        });
+        return;
+      }
+
+      // Formatear los datos antes de enviar e incluir el companyId
       const formattedData = {
         ...data,
+        companyId: currentUser.companyId,
         licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
       };
 
+      console.log("Enviando datos con companyId:", formattedData);
+      
       // Si no existe, crear el usuario
       await createUserMutation.mutateAsync(formattedData);
     } catch (error) {
