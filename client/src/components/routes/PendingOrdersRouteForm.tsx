@@ -131,7 +131,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const { user: pendingOrdersUserData, isLoading: isLoadingUser } = useCurrentUser();
   
   // Obtener el companyId directamente del servidor
-  const { data: companyData } = useQuery({
+  const { data: companyData } = useQuery<{companyId: number}>({
     queryKey: ['/api/company-id'],
     enabled: !isLoadingUser,
   });
@@ -657,12 +657,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-lg font-medium">Crear ruta con pedidos pendientes</h3>
-              {pendingOrdersUserData && (
-                <div className="text-xs text-muted-foreground">
-                  CompanyId: {pendingOrdersUserData.companyId || "No definido"} 
-                  {pendingOrdersUserData.role && ` | Rol: ${pendingOrdersUserData.role}`}
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground">
+                CompanyId: {companyData?.companyId || pendingOrdersUserData?.companyId || "No definido"} 
+                {pendingOrdersUserData?.role && ` | Rol: ${pendingOrdersUserData.role}`}
+              </div>
             </div>
             <Button 
               variant="outline" 
@@ -670,7 +668,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
               onClick={() => {
                 // Crear un mensaje más amigable para el usuario
                 const diagnosticInfo = {
-                  companyId: pendingOrdersUserData?.companyId || "No definido",
+                  companyId: companyData?.companyId || pendingOrdersUserData?.companyId || "No definido",
                   role: pendingOrdersUserData?.role || "No definido",
                   zoneId: form.watch("zoneId") || "No requerida (se muestran todos los pedidos)",
                   zonesCount: Array.isArray(zones) ? zones.length : 0,
@@ -680,7 +678,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                   companySettings: settings ? "Configurados" : "No configurados",
                   companyCoordinates: settings?.latitude && settings?.longitude 
                     ? `${settings.latitude},${settings.longitude}` 
-                    : "No configuradas"
+                    : "No configuradas",
+                  companyIdFromApi: companyData?.companyId || "No disponible"
                 };
                 
                 console.log("Diagnóstico:", diagnosticInfo);
@@ -691,6 +690,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                   description: (
                     <div className="text-xs space-y-1">
                       <div><strong>CompanyId:</strong> {diagnosticInfo.companyId}</div>
+                      <div><strong>CompanyId (API):</strong> {diagnosticInfo.companyIdFromApi}</div>
                       <div><strong>Rol:</strong> {diagnosticInfo.role}</div>
                       <div><strong>Zona:</strong> {diagnosticInfo.zoneId}</div>
                       <div><strong>Total Zonas:</strong> {diagnosticInfo.zonesCount}</div>
