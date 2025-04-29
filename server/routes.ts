@@ -56,6 +56,13 @@ export async function registerRoutes(router: express.Router) {
   router.use('/commissions', commissionsRoutes);
   
   // Endpoint de diagnóstico para verificar pedidos pendientes por compañía
+  // Endpoint para obtener el companyId de la sesión actual
+  router.get("/api/company-id", companyAuthMiddleware, (req, res) => {
+    const companyId = getCurrentCompanyId();
+    console.log(`🔍 Diagnóstico: Obteniendo companyId activo: ${companyId}`);
+    res.json({ companyId });
+  });
+
   router.get("/api/diagnostic/pending-orders", async (req, res) => {
     try {
       const companyId = parseInt(req.query.companyId as string) || 15; // Default a 15 si no se especifica

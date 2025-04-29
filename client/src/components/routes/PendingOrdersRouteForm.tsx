@@ -129,6 +129,12 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const [searchQuery, setSearchQuery] = useState("");
   // Usar el hook de usuario actual en lugar del estado
   const { user: pendingOrdersUserData, isLoading: isLoadingUser } = useCurrentUser();
+  
+  // Obtener el companyId directamente del servidor
+  const { data: companyData } = useQuery({
+    queryKey: ['/api/company-id'],
+    enabled: !isLoadingUser,
+  });
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery<any[]>({
