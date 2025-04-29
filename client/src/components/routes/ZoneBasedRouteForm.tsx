@@ -129,6 +129,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [debugCompanyId, setDebugCompanyId] = useState<number | null>(null); // Sin valor por defecto
   const [authError, setAuthError] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [apiCompanyId, setApiCompanyId] = useState<number | null>(null);
 
   // Obtener información del usuario autenticado para mostrar companyId
   useEffect(() => {
@@ -156,6 +157,28 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     
     fetchUserData();
   }, [useDebugMode, debugCompanyId]);
+  
+  // Obtener companyId directamente desde el endpoint dedicado
+  useEffect(() => {
+    const fetchCompanyId = async () => {
+      try {
+        const response = await apiRequest({
+          url: "/company-id",
+          method: "GET"
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setApiCompanyId(data.companyId);
+          console.log("Company ID from API:", data.companyId);
+        }
+      } catch (error) {
+        console.error("Error fetching company ID:", error);
+      }
+    };
+    
+    fetchCompanyId();
+  }, []);
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
