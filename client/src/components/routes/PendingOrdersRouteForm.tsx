@@ -156,49 +156,28 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     queryKey: ["/api/zones", selectedZone, "pending-orders"],
     queryFn: async () => {
       if (!selectedZone) return [];
+      console.log(`Fetching pending orders for zone ${selectedZone}`);
       
       try {
-        const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Error al obtener pedidos pendientes");
-        }
+        const response = await apiRequest(`/api/zones/${selectedZone}/pending-orders`);
+        console.log("Pending orders response:", response);
         
-        const data = await response.json();
-        return data.map((order: any) => ({
+        // Transformar los datos para que coincidan con el formato esperado por el componente
+        return response.map((order: any) => ({
           ...order,
+          // Asegurarnos de que cada pedido tenga una propiedad coordinates
           coordinates: order.deliveryCoordinates || order.coordinates || null,
+          // Agregar customerAddress completo con número (para mostrar en la vista)
           customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
+          // Si customerPhone no está presente, usar un valor por defecto
           customerPhone: order.customerPhone || "",
+          // Inicializar un array vacío de productos (opcional, ya que hemos agregado la verificación)
           products: order.products || []
         }));
       } catch (error) {
         console.error("Error en la consulta de pedidos pendientes:", error);
         throw error;
       }
-    },
-    queryFn: async () => {
-      if (!selectedZone) return [];
-      console.log(`Fetching pending orders for zone ${selectedZone}`);
-      const response = await apiRequest("GET", `/api/zones/${selectedZone}/pending-orders`);
-      if (!response.ok) {
-        throw new Error("Error al obtener pedidos pendientes de la zona");
-      }
-      const data = await response.json();
-      console.log("Pending orders data:", data);
-      
-      // Transformar los datos para que coincidan con el formato esperado por el componente
-      return data.map((order: any) => ({
-        ...order,
-        // Asegurarnos de que cada pedido tenga una propiedad coordinates
-        coordinates: order.deliveryCoordinates || order.coordinates || null,
-        // Agregar customerAddress completo con número (para mostrar en la vista)
-        customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
-        // Si customerPhone no está presente, usar un valor por defecto
-        customerPhone: order.customerPhone || "",
-        // Inicializar un array vacío de productos (opcional, ya que hemos agregado la verificación)
-        products: order.products || []
-      }));
     },
     enabled: !!selectedZone,
   });

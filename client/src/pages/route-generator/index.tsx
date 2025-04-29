@@ -88,6 +88,12 @@ const RouteGeneratorPage: React.FC = () => {
   // Consulta para obtener pedidos pendientes
   const { data: pendingOrders = [], isLoading, refetch } = useQuery({
     queryKey: ['/api/route-generator/orders/pending'],
+    queryFn: async () => {
+      console.log("Fetching pending orders for route generator");
+      const response = await apiRequest('/api/route-generator/orders/pending');
+      console.log("Pending orders response:", response);
+      return response;
+    },
     refetchOnWindowFocus: false
   });
   
