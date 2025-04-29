@@ -189,6 +189,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     },
   });
 
+  // Fetch zonas
+  const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
+    queryKey: ["/api/zones"],
+  });
+
   // Obtener el companyId de manera dinámica, SIN VALOR POR DEFECTO
   const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
   
@@ -196,6 +201,9 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   console.log("  - companyData?.companyId:", companyData?.companyId);
   console.log("  - pendingOrdersUserData?.companyId:", pendingOrdersUserData?.companyId);
   console.log("  - currentCompanyId (final):", currentCompanyId);
+  
+  // Estado para la zona seleccionada
+  const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
@@ -206,7 +214,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         val === null || val === 'null' ? null : Number(val)),
       truckId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
         val === null || val === 'null' ? null : Number(val)),
-      zoneId: z.any().optional(),
+      zoneId: z.coerce.number().positive("Debe seleccionar una zona"), // Hacemos zoneId obligatorio
     })),
     defaultValues: {
       name: "",
@@ -217,7 +225,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: currentCompanyId ? Number(currentCompanyId) : undefined // Sin valor por defecto
+      companyId: currentCompanyId ? Number(currentCompanyId) : undefined, // Sin valor por defecto
+      zoneId: undefined // El usuario debe seleccionar una zona
     },
   });
   
