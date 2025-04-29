@@ -1,8 +1,8 @@
-import { Router } from 'express';
-import { orders, customers } from '@shared/schema';
-import { db } from '@server/db';
+import { Router, Request, Response } from 'express';
+import { orders, customers } from '../../../shared/schema';
+import { db } from '../../db';
 import { eq, and, inArray } from 'drizzle-orm';
-import { getCurrentCompanyId } from '@server/company-db';
+import { getCurrentCompanyId } from '../../company-db';
 
 // Router para las operaciones relacionadas con la optimización de rutas
 export const optimizeRouter = Router();
@@ -97,7 +97,7 @@ function optimizeRoute(deliveryPoints: DeliveryPoint[]): OptimizedPoint[] {
 }
 
 // Endpoint para optimizar una ruta
-optimizeRouter.post('/optimize', async (req, res) => {
+optimizeRouter.post('/optimize', async (req: Request, res: Response) => {
   try {
     const { orderIds } = req.body;
     
@@ -186,6 +186,7 @@ optimizeRouter.post('/optimize', async (req, res) => {
     }
     
     return res.json({
+      success: true,
       stops: optimizedStops,
       statistics: {
         totalStops: optimizedStops.length,

@@ -1,13 +1,24 @@
-import { Router } from 'express';
-import { routes, orders } from '../../../shared/schema';
+import { Router, Request, Response } from 'express';
+import { orders, routes } from '../../../shared/schema';
 import { db } from '../../db';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getCurrentCompanyId } from '../../company-db';
 
 // Router para las operaciones relacionadas con la creación de rutas
 export const createRouter = Router();
 
-// Interface para la parada en una ruta
+// Interface para los datos de una ruta nueva
+interface NewRoute {
+  name: string;
+  driverId: number;
+  assistantId?: number | null;
+  truckId?: number | null;
+  zoneId: number;
+  date: string;
+  stops: RouteStop[];
+}
+
+// Interface para cada parada en la ruta
 interface RouteStop {
   orderId: number;
   customerId: number;
@@ -17,109 +28,80 @@ interface RouteStop {
   sequenceNumber: number;
 }
 
-// Interface para la creación de una nueva ruta
-interface NewRoute {
-  name: string;
-  driverId: number;
-  assistantId: number | null;
-  truckId: number | null;
-  zoneId: number;
-  date: string;
-  stops: RouteStop[];
-}
-
-// Endpoint para crear una ruta
-createRouter.post('/create', async (req, res) => {
+// Endpoint para crear una nueva ruta
+createRouter.post('/create', async (req: Request, res: Response) => {
   try {
-    const routeData: NewRoute = req.body;
-    
-    // Validar datos mínimos requeridos
-    if (!routeData.name || !routeData.driverId || !routeData.zoneId || !routeData.date) {
-      return res.status(400).json({
-        error: "Datos incompletos",
-        details: "Se requiere nombre, conductor, zona y fecha para la ruta"
-      });
-    }
-    
-    if (!routeData.stops || routeData.stops.length === 0) {
-      return res.status(400).json({
-        error: "No hay paradas",
-        details: "La ruta debe contener al menos una parada"
-      });
-    }
-    
     const companyId = getCurrentCompanyId();
-    
     if (!companyId) {
-      return res.status(400).json({ 
-        error: "No se encontró ID de compañía en el contexto" 
+      return res.status(403).json({ 
+        error: "Acceso denegado", 
+        message: "No se ha encontrado un contexto de compañía válido" 
       });
     }
     
-    console.log(`[Generador de Rutas] Creando ruta con ${routeData.stops.length} paradas para la compañía ${companyId}`);
+    const { 
+      name, 
+      driverId, 
+      assistantId, 
+      truckId, 
+      zoneId, 
+      date, 
+      stops 
+    } = req.body as NewRoute;
     
-    // Guardar secuencia de entrega y paradas
-    const deliverySequence = routeData.stops.map(stop => stop.orderId.toString());
-    const stopsData = routeData.stops.map(stop => JSON.stringify({
-      orderId: stop.orderId,
-      customerId: stop.customerId,
-      customerName: stop.customerName,
-      address: stop.address,
-      coordinates: stop.coordinates || null,
-      sequenceNumber: stop.sequenceNumber
-    }));
+    // Validaciones básicas
+    if (!name || !driverId || !zoneId || !date || !stops || !Array.isArray(stops)) {
+      return res.status(400).json({ 
+        error: "Datos incompletos", 
+        message: "Faltan campos requeridos para crear la ruta" 
+      });
+    }
     
-    // Crear la ruta
-    const newRoutesData = {
-      companyId: companyId,
-      name: routeData.name,
-      driverId: routeData.driverId,
-      assistantId: routeData.assistantId,
-      truckId: routeData.truckId,
-      zoneId: routeData.zoneId,
+    console.log(`🔄 Creando nueva ruta: ${name} con ${stops.length} paradas...`);
+    
+    // Crear la ruta en la base de datos
+    const [newRoute] = await db.insert(routes).values({
+      companyId,
+      name,
+      driverId,
+      assistantId,
+      truckId,
+      zoneId,
+      date: new Date(date),
       status: "pending",
-      date: new Date(routeData.date),
-      deliverySequence: deliverySequence,
-      stops: stopsData,
-      isCompleted: false
-    };
+      deliverySequence: stops.map(stop => String(stop.orderId)),
+      stops: stops.map(stop => JSON.stringify({
+        orderId: stop.orderId,
+        sequenceNumber: stop.sequenceNumber,
+        customerId: stop.customerId,
+        customerName: stop.customerName,
+        address: stop.address,
+        coordinates: stop.coordinates,
+      })),
+    }).returning();
     
-    // Insertar la ruta en la base de datos
-    const [newRoute] = await db
-      .insert(routes)
-      .values(newRoutesData)
-      .returning();
+    // Actualizar las órdenes para asignarlas a esta ruta
+    for (const stop of stops) {
+      await db.update(orders)
+        .set({ 
+          routeId: newRoute.id,
+          deliverySequence: stop.sequenceNumber
+        })
+        .where(eq(orders.id, stop.orderId));
+    }
     
-    console.log(`[Generador de Rutas] Ruta creada con ID ${newRoute.id}`);
+    console.log(`✅ Ruta ${newRoute.id} creada exitosamente con ${stops.length} paradas`);
     
-    // Extraer IDs de pedidos para actualizar
-    const orderIds = routeData.stops.map(stop => stop.orderId);
-    
-    // Actualizar los pedidos con el ID de la ruta
-    const result = await db
-      .update(orders)
-      .set({
-        routeId: newRoute.id
-      })
-      .where(
-        and(
-          eq(orders.companyId, companyId),
-          inArray(orders.id, orderIds)
-        )
-      );
-    
-    console.log(`[Generador de Rutas] Se actualizaron ${orderIds.length} pedidos con el ID de ruta ${newRoute.id}`);
-    
-    return res.json({
+    res.status(201).json({
       success: true,
-      route: newRoute,
-      updatedOrders: orderIds.length
+      routeId: newRoute.id,
+      message: `Ruta creada exitosamente con ${stops.length} paradas`
     });
   } catch (error) {
-    console.error("[Generador de Rutas] Error al crear ruta:", error);
-    return res.status(500).json({ 
-      error: "Error al crear la ruta",
-      details: error instanceof Error ? error.message : String(error)
+    console.error("Error al crear ruta:", error);
+    res.status(500).json({ 
+      error: "Error al crear nueva ruta", 
+      message: String(error) 
     });
   }
 });

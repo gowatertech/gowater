@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
-import { orders, customers, zones } from '@shared/schema';
-import { db, companyDb } from '../../db';
+import { orders, customers, zones } from '../../../shared/schema';
+import { db } from '../../db';
 import { eq, and, isNull } from 'drizzle-orm';
 import { getCurrentCompanyId } from '../../company-db';
 
