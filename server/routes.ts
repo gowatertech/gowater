@@ -71,6 +71,157 @@ export async function registerRoutes(router: express.Router) {
   // Registrar endpoints de prueba para sesiones (solo en desarrollo)
   registerTestSessionRoutes(router);
   
+  // Endpoint para obtener pedidos pendientes por zona sin autenticación (para debug)
+  router.get("/api/zones/:id/pending-orders", async (req, res) => {
+    try {
+      console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
+      
+      // Parse zoneId una sola vez aquí
+      const zoneId = parseInt(req.params.id);
+      if (isNaN(zoneId)) {
+        return res.status(400).json({ error: "ID de zona inválido" });
+      }
+      
+      // Comprobar si es modo debug o companyId en los parámetros
+      const isDebugMode = req.query.debug === 'true';
+      const hasCompanyIdParam = !!req.query.companyId;
+      
+      // Obtener companyId principalmente desde parámetros de consulta para debug
+      let companyId: number | undefined;
+      let companyIdSource = "";
+      
+      if (req.query.companyId) {
+        const queryCompanyId = parseInt(req.query.companyId as string);
+        if (!isNaN(queryCompanyId)) {
+          companyId = queryCompanyId;
+          companyIdSource = "query string";
+          console.log("🔄 CompanyId obtenido del query string:", companyId);
+        }
+      } else if (req.session?.companyId) {
+        companyId = req.session.companyId;
+        companyIdSource = "sesión";
+        console.log("🔄 CompanyId obtenido de la sesión:", companyId);
+      } else if (req.session?.user?.companyId) {
+        companyId = req.session.user.companyId;
+        companyIdSource = "usuario en sesión";
+        console.log("🔄 CompanyId obtenido del usuario en sesión:", companyId);
+      } else {
+        console.error("❌ Error: No se encontró companyId en ninguna fuente para obtener pedidos pendientes por zona");
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido. Se requiere companyId como parámetro de consulta para test directo.",
+          debug: {
+            session: req.session ? true : false,
+            user: req.session?.user ? true : false,
+            companyIdInSession: req.session?.companyId ? true : false,
+            companyIdInUser: req.session?.user?.companyId ? true : false,
+            queryParams: req.query,
+          }
+        });
+      }
+      
+      console.log(`🔍 GET /api/zones/${zoneId}/pending-orders - Buscando pedidos pendientes para compañía ${companyId}`);
+      
+      // Verificar que la zona existe para esta compañía
+      const zonaExiste = await db
+        .select({ id: zones.id, name: zones.name })
+        .from(zones)
+        .where(
+          and(
+            eq(zones.id, zoneId),
+            eq(zones.companyId, companyId)
+          )
+        );
+      
+      console.log(`🗺️ Zona encontrada:`, zonaExiste);
+      
+      if (zonaExiste.length === 0) {
+        console.error(`❌ La zona ${zoneId} no pertenece a la compañía ${companyId}`);
+        return res.json([]);
+      }
+      
+      // Enfoque más directo: buscar pedidos pendientes cuyo cliente está en la zona seleccionada
+      console.log(`🔍 Buscando pedidos pendientes para zona ${zoneId} y compañía ${companyId}`);
+      
+      // Consulta mejorada que une orders, customers y zones directamente
+      const pendingOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          total: orders.total,
+          date: orders.date,
+          estimatedDeliveryTime: orders.estimatedDeliveryTime,
+          status: orders.status,
+          notes: orders.notes,
+          deliveryCoordinates: orders.deliveryCoordinates,
+          coordinates: customers.coordinates,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+          customerAddressNumber: customers.streetnumber,
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .where(
+          and(
+            eq(customers.zoneid, zoneId), // Clientes de la zona especificada
+            eq(orders.status, "pending"), // Pedidos pendientes
+            sql`${orders.routeId} IS NULL`, // No asignados a una ruta
+            eq(orders.companyId, companyId), // De la compañía correcta
+            eq(customers.companyId, companyId) // Cliente de la compañía correcta
+          )
+        )
+        .orderBy(orders.date);
+        
+      console.log(`📊 Encontrados ${pendingOrders.length} pedidos pendientes para zona ${zoneId}`);
+      
+      // Si no se encontraron pedidos, registramos la información para depuración
+      if (pendingOrders.length === 0) {
+        // Contar cuántos clientes hay en la zona
+        const zoneCustomersCount = await db
+          .select({ count: sql`COUNT(*)` })
+          .from(customers)
+          .where(
+            and(
+              eq(customers.zoneid, zoneId),
+              eq(customers.companyId, companyId)
+            )
+          );
+          
+        // Contar cuántos pedidos pendientes hay para la compañía
+        const pendingOrdersCount = await db
+          .select({ count: sql`COUNT(*)` })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.status, "pending"),
+              sql`${orders.routeId} IS NULL`,
+              eq(orders.companyId, companyId)
+            )
+          );
+          
+        console.log(`⚠️ Diagnóstico: Hay ${zoneCustomersCount[0]?.count || 0} clientes en la zona ${zoneId}`);
+        console.log(`⚠️ Diagnóstico: Hay ${pendingOrdersCount[0]?.count || 0} pedidos pendientes totales para la compañía ${companyId}`);
+      }
+      
+      console.log(`✅ Encontrados ${pendingOrders.length} pedidos pendientes para la zona ${zoneId} de compañía ${companyId}`);
+      
+      // Verificar y mostrar algunos detalles de los pedidos encontrados
+      if (pendingOrders.length > 0) {
+        console.log("📦 Primer pedido encontrado:", {
+          id: pendingOrders[0].id,
+          customerId: pendingOrders[0].customerId,
+          customerName: pendingOrders[0].customerName,
+          status: pendingOrders[0].status
+        });
+      }
+      
+      res.json(pendingOrders);
+    } catch (error) {
+      console.error(`❌ Error al obtener pedidos pendientes para la zona ${req.params.id}:`, error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
   // Proteger todas las rutas siguientes con el middleware de autenticación
   router.use(companyAuthMiddleware);
   
@@ -308,6 +459,7 @@ export async function registerRoutes(router: express.Router) {
   });
   
   // Endpoint para obtener pedidos pendientes por zona
+  // Este endpoint no está protegido para permitir debug, pero incluye protección lógica
   router.get("/api/zones/:id/pending-orders", async (req, res) => {
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
@@ -317,6 +469,10 @@ export async function registerRoutes(router: express.Router) {
       if (isNaN(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
+      
+      // Comprobar si es modo debug o companyId en los parámetros
+      const isDebugMode = req.query.debug === 'true';
+      const hasCompanyIdParam = !!req.query.companyId;
       
       // Obtener el companyId del contexto
       let companyId = getCurrentCompanyId();
@@ -363,9 +519,7 @@ export async function registerRoutes(router: express.Router) {
       
       console.log("🔐 CompanyId final utilizado:", companyId, `(fuente: ${companyIdSource})`);
       
-      // Verificar si es una solicitud en modo debug
-      const isDebugMode = req.query.debug === 'true';
-      
+      // Usar el modo debug definido anteriormente
       if (isDebugMode) {
         // En modo debug, obtenemos el companyId de la sesión activa si está disponible
         if (req.session?.companyId) {
