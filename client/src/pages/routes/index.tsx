@@ -356,7 +356,7 @@ export default function RoutesPage() {
                   </TabsTrigger>
                   <TabsTrigger 
                     value="zones" 
-                    onClick={() => setRouteCreationMode("customers")}
+                    onClick={() => setRouteCreationMode("zones")}
                   >
                     <MapIcon className="h-4 w-4 mr-2" />
                     Por Zonas
