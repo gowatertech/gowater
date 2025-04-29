@@ -246,12 +246,13 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     resolver: zodResolver(insertRouteSchema.extend({
       // Hacemos companyId obligatorio sin valor por defecto
       companyId: z.coerce.number().positive("El ID de compañía debe ser un número positivo"),
+      // Hacemos zoneId obligatorio sin valor por defecto
+      zoneId: z.coerce.number().positive("Debe seleccionar una zona"),
       driverId: z.coerce.number(),
       assistantId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
         val === null || val === 'null' ? null : Number(val)),
       truckId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
-        val === null || val === 'null' ? null : Number(val)),
-      zoneId: z.coerce.number().positive("Debe seleccionar una zona"), // Hacemos zoneId obligatorio
+        val === null || val === 'null' ? null : Number(val))
     })),
     defaultValues: {
       name: "",
@@ -1013,16 +1014,30 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                         </CardContent>
                       </Card>
                     ))
-                  ) : pendingOrders.length === 0 ? (
+                  ) : filteredPendingOrders.length === 0 ? (
                     <div className="text-center py-4">
                       <Package className="h-8 w-8 mx-auto text-gray-300 mb-1" />
                       <h3 className="text-sm font-medium text-gray-700">No hay pedidos pendientes</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        No hay pedidos pendientes disponibles.
+                        {selectedZoneId ? 
+                          "No hay pedidos pendientes disponibles en esta zona." : 
+                          "No hay pedidos pendientes disponibles."}
                       </p>
+                      {selectedZoneId && (
+                        <Button 
+                          variant="outline" 
+                          className="mt-2 text-xs py-1 h-7"
+                          onClick={() => {
+                            setSelectedZoneId(null);
+                            form.setValue("zoneId", undefined);
+                          }}
+                        >
+                          Ver todas las zonas
+                        </Button>
+                      )}
                     </div>
                   ) : (
-                    pendingOrders
+                    filteredPendingOrders
                       .filter(order => 
                         searchQuery 
                           ? order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
