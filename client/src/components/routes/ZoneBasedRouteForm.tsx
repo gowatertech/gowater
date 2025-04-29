@@ -697,7 +697,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="zoneId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="zoneId">Zona</FormLabel>
+                      <FormLabel>Zona</FormLabel>
                       <Select 
                         onValueChange={(value) => field.onChange(parseInt(value))}
                         value={field.value?.toString() || ""}
@@ -748,7 +748,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="name">Nombre de la Ruta</FormLabel>
+                      <FormLabel>Nombre de la Ruta</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -762,7 +762,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel htmlFor="date">Fecha</FormLabel>
+                      <FormLabel>Fecha</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -799,7 +799,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="driverId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="driverId">Conductor</FormLabel>
+                      <FormLabel>Conductor</FormLabel>
                       <Select 
                         onValueChange={(value) => field.onChange(parseInt(value))}
                         value={field.value?.toString() || ""}
@@ -833,7 +833,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
                   name="assistantId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel htmlFor="assistantId">Auxiliar</FormLabel>
+                      <FormLabel>Auxiliar</FormLabel>
                       <Select 
                         onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)}
                         value={field.value?.toString() || ""}
