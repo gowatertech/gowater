@@ -71,7 +71,15 @@ const MobileMap = lazy(() => import("@/pages/mobile-app/mapa"));
 // import MobilePaymentsHistory from "@/pages/mobile-app/payments/history";
 
 function Router() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
+  
+  // Redirigir a /auth/login si estamos en la ruta raíz
+  React.useEffect(() => {
+    if (location === "/") {
+      console.log("Redirigiendo automáticamente a la página de login");
+      setLocation("/auth/login");
+    }
+  }, [location, setLocation]);
   
   // No envolver en DashboardLayout si estamos en la app móvil PWA
   const isMobileApp = location.startsWith("/mobile-app");
