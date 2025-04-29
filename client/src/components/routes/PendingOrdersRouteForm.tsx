@@ -159,13 +159,13 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       
       console.log(`Fetching pending orders for zone ${selectedZone}`);
       
-      // Usar el formato de objeto para apiRequest con params para añadir companyId sin hardcoding
+      // Usar el formato de objeto para apiRequest - sin hardcoding
       const response = await apiRequest({
         url: `/zones/${selectedZone}/pending-orders`,
         method: "GET",
         params: {
-          debug: "true",
-          companyId: "15"
+          debug: "true"
+          // No agregamos companyId explícitamente, el backend lo obtendrá de la sesión
         }
       });
       
