@@ -458,9 +458,8 @@ export async function registerRoutes(router: express.Router) {
     }
   });
   
-  // Endpoint para obtener pedidos pendientes por zona
-  // Este endpoint no está protegido para permitir debug, pero incluye protección lógica
-  router.get("/api/zones/:id/pending-orders", async (req, res) => {
+  // El endpoint para pedidos pendientes por zona ya está registrado antes del middleware
+  router.get("/api/zones/:id/pending-orders-protected", async (req, res) => {
     try {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
       
