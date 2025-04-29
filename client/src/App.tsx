@@ -446,13 +446,15 @@ export default function App() {
   const shouldShowLogo = false; // Logo centrado desactivado en todas las páginas
   
   return (
-    <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={queryClient}>
-        <Router />
-        <Toaster />
-        {shouldShowLogo && <CenteredLogo size="medium" showName={true} companyName="GoWater" />}
-        {/* Componentes personalizados desactivados para el panel de administración */}
-      </QueryClientProvider>
-    </I18nextProvider>
+    <AuthProvider>
+      <I18nextProvider i18n={i18n}>
+        <QueryClientProvider client={queryClient}>
+          <Router />
+          <Toaster />
+          {shouldShowLogo && <CenteredLogo size="medium" showName={true} companyName="GoWater" />}
+          {/* Componentes personalizados desactivados para el panel de administración */}
+        </QueryClientProvider>
+      </I18nextProvider>
+    </AuthProvider>
   );
 }

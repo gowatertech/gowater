@@ -1,9 +1,9 @@
-import React, { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import { apiRequest } from '@/lib/queryClient';
-import { useLocation, useNavigate } from 'wouter';
-import { toast } from '@/hooks/use-toast';
+import React, { createContext, useContext, ReactNode, useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
+import { queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
-// Interfaz para el usuario autenticado
+// Definir la interfaz para los datos del usuario
 export interface User {
   id: number;
   name: string;
@@ -12,261 +12,191 @@ export interface User {
   role: string;
   companyId: number;
   active?: boolean;
-  // Otros campos específicos del usuario
-  phone?: string;
-  license?: string;
-  licenseExpiry?: string;
-  emergencyContact?: string;
-  currentLocation?: string;
-  lastLocationUpdate?: string;
 }
 
-// Interfaz para el contexto de autenticación
+// Definir la interfaz para el contexto de autenticación
 interface AuthContextType {
   user: User | null;
   companyId: number | null;
-  loading: boolean;
-  error: Error | null;
-  login: (username: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  isLoading: boolean;
+  error: string | null;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
 }
 
-// Crear el contexto
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Crear el contexto con un valor por defecto
+const AuthContext = createContext<AuthContextType | null>(null);
 
-// Proveedor de autenticación
+// Hook personalizado para acceder al contexto
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  }
+  return context;
+}
+
+// Componente proveedor que envuelve la aplicación
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [companyId, setCompanyId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [location, navigate] = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
   
-  // Función para obtener información del usuario al cargar
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setLoading(true);
-        
-        // Intentar obtener datos del usuario
-        const response = await apiRequest('GET', '/api/user');
-        
-        if (response.ok) {
-          const data = await response.json();
-          
-          if (data.success && data.user) {
-            console.log('Usuario obtenido:', data.user);
-            setUser(data.user);
-            
-            // Obtener companyId de la respuesta o del usuario
-            const effectiveCompanyId = data.companyId || data.user?.companyId;
-            
-            if (effectiveCompanyId) {
-              console.log('CompanyId obtenido:', effectiveCompanyId);
-              setCompanyId(effectiveCompanyId);
-            } else {
-              console.warn('No se encontró companyId en la respuesta');
-            }
-          } else {
-            // Si la respuesta es exitosa pero no contiene usuario (raro)
-            console.warn('Respuesta exitosa pero sin datos de usuario');
-            setUser(null);
-            setCompanyId(null);
-          }
-        } else {
-          // Si no está autenticado, manejar apropiadamente
-          console.log('No autenticado o sesión expirada');
-          setUser(null);
-          setCompanyId(null);
-          
-          // Si estamos en una ruta protegida, redirigir al login
-          const isProtectedRoute = 
-            location !== '/auth/login' && 
-            location !== '/mobile-app/login' && 
-            location !== '/platform/login' &&
-            !location.startsWith('/landing');
-            
-          if (isProtectedRoute) {
-            console.log('Redirigiendo automáticamente a la página de login');
-            
-            // Determinar a qué página de login redirigir
-            let loginPage = '/auth/login';
-            if (location.startsWith('/mobile-app')) {
-              loginPage = '/mobile-app/login';
-            } else if (location.startsWith('/platform')) {
-              loginPage = '/platform/login';
-            }
-            
-            navigate(loginPage);
-          }
-        }
-      } catch (err) {
-        console.error('Error al obtener usuario:', err);
-        setError(err as Error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Función para iniciar sesión
+  const login = async (username: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
     
-    fetchUser();
-  }, [location, navigate]);
-  
-  // Función de login
-  const login = async (username: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
-      setLoading(true);
-      
-      // Determinar qué endpoint usar basado en la ruta actual
-      let endpoint = '/api/login';
-      if (location.startsWith('/mobile-app')) {
-        endpoint = '/api/mobile/login';
-      } else if (location.startsWith('/platform')) {
-        endpoint = '/api/platform/platform-login';
-      }
-      
-      const response = await apiRequest('POST', endpoint, { username, password });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.success && data.user) {
-          setUser(data.user);
-          setCompanyId(data.user.companyId);
-          
-          // Mostrar mensaje de bienvenida
-          toast({
-            title: "Bienvenido",
-            description: `Sesión iniciada como ${data.user.name}`,
-          });
-          
-          // Redireccionar basado en el tipo de interfaz y rol
-          if (location.startsWith('/mobile-app')) {
-            navigate('/mobile-app');
-          } else if (location.startsWith('/platform')) {
-            navigate('/platform');
-          } else {
-            navigate('/');
-          }
-          
-          return { success: true };
-        } else {
-          // Respuesta exitosa pero sin datos de usuario
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: data.message || "Error inesperado al iniciar sesión",
-          });
-          
-          return { 
-            success: false, 
-            message: data.message || "Error inesperado al iniciar sesión"
-          };
-        }
-      } else {
-        // Respuesta de error del servidor
-        const errorData = await response.json();
-        
-        toast({
-          variant: "destructive",
-          title: "Error de autenticación",
-          description: errorData.message || "Credenciales inválidas",
-        });
-        
-        return { 
-          success: false, 
-          message: errorData.message || "Credenciales inválidas"
-        };
-      }
-    } catch (err) {
-      console.error('Error al iniciar sesión:', err);
-      setError(err as Error);
-      
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: (err as Error).message || "Error de conexión",
+      // Realizar solicitud de inicio de sesión
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include', // Importante para que las cookies se envíen
       });
       
-      return { 
-        success: false, 
-        message: (err as Error).message || "Error de conexión"
-      };
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al iniciar sesión');
+      }
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Error al iniciar sesión');
+      }
+      
+      // Actualizar estado con los datos del usuario
+      setUser(data.user);
+      setCompanyId(data.user.companyId);
+      
+      // Mostrar notificación de éxito
+      toast({
+        title: "Sesión iniciada",
+        description: `Bienvenido/a, ${data.user.name}`,
+      });
+      
+      // Redireccionar al dashboard
+      setLocation('/dashboard');
+    } catch (err) {
+      console.error('Error de autenticación:', err);
+      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
+      
+      // Mostrar notificación de error
+      toast({
+        title: "Error de autenticación",
+        description: err instanceof Error ? err.message : 'Error al iniciar sesión',
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
   
-  // Función de logout
-  const logout = async (): Promise<void> => {
+  // Función para cerrar sesión
+  const logout = async () => {
+    setIsLoading(true);
+    
     try {
-      setLoading(true);
+      // Realizar solicitud de cierre de sesión
+      const response = await fetch('/api/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
       
-      // Determinar qué endpoint usar basado en la ruta actual
-      let endpoint = '/api/logout';
-      if (location.startsWith('/mobile-app')) {
-        endpoint = '/api/mobile/logout';
-      } else if (location.startsWith('/platform')) {
-        endpoint = '/api/platform/platform-logout';
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error al cerrar sesión');
       }
       
-      await apiRequest('POST', endpoint);
-      
-      // Limpiar estado de autenticación
+      // Limpiar estado de usuario
       setUser(null);
       setCompanyId(null);
       
-      // Determinar a qué página redirigir
-      let loginPage = '/auth/login';
-      if (location.startsWith('/mobile-app')) {
-        loginPage = '/mobile-app/login';
-      } else if (location.startsWith('/platform')) {
-        loginPage = '/platform/login';
-      }
+      // Invalidar todas las consultas en caché
+      queryClient.clear();
       
-      // Redirigir al login correspondiente
-      navigate(loginPage);
+      // Redireccionar a la página de inicio de sesión
+      setLocation('/auth');
       
+      // Mostrar notificación de éxito
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión correctamente",
       });
     } catch (err) {
       console.error('Error al cerrar sesión:', err);
-      setError(err as Error);
       
+      // Mostrar notificación de error
       toast({
-        variant: "destructive",
         title: "Error",
-        description: "No se pudo cerrar sesión correctamente",
+        description: err instanceof Error ? err.message : 'Error al cerrar sesión',
+        variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
   
+  // Cargar información del usuario al iniciar la aplicación
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Verificar si hay un usuario en sesión
+        const response = await fetch('/api/user', {
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success && data.user) {
+            setUser(data.user);
+            setCompanyId(data.companyId || data.user.companyId);
+          } else {
+            setUser(null);
+            setCompanyId(null);
+          }
+        } else {
+          // Si hay error, asumir que no hay sesión activa
+          setUser(null);
+          setCompanyId(null);
+        }
+      } catch (err) {
+        console.error('Error al obtener usuario actual:', err);
+        setUser(null);
+        setCompanyId(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
+  
+  // Valores que se proveerán al contexto
+  const value = {
+    user,
+    companyId,
+    isLoading,
+    error,
+    login,
+    logout,
+    isAuthenticated: !!user,
+  };
+  
   return (
-    <AuthContext.Provider value={{
-      user,
-      companyId,
-      loading,
-      error,
-      login,
-      logout,
-      isAuthenticated: !!user
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-// Hook para usar el contexto de autenticación
-export function useAuth() {
-  const context = useContext(AuthContext);
-  
-  if (context === undefined) {
-    throw new Error('useAuth debe usarse dentro de un AuthProvider');
-  }
-  
-  return context;
 }

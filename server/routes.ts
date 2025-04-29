@@ -21,7 +21,7 @@ import { registerMultiTenantTestEndpoint } from "./routes/test-tenant";
 import { registerTestSessionRoutes } from "./test-session";
 import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
-import { companyAuthMiddleware, companyTenantMiddleware, loginWithEmail, logout, getCurrentUser } from './middleware/company-auth.middleware';
+import { companyAuthMiddleware, requireCompanyId } from './middleware/company-auth.middleware';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -130,15 +130,8 @@ export async function registerRoutes(router: express.Router) {
   // Registrar endpoints de pedidos y pedidos recurrentes
   registerRoutesEndpoints(router);
   
-  // Endpoints de autenticación para panel principal
-  // Login para panel empresa (email + password)
-  router.post("/login", loginWithEmail);
-  
-  // Logout
-  router.post("/logout", logout);
-  
-  // Información del usuario actual
-  router.get("/user", getCurrentUser);
+  // Los endpoints de autenticación están configurados en server/auth.ts
+  // Usando setupAuth(app) en el archivo index.ts
   
   // Registrar endpoints de prueba para sesiones (solo en desarrollo)
   registerTestSessionRoutes(router);

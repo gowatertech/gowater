@@ -13,7 +13,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import leadsRoutes from "./leads-routes";
 import interestedCompaniesRoutes from "./routes/api/interested-companies";
-import { companyTenantMiddleware } from "./middleware/company-auth.middleware";
+import { companyAuthMiddleware } from "./middleware/company-auth.middleware";
+import { setupAuth } from "./auth";
 import { registerTestAPIRoutes } from "./test-api";
 import { loginRateLimitMiddleware, rateLimitMiddleware } from "./middleware/rate-limit.middleware";
 import { consolidatedCompanyMiddleware } from "./middleware/consolidated-company.middleware";
@@ -32,19 +33,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(loginRateLimitMiddleware);
 app.use(rateLimitMiddleware);
 
-// Configuración de sesión
-const sessionConfig = {
-  secret: process.env.SESSION_SECRET || 'sistema_multi_empresas_secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: false, // Deshabilitado temporalmente para solucionar problema de logout inmediato
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 // 1 día
-  }
-};
-
-app.use(session(sessionConfig));
+// La configuración de sesión se hará en setupAuth para unificar la gestión de autenticación
+// Configurar el sistema completo de autenticación (incluye sesión, passport y endpoints)
+setupAuth(app);
 
 // Creamos routers separados para APIs de empresas, plataforma y datos geográficos
 const companyApiRouter = express.Router();
@@ -192,8 +183,8 @@ app.get("/api/zones/:id/pending-orders", async (req, res) => {
 
 // Usamos el middleware consolidado para la gestión multi-tenant
 companyApiRouter.use(consolidatedCompanyMiddleware);
-// El middleware companyTenantMiddleware se mantiene para compatibilidad retroactiva
-companyApiRouter.use(companyTenantMiddleware);
+// Nuestro nuevo middleware de autenticación de compañía
+companyApiRouter.use(companyAuthMiddleware);
 
 // Montamos los routers en sus respectivas rutas
 app.use("/api/platform", platformApiRouter);
