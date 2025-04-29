@@ -195,10 +195,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
             console.warn("No se pudo obtener el usuario de la sesión");
             setAuthError("Error de autenticación: No se encontró una sesión válida. Por favor inicie sesión nuevamente.");
             
-            // Si estamos en modo debug pero sin companyId especificado, intentar usar uno predeterminado
+            // Si estamos en modo debug pero sin companyId específico, usar solo debug=true
             if (useDebugMode) {
-              url = `/api/zones/${selectedZone}/pending-orders?debug=true&companyId=15`;
-              console.log(`MODO DEBUG FALLBACK: Usando companyId=15 por defecto`);
+              url = `/api/zones/${selectedZone}/pending-orders?debug=true`;
+              console.log(`MODO DEBUG FALLBACK: Usando solo parámetro debug=true sin hardcodear companyId`);
             } else {
               throw new Error("Sin sesión de usuario válida");
             }
