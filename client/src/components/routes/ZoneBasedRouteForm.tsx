@@ -124,8 +124,8 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Estados para panel de depuración
-  const [useDebugMode, setUseDebugMode] = useState<boolean>(true); // Activado por defecto para pruebas
-  const [debugCompanyId, setDebugCompanyId] = useState<number | null>(15); // Valor por defecto para pruebas
+  const [useDebugMode, setUseDebugMode] = useState<boolean>(false); // Desactivado por defecto
+  const [debugCompanyId, setDebugCompanyId] = useState<number | null>(null); // Sin valor por defecto
   const [authError, setAuthError] = useState<string | null>(null);
 
   // Fetch drivers
@@ -157,7 +157,11 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     queryKey: ["/api/customers/by-zone", selectedZone],
     queryFn: async () => {
       if (!selectedZone) return [];
-      const response = await apiRequest("GET", `/api/customers/by-zone?zoneId=${selectedZone}`);
+      const response = await apiRequest({
+        url: `/customers/by-zone`,
+        method: "GET",
+        params: { zoneId: selectedZone.toString() }
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch customers for zone");
       }
@@ -183,41 +187,40 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       try {
         let url = "";
         
-        // Si estamos en modo debug, solicitar con parámetros debug=true y companyId
-        if (useDebugMode && debugCompanyId) {
-          url = `/api/zones/${selectedZone}/pending-orders?debug=true&companyId=${debugCompanyId}`;
-          console.log(`MODO DEBUG: Solicitando pedidos pendientes en modo debug: ${url}`);
-        } else {
-          // Obtener el companyId de la sesión (para modo normal)
-          const userResponse = await apiRequest("GET", "/api/user");
-          
-          if (!userResponse.ok) {
-            console.warn("No se pudo obtener el usuario de la sesión");
-            setAuthError("Error de autenticación: No se encontró una sesión válida. Por favor inicie sesión nuevamente.");
-            
-            // Si estamos en modo debug pero sin companyId específico, usar solo debug=true
-            if (useDebugMode) {
-              url = `/api/zones/${selectedZone}/pending-orders?debug=true`;
-              console.log(`MODO DEBUG FALLBACK: Usando solo parámetro debug=true sin hardcodear companyId`);
-            } else {
-              throw new Error("Sin sesión de usuario válida");
-            }
+        // Verificar autenticación sin usar directamente GET /api/user 
+        // (que causa errores de LSP por el formato incorrecto)
+        const userResponse = await apiRequest({
+          url: "/user",
+          method: "GET"
+        });
+        
+        if (!userResponse.ok && !useDebugMode) {
+          console.warn("No se pudo obtener el usuario de la sesión");
+          setAuthError("Error de autenticación: No se encontró una sesión válida. Por favor inicie sesión nuevamente.");
+          throw new Error("Sin sesión de usuario válida");
+        }
+        
+        // Construir parámetros basados en el modo
+        const params: Record<string, any> = {};
+        
+        if (useDebugMode) {
+          params.debug = "true";
+          if (debugCompanyId) {
+            params.companyId = debugCompanyId.toString();
+            console.log(`MODO DEBUG: Solicitando pedidos con companyId=${debugCompanyId}`);
           } else {
-            // Usuario está autenticado, obtenemos sus datos
-            const userData = await userResponse.json();
-            
-            // Usamos la URL normal ya que el backend obtendrá el companyId de la sesión
-            url = `/api/zones/${selectedZone}/pending-orders`;
-            console.log(`Solicitando pedidos pendientes con sesión activa para zona ${selectedZone}`);
+            console.log(`MODO DEBUG: Solicitando pedidos sin companyId específico`);
           }
+        } else {
+          console.log(`Solicitando pedidos pendientes con sesión activa para zona ${selectedZone}`);
         }
         
-        if (!url) {
-          throw new Error("No se pudo determinar la URL para obtener pedidos pendientes");
-        }
-        
-        console.log(`Enviando solicitud a: ${url}`);
-        const response = await apiRequest("GET", url);
+        // Usar el formato de objeto para apiRequest
+        const response = await apiRequest({
+          url: `/zones/${selectedZone}/pending-orders`,
+          method: "GET",
+          params
+        });
         
         if (!response.ok) {
           const errorText = await response.text();
@@ -531,7 +534,12 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         return;
       }
       
-      const response = await apiRequest("POST", "/api/routes", values);
+      const response = await apiRequest({
+        url: "/routes",
+        method: "POST",
+        data: values
+      });
+      
       if (!response.ok) {
         throw new Error("Error al crear la ruta");
       }
