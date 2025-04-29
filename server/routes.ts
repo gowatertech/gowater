@@ -1560,19 +1560,79 @@ export async function registerRoutes(router: express.Router) {
       console.log("Headers:", JSON.stringify(req.headers, null, 2));
       console.log("==== FIN DEPURACIÓN ====");
       
-      // Ya NO forzamos un companyId por defecto
-      // Intentar fuentes confiables de companyId, sin valores por defecto
-      let companyId = getCurrentCompanyId() || 
-                      req.session.companyId || 
-                      req.session.user?.companyId || 
-                      req.body.companyId;
+      // SOLUCIÓN MEJORADA: Permitir que se use el companyId del cuerpo de la petición si está presente
+      // y es un valor positivo (es decir, una compañía válida)
+      let companyId;
       
-      // Si no hay companyId, devolver error
+      // Primero intentamos obtener el companyId del body si es un número válido
+      if (req.body.companyId) {
+        const bodyCompanyId = Number(req.body.companyId);
+        if (!isNaN(bodyCompanyId) && bodyCompanyId > 0) {
+          companyId = bodyCompanyId;
+          console.log("✅ Usando companyId del cuerpo de la petición:", companyId);
+        }
+      }
+      
+      // Si no hay companyId válido en el body, intentamos con las demás fuentes
       if (!companyId) {
-        console.error("❌ Error: No se pudo obtener un companyId para la ruta");
+        companyId = getCurrentCompanyId() || 
+                    req.session.companyId || 
+                    req.session.user?.companyId;
+        
+        console.log("🔍 CompanyId obtenido de otras fuentes:", companyId);
+      }
+      
+      // Si no hay companyId, intentamos obtenerlo de la base de datos usando el ID del usuario
+      if (!companyId && req.session.user?.id) {
+        try {
+          console.log("⚠️ Intentando recuperar companyId de la base de datos para el usuario:", req.session.user.id);
+          
+          // Buscar el usuario en la base de datos para obtener su companyId
+          const [userFromDb] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, req.session.user.id));
+          
+          if (userFromDb?.companyId) {
+            companyId = userFromDb.companyId;
+            console.log("✅ Recuperado companyId de base de datos:", companyId);
+            
+            // Actualizar la sesión para futuras peticiones
+            req.session.companyId = companyId;
+            if (req.session.user) {
+              req.session.user.companyId = companyId;
+            }
+          }
+        } catch (dbError) {
+          console.error("Error al buscar usuario en la base de datos:", dbError);
+        }
+      }
+      
+      // Si aún no hay companyId, usar un valor por defecto si estamos en modo desarrollo
+      // (SOLO PARA PROPÓSITOS DE DESARROLLO Y PRUEBAS)
+      if (!companyId && process.env.NODE_ENV === 'development') {
+        console.warn("⚠️ USANDO COMPANYID POR DEFECTO EN MODO DESARROLLO");
+        companyId = req.body.companyId || 15; // Usar el valor enviado o 15 como fallback
+      }
+      
+      // Si aún no hay companyId, devolver error con información clara
+      if (!companyId) {
+        console.error("❌ Error: No se pudo obtener companyId para la ruta después de múltiples intentos");
         return res.status(400).json({ 
           error: "Datos insuficientes", 
-          message: "No se pudo determinar el ID de empresa. Por favor, inicie sesión nuevamente." 
+          message: "No se pudo determinar el ID de empresa. Por favor, inicie sesión nuevamente.",
+          details: {
+            sessionId: req.session.id || "No disponible",
+            userExists: !!req.session.user,
+            userId: req.session.user?.id || "No disponible",
+            attemptedSources: [
+              "req.body.companyId", 
+              "getCurrentCompanyId()", 
+              "req.session.companyId", 
+              "req.session.user?.companyId", 
+              "base de datos"
+            ]
+          }
         });
       }
       

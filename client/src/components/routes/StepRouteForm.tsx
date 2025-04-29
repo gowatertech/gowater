@@ -675,11 +675,36 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       }
       
       // Asegurar que el companyId esté configurado correctamente - sin valor por defecto
-      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || form.getValues("companyId");
+      
+      console.log("Verificación de companyId:", {
+        "companyData?.companyId": companyData?.companyId,
+        "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
+        "form.getValues('companyId')": form.getValues("companyId"),
+        "effectiveCompanyId seleccionado": effectiveCompanyId
+      });
       
       if (!effectiveCompanyId) {
         // Si no podemos obtener un companyId válido, lanzamos un error y detenemos la ejecución
-        throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
+        console.error("❌ Error: No se pudo determinar el ID de la empresa");
+        
+        // Intentar obtener el companyId de la sesión actual mediante una petición adicional
+        try {
+          const response = await apiRequest({
+            url: '/api/user',
+            method: 'GET'
+          });
+          
+          if (response?.user?.companyId) {
+            console.log("✅ Recuperado companyId de sesión:", response.user.companyId);
+            routeData.companyId = Number(response.user.companyId);
+          } else {
+            throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
+          }
+        } catch (err) {
+          console.error("Error al obtener información del usuario:", err);
+          throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
+        }
       } else {
         // Aseguramos que el companyId sea un número
         routeData.companyId = Number(effectiveCompanyId);
@@ -690,6 +715,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         }
       }
       
+      // Log de verificación final
+      console.log("CompanyId final para la ruta:", routeData.companyId);
+      
       // Verificación final de seguridad para los campos requeridos
       if (!routeData.name || !routeData.driverId || !routeData.companyId) {
         const missingFields = [];
@@ -697,6 +725,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         if (!routeData.driverId) missingFields.push("conductor");
         if (!routeData.companyId) missingFields.push("compañía");
         
+        console.error("Campos faltantes:", missingFields);
         throw new Error(`Por favor complete todos los campos requeridos: ${missingFields.join(", ")}`);
       }
       
@@ -751,7 +780,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   });
 
   // Handle form submission
-  const onSubmit = (data: any) => {
+  const onSubmit = async (data: any) => {
+    console.log("=== INICIO ENVÍO DE FORMULARIO DE RUTA ===");
+    console.log("Datos del formulario:", data);
+    
     if (selectedOrders.length === 0) {
       toast({
         variant: "destructive",
@@ -771,12 +803,61 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     }
     
     // Determinar el companyId efectivo de manera dinámica - SIN VALOR POR DEFECTO
-    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
+    let effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
     
+    console.log("Verificación inicial de companyId:", {
+      "companyData?.companyId": companyData?.companyId,
+      "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
+      "form.companyId": data.companyId,
+      "effectiveCompanyId seleccionado": effectiveCompanyId
+    });
+    
+    // Si no hay companyId, intentar obtenerlo mediante una llamada al API
     if (!effectiveCompanyId) {
+      console.log("⚠️ CompanyId no encontrado, intentando recuperar del API...");
+      
+      try {
+        const userResponse = await apiRequest({
+          url: '/api/user',
+          method: 'GET'
+        });
+        
+        if (userResponse?.user?.companyId) {
+          console.log("✅ Recuperado companyId de API /api/user:", userResponse.user.companyId);
+          effectiveCompanyId = userResponse.user.companyId;
+          // Actualizar el valor en el formulario para futuros envíos
+          form.setValue("companyId", Number(effectiveCompanyId));
+        }
+      } catch (err) {
+        console.error("❌ Error al obtener información del usuario:", err);
+      }
+    }
+    
+    // Si aún no tenemos companyId, intentar obtenerlo del endpoint específico
+    if (!effectiveCompanyId) {
+      try {
+        const companyResponse = await apiRequest({
+          url: '/api/companyid',
+          method: 'GET'
+        });
+        
+        if (companyResponse?.companyId) {
+          console.log("✅ Recuperado companyId de API /api/companyid:", companyResponse.companyId);
+          effectiveCompanyId = companyResponse.companyId;
+          // Actualizar el valor en el formulario para futuros envíos
+          form.setValue("companyId", Number(effectiveCompanyId));
+        }
+      } catch (err) {
+        console.error("❌ Error al obtener ID de compañía:", err);
+      }
+    }
+    
+    // Verificación final de companyId
+    if (!effectiveCompanyId) {
+      console.error("❌ No se pudo determinar el ID de la empresa después de múltiples intentos");
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Error de sesión",
         description: "No se pudo determinar el ID de la empresa. Por favor, vuelve a iniciar sesión.",
       });
       return;
@@ -785,7 +866,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Asegurar que el companyId sea un número
     const numericCompanyId = Number(effectiveCompanyId);
     
-    if (isNaN(numericCompanyId)) {
+    console.log("CompanyId convertido a número:", numericCompanyId);
+    
+    if (isNaN(numericCompanyId) || numericCompanyId <= 0) {
+      console.error("❌ CompanyId inválido:", numericCompanyId);
       toast({
         variant: "destructive",
         title: "Error",
