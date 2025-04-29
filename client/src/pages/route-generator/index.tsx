@@ -90,23 +90,64 @@ const RouteGeneratorPage: React.FC = () => {
     queryKey: ['/api/route-generator/orders/pending'],
     queryFn: async () => {
       console.log("Fetching pending orders for route generator");
-      const response = await apiRequest('/api/route-generator/orders/pending');
-      console.log("Pending orders response:", response);
-      return response;
+      try {
+        // Hacemos la petición directamente sin usar apiRequest para depurar problemas
+        const response = await fetch('/api/route-generator/orders/pending', {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error("Error response:", response.status, response.statusText);
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log("Pending orders response:", data);
+        return data;
+      } catch (error) {
+        console.error("Error fetching pending orders:", error);
+        throw error;
+      }
     },
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: 3
   });
   
   // Mutación para optimizar ruta
   const optimizeRouteMutation = useMutation({
     mutationFn: async (orderIds: number[]) => {
-      const response = await apiRequest('/api/route-generator/optimize', {
-        method: 'POST',
-        body: JSON.stringify({ orderIds }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      return response;
+      console.log("Optimizando ruta para los pedidos:", orderIds);
+      try {
+        // Usar fetch directamente para depurar problemas
+        const response = await fetch('/api/route-generator/optimize', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify({ orderIds })
+        });
+        
+        if (!response.ok) {
+          console.error("Error en optimización:", response.status, response.statusText);
+          const errorText = await response.text();
+          throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Resultado de optimización:", data);
+        return data;
+      } catch (error) {
+        console.error('Error completo al optimizar ruta:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       setOptimizationResult(data);
@@ -128,13 +169,33 @@ const RouteGeneratorPage: React.FC = () => {
   // Mutación para crear ruta
   const createRouteMutation = useMutation({
     mutationFn: async (routeData: any) => {
-      const response = await apiRequest('/api/route-generator/create', {
-        method: 'POST',
-        body: JSON.stringify(routeData),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      return response;
+      console.log("Creando ruta con datos:", routeData);
+      try {
+        // Usar fetch directamente para depurar problemas
+        const response = await fetch('/api/route-generator/create', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          },
+          body: JSON.stringify(routeData)
+        });
+        
+        if (!response.ok) {
+          console.error("Error al crear ruta:", response.status, response.statusText);
+          const errorText = await response.text();
+          throw new Error(`Error HTTP: ${response.status} - ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Ruta creada con éxito:", data);
+        return data;
+      } catch (error) {
+        console.error('Error completo al crear ruta:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       toast({
@@ -165,7 +226,7 @@ const RouteGeneratorPage: React.FC = () => {
   useEffect(() => {
     if (selectedDate && selectedZone) {
       const date = format(selectedDate, 'dd-MM-yyyy', { locale: es });
-      const zone = zones.find(z => z.id.toString() === selectedZone)?.name || '';
+      const zone = zones.find((z: any) => z.id.toString() === selectedZone)?.name || '';
       setRouteName(`Ruta ${zone} ${date}`);
     }
   }, [selectedDate, selectedZone, zones]);
