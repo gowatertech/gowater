@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertRouteSchema } from "@shared/schema";
+import { z } from "zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -194,12 +195,21 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   console.log("⚠️ USANDO COMPANYID FIJO (1) AL INICIALIZAR FORMULARIO");
   
   const form = useForm({
-    resolver: zodResolver(insertRouteSchema),
+    resolver: zodResolver(insertRouteSchema.extend({
+      // Hacemos opcionales los campos que podrían causar problemas
+      companyId: z.number().default(currentCompanyId),
+      driverId: z.number().optional().or(z.string()).transform(val => 
+        typeof val === 'string' ? parseInt(val, 10) : val),
+      assistantId: z.number().optional().nullable().or(z.string().nullable()).transform(val => 
+        val === null || val === 'null' ? null : (typeof val === 'string' ? parseInt(val, 10) : val)),
+      truckId: z.number().optional().nullable().or(z.string().nullable()).transform(val => 
+        val === null || val === 'null' ? null : (typeof val === 'string' ? parseInt(val, 10) : val)),
+    })),
     defaultValues: {
       name: "",
-      driverId: undefined,
-      assistantId: undefined,
-      truckId: undefined,
+      driverId: 1, // Valor predeterminado para el conductor
+      assistantId: null,
+      truckId: null,
       date: new Date(),
       status: "pending" as const,
       isCompleted: false,
@@ -1184,24 +1194,50 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                           </Button>
                           
                           <Button 
-                            type="submit"
+                            type="button"
                             disabled={createRouteMutation.isPending}
                             className="h-7 text-xs px-2"
                             onClick={() => {
                               console.log("Botón 'Crear Ruta' clickeado manualmente");
                               
-                              if (form.formState.isValid) {
-                                console.log("Formulario válido, enviando datos manualmente...");
-                                const data = form.getValues();
-                                onSubmit(data);
-                              } else {
-                                console.error("Formulario inválido. Errores:", form.formState.errors);
-                                toast({
-                                  variant: "destructive",
-                                  title: "Error en formulario",
-                                  description: "Por favor, complete correctamente todos los campos requeridos."
-                                });
-                              }
+                              // Forzar validación del formulario
+                              form.trigger().then(isValid => {
+                                console.log("Validación de formulario:", isValid, "Errores:", form.formState.errors);
+                                
+                                if (isValid && selectedOrders.length > 0 && optimizedRoute.length > 0) {
+                                  console.log("Formulario válido, enviando datos manualmente...");
+                                  const data = form.getValues();
+                                  
+                                  // Asegurarnos que companyId está establecido
+                                  if (!data.companyId) {
+                                    data.companyId = currentCompanyId;
+                                  }
+                                  
+                                  console.log("Datos preparados:", data);
+                                  onSubmit(data);
+                                } else {
+                                  if (selectedOrders.length === 0) {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error en formulario",
+                                      description: "Debes seleccionar al menos un pedido para la ruta."
+                                    });
+                                  } else if (optimizedRoute.length === 0) {
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error en formulario",
+                                      description: "Debes optimizar la ruta antes de crearla."
+                                    });
+                                  } else {
+                                    console.error("Formulario inválido. Errores:", form.formState.errors);
+                                    toast({
+                                      variant: "destructive",
+                                      title: "Error en formulario",
+                                      description: "Por favor, complete correctamente todos los campos requeridos."
+                                    });
+                                  }
+                                }
+                              });
                             }}
                           >
                             {createRouteMutation.isPending ? (
