@@ -645,6 +645,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
 
   // Handle form submission
   const onSubmit = (data: any) => {
+    console.log("¡Formulario enviado! Datos:", data);
+    
     if (selectedOrders.length === 0) {
       toast({
         variant: "destructive",
@@ -662,8 +664,28 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       });
       return;
     }
-
-    createRouteMutation.mutate(data);
+    
+    // Verificar si se están enviando los datos correctamente
+    const formData = {
+      ...data,
+      name: data.name || `Ruta ${new Date().toLocaleDateString()}`,
+      date: data.date || new Date(),
+    };
+    
+    console.log("Datos de formulario preparados:", formData);
+    
+    try {
+      // Llamar a la mutación con los datos
+      createRouteMutation.mutate(formData);
+      console.log("Mutación iniciada con éxito");
+    } catch (error) {
+      console.error("Error al iniciar la mutación:", error);
+      toast({
+        variant: "destructive",
+        title: "Error interno",
+        description: "Ha ocurrido un error al procesar el formulario. Por favor, inténtalo de nuevo.",
+      });
+    }
   };
 
   // Format price to currency
@@ -972,7 +994,25 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
                   <div className="col-span-1">
                     <Form {...form}>
-                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2" autoComplete="off">
+                        <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-xs">Nombre de la ruta</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="Nombre de la ruta" 
+                                  className="h-7 text-xs"
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage className="text-[10px]" />
+                            </FormItem>
+                          )}
+                        />
+
                         <FormField
                           control={form.control}
                           name="driverId"
