@@ -128,6 +128,34 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [useDebugMode, setUseDebugMode] = useState<boolean>(false); // Desactivado por defecto
   const [debugCompanyId, setDebugCompanyId] = useState<number | null>(null); // Sin valor por defecto
   const [authError, setAuthError] = useState<string | null>(null);
+  const [userData, setUserData] = useState<any>(null);
+
+  // Obtener información del usuario autenticado para mostrar companyId
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await apiRequest({
+          url: "/user",
+          method: "GET"
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data);
+          console.log("User data loaded:", data);
+          
+          // Si estamos en modo debug y no hay debugCompanyId, usar el companyId del usuario
+          if (useDebugMode && !debugCompanyId && data.companyId) {
+            setDebugCompanyId(data.companyId);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    
+    fetchUserData();
+  }, [useDebugMode, debugCompanyId]);
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
@@ -715,7 +743,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   return (
     <div className={`space-y-6 ${compact ? 'p-0' : 'p-0 sm:p-4'}`}>
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">Crear ruta basada en zona</h3>
+        <div>
+          <h3 className="text-lg font-medium">Crear ruta basada en zona</h3>
+          {userData && (
+            <div className="text-xs text-muted-foreground">
+              CompanyId: {userData.companyId || "No definido"}
+            </div>
+          )}
+        </div>
         
         <Button 
           variant="outline" 
