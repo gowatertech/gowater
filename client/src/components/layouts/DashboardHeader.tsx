@@ -50,10 +50,6 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
           <span className="font-medium text-primary">
             {settings?.name || userData?.companyName || 'Cargando nombre de empresa...'}
           </span>
-          {/* Información de depuración - para ver de dónde viene el ID */}
-          <Badge variant="outline" className="px-2 py-0 text-xs">
-            (settings.id: {settings?.id}, settings.companyId: {settings?.companyId})
-          </Badge>
         </div>
       </div>
       <div className="flex space-x-2">
