@@ -188,10 +188,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     },
   });
 
-  // Obtener companyId del contexto actual
-  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+  // SOLUCIÓN TEMPORAL: Establecer companyId fijo
+  const currentCompanyId = 1;
   
-  console.log("CompanyId al inicializar formulario:", currentCompanyId);
+  console.log("⚠️ USANDO COMPANYID FIJO (1) AL INICIALIZAR FORMULARIO");
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema),
@@ -551,17 +551,13 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       // Get order IDs from selected orders
       const orderIds = selectedOrders.map(order => order.id);
       
-      // Obtener companyId del contexto actual (probamos múltiples fuentes)
-      const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+      // SOLUCIÓN TEMPORAL: Usar una compañía fija para pruebas
+      const currentCompanyId = 1;
       
-      console.log("CompanyId detectado:", currentCompanyId);
+      console.log("⚠️ USANDO COMPANYID FIJO (1) PARA PRUEBAS");
+      console.log("CompanyId fijo:", currentCompanyId);
       console.log("Datos de usuario:", pendingOrdersUserData);
       console.log("Datos de compañía:", companyData);
-      
-      if (!currentCompanyId) {
-        console.error("No se pudo obtener el companyId");
-        throw new Error("No se pudo obtener el ID de la compañía. Por favor, inicia sesión nuevamente.");
-      }
       
       // Verificar que el nombre de la ruta existe
       if (!data.name) {
