@@ -15,7 +15,10 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
       req.path === '/sw.js' ||
       req.path === '/manifest.json' ||
       req.path.startsWith('/images/') ||
-      req.path === '/favicon.ico') {
+      req.path === '/favicon.ico' ||
+      req.path === '/route-generator' || 
+      req.path.startsWith('/dashboard') ||
+      req.path.startsWith('/index.css')) {
     return next();
   }
 
@@ -27,11 +30,11 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
     return next();
   }
   
-  // Verificar autenticación para rutas del generador de rutas
-  if (req.path.startsWith('/route-generator')) {
+  // Verificar autenticación para rutas de la API del generador de rutas
+  if (req.path.startsWith('/api/route-generator')) {
     // Verificar si el usuario está autenticado
     if (!req.session?.user) {
-      console.log(`🔒 Verificando autenticación para generador de rutas: ${req.path}`);
+      console.log(`🔒 Verificando autenticación para API del generador de rutas: ${req.path}`);
       console.log(`❌ No hay sesión de usuario`);
       return res.status(401).json({
         success: false,
@@ -39,6 +42,9 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
       });
     }
   }
+  
+  // Permitir que la ruta frontend '/route-generator' sea manejada por la aplicación de cliente
+  // sin restricciones (la autenticación se maneja en el cliente)
 
   // Obtener el companyId de diversas fuentes, con prioridades
   let companyId: number | undefined;
