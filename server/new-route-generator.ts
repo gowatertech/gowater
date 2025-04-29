@@ -198,7 +198,7 @@ router.get('/drivers', async (req: Request, res: Response) => {
         id: users.id,
         name: users.name,
         phone: users.phone,
-        status: users.status
+        active: users.active
       })
       .from(users)
       .where(

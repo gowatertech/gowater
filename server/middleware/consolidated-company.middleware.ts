@@ -17,7 +17,7 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
       req.path.startsWith('/images/') ||
       req.path === '/favicon.ico' ||
       req.path === '/route-generator' || 
-      req.path === '/route-generator/fixed' || // Permitir acceso a nuestra versión de diagnóstico
+      req.path.startsWith('/route-generator/') || // Permitir acceso a todas las rutas bajo route-generator
       req.path.startsWith('/dashboard') ||
       req.path.startsWith('/index.css')) {
     return next();
