@@ -1557,16 +1557,19 @@ export async function registerRoutes(router: express.Router) {
       console.log(`POST /api/routes - Usando companyId=${companyId} del contexto`);
       
       // Verificar que tengamos un companyId válido
-      if (!companyId) {
-        console.error("❌ Error: No se encontró companyId en contexto para crear la ruta");
+      // Verificar que tengamos un companyId válido
+      if (!companyId && !req.body.companyId) {
+        console.error("❌ Error: No se encontró companyId en contexto ni en el body para crear la ruta");
         return res.status(403).json({ 
           error: "Acceso denegado", 
           message: "No se ha encontrado un contexto de compañía válido. Por favor inicie sesión nuevamente." 
         });
       }
       
-      // Prioritizar el companyId del body si está presente (para compatibilidad con clientes existentes)
+      // Prioritizar el companyId del body si está presente, o usar el del contexto
       const effectiveCompanyId = req.body.companyId || companyId;
+      
+      console.log(`🔄 Usando companyId: ${effectiveCompanyId} para crear la ruta`);
       
       // Requerimos conductor y opcionales asistente y camión
       const routeData = {

@@ -557,10 +557,14 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       }
       
       // Asegurar que el companyId esté configurado correctamente
-      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || 1;
+      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
       
-      console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión o valor predeterminado)`);
-      routeData.companyId = effectiveCompanyId;
+      if (!effectiveCompanyId) {
+        console.error("No se pudo obtener el companyId del contexto");
+      } else {
+        console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión)`);
+        routeData.companyId = effectiveCompanyId;
+      }
       
       console.log("Enviando datos a la API:", routeData);
       
@@ -639,9 +643,17 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     }
     
     // Determinar el companyId efectivo de manera dinámica
-    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId || 1;
+    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
     
-    console.log(`Usando companyId efectivo: ${effectiveCompanyId} para la ruta`);
+    if (!effectiveCompanyId) {
+      console.error("No se pudo obtener el companyId para la ruta");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo determinar el ID de la empresa. Por favor, vuelve a iniciar sesión.",
+      });
+      return;
+    }
     
     console.log(`Usando companyId: ${effectiveCompanyId} para la ruta`);
     

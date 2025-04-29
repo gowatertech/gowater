@@ -20,6 +20,7 @@ export function companyAuthMiddleware(req: Request, res: Response, next: NextFun
 
   // Verificar y establecer el companyId
   const companyId = req.session.companyId || req.session.user.companyId;
+  
   if (!companyId) {
     console.log("❌ No hay companyId en la sesión");
     return res.status(403).json({
@@ -27,7 +28,7 @@ export function companyAuthMiddleware(req: Request, res: Response, next: NextFun
       message: "No se encontró el ID de compañía"
     });
   }
-
+  
   // Establecer el companyId en el contexto
   setCurrentCompanyId(companyId);
   console.log(`✅ CompanyId establecido: ${companyId}`);
@@ -58,6 +59,7 @@ export function companyTenantMiddleware(req: Request, res: Response, next: NextF
     }
   } else {
     // Si no hay sesión o no tiene companyId, limpiar el contexto
+    console.log("No hay companyId en el contexto, limpiando contexto")
     setCurrentCompanyId(undefined);
   }
   next();
