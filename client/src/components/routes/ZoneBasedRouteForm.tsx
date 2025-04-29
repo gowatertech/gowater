@@ -119,6 +119,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [routeCreationMode, setRouteCreationMode] = useState<"customers" | "orders">("customers");
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery({
@@ -167,7 +168,10 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
   const [authError, setAuthError] = useState<string | null>(null);
   
   // Estado para controlar si estamos en modo debug
-  const [useDebugMode, setUseDebugMode] = useState<boolean>(false);
+  const [useDebugMode, setUseDebugMode] = useState<boolean>(true); // Cambiado a true por defecto para facilitar pruebas
+  
+  // Estado para almacenar el companyId en modo debug
+  const [debugCompanyId, setDebugCompanyId] = useState<number | null>(15); // Valor por defecto para pruebas
   
   const {
     data: pendingOrders = [],
@@ -175,37 +179,50 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     error: pendingOrdersError,
     refetch: refetchPendingOrders
   } = useQuery<PendingOrder[]>({
-    queryKey: ["/api/zones", selectedZone, "pending-orders", useDebugMode],
+    queryKey: ["/api/zones", selectedZone, "pending-orders", useDebugMode, debugCompanyId],
     queryFn: async () => {
       if (!selectedZone) return [];
       
-      console.log(`Fetching pending orders for zone ${selectedZone} (debug mode: ${useDebugMode})`);
+      console.log(`Fetching pending orders for zone ${selectedZone} (debug mode: ${useDebugMode}, companyId: ${debugCompanyId})`);
       setAuthError(null);
       
       try {
-        // Obtener el companyId de la sesión (si está disponible)
-        const userResponse = await apiRequest("GET", "/api/user");
-        
         let url = "";
         
-        // Si estamos en modo debug, solicitar con el parámetro debug=true
-        if (useDebugMode) {
-          url = `/api/zones/${selectedZone}/pending-orders?debug=true`;
-          console.log(`MODO DEBUG: Solicitando pedidos pendientes en modo desarrollo: ${url}`);
-        } else if (!userResponse.ok) {
-          console.warn("No se pudo obtener el usuario de la sesión");
-          setAuthError("Error de autenticación: No se encontró una sesión válida. Por favor inicie sesión nuevamente.");
-          // No utilizamos un valor hardcodeado, solo reportamos el error
-          throw new Error("Sin sesión de usuario válida");
+        // Si estamos en modo debug, solicitar con parámetros debug=true y companyId
+        if (useDebugMode && debugCompanyId) {
+          url = `/api/zones/${selectedZone}/pending-orders?debug=true&companyId=${debugCompanyId}`;
+          console.log(`MODO DEBUG: Solicitando pedidos pendientes en modo debug: ${url}`);
         } else {
-          // Usuario está autenticado, obtenemos sus datos
-          const userData = await userResponse.json();
+          // Obtener el companyId de la sesión (para modo normal)
+          const userResponse = await apiRequest("GET", "/api/user");
           
-          // Usamos la URL normal ya que el backend obtendrá el companyId de la sesión
-          url = `/api/zones/${selectedZone}/pending-orders`;
-          console.log(`Solicitando pedidos pendientes con sesión activa para zona ${selectedZone}`);
+          if (!userResponse.ok) {
+            console.warn("No se pudo obtener el usuario de la sesión");
+            setAuthError("Error de autenticación: No se encontró una sesión válida. Por favor inicie sesión nuevamente.");
+            
+            // Si estamos en modo debug pero sin companyId especificado, intentar usar uno predeterminado
+            if (useDebugMode) {
+              url = `/api/zones/${selectedZone}/pending-orders?debug=true&companyId=15`;
+              console.log(`MODO DEBUG FALLBACK: Usando companyId=15 por defecto`);
+            } else {
+              throw new Error("Sin sesión de usuario válida");
+            }
+          } else {
+            // Usuario está autenticado, obtenemos sus datos
+            const userData = await userResponse.json();
+            
+            // Usamos la URL normal ya que el backend obtendrá el companyId de la sesión
+            url = `/api/zones/${selectedZone}/pending-orders`;
+            console.log(`Solicitando pedidos pendientes con sesión activa para zona ${selectedZone}`);
+          }
         }
         
+        if (!url) {
+          throw new Error("No se pudo determinar la URL para obtener pedidos pendientes");
+        }
+        
+        console.log(`Enviando solicitud a: ${url}`);
         const response = await apiRequest("GET", url);
         
         if (!response.ok) {
