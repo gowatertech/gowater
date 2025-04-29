@@ -48,6 +48,7 @@ import TrucksPage from "./pages/routes/trucks";
 import RouteGeneratorPage from "@/pages/route-generator";
 import DiagnosticoPage from "@/pages/route-generator/diagnostico";
 import FixedRouteGenerator from "@/pages/route-generator/fixed";
+import SimpleRouteGenerator from "@/pages/route-generator/simple";
 import { CenteredLogo } from "@/components/common/CenteredLogo";
 import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
@@ -389,6 +390,7 @@ function Router() {
         <Route path="/vehicle-loading" component={VehicleLoadingPage} />
         <Route path="/route-generator/diagnostico" component={DiagnosticoPage} />
         <Route path="/route-generator/fixed" component={FixedRouteGenerator} />
+        <Route path="/route-generator/simple" component={SimpleRouteGenerator} />
         <Route path="/route-generator" component={RouteGeneratorPage} />
         <Route path="/routes/:id" component={RouteDetails} />
         <Route path="/routes" component={Routes} />

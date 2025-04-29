@@ -27,6 +27,8 @@ import { registerRouteGeneratorEndpoints } from "./routes/route-generator";
 import { registerSimplifiedRoutes } from "./simplified-routes";
 // Importamos la nueva API del generador de rutas
 import { registerNewRouteGenerator } from "./new-route-generator";
+// Importamos la API simple para el generador de rutas
+import { registerRouteGeneratorApi } from "./route-generator-api";
 // Importamos dependencies para las consultas directas
 import { db } from "./db";
 import { orders, customers, zones } from "../shared/schema";
@@ -126,6 +128,10 @@ app.use((req, res, next) => {
     // Registrar la nueva API del generador de rutas
     registerNewRouteGenerator(app);
     log("New route generator API endpoints registered successfully");
+    
+    // Registrar la API simple del generador de rutas
+    registerRouteGeneratorApi(app);
+    log("Simple route generator API endpoints registered successfully");
     
     // Registrar las rutas simplificadas
     registerSimplifiedRoutes(app);
