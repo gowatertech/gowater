@@ -23,6 +23,8 @@ import ordersRouter from "./routes/orders";
 import { registerGeoDataRoutes } from "./routes/geo-data";
 // Importamos el generador de rutas 
 import { registerRouteGeneratorEndpoints } from "./routes/route-generator";
+// Importamos la nueva implementación simplificada del generador de rutas
+import { registerSimplifiedRoutes } from "./simplified-routes";
 // Importamos dependencies para las consultas directas
 import { db } from "./db";
 import { orders, customers, zones } from "../shared/schema";
@@ -221,6 +223,10 @@ app.use((req, res, next) => {
       }
     });
     log("Direct route-generator/orders/pending endpoint registered");
+    
+    // Registrar las rutas simplificadas para el generador de rutas
+    registerSimplifiedRoutes(app);
+    log("Simplified routes registered successfully for direct route generator access");
     
     // Registrar rutas de prueba (solo en desarrollo)
     if (process.env.NODE_ENV !== "production") {
