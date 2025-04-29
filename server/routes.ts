@@ -414,46 +414,10 @@ export async function registerRoutes(router: express.Router) {
         return res.json([]);
       }
       
-      // Primero obtenemos los clientes de la zona QUE PERTENECEN A LA COMPAÑÍA
-      const zoneCustomers = await db
-        .select({
-          id: customers.id,
-          name: customers.businessname
-        })
-        .from(customers)
-        .where(
-          and(
-            eq(customers.zoneid, zoneId),
-            eq(customers.companyId, companyId) // Filtrar clientes por companyId
-          )
-        );
+      // Enfoque más directo: buscar pedidos pendientes cuyo cliente está en la zona seleccionada
+      console.log(`🔍 Buscando pedidos pendientes para zona ${zoneId} y compañía ${companyId}`);
       
-      if (zoneCustomers.length === 0) {
-        console.log(`⚠️ No hay clientes en la zona ${zoneId} para la compañía ${companyId}`);
-        return res.json([]);
-      }
-      
-      // Extraemos los IDs de clientes
-      const customerIds = zoneCustomers.map(customer => customer.id);
-      
-      console.log(`👥 Clientes encontrados en zona ${zoneId} para compañía ${companyId}:`, zoneCustomers);
-      
-      // Verificar si hay pedidos pendientes para estos clientes
-      const ordersCount = await db
-        .select({ count: sql`COUNT(*)` })
-        .from(orders)
-        .where(
-          and(
-            inArray(orders.customerId, customerIds),
-            eq(orders.status, "pending"),
-            sql`${orders.routeId} IS NULL`,
-            eq(orders.companyId, companyId)
-          )
-        );
-        
-      console.log(`📊 Conteo inicial de pedidos pendientes: ${ordersCount[0]?.count || 0}`);
-      
-      // Ahora buscamos todas las órdenes pendientes para esos clientes y que no estén asignadas a una ruta
+      // Consulta mejorada que une orders, customers y zones directamente
       const pendingOrders = await db
         .select({
           id: orders.id,
@@ -464,7 +428,7 @@ export async function registerRoutes(router: express.Router) {
           status: orders.status,
           notes: orders.notes,
           deliveryCoordinates: orders.deliveryCoordinates,
-          coordinates: customers.coordinates, // Añadimos las coordenadas del cliente
+          coordinates: customers.coordinates,
           customerName: customers.businessname,
           customerAddress: customers.street,
           customerAddressNumber: customers.streetnumber,
@@ -473,13 +437,45 @@ export async function registerRoutes(router: express.Router) {
         .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(
           and(
-            inArray(orders.customerId, customerIds),
-            eq(orders.status, "pending"),
-            sql`${orders.routeId} IS NULL`,
-            eq(orders.companyId, companyId) // Añadir filtro por companyId también para las órdenes
+            eq(customers.zoneid, zoneId), // Clientes de la zona especificada
+            eq(orders.status, "pending"), // Pedidos pendientes
+            sql`${orders.routeId} IS NULL`, // No asignados a una ruta
+            eq(orders.companyId, companyId), // De la compañía correcta
+            eq(customers.companyId, companyId) // Cliente de la compañía correcta
           )
         )
         .orderBy(orders.date);
+        
+      console.log(`📊 Encontrados ${pendingOrders.length} pedidos pendientes para zona ${zoneId}`);
+      
+      // Si no se encontraron pedidos, registramos la información para depuración
+      if (pendingOrders.length === 0) {
+        // Contar cuántos clientes hay en la zona
+        const zoneCustomersCount = await db
+          .select({ count: sql`COUNT(*)` })
+          .from(customers)
+          .where(
+            and(
+              eq(customers.zoneid, zoneId),
+              eq(customers.companyId, companyId)
+            )
+          );
+          
+        // Contar cuántos pedidos pendientes hay para la compañía
+        const pendingOrdersCount = await db
+          .select({ count: sql`COUNT(*)` })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.status, "pending"),
+              sql`${orders.routeId} IS NULL`,
+              eq(orders.companyId, companyId)
+            )
+          );
+          
+        console.log(`⚠️ Diagnóstico: Hay ${zoneCustomersCount[0]?.count || 0} clientes en la zona ${zoneId}`);
+        console.log(`⚠️ Diagnóstico: Hay ${pendingOrdersCount[0]?.count || 0} pedidos pendientes totales para la compañía ${companyId}`);
+      }
       
       console.log(`✅ Encontrados ${pendingOrders.length} pedidos pendientes para la zona ${zoneId} de compañía ${companyId}`);
       
