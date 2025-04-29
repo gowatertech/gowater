@@ -103,6 +103,8 @@ interface PendingOrder {
 
 interface OrderWithCustomer extends PendingOrder {
   customer?: Customer;
+  zoneId?: number; // Asegurarse de que zoneId está disponible 
+  zoneName?: string; // Nombre de la zona para mostrar
 }
 
 interface Truck {
@@ -215,14 +217,12 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       
       // Filtrar pedidos por la zona seleccionada
       const ordersInZone = pendingOrders.filter(order => {
-        // Revisa en diferentes propiedades donde podría estar el ID de la zona
-        // Esto es una adaptación - normalmente la API debería devolver una estructura consistente
-        const orderZoneId = order.zoneId || 
-          (order.customer && order.customer.zoneId);
-        
-        return orderZoneId === selectedZoneId;
+        // Acceder directamente a la propiedad zoneId en la respuesta del API
+        // La API debería devolver esta propiedad directamente
+        return (order as any).zoneId === selectedZoneId;
       });
       
+      console.log(`Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
       setFilteredPendingOrders(ordersInZone);
       
       // Limpiar la selección de pedidos anterior al cambiar de zona
