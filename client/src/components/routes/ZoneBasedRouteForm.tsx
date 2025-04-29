@@ -6,6 +6,7 @@ import { insertRouteSchema } from "@shared/schema";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanySettings } from "@/hooks/use-company-settings";
 import { 
   Check, 
   Loader2, 
@@ -298,11 +299,15 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
 
   // Toggle customer selection
   const toggleCustomerSelection = (customer: Customer) => {
+    // Obtener coordenadas base de la empresa desde la configuración
+    const baseLat = settings?.latitude ? parseFloat(settings.latitude) : 19.075380;
+    const baseLng = settings?.longitude ? parseFloat(settings.longitude) : -70.128822;
+    
     // Asegurar que el cliente tenga coordenadas
     const customerWithCoordinates = {
       ...customer,
-      // Usar las coordenadas existentes o crear coordenadas de ejemplo basadas en la posición relativa al depósito
-      coordinates: customer.coordinates || `${19.075380 + (customer.id * 0.005)},${-70.128822 - (customer.id * 0.004)}`
+      // Usar las coordenadas existentes o crear coordenadas relativas al depósito de la compañía
+      coordinates: customer.coordinates || `${baseLat + (customer.id * 0.005)},${baseLng - (customer.id * 0.004)}`
     };
     
     if (selectedCustomers.some(c => c.id === customer.id)) {
@@ -314,10 +319,25 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     setOptimizedRoute([]);
   };
 
+  // Use company settings hook to get configured coordinates
+  const { settings } = useCompanySettings();
+  
+  // Get company location from settings or default to Dominican Republic center
+  const getCompanyCoordinates = (): [number, number] => {
+    if (settings?.latitude && settings?.longitude) {
+      const lat = parseFloat(settings.latitude);
+      const lng = parseFloat(settings.longitude);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return [lat, lng];
+      }
+    }
+    return [19.0, -70.0]; // Default center (Dominican Republic) if company coordinates not available
+  };
+
   // Calculate map center and bounds based on optimized route coordinates
   const getMapCenter = () => {
     if (optimizedRoute.length === 0) {
-      return [19.0, -70.0]; // Default center if no route
+      return getCompanyCoordinates(); // Use company location as default center
     }
     
     const pointsWithCoords = optimizedRoute
@@ -328,7 +348,7 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
       });
       
     if (pointsWithCoords.length === 0) {
-      return [19.0, -70.0]; // Default center if no coordinates
+      return getCompanyCoordinates(); // Use company coordinates as default
     }
     
     // Calculate center point
@@ -427,14 +447,16 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
     setIsOptimizing(true);
 
     try {
-      // Define depot/almacén principal (empresa) - hardcoded coordinates
+      // Define depot/almacén principal (empresa) usando coordenadas de la compañía
       const depot: Customer = {
         id: 0, // Use 0 to represent depot
         businessname: "Almacén Principal",
         phone: "",
         street: "",
         streetnumber: "",
-        coordinates: "19.075380,-70.128822", // Coordenadas empresa
+        coordinates: settings?.latitude && settings?.longitude 
+          ? `${settings.latitude},${settings.longitude}` 
+          : "19.075380,-70.128822", // Use company coordinates or fallback
         municipalityName: "",
         provinceName: ""
       };
@@ -470,9 +492,14 @@ export default function ZoneBasedRouteForm({ onRouteCreated, compact = false }: 
         let closestDistance = Infinity;
         
         for (let i = 0; i < unvisited.length; i++) {
+          // Obtener coordenadas de la empresa desde la configuración
+          const depotCoordinates = settings?.latitude && settings?.longitude 
+            ? `${settings.latitude},${settings.longitude}` 
+            : "19.075380,-70.128822";
+          
           const distance = calculateDistance(
-            currentPoint.coordinates || "19.075380,-70.128822", // Coordenadas del depósito por defecto
-            unvisited[i].coordinates || "19.075380,-70.128822"  // Coordenadas del depósito por defecto
+            currentPoint.coordinates || depotCoordinates,
+            unvisited[i].coordinates || depotCoordinates
           );
           
           if (distance < closestDistance) {
