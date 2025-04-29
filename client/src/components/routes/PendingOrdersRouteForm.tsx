@@ -375,9 +375,9 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
           phone: order.customerPhone || "",
           street: order.customerAddress,
           streetnumber: "",
-          // Si no hay coordenadas, usamos las coordenadas reales del cliente o un valor predeterminado
+          // Si no hay coordenadas, usamos las coordenadas de la empresa desde la configuración
           coordinates: order.deliveryCoordinates || order.coordinates || 
-            (settings?.latitude && settings?.longitude ? `${settings.latitude},${settings.longitude}` : "19.105433,-70.086588"), // Use company coordinates as fallback
+            (settings?.latitude && settings?.longitude ? `${settings.latitude},${settings.longitude}` : undefined),
           orderId: order.id, // Añadir el ID del pedido para asociarlo con el cliente
         } as Customer;
         
@@ -484,9 +484,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         console.warn("Hay clientes sin coordenadas:", invalidCustomers);
         // Asignar coordenadas predeterminadas para permitir la optimización
         invalidCustomers.forEach(customer => {
+          // Usar coordenadas de la empresa desde la configuración si están disponibles
           customer.coordinates = settings?.latitude && settings?.longitude 
             ? `${settings.latitude},${settings.longitude}` 
-            : "19.105433,-70.086588"; // Use company coordinates as fallback
+            : undefined;
         });
       }
 
@@ -498,10 +499,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         let closestDistance = Infinity;
         
         for (let i = 0; i < unvisited.length; i++) {
-          // Get depot coordinates from company settings or use fallback
+          // Get depot coordinates from company settings
           const depotCoordinates = settings?.latitude && settings?.longitude 
             ? `${settings.latitude},${settings.longitude}` 
-            : "19.075380,-70.128822";
+            : "";
             
           const distance = calculateDistance(
             currentPoint.coordinates || depotCoordinates, 
