@@ -8,14 +8,14 @@ import { getCurrentCompanyId, setCurrentCompanyId } from "../company-db";
  */
 export function consolidatedCompanyMiddleware(req: Request, res: Response, next: NextFunction) {
   // Para rutas de plataforma o login/logout, no alteramos nada
-  if (req.path.startsWith('/api/platform') || 
-      req.path === '/api/login' || 
-      req.path === '/api/logout') {
+  if (req.path.startsWith('/platform') || 
+      req.path === '/login' || 
+      req.path === '/logout') {
     return next();
   }
   
   // Verificar autenticación para rutas del generador de rutas
-  if (req.path.startsWith('/api/route-generator')) {
+  if (req.path.startsWith('/route-generator')) {
     // Verificar si el usuario está autenticado
     if (!req.session?.user) {
       console.log(`🔒 Verificando autenticación para generador de rutas: ${req.path}`);
@@ -68,9 +68,9 @@ export function consolidatedCompanyMiddleware(req: Request, res: Response, next:
     setCurrentCompanyId(companyId);
   } else {
     // Si no hay companyId y no es una ruta pública
-    if (req.path.startsWith('/api/') && 
-        !req.path.startsWith('/api/public/') && 
-        !req.path.startsWith('/api/leads/')) {
+    if (req.path !== '/' && 
+        !req.path.startsWith('/public/') && 
+        !req.path.startsWith('/leads/')) {
       
       // Verificar si la ruta es para pedidos pendientes y tiene el parámetro debug=true
       const isDebugMode = req.path.includes('/zones/') && 
