@@ -1083,14 +1083,24 @@ export async function registerRoutes(router: express.Router) {
   // Rutas
   router.get("/routes", async (req, res) => {
     try {
-      console.log("GET /api/routes - Obteniendo todas las rutas");
+      // Obtener companyId desde la sesión
+      const companyId = req.session.companyId || req.session.user?.companyId;
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido."
+        });
+      }
+      
+      console.log(`GET /api/routes - Obteniendo rutas para compañía ${companyId}`);
       console.log("Query params:", req.query);
       
       // Si se especifica un filtro de estado
       let statusFilter = req.query.status;
       console.log("Tipo de statusFilter:", typeof statusFilter, "Valor:", statusFilter);
       
-      let query = db.select().from(routes);
+      // Construir la consulta filtrando por companyId primero
+      let query = db.select().from(routes).where(eq(routes.companyId, companyId));
       
       // Aplicar filtro si se especificó
       if (statusFilter) {
@@ -1127,15 +1137,30 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para obtener rutas activas (pending o in_progress)
   router.get("/routes/active", async (req, res) => {
     try {
-      console.log("GET /api/routes/active - Obteniendo rutas activas");
+      // Obtener companyId desde la sesión
+      const companyId = req.session.companyId || req.session.user?.companyId;
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido."
+        });
+      }
+
+      console.log(`GET /api/routes/active - Obteniendo rutas activas para compañía ${companyId}`);
       
+      // Filtrar por companyId y status
       const activeRoutes = await db
         .select()
         .from(routes)
-        .where(inArray(routes.status, ["pending", "in_progress"]))
+        .where(
+          and(
+            eq(routes.companyId, companyId),
+            inArray(routes.status, ["pending", "in_progress"])
+          )
+        )
         .orderBy(routes.date);
       
-      console.log(`GET /api/routes/active - Retornando ${activeRoutes.length} rutas activas`);
+      console.log(`GET /api/routes/active - Retornando ${activeRoutes.length} rutas activas para compañía ${companyId}`);
       res.json(activeRoutes);
     } catch (error) {
       console.error("Error al obtener rutas activas:", error);
