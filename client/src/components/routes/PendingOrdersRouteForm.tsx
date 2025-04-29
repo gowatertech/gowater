@@ -170,65 +170,20 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     fetchUserData();
   }, []);
 
-  // Fetch pending orders for the selected zone
+  // Fetch ALL pending orders without filtering by zone
   const {
     data: pendingOrders = [],
     isLoading: isLoadingPendingOrders,
     error: pendingOrdersError,
     refetch: refetchPendingOrders
   } = useQuery<OrderWithCustomer[]>({
-    queryKey: ["/api/zones", selectedZone, "pending-orders"],
-    queryFn: async () => {
-      if (!selectedZone) return [];
+    queryKey: ["/api/orders/pending"],
+    queryFn: async () => {      
+      console.log("Fetching ALL pending orders");
       
-      console.log(`Fetching pending orders for zone ${selectedZone}`);
-      
-      // Usar el formato de objeto para apiRequest - sin hardcoding
-      // Obtener información del usuario primero para obtener su companyId
-      const userResponse = await apiRequest({
-        url: "/user",
-        method: "GET"
-      });
-      
-      // Preparar parámetros con modo debug activado
-      const params: Record<string, any> = {
-        debug: "true"
-      };
-      
-      // Si tenemos sesión de usuario, intentar obtener el companyId
-      if (userResponse.ok) {
-        try {
-          const userData = await userResponse.json();
-          setPendingOrdersUserData(userData);
-          if (userData.companyId) {
-            params.companyId = userData.companyId.toString();
-            console.log(`Usando companyId=${userData.companyId} de la sesión del usuario`);
-          }
-        } catch (e) {
-          console.warn("No se pudo obtener companyId del usuario:", e);
-        }
-      }
-      
-      // No usar ningún fallback para companyId
-      if (!params.companyId) {
-        console.log("⚠️ No se encontró companyId en la sesión del usuario");
-      }
-      
-      // Ensure params always contains companyId from session user
-      if (!params.companyId && pendingOrdersUserData?.companyId) {
-        params.companyId = pendingOrdersUserData.companyId.toString();
-      }
-      
-      console.log("Enviando solicitud con params:", params);
-      
-      // Construir la URL correctamente para asegurarnos que el companyId se pasa como parámetro de consulta
-      const queryParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        queryParams.append(key, value);
-      });
-      
+      // Obtener todos los pedidos pendientes sin importar la zona
       const response = await apiRequest({
-        url: `/api/zones/${selectedZone}/pending-orders?${queryParams.toString()}`,
+        url: "/api/orders/pending",
         method: "GET"
       });
       
@@ -251,7 +206,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         products: order.products || []
       }));
     },
-    enabled: !!selectedZone,
   });
 
   const form = useForm({

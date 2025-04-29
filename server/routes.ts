@@ -3287,11 +3287,89 @@ export async function registerRoutes(router: express.Router) {
         .leftJoin(customers, eq(orders.customerId, customers.id))
         .where(eq(orders.companyId, companyId))
         .orderBy(desc(orders.date));
-
+        
       console.log("GET /api/orders - Retornando:", allOrders.length, "pedidos");
       res.json(allOrders);
     } catch (error) {
       console.error("Error al obtener pedidos:", error);      
+      res.status(500).json({ error: String(error) });
+    }
+  });
+  
+  // Endpoint para obtener todos los pedidos pendientes
+  router.get("/orders/pending", async (req, res) => {
+    try {
+      console.log("🔍 Iniciando búsqueda de TODOS los pedidos pendientes...");
+      
+      // Obtener companyId desde varias fuentes
+      let companyId = req.session.companyId || req.session.user?.companyId;
+      let companyIdSource = "sesión";
+      
+      if (!companyId) {
+        companyId = getCurrentCompanyId();
+        if (companyId) {
+          companyIdSource = "contexto actual";
+        } else {
+          console.error("❌ Error: No se encontró companyId para obtener pedidos pendientes");
+          return res.status(403).json({ 
+            error: "Acceso denegado", 
+            message: "No se ha encontrado un contexto de compañía válido."
+          });
+        }
+      }
+      
+      console.log(`🔍 GET /api/orders/pending - Buscando todos los pedidos pendientes para compañía ${companyId}`);
+      
+      // Buscar todos los pedidos pendientes para esta compañía
+      const pendingOrders = await db
+        .select({
+          id: orders.id,
+          customerId: orders.customerId,
+          date: orders.date,
+          dueDate: orders.dueDate,
+          total: orders.total,
+          status: orders.status,
+          paymentStatus: orders.paymentStatus,
+          deliveryCoordinates: orders.deliveryCoordinates,
+          notes: orders.notes,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+          customerAddressNumber: customers.streetnumber,
+          customerPhone: customers.phone,
+          zoneName: zones.name,
+          zoneId: customers.zoneid,
+          products: sql<string>`(
+            SELECT jsonb_agg(
+              jsonb_build_object(
+                'id', oi.product_id,
+                'name', p.name,
+                'quantity', oi.quantity,
+                'price', oi.price,
+                'subtotal', oi.subtotal
+              )
+            )
+            FROM order_items oi
+            JOIN products p ON p.id = oi.product_id
+            WHERE oi.order_id = ${orders.id} AND p.company_id = ${companyId}
+          )`,
+        })
+        .from(orders)
+        .leftJoin(customers, eq(orders.customerId, customers.id))
+        .leftJoin(zones, eq(customers.zoneid, zones.id))
+        .where(
+          and(
+            eq(orders.status, "pending"),
+            sql`${orders.routeId} IS NULL`,
+            eq(orders.companyId, companyId),
+            eq(customers.companyId, companyId)
+          )
+        )
+        .orderBy(orders.date);
+      
+      console.log(`Encontrados ${pendingOrders.length} pedidos pendientes para la compañía ${companyId}`);
+      res.json(pendingOrders);
+    } catch (error) {
+      console.error("Error al obtener todos los pedidos pendientes:", error);
       res.status(500).json({ error: String(error) });
     }
   });
