@@ -685,14 +685,43 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         "effectiveCompanyId seleccionado": effectiveCompanyId
       });
       
-      if (effectiveCompanyId) {
-        // Si tenemos un companyId válido, lo usamos
-        routeData.companyId = Number(effectiveCompanyId);
-        console.log("✅ Usando companyId:", routeData.companyId);
-      } else {
-        // Si no tenemos companyId, informamos al usuario
-        console.error("❌ No se pudo determinar el ID de la empresa");
-        throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
+      // Primero intentamos obtener companyId de todas las fuentes posibles
+      // Esto incluye el contexto de compañía y el usuario actual
+      
+      try {
+        // Si no tenemos companyId, hacemos una petición al servidor para obtener la info del usuario actual
+        if (!effectiveCompanyId) {
+          console.log("⚠️ No se encontró companyId en el contexto local, consultando API...");
+          
+          // Intentar obtener información del usuario desde la API
+          const response = await apiRequest({
+            url: '/api/user',
+            method: 'GET'
+          });
+          
+          // Verificar si la respuesta contiene datos del usuario
+          if (response && response.companyId) {
+            effectiveCompanyId = response.companyId;
+            console.log("✅ CompanyId obtenido de API:", effectiveCompanyId);
+          } else if (response && response.user && response.user.companyId) {
+            effectiveCompanyId = response.user.companyId;
+            console.log("✅ CompanyId obtenido de API (objeto user):", effectiveCompanyId);
+          }
+        }
+        
+        // Después de todos los intentos, verificamos si tenemos un companyId válido
+        if (effectiveCompanyId) {
+          // Asignar el companyId al objeto de datos de la ruta
+          routeData.companyId = Number(effectiveCompanyId);
+          console.log("✅ Usando companyId:", routeData.companyId);
+        } else {
+          // Si realmente no hay companyId después de todos los intentos, avisamos al usuario
+          console.error("❌ No se pudo determinar el ID de la empresa después de intentar todas las fuentes");
+          throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
+        }
+      } catch (err) {
+        console.error("❌ Error al obtener información del usuario:", err);
+        throw new Error("Error al obtener información de la empresa. Por favor, inicie sesión nuevamente.");
       }
       
       // Log de verificación final
