@@ -702,9 +702,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                 const diagnosticInfo = {
                   companyId: pendingOrdersUserData?.companyId || "No definido",
                   role: pendingOrdersUserData?.role || "No definido",
-                  zoneId: selectedZone || "No seleccionada",
+                  zoneId: selectedZone || "No requerida (se muestran todos los pedidos)",
                   zonesCount: Array.isArray(zones) ? zones.length : 0,
                   pendingOrdersCount: Array.isArray(pendingOrders) ? pendingOrders.length : 0,
+                  filteringMode: "Todos los pedidos pendientes (sin filtrar por zona)",
                   selectedOrdersCount: selectedOrders.length,
                   companySettings: settings ? "Configurados" : "No configurados",
                   companyCoordinates: settings?.latitude && settings?.longitude 
@@ -938,7 +939,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       <Package className="h-8 w-8 mx-auto text-gray-300 mb-1" />
                       <h3 className="text-sm font-medium text-gray-700">No hay pedidos pendientes</h3>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        No hay pedidos pendientes en la zona seleccionada.
+                        No hay pedidos pendientes disponibles.
                       </p>
                     </div>
                   ) : (
