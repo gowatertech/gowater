@@ -2,12 +2,18 @@ import { Router } from 'express';
 import ordersRouter from './orders';
 import optimizeRouter from './optimize';
 import createRouter from './create';
+import driversRouter from './drivers';
+import trucksRouter from './trucks';
+import zonesRouter from './zones';
 
 // Router principal para el generador de rutas
 export const routeGeneratorRouter = Router();
 
 // Registrar las sub-rutas
 routeGeneratorRouter.use('/orders', ordersRouter);
+routeGeneratorRouter.use('/drivers', driversRouter);
+routeGeneratorRouter.use('/trucks', trucksRouter);
+routeGeneratorRouter.use('/zones', zonesRouter);
 routeGeneratorRouter.use('/', optimizeRouter);
 routeGeneratorRouter.use('/', createRouter);
 
