@@ -1171,19 +1171,52 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para obtener las órdenes asociadas a una ruta específica
   router.get("/routes/:id/orders", async (req, res) => {
     try {
+      // Obtener companyId desde la sesión
+      const companyId = req.session.companyId || req.session.user?.companyId;
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido."
+        });
+      }
+      
       const routeId = parseInt(req.params.id);
       
       if (isNaN(routeId)) {
         return res.status(400).json({ error: "ID de ruta inválido" });
       }
       
-      console.log(`GET /api/routes/${routeId}/orders - Obteniendo órdenes para la ruta`);
+      console.log(`GET /api/routes/${routeId}/orders - Obteniendo órdenes para la ruta en compañía ${companyId}`);
       
-      // Usemos una consulta más simple para evitar errores de NULL
+      // Primero, verificar que la ruta pertenezca a la compañía actual
+      const routeExists = await db
+        .select({ id: routes.id })
+        .from(routes)
+        .where(
+          and(
+            eq(routes.id, routeId),
+            eq(routes.companyId, companyId)
+          )
+        )
+        .limit(1);
+        
+      if (routeExists.length === 0) {
+        return res.status(404).json({ 
+          error: "Ruta no encontrada",
+          message: "La ruta especificada no existe o no pertenece a la compañía actual"
+        });
+      }
+      
+      // Ahora sí obtenemos las órdenes de la ruta, asegurándonos de filtrar también por companyId
       const routeOrders = await db
         .select()
         .from(orders)
-        .where(eq(orders.routeId, routeId));
+        .where(
+          and(
+            eq(orders.routeId, routeId),
+            eq(orders.companyId, companyId)
+          )
+        );
         
       console.log(`GET /api/routes/${routeId}/orders - Se encontraron ${routeOrders.length} órdenes`);
       
@@ -1267,17 +1300,33 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/routes/:id", async (req, res) => {
     try {
+      // Obtener companyId desde la sesión
+      const companyId = req.session.companyId || req.session.user?.companyId;
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido."
+        });
+      }
+      
       const routeId = parseInt(req.params.id);
       
       if (isNaN(routeId)) {
         return res.status(400).json({ error: "ID de ruta inválido" });
       }
       
-      // Obtener la ruta específica
+      console.log(`GET /api/routes/${routeId} - Obteniendo detalles de ruta para compañía ${companyId}`);
+      
+      // Obtener la ruta específica, filtrando por companyId para asegurar seguridad multi-tenant
       const routeData = await db
         .select()
         .from(routes)
-        .where(eq(routes.id, routeId))
+        .where(
+          and(
+            eq(routes.id, routeId),
+            eq(routes.companyId, companyId)
+          )
+        )
         .limit(1);
         
       if (routeData.length === 0) {
@@ -1344,22 +1393,71 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para eliminar una ruta por ID
   router.delete("/routes/:id", async (req, res) => {
     try {
+      // Obtener companyId desde la sesión
+      const companyId = req.session.companyId || req.session.user?.companyId;
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido."
+        });
+      }
+      
       const routeId = parseInt(req.params.id);
       
       if (isNaN(routeId)) {
         return res.status(400).json({ error: "ID de ruta inválido" });
       }
       
-      console.log(`DELETE /api/routes/${routeId} - Eliminando ruta`);
+      console.log(`DELETE /api/routes/${routeId} - Eliminando ruta para compañía ${companyId}`);
       
-      // Llamar al método de almacenamiento para eliminar la ruta
-      const deletedRoute = await storage.deleteRoute(routeId);
-      
-      if (!deletedRoute) {
-        return res.status(404).json({ error: "Ruta no encontrada" });
+      // Primero verificar que la ruta exista y pertenezca a la compañía actual
+      const routeExists = await db
+        .select()
+        .from(routes)
+        .where(
+          and(
+            eq(routes.id, routeId),
+            eq(routes.companyId, companyId)
+          )
+        )
+        .limit(1);
+        
+      if (routeExists.length === 0) {
+        return res.status(404).json({ 
+          error: "Ruta no encontrada",
+          message: "La ruta especificada no existe o no pertenece a la compañía actual"
+        });
       }
       
-      console.log(`Ruta ${routeId} eliminada con éxito`);
+      // Modificar el deleteRoute para que tome en cuenta el companyId
+      // Esto idealmente requeriría actualizar el método en storage.ts, pero por ahora
+      // podemos hacerlo aquí directamente 
+      
+      // Guardar una copia de la ruta antes de eliminarla
+      const deletedRoute = routeExists[0];
+      
+      // Actualizar cualquier pedido asociado a esta ruta
+      await db
+        .update(orders)
+        .set({ routeId: null })
+        .where(
+          and(
+            eq(orders.routeId, routeId),
+            eq(orders.companyId, companyId)
+          )
+        );
+        
+      // Eliminar la ruta
+      await db
+        .delete(routes)
+        .where(
+          and(
+            eq(routes.id, routeId),
+            eq(routes.companyId, companyId)
+          )
+        );
+      
+      console.log(`Ruta ${routeId} eliminada con éxito para compañía ${companyId}`);
       
       // Retornar la información de la ruta eliminada
       res.json({
@@ -1375,18 +1473,34 @@ export async function registerRoutes(router: express.Router) {
   // Endpoint para optimizar ruta
   router.post("/routes/optimize", async (req, res) => {
     try {
+      // Obtener companyId desde la sesión
+      const companyId = req.session.companyId || req.session.user?.companyId;
+      if (!companyId) {
+        return res.status(403).json({ 
+          error: "Acceso denegado", 
+          message: "No se ha encontrado un contexto de compañía válido."
+        });
+      }
+      
+      console.log(`POST /api/routes/optimize - Optimizando ruta para compañía ${companyId}`);
       console.log("POST /api/routes/optimize - Body recibido:", req.body);
+      
       const { orderIds, truckId, assistantId } = req.body;
       
       if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
         return res.status(400).json({ error: "Se requiere un array de IDs de pedidos" });
       }
       
-      // Obtener las órdenes completas basadas en los IDs recibidos
+      // Obtener las órdenes completas basadas en los IDs recibidos, filtrando por companyId
       const ordersToOptimize = await db
         .select()
         .from(orders)
-        .where(inArray(orders.id, orderIds));
+        .where(
+          and(
+            inArray(orders.id, orderIds),
+            eq(orders.companyId, companyId)
+          )
+        );
       
       if (ordersToOptimize.length === 0) {
         return res.status(404).json({ error: "No se encontraron pedidos con los IDs proporcionados" });
@@ -1463,12 +1577,17 @@ export async function registerRoutes(router: express.Router) {
       if (route && req.body.orderIds && Array.isArray(req.body.orderIds) && req.body.orderIds.length > 0) {
         console.log(`Asignando ${req.body.orderIds.length} pedidos a la ruta ${route.id}`);
         
-        // Actualizar cada pedido para asignarlo a esta ruta
+        // Actualizar cada pedido para asignarlo a esta ruta, asegurando que pertenezcan a la compañía actual
         for (const orderId of req.body.orderIds) {
           await db
             .update(orders)
             .set({ routeId: route.id })
-            .where(eq(orders.id, Number(orderId)));
+            .where(
+              and(
+                eq(orders.id, Number(orderId)),
+                eq(orders.companyId, companyId)
+              )
+            );
         }
         
         console.log(`Pedidos asignados a la ruta ${route.id}`);
