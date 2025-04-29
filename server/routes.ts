@@ -3198,7 +3198,7 @@ export async function registerRoutes(router: express.Router) {
   // Pedidos
   router.get("/orders", async (req, res) => {
     try {
-      const companyId = req.session.companyId || 1;
+      const companyId = req.session.companyId || req.session.user?.companyId;
       
       const allOrders = await db
         .select({
@@ -3243,10 +3243,10 @@ export async function registerRoutes(router: express.Router) {
         companyId = req.session.companyId || req.session.user?.companyId;
       }
       
-      // Si aún no tenemos companyId, usamos el valor 1 como último recurso (para depuración TEMPORAL)
+      // Si aún no tenemos companyId, no podemos proceder
       if (!companyId) {
-        console.warn(`ADVERTENCIA: No se encontró companyId para la petición. Usando companyId=1 como fallback`);
-        companyId = 1; // SOLO PARA DEPURACIÓN
+        console.warn(`ADVERTENCIA: No se encontró companyId para la petición.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía del usuario. Intente iniciar sesión nuevamente." });
       }
       
       console.log(`GET /api/orders/${orderId} - Buscando pedido para compañía ${companyId}`);
@@ -3393,8 +3393,20 @@ export async function registerRoutes(router: express.Router) {
         console.warn("⚠️ No se han recibido items para la orden");
       }
       
-      // Usar el ID de compañía predeterminado (1)
-      const companyId = 1;
+      // Obtener el companyId adecuado del contexto o de la sesión
+      let companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      // Si aún no tenemos companyId, no podemos proceder
+      if (!companyId) {
+        console.warn(`ADVERTENCIA: No se encontró companyId para la petición.`);
+        throw new Error("No se pudo determinar la compañía del usuario. Intente iniciar sesión nuevamente.");
+      }
+      
       console.log("🏢 Usando companyId:", companyId);
 
       // Preparar datos del pedido
@@ -3631,11 +3643,10 @@ export async function registerRoutes(router: express.Router) {
         }
       }
       
-      // Si todavía no tenemos un companyId, usamos valor predeterminado
+      // Si todavía no tenemos un companyId, devolvemos error
       if (!companyId) {
-        companyId = 1;
-        console.warn(`No se pudo encontrar companyId. Usando valor predeterminado: ${companyId}`);
-        setCurrentCompanyId(companyId);
+        console.warn(`No se pudo encontrar companyId para agregar items al pedido.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
       }
       
       console.log("POST /api/orders/:id/items - Datos recibidos:", JSON.stringify(req.body, null, 2));
@@ -3703,15 +3714,21 @@ export async function registerRoutes(router: express.Router) {
       const range = req.query.range || 'month';
       let dateFilter;
 
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
+      // Obtener el companyId adecuado del contexto o de la sesión
+      let companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
-      if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener reporte de ventas. Usando valor predeterminado.");
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
       }
+      
+      // Si todavía no tenemos companyId, devolvemos error
+      if (!companyId) {
+        console.warn(`ADVERTENCIA: No se encontró companyId para obtener reporte de ventas.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
+      const effectiveCompanyId = companyId;
       
       console.log(`GET /api/reports/sales - Obteniendo reporte para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
 
@@ -3763,15 +3780,21 @@ export async function registerRoutes(router: express.Router) {
       const range = req.query.range || 'month';
       let dateFilter;
       
-      // Obtener el companyId del contexto
-      const companyId = getCurrentCompanyId();
+      // Obtener el companyId adecuado del contexto o de la sesión
+      let companyId = getCurrentCompanyId();
       
-      // Si no hay companyId en contexto, usar un valor predeterminado (1)
-      const effectiveCompanyId = companyId || 1;
-      
-      if (!companyId) {
-        console.warn("No se encontró companyId en el contexto para obtener reporte de pagos. Usando valor predeterminado.");
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
       }
+      
+      // Si todavía no tenemos companyId, devolvemos error
+      if (!companyId) {
+        console.warn(`ADVERTENCIA: No se encontró companyId para obtener reporte de pagos.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
+      const effectiveCompanyId = companyId;
       
       console.log(`GET /api/reports/payments - Obteniendo reporte para empresa ${effectiveCompanyId} (${companyId ? 'de sesión' : 'valor predeterminado'})`);
 

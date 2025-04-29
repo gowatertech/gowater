@@ -20,7 +20,20 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/routes', async (req, res) => {
     try {
-      const companyId = req.session.companyId || 1;
+      // Obtener el companyId adecuado de diferentes fuentes
+      let companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      // Si todavía no tenemos companyId, devolvemos error
+      if (!companyId) {
+        console.warn(`MobileAPI - No se encontró companyId para la petición.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
       console.log(`MobileAPI - Obteniendo rutas para compañía #${companyId}`);
       
       // Filtrar por estado si se proporciona
@@ -73,7 +86,20 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/orders', async (req, res) => {
     try {
-      const companyId = req.session.companyId || 1;
+      // Obtener el companyId adecuado de diferentes fuentes
+      let companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      // Si todavía no tenemos companyId, devolvemos error
+      if (!companyId) {
+        console.warn(`MobileAPI - No se encontró companyId para la petición.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
       console.log(`MobileAPI - Obteniendo órdenes para compañía #${companyId}`);
       
       // Filtrar por estado si se proporciona
@@ -178,7 +204,20 @@ export function createMobileApiEndpoints(): Router {
    */
   router.get('/customers', async (req, res) => {
     try {
-      const companyId = req.session.companyId || 1;
+      // Obtener el companyId adecuado de diferentes fuentes
+      let companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      // Si todavía no tenemos companyId, devolvemos error
+      if (!companyId) {
+        console.warn(`MobileAPI - No se encontró companyId para la petición.`);
+        return res.status(401).json({ error: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." });
+      }
+      
       console.log(`MobileAPI - Obteniendo clientes para compañía #${companyId}`);
       
       // Usar db en lugar de companyDb para diagnóstico
@@ -202,7 +241,23 @@ export function createMobileApiEndpoints(): Router {
   router.post('/routes/:id/complete', async (req, res) => {
     try {
       const routeId = parseInt(req.params.id);
-      const companyId = req.session.companyId || 1; // Usar companyId de la sesión o el valor predeterminado
+      
+      // Obtener el companyId adecuado de diferentes fuentes
+      let companyId = getCurrentCompanyId();
+      
+      // Si no hay companyId en el contexto, intentar obtenerlo de la sesión
+      if (!companyId && req.session && (req.session.companyId || (req.session.user && req.session.user.companyId))) {
+        companyId = req.session.companyId || req.session.user?.companyId;
+      }
+      
+      // Si todavía no tenemos companyId, devolvemos error
+      if (!companyId) {
+        console.warn(`MobileAPI - No se encontró companyId para la petición.`);
+        return res.status(401).json({ 
+          success: false,
+          message: "No se pudo determinar la compañía. Intente iniciar sesión nuevamente." 
+        });
+      }
       
       console.log(`MobileAPI - Procesando completado de ruta #${routeId} para compañía #${companyId}`);
       
