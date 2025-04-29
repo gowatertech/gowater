@@ -1245,6 +1245,9 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                             onClick={() => {
                               console.log("Botón 'Crear Ruta' clickeado manualmente");
                               
+                              // Mostrar todos los valores actuales del formulario
+                              console.log("TODOS LOS VALORES DEL FORMULARIO:", form.getValues());
+                              
                               // Forzar validación del formulario
                               form.trigger().then(isValid => {
                                 console.log("Validación de formulario:", isValid, "Errores:", form.formState.errors);
