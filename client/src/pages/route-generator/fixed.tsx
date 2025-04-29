@@ -85,7 +85,7 @@ const FixedRouteGenerator = () => {
   const [routeName, setRouteName] = useState('');
   
   // Estado de optimización
-  const [optimizedStops, setOptimizedStops] = useState(null);
+  const [optimizedStops, setOptimizedStops] = useState<OptimizedRoute | null>(null);
   
   // Cargar pedidos al iniciar
   useEffect(() => {
@@ -160,7 +160,7 @@ const FixedRouteGenerator = () => {
   };
   
   // Manejar selección de pedidos
-  const handleOrderSelection = (orderId) => {
+  const handleOrderSelection = (orderId: number) => {
     setSelectedOrderIds(prev => {
       if (prev.includes(orderId)) {
         return prev.filter(id => id !== orderId);
