@@ -209,14 +209,6 @@ export default function RoutesPage() {
                   <div className="flex flex-col items-center justify-center py-6 text-center">
                     <Truck className="h-10 w-10 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground mb-4">No hay rutas definidas</p>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setSelectedTab("create")}
-                    >
-                      <PlusCircle className="h-4 w-4 mr-2" />
-                      Crear nueva ruta
-                    </Button>
                   </div>
                 ) : (
                   <ScrollArea className="h-[300px]">
@@ -268,17 +260,7 @@ export default function RoutesPage() {
                   </ScrollArea>
                 )}
               </CardContent>
-              <CardFooter className="pt-0">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setSelectedTab("create")}
-                  className="w-full"
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Crear nueva ruta
-                </Button>
-              </CardFooter>
+              {/* Pie de card eliminado para evitar duplicidad de botones */}
             </Card>
           </div>
         );
