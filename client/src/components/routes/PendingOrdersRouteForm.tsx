@@ -7,6 +7,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/use-company-settings";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import { 
   Check, 
   Loader2, 
@@ -126,7 +127,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const [optimizedRoute, setOptimizedRoute] = useState<Customer[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [pendingOrdersUserData, setPendingOrdersUserData] = useState<any>(null);
+  // Usar el hook de usuario actual en lugar del estado
+  const { user: pendingOrdersUserData, isLoading: isLoadingUser } = useCurrentUser();
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery<any[]>({
@@ -147,28 +149,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
     queryKey: ["/api/zones"],
   });
-
-  // Obtener información del usuario autenticado para mostrar companyId
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await apiRequest({
-          url: "/user",
-          method: "GET"
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setPendingOrdersUserData(data);
-          console.log("Pending Orders - User data loaded:", data);
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    
-    fetchUserData();
-  }, []);
 
   // Fetch ALL pending orders without filtering by zone
   const {
