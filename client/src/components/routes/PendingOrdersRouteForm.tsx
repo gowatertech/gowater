@@ -535,6 +535,14 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       // Get order IDs from selected orders
       const orderIds = selectedOrders.map(order => order.id);
       
+      // Obtener companyId del contexto actual
+      const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+      
+      if (!currentCompanyId) {
+        console.error("No se pudo obtener el companyId");
+        throw new Error("No se pudo obtener el ID de la compañía. Por favor, inicia sesión nuevamente.");
+      }
+      
       // Prepare data for server
       const routeData = {
         name: data.name,
@@ -548,8 +556,11 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         stops: optimizedRoute.map(customer => customer.coordinates || ""),
         totalDistance: totalDistance.toFixed(2),
         estimatedDuration: estimatedDuration,
-        orderIds: orderIds // Pass order IDs to assign to this route
+        orderIds: orderIds, // Pass order IDs to assign to this route
+        companyId: currentCompanyId // Añadir companyId automáticamente
       };
+      
+      console.log("Enviando datos de ruta con companyId:", routeData);
       
       // Send route data to server
       const response = await apiRequest({
