@@ -58,9 +58,9 @@ export function companyTenantMiddleware(req: Request, res: Response, next: NextF
       setCurrentCompanyId(companyId);
     }
   } else {
-    // Si no hay sesión o no tiene companyId, usar valor predeterminado 1
-    console.log("No hay companyId en el contexto, usando valor predeterminado 1")
-    setCurrentCompanyId(1);
+    // Si no hay sesión o no tiene companyId, dejar companyId indefinido
+    console.log("No hay companyId en el contexto")
+    setCurrentCompanyId(undefined);
   }
   next();
 }

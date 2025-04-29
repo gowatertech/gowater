@@ -1557,7 +1557,6 @@ export async function registerRoutes(router: express.Router) {
       console.log(`POST /api/routes - Usando companyId=${companyId} del contexto`);
       
       // Verificar que tengamos un companyId válido
-      // Verificar que tengamos un companyId válido
       if (!companyId && !req.body.companyId) {
         console.error("❌ Error: No se encontró companyId en contexto ni en el body para crear la ruta");
         return res.status(403).json({ 
