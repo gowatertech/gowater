@@ -190,20 +190,20 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   });
 
   // Obtener el companyId de manera dinámica
-  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+  const currentCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || 1;
   
   console.log("🔄 Usando companyId dinámico:", currentCompanyId);
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
       // Hacemos opcionales los campos que podrían causar problemas
-      companyId: z.number().default(currentCompanyId),
-      driverId: z.number().optional().or(z.string()).transform(val => 
-        typeof val === 'string' ? parseInt(val, 10) : val),
-      assistantId: z.number().optional().nullable().or(z.string().nullable()).transform(val => 
-        val === null || val === 'null' ? null : (typeof val === 'string' ? parseInt(val, 10) : val)),
-      truckId: z.number().optional().nullable().or(z.string().nullable()).transform(val => 
-        val === null || val === 'null' ? null : (typeof val === 'string' ? parseInt(val, 10) : val)),
+      companyId: z.coerce.number().default(currentCompanyId || 1),
+      driverId: z.coerce.number(),
+      assistantId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
+        val === null || val === 'null' ? null : Number(val)),
+      truckId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
+        val === null || val === 'null' ? null : Number(val)),
+      zoneId: z.any().optional(),
     })),
     defaultValues: {
       name: "",
@@ -557,12 +557,10 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       }
       
       // Asegurar que el companyId esté configurado correctamente
-      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId;
+      const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || 1;
       
-      if (!routeData.companyId && effectiveCompanyId) {
-        console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión)`);
-        routeData.companyId = effectiveCompanyId;
-      }
+      console.log(`Estableciendo companyId: ${effectiveCompanyId} (desde API/sesión o valor predeterminado)`);
+      routeData.companyId = effectiveCompanyId;
       
       console.log("Enviando datos a la API:", routeData);
       
@@ -641,17 +639,9 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
     }
     
     // Determinar el companyId efectivo de manera dinámica
-    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId;
+    const effectiveCompanyId = companyData?.companyId || pendingOrdersUserData?.companyId || data.companyId || 1;
     
-    if (!effectiveCompanyId) {
-      console.error("No se pudo obtener el companyId para la creación de ruta");
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo determinar tu empresa. Por favor, vuelve a iniciar sesión.",
-      });
-      return;
-    }
+    console.log(`Usando companyId efectivo: ${effectiveCompanyId} para la ruta`);
     
     console.log(`Usando companyId: ${effectiveCompanyId} para la ruta`);
     

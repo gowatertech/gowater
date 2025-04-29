@@ -269,14 +269,14 @@ export const insertRouteSchema = z.object({
   actualDuration: z.number().optional(),
   totalDistance: z.string().regex(/^\d+\.\d{2}$/).optional(),
   totalRevenue: z.string().regex(/^\d+\.\d{2}$/).optional(),
-  deliverySequence: z.array(z.string()).optional(),
+  deliverySequence: z.array(z.string()).optional().nullable(),
   currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   lastUpdate: z.string().datetime().optional(),
   driverStartedAt: z.string().datetime().optional(),
   driverEndedAt: z.string().datetime().optional(),
-  stops: z.array(z.string()).optional(),
+  stops: z.array(z.string()).optional().nullable(),
   comments: z.string().optional(),
-  companyId: z.coerce.number().optional(), // Añadido companyId como opcional
+  companyId: z.coerce.number().optional().nullable().default(1), // Añadido companyId como opcional con valor predeterminado
 });
 
 // Orders
