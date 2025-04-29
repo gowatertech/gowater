@@ -1181,6 +1181,22 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                             type="submit"
                             disabled={createRouteMutation.isPending}
                             className="h-7 text-xs px-2"
+                            onClick={() => {
+                              console.log("Botón 'Crear Ruta' clickeado manualmente");
+                              
+                              if (form.formState.isValid) {
+                                console.log("Formulario válido, enviando datos manualmente...");
+                                const data = form.getValues();
+                                onSubmit(data);
+                              } else {
+                                console.error("Formulario inválido. Errores:", form.formState.errors);
+                                toast({
+                                  variant: "destructive",
+                                  title: "Error en formulario",
+                                  description: "Por favor, complete correctamente todos los campos requeridos."
+                                });
+                              }
+                            }}
                           >
                             {createRouteMutation.isPending ? (
                               <>
