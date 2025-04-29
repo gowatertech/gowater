@@ -665,6 +665,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                 // Crear un mensaje más amigable para el usuario
                 const diagnosticInfo = {
                   companyId: pendingOrdersUserData?.companyId || "No definido",
+                  consolCompanyId: req.session?.companyId || req.session?.user?.companyId || "No definido",
                   role: pendingOrdersUserData?.role || "No definido",
                   zoneId: form.watch("zoneId") || "No requerida (se muestran todos los pedidos)",
                   zonesCount: Array.isArray(zones) ? zones.length : 0,
@@ -684,7 +685,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                   title: "Diagnóstico",
                   description: (
                     <div className="text-xs space-y-1">
-                      <div><strong>CompanyId:</strong> {diagnosticInfo.companyId}</div>
+                      <div><strong>CompanyId (hook):</strong> {diagnosticInfo.companyId}</div>
+                      <div><strong>CompanyId (session):</strong> {diagnosticInfo.sessionCompanyId}</div>
                       <div><strong>Rol:</strong> {diagnosticInfo.role}</div>
                       <div><strong>Zona:</strong> {diagnosticInfo.zoneId}</div>
                       <div><strong>Total Zonas:</strong> {diagnosticInfo.zonesCount}</div>
