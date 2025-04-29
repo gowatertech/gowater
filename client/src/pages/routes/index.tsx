@@ -375,36 +375,9 @@ export default function RoutesPage() {
             <CardDescription>Configurar una nueva ruta basada en pedidos</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="p-4 border rounded-md">
-              <h3 className="text-lg font-semibold mb-4">Selección de zona</h3>
-              <p className="mb-4">Por favor seleccione una zona para continuar:</p>
-              
-              <div className="space-y-4">
-                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  {loading ? (
-                    <div className="col-span-full flex justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : error ? (
-                    <div className="col-span-full text-center text-destructive">
-                      <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-                      <p>Error al cargar zonas</p>
-                    </div>
-                  ) : (
-                    <div className="col-span-full">
-                      <Button onClick={handleRouteCreated} className="w-full">
-                        Crear ruta para Cotui
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2 justify-end mt-6">
-                  <Button onClick={handleCancelCreate} variant="outline">Cancelar</Button>
-                  <Button onClick={handleRouteCreated}>Continuar</Button>
-                </div>
-              </div>
-            </div>
+            <StepRouteForm
+              onRouteCreated={handleRouteCreated}
+            />
           </CardContent>
         </Card>
       ) : (
