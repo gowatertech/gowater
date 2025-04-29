@@ -121,7 +121,6 @@ interface Truck {
 export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrdersRouteFormProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
-  // Iniciar directamente en la selección de pedidos, ya no filtramos por zona
   const [selectedTab, setSelectedTab] = useState("orders");
   const [selectedOrders, setSelectedOrders] = useState<PendingOrder[]>([]);
   const [optimizedRoute, setOptimizedRoute] = useState<Customer[]>([]);
@@ -149,11 +148,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
   // Fetch trucks (vehículos)
   const { data: trucks = [], isLoading: isLoadingTrucks } = useQuery<Truck[]>({
     queryKey: ["/api/trucks"],
-  });
-
-  // Fetch zones
-  const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
-    queryKey: ["/api/zones"],
   });
 
   // Fetch ALL pending orders without filtering by zone
@@ -201,7 +195,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
       driverId: undefined,
       assistantId: undefined,
       truckId: undefined,
-      zoneId: undefined,
       date: new Date(),
       status: "pending" as const,
       isCompleted: false,
@@ -549,7 +542,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
         driverId: Number(data.driverId),
         assistantId: data.assistantId && data.assistantId !== "null" ? Number(data.assistantId) : null,
         truckId: data.truckId && data.truckId !== "null" ? Number(data.truckId) : null,
-        zoneId: data.zoneId ? Number(data.zoneId) : null,
         status: "pending",
         isCompleted: false,
         deliverySequence: optimizedRoute.map(customer => customer.id.toString()),
@@ -670,10 +662,8 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                 const diagnosticInfo = {
                   companyId: companyData?.companyId || pendingOrdersUserData?.companyId || "No definido",
                   role: pendingOrdersUserData?.role || "No definido",
-                  zoneId: form.watch("zoneId") || "No requerida (se muestran todos los pedidos)",
-                  zonesCount: Array.isArray(zones) ? zones.length : 0,
                   pendingOrdersCount: Array.isArray(pendingOrders) ? pendingOrders.length : 0,
-                  filteringMode: "Todos los pedidos pendientes (sin filtrar por zona)",
+                  filteringMode: "Todos los pedidos pendientes",
                   selectedOrdersCount: selectedOrders.length,
                   companySettings: settings ? "Configurados" : "No configurados",
                   companyCoordinates: settings?.latitude && settings?.longitude 
@@ -692,8 +682,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                       <div><strong>CompanyId:</strong> {diagnosticInfo.companyId}</div>
                       <div><strong>CompanyId (API):</strong> {diagnosticInfo.companyIdFromApi}</div>
                       <div><strong>Rol:</strong> {diagnosticInfo.role}</div>
-                      <div><strong>Zona:</strong> {diagnosticInfo.zoneId}</div>
-                      <div><strong>Total Zonas:</strong> {diagnosticInfo.zonesCount}</div>
                       <div><strong>Filtrado:</strong> {diagnosticInfo.filteringMode}</div>
                       <div><strong>Pedidos pendientes:</strong> {diagnosticInfo.pendingOrdersCount}</div>
                       <div><strong>Pedidos seleccionados:</strong> {diagnosticInfo.selectedOrdersCount}</div>
@@ -730,8 +718,6 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                 Revisar
               </TabsTrigger>
             </TabsList>
-
-            {/* La pestaña Zone ha sido eliminada */}
 
             <TabsContent value="orders">
               <div className="p-3">
@@ -871,14 +857,7 @@ export default function PendingOrdersRouteForm({ onRouteCreated }: PendingOrders
                   )}
                 </ScrollArea>
 
-                <div className="flex justify-between mt-3">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setSelectedTab("zone")}
-                    className="h-7 text-xs px-2"
-                  >
-                    Atrás
-                  </Button>
+                <div className="flex justify-end mt-3">
                   <Button 
                     onClick={prepareOrdersForRouteOptimization}
                     disabled={isOptimizing || selectedOrders.length === 0}
