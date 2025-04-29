@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prueba de Ruta Alterna</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 20px;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      margin: 5px;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      min-height: 200px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Prueba de Ruta Alterna</h1>
+  
+  <div>
+    <button id="testLogin">1. Iniciar Sesión</button>
+    <button id="testOrders">2. Obtener Pedidos Pendientes</button>
+    <button id="testRouteGenerator">3. Abrir Generador de Rutas</button>
+  </div>
+  
+  <div id="result">Los resultados aparecerán aquí...</div>
+
+  <script>
+    // Elemento para mostrar resultados
+    const resultDiv = document.getElementById('result');
+    
+    // Función para mostrar resultados
+    function showResult(data) {
+      resultDiv.innerHTML = `<pre>${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}</pre>`;
+    }
+
+    // Iniciar sesión
+    document.getElementById('testLogin').addEventListener('click', async () => {
+      try {
+        showResult('Intentando iniciar sesión...');
+        
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: 'admin',
+            password: 'admin123'
+          }),
+          credentials: 'include'
+        });
+        
+        const data = await response.json();
+        showResult({
+          status: response.status,
+          data
+        });
+      } catch (error) {
+        showResult(`Error: ${error.message}`);
+      }
+    });
+
+    // Probar pedidos pendientes
+    document.getElementById('testOrders').addEventListener('click', async () => {
+      try {
+        showResult('Obteniendo pedidos pendientes...');
+        
+        const response = await fetch('/api/route-generator/orders/pending', {
+          credentials: 'include'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          showResult({
+            status: response.status,
+            count: data.length,
+            data: data.slice(0, 2) // Mostrar solo los primeros 2 pedidos para no sobrecargar la vista
+          });
+        } else {
+          const error = await response.json();
+          showResult({
+            status: response.status,
+            error
+          });
+        }
+      } catch (error) {
+        showResult(`Error: ${error.message}`);
+      }
+    });
+
+    // Abrir generador de rutas
+    document.getElementById('testRouteGenerator').addEventListener('click', () => {
+      showResult('Abriendo generador de rutas en una nueva pestaña...');
+      window.open('/route-generator', '_blank');
+    });
+  </script>
+</body>
+</html>

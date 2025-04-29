@@ -294,6 +294,11 @@ app.use((req, res, next) => {
       // Handle static files
       app.use(express.static(distPath));
 
+      // Ruta de prueba para verificar el generador de rutas
+      app.get('/test-route-generator', (req, res) => {
+        res.sendFile(path.join(process.cwd(), 'test-route-generator.html'));
+      });
+      
       // Client-side routing - send index.html for non-API routes
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
@@ -302,6 +307,11 @@ app.use((req, res, next) => {
         res.sendFile(path.join(distPath, 'index.html'));
       });
     } else {
+      // Ruta de prueba para verificar el generador de rutas
+      app.get('/test-route-generator', (req, res) => {
+        res.sendFile(path.join(process.cwd(), 'test-route-generator.html'));
+      });
+      
       // Development mode - use Vite
       await setupVite(app, server);
       log("Development mode: Vite setup complete");
