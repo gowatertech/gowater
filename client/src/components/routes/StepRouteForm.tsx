@@ -142,6 +142,31 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   
   // Usar el hook de usuario actual para compatibilidad con el código existente
   const { user: pendingOrdersUserData, isLoading: isLoadingUser } = useCurrentUser();
+  
+  // Definir una referencia al companyId que será usada en todo el componente
+  const [derivedCompanyId, setDerivedCompanyId] = useState<number | null>(null);
+  
+  // Actualiza derivedCompanyId cuando cambia cualquiera de las fuentes
+  useEffect(() => {
+    // Obtener el companyId de manera dinámica, priorizando useAuth
+    const effectiveCompanyId = authCompanyId || 
+                             (authUser && authUser.companyId ? authUser.companyId : null) || 
+                             (pendingOrdersUserData && pendingOrdersUserData.companyId ? pendingOrdersUserData.companyId : null);
+    
+    // Si tenemos un companyId y es un número válido, lo establecemos
+    if (effectiveCompanyId && !isNaN(Number(effectiveCompanyId))) {
+      setDerivedCompanyId(Number(effectiveCompanyId));
+    }
+    
+    // Log de diagnóstico para verificar que el companyId se está obteniendo correctamente
+    console.log("StepRouteForm - Contexto de Auth:", { 
+      authCompanyId, 
+      "authUser?.companyId": authUser?.companyId, 
+      "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
+      "effectiveCompanyId derivado": effectiveCompanyId,
+      "derivedCompanyId establecido": derivedCompanyId
+    });
+  }, [authCompanyId, authUser, pendingOrdersUserData]);
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery<any[]>({
@@ -295,9 +320,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
     queryKey: ["/api/zones"],
   });
-
-  // Obtener el companyId de manera dinámica, priorizando useAuth
-  const currentCompanyId = authCompanyId || authUser?.companyId || pendingOrdersUserData?.companyId;
   
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
@@ -320,7 +342,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: currentCompanyId ? Number(currentCompanyId) : undefined, // Sin valor por defecto
+      companyId: derivedCompanyId ? Number(derivedCompanyId) : undefined, // Sin valor por defecto
       zoneId: undefined // El usuario debe seleccionar una zona
     },
   });
@@ -331,11 +353,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     form.setValue("name", `Ruta ${today}`);
     
     // Asegurarnos de que companyId siempre sea un número válido
-    const numericCompanyId = Number(currentCompanyId);
-    if (!isNaN(numericCompanyId) && numericCompanyId > 0) {
-      form.setValue("companyId", numericCompanyId);
+    if (derivedCompanyId !== null) {
+      console.log("Estableciendo companyId en el formulario:", derivedCompanyId);
+      form.setValue("companyId", derivedCompanyId);
     }
-  }, [form, currentCompanyId]);
+  }, [form, derivedCompanyId]);
 
   // Toggle order selection
   const toggleOrderSelection = (order: PendingOrder) => {
@@ -672,53 +694,71 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         throw new Error("No hay una ruta definida para crear");
       }
       
-      // Obtener el companyId a partir del contexto de autenticación
-      // Estableciendo prioridades en las fuentes de datos
-      let effectiveCompanyId = authCompanyId || 
-                              (authUser ? authUser.companyId : null) || 
-                              (pendingOrdersUserData ? pendingOrdersUserData.companyId : null) || 
-                              form.getValues("companyId");
+      // Asegurarse de que tenemos un companyId válido del formulario o del derivedCompanyId
+      const formCompanyId = form.getValues("companyId");
       
-      console.log("Verificación de companyId:", {
+      // Establecer prioridades en las fuentes de datos de companyId
+      // 1. El valor del formulario si es válido
+      // 2. El valor derivedCompanyId establecido en el estado
+      let effectiveCompanyId = (formCompanyId && Number(formCompanyId) > 0) ? Number(formCompanyId) : null;
+      
+      if (!effectiveCompanyId && derivedCompanyId !== null) {
+        // Si no hay un companyId válido en el formulario, usar el derivedCompanyId
+        effectiveCompanyId = derivedCompanyId;
+      }
+      
+      console.log("Verificación de fuentes de companyId:", {
+        "formCompanyId": formCompanyId,
         "authCompanyId": authCompanyId,
         "authUser?.companyId": authUser?.companyId,
         "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
-        "form.getValues('companyId')": form.getValues("companyId"),
         "effectiveCompanyId seleccionado": effectiveCompanyId
       });
       
       try {
         // Si no tenemos companyId después de intentar todas las fuentes locales,
-        // hacemos una última petición al servidor
+        // hacer una última petición al servidor
         if (!effectiveCompanyId) {
           console.log("⚠️ No se encontró companyId en el contexto local, consultando API...");
           
-          const response = await apiRequest({
-            url: '/api/user',
-            method: 'GET'
-          });
-          
-          if (response && response.companyId) {
-            effectiveCompanyId = response.companyId;
-            console.log("✅ CompanyId obtenido de API:", effectiveCompanyId);
-          } else if (response && response.user && response.user.companyId) {
-            effectiveCompanyId = response.user.companyId;
-            console.log("✅ CompanyId obtenido de API (objeto user):", effectiveCompanyId);
+          try {
+            const response = await apiRequest({
+              url: '/api/user',
+              method: 'GET'
+            });
+            
+            if (response && response.companyId) {
+              effectiveCompanyId = response.companyId;
+              console.log("✅ CompanyId obtenido de API:", effectiveCompanyId);
+            } else if (response && response.user && response.user.companyId) {
+              effectiveCompanyId = response.user.companyId;
+              console.log("✅ CompanyId obtenido de API (objeto user):", effectiveCompanyId);
+            }
+          } catch (error) {
+            console.error("Error al consultar el API para obtener el companyId:", error);
+            // Continuar para manejar el caso de falta de companyId
           }
         }
         
-        // Después de todos los intentos, verificamos si tenemos un companyId válido
-        if (effectiveCompanyId) {
+        // Asegurarse de que el companyId sea un número válido
+        const numericCompanyId = Number(effectiveCompanyId);
+        
+        if (!isNaN(numericCompanyId) && numericCompanyId > 0) {
           // Asignar el companyId al objeto de datos de la ruta
-          routeData.companyId = Number(effectiveCompanyId);
+          routeData.companyId = numericCompanyId;
           console.log("✅ Usando companyId:", routeData.companyId);
         } else {
-          // Si realmente no hay companyId después de todos los intentos, avisamos al usuario
-          console.error("❌ No se pudo determinar el ID de la empresa después de intentar todas las fuentes");
+          // Si realmente no hay companyId después de todos los intentos, avisar al usuario
+          console.error("❌ No se pudo determinar un ID de empresa válido. Valores obtenidos:", { 
+            effectiveCompanyId, 
+            numericCompanyId,
+            isNaN: isNaN(numericCompanyId),
+            isPositive: numericCompanyId > 0
+          });
           throw new Error("No se pudo determinar el ID de la empresa. Por favor inicie sesión nuevamente.");
         }
       } catch (err) {
-        console.error("❌ Error al obtener información del usuario:", err);
+        console.error("❌ Error al procesar el companyId:", err);
         throw new Error("Error al obtener información de la empresa. Por favor, inicie sesión nuevamente.");
       }
       
@@ -809,10 +849,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       return;
     }
     
-    // Determinar el companyId efectivo de manera dinámica - usando useAuth
-    let effectiveCompanyId = authCompanyId || 
-                          (authUser ? authUser.companyId : null) || 
-                          pendingOrdersUserData?.companyId || 
+    // Determinar el companyId efectivo de manera dinámica
+    // Priorizar el valor derivado que ya ha sido calculado
+    let effectiveCompanyId = derivedCompanyId || 
                           data.companyId;
     
     console.log("Verificación inicial de companyId:", {
