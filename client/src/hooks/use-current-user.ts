@@ -44,34 +44,28 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   fetchUser: async () => {
     set({ isLoading: true, error: null });
     try {
-      // El método apiRequest ya maneja la conversión a JSON automáticamente
-      // y lanza errores si hay problemas
-      try {
-        // Intentar primero con el endpoint regular
-        console.log('Obteniendo usuario desde /api/me');
-        const result = await apiRequest('/api/me', { method: 'GET' });
-        
+      // Intentar primero con el endpoint regular
+      let response = await apiRequest('GET', '/api/me');
+      
+      // Si el endpoint regular falla, intentar con el endpoint móvil
+      if (!response.ok) {
+        console.log('Intentando con endpoint móvil');
+        response = await apiRequest('GET', '/api/mobile/me');
+      }
+      
+      if (response.ok) {
+        const result = await response.json();
         // Manejar ambos formatos de respuesta (objeto directo o { success: true, user: {...} })
         const user = result.success && result.user ? result.user : result;
         console.log('Usuario obtenido:', user);
         set({ user, isLoading: false });
-        return;
-      } catch (errorMe) {
-        console.log('Error al obtener de /api/me, intentando con endpoint móvil', errorMe);
-        
-        // Si el endpoint regular falla, intentar con el endpoint móvil
-        try {
-          const result = await apiRequest('/api/mobile/me', { method: 'GET' });
-          
-          // Manejar ambos formatos de respuesta
-          const user = result.success && result.user ? result.user : result;
-          console.log('Usuario obtenido desde móvil:', user);
-          set({ user, isLoading: false });
-          return;
-        } catch (errorMobile) {
-          console.error('Error al obtener usuario de endpoint móvil:', errorMobile);
-          throw errorMobile;
-        }
+      } else {
+        console.error('Error al obtener usuario:', response.status);
+        set({ 
+          user: null, 
+          isLoading: false,
+          error: new Error(`Error al obtener usuario: ${response.status}`)
+        });
       }
     } catch (error) {
       console.error('Error en fetch usuario:', error);
@@ -100,14 +94,14 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
       
       // Intentar primero con el endpoint regular
       try {
-        await apiRequest('/api/logout', { method: 'POST' });
+        await apiRequest('POST', '/api/logout');
       } catch {
         // Si falla, intentar con el endpoint móvil
         try {
-          await apiRequest('/api/mobile/logout', { method: 'POST' });
+          await apiRequest('POST', '/api/mobile/logout');
         } catch {
           // Si también falla, intentar con el endpoint de platform
-          await apiRequest('/api/platform/platform-logout', { method: 'POST' });
+          await apiRequest('POST', '/api/platform/platform-logout');
         }
       }
       
@@ -125,50 +119,39 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   login: async (username: string, password: string): Promise<LoginResult> => {
     set({ isLoading: true, error: null });
     try {
-      // Intentar login con la API móvil primero, luego con el endpoint regular
-      console.log('Intentando login con credenciales:', { username });
+      // Intentar login con la API móvil
+      console.log('Intentando login con credenciales:', { username, password });
+      const response = await fetch('/api/mobile/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include'
+      });
       
-      try {
-        // Primero intentar con el endpoint móvil
-        console.log('Intentando login con endpoint móvil');
-        const result = await apiRequest('/api/mobile/login', {
-          method: 'POST',
-          data: { username, password }
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        console.log('Login exitoso:', result.user);
+        set({ user: result.user, isLoading: false });
+        return {
+          success: true,
+          message: result.message || "Login exitoso",
+          user: result.user
+        };
+      } else {
+        console.error('Error en login:', result.message);
+        set({ 
+          user: null, 
+          isLoading: false,
+          error: new Error(result.message || "Error de autenticación") 
         });
-
-        if (result.success) {
-          console.log('Login exitoso con API móvil:', result.user);
-          set({ user: result.user, isLoading: false });
-          return {
-            success: true,
-            message: result.message || "Login exitoso",
-            user: result.user
-          };
-        } else {
-          throw new Error(result.message || "Error de autenticación en API móvil");
-        }
-      } catch (mobileError) {
-        console.log('Error en login móvil, intentando con endpoint regular:', mobileError);
-        
-        try {
-          // Si falla el endpoint móvil, intentar con el endpoint regular
-          const result = await apiRequest('/api/login', {
-            method: 'POST',
-            data: { username, password }
-          });
-          
-          console.log('Login exitoso con API regular:', result);
-          const user = result.success && result.user ? result.user : result;
-          set({ user, isLoading: false });
-          return {
-            success: true,
-            message: "Login exitoso",
-            user
-          };
-        } catch (regularError) {
-          console.error('Error en login regular:', regularError);
-          throw regularError;
-        }
+        return {
+          success: false,
+          message: result.message || "Error de autenticación"
+        };
       }
     } catch (error) {
       console.error('Error al intentar login:', error);

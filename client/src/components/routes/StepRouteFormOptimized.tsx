@@ -534,11 +534,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           throw new Error("No hay pedidos seleccionados para procesar");
         }
         
-        // Crear una copia de los datos para procesarlos
-        const selectedOrdersCopy = [...selectedOrders];
-        
         // Agrupar pedidos por cliente (mismas coordenadas) con manejo mejorado de errores
-        const groupedOrders = selectedOrdersCopy.reduce((acc: any[], order, index) => {
+        const groupedOrders = selectedOrders.reduce((acc: any[], order, index) => {
           if (!order || typeof order !== 'object') {
             console.warn(`⚠️ Pedido en posición ${index} inválido:`, order);
             return acc;
@@ -562,7 +559,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
             acc[existingStopIndex].orderIds.push(order.id);
             
             // Actualizar información de la parada para mostrar múltiples pedidos
-            acc[existingStopIndex].customerName = `${acc[existingStopIndex].customerName.split(' (')[0]} (${acc[existingStopIndex].orderIds.length} pedidos)`;
+            acc[existingStopIndex].customerName = `${acc[existingStopIndex].customerName} (${acc[existingStopIndex].orderIds.length} pedidos)`;
             
             // Suma los totales de los pedidos
             const currentTotal = typeof acc[existingStopIndex].total === 'number' ? acc[existingStopIndex].total : 0;
@@ -584,17 +581,12 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         // Añadir la empresa como primer punto y luego los pedidos agrupados
         const sequence = [companyPoint, ...groupedOrders];
+        setOptimizedSequence(sequence);
         
-        // CAMBIO IMPORTANTE: Primero cambiamos al siguiente paso y LUEGO actualizamos el estado de la secuencia optimizada
-        // Esto evita que React intente renderizar con datos incompletos
+        console.log(`🚀 Secuencia optimizada creada con ${sequence.length} puntos (incluyendo empresa)`);
+        
+        // Cambiar al siguiente paso solo después de procesar todo correctamente
         setPasoActual(pasos.OPTIMIZAR_RUTA);
-        
-        // Pequeña pausa para asegurar que el cambio de paso se complete primero
-        setTimeout(() => {
-          setOptimizedSequence(sequence);
-          console.log(`🚀 Secuencia optimizada creada con ${sequence.length} puntos (incluyendo empresa)`);
-        }, 10);
-        
       } catch (error) {
         console.error("❌ Error al procesar pedidos para optimización:", error);
         toast({
@@ -786,21 +778,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Agregar información de la empresa en los datos del formulario
     const companyInfo = optimizedSequence.find(order => order.isCompany);
     
-    // Obtener el companyId del contexto de autenticación si está disponible
-    const { user } = useCurrentUser();
-    const companyIdFromContext = user?.companyId;
-    
-    console.log("ℹ️ CompanyId del contexto de autenticación:", companyIdFromContext);
-    console.log("ℹ️ CompanyId del formulario:", values.companyId);
-    console.log("ℹ️ CompanyId de las configuraciones:", settings?.companyId);
-    
-    // Priorizar companyId en este orden: contexto de autenticación -> formulario -> configuraciones
-    const finalCompanyId = companyIdFromContext || values.companyId || settings?.companyId;
-    
     // Verificar que tengamos companyId válido antes de enviar
-    if (!finalCompanyId || isNaN(Number(finalCompanyId))) {
-      console.error("❌ No hay companyId válido para esta ruta:", 
-        { formulario: values.companyId, contexto: companyIdFromContext, settings: settings?.companyId });
+    if (!values.companyId || isNaN(Number(values.companyId))) {
+      console.error("❌ No hay companyId válido en formulario:", values.companyId);
       toast({
         title: "Error al crear ruta",
         description: "No se pudo determinar la empresa para esta ruta. Por favor, inicie sesión nuevamente.",
@@ -823,7 +803,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Asegurar que todos los IDs son números
     const routeData = {
       ...values,
-      companyId: Number(finalCompanyId), // Usar el companyId que obtuvimos y validamos
+      companyId: Number(values.companyId),
       zoneId: Number(values.zoneId),
       driverId: Number(values.driverId),
       // Solo convertir assistantId y truckId si no son nulos
@@ -843,39 +823,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     createRouteMutation.mutate(routeData);
   };
 
-  // Verificar que optimizedSequence tenga datos cuando estemos en el paso de optimizar
-  useEffect(() => {
-    if (pasoActual === pasos.OPTIMIZAR_RUTA && optimizedSequence.length === 0 && selectedOrders.length > 0) {
-      console.log("⚠️ Detectada secuencia vacía en paso de optimización. Intentando recalcular...");
-      
-      // Reintentar generación de secuencia
-      try {
-        // Añadir el punto de la empresa
-        const companyCoordinates = settings?.latitude && settings?.longitude 
-          ? `${settings.latitude},${settings.longitude}` 
-          : "19.432608,-99.133209";
-        
-        const companyPoint = {
-          id: "company",
-          customerName: `${settings?.name || "Empresa"} (Punto de partida)`,
-          customerAddress: `${settings?.street || ""} ${settings?.streetNumber || ""}`,
-          coordinates: companyCoordinates,
-          isCompany: true
-        };
-        
-        // Asegurarnos de usar copias de los datos originales
-        const selectedOrdersCopy = JSON.parse(JSON.stringify(selectedOrders));
-        
-        // Recrear la secuencia
-        setOptimizedSequence([companyPoint, ...selectedOrdersCopy]);
-        
-        console.log("🔄 Secuencia regenerada con éxito");
-      } catch (error) {
-        console.error("❌ Error al regenerar secuencia:", error);
-      }
-    }
-  }, [pasoActual, optimizedSequence.length, selectedOrders]);
-  
   // Renderizar contenido específico de cada paso
   const renderStepContent = () => {
     switch (pasoActual) {
