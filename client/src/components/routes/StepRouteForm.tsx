@@ -146,36 +146,65 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   // Definir una referencia al companyId que será usada en todo el componente
   const [derivedCompanyId, setDerivedCompanyId] = useState<number | null>(null);
   
-  // Actualiza derivedCompanyId cuando cambia cualquiera de las fuentes
+  // ════════════════════════════════════════════════════════
+  // DETERMINACIÓN DEL COMPANY ID - EFECTO PRINCIPAL
+  // ════════════════════════════════════════════════════════
   useEffect(() => {
-    console.log("DIAGNÓSTICO INICIAL - StepRouteForm montado");
+    console.log("🔄 DIAGNÓSTICO INICIAL - StepRouteForm montado");
     
     // Obtener el companyId de manera dinámica, priorizando useAuth
-    const effectiveCompanyId = authCompanyId || 
-                             (authUser && authUser.companyId ? authUser.companyId : null) || 
-                             (pendingOrdersUserData && pendingOrdersUserData.companyId ? pendingOrdersUserData.companyId : null);
+    // Utilizamos una verificación más estricta para asegurar valores numéricos válidos
+    let effectiveCompanyId: number | null = null;
+    let source = "ninguna fuente";
     
-    // Si tenemos un companyId y es un número válido, lo establecemos
-    if (effectiveCompanyId && !isNaN(Number(effectiveCompanyId))) {
-      console.log("ESTABLECIENDO DERIVED COMPANY ID:", Number(effectiveCompanyId));
-      setDerivedCompanyId(Number(effectiveCompanyId));
+    // Prioridad 1: Auth Context (más confiable)
+    if (authCompanyId !== null && authCompanyId !== undefined && !isNaN(Number(authCompanyId))) {
+      effectiveCompanyId = Number(authCompanyId);
+      source = "Auth Context";
+    } 
+    // Prioridad 2: Usuario autenticado
+    else if (authUser?.companyId && !isNaN(Number(authUser.companyId))) {
+      effectiveCompanyId = Number(authUser.companyId);
+      source = "Auth User";
+    } 
+    // Prioridad 3: Datos de pedidos pendientes
+    else if (pendingOrdersUserData?.companyId && !isNaN(Number(pendingOrdersUserData.companyId))) {
+      effectiveCompanyId = Number(pendingOrdersUserData.companyId);
+      source = "Pending Orders Data";
+    }
+    
+    // Verificación adicional para garantizar que es un número positivo válido
+    if (effectiveCompanyId !== null && effectiveCompanyId > 0) {
+      console.log(`✅ ESTABLECIENDO DERIVED COMPANY ID: ${effectiveCompanyId} (fuente: ${source})`);
+      setDerivedCompanyId(effectiveCompanyId);
+      
+      // Intentar actualizar el formulario inmediatamente (esto es redundante con el otro efecto, pero sirve como refuerzo)
+      if (form) {
+        setTimeout(() => {
+          console.log(`📝 Actualizando formulario inmediato con companyId=${effectiveCompanyId}`);
+          form.setValue("companyId", effectiveCompanyId);
+        }, 0);
+      }
     } else {
-      console.error("NO SE PUDO ESTABLECER EL COMPANYID - Valores disponibles:", {
-        authCompanyId, 
-        authUserCompanyId: authUser?.companyId,
-        pendingOrdersCompanyId: pendingOrdersUserData?.companyId
+      console.error("❌ NO SE PUDO ESTABLECER EL COMPANYID - No se encontró un valor numérico válido:");
+      console.error({
+        authCompanyId: `${authCompanyId} (${typeof authCompanyId})`, 
+        authUserCompanyId: `${authUser?.companyId} (${typeof authUser?.companyId})`,
+        pendingOrdersCompanyId: `${pendingOrdersUserData?.companyId} (${typeof pendingOrdersUserData?.companyId})`
       });
     }
     
-    // Log de diagnóstico para verificar que el companyId se está obteniendo correctamente
-    console.log("StepRouteForm - Contexto de Auth:", { 
+    // Log de diagnóstico completo
+    console.log("🔍 StepRouteForm - Diagnóstico completo:", { 
       authCompanyId, 
       "authUser?.companyId": authUser?.companyId, 
       "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
-      "effectiveCompanyId derivado": effectiveCompanyId,
-      "derivedCompanyId establecido": derivedCompanyId
+      "effectiveCompanyId elegido": effectiveCompanyId,
+      "derivedCompanyId(estado)": derivedCompanyId,
+      "fuente": source,
+      "formulario_tiene_companyId": form?.getValues("companyId")
     });
-  }, [authCompanyId, authUser, pendingOrdersUserData]);
+  }, [authCompanyId, authUser, pendingOrdersUserData, form]);
 
   // Fetch drivers
   const { data: drivers = [], isLoading: isLoadingDrivers } = useQuery<any[]>({
@@ -356,31 +385,71 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     },
   });
   
-  // Set a default route name and update companyId when form initializes
+  // ════════════════════════════════════════════════════════
+  // INICIALIZACIÓN DEL FORMULARIO Y ACTUALIZACIÓN DE COMPANYID
+  // ════════════════════════════════════════════════════════
   useEffect(() => {
-    const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
-    form.setValue("name", `Ruta ${today}`);
+    console.log("🏢 INICIALIZANDO FORMULARIO Y COMPANYID");
     
-    // Asegurarnos de que companyId siempre sea un número válido
+    // 1. Establecer nombre predeterminado de la ruta con fecha actual
+    const today = new Date().toLocaleDateString("es-ES").replace(/\//g, "-");
+    const defaultRouteName = `Ruta ${today}`;
+    form.setValue("name", defaultRouteName);
+    console.log(`📝 Nombre de ruta establecido: "${defaultRouteName}"`);
+    
+    // 2. Asegurarnos de que companyId siempre sea un número válido
     if (derivedCompanyId !== null) {
-      console.log("Estableciendo companyId en el formulario:", derivedCompanyId);
+      console.log("🔄 Estableciendo companyId en el formulario:", derivedCompanyId);
       
-      // Forzamos una conversión a número para evitar problemas de tipo
+      // Verificación de tipo estricta
       const numericCompanyId = Number(derivedCompanyId);
       
-      // Solo actualizamos si es un número válido (para evitar NaN)
+      // Verificación de valor válido (número positivo)
       if (!isNaN(numericCompanyId) && numericCompanyId > 0) {
-        // Usar setImmediate para garantizar que la actualización ocurra después 
-        // de la renderización actual
+        // Usamos un pequeño timeout para asegurar que este cambio ocurra después
+        // de cualquier otra inicialización de formulario
         setTimeout(() => {
-          console.log("FORZANDO actualizacion de companyId:", numericCompanyId);
-          form.setValue("companyId", numericCompanyId);
-        }, 0);
+          console.log(`✅ ESTABLECIENDO COMPANYID EN FORMULARIO: ${numericCompanyId}`);
+          try {
+            // Establecer el valor en el formulario
+            form.setValue("companyId", numericCompanyId);
+            
+            // Verificar que se haya establecido correctamente
+            const formCompanyId = form.getValues("companyId");
+            console.log(`✓ Verificación: companyId en formulario ahora es: ${formCompanyId}`);
+            
+            if (formCompanyId !== numericCompanyId) {
+              console.warn(`⚠️ ALERTA: El valor actual (${formCompanyId}) no coincide con el deseado (${numericCompanyId})`);
+              // Intentar una vez más con reset
+              form.setValue("companyId", numericCompanyId, {
+                shouldValidate: true,
+                shouldDirty: true,
+                shouldTouch: true
+              });
+            }
+          } catch (error) {
+            console.error("❌ Error al establecer companyId en el formulario:", error);
+          }
+        }, 100); // Damos más tiempo (100ms) para asegurar que el formulario esté listo
       } else {
-        console.error("CompanyId inválido:", derivedCompanyId);
+        console.error(`❌ CompanyId inválido (${derivedCompanyId}): No es un número positivo válido`);
+      }
+    } else {
+      console.warn("⚠️ No hay derivedCompanyId disponible para establecer en el formulario");
+      
+      // Intentar obtener companyId de otras fuentes como último recurso
+      const authContextId = authCompanyId || authUser?.companyId;
+      if (authContextId && !isNaN(Number(authContextId))) {
+        const numericId = Number(authContextId);
+        console.log(`🔄 Intentando usar companyId=${numericId} del contexto de autenticación como respaldo`);
+        
+        setTimeout(() => {
+          form.setValue("companyId", numericId);
+          console.log(`✓ CompanyId establecido desde auth como respaldo: ${numericId}`);
+        }, 100);
       }
     }
-  }, [form, derivedCompanyId]);
+  }, [form, derivedCompanyId, authCompanyId, authUser]);
 
   // Toggle order selection
   const toggleOrderSelection = (order: PendingOrder) => {
@@ -875,18 +944,22 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   });
 
   // Handle form submission
+  // ════════════════════════════════════════════════════════
+  // ENVÍO DEL FORMULARIO CON VERIFICACIÓN DE COMPANYID
+  // ════════════════════════════════════════════════════════
   const onSubmit = async (data: any) => {
-    console.log("=== INICIO ENVÍO DE FORMULARIO DE RUTA ===");
-    console.log("Datos del formulario:", data);
-    console.log("Valores actuales del formulario:", form.getValues());
-    console.log("Estado de derivedCompanyId:", derivedCompanyId);
-    console.log("Estado del auth context:", { 
+    console.log("🚀 === INICIO ENVÍO DE FORMULARIO DE RUTA ===");
+    console.log("📋 Datos del formulario:", data);
+    console.log("📊 Valores actuales del formulario:", form.getValues());
+    console.log("🏢 Estado de derivedCompanyId:", derivedCompanyId);
+    console.log("🔐 Estado del auth context:", { 
       authCompanyId, 
       authUserCompanyId: authUser?.companyId,
       loading: isLoadingAuth,
       status: authUser ? 'autenticado' : 'no autenticado'
     });
     
+    // Validaciones iniciales
     if (selectedOrders.length === 0) {
       toast({
         variant: "destructive",
@@ -905,10 +978,62 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       return;
     }
     
-    // Determinar el companyId efectivo de manera dinámica
-    // Priorizar el valor derivado que ya ha sido calculado
-    let finalCompanyId = derivedCompanyId || 
-                          data.companyId;
+    // ════════════════════════════════════════════════════════
+    // DETERMINACIÓN FINAL DEL COMPANYID PARA ENVÍO
+    // ════════════════════════════════════════════════════════
+    console.log("🔍 DETERMINANDO COMPANYID FINAL PARA ENVÍO...");
+    
+    // Buscar el companyId en todas las fuentes posibles, en orden de prioridad
+    let companyIdToUse: number | null = null;
+    let source = "ninguna";
+    
+    // 1. Primero revisar el formulario (más reciente y explícito)
+    if (data.companyId && !isNaN(Number(data.companyId))) {
+      companyIdToUse = Number(data.companyId);
+      source = "formulario";
+      console.log(`✅ Usando companyId=${companyIdToUse} del formulario`);
+    } 
+    // 2. Luego revisar derivedCompanyId (calculado al montar el componente)
+    else if (derivedCompanyId !== null) {
+      companyIdToUse = Number(derivedCompanyId);
+      source = "derivedCompanyId";
+      console.log(`✅ Usando derivedCompanyId=${companyIdToUse}`);
+    }
+    // 3. Contexto de autenticación
+    else if (authCompanyId && !isNaN(Number(authCompanyId))) {
+      companyIdToUse = Number(authCompanyId);
+      source = "auth context";
+      console.log(`✅ Usando companyId=${companyIdToUse} del contexto de auth`);
+    }
+    // 4. Datos del usuario autenticado
+    else if (authUser?.companyId && !isNaN(Number(authUser.companyId))) {
+      companyIdToUse = Number(authUser.companyId);
+      source = "usuario autenticado";
+      console.log(`✅ Usando companyId=${companyIdToUse} del usuario autenticado`);
+    }
+    
+    // Verificación final - ¿tenemos un companyId válido?
+    if (companyIdToUse === null || isNaN(companyIdToUse) || companyIdToUse <= 0) {
+      console.error("❌ NO SE PUDO DETERMINAR UN COMPANYID VÁLIDO");
+      console.error("Valores disponibles:", {
+        "formulario.companyId": data.companyId,
+        derivedCompanyId,
+        authCompanyId,
+        "authUser?.companyId": authUser?.companyId
+      });
+      
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo determinar la empresa para crear la ruta. Por favor, inicie sesión nuevamente.",
+      });
+      return;
+    }
+    
+    console.log(`✅ COMPANYID FINAL: ${companyIdToUse} (fuente: ${source})`);
+    
+    // Actualizar datos con el companyId final
+    data.companyId = companyIdToUse;
                           
     console.log("CompanyId efectivo determinado:", finalCompanyId);
     
