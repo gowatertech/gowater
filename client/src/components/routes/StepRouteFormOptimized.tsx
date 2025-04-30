@@ -184,31 +184,66 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const { data: pendingOrders = [], isLoading: isLoadingPendingOrders } = useQuery<any[]>({
     queryKey: ["/api/orders/pending"],
     queryFn: async () => {      
-      console.log("Obteniendo todos los pedidos pendientes");
+      console.log("🔍 Obteniendo todos los pedidos pendientes");
       
       try {
+        // Obtener todos los pedidos pendientes
         const response = await apiRequest({
           url: "/api/orders/pending",
           method: "GET"
         });
         
-        const data = Array.isArray(response) ? response : [];
+        console.log("📦 Respuesta de pedidos pendientes:", response);
         
-        const transformedOrders = data.map((order: any) => ({
-          ...order,
-          coordinates: order.deliveryCoordinates || order.coordinates || null,
-          customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
-          customerPhone: order.customerPhone || "",
-          products: order.products || [],
-          // Asegurarnos que zoneId esté siempre disponible
-          zoneId: order.zoneId || order.zoneid || null
-        }));
+        // Asegurar que trabajamos con un array
+        const data = Array.isArray(response) ? response : 
+                    response && typeof response === 'object' ? [response] : [];
         
-        console.log(`Obtenidos ${transformedOrders.length} pedidos pendientes`);
+        if (data.length === 0) {
+          console.log("⚠️ No se encontraron pedidos pendientes o el formato de respuesta no es el esperado");
+        }
+        
+        // Transformar cada pedido para normalizar la estructura
+        const transformedOrders = data.map((order: any) => {
+          // Comprobar si tenemos datos válidos antes de transformar
+          if (!order || typeof order !== 'object') {
+            console.log("⚠️ Orden inválida en los datos:", order);
+            return null;
+          }
+          
+          // Información básica para debugging
+          console.log(`📋 Procesando pedido #${order.id || 'sin ID'}`);
+          
+          return {
+            ...order,
+            id: order.id || Math.random().toString(36).substring(7), // Asegurar que siempre hay un ID
+            coordinates: order.deliveryCoordinates || order.coordinates || null,
+            customerName: order.customerName || "Cliente sin nombre",
+            customerAddress: (order.customerAddress || "Sin dirección") + 
+                          (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
+            customerPhone: order.customerPhone || "",
+            products: order.products || [],
+            // Normalizar el zoneId
+            zoneId: order.zoneId || order.zoneid || order.zone_id || null,
+            // Asegurar fecha
+            date: order.date || new Date().toISOString(),
+            // Asegurar estado
+            status: order.status || "pending",
+            // Asegurar total
+            total: order.total || 0
+          };
+        }).filter(Boolean); // Remover posibles nulos
+        
+        console.log(`✅ Procesados ${transformedOrders.length} pedidos pendientes válidos`);
         setPendingOrdersLoaded(true);
         return transformedOrders;
       } catch (error) {
-        console.error("Error al obtener pedidos pendientes:", error);
+        console.error("❌ Error al obtener pedidos pendientes:", error);
+        toast({
+          title: "Error al cargar pedidos",
+          description: "No se pudieron cargar los pedidos pendientes. Inténtalo de nuevo.",
+          variant: "destructive"
+        });
         setPendingOrdersLoaded(true);
         return [];
       }
@@ -351,13 +386,20 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     setSearchQuery(e.target.value);
   };
   
-  // Filtrar pedidos por término de búsqueda
+  // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
   const filteredOrders = searchQuery 
-    ? filteredPendingOrders.filter(order => 
-        order.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.customerAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        order.id.toString().includes(searchQuery.toLowerCase())
-      )
+    ? filteredPendingOrders.filter(order => {
+        // Validar que el pedido tenga los campos necesarios para evitar errores
+        if (!order || typeof order !== 'object') return false;
+        
+        const customerName = order.customerName || '';
+        const customerAddress = order.customerAddress || '';
+        const orderId = order.id ? order.id.toString() : '';
+        
+        return customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               customerAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               orderId.includes(searchQuery.toLowerCase());
+      })
     : filteredPendingOrders;
   
   // Función para enviar el formulario y crear la ruta
@@ -483,10 +525,25 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                     </div>
                   ))}
                 </div>
-              ) : filteredOrders.length === 0 ? (
+              ) : !filteredOrders || filteredOrders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-8 text-center">
                   <Package className="h-10 w-10 text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No hay pedidos pendientes en esta zona</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Puede que no existan pedidos pendientes o que los pedidos no estén asociados a esta zona.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={() => {
+                      // Refrescar la lista de pedidos
+                      queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+                    }}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Refrescar pedidos
+                  </Button>
                 </div>
               ) : (
                 <div className="p-3 space-y-2">
