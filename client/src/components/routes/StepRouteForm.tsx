@@ -1028,7 +1028,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
               onClick={() => {
                 // Crear un mensaje más amigable para el usuario
                 const diagnosticInfo = {
-                  companyId: authCompanyId || authUser?.companyId || pendingOrdersUserData?.companyId || "No definido",
+                  derivedCompanyId: derivedCompanyId !== null ? derivedCompanyId : "No definido",
+                  formCompanyId: form.getValues("companyId") || "No definido",
+                  authCompanyId: authCompanyId || "No definido", 
+                  authUserCompanyId: authUser?.companyId || "No definido",
+                  pendingOrdersUserCompanyId: pendingOrdersUserData?.companyId || "No definido",
                   role: authUser?.role || pendingOrdersUserData?.role || "No definido",
                   pendingOrdersCount: Array.isArray(pendingOrders) ? pendingOrders.length : 0,
                   filteringMode: selectedZoneId ? `Zona ID: ${selectedZoneId}` : "Todos los pedidos pendientes",
@@ -1045,7 +1049,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                   title: "Diagnóstico",
                   description: (
                     <div className="text-xs space-y-1">
-                      <div><strong>CompanyId:</strong> {diagnosticInfo.companyId}</div>
+                      <div><strong>CompanyId derivado:</strong> {diagnosticInfo.derivedCompanyId}</div>
+                      <div><strong>CompanyId formulario:</strong> {diagnosticInfo.formCompanyId}</div>
+                      <div><strong>CompanyId auth:</strong> {diagnosticInfo.authCompanyId}</div>
+                      <div><strong>CompanyId usuario:</strong> {diagnosticInfo.authUserCompanyId}</div>
+                      <div><strong>CompanyId data:</strong> {diagnosticInfo.pendingOrdersUserCompanyId}</div>
                       <div><strong>Contexto Auth:</strong> {diagnosticInfo.authContextPresent}</div>
                       <div><strong>Rol:</strong> {diagnosticInfo.role}</div>
                       <div><strong>Filtrado:</strong> {diagnosticInfo.filteringMode}</div>
