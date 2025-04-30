@@ -120,25 +120,25 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     })),
     defaultValues: {
       name: "",
-      driverId: 0,
+      driverId: undefined,
       assistantId: null,
       truckId: null,
       date: new Date(),
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: 0, // Se actualizará dinámicamente 
-      zoneId: 0 // Se seleccionará por el usuario
-    },
+      companyId: undefined, // Se obtendrá del contexto de autenticación
+      zoneId: undefined // Se seleccionará por el usuario
+    } as any,
   });
   
   // Determinar companyId y asignarlo al formulario
   useEffect(() => {
     console.log("🔄 DIAGNÓSTICO INICIAL - StepRouteForm montado");
     
-    // Obtener el companyId de manera dinámica, priorizando useAuth
-    let effectiveCompanyId: number = 0; // Inicializamos en 0
-    let source = "valor predeterminado";
+    // Obtener el companyId de manera dinámica del contexto de autenticación
+    let effectiveCompanyId: number | null = null;
+    let source = "";
     
     // Prioridad 1: Auth Context (más confiable)
     if (authCompanyId !== null && authCompanyId !== undefined && !isNaN(Number(authCompanyId))) {
@@ -160,8 +160,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: ${source})`);
     setDerivedCompanyId(effectiveCompanyId);
     
-    // Asignar al formulario
-    form.setValue("companyId", effectiveCompanyId);
+    // Asignar al formulario solo si se encontró un companyId válido
+    if (effectiveCompanyId !== null) {
+      form.setValue("companyId", effectiveCompanyId);
+    }
     
   }, [authCompanyId, authUser, pendingOrdersUserData, form]);
   
@@ -373,11 +375,17 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       ...values,
       stops: stops,
       deliverySequence: sequence,
-      // Asegurarnos de que companyId se envía como número
-      companyId: Number(values.companyId),
-      // Asegurarnos de que zoneId se envía como número
-      zoneId: Number(values.zoneId),
     };
+    
+    // Solo incluir companyId si existe y es válido
+    if (values.companyId !== undefined && values.companyId !== null) {
+      routeData.companyId = Number(values.companyId);
+    }
+    
+    // Solo incluir zoneId si existe y es válido
+    if (values.zoneId !== undefined && values.zoneId !== null) {
+      routeData.zoneId = Number(values.zoneId);
+    }
     
     console.log("Datos a enviar:", routeData);
     
