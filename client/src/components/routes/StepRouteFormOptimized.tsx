@@ -52,7 +52,7 @@ import {
   Loader2,
   XCircle,
   Clock,
-  Route,
+  Map as MapIcon,
   DollarSign,
   CalendarIcon,
   Check,
@@ -1047,7 +1047,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                           <span>Tiempo: {calculateEstimatedTime()}</span>
                         </Badge>
                         <Badge variant="outline" className="text-xs">
-                          <Route className="mr-1 h-3 w-3" />
+                          <MapIcon className="mr-1 h-3 w-3" />
                           <span>Distancia: {totalDistanceKm} km</span>
                         </Badge>
                       </div>
