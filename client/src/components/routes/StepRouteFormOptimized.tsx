@@ -101,8 +101,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const authCompanyId = authUser?.companyId || null;
   const { settings } = useCompanySettings();
   
-  // Determinar companyId
-  const [derivedCompanyId, setDerivedCompanyId] = useState<number | null>(null);
+  // Usamos directamente el companyId del usuario autenticado
   
   // Obtener datos de usuarios para los pendingOrders
   const { data: pendingOrdersUserData } = useQuery({
@@ -135,40 +134,21 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     } as any,
   });
   
-  // Determinar companyId y asignarlo al formulario
+  // Asignar companyId al formulario
   useEffect(() => {
     console.log("🔄 DIAGNÓSTICO INICIAL - StepRouteForm montado");
     
-    // Obtener el companyId de manera dinámica del contexto de autenticación
-    let effectiveCompanyId: number | null = null;
-    let source = "";
+    // Usar directamente el ID de compañía del usuario autenticado
+    const effectiveCompanyId = authCompanyId;
     
-    // Prioridad 1: Auth Context (más confiable)
-    if (authCompanyId !== null && authCompanyId !== undefined && !isNaN(Number(authCompanyId))) {
-      effectiveCompanyId = Number(authCompanyId);
-      source = "Auth Context";
-    } 
-    // Prioridad 2: Usuario autenticado
-    else if (authUser?.companyId && !isNaN(Number(authUser.companyId))) {
-      effectiveCompanyId = Number(authUser.companyId);
-      source = "Auth User";
-    } 
-    // Prioridad 3: Datos de pedidos pendientes (asumiendo que puede ser cualquier objeto con propiedad companyId)
-    else if (pendingOrdersUserData && typeof pendingOrdersUserData === 'object' && 'companyId' in pendingOrdersUserData && 
-             !isNaN(Number((pendingOrdersUserData as any).companyId))) {
-      effectiveCompanyId = Number((pendingOrdersUserData as any).companyId);
-      source = "Pending Orders Data";
-    } 
-    
-    console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: ${source})`);
-    setDerivedCompanyId(effectiveCompanyId);
+    console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: Auth Context)`);
     
     // Asignar al formulario solo si se encontró un companyId válido
     if (effectiveCompanyId !== null) {
       form.setValue("companyId", effectiveCompanyId);
     }
     
-  }, [authCompanyId, authUser, pendingOrdersUserData, form]);
+  }, [authCompanyId, form]);
   
   // Queries para cargar datos necesarios
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
@@ -1302,7 +1282,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
             <div>
               <h3 className="text-lg font-medium">Crear ruta con pedidos pendientes</h3>
               <div className="text-xs text-muted-foreground">
-                CompanyId: {derivedCompanyId || "No definido"}
+                CompanyId: {authCompanyId || "No definido"}
                 {authUser?.role && ` | Rol: ${authUser.role}`}
               </div>
             </div>
