@@ -9,6 +9,8 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useCompanySettings } from "@/hooks/use-company-settings";
 import { format } from "date-fns";
 import L from "leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // UI Components
 import {
@@ -313,6 +315,71 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       setFilteredPendingOrders([]);
     }
   }, [pendingOrders, selectedZoneId, pendingOrdersLoaded]);
+  
+  // Función para obtener el centro del mapa basado en las coordenadas de los puntos
+  const getMapCenter = (orders: any[]): [number, number] => {
+    if (!orders || orders.length === 0) {
+      return [19.432608, -99.133209]; // Default: Ciudad de México
+    }
+
+    try {
+      // Filtrar solo elementos con coordenadas válidas
+      const validOrders = orders.filter(order => {
+        if (!order.coordinates) return false;
+        
+        let coords: number[] = [];
+        if (typeof order.coordinates === 'string') {
+          coords = order.coordinates.split(',').map(Number);
+        } else if (Array.isArray(order.coordinates)) {
+          coords = order.coordinates.map(Number);
+        }
+        
+        return coords.length >= 2 && !isNaN(coords[0]) && !isNaN(coords[1]);
+      });
+      
+      if (validOrders.length === 0) {
+        return [19.432608, -99.133209]; // Default: Ciudad de México
+      }
+      
+      // Calcular promedio de lat/lng para el centro
+      let sumLat = 0;
+      let sumLng = 0;
+      let count = 0;
+      
+      validOrders.forEach(order => {
+        let coords: number[] = [];
+        if (typeof order.coordinates === 'string') {
+          coords = order.coordinates.split(',').map(Number);
+        } else if (Array.isArray(order.coordinates)) {
+          coords = order.coordinates.map(Number);
+        }
+        
+        if (coords.length >= 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+          sumLat += coords[0];
+          sumLng += coords[1];
+          count++;
+        }
+      });
+      
+      return count > 0 ? [sumLat / count, sumLng / count] : [19.432608, -99.133209];
+    } catch (e) {
+      console.error("Error calculando centro del mapa:", e);
+      return [19.432608, -99.133209]; // Default: Ciudad de México
+    }
+  };
+  
+  // Componente para fijar el centro del mapa
+  const MapCenterFixer = ({ center }: { center: [number, number] }) => {
+    const map = useMap();
+    
+    useEffect(() => {
+      if (center && !isNaN(center[0]) && !isNaN(center[1])) {
+        map.setView(center, map.getZoom());
+      }
+    }, [center, map]);
+    
+    return null;
+  };
   
   // Función para cambiar la zona seleccionada
   const handleZoneChange = (zoneId: number) => {
@@ -675,26 +742,144 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       case pasos.OPTIMIZAR_RUTA:
         return (
           <div className="space-y-4">
-            <div className="rounded-md border p-3">
-              <h3 className="text-sm font-medium mb-2">Secuencia de entregas</h3>
-              
-              <div className="space-y-2">
-                {optimizedSequence.map((order, idx) => (
-                  <div key={order.id} className="flex items-center p-2 border rounded-md">
-                    <Badge variant="outline" className="mr-3">
-                      {idx + 1}
-                    </Badge>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {order.customerName}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {order.customerAddress}
-                      </p>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Mapa con ruta optimizada */}
+              <Card className="md:row-span-2">
+                <CardHeader className="py-2">
+                  <CardTitle className="text-sm">Vista previa de la ruta</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="h-[400px] w-full relative">
+                    {optimizedSequence.length > 0 ? (
+                      <MapContainer
+                        center={getMapCenter(optimizedSequence)}
+                        zoom={13}
+                        style={{ height: "100%", width: "100%" }}
+                      >
+                        <MapCenterFixer center={getMapCenter(optimizedSequence)} />
+                        <TileLayer
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        />
+                        
+                        {/* Dibujar la línea de la ruta */}
+                        <Polyline
+                          positions={optimizedSequence
+                            .filter((order) => order.coordinates)
+                            .map((order) => {
+                              try {
+                                // Intentar convertir las coordenadas a números
+                                const coords = typeof order.coordinates === 'string' 
+                                  ? order.coordinates.split(',').map(Number) 
+                                  : (Array.isArray(order.coordinates) 
+                                    ? order.coordinates.map(Number) 
+                                    : [0, 0]);
+                                
+                                return coords.length >= 2 && !isNaN(coords[0]) && !isNaN(coords[1]) 
+                                  ? [coords[0], coords[1]] as [number, number]
+                                  : [0, 0] as [number, number];
+                              } catch (e) {
+                                console.error("Error al procesar coordenadas:", e);
+                                return [0, 0] as [number, number];
+                              }
+                            })}
+                          color="blue"
+                          weight={3}
+                          opacity={0.7}
+                        />
+                        
+                        {/* Marcadores para cada punto */}
+                        {optimizedSequence
+                          .filter((order) => order.coordinates)
+                          .map((order, idx) => {
+                            try {
+                              // Convertir las coordenadas a formato LatLng
+                              let coords: [number, number] = [0, 0];
+                              
+                              if (typeof order.coordinates === 'string') {
+                                const latLng = order.coordinates.split(',').map(Number);
+                                coords = latLng.length >= 2 ? [latLng[0], latLng[1]] : [0, 0];
+                              } else if (Array.isArray(order.coordinates)) {
+                                coords = order.coordinates.length >= 2 
+                                  ? [Number(order.coordinates[0]), Number(order.coordinates[1])]
+                                  : [0, 0];
+                              }
+                              
+                              // Verificar que las coordenadas sean válidas
+                              if (isNaN(coords[0]) || isNaN(coords[1])) {
+                                return null;
+                              }
+                              
+                              // Crear un icono personalizado con el número de orden
+                              const customIcon = L.divIcon({
+                                className: 'custom-div-icon',
+                                html: `<div class="flex items-center justify-center ${
+                                  idx === 0 ? 'bg-green-600' : 'bg-blue-600'
+                                } text-white rounded-full w-6 h-6 text-sm font-semibold shadow border border-white">${idx + 1}</div>`,
+                                iconSize: [24, 24],
+                                iconAnchor: [12, 12]
+                              });
+                              
+                              return (
+                                <Marker
+                                  key={`marker-${order.id}-${idx}`}
+                                  position={coords}
+                                  icon={customIcon}
+                                >
+                                  <Popup>
+                                    <div className="text-xs">
+                                      <div className="font-semibold">Parada #{idx + 1}</div>
+                                      <div>{order.customerName}</div>
+                                      <div>{order.customerAddress}</div>
+                                    </div>
+                                  </Popup>
+                                </Marker>
+                              );
+                            } catch (e) {
+                              console.error("Error al crear marcador:", e);
+                              return null;
+                            }
+                          })}
+                      </MapContainer>
+                    ) : (
+                      <div className="flex items-center justify-center h-full bg-muted/20">
+                        <div className="text-center">
+                          <MapPin className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
+                          <p className="text-sm text-muted-foreground">
+                            No hay ruta para visualizar
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                </CardContent>
+              </Card>
+              
+              {/* Lista de paradas */}
+              <Card>
+                <CardHeader className="py-2">
+                  <CardTitle className="text-sm">Secuencia de entregas</CardTitle>
+                </CardHeader>
+                <CardContent className="p-2">
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                    {optimizedSequence.map((order, idx) => (
+                      <div key={order.id} className="flex items-center p-2 border rounded-md">
+                        <Badge variant="outline" className="mr-3 flex-shrink-0">
+                          {idx + 1}
+                        </Badge>
+                        <div className="overflow-hidden">
+                          <p className="text-sm font-medium truncate">
+                            {order.customerName}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {order.customerAddress}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
             
             <div className="flex justify-between">
