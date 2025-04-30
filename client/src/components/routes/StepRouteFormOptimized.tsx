@@ -180,33 +180,38 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     queryKey: ["/api/trucks"],
   });
   
-  // Obtener pedidos pendientes
+  // Obtener todos los pedidos pendientes sin filtrar por zona
   const { data: pendingOrders = [], isLoading: isLoadingPendingOrders } = useQuery<any[]>({
-    queryKey: ["/api/orders/pending", selectedZoneId],
+    queryKey: ["/api/orders/pending"],
     queryFn: async () => {      
-      console.log("Fetching pending orders, zoneId:", selectedZoneId || "No filter");
+      console.log("Obteniendo todos los pedidos pendientes");
       
-      const url = selectedZoneId 
-        ? `/api/orders/pending?zoneId=${selectedZoneId}` 
-        : "/api/orders/pending";
-      
-      const response = await apiRequest({
-        url: url,
-        method: "GET"
-      });
-      
-      const data = Array.isArray(response) ? response : [];
-      
-      const transformedOrders = data.map((order: any) => ({
-        ...order,
-        coordinates: order.deliveryCoordinates || order.coordinates || null,
-        customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
-        customerPhone: order.customerPhone || "",
-        products: order.products || []
-      }));
-      
-      setPendingOrdersLoaded(true);
-      return transformedOrders;
+      try {
+        const response = await apiRequest({
+          url: "/api/orders/pending",
+          method: "GET"
+        });
+        
+        const data = Array.isArray(response) ? response : [];
+        
+        const transformedOrders = data.map((order: any) => ({
+          ...order,
+          coordinates: order.deliveryCoordinates || order.coordinates || null,
+          customerAddress: order.customerAddress + (order.customerAddressNumber ? ` #${order.customerAddressNumber}` : ''),
+          customerPhone: order.customerPhone || "",
+          products: order.products || [],
+          // Asegurarnos que zoneId esté siempre disponible
+          zoneId: order.zoneId || order.zoneid || null
+        }));
+        
+        console.log(`Obtenidos ${transformedOrders.length} pedidos pendientes`);
+        setPendingOrdersLoaded(true);
+        return transformedOrders;
+      } catch (error) {
+        console.error("Error al obtener pedidos pendientes:", error);
+        setPendingOrdersLoaded(true);
+        return [];
+      }
     },
   });
   
@@ -216,7 +221,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       console.log(`Filtrando pedidos para zona ID: ${selectedZoneId}`);
       
       const ordersInZone = pendingOrders.filter(order => {
-        return (order as any).zoneId === selectedZoneId;
+        // Comprobar múltiples formatos posibles de zoneId
+        const orderZoneId = order.zoneId || order.zoneid;
+        return Number(orderZoneId) === Number(selectedZoneId);
       });
       
       console.log(`Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
