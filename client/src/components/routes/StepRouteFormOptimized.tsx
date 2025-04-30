@@ -52,7 +52,7 @@ import {
   Loader2,
   XCircle,
   Clock,
-  Map as MapIcon,
+  Route,
   DollarSign,
   CalendarIcon,
   Check,
@@ -90,7 +90,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const [filteredPendingOrders, setFilteredPendingOrders] = useState<any[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [optimizedSequence, setOptimizedSequence] = useState<any[]>([]);
-  const [totalDistanceKm, setTotalDistanceKm] = useState<number>(0);
   
   // Tracking UI state
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
@@ -162,26 +161,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     } 
     
     console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: ${source})`);
-    
-    // Verificar si el companyId es válido
-    if (effectiveCompanyId === null || effectiveCompanyId === undefined || isNaN(effectiveCompanyId)) {
-      console.error("❌ No se pudo determinar un companyId válido. Es necesario para crear rutas.");
-      toast({
-        title: "Error de configuración",
-        description: "No se pudo determinar la empresa. Por favor, inicie sesión nuevamente.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Actualizar el estado de companyId derivado
     setDerivedCompanyId(effectiveCompanyId);
     
-    // Asignar al formulario
-    form.setValue("companyId", effectiveCompanyId);
-    console.log(`✅ CompanyId ${effectiveCompanyId} asignado al formulario`);
+    // Asignar al formulario solo si se encontró un companyId válido
+    if (effectiveCompanyId !== null) {
+      form.setValue("companyId", effectiveCompanyId);
+    }
     
-  }, [authCompanyId, authUser, pendingOrdersUserData, form, toast]);
+  }, [authCompanyId, authUser, pendingOrdersUserData, form]);
   
   // Queries para cargar datos necesarios
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
@@ -397,28 +384,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   // Función para cambiar la zona seleccionada
   const handleZoneChange = (zoneId: number) => {
     console.log(`Cambiando a zona ID: ${zoneId}`);
-    
-    // Siempre limpiar pedidos seleccionados al cambiar de zona
-    setSelectedOrders([]);
-    
-    // Actualizar el ID de la zona seleccionada
     setSelectedZoneId(zoneId);
     
     if (typeof zoneId === 'number' && !isNaN(zoneId) && zoneId > 0) {
-      // Actualizar el valor en el formulario
       form.setValue("zoneId", zoneId);
       console.log(`Zona en formulario actualizada a: ${form.getValues("zoneId")}`);
-      
-      // Forzar la actualización de pedidos pendientes si es necesario
-      if (!pendingOrdersLoaded || pendingOrders.length === 0) {
-        console.log("🔄 Forzando recarga de pedidos pendientes para nueva zona");
-        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
-        
-        // Mostrar toast informativo
-        toast({
-          description: "Cargando pedidos para esta zona...",
-        });
-      }
     }
   };
   
@@ -509,52 +479,59 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       }
       
       console.log(`✅ ${selectedOrders.length} pedidos seleccionados, avanzando a optimización`);
+      setPasoActual(pasos.OPTIMIZAR_RUTA);
       
-      try {
-        // Método más simple para intentar resolver el problema
-        console.log("Creando secuencia simple sin calculaciones complejas");
+      // Añadir el punto de la empresa como primer punto (índice 0)
+      const companyCoordinates = settings?.latitude && settings?.longitude 
+        ? `${settings.latitude},${settings.longitude}` 
+        : "19.432608,-99.133209"; // Coordenadas por defecto
         
-        // Añadir el punto de la empresa como primer punto
-        const companyPoint = {
-          id: "company",
-          customerName: "Empresa (Punto de partida)",
-          customerAddress: settings?.street || "Dirección de la empresa",
-          coordinates: settings?.latitude && settings?.longitude 
-            ? `${settings.latitude},${settings.longitude}` 
-            : "19.432608,-99.133209",
-          isCompany: true
-        };
+      // Crear punto de la empresa
+      const companyPoint = {
+        id: "company",
+        customerName: `${settings?.name || "Empresa"} (Punto de partida)`,
+        customerAddress: `${settings?.street || ""} ${settings?.streetNumber || ""}`,
+        coordinates: companyCoordinates,
+        isCompany: true
+      };
+      
+      // Agrupar pedidos por cliente (mismas coordenadas)
+      const groupedOrders = selectedOrders.reduce((acc: any[], order) => {
+        // Crear un identificador único basado en las coordenadas
+        const coordKey = order.coordinates || "";
         
-        // Simplificar los pedidos para evitar cualquier cálculo complejo
-        const simplifiedOrders = selectedOrders.map(order => ({
-          id: order.id,
-          customerName: order.customerName || "Cliente",
-          customerAddress: order.customerAddress || "Dirección cliente",
-          coordinates: order.coordinates || "",
-          customerId: order.customerId,
-          total: order.total,
-          isCompany: false,
-          orderIds: [order.id]
-        }));
+        // Buscar si ya existe una parada con estas coordenadas
+        const existingStopIndex = acc.findIndex(stop => 
+          stop.coordinates === coordKey && !stop.isCompany
+        );
         
-        // Simplemente juntar la empresa y los pedidos sin hacer cálculos
-        const sequence = [companyPoint, ...simplifiedOrders];
-        console.log(`Secuencia simplificada creada con ${sequence.length} puntos`);
+        if (existingStopIndex >= 0) {
+          // Si existe, añadimos este pedido a la lista de pedidos de esa parada
+          if (!acc[existingStopIndex].orderIds) {
+            acc[existingStopIndex].orderIds = [acc[existingStopIndex].id];
+          }
+          acc[existingStopIndex].orderIds.push(order.id);
+          
+          // Actualizar información de la parada para mostrar múltiples pedidos
+          acc[existingStopIndex].customerName = `${acc[existingStopIndex].customerName} (${acc[existingStopIndex].orderIds.length} pedidos)`;
+          
+          // Suma los totales de los pedidos
+          const currentTotal = typeof acc[existingStopIndex].total === 'number' ? acc[existingStopIndex].total : 0;
+          const orderTotal = typeof order.total === 'number' ? order.total : 0;
+          acc[existingStopIndex].total = currentTotal + orderTotal;
+        } else {
+          // Si no existe, creamos una nueva parada
+          acc.push({
+            ...order,
+            orderIds: [order.id]
+          });
+        }
         
-        // Asignar la secuencia al estado
-        setOptimizedSequence(sequence);
-        
-        // Avanzar al siguiente paso de manera explícita sin más cálculos
-        console.log("Avanzando al paso de optimización...");
-        setPasoActual(pasos.OPTIMIZAR_RUTA);
-      } catch (error) {
-        console.error("Error al procesar pedidos:", error);
-        toast({
-          title: "Error al procesar pedidos",
-          description: "Hubo un problema al preparar la ruta. Por favor, inténtalo de nuevo.",
-          variant: "destructive"
-        });
-      }
+        return acc;
+      }, []);
+      
+      // Añadir la empresa como primer punto y luego los pedidos agrupados
+      setOptimizedSequence([companyPoint, ...groupedOrders]);
     }
     else if (pasoActual === pasos.OPTIMIZAR_RUTA) {
       console.log("✅ Secuencia optimizada, avanzando a completar datos");
@@ -580,12 +557,78 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     setSearchQuery(e.target.value);
   };
   
-  // Función simplificada para calcular tiempo estimado
+  // Función para calcular y formatear el tiempo estimado de la ruta
   const calculateEstimatedTime = (): string => {
-    // Retornamos un valor fijo para evitar cualquier cálculo que pueda causar errores
-    console.log("Usando tiempo estimado fijo para evitar cálculos complejos");
-    setTotalDistanceKm(0);
-    return "30min";
+    if (optimizedSequence.length <= 1) return "0min";
+    
+    let estimatedTime = 0;
+    
+    // Recorremos la secuencia optimizada para calcular tiempos entre puntos
+    for (let i = 0; i < optimizedSequence.length - 1; i++) {
+      const currentPoint = optimizedSequence[i];
+      const nextPoint = optimizedSequence[i + 1];
+      
+      // Añadir 5 minutos por cada parada (excepto la empresa que es punto de partida)
+      if (!currentPoint.isCompany) {
+        estimatedTime += 5; // 5 minutos por parada para entrega
+      }
+      
+      // Calcular distancia entre puntos para estimar tiempo de viaje
+      if (currentPoint.coordinates && nextPoint.coordinates) {
+        try {
+          // Convertir coordenadas a formato adecuado
+          const currentCoords = Array.isArray(currentPoint.coordinates) 
+            ? currentPoint.coordinates.map(Number)
+            : typeof currentPoint.coordinates === 'string'
+              ? currentPoint.coordinates.split(',').map(Number)
+              : [0, 0];
+              
+          const nextCoords = Array.isArray(nextPoint.coordinates)
+            ? nextPoint.coordinates.map(Number)
+            : typeof nextPoint.coordinates === 'string'
+              ? nextPoint.coordinates.split(',').map(Number)
+              : [0, 0];
+          
+          // Usar Haversine para calcular distancia en km
+          const lat1 = currentCoords[0];
+          const lon1 = currentCoords[1];
+          const lat2 = nextCoords[0];
+          const lon2 = nextCoords[1];
+          
+          const R = 6371; // Radio de la Tierra en km
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLon = (lon2 - lon1) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c; // Distancia en km
+          
+          // Estimar tiempo en minutos (asumiendo velocidad promedio de 40 km/h en ciudad)
+          // 40 km/h = 0.6667 km/min, por lo que tiempo = distancia / 0.6667
+          const travelTime = distance / 0.6667;
+          estimatedTime += travelTime;
+        } catch (e) {
+          console.error("Error al calcular distancia:", e);
+        }
+      }
+    }
+    
+    // Añadir 5 minutos a la última parada si no es la empresa
+    const lastPoint = optimizedSequence[optimizedSequence.length - 1];
+    if (!lastPoint.isCompany) {
+      estimatedTime += 5;
+    }
+    
+    // Redondear a minutos enteros
+    estimatedTime = Math.round(estimatedTime);
+    
+    // Convertir a formato horas:minutos
+    const hours = Math.floor(estimatedTime / 60);
+    const minutes = estimatedTime % 60;
+    
+    return `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
   };
   
   // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
@@ -597,11 +640,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         const customerName = order.customerName || '';
         const customerAddress = order.customerAddress || '';
         const orderId = order.id ? order.id.toString() : '';
-        const query = searchQuery ? searchQuery.toLowerCase() : '';
         
-        return customerName.toLowerCase().includes(query) ||
-               customerAddress.toLowerCase().includes(query) ||
-               orderId.includes(query);
+        return customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               customerAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               orderId.includes(searchQuery.toLowerCase());
       })
     : filteredPendingOrders;
   
@@ -662,41 +704,23 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Agregar información de la empresa en los datos del formulario
     const companyInfo = optimizedSequence.find(order => order.isCompany);
     
-    // Verificar que tengamos companyId válido antes de enviar
-    if (!values.companyId || isNaN(Number(values.companyId))) {
-      console.error("❌ No hay companyId válido en formulario:", values.companyId);
-      toast({
-        title: "Error al crear ruta",
-        description: "No se pudo determinar la empresa para esta ruta. Por favor, inicie sesión nuevamente.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Verificar que tengamos zoneId válido antes de enviar
-    if (!values.zoneId || isNaN(Number(values.zoneId))) {
-      console.error("❌ No hay zoneId válido en formulario:", values.zoneId);
-      toast({
-        title: "Error al crear ruta", 
-        description: "Debe seleccionar una zona válida para la ruta.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Asegurar que todos los IDs son números
+    // Crear el objeto de datos para la API
     const routeData = {
       ...values,
-      companyId: Number(values.companyId),
-      zoneId: Number(values.zoneId),
-      driverId: Number(values.driverId),
-      // Solo convertir assistantId y truckId si no son nulos
-      assistantId: values.assistantId ? Number(values.assistantId) : null,
-      truckId: values.truckId ? Number(values.truckId) : null,
       stops: stops,
       deliverySequence: sequence,
       companyCoordinates: companyInfo?.coordinates || null,
     };
+    
+    // Solo incluir companyId si existe y es válido
+    if (values.companyId !== undefined && values.companyId !== null) {
+      routeData.companyId = Number(values.companyId);
+    }
+    
+    // Solo incluir zoneId si existe y es válido
+    if (values.zoneId !== undefined && values.zoneId !== null) {
+      routeData.zoneId = Number(values.zoneId);
+    }
     
     console.log("Datos a enviar:", routeData);
     
@@ -792,44 +816,27 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                   <Package className="h-10 w-10 text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No hay pedidos pendientes en esta zona</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {selectedZoneId ? (
-                      <>La zona {zones.find(z => z.id === selectedZoneId)?.name || `#${selectedZoneId}`} no tiene pedidos pendientes.</>
-                    ) : (
-                      <>Seleccione una zona para ver los pedidos disponibles.</>
-                    )}
+                    Puede que no existan pedidos pendientes o que los pedidos no estén asociados a esta zona.
                   </p>
-                  <div className="flex gap-2 mt-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        // Volver a selección de zona
-                        setPasoActual(pasos.SELECCIONAR_ZONA);
-                        console.log("Volviendo a selección de zona");
-                      }}
-                    >
-                      <ArrowLeft className="mr-2 h-4 w-4" />
-                      Cambiar zona
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        // Refrescar la lista de pedidos
-                        console.log("🔄 Refrescando pedidos pendientes manualmente");
-                        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
-                        
-                        // Mostrar mensaje de carga
-                        toast({
-                          title: "Actualizando pedidos",
-                          description: "Buscando pedidos pendientes en esta zona...",
-                        });
-                      }}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Actualizar
-                    </Button>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4"
+                    onClick={() => {
+                      // Refrescar la lista de pedidos
+                      console.log("🔄 Refrescando pedidos pendientes manualmente");
+                      queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+                      
+                      // Mostrar mensaje de carga
+                      toast({
+                        title: "Actualizando pedidos",
+                        description: "Buscando pedidos pendientes en esta zona...",
+                      });
+                    }}
+                  >
+                    <Clock className="mr-2 h-4 w-4" />
+                    Refrescar pedidos
+                  </Button>
                 </div>
               ) : (
                 <div className="p-3 space-y-2">
@@ -1022,16 +1029,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-sm">Secuencia de entregas</CardTitle>
                     {optimizedSequence.length > 1 && (
-                      <div className="flex gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          <Clock className="mr-1 h-3 w-3" />
-                          <span>Tiempo: {calculateEstimatedTime()}</span>
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          <MapIcon className="mr-1 h-3 w-3" />
-                          <span>Distancia: {totalDistanceKm} km</span>
-                        </Badge>
-                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        <Clock className="mr-1 h-3 w-3" />
+                        <span>Tiempo estimado: {calculateEstimatedTime()}</span>
+                      </Badge>
                     )}
                   </div>
                 </CardHeader>

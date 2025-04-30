@@ -40,51 +40,28 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
   const filteredRoutes = routes.filter(route => isActive ? !route.isCompleted : route.isCompleted);
 
   // Manejar eliminación de ruta
-  const handleDeleteRoute = async (routeId: number) => {
+  const handleDeleteRoute = (routeId: number) => {
     if (confirm(t("confirmDeleteRoute"))) {
-      try {
-        // Mostrar toast de carga
-        toast({
-          description: "Eliminando ruta...",
-        });
-        
-        const response = await fetch(`/api/routes/${routeId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        // Verificar si la respuesta fue exitosa
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || t("errorDeletingRoute"));
+      fetch(`/api/routes/${routeId}`, {
+        method: 'DELETE',
+      })
+      .then(response => {
+        if (response.ok) {
+          queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
+          toast({
+            description: t("routeDeletedSuccessfully"),
+          });
+        } else {
+          throw new Error(t("errorDeletingRoute"));
         }
-        
-        // Procesar la respuesta exitosa
-        const result = await response.json();
-        console.log("Ruta eliminada:", result);
-        
-        // Invalidar la caché y actualizar la lista
-        queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
-        
-        // Mostrar mensaje de éxito
-        toast({
-          description: t("routeDeletedSuccessfully"),
-        });
-        
-        // Forzar actualización de la página para mostrar cambios
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (error: any) {
-        console.error("Error al eliminar ruta:", error);
+      })
+      .catch(error => {
         toast({
           variant: "destructive",
           title: t("error"),
-          description: error.message || t("errorDeletingRoute")
+          description: error.message
         });
-      }
+      });
     }
   };
 
