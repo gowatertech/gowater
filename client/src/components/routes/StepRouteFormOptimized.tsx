@@ -253,23 +253,50 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   
   // Filtrar pedidos por zona seleccionada
   useEffect(() => {
-    if (pendingOrdersLoaded && selectedZoneId) {
-      console.log(`Filtrando pedidos para zona ID: ${selectedZoneId}`);
-      
-      const ordersInZone = pendingOrders.filter(order => {
-        // Comprobar múltiples formatos posibles de zoneId
-        const orderZoneId = order.zoneId || order.zoneid;
-        return Number(orderZoneId) === Number(selectedZoneId);
-      });
-      
-      console.log(`Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
-      setFilteredPendingOrders(ordersInZone);
-      
-      // Limpiar la selección de pedidos anterior al cambiar de zona
-      setSelectedOrders([]);
-    } else {
-      // Si no hay zona seleccionada, mostrar todos los pedidos
-      setFilteredPendingOrders(pendingOrders);
+    // Siempre manejar pendingOrders como un array, incluso si llega null o undefined
+    const safeOrders = Array.isArray(pendingOrders) ? pendingOrders : [];
+    
+    console.log(`🔄 Actualizando pedidos filtrados - Total: ${safeOrders.length}, Zona: ${selectedZoneId}, Cargados: ${pendingOrdersLoaded}`);
+    
+    try {
+      if (pendingOrdersLoaded && selectedZoneId) {
+        console.log(`🔎 Filtrando pedidos para zona ID: ${selectedZoneId}`);
+        
+        // Verificar que pendingOrders sea un array antes de filtrar
+        const ordersInZone = safeOrders.filter(order => {
+          if (!order) return false;
+          
+          // Comprobar múltiples formatos posibles de zoneId
+          const orderZoneId = order.zoneId || order.zoneid || order.zone_id;
+          const numericZoneId = Number(orderZoneId);
+          const numericSelectedZoneId = Number(selectedZoneId);
+          
+          // Verificar que ambos sean números válidos
+          if (isNaN(numericZoneId) || isNaN(numericSelectedZoneId)) {
+            console.log(`⚠️ ID de zona inválido para pedido ${order.id}: ${orderZoneId}`);
+            return false;
+          }
+          
+          return numericZoneId === numericSelectedZoneId;
+        });
+        
+        console.log(`✅ Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
+        
+        // Siempre actualizar el estado, incluso si no hay pedidos
+        setFilteredPendingOrders(ordersInZone);
+        
+        // Limpiar la selección de pedidos anterior al cambiar de zona
+        setSelectedOrders([]);
+      } else {
+        // Si no hay zona seleccionada o los pedidos aún no se han cargado,
+        // usar un array vacío para evitar errores
+        console.log(`ℹ️ No hay filtro de zona - mostrando todos los pedidos (${safeOrders.length})`);
+        setFilteredPendingOrders(safeOrders);
+      }
+    } catch (error) {
+      console.error("❌ Error al filtrar pedidos:", error);
+      // En caso de error, establecer un array vacío para evitar errores de renderizado
+      setFilteredPendingOrders([]);
     }
   }, [pendingOrders, selectedZoneId, pendingOrdersLoaded]);
   
@@ -336,6 +363,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   
   // Función para avanzar al siguiente paso
   const avanzarPaso = () => {
+    console.log(`⏭️ Avanzando al siguiente paso desde: ${pasoActual}`);
+    
     if (pasoActual === pasos.SELECCIONAR_ZONA) {
       if (!selectedZoneId) {
         toast({
@@ -346,7 +375,17 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         return;
       }
       
+      console.log(`✅ Zona seleccionada ID: ${selectedZoneId}, avanzando a selección de pedidos`);
+      
+      // Forzar la recarga de pedidos pendientes si aún no están cargados
+      if (pendingOrdersLoaded === false || (Array.isArray(pendingOrders) && pendingOrders.length === 0)) {
+        console.log("🔄 Forzando recarga de pedidos pendientes antes de avanzar");
+        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+      }
+      
+      // Actualizar state y continuar
       setPasoActual(pasos.SELECCIONAR_PEDIDOS);
+      console.log("🚀 Avanzando a selección de pedidos");
     } 
     else if (pasoActual === pasos.SELECCIONAR_PEDIDOS) {
       if (selectedOrders.length === 0) {
@@ -358,6 +397,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         return;
       }
       
+      console.log(`✅ ${selectedOrders.length} pedidos seleccionados, avanzando a optimización`);
       setPasoActual(pasos.OPTIMIZAR_RUTA);
       
       // Aquí podríamos agregar la lógica para optimizar la ruta
@@ -365,6 +405,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       setOptimizedSequence(selectedOrders);
     }
     else if (pasoActual === pasos.OPTIMIZAR_RUTA) {
+      console.log("✅ Secuencia optimizada, avanzando a completar datos");
       setPasoActual(pasos.COMPLETAR_DATOS);
     }
   };
@@ -539,10 +580,17 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                     className="mt-4"
                     onClick={() => {
                       // Refrescar la lista de pedidos
+                      console.log("🔄 Refrescando pedidos pendientes manualmente");
                       queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+                      
+                      // Mostrar mensaje de carga
+                      toast({
+                        title: "Actualizando pedidos",
+                        description: "Buscando pedidos pendientes en esta zona...",
+                      });
                     }}
                   >
-                    <RefreshCw className="mr-2 h-4 w-4" />
+                    <Clock className="mr-2 h-4 w-4" />
                     Refrescar pedidos
                   </Button>
                 </div>
