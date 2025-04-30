@@ -640,10 +640,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         const customerName = order.customerName || '';
         const customerAddress = order.customerAddress || '';
         const orderId = order.id ? order.id.toString() : '';
+        const query = searchQuery ? searchQuery.toLowerCase() : '';
         
-        return customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               customerAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               orderId.includes(searchQuery.toLowerCase());
+        return customerName.toLowerCase().includes(query) ||
+               customerAddress.toLowerCase().includes(query) ||
+               orderId.includes(query);
       })
     : filteredPendingOrders;
   
