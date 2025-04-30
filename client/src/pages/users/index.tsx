@@ -65,26 +65,16 @@ export default function Users() {
   const { toast } = useToast();
   const { user: currentUser } = useCurrentUser();
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  
-  // Determinar el companyId efectivo del usuario actual
-  const effectiveCompanyId = useMemo(() => {
-    // Prioridad 1: companyId del usuario autenticado
-    if (currentUser?.companyId) {
-      console.log("Usando companyId del usuario autenticado:", currentUser.companyId);
-      return currentUser.companyId;
-    }
-    
-    console.error("No se pudo determinar un companyId válido");
-    return undefined;
-  }, [currentUser]);
 
   // Consulta de usuarios
-  const { 
-    data: usersResponse = [], 
-    isLoading, 
-    error: usersError 
-  } = useQuery<any[], Error>({
+  const { data: usersResponse = [], isLoading, error: usersError } = useQuery({
     queryKey: ["/api/users"],
+    onSuccess: (data) => {
+      console.log("✅ Datos de usuarios recibidos:", data);
+    },
+    onError: (error) => {
+      console.error("❌ Error al cargar usuarios:", error);
+    },
     retry: 1 // Reducir reintentos para ver errores más rápido
   });
   
@@ -119,23 +109,8 @@ export default function Users() {
       licenseExpiry: "",
       emergencyContact: "",
       active: true,
-      companyId: effectiveCompanyId, // Añadimos companyId directamente en los defaultValues
     },
   });
-  
-  // Precargamos el companyId en el formulario cuando efectiveCompanyId esté disponible
-  useEffect(() => {
-    if (effectiveCompanyId) {
-      console.log("Precargando companyId en el formulario:", effectiveCompanyId);
-      // No necesitamos mostrarlo en la UI pero sí incluirlo en los datos
-      // Usamos setValues para actualizar todos los campos a la vez
-      const currentValues = form.getValues();
-      form.reset({
-        ...currentValues,
-        companyId: effectiveCompanyId
-      });
-    }
-  }, [effectiveCompanyId, form]);
 
   // Mutaciones
   const createUserMutation = useMutation({
@@ -143,8 +118,8 @@ export default function Users() {
       console.log("createUserMutation - Datos del formulario:", data);
       
       // Asegurarse que el companyId esté presente incluso si no viene del formulario
-      if (!data.companyId && effectiveCompanyId) {
-        data.companyId = effectiveCompanyId;
+      if (!data.companyId && currentUser?.companyId) {
+        data.companyId = currentUser.companyId;
         console.log("createUserMutation - Añadiendo companyId:", data.companyId);
       }
       
@@ -238,8 +213,8 @@ export default function Users() {
     try {
       // Si estamos editando, proceder con la actualización
       if (editingUser) {
-        // Obtener el companyId efectivo
-        if (!effectiveCompanyId) {
+        // Obtener el companyId del usuario actual
+        if (!currentUser?.companyId) {
           toast({
             variant: "destructive",
             title: "Error",
@@ -251,7 +226,7 @@ export default function Users() {
         // Preparar datos para la actualización e incluir el companyId
         const updateData = {
           ...data,
-          companyId: effectiveCompanyId,
+          companyId: currentUser.companyId,
           licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
         };
 
@@ -280,8 +255,8 @@ export default function Users() {
         return;
       }
 
-      // Obtener el companyId efectivo
-      if (!effectiveCompanyId) {
+      // Obtener el companyId del usuario actual
+      if (!currentUser?.companyId) {
         toast({
           variant: "destructive",
           title: "Error",
@@ -293,7 +268,7 @@ export default function Users() {
       // Formatear los datos antes de enviar e incluir el companyId
       const formattedData = {
         ...data,
-        companyId: effectiveCompanyId,
+        companyId: currentUser.companyId,
         licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
       };
 
@@ -322,9 +297,6 @@ export default function Users() {
       license: user.license || "",
       licenseExpiry: user.licenseExpiry ? format(new Date(user.licenseExpiry), "yyyy-MM-dd") : "",
       emergencyContact: user.emergencyContact || "",
-      active: user.active !== undefined ? user.active : true,
-      // Usamos el ID de compañía del usuario que estamos editando, o si no existe, el effectiveCompanyId
-      companyId: user.companyId || effectiveCompanyId
     });
   };
 
@@ -342,34 +314,16 @@ export default function Users() {
     setActiveTab("form");
   };
   
-  // Función para reiniciar el formulario asegurando que el companyId está presente
-  const resetFormWithCompanyId = () => {
-    // Reiniciar el formulario con los valores predeterminados incluyendo el companyId
-    form.reset({
-      name: "",
-      username: "",
-      email: "",
-      password: "",
-      role: "admin",
-      phone: "",
-      license: "",
-      licenseExpiry: "",
-      emergencyContact: "",
-      active: true,
-      companyId: effectiveCompanyId // Incluimos el companyId efectivo
-    });
-  };
-  
   // Reset del formulario y regreso a la lista
   const handleCancel = () => {
-    resetFormWithCompanyId();
+    form.reset();
     setEditingUser(null);
     setActiveTab("list");
   };
 
   // Después de crear o actualizar un usuario, regresar a la lista
   const handleFormSuccess = () => {
-    resetFormWithCompanyId();
+    form.reset();
     setEditingUser(null);
     setActiveTab("list");
   };
@@ -437,7 +391,7 @@ export default function Users() {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{t("users")}</h1>
         <Button 
           onClick={() => {
-            resetFormWithCompanyId(); // Usamos la función que garantiza companyId
+            form.reset();
             setEditingUser(null);
             setActiveTab("form");
           }}
