@@ -1328,7 +1328,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                         className="mt-2 text-xs py-1 h-7"
                         onClick={() => {
                           setSelectedZoneId(null);
-                          form.setValue("zoneId", undefined);
+                          form.setValue("zoneId", 0); // Usamos 0 en lugar de undefined para evitar errores de tipo
                           setPasoActual(pasos.SELECCIONAR_ZONA);
                         }}
                       >

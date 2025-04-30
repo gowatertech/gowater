@@ -40,6 +40,7 @@ import {
 
 // Sub-components
 import StepRouteForm from "@/components/routes/StepRouteForm";
+import RouteFormFixed from "@/components/routes/RouteFormFixed";
 import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
 
 // Placeholders para componentes que necesitamos crear
