@@ -509,92 +509,59 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       }
       
       console.log(`✅ ${selectedOrders.length} pedidos seleccionados, avanzando a optimización`);
+      setPasoActual(pasos.OPTIMIZAR_RUTA);
       
-      try {
-        // Añadir el punto de la empresa como primer punto (índice 0)
-        const companyCoordinates = settings?.latitude && settings?.longitude 
-          ? `${settings.latitude},${settings.longitude}` 
-          : "19.432608,-99.133209"; // Coordenadas por defecto
+      // Añadir el punto de la empresa como primer punto (índice 0)
+      const companyCoordinates = settings?.latitude && settings?.longitude 
+        ? `${settings.latitude},${settings.longitude}` 
+        : "19.432608,-99.133209"; // Coordenadas por defecto
         
-        console.log(`🏢 Usando coordenadas de empresa: ${companyCoordinates}`);
+      // Crear punto de la empresa
+      const companyPoint = {
+        id: "company",
+        customerName: `${settings?.name || "Empresa"} (Punto de partida)`,
+        customerAddress: `${settings?.street || ""} ${settings?.streetNumber || ""}`,
+        coordinates: companyCoordinates,
+        isCompany: true
+      };
+      
+      // Agrupar pedidos por cliente (mismas coordenadas)
+      const groupedOrders = selectedOrders.reduce((acc: any[], order) => {
+        // Crear un identificador único basado en las coordenadas
+        const coordKey = order.coordinates || "";
+        
+        // Buscar si ya existe una parada con estas coordenadas
+        const existingStopIndex = acc.findIndex(stop => 
+          stop.coordinates === coordKey && !stop.isCompany
+        );
+        
+        if (existingStopIndex >= 0) {
+          // Si existe, añadimos este pedido a la lista de pedidos de esa parada
+          if (!acc[existingStopIndex].orderIds) {
+            acc[existingStopIndex].orderIds = [acc[existingStopIndex].id];
+          }
+          acc[existingStopIndex].orderIds.push(order.id);
           
-        // Crear punto de la empresa
-        const companyPoint = {
-          id: "company",
-          customerName: `${settings?.name || "Empresa"} (Punto de partida)`,
-          customerAddress: `${settings?.street || ""} ${settings?.streetNumber || ""}`,
-          coordinates: companyCoordinates,
-          isCompany: true
-        };
-        
-        console.log("🔍 Procesando pedidos seleccionados:", selectedOrders);
-        
-        // Verificar que los pedidos tengan el formato correcto
-        if (!Array.isArray(selectedOrders) || selectedOrders.length === 0) {
-          throw new Error("No hay pedidos seleccionados para procesar");
+          // Actualizar información de la parada para mostrar múltiples pedidos
+          acc[existingStopIndex].customerName = `${acc[existingStopIndex].customerName} (${acc[existingStopIndex].orderIds.length} pedidos)`;
+          
+          // Suma los totales de los pedidos
+          const currentTotal = typeof acc[existingStopIndex].total === 'number' ? acc[existingStopIndex].total : 0;
+          const orderTotal = typeof order.total === 'number' ? order.total : 0;
+          acc[existingStopIndex].total = currentTotal + orderTotal;
+        } else {
+          // Si no existe, creamos una nueva parada
+          acc.push({
+            ...order,
+            orderIds: [order.id]
+          });
         }
         
-        // Agrupar pedidos por cliente (mismas coordenadas) con manejo mejorado de errores
-        const groupedOrders = selectedOrders.reduce((acc: any[], order, index) => {
-          if (!order || typeof order !== 'object') {
-            console.warn(`⚠️ Pedido en posición ${index} inválido:`, order);
-            return acc;
-          }
-          
-          // Extraer y verificar coordenadas
-          const coordKey = order.coordinates || "";
-          console.log(`📍 Procesando pedido #${order.id} con coordenadas ${coordKey}`);
-          
-          // Buscar si ya existe una parada con estas coordenadas
-          const existingStopIndex = acc.findIndex(stop => 
-            stop.coordinates === coordKey && !stop.isCompany
-          );
-          
-          if (existingStopIndex >= 0) {
-            console.log(`🔄 Agrupando pedido #${order.id} con parada existente`);
-            // Si existe, añadimos este pedido a la lista de pedidos de esa parada
-            if (!acc[existingStopIndex].orderIds) {
-              acc[existingStopIndex].orderIds = [acc[existingStopIndex].id];
-            }
-            acc[existingStopIndex].orderIds.push(order.id);
-            
-            // Actualizar información de la parada para mostrar múltiples pedidos
-            acc[existingStopIndex].customerName = `${acc[existingStopIndex].customerName} (${acc[existingStopIndex].orderIds.length} pedidos)`;
-            
-            // Suma los totales de los pedidos
-            const currentTotal = typeof acc[existingStopIndex].total === 'number' ? acc[existingStopIndex].total : 0;
-            const orderTotal = typeof order.total === 'number' ? order.total : 0;
-            acc[existingStopIndex].total = currentTotal + orderTotal;
-          } else {
-            console.log(`➕ Añadiendo nueva parada para pedido #${order.id}`);
-            // Si no existe, creamos una nueva parada
-            acc.push({
-              ...order,
-              orderIds: [order.id]
-            });
-          }
-          
-          return acc;
-        }, []);
-        
-        console.log(`✅ Procesamiento completo: ${groupedOrders.length} paradas generadas`);
-        
-        // Añadir la empresa como primer punto y luego los pedidos agrupados
-        const sequence = [companyPoint, ...groupedOrders];
-        setOptimizedSequence(sequence);
-        
-        console.log(`🚀 Secuencia optimizada creada con ${sequence.length} puntos (incluyendo empresa)`);
-        
-        // Cambiar al siguiente paso solo después de procesar todo correctamente
-        setPasoActual(pasos.OPTIMIZAR_RUTA);
-      } catch (error) {
-        console.error("❌ Error al procesar pedidos para optimización:", error);
-        toast({
-          title: "Error al procesar pedidos",
-          description: "Hubo un problema al preparar la ruta. Por favor, inténtalo de nuevo.",
-          variant: "destructive"
-        });
-      }
+        return acc;
+      }, []);
+      
+      // Añadir la empresa como primer punto y luego los pedidos agrupados
+      setOptimizedSequence([companyPoint, ...groupedOrders]);
     }
     else if (pasoActual === pasos.OPTIMIZAR_RUTA) {
       console.log("✅ Secuencia optimizada, avanzando a completar datos");
@@ -812,9 +779,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       stops: stops,
       deliverySequence: sequence,
       companyCoordinates: companyInfo?.coordinates || null,
-      // Agregar información de distancia y tiempo
-      distanceKm: totalDistanceKm,
-      estimatedTime: calculateEstimatedTime(),
     };
     
     console.log("Datos a enviar:", routeData);
