@@ -364,7 +364,21 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Asegurarnos de que companyId siempre sea un número válido
     if (derivedCompanyId !== null) {
       console.log("Estableciendo companyId en el formulario:", derivedCompanyId);
-      form.setValue("companyId", derivedCompanyId);
+      
+      // Forzamos una conversión a número para evitar problemas de tipo
+      const numericCompanyId = Number(derivedCompanyId);
+      
+      // Solo actualizamos si es un número válido (para evitar NaN)
+      if (!isNaN(numericCompanyId) && numericCompanyId > 0) {
+        // Usar setImmediate para garantizar que la actualización ocurra después 
+        // de la renderización actual
+        setTimeout(() => {
+          console.log("FORZANDO actualizacion de companyId:", numericCompanyId);
+          form.setValue("companyId", numericCompanyId);
+        }, 0);
+      } else {
+        console.error("CompanyId inválido:", derivedCompanyId);
+      }
     }
   }, [form, derivedCompanyId]);
 
@@ -705,15 +719,40 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       
       // Asegurarse de que tenemos un companyId válido del formulario o del derivedCompanyId
       const formCompanyId = form.getValues("companyId");
+      const authContextCompanyId = authCompanyId || authUser?.companyId;
       
-      // Establecer prioridades en las fuentes de datos de companyId
-      // 1. El valor del formulario si es válido
-      // 2. El valor derivedCompanyId establecido en el estado
-      let effectiveCompanyId = (formCompanyId && Number(formCompanyId) > 0) ? Number(formCompanyId) : null;
+      console.log("VERIFICACIÓN DE COMPANY ID en mutación:", {
+        routeDataCompanyId: routeData.companyId,
+        formCompanyId: formCompanyId,
+        derivedCompanyId: derivedCompanyId,
+        authContextCompanyId: authContextCompanyId,
+      });
       
-      if (!effectiveCompanyId && derivedCompanyId !== null) {
-        // Si no hay un companyId válido en el formulario, usar el derivedCompanyId
-        effectiveCompanyId = derivedCompanyId;
+      // Si el companyId viene en los datos de la ruta y es válido, lo usamos
+      if (routeData.companyId && Number(routeData.companyId) > 0) {
+        console.log("Usando companyId de routeData:", routeData.companyId);
+        // Ya es correcto, no necesitamos hacer nada
+      } else {
+        // En caso contrario, buscamos el valor en otras fuentes
+        let companyIdToUse = null;
+        
+        // Orden de prioridad para buscar companyId
+        if (formCompanyId && Number(formCompanyId) > 0) {
+          companyIdToUse = Number(formCompanyId);
+          console.log("Usando companyId del formulario:", companyIdToUse);
+        } else if (derivedCompanyId !== null) {
+          companyIdToUse = Number(derivedCompanyId);
+          console.log("Usando derivedCompanyId:", companyIdToUse);
+        } else if (authContextCompanyId) {
+          companyIdToUse = Number(authContextCompanyId);
+          console.log("Usando authContextCompanyId:", companyIdToUse);
+        }
+        
+        // Si encontramos un companyId válido, actualizar los datos de la ruta
+        if (companyIdToUse && Number(companyIdToUse) > 0) {
+          routeData.companyId = Number(companyIdToUse);
+          console.log("CompanyId actualizado en routeData:", routeData.companyId);
+        }
       }
       
       console.log("Verificación de fuentes de companyId:", {
@@ -721,13 +760,13 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         "authCompanyId": authCompanyId,
         "authUser?.companyId": authUser?.companyId,
         "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
-        "effectiveCompanyId seleccionado": effectiveCompanyId
+        "routeDataCompanyId": routeData.companyId
       });
       
       try {
         // Si no tenemos companyId después de intentar todas las fuentes locales,
         // hacer una última petición al servidor
-        if (!effectiveCompanyId) {
+        if (!routeData.companyId) {
           console.log("⚠️ No se encontró companyId en el contexto local, consultando API...");
           
           try {
@@ -737,11 +776,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
             });
             
             if (response && response.companyId) {
-              effectiveCompanyId = response.companyId;
-              console.log("✅ CompanyId obtenido de API:", effectiveCompanyId);
+              routeData.companyId = Number(response.companyId);
+              console.log("✅ CompanyId obtenido de API:", routeData.companyId);
             } else if (response && response.user && response.user.companyId) {
-              effectiveCompanyId = response.user.companyId;
-              console.log("✅ CompanyId obtenido de API (objeto user):", effectiveCompanyId);
+              routeData.companyId = Number(response.user.companyId);
+              console.log("✅ CompanyId obtenido de API (objeto user):", routeData.companyId);
             }
           } catch (error) {
             console.error("Error al consultar el API para obtener el companyId:", error);
@@ -750,16 +789,16 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         }
         
         // Asegurarse de que el companyId sea un número válido
-        const numericCompanyId = Number(effectiveCompanyId);
+        const numericCompanyId = Number(routeData.companyId);
         
         if (!isNaN(numericCompanyId) && numericCompanyId > 0) {
-          // Asignar el companyId al objeto de datos de la ruta
+          // Asignar el companyId al objeto de datos de la ruta (por si acaso)
           routeData.companyId = numericCompanyId;
           console.log("✅ Usando companyId:", routeData.companyId);
         } else {
           // Si realmente no hay companyId después de todos los intentos, avisar al usuario
           console.error("❌ No se pudo determinar un ID de empresa válido. Valores obtenidos:", { 
-            effectiveCompanyId, 
+            routeDataCompanyId: routeData.companyId, 
             numericCompanyId,
             isNaN: isNaN(numericCompanyId),
             isPositive: numericCompanyId > 0
@@ -839,6 +878,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const onSubmit = async (data: any) => {
     console.log("=== INICIO ENVÍO DE FORMULARIO DE RUTA ===");
     console.log("Datos del formulario:", data);
+    console.log("Valores actuales del formulario:", form.getValues());
+    console.log("Estado de derivedCompanyId:", derivedCompanyId);
+    console.log("Estado del auth context:", { 
+      authCompanyId, 
+      authUserCompanyId: authUser?.companyId,
+      loading: isLoadingAuth,
+      status: authUser ? 'autenticado' : 'no autenticado'
+    });
     
     if (selectedOrders.length === 0) {
       toast({
@@ -860,19 +907,21 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     
     // Determinar el companyId efectivo de manera dinámica
     // Priorizar el valor derivado que ya ha sido calculado
-    let effectiveCompanyId = derivedCompanyId || 
+    let finalCompanyId = derivedCompanyId || 
                           data.companyId;
+                          
+    console.log("CompanyId efectivo determinado:", finalCompanyId);
     
     console.log("Verificación inicial de companyId:", {
       "authCompanyId": authCompanyId,
       "authUser?.companyId": authUser?.companyId,
       "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
       "form.companyId": data.companyId,
-      "effectiveCompanyId seleccionado": effectiveCompanyId
+      "finalCompanyId seleccionado": finalCompanyId
     });
     
     // Si no hay companyId, intentar obtenerlo mediante una llamada al API
-    if (!effectiveCompanyId) {
+    if (!finalCompanyId) {
       console.log("⚠️ CompanyId no encontrado, intentando recuperar del API...");
       
       try {
@@ -883,9 +932,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         if (userResponse?.user?.companyId) {
           console.log("✅ Recuperado companyId de API /api/user:", userResponse.user.companyId);
-          effectiveCompanyId = userResponse.user.companyId;
+          finalCompanyId = userResponse.user.companyId;
           // Actualizar el valor en el formulario para futuros envíos
-          form.setValue("companyId", Number(effectiveCompanyId));
+          form.setValue("companyId", Number(finalCompanyId));
         }
       } catch (err) {
         console.error("❌ Error al obtener información del usuario:", err);
@@ -893,7 +942,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     }
     
     // Si aún no tenemos companyId, intentar obtenerlo del endpoint específico
-    if (!effectiveCompanyId) {
+    if (!finalCompanyId) {
       try {
         const companyResponse = await apiRequest({
           url: '/api/companyid',
@@ -902,9 +951,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         if (companyResponse?.companyId) {
           console.log("✅ Recuperado companyId de API /api/companyid:", companyResponse.companyId);
-          effectiveCompanyId = companyResponse.companyId;
+          finalCompanyId = companyResponse.companyId;
           // Actualizar el valor en el formulario para futuros envíos
-          form.setValue("companyId", Number(effectiveCompanyId));
+          form.setValue("companyId", Number(finalCompanyId));
         }
       } catch (err) {
         console.error("❌ Error al obtener ID de compañía:", err);
@@ -912,7 +961,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     }
     
     // Verificación final de companyId
-    if (!effectiveCompanyId) {
+    if (!finalCompanyId) {
       console.error("❌ No se pudo determinar el ID de la empresa después de múltiples intentos");
       toast({
         variant: "destructive",
@@ -923,7 +972,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     }
     
     // Asegurar que el companyId sea un número
-    const numericCompanyId = Number(effectiveCompanyId);
+    const numericCompanyId = Number(finalCompanyId);
     
     console.log("CompanyId convertido a número:", numericCompanyId);
     
