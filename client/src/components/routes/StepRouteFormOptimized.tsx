@@ -481,9 +481,57 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       console.log(`✅ ${selectedOrders.length} pedidos seleccionados, avanzando a optimización`);
       setPasoActual(pasos.OPTIMIZAR_RUTA);
       
-      // Aquí podríamos agregar la lógica para optimizar la ruta
-      // Por ahora, solo usamos el orden de selección
-      setOptimizedSequence(selectedOrders);
+      // Añadir el punto de la empresa como primer punto (índice 0)
+      const companyCoordinates = settings?.latitude && settings?.longitude 
+        ? `${settings.latitude},${settings.longitude}` 
+        : "19.432608,-99.133209"; // Coordenadas por defecto
+        
+      // Crear punto de la empresa
+      const companyPoint = {
+        id: "company",
+        customerName: `${settings?.name || "Empresa"} (Punto de partida)`,
+        customerAddress: `${settings?.street || ""} ${settings?.streetNumber || ""}`,
+        coordinates: companyCoordinates,
+        isCompany: true
+      };
+      
+      // Agrupar pedidos por cliente (mismas coordenadas)
+      const groupedOrders = selectedOrders.reduce((acc: any[], order) => {
+        // Crear un identificador único basado en las coordenadas
+        const coordKey = order.coordinates || "";
+        
+        // Buscar si ya existe una parada con estas coordenadas
+        const existingStopIndex = acc.findIndex(stop => 
+          stop.coordinates === coordKey && !stop.isWarehouse
+        );
+        
+        if (existingStopIndex >= 0) {
+          // Si existe, añadimos este pedido a la lista de pedidos de esa parada
+          if (!acc[existingStopIndex].orderIds) {
+            acc[existingStopIndex].orderIds = [acc[existingStopIndex].id];
+          }
+          acc[existingStopIndex].orderIds.push(order.id);
+          
+          // Actualizar información de la parada para mostrar múltiples pedidos
+          acc[existingStopIndex].customerName = `${acc[existingStopIndex].customerName} (${acc[existingStopIndex].orderIds.length} pedidos)`;
+          
+          // Suma los totales de los pedidos
+          const currentTotal = typeof acc[existingStopIndex].total === 'number' ? acc[existingStopIndex].total : 0;
+          const orderTotal = typeof order.total === 'number' ? order.total : 0;
+          acc[existingStopIndex].total = currentTotal + orderTotal;
+        } else {
+          // Si no existe, creamos una nueva parada
+          acc.push({
+            ...order,
+            orderIds: [order.id]
+          });
+        }
+        
+        return acc;
+      }, []);
+      
+      // Añadir la empresa como primer punto y luego los pedidos agrupados
+      setOptimizedSequence([companyPoint, ...groupedOrders]);
     }
     else if (pasoActual === pasos.OPTIMIZAR_RUTA) {
       console.log("✅ Secuencia optimizada, avanzando a completar datos");
@@ -529,24 +577,61 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const onSubmit = (values: any) => {
     console.log("Datos del formulario:", values);
     
-    // Crear la lista de paradas a partir de los pedidos seleccionados
-    const stops = selectedOrders.map(order => ({
-      orderId: order.id,
-      customerId: order.customerId,
-      coordinates: order.coordinates,
-      address: order.customerAddress,
-      name: order.customerName,
-      status: "pending"
-    }));
+    // Crear un mapa para agrupar pedidos por cliente (coordenadas)
+    const stopsMap = new Map();
     
-    // Crear la secuencia de entrega
+    // Procesar cada orden en la secuencia optimizada
+    optimizedSequence.forEach((stop, index) => {
+      // Ignorar el punto del almacén (será manejado por separado)
+      if (stop.isWarehouse) return;
+      
+      // Si este punto tiene múltiples pedidos (orderIds)
+      if (stop.orderIds && stop.orderIds.length > 0) {
+        const coordinates = stop.coordinates;
+        
+        // Añadir cada pedido asociado a este punto como una parada
+        stop.orderIds.forEach((orderId: string | number) => {
+          // Buscar el pedido original
+          const originalOrder = selectedOrders.find(o => o.id === orderId);
+          if (originalOrder) {
+            stopsMap.set(orderId, {
+              orderId: orderId,
+              customerId: originalOrder.customerId,
+              coordinates: coordinates,
+              address: stop.customerAddress,
+              name: stop.customerName.replace(/ \(\d+ pedidos\)$/, ''), // Quitar el sufijo de múltiples pedidos
+              status: "pending"
+            });
+          }
+        });
+      } else {
+        // Punto con un solo pedido
+        stopsMap.set(stop.id, {
+          orderId: stop.id,
+          customerId: stop.customerId,
+          coordinates: stop.coordinates,
+          address: stop.customerAddress,
+          name: stop.customerName,
+          status: "pending"
+        });
+      }
+    });
+    
+    // Convertir el mapa a un array
+    const stops = Array.from(stopsMap.values());
+    
+    // Crear la secuencia de entrega, asegurando que incluimos el almacén como punto 0
     const sequence = optimizedSequence.map(order => order.id);
+    
+    // Agregar información del almacén en los datos del formulario
+    const warehouseInfo = optimizedSequence.find(order => order.isWarehouse);
     
     // Crear el objeto de datos para la API
     const routeData = {
       ...values,
       stops: stops,
       deliverySequence: sequence,
+      warehouseCoordinates: warehouseInfo?.coordinates || null,
     };
     
     // Solo incluir companyId si existe y es válido
@@ -810,12 +895,17 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                                 return null;
                               }
                               
+                              // Determinar si es el almacén (punto 0) o una parada regular
+                              const isWarehouse = order.isWarehouse === true;
+                              
                               // Crear un icono personalizado con el número de orden
                               const customIcon = L.divIcon({
                                 className: 'custom-div-icon',
                                 html: `<div class="flex items-center justify-center ${
-                                  idx === 0 ? 'bg-green-600' : 'bg-blue-600'
-                                } text-white rounded-full w-6 h-6 text-sm font-semibold shadow border border-white">${idx + 1}</div>`,
+                                  isWarehouse ? 'bg-green-600' : 'bg-blue-600'
+                                } text-white rounded-full w-6 h-6 text-sm font-semibold shadow border border-white">${
+                                  isWarehouse ? '0' : idx
+                                }</div>`,
                                 iconSize: [24, 24],
                                 iconAnchor: [12, 12]
                               });
@@ -828,7 +918,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                                 >
                                   <Popup>
                                     <div className="text-xs">
-                                      <div className="font-semibold">Parada #{idx + 1}</div>
+                                      <div className="font-semibold">{isWarehouse ? 'Almacén (Punto de partida)' : `Parada #${idx}`}</div>
                                       <div>{order.customerName}</div>
                                       <div>{order.customerAddress}</div>
                                     </div>
@@ -863,9 +953,15 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                 <CardContent className="p-2">
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                     {optimizedSequence.map((order, idx) => (
-                      <div key={order.id} className="flex items-center p-2 border rounded-md">
-                        <Badge variant="outline" className="mr-3 flex-shrink-0">
-                          {idx + 1}
+                      <div 
+                        key={order.id} 
+                        className={`flex items-center p-2 border rounded-md ${order.isWarehouse ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : ''}`}
+                      >
+                        <Badge 
+                          variant={order.isWarehouse ? "default" : "outline"} 
+                          className="mr-3 flex-shrink-0"
+                        >
+                          {order.isWarehouse ? '0' : idx}
                         </Badge>
                         <div className="overflow-hidden">
                           <p className="text-sm font-medium truncate">
