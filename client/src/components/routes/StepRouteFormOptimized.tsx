@@ -162,14 +162,26 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     } 
     
     console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: ${source})`);
-    setDerivedCompanyId(effectiveCompanyId);
     
-    // Asignar al formulario solo si se encontró un companyId válido
-    if (effectiveCompanyId !== null) {
-      form.setValue("companyId", effectiveCompanyId);
+    // Verificar si el companyId es válido
+    if (effectiveCompanyId === null || effectiveCompanyId === undefined || isNaN(effectiveCompanyId)) {
+      console.error("❌ No se pudo determinar un companyId válido. Es necesario para crear rutas.");
+      toast({
+        title: "Error de configuración",
+        description: "No se pudo determinar la empresa. Por favor, inicie sesión nuevamente.",
+        variant: "destructive"
+      });
+      return;
     }
     
-  }, [authCompanyId, authUser, pendingOrdersUserData, form]);
+    // Actualizar el estado de companyId derivado
+    setDerivedCompanyId(effectiveCompanyId);
+    
+    // Asignar al formulario
+    form.setValue("companyId", effectiveCompanyId);
+    console.log(`✅ CompanyId ${effectiveCompanyId} asignado al formulario`);
+    
+  }, [authCompanyId, authUser, pendingOrdersUserData, form, toast]);
   
   // Queries para cargar datos necesarios
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
@@ -733,23 +745,41 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Agregar información de la empresa en los datos del formulario
     const companyInfo = optimizedSequence.find(order => order.isCompany);
     
-    // Crear el objeto de datos para la API
+    // Verificar que tengamos companyId válido antes de enviar
+    if (!values.companyId || isNaN(Number(values.companyId))) {
+      console.error("❌ No hay companyId válido en formulario:", values.companyId);
+      toast({
+        title: "Error al crear ruta",
+        description: "No se pudo determinar la empresa para esta ruta. Por favor, inicie sesión nuevamente.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verificar que tengamos zoneId válido antes de enviar
+    if (!values.zoneId || isNaN(Number(values.zoneId))) {
+      console.error("❌ No hay zoneId válido en formulario:", values.zoneId);
+      toast({
+        title: "Error al crear ruta", 
+        description: "Debe seleccionar una zona válida para la ruta.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Asegurar que todos los IDs son números
     const routeData = {
       ...values,
+      companyId: Number(values.companyId),
+      zoneId: Number(values.zoneId),
+      driverId: Number(values.driverId),
+      // Solo convertir assistantId y truckId si no son nulos
+      assistantId: values.assistantId ? Number(values.assistantId) : null,
+      truckId: values.truckId ? Number(values.truckId) : null,
       stops: stops,
       deliverySequence: sequence,
       companyCoordinates: companyInfo?.coordinates || null,
     };
-    
-    // Solo incluir companyId si existe y es válido
-    if (values.companyId !== undefined && values.companyId !== null) {
-      routeData.companyId = Number(values.companyId);
-    }
-    
-    // Solo incluir zoneId si existe y es válido
-    if (values.zoneId !== undefined && values.zoneId !== null) {
-      routeData.zoneId = Number(values.zoneId);
-    }
     
     console.log("Datos a enviar:", routeData);
     
