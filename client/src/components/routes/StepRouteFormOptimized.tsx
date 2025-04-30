@@ -58,7 +58,8 @@ import {
   Truck,
   ArrowLeft,
   ArrowRight,
-  Calendar
+  Calendar,
+  RefreshCw
 } from "lucide-react";
 
 // Schema e interfaces
