@@ -622,86 +622,108 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   
   // Función para calcular y formatear el tiempo estimado de la ruta
   const calculateEstimatedTime = (): string => {
-    if (optimizedSequence.length <= 1) {
+    try {
+      if (optimizedSequence.length <= 1) {
+        setTotalDistanceKm(0);
+        return "0min";
+      }
+      
+      let estimatedTime = 0;
+      let totalDistance = 0;
+      
+      // Recorremos la secuencia optimizada para calcular tiempos entre puntos
+      for (let i = 0; i < optimizedSequence.length - 1; i++) {
+        const currentPoint = optimizedSequence[i];
+        const nextPoint = optimizedSequence[i + 1];
+        
+        // Añadir 5 minutos por cada parada (excepto la empresa que es punto de partida)
+        if (!currentPoint.isCompany) {
+          estimatedTime += 5; // 5 minutos por parada para entrega
+        }
+        
+        // Calcular distancia entre puntos para estimar tiempo de viaje
+        if (currentPoint.coordinates && nextPoint.coordinates) {
+          try {
+            // Convertir coordenadas a formato adecuado
+            const currentCoords = Array.isArray(currentPoint.coordinates) 
+              ? currentPoint.coordinates.map(Number)
+              : typeof currentPoint.coordinates === 'string'
+                ? currentPoint.coordinates.split(',').map(Number)
+                : [0, 0];
+                
+            const nextCoords = Array.isArray(nextPoint.coordinates)
+              ? nextPoint.coordinates.map(Number)
+              : typeof nextPoint.coordinates === 'string'
+                ? nextPoint.coordinates.split(',').map(Number)
+                : [0, 0];
+            
+            // Verificar que las coordenadas son válidas
+            if (isNaN(currentCoords[0]) || isNaN(currentCoords[1]) || 
+                isNaN(nextCoords[0]) || isNaN(nextCoords[1])) {
+              continue;
+            }
+            
+            // Usar Haversine para calcular distancia en km
+            const lat1 = currentCoords[0];
+            const lon1 = currentCoords[1];
+            const lat2 = nextCoords[0];
+            const lon2 = nextCoords[1];
+            
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+              Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c; // Distancia en km
+            
+            // Solo acumular distancias válidas
+            if (!isNaN(distance) && isFinite(distance)) {
+              totalDistance += distance;
+              
+              // Estimar tiempo en minutos (asumiendo velocidad promedio de 40 km/h en ciudad)
+              // 40 km/h = 0.6667 km/min, por lo que tiempo = distancia / 0.6667
+              const travelTime = distance / 0.6667;
+              if (!isNaN(travelTime) && isFinite(travelTime)) {
+                estimatedTime += travelTime;
+              }
+            }
+          } catch (e) {
+            console.error("Error al calcular distancia:", e);
+            // Continuar con el siguiente punto en caso de error
+          }
+        }
+      }
+      
+      // Añadir 5 minutos a la última parada si no es la empresa
+      const lastPoint = optimizedSequence[optimizedSequence.length - 1];
+      if (lastPoint && !lastPoint.isCompany) {
+        estimatedTime += 5;
+      }
+      
+      // Actualizar el estado de la distancia total (redondeada a 1 decimal)
+      if (!isNaN(totalDistance) && isFinite(totalDistance)) {
+        setTotalDistanceKm(Math.round(totalDistance * 10) / 10);
+      } else {
+        console.warn("Distancia total inválida:", totalDistance);
+        setTotalDistanceKm(0);
+      }
+      
+      // Redondear a minutos enteros
+      estimatedTime = !isNaN(estimatedTime) ? Math.round(estimatedTime) : 0;
+      
+      // Convertir a formato horas:minutos
+      const hours = Math.floor(estimatedTime / 60);
+      const minutes = estimatedTime % 60;
+      
+      return `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
+    } catch (error) {
+      console.error("Error general al calcular tiempo estimado:", error);
       setTotalDistanceKm(0);
       return "0min";
     }
-    
-    let estimatedTime = 0;
-    let totalDistance = 0;
-    
-    // Recorremos la secuencia optimizada para calcular tiempos entre puntos
-    for (let i = 0; i < optimizedSequence.length - 1; i++) {
-      const currentPoint = optimizedSequence[i];
-      const nextPoint = optimizedSequence[i + 1];
-      
-      // Añadir 5 minutos por cada parada (excepto la empresa que es punto de partida)
-      if (!currentPoint.isCompany) {
-        estimatedTime += 5; // 5 minutos por parada para entrega
-      }
-      
-      // Calcular distancia entre puntos para estimar tiempo de viaje
-      if (currentPoint.coordinates && nextPoint.coordinates) {
-        try {
-          // Convertir coordenadas a formato adecuado
-          const currentCoords = Array.isArray(currentPoint.coordinates) 
-            ? currentPoint.coordinates.map(Number)
-            : typeof currentPoint.coordinates === 'string'
-              ? currentPoint.coordinates.split(',').map(Number)
-              : [0, 0];
-              
-          const nextCoords = Array.isArray(nextPoint.coordinates)
-            ? nextPoint.coordinates.map(Number)
-            : typeof nextPoint.coordinates === 'string'
-              ? nextPoint.coordinates.split(',').map(Number)
-              : [0, 0];
-          
-          // Usar Haversine para calcular distancia en km
-          const lat1 = currentCoords[0];
-          const lon1 = currentCoords[1];
-          const lat2 = nextCoords[0];
-          const lon2 = nextCoords[1];
-          
-          const R = 6371; // Radio de la Tierra en km
-          const dLat = (lat2 - lat1) * Math.PI / 180;
-          const dLon = (lon2 - lon1) * Math.PI / 180;
-          const a = 
-            Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          const distance = R * c; // Distancia en km
-          
-          // Acumular la distancia total
-          totalDistance += distance;
-          
-          // Estimar tiempo en minutos (asumiendo velocidad promedio de 40 km/h en ciudad)
-          // 40 km/h = 0.6667 km/min, por lo que tiempo = distancia / 0.6667
-          const travelTime = distance / 0.6667;
-          estimatedTime += travelTime;
-        } catch (e) {
-          console.error("Error al calcular distancia:", e);
-        }
-      }
-    }
-    
-    // Añadir 5 minutos a la última parada si no es la empresa
-    const lastPoint = optimizedSequence[optimizedSequence.length - 1];
-    if (!lastPoint.isCompany) {
-      estimatedTime += 5;
-    }
-    
-    // Actualizar el estado de la distancia total (redondeada a 1 decimal)
-    setTotalDistanceKm(Math.round(totalDistance * 10) / 10);
-    
-    // Redondear a minutos enteros
-    estimatedTime = Math.round(estimatedTime);
-    
-    // Convertir a formato horas:minutos
-    const hours = Math.floor(estimatedTime / 60);
-    const minutes = estimatedTime % 60;
-    
-    return `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
   };
   
   // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
@@ -812,9 +834,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       stops: stops,
       deliverySequence: sequence,
       companyCoordinates: companyInfo?.coordinates || null,
-      // Agregar información de distancia y tiempo
-      distanceKm: totalDistanceKm,
-      estimatedTime: calculateEstimatedTime(),
     };
     
     console.log("Datos a enviar:", routeData);
