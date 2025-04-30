@@ -101,7 +101,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const authCompanyId = authUser?.companyId || null;
   const { settings } = useCompanySettings();
   
-  // Usamos directamente el companyId del usuario autenticado
+  // Determinar companyId
+  const [derivedCompanyId, setDerivedCompanyId] = useState<number | null>(null);
   
   // Obtener datos de usuarios para los pendingOrders
   const { data: pendingOrdersUserData } = useQuery({
@@ -134,21 +135,40 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     } as any,
   });
   
-  // Asignar companyId al formulario
+  // Determinar companyId y asignarlo al formulario
   useEffect(() => {
     console.log("🔄 DIAGNÓSTICO INICIAL - StepRouteForm montado");
     
-    // Usar directamente el ID de compañía del usuario autenticado
-    const effectiveCompanyId = authCompanyId;
+    // Obtener el companyId de manera dinámica del contexto de autenticación
+    let effectiveCompanyId: number | null = null;
+    let source = "";
     
-    console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: Auth Context)`);
+    // Prioridad 1: Auth Context (más confiable)
+    if (authCompanyId !== null && authCompanyId !== undefined && !isNaN(Number(authCompanyId))) {
+      effectiveCompanyId = Number(authCompanyId);
+      source = "Auth Context";
+    } 
+    // Prioridad 2: Usuario autenticado
+    else if (authUser?.companyId && !isNaN(Number(authUser.companyId))) {
+      effectiveCompanyId = Number(authUser.companyId);
+      source = "Auth User";
+    } 
+    // Prioridad 3: Datos de pedidos pendientes (asumiendo que puede ser cualquier objeto con propiedad companyId)
+    else if (pendingOrdersUserData && typeof pendingOrdersUserData === 'object' && 'companyId' in pendingOrdersUserData && 
+             !isNaN(Number((pendingOrdersUserData as any).companyId))) {
+      effectiveCompanyId = Number((pendingOrdersUserData as any).companyId);
+      source = "Pending Orders Data";
+    } 
+    
+    console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: ${source})`);
+    setDerivedCompanyId(effectiveCompanyId);
     
     // Asignar al formulario solo si se encontró un companyId válido
     if (effectiveCompanyId !== null) {
       form.setValue("companyId", effectiveCompanyId);
     }
     
-  }, [authCompanyId, form]);
+  }, [authCompanyId, authUser, pendingOrdersUserData, form]);
   
   // Queries para cargar datos necesarios
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
