@@ -376,7 +376,7 @@ export default function RoutesPage() {
             <CardDescription>Configurar una nueva ruta basada en pedidos</CardDescription>
           </CardHeader>
           <CardContent>
-            <RouteFormFixed
+            <StepRouteForm
               onRouteCreated={handleRouteCreated}
             />
           </CardContent>
