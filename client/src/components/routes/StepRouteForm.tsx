@@ -146,6 +146,33 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   // Definir una referencia al companyId que será usada en todo el componente
   const [derivedCompanyId, setDerivedCompanyId] = useState<number | null>(null);
   
+  // Inicializar el formulario primero para poder usarlo en los efectos
+  const form = useForm({
+    resolver: zodResolver(insertRouteSchema.extend({
+      // Hacemos companyId obligatorio sin valor por defecto
+      companyId: z.coerce.number().positive("El ID de compañía debe ser un número positivo"),
+      // Hacemos zoneId obligatorio sin valor por defecto
+      zoneId: z.coerce.number().positive("Debe seleccionar una zona"),
+      driverId: z.coerce.number(),
+      assistantId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
+        val === null || val === 'null' ? null : Number(val)),
+      truckId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
+        val === null || val === 'null' ? null : Number(val))
+    })),
+    defaultValues: {
+      name: "",
+      driverId: undefined, // El usuario debe seleccionar un conductor
+      assistantId: null,
+      truckId: null,
+      date: new Date(),
+      status: "pending" as const,
+      isCompleted: false,
+      stops: [] as string[],
+      companyId: undefined, // Se establecerá después con useEffect
+      zoneId: undefined // El usuario debe seleccionar una zona
+    },
+  });
+  
   // ════════════════════════════════════════════════════════
   // DETERMINACIÓN DEL COMPANY ID - EFECTO PRINCIPAL
   // ════════════════════════════════════════════════════════
@@ -178,13 +205,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       console.log(`✅ ESTABLECIENDO DERIVED COMPANY ID: ${effectiveCompanyId} (fuente: ${source})`);
       setDerivedCompanyId(effectiveCompanyId);
       
-      // Intentar actualizar el formulario inmediatamente (esto es redundante con el otro efecto, pero sirve como refuerzo)
-      if (form) {
-        setTimeout(() => {
-          console.log(`📝 Actualizando formulario inmediato con companyId=${effectiveCompanyId}`);
-          form.setValue("companyId", effectiveCompanyId);
-        }, 0);
-      }
+      // Actualizar el formulario con el companyId detectado
+      setTimeout(() => {
+        console.log(`📝 Actualizando formulario inmediato con companyId=${effectiveCompanyId}`);
+        form.setValue("companyId", effectiveCompanyId);
+      }, 0);
     } else {
       console.error("❌ NO SE PUDO ESTABLECER EL COMPANYID - No se encontró un valor numérico válido:");
       console.error({
@@ -357,32 +382,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   // Fetch zonas
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
     queryKey: ["/api/zones"],
-  });
-  
-  const form = useForm({
-    resolver: zodResolver(insertRouteSchema.extend({
-      // Hacemos companyId obligatorio sin valor por defecto
-      companyId: z.coerce.number().positive("El ID de compañía debe ser un número positivo"),
-      // Hacemos zoneId obligatorio sin valor por defecto
-      zoneId: z.coerce.number().positive("Debe seleccionar una zona"),
-      driverId: z.coerce.number(),
-      assistantId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
-        val === null || val === 'null' ? null : Number(val)),
-      truckId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
-        val === null || val === 'null' ? null : Number(val))
-    })),
-    defaultValues: {
-      name: "",
-      driverId: undefined, // El usuario debe seleccionar un conductor
-      assistantId: null,
-      truckId: null,
-      date: new Date(),
-      status: "pending" as const,
-      isCompleted: false,
-      stops: [] as string[],
-      companyId: undefined, // Se establecerá después con useEffect
-      zoneId: undefined // El usuario debe seleccionar una zona
-    },
   });
   
   // ════════════════════════════════════════════════════════
@@ -945,19 +944,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
 
   // Handle form submission
   // ════════════════════════════════════════════════════════
-  // ENVÍO DEL FORMULARIO CON VERIFICACIÓN DE COMPANYID
+  // ENVÍO DEL FORMULARIO SIMPLIFICADO CON VERIFICACIÓN DE COMPANYID
   // ════════════════════════════════════════════════════════
   const onSubmit = async (data: any) => {
     console.log("🚀 === INICIO ENVÍO DE FORMULARIO DE RUTA ===");
     console.log("📋 Datos del formulario:", data);
-    console.log("📊 Valores actuales del formulario:", form.getValues());
-    console.log("🏢 Estado de derivedCompanyId:", derivedCompanyId);
-    console.log("🔐 Estado del auth context:", { 
-      authCompanyId, 
-      authUserCompanyId: authUser?.companyId,
-      loading: isLoadingAuth,
-      status: authUser ? 'autenticado' : 'no autenticado'
-    });
     
     // Validaciones iniciales
     if (selectedOrders.length === 0) {
@@ -978,138 +969,42 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       return;
     }
     
-    // ════════════════════════════════════════════════════════
-    // DETERMINACIÓN FINAL DEL COMPANYID PARA ENVÍO
-    // ════════════════════════════════════════════════════════
-    console.log("🔍 DETERMINANDO COMPANYID FINAL PARA ENVÍO...");
+    // Determinar el companyId para el envío
+    let companyId: number | null = null;
     
-    // Buscar el companyId en todas las fuentes posibles, en orden de prioridad
-    let companyIdToUse: number | null = null;
-    let source = "ninguna";
-    
-    // 1. Primero revisar el formulario (más reciente y explícito)
+    // Verificar datos del formulario primero (forma más explícita y actualizada)
     if (data.companyId && !isNaN(Number(data.companyId))) {
-      companyIdToUse = Number(data.companyId);
-      source = "formulario";
-      console.log(`✅ Usando companyId=${companyIdToUse} del formulario`);
-    } 
-    // 2. Luego revisar derivedCompanyId (calculado al montar el componente)
-    else if (derivedCompanyId !== null) {
-      companyIdToUse = Number(derivedCompanyId);
-      source = "derivedCompanyId";
-      console.log(`✅ Usando derivedCompanyId=${companyIdToUse}`);
+      companyId = Number(data.companyId);
+      console.log(`✓ Usando companyId del formulario: ${companyId}`);
     }
-    // 3. Contexto de autenticación
-    else if (authCompanyId && !isNaN(Number(authCompanyId))) {
-      companyIdToUse = Number(authCompanyId);
-      source = "auth context";
-      console.log(`✅ Usando companyId=${companyIdToUse} del contexto de auth`);
-    }
-    // 4. Datos del usuario autenticado
+    // Intentar obtener del contexto de autenticación
     else if (authUser?.companyId && !isNaN(Number(authUser.companyId))) {
-      companyIdToUse = Number(authUser.companyId);
-      source = "usuario autenticado";
-      console.log(`✅ Usando companyId=${companyIdToUse} del usuario autenticado`);
+      companyId = Number(authUser.companyId);
+      console.log(`✓ Usando companyId del usuario: ${companyId}`);
+      data.companyId = companyId;
+    }
+    // Intentar obtener de derivedCompanyId (estado local)
+    else if (derivedCompanyId !== null && !isNaN(Number(derivedCompanyId))) {
+      companyId = Number(derivedCompanyId);
+      console.log(`✓ Usando derivedCompanyId: ${companyId}`);
+      data.companyId = companyId;
     }
     
-    // Verificación final - ¿tenemos un companyId válido?
-    if (companyIdToUse === null || isNaN(companyIdToUse) || companyIdToUse <= 0) {
-      console.error("❌ NO SE PUDO DETERMINAR UN COMPANYID VÁLIDO");
-      console.error("Valores disponibles:", {
-        "formulario.companyId": data.companyId,
-        derivedCompanyId,
-        authCompanyId,
-        "authUser?.companyId": authUser?.companyId
-      });
-      
+    // Verificación final
+    if (!companyId || isNaN(companyId) || companyId <= 0) {
+      console.error("❌ No se pudo determinar un CompanyId válido para el envío");
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudo determinar la empresa para crear la ruta. Por favor, inicie sesión nuevamente.",
+        description: "No se pudo determinar la empresa para la ruta. Por favor inicia sesión nuevamente.",
       });
       return;
     }
     
-    console.log(`✅ COMPANYID FINAL: ${companyIdToUse} (fuente: ${source})`);
+    // Asegurar que companyId es un número positivo
+    const numericCompanyId = Number(companyId);
     
-    // Actualizar datos con el companyId final
-    data.companyId = companyIdToUse;
-                          
-    console.log("CompanyId efectivo determinado:", finalCompanyId);
-    
-    console.log("Verificación inicial de companyId:", {
-      "authCompanyId": authCompanyId,
-      "authUser?.companyId": authUser?.companyId,
-      "pendingOrdersUserData?.companyId": pendingOrdersUserData?.companyId,
-      "form.companyId": data.companyId,
-      "finalCompanyId seleccionado": finalCompanyId
-    });
-    
-    // Si no hay companyId, intentar obtenerlo mediante una llamada al API
-    if (!finalCompanyId) {
-      console.log("⚠️ CompanyId no encontrado, intentando recuperar del API...");
-      
-      try {
-        const userResponse = await apiRequest({
-          url: '/api/user',
-          method: 'GET'
-        });
-        
-        if (userResponse?.user?.companyId) {
-          console.log("✅ Recuperado companyId de API /api/user:", userResponse.user.companyId);
-          finalCompanyId = userResponse.user.companyId;
-          // Actualizar el valor en el formulario para futuros envíos
-          form.setValue("companyId", Number(finalCompanyId));
-        }
-      } catch (err) {
-        console.error("❌ Error al obtener información del usuario:", err);
-      }
-    }
-    
-    // Si aún no tenemos companyId, intentar obtenerlo del endpoint específico
-    if (!finalCompanyId) {
-      try {
-        const companyResponse = await apiRequest({
-          url: '/api/companyid',
-          method: 'GET'
-        });
-        
-        if (companyResponse?.companyId) {
-          console.log("✅ Recuperado companyId de API /api/companyid:", companyResponse.companyId);
-          finalCompanyId = companyResponse.companyId;
-          // Actualizar el valor en el formulario para futuros envíos
-          form.setValue("companyId", Number(finalCompanyId));
-        }
-      } catch (err) {
-        console.error("❌ Error al obtener ID de compañía:", err);
-      }
-    }
-    
-    // Verificación final de companyId
-    if (!finalCompanyId) {
-      console.error("❌ No se pudo determinar el ID de la empresa después de múltiples intentos");
-      toast({
-        variant: "destructive",
-        title: "Error de sesión",
-        description: "No se pudo determinar el ID de la empresa. Por favor, vuelve a iniciar sesión.",
-      });
-      return;
-    }
-    
-    // Asegurar que el companyId sea un número
-    const numericCompanyId = Number(finalCompanyId);
-    
-    console.log("CompanyId convertido a número:", numericCompanyId);
-    
-    if (isNaN(numericCompanyId) || numericCompanyId <= 0) {
-      console.error("❌ CompanyId inválido:", numericCompanyId);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "El ID de la empresa no es válido. Por favor, vuelve a iniciar sesión.",
-      });
-      return;
-    }
+    console.log(`✅ CompanyId final para envío: ${numericCompanyId}`);
     
     // Asegurar que tenemos la ruta optimizada
     if (!optimizedRoute || optimizedRoute.length < 2) {
