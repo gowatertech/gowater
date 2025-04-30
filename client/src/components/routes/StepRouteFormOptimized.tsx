@@ -90,6 +90,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const [filteredPendingOrders, setFilteredPendingOrders] = useState<any[]>([]);
   const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
   const [optimizedSequence, setOptimizedSequence] = useState<any[]>([]);
+  const [totalDistanceKm, setTotalDistanceKm] = useState<number>(0);
   
   // Tracking UI state
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
@@ -559,9 +560,13 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   
   // Función para calcular y formatear el tiempo estimado de la ruta
   const calculateEstimatedTime = (): string => {
-    if (optimizedSequence.length <= 1) return "0min";
+    if (optimizedSequence.length <= 1) {
+      setTotalDistanceKm(0);
+      return "0min";
+    }
     
     let estimatedTime = 0;
+    let totalDistance = 0;
     
     // Recorremos la secuencia optimizada para calcular tiempos entre puntos
     for (let i = 0; i < optimizedSequence.length - 1; i++) {
@@ -605,6 +610,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
           const distance = R * c; // Distancia en km
           
+          // Acumular la distancia total
+          totalDistance += distance;
+          
           // Estimar tiempo en minutos (asumiendo velocidad promedio de 40 km/h en ciudad)
           // 40 km/h = 0.6667 km/min, por lo que tiempo = distancia / 0.6667
           const travelTime = distance / 0.6667;
@@ -620,6 +628,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     if (!lastPoint.isCompany) {
       estimatedTime += 5;
     }
+    
+    // Actualizar el estado de la distancia total (redondeada a 1 decimal)
+    setTotalDistanceKm(Math.round(totalDistance * 10) / 10);
     
     // Redondear a minutos enteros
     estimatedTime = Math.round(estimatedTime);
@@ -1030,10 +1041,16 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-sm">Secuencia de entregas</CardTitle>
                     {optimizedSequence.length > 1 && (
-                      <Badge variant="outline" className="text-xs">
-                        <Clock className="mr-1 h-3 w-3" />
-                        <span>Tiempo estimado: {calculateEstimatedTime()}</span>
-                      </Badge>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          <Clock className="mr-1 h-3 w-3" />
+                          <span>Tiempo: {calculateEstimatedTime()}</span>
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          <Route className="mr-1 h-3 w-3" />
+                          <span>Distancia: {totalDistanceKm} km</span>
+                        </Badge>
+                      </div>
                     )}
                   </div>
                 </CardHeader>
