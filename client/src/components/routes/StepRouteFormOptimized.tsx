@@ -127,8 +127,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: 15, // Valor por defecto
-      zoneId: 0
+      companyId: 0, // Se actualizará dinámicamente 
+      zoneId: 0 // Se seleccionará por el usuario
     },
   });
   
@@ -137,7 +137,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     console.log("🔄 DIAGNÓSTICO INICIAL - StepRouteForm montado");
     
     // Obtener el companyId de manera dinámica, priorizando useAuth
-    let effectiveCompanyId: number = 15; // Default
+    let effectiveCompanyId: number = 0; // Inicializamos en 0
     let source = "valor predeterminado";
     
     // Prioridad 1: Auth Context (más confiable)
