@@ -52,6 +52,7 @@ import { CompanyFooter } from "@/components/common/CompanyFooter";
 import { DesignCredit } from "@/components/common/DesignCredit";
 import TestPage from "@/pages/test-page";
 import TestPrintPayment from "@/pages/test-print-payment";
+import TestRoutesPage from "@/pages/test-routes";
 import LandingPage from "@/pages/landing";
 import PlanesPage from "@/pages/landing/planes";
 import SoportePage from "@/pages/landing/soporte";
@@ -229,7 +230,7 @@ function Router() {
   const CompanyLogin = lazy(() => import("@/pages/auth/login"));
 
   // Si estamos en la página de landing, planes, soporte, contacto o registro de interés, renderizar sin DashboardLayout
-  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login") && !location.startsWith("/dashboard")) {
+  if ((location === "/" || location === "/planes" || location === "/soporte" || location === "/contact" || location === "/register-interest" || location === "/register" || location === "/auth/login" || location === "/test-routes") && !location.startsWith("/dashboard")) {
     return (
       <Switch>
         <Route path="/" component={LandingPage} />
@@ -237,6 +238,7 @@ function Router() {
         <Route path="/soporte" component={SoportePage} />
         <Route path="/contact" component={ContactPage} />
         <Route path="/register-interest" component={RegisterInterestPage} />
+        <Route path="/test-routes" component={TestRoutesPage} />
         <Route path="/auth/login">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <CompanyLogin />
