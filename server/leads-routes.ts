@@ -51,7 +51,7 @@ router.get("/interested-companies", async (req, res) => {
     //   return res.status(403).json({ success: false, message: "No autorizado" });
     // }
     
-    const leads = await db.select().from(companyLeads).orderBy(companyLeads.createdAt, "desc");
+    const leads = await db.select().from(companyLeads);
     
     return res.status(200).json({
       success: true,
@@ -62,47 +62,6 @@ router.get("/interested-companies", async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error al obtener la lista de empresas interesadas."
-    });
-  }
-});
-
-// Endpoint para actualizar el estado de una empresa interesada
-router.patch("/interested-companies/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    // Validar que el status sea uno de los valores permitidos
-    if (!["new", "contacted", "converted", "declined"].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Estado no válido"
-      });
-    }
-    
-    const [updatedLead] = await db
-      .update(companyLeads)
-      .set({ status })
-      .where(eq(companyLeads.id, Number(id)))
-      .returning();
-    
-    if (!updatedLead) {
-      return res.status(404).json({
-        success: false,
-        message: "Empresa no encontrada"
-      });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      data: updatedLead,
-      message: "Estado actualizado correctamente"
-    });
-  } catch (error) {
-    console.error("Error al actualizar estado:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Error al actualizar el estado"
     });
   }
 });
