@@ -40,7 +40,7 @@ import {
 
 // Sub-components
 import StepRouteForm from "@/components/routes/StepRouteForm";
-import RouteFormFixed from "@/components/routes/RouteFormFixed";
+import StepRouteFormOptimized from "@/components/routes/StepRouteFormOptimized";
 import { ResponsiveRoutesList } from "@/components/routes/ResponsiveRoutesList";
 
 // Placeholders para componentes que necesitamos crear
@@ -376,7 +376,7 @@ export default function RoutesPage() {
             <CardDescription>Configurar una nueva ruta basada en pedidos</CardDescription>
           </CardHeader>
           <CardContent>
-            <StepRouteForm
+            <StepRouteFormOptimized
               onRouteCreated={handleRouteCreated}
             />
           </CardContent>
