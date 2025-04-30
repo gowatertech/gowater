@@ -215,6 +215,20 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           // Información básica para debugging
           console.log(`📋 Procesando pedido #${order.id || 'sin ID'}`);
           
+          // Convertir el total a número si es posible
+          let totalNumber = 0;
+          if (order.total !== undefined && order.total !== null) {
+            if (typeof order.total === 'number') {
+              totalNumber = order.total;
+            } else {
+              // Intentar convertir a número si es string
+              const parsed = parseFloat(order.total);
+              if (!isNaN(parsed)) {
+                totalNumber = parsed;
+              }
+            }
+          }
+          
           return {
             ...order,
             id: order.id || Math.random().toString(36).substring(7), // Asegurar que siempre hay un ID
@@ -230,8 +244,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
             date: order.date || new Date().toISOString(),
             // Asegurar estado
             status: order.status || "pending",
-            // Asegurar total
-            total: order.total || 0
+            // Asegurar total como número
+            total: totalNumber
           };
         }).filter(Boolean); // Remover posibles nulos
         
@@ -627,7 +641,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                             <Clock className="h-3 w-3 mr-1" />
                             {format(new Date(order.date), 'dd/MM/yyyy')}
                             <DollarSign className="h-3 w-3 ml-2 mr-1" />
-                            ${order.total?.toFixed(2) || '0.00'}
+                            ${typeof order.total === 'number' ? order.total.toFixed(2) : 
+                               order.total ? String(order.total) : '0.00'}
                           </div>
                         </div>
                         
