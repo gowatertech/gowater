@@ -385,11 +385,28 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   // Función para cambiar la zona seleccionada
   const handleZoneChange = (zoneId: number) => {
     console.log(`Cambiando a zona ID: ${zoneId}`);
+    
+    // Siempre limpiar pedidos seleccionados al cambiar de zona
+    setSelectedOrders([]);
+    
+    // Actualizar el ID de la zona seleccionada
     setSelectedZoneId(zoneId);
     
     if (typeof zoneId === 'number' && !isNaN(zoneId) && zoneId > 0) {
+      // Actualizar el valor en el formulario
       form.setValue("zoneId", zoneId);
       console.log(`Zona en formulario actualizada a: ${form.getValues("zoneId")}`);
+      
+      // Forzar la actualización de pedidos pendientes si es necesario
+      if (!pendingOrdersLoaded || pendingOrders.length === 0) {
+        console.log("🔄 Forzando recarga de pedidos pendientes para nueva zona");
+        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+        
+        // Mostrar toast informativo
+        toast({
+          description: "Cargando pedidos para esta zona...",
+        });
+      }
     }
   };
   
@@ -828,27 +845,44 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                   <Package className="h-10 w-10 text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No hay pedidos pendientes en esta zona</p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Puede que no existan pedidos pendientes o que los pedidos no estén asociados a esta zona.
+                    {selectedZoneId ? (
+                      <>La zona {zones.find(z => z.id === selectedZoneId)?.name || `#${selectedZoneId}`} no tiene pedidos pendientes.</>
+                    ) : (
+                      <>Seleccione una zona para ver los pedidos disponibles.</>
+                    )}
                   </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-4"
-                    onClick={() => {
-                      // Refrescar la lista de pedidos
-                      console.log("🔄 Refrescando pedidos pendientes manualmente");
-                      queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
-                      
-                      // Mostrar mensaje de carga
-                      toast({
-                        title: "Actualizando pedidos",
-                        description: "Buscando pedidos pendientes en esta zona...",
-                      });
-                    }}
-                  >
-                    <Clock className="mr-2 h-4 w-4" />
-                    Refrescar pedidos
-                  </Button>
+                  <div className="flex gap-2 mt-4">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // Volver a selección de zona
+                        setPasoActual(pasos.SELECCIONAR_ZONA);
+                        console.log("Volviendo a selección de zona");
+                      }}
+                    >
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      Cambiar zona
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        // Refrescar la lista de pedidos
+                        console.log("🔄 Refrescando pedidos pendientes manualmente");
+                        queryClient.invalidateQueries({ queryKey: ["/api/orders/pending"] });
+                        
+                        // Mostrar mensaje de carga
+                        toast({
+                          title: "Actualizando pedidos",
+                          description: "Buscando pedidos pendientes en esta zona...",
+                        });
+                      }}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Actualizar
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="p-3 space-y-2">
