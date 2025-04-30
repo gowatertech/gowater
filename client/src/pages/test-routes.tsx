@@ -40,12 +40,12 @@ export default function TestRoutesPage() {
   const [error, setError] = useState<string | null>(null);
   
   // Obtener zonas para mostrar en el selector
-  const { data: zones = [] } = useQuery({
+  const { data: zones = [] as any[] } = useQuery<any[]>({
     queryKey: ["/api/zones"],
   });
   
   // Obtener conductores para mostrar en el selector
-  const { data: drivers = [] } = useQuery({
+  const { data: drivers = [] as any[] } = useQuery<any[]>({
     queryKey: ["/api/users?role=driver"],
   });
   
@@ -54,9 +54,9 @@ export default function TestRoutesPage() {
     resolver: zodResolver(routeSchema),
     defaultValues: {
       name: "Ruta de prueba",
-      driverId: undefined,
+      driverId: 0, // Inicializamos con 0 en lugar de undefined
       companyId: 15, // ID compañía para pruebas
-      zoneId: undefined,
+      zoneId: 0, // Inicializamos con 0 en lugar de undefined
     },
   });
   

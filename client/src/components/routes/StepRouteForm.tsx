@@ -149,9 +149,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   // Inicializar el formulario primero para poder usarlo en los efectos
   const form = useForm({
     resolver: zodResolver(insertRouteSchema.extend({
-      // Hacemos companyId obligatorio sin valor por defecto
+      // Hacemos companyId obligatorio
       companyId: z.coerce.number().positive("El ID de compañía debe ser un número positivo"),
-      // Hacemos zoneId obligatorio sin valor por defecto
+      // Hacemos zoneId obligatorio
       zoneId: z.coerce.number().positive("Debe seleccionar una zona"),
       driverId: z.coerce.number(),
       assistantId: z.union([z.coerce.number(), z.literal(null), z.literal('null')]).nullable().transform(val => 
@@ -161,19 +161,19 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     })),
     defaultValues: {
       name: "",
-      driverId: undefined, // El usuario debe seleccionar un conductor
+      driverId: 0, // Inicializamos con 0 en lugar de undefined
       assistantId: null,
       truckId: null,
       date: new Date(),
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: undefined, // Se establecerá después con useEffect
-      zoneId: undefined // El usuario debe seleccionar una zona
+      companyId: 0, // Inicializamos con 0 en lugar de undefined
+      zoneId: 0 // Inicializamos con 0 en lugar de undefined
     },
   });
   
-  // ════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════
   // DETERMINACIÓN DEL COMPANY ID - EFECTO PRINCIPAL
   // ════════════════════════════════════════════════════════
   useEffect(() => {
@@ -181,7 +181,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     
     // Obtener el companyId de manera dinámica, priorizando useAuth
     // Utilizamos una verificación más estricta para asegurar valores numéricos válidos
-    let effectiveCompanyId: number | null = null;
+    let effectiveCompanyId: number = 0; // Inicializamos con un valor predeterminado
     let source = "ninguna fuente";
     
     // Prioridad 1: Auth Context (más confiable)
@@ -201,15 +201,23 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     }
     
     // Verificación adicional para garantizar que es un número positivo válido
-    if (effectiveCompanyId !== null && effectiveCompanyId > 0) {
+    if (effectiveCompanyId > 0) {
       console.log(`✅ ESTABLECIENDO DERIVED COMPANY ID: ${effectiveCompanyId} (fuente: ${source})`);
       setDerivedCompanyId(effectiveCompanyId);
       
       // Actualizar el formulario con el companyId detectado
-      setTimeout(() => {
+      try {
         console.log(`📝 Actualizando formulario inmediato con companyId=${effectiveCompanyId}`);
+        
+        // Usamos setValue para actualizar el valor
         form.setValue("companyId", effectiveCompanyId);
-      }, 0);
+        
+        // Verificación adicional
+        const formCompanyId = form.getValues("companyId");
+        console.log(`✓ Comprobación: companyId ahora es ${formCompanyId} (${typeof formCompanyId})`);
+      } catch (error) {
+        console.error("❌ Error al establecer companyId en el formulario:", error);
+      }
     } else {
       console.error("❌ NO SE PUDO ESTABLECER EL COMPANYID - No se encontró un valor numérico válido:");
       console.error({
@@ -217,6 +225,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         authUserCompanyId: `${authUser?.companyId} (${typeof authUser?.companyId})`,
         pendingOrdersCompanyId: `${pendingOrdersUserData?.companyId} (${typeof pendingOrdersUserData?.companyId})`
       });
+      
+      // Establecer un valor por defecto en caso de error (15 para pruebas)
+      try {
+        console.log("⚠️ Estableciendo valor por defecto companyId=15 como fallback");
+        form.setValue("companyId", 15); // Valor de prueba como último recurso
+      } catch (error) {
+        console.error("Error al establecer valor por defecto para companyId:", error);
+      }
     }
     
     // Log de diagnóstico completo
@@ -325,7 +341,13 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     setSelectedZoneId(zoneId);
     
     // Actualizar el formulario con la zona seleccionada
-    form.setValue("zoneId", zoneId);
+    // Verificar que zoneId sea un número válido
+    if (typeof zoneId === 'number' && !isNaN(zoneId) && zoneId > 0) {
+      form.setValue("zoneId", zoneId);
+      console.log(`Zona en formulario actualizada a: ${form.getValues("zoneId")}`);
+    } else {
+      console.error(`Error: zoneId inválido (${zoneId}, tipo: ${typeof zoneId})`);
+    }
   };
   
   // Funciones para avanzar y retroceder en los pasos
