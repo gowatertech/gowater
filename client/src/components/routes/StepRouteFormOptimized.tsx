@@ -557,73 +557,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     setSearchQuery(e.target.value);
   };
   
-  // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
-  const filteredOrders = searchQuery 
-    ? filteredPendingOrders.filter(order => {
-        // Validar que el pedido tenga los campos necesarios para evitar errores
-        if (!order || typeof order !== 'object') return false;
-        
-        const customerName = order.customerName || '';
-        const customerAddress = order.customerAddress || '';
-        const orderId = order.id ? order.id.toString() : '';
-        
-        return customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               customerAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               orderId.includes(searchQuery.toLowerCase());
-      })
-    : filteredPendingOrders;
-  
-  // Función para enviar el formulario y crear la ruta
-  const onSubmit = (values: any) => {
-    console.log("Datos del formulario:", values);
+  // Función para calcular y formatear el tiempo estimado de la ruta
+  const calculateEstimatedTime = (): string => {
+    if (optimizedSequence.length <= 1) return "0min";
     
-    // Crear un mapa para agrupar pedidos por cliente (coordenadas)
-    const stopsMap = new Map();
-    
-    // Procesar cada orden en la secuencia optimizada
-    optimizedSequence.forEach((stop, index) => {
-      // Ignorar el punto de la empresa (será manejado por separado)
-      if (stop.isCompany) return;
-      
-      // Si este punto tiene múltiples pedidos (orderIds)
-      if (stop.orderIds && stop.orderIds.length > 0) {
-        const coordinates = stop.coordinates;
-        
-        // Añadir cada pedido asociado a este punto como una parada
-        stop.orderIds.forEach((orderId: string | number) => {
-          // Buscar el pedido original
-          const originalOrder = selectedOrders.find(o => o.id === orderId);
-          if (originalOrder) {
-            stopsMap.set(orderId, {
-              orderId: orderId,
-              customerId: originalOrder.customerId,
-              coordinates: coordinates,
-              address: stop.customerAddress,
-              name: stop.customerName.replace(/ \(\d+ pedidos\)$/, ''), // Quitar el sufijo de múltiples pedidos
-              status: "pending"
-            });
-          }
-        });
-      } else {
-        // Punto con un solo pedido
-        stopsMap.set(stop.id, {
-          orderId: stop.id,
-          customerId: stop.customerId,
-          coordinates: stop.coordinates,
-          address: stop.customerAddress,
-          name: stop.customerName,
-          status: "pending"
-        });
-      }
-    });
-    
-    // Convertir el mapa a un array
-    const stops = Array.from(stopsMap.values());
-    
-    // Crear la secuencia de entrega, asegurando que incluimos la empresa como punto 0
-    const sequence = optimizedSequence.map(order => order.id);
-    
-    // Calcular tiempo estimado de la ruta (5 minutos por parada + tiempo de viaje)
     let estimatedTime = 0;
     
     // Recorremos la secuencia optimizada para calcular tiempos entre puntos
@@ -690,9 +627,79 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Convertir a formato horas:minutos
     const hours = Math.floor(estimatedTime / 60);
     const minutes = estimatedTime % 60;
-    const estimatedTimeFormatted = `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
     
-    console.log(`Tiempo estimado de la ruta: ${estimatedTimeFormatted} (${estimatedTime} minutos)`);
+    return `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
+  };
+  
+  // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
+  const filteredOrders = searchQuery 
+    ? filteredPendingOrders.filter(order => {
+        // Validar que el pedido tenga los campos necesarios para evitar errores
+        if (!order || typeof order !== 'object') return false;
+        
+        const customerName = order.customerName || '';
+        const customerAddress = order.customerAddress || '';
+        const orderId = order.id ? order.id.toString() : '';
+        
+        return customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               customerAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+               orderId.includes(searchQuery.toLowerCase());
+      })
+    : filteredPendingOrders;
+  
+  // Función para enviar el formulario y crear la ruta
+  const onSubmit = (values: any) => {
+    console.log("Datos del formulario:", values);
+    
+    // Crear un objeto para agrupar pedidos por cliente (coordenadas)
+    const stopsObj: Record<string, any> = {};
+    
+    // Procesar cada orden en la secuencia optimizada
+    optimizedSequence.forEach((stop, index) => {
+      // Ignorar el punto de la empresa (será manejado por separado)
+      if (stop.isCompany) return;
+      
+      // Si este punto tiene múltiples pedidos (orderIds)
+      if (stop.orderIds && stop.orderIds.length > 0) {
+        const coordinates = stop.coordinates;
+        
+        // Añadir cada pedido asociado a este punto como una parada
+        stop.orderIds.forEach((orderId: string | number) => {
+          // Buscar el pedido original
+          const originalOrder = selectedOrders.find(o => o.id === orderId);
+          if (originalOrder) {
+            stopsObj[orderId.toString()] = {
+              orderId: orderId,
+              customerId: originalOrder.customerId,
+              coordinates: coordinates,
+              address: stop.customerAddress,
+              name: stop.customerName.replace(/ \(\d+ pedidos\)$/, ''), // Quitar el sufijo de múltiples pedidos
+              status: "pending"
+            };
+          }
+        });
+      } else {
+        // Punto con un solo pedido
+        stopsObj[stop.id.toString()] = {
+          orderId: stop.id,
+          customerId: stop.customerId,
+          coordinates: stop.coordinates,
+          address: stop.customerAddress,
+          name: stop.customerName,
+          status: "pending"
+        };
+      }
+    });
+    
+    // Convertir el objeto a un array
+    const stops = Object.values(stopsObj);
+    
+    // Crear la secuencia de entrega, asegurando que incluimos la empresa como punto 0
+    const sequence = optimizedSequence.map(order => order.id);
+    
+    // Calcular y mostrar el tiempo estimado de la ruta
+    const estimatedTimeFormatted = calculateEstimatedTime();
+    console.log(`Tiempo estimado de la ruta: ${estimatedTimeFormatted}`);
     
     // Agregar información de la empresa en los datos del formulario
     const companyInfo = optimizedSequence.find(order => order.isCompany);
