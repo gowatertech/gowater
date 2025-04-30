@@ -342,7 +342,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: derivedCompanyId ? Number(derivedCompanyId) : undefined, // Sin valor por defecto
+      companyId: undefined, // Se establecerá después con useEffect
       zoneId: undefined // El usuario debe seleccionar una zona
     },
   });
