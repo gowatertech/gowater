@@ -786,9 +786,21 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Agregar información de la empresa en los datos del formulario
     const companyInfo = optimizedSequence.find(order => order.isCompany);
     
+    // Obtener el companyId del contexto de autenticación si está disponible
+    const { user } = useCurrentUser();
+    const companyIdFromContext = user?.companyId;
+    
+    console.log("ℹ️ CompanyId del contexto de autenticación:", companyIdFromContext);
+    console.log("ℹ️ CompanyId del formulario:", values.companyId);
+    console.log("ℹ️ CompanyId de las configuraciones:", settings?.companyId);
+    
+    // Priorizar companyId en este orden: contexto de autenticación -> formulario -> configuraciones
+    const finalCompanyId = companyIdFromContext || values.companyId || settings?.companyId;
+    
     // Verificar que tengamos companyId válido antes de enviar
-    if (!values.companyId || isNaN(Number(values.companyId))) {
-      console.error("❌ No hay companyId válido en formulario:", values.companyId);
+    if (!finalCompanyId || isNaN(Number(finalCompanyId))) {
+      console.error("❌ No hay companyId válido para esta ruta:", 
+        { formulario: values.companyId, contexto: companyIdFromContext, settings: settings?.companyId });
       toast({
         title: "Error al crear ruta",
         description: "No se pudo determinar la empresa para esta ruta. Por favor, inicie sesión nuevamente.",
@@ -811,7 +823,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Asegurar que todos los IDs son números
     const routeData = {
       ...values,
-      companyId: Number(values.companyId),
+      companyId: Number(finalCompanyId), // Usar el companyId que obtuvimos y validamos
       zoneId: Number(values.zoneId),
       driverId: Number(values.driverId),
       // Solo convertir assistantId y truckId si no son nulos
