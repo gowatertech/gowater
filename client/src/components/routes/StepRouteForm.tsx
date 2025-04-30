@@ -148,6 +148,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   
   // Actualiza derivedCompanyId cuando cambia cualquiera de las fuentes
   useEffect(() => {
+    console.log("DIAGNÓSTICO INICIAL - StepRouteForm montado");
+    
     // Obtener el companyId de manera dinámica, priorizando useAuth
     const effectiveCompanyId = authCompanyId || 
                              (authUser && authUser.companyId ? authUser.companyId : null) || 
@@ -155,7 +157,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     
     // Si tenemos un companyId y es un número válido, lo establecemos
     if (effectiveCompanyId && !isNaN(Number(effectiveCompanyId))) {
+      console.log("ESTABLECIENDO DERIVED COMPANY ID:", Number(effectiveCompanyId));
       setDerivedCompanyId(Number(effectiveCompanyId));
+    } else {
+      console.error("NO SE PUDO ESTABLECER EL COMPANYID - Valores disponibles:", {
+        authCompanyId, 
+        authUserCompanyId: authUser?.companyId,
+        pendingOrdersCompanyId: pendingOrdersUserData?.companyId
+      });
     }
     
     // Log de diagnóstico para verificar que el companyId se está obteniendo correctamente
