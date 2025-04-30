@@ -128,7 +128,12 @@ export default function Users() {
     if (effectiveCompanyId) {
       console.log("Precargando companyId en el formulario:", effectiveCompanyId);
       // No necesitamos mostrarlo en la UI pero sí incluirlo en los datos
-      form.setValue("companyId", effectiveCompanyId);
+      // Usamos setValues para actualizar todos los campos a la vez
+      const currentValues = form.getValues();
+      form.reset({
+        ...currentValues,
+        companyId: effectiveCompanyId
+      });
     }
   }, [effectiveCompanyId, form]);
 
@@ -317,6 +322,9 @@ export default function Users() {
       license: user.license || "",
       licenseExpiry: user.licenseExpiry ? format(new Date(user.licenseExpiry), "yyyy-MM-dd") : "",
       emergencyContact: user.emergencyContact || "",
+      active: user.active !== undefined ? user.active : true,
+      // Usamos el ID de compañía del usuario que estamos editando, o si no existe, el effectiveCompanyId
+      companyId: user.companyId || effectiveCompanyId
     });
   };
 
@@ -336,14 +344,20 @@ export default function Users() {
   
   // Función para reiniciar el formulario asegurando que el companyId está presente
   const resetFormWithCompanyId = () => {
-    form.reset();
-    
-    // Asegurarnos de que el companyId se mantenga en el formulario
-    if (effectiveCompanyId) {
-      setTimeout(() => {
-        form.setValue("companyId", effectiveCompanyId);
-      }, 0);
-    }
+    // Reiniciar el formulario con los valores predeterminados incluyendo el companyId
+    form.reset({
+      name: "",
+      username: "",
+      email: "",
+      password: "",
+      role: "admin",
+      phone: "",
+      license: "",
+      licenseExpiry: "",
+      emergencyContact: "",
+      active: true,
+      companyId: effectiveCompanyId // Incluimos el companyId efectivo
+    });
   };
   
   // Reset del formulario y regreso a la lista
@@ -423,7 +437,7 @@ export default function Users() {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{t("users")}</h1>
         <Button 
           onClick={() => {
-            form.reset();
+            resetFormWithCompanyId(); // Usamos la función que garantiza companyId
             setEditingUser(null);
             setActiveTab("form");
           }}
