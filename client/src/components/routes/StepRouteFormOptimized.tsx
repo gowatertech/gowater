@@ -502,7 +502,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         // Buscar si ya existe una parada con estas coordenadas
         const existingStopIndex = acc.findIndex(stop => 
-          stop.coordinates === coordKey && !stop.isWarehouse
+          stop.coordinates === coordKey && !stop.isCompany
         );
         
         if (existingStopIndex >= 0) {
@@ -582,8 +582,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     
     // Procesar cada orden en la secuencia optimizada
     optimizedSequence.forEach((stop, index) => {
-      // Ignorar el punto del almacén (será manejado por separado)
-      if (stop.isWarehouse) return;
+      // Ignorar el punto de la empresa (será manejado por separado)
+      if (stop.isCompany) return;
       
       // Si este punto tiene múltiples pedidos (orderIds)
       if (stop.orderIds && stop.orderIds.length > 0) {
@@ -620,18 +620,89 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Convertir el mapa a un array
     const stops = Array.from(stopsMap.values());
     
-    // Crear la secuencia de entrega, asegurando que incluimos el almacén como punto 0
+    // Crear la secuencia de entrega, asegurando que incluimos la empresa como punto 0
     const sequence = optimizedSequence.map(order => order.id);
     
-    // Agregar información del almacén en los datos del formulario
-    const warehouseInfo = optimizedSequence.find(order => order.isWarehouse);
+    // Calcular tiempo estimado de la ruta (5 minutos por parada + tiempo de viaje)
+    let estimatedTime = 0;
+    
+    // Recorremos la secuencia optimizada para calcular tiempos entre puntos
+    for (let i = 0; i < optimizedSequence.length - 1; i++) {
+      const currentPoint = optimizedSequence[i];
+      const nextPoint = optimizedSequence[i + 1];
+      
+      // Añadir 5 minutos por cada parada (excepto la empresa que es punto de partida)
+      if (!currentPoint.isCompany) {
+        estimatedTime += 5; // 5 minutos por parada para entrega
+      }
+      
+      // Calcular distancia entre puntos para estimar tiempo de viaje
+      if (currentPoint.coordinates && nextPoint.coordinates) {
+        try {
+          // Convertir coordenadas a formato adecuado
+          const currentCoords = Array.isArray(currentPoint.coordinates) 
+            ? currentPoint.coordinates.map(Number)
+            : typeof currentPoint.coordinates === 'string'
+              ? currentPoint.coordinates.split(',').map(Number)
+              : [0, 0];
+              
+          const nextCoords = Array.isArray(nextPoint.coordinates)
+            ? nextPoint.coordinates.map(Number)
+            : typeof nextPoint.coordinates === 'string'
+              ? nextPoint.coordinates.split(',').map(Number)
+              : [0, 0];
+          
+          // Usar Haversine para calcular distancia en km
+          const lat1 = currentCoords[0];
+          const lon1 = currentCoords[1];
+          const lat2 = nextCoords[0];
+          const lon2 = nextCoords[1];
+          
+          const R = 6371; // Radio de la Tierra en km
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLon = (lon2 - lon1) * Math.PI / 180;
+          const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = R * c; // Distancia en km
+          
+          // Estimar tiempo en minutos (asumiendo velocidad promedio de 40 km/h en ciudad)
+          // 40 km/h = 0.6667 km/min, por lo que tiempo = distancia / 0.6667
+          const travelTime = distance / 0.6667;
+          estimatedTime += travelTime;
+        } catch (e) {
+          console.error("Error al calcular distancia:", e);
+        }
+      }
+    }
+    
+    // Añadir 5 minutos a la última parada si no es la empresa
+    const lastPoint = optimizedSequence[optimizedSequence.length - 1];
+    if (!lastPoint.isCompany) {
+      estimatedTime += 5;
+    }
+    
+    // Redondear a minutos enteros
+    estimatedTime = Math.round(estimatedTime);
+    
+    // Convertir a formato horas:minutos
+    const hours = Math.floor(estimatedTime / 60);
+    const minutes = estimatedTime % 60;
+    const estimatedTimeFormatted = `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
+    
+    console.log(`Tiempo estimado de la ruta: ${estimatedTimeFormatted} (${estimatedTime} minutos)`);
+    
+    // Agregar información de la empresa en los datos del formulario
+    const companyInfo = optimizedSequence.find(order => order.isCompany);
     
     // Crear el objeto de datos para la API
     const routeData = {
       ...values,
       stops: stops,
       deliverySequence: sequence,
-      warehouseCoordinates: warehouseInfo?.coordinates || null,
+      companyCoordinates: companyInfo?.coordinates || null,
     };
     
     // Solo incluir companyId si existe y es válido
@@ -895,16 +966,16 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                                 return null;
                               }
                               
-                              // Determinar si es el almacén (punto 0) o una parada regular
-                              const isWarehouse = order.isWarehouse === true;
+                              // Determinar si es la empresa (punto 0) o una parada regular
+                              const isCompany = order.isCompany === true;
                               
                               // Crear un icono personalizado con el número de orden
                               const customIcon = L.divIcon({
                                 className: 'custom-div-icon',
                                 html: `<div class="flex items-center justify-center ${
-                                  isWarehouse ? 'bg-green-600' : 'bg-blue-600'
+                                  isCompany ? 'bg-green-600' : 'bg-blue-600'
                                 } text-white rounded-full w-6 h-6 text-sm font-semibold shadow border border-white">${
-                                  isWarehouse ? '0' : idx
+                                  isCompany ? '0' : idx
                                 }</div>`,
                                 iconSize: [24, 24],
                                 iconAnchor: [12, 12]
@@ -918,7 +989,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                                 >
                                   <Popup>
                                     <div className="text-xs">
-                                      <div className="font-semibold">{isWarehouse ? 'Almacén (Punto de partida)' : `Parada #${idx}`}</div>
+                                      <div className="font-semibold">{isCompany ? 'Empresa (Punto de partida)' : `Parada #${idx}`}</div>
                                       <div>{order.customerName}</div>
                                       <div>{order.customerAddress}</div>
                                     </div>
@@ -948,20 +1019,28 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
               {/* Lista de paradas */}
               <Card>
                 <CardHeader className="py-2">
-                  <CardTitle className="text-sm">Secuencia de entregas</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-sm">Secuencia de entregas</CardTitle>
+                    {optimizedSequence.length > 1 && (
+                      <Badge variant="outline" className="text-xs">
+                        <Clock className="mr-1 h-3 w-3" />
+                        <span>Tiempo estimado: {calculateEstimatedTime()}</span>
+                      </Badge>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="p-2">
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                     {optimizedSequence.map((order, idx) => (
                       <div 
                         key={order.id} 
-                        className={`flex items-center p-2 border rounded-md ${order.isWarehouse ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : ''}`}
+                        className={`flex items-center p-2 border rounded-md ${order.isCompany ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' : ''}`}
                       >
                         <Badge 
-                          variant={order.isWarehouse ? "default" : "outline"} 
+                          variant={order.isCompany ? "default" : "outline"} 
                           className="mr-3 flex-shrink-0"
                         >
-                          {order.isWarehouse ? '0' : idx}
+                          {order.isCompany ? '0' : idx}
                         </Badge>
                         <div className="overflow-hidden">
                           <p className="text-sm font-medium truncate">
