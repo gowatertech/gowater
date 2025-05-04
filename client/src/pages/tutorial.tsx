@@ -2,7 +2,25 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Home, Users, Route, Package, FileText, UserCog, Settings } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Home, 
+  Users, 
+  Route, 
+  Package, 
+  FileText, 
+  UserCog, 
+  Settings, 
+  Map, 
+  TruckIcon, 
+  PhoneIcon, 
+  Globe,
+  Zap,
+  BarChart3,
+  CoinsIcon,
+  LayoutDashboard
+} from "lucide-react";
 
 const TutorialPage = () => {
   const { t } = useTranslation();
@@ -11,15 +29,29 @@ const TutorialPage = () => {
   const tutorialSteps = [
     {
       title: "Bienvenido a GoWater",
-      description: "Sistema de gestión de entregas de agua con optimización de rutas y administración zonal.",
+      description: "Sistema inteligente de gestión de entregas de agua con optimización de rutas",
       content: (
         <div className="space-y-4">
           <p>Esta guía interactiva te ayudará a familiarizarte con las principales características de GoWater.</p>
-          <p>Navega por los pasos para aprender a utilizar cada módulo del sistema.</p>
-          <div className="flex justify-center my-8">
-            <div className="p-6 bg-blue-50 rounded-full">
-              <Home className="h-16 w-16 text-blue-500" />
+          <p>Navega por los pasos para aprender a utilizar cada módulo del sistema actualizado.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+            <div className="p-4 bg-blue-50 rounded-lg flex flex-col items-center">
+              <BarChart3 className="h-10 w-10 text-blue-500 mb-3" />
+              <span className="text-sm font-medium text-center">Estadísticas en tiempo real</span>
             </div>
+            <div className="p-4 bg-green-50 rounded-lg flex flex-col items-center">
+              <Map className="h-10 w-10 text-green-500 mb-3" />
+              <span className="text-sm font-medium text-center">Optimización de rutas</span>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg flex flex-col items-center">
+              <Zap className="h-10 w-10 text-purple-500 mb-3" />
+              <span className="text-sm font-medium text-center">Operación multi-idioma</span>
+            </div>
+          </div>
+          
+          <div className="my-4 p-4 bg-blue-50 rounded-md border border-blue-100">
+            <p className="text-sm text-blue-700">Versión 2.5: Ahora incluye nuevas características como seguimiento en tiempo real, análisis predictivo y sincronización con la app móvil.</p>
           </div>
         </div>
       ),
@@ -27,47 +59,99 @@ const TutorialPage = () => {
     },
     {
       title: "Panel de Control",
-      description: "Centro de información centralizado",
+      description: "Centro de información centralizado con analítica avanzada",
       content: (
         <div className="space-y-4">
-          <p>El panel de control te proporciona una visión general de:</p>
+          <p>El nuevo panel de control te proporciona una visión general mejorada de:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Entregas pendientes del día</li>
-            <li>Estadísticas de ventas</li>
-            <li>Mapa de rutas activas</li>
-            <li>Alertas de inventario bajo</li>
-            <li>Actividad reciente en el sistema</li>
+            <li>Estadísticas de ventas y tendencias</li>
+            <li>Entregas pendientes con priorización inteligente</li>
+            <li>Mapa interactivo de rutas activas</li>
+            <li>Control de devoluciones de envases</li>
+            <li>Métricas de eficiencia operativa</li>
           </ul>
-          <p className="mt-4">Es tu punto de partida para tomar decisiones informadas sobre la operación diaria.</p>
+          
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Dashboard actualizado</div>
+            <div className="p-4 bg-white">
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-blue-50 p-3 rounded-md">
+                  <div className="text-sm text-gray-600">Ventas totales</div>
+                  <div className="text-xl font-bold text-blue-800">$0.00</div>
+                </div>
+                <div className="bg-green-50 p-3 rounded-md">
+                  <div className="text-sm text-gray-600">Órdenes pendientes</div>
+                  <div className="text-xl font-bold text-green-800">2</div>
+                </div>
+                <div className="bg-yellow-50 p-3 rounded-md">
+                  <div className="text-sm text-gray-600">Rutas activas</div>
+                  <div className="text-xl font-bold text-yellow-800">0</div>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-md">
+                  <div className="text-sm text-gray-600">Devoluciones pendientes</div>
+                  <div className="text-xl font-bold text-purple-800">0</div>
+                </div>
+              </div>
+              <div className="h-20 bg-gray-100 rounded-md flex items-center justify-center">
+                <span className="text-sm text-gray-500">Gráfico de tendencias</span>
+              </div>
+            </div>
+          </div>
+          
           <div className="my-4 p-4 bg-gray-100 rounded-md">
-            <p className="text-sm text-gray-600">Consejo: Personaliza los widgets de tu panel arrastrándolos a la posición deseada.</p>
+            <p className="text-sm text-gray-600">Nueva función: Filtra las estadísticas por rango de fechas personalizado para análisis más detallados.</p>
           </div>
         </div>
       ),
-      icon: <Home className="h-6 w-6" />
+      icon: <LayoutDashboard className="h-6 w-6" />
     },
     {
       title: "Gestión de Clientes",
-      description: "Administra tu cartera de clientes",
+      description: "Administración avanzada de tu cartera de clientes",
       content: (
         <div className="space-y-4">
-          <p>En este módulo puedes:</p>
+          <p>El módulo actualizado de clientes ahora incluye:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Registrar nuevos clientes con todos sus datos comerciales</li>
-            <li>Asignar clientes a zonas específicas</li>
-            <li>Configurar condiciones de crédito personalizadas</li>
-            <li>Visualizar historial de pedidos y pagos</li>
-            <li>Actualizar información de contacto y ubicación</li>
+            <li>Registro de clientes con geolocalización precisa</li>
+            <li>Categorización avanzada y segmentación</li>
+            <li>Historial detallado de pedidos, pagos y devoluciones</li>
+            <li>Asignación a zonas con optimización inteligente</li>
+            <li>Gestión de múltiples ubicaciones por cliente</li>
           </ul>
 
-          <div className="flex justify-center my-6">
-            <div className="p-4 bg-indigo-50 rounded-full">
-              <Users className="h-12 w-12 text-indigo-500" />
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Vista de cliente</div>
+            <div className="p-3 bg-white">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 p-2 bg-indigo-50 rounded-md">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-indigo-500" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Cliente Ejemplo</div>
+                    <div className="text-xs text-gray-500">Zona Central • Cliente Frecuente</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 bg-gray-50 rounded-md text-xs">
+                    <div className="text-gray-500">Última compra</div>
+                    <div className="font-medium">Hoy, 10:00 AM</div>
+                  </div>
+                  <div className="p-2 bg-gray-50 rounded-md text-xs">
+                    <div className="text-gray-500">Devoluciones pendientes</div>
+                    <div className="font-medium">0 envases</div>
+                  </div>
+                </div>
+                <div className="p-2 bg-blue-50 rounded-md flex justify-between items-center">
+                  <span className="text-xs font-medium text-blue-700">Ver detalles completos</span>
+                  <ChevronRight className="h-3 w-3 text-blue-700" />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="my-4 p-4 bg-gray-100 rounded-md">
-            <p className="text-sm text-gray-600">Recuerda: Los datos de ubicación precisa son esenciales para la optimización de rutas.</p>
+          <div className="my-4 p-4 bg-yellow-50 rounded-md border border-yellow-200">
+            <p className="text-sm text-yellow-700">Nueva función: Ahora puedes ver todos los clientes en un mapa interactivo para mejor planificación de rutas.</p>
           </div>
         </div>
       ),
@@ -75,80 +159,136 @@ const TutorialPage = () => {
     },
     {
       title: "Rutas y Entregas",
-      description: "Optimiza tus recorridos de entrega",
+      description: "Sistema avanzado de optimización logística",
       content: (
         <div className="space-y-4">
-          <p>El sistema de rutas permite:</p>
+          <p>El módulo de rutas actualizado ofrece:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Crear rutas optimizadas basadas en la ubicación de los clientes</li>
-            <li>Asignar vehículos y personal a cada ruta</li>
-            <li>Programar entregas por horarios y prioridades</li>
-            <li>Seguimiento en tiempo real de los vehículos</li>
-            <li>Notificaciones automáticas de entregas completadas</li>
+            <li>Algoritmos avanzados de optimización de recorridos</li>
+            <li>Asignación inteligente de vehículos según carga y eficiencia</li>
+            <li>Seguimiento GPS en tiempo real de entregas</li>
+            <li>Reprogramación dinámica ante imprevistos</li>
+            <li>Alertas automáticas de retrasos y cambios</li>
           </ul>
 
-          <div className="flex justify-center my-6">
-            <div className="p-4 bg-green-50 rounded-full">
-              <Route className="h-12 w-12 text-green-500" />
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Visor de rutas</div>
+            <div className="p-3 bg-white">
+              <div className="h-32 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
+                <Map className="h-10 w-10 text-blue-300" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="flex items-center gap-1.5 p-2 bg-green-50 rounded-md">
+                  <TruckIcon className="h-4 w-4 text-green-500" />
+                  <span className="text-xs font-medium">2 rutas completadas</span>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 bg-yellow-50 rounded-md">
+                  <Package className="h-4 w-4 text-yellow-500" />
+                  <span className="text-xs font-medium">8 pedidos entregados</span>
+                </div>
+              </div>
+              <div className="p-2 bg-gray-50 rounded-md flex justify-between items-center">
+                <span className="text-xs font-medium">Eficiencia promedio</span>
+                <span className="text-xs font-bold">95%</span>
+              </div>
             </div>
           </div>
 
-          <div className="my-4 p-4 bg-yellow-50 rounded-md border border-yellow-200">
-            <p className="text-sm text-yellow-700">Importante: Los choferes pueden actualizar el estado de entrega desde la aplicación móvil.</p>
+          <div className="my-4 p-4 bg-green-50 rounded-md border border-green-200">
+            <p className="text-sm text-green-700">Nueva función: La app móvil para choferes ahora muestra navegación paso a paso y permite confirmación con firma digital del cliente.</p>
           </div>
         </div>
       ),
       icon: <Route className="h-6 w-6" />
     },
     {
-      title: "Inventario",
-      description: "Control de productos y existencias",
+      title: "Inventario y Envases",
+      description: "Control integral de productos y retornables",
       content: (
         <div className="space-y-4">
-          <p>La gestión de inventario te permite:</p>
+          <p>La gestión mejorada de inventario ahora incluye:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Registrar entradas y salidas de productos</li>
-            <li>Monitorear niveles de stock en tiempo real</li>
-            <li>Configurar alertas de stock mínimo</li>
-            <li>Registrar lotes de producción con trazabilidad</li>
-            <li>Generar reportes de rotación de inventario</li>
+            <li>Trazabilidad completa de productos y envases retornables</li>
+            <li>Control automatizado de devoluciones pendientes</li>
+            <li>Alertas predictivas de necesidades de stock</li>
+            <li>Gestión de lotes con códigos QR para seguimiento</li>
+            <li>Balance en tiempo real de inventario físico vs. sistema</li>
           </ul>
 
-          <div className="flex justify-center my-6">
-            <div className="p-4 bg-purple-50 rounded-full">
-              <Package className="h-12 w-12 text-purple-500" />
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Control de envases</div>
+            <div className="p-3 bg-white space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 bg-purple-50 rounded-md">
+                  <div className="text-xs text-gray-600">Envases entregados</div>
+                  <div className="text-lg font-bold text-purple-700">248</div>
+                </div>
+                <div className="p-2 bg-blue-50 rounded-md">
+                  <div className="text-xs text-gray-600">Devoluciones pendientes</div>
+                  <div className="text-lg font-bold text-blue-700">42</div>
+                </div>
+              </div>
+              <div className="p-2 bg-yellow-50 rounded-md">
+                <div className="text-xs text-gray-600">Devoluciones atrasadas (+30 días)</div>
+                <div className="text-sm font-bold text-yellow-700">12 envases (5 clientes)</div>
+              </div>
+              <div className="p-2 bg-green-50 rounded-md flex justify-between items-center">
+                <span className="text-xs font-medium text-green-700">Generar reporte detallado</span>
+                <FileText className="h-3 w-3 text-green-700" />
+              </div>
             </div>
           </div>
 
-          <div className="my-4 p-4 bg-gray-100 rounded-md">
-            <p className="text-sm text-gray-600">Consejo: Revisa el inventario al final del día para planificar la producción del día siguiente.</p>
+          <div className="my-4 p-4 bg-indigo-50 rounded-md border border-indigo-200">
+            <p className="text-sm text-indigo-700">Nueva función: Sistema automático de recordatorios para devolución de envases con integración a WhatsApp Business.</p>
           </div>
         </div>
       ),
       icon: <Package className="h-6 w-6" />
     },
     {
-      title: "Facturación",
-      description: "Gestión de ventas y pagos",
+      title: "Facturación y Pagos",
+      description: "Sistema integral de gestión financiera",
       content: (
         <div className="space-y-4">
-          <p>El módulo de facturación permite:</p>
+          <p>El módulo avanzado de facturación ofrece:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Generar facturas con validez fiscal (NCF)</li>
-            <li>Aplicar diferentes métodos de pago</li>
-            <li>Gestionar cuentas por cobrar</li>
-            <li>Emitir notas de crédito o débito</li>
-            <li>Generar reportes de ventas por periodo</li>
+            <li>Facturación electrónica con validez fiscal (NCF)</li>
+            <li>Múltiples métodos de pago con procesamiento integrado</li>
+            <li>Gestión automatizada de cuentas por cobrar</li>
+            <li>Facturación recurrente para clientes con contrato</li>
+            <li>Reportes financieros detallados y exportables</li>
           </ul>
 
-          <div className="flex justify-center my-6">
-            <div className="p-4 bg-red-50 rounded-full">
-              <FileText className="h-12 w-12 text-red-500" />
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Resumen de pagos</div>
+            <div className="p-3 bg-white space-y-3">
+              <div className="flex items-center p-2 bg-green-50 rounded-md gap-3">
+                <CoinsIcon className="h-8 w-8 text-green-500" />
+                <div>
+                  <div className="text-sm font-medium">Ingresos del mes</div>
+                  <div className="text-lg font-bold text-green-700">RD$ 125,430.00</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-2 bg-blue-50 rounded-md">
+                  <div className="text-xs text-gray-600">Pagos pendientes</div>
+                  <div className="text-sm font-bold text-blue-700">RD$ 18,500.00</div>
+                </div>
+                <div className="p-2 bg-yellow-50 rounded-md">
+                  <div className="text-xs text-gray-600">Vencidos (+30 días)</div>
+                  <div className="text-sm font-bold text-yellow-700">RD$ 3,200.00</div>
+                </div>
+              </div>
+              <div className="p-2 bg-red-50 rounded-md flex justify-between items-center">
+                <span className="text-xs font-medium text-red-700">Gestionar cobros pendientes</span>
+                <ChevronRight className="h-3 w-3 text-red-700" />
+              </div>
             </div>
           </div>
 
           <div className="my-4 p-4 bg-blue-50 rounded-md border border-blue-200">
-            <p className="text-sm text-blue-700">Importante: Todas las facturas pueden exportarse en formato PDF o enviarse por correo electrónico.</p>
+            <p className="text-sm text-blue-700">Nueva función: Ahora puedes generar facturas desde la aplicación móvil y enviarlas directamente por email o WhatsApp al cliente.</p>
           </div>
         </div>
       ),
@@ -156,66 +296,180 @@ const TutorialPage = () => {
     },
     {
       title: "Usuarios y Permisos",
-      description: "Administra el acceso al sistema",
+      description: "Control de acceso avanzado y seguridad",
       content: (
         <div className="space-y-4">
-          <p>La gestión de usuarios permite:</p>
+          <p>El sistema actualizado de gestión de usuarios permite:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>Crear usuarios con diferentes roles y permisos</li>
-            <li>Asignar zonas de operación específicas</li>
-            <li>Monitorear la actividad de cada usuario</li>
-            <li>Configurar políticas de seguridad</li>
-            <li>Restablecer contraseñas</li>
+            <li>Roles personalizados con permisos granulares</li>
+            <li>Autenticación de dos factores para mayor seguridad</li>
+            <li>Registro detallado de actividades y auditoría</li>
+            <li>Restricciones por zonas geográficas y horarios</li>
+            <li>Integración con directorio corporativo (LDAP/AD)</li>
           </ul>
 
-          <div className="flex justify-center my-6">
-            <div className="p-4 bg-orange-50 rounded-full">
-              <UserCog className="h-12 w-12 text-orange-500" />
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Vista de roles</div>
+            <div className="p-3 bg-white space-y-2">
+              <div className="p-2 bg-blue-50 rounded-md flex justify-between">
+                <div className="flex items-center gap-2">
+                  <UserCog className="h-5 w-5 text-blue-500" />
+                  <span className="text-sm font-medium">Administrador</span>
+                </div>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Acceso total</span>
+              </div>
+              <div className="p-2 bg-green-50 rounded-md flex justify-between">
+                <div className="flex items-center gap-2">
+                  <TruckIcon className="h-5 w-5 text-green-500" />
+                  <span className="text-sm font-medium">Chofer</span>
+                </div>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Rutas y entregas</span>
+              </div>
+              <div className="p-2 bg-purple-50 rounded-md flex justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-purple-500" />
+                  <span className="text-sm font-medium">Almacén</span>
+                </div>
+                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">Inventario</span>
+              </div>
             </div>
           </div>
 
           <div className="my-4 p-4 bg-red-50 rounded-md border border-red-200">
-            <p className="text-sm text-red-700">Advertencia: Solo los administradores pueden crear nuevos usuarios y asignar permisos.</p>
+            <p className="text-sm text-red-700">Nueva función: Sistema de alertas automáticas para accesos inusuales y actividades sospechosas en el sistema.</p>
           </div>
         </div>
       ),
       icon: <UserCog className="h-6 w-6" />
     },
     {
-      title: "Uso Local de la Aplicación",
-      description: "Instalación y configuración",
+      title: "Aplicación Móvil",
+      description: "Acceso completo desde cualquier dispositivo",
       content: (
         <div className="space-y-4">
-          <p>Para utilizar GoWater localmente:</p>
+          <p>La nueva aplicación móvil ofrece:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Funcionalidad completa adaptada para smartphones</li>
+            <li>Modo offline con sincronización automática</li>
+            <li>Captura de firmas de clientes y fotos de entregas</li>
+            <li>Navegación GPS integrada para choferes</li>
+            <li>Notificaciones en tiempo real de cambios en rutas</li>
+          </ul>
 
-          <div className="bg-gray-50 p-4 rounded-md font-mono text-sm">
-            <p className="font-semibold mb-2">Descarga del código:</p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>Desde Replit: Menu → Download as zip</li>
-              <li>Con Git: git clone [repositorio]</li>
-            </ul>
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Vista móvil</div>
+            <div className="p-3 bg-white">
+              <div className="bg-gray-50 rounded-lg p-3 flex flex-col items-center">
+                <div className="w-32 h-48 bg-blue-50 rounded-lg border border-blue-100 flex flex-col items-center justify-center mb-2">
+                  <PhoneIcon className="h-8 w-8 text-blue-300 mb-2" />
+                  <span className="text-xs text-blue-500">GoWater Mobile</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 w-full mt-2">
+                  <div className="p-1.5 bg-green-50 rounded text-xs text-center text-green-700">Android</div>
+                  <div className="p-1.5 bg-gray-200 rounded text-xs text-center text-gray-700">iOS</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            <p className="font-semibold mt-4 mb-2">Requisitos:</p>
-            <ul className="list-disc pl-6 space-y-1">
-              <li>Node.js (versión 20.x)</li>
-              <li>PostgreSQL (versión 16)</li>
-            </ul>
+          <div className="my-4 p-4 bg-indigo-50 rounded-md border border-indigo-200">
+            <p className="text-sm text-indigo-700">Nueva función: Los clientes ahora pueden hacer pedidos y seguir sus entregas mediante un portal web dedicado.</p>
+          </div>
+        </div>
+      ),
+      icon: <PhoneIcon className="h-6 w-6" />
+    },
+    {
+      title: "Multi-Tenancy",
+      description: "Plataforma para múltiples empresas independientes",
+      content: (
+        <div className="space-y-4">
+          <p>El nuevo sistema multi-tenant permite:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Gestión centralizada de múltiples empresas</li>
+            <li>Aislamiento completo de datos entre empresas</li>
+            <li>Personalización de marca y configuración por empresa</li>
+            <li>Facturación automática por uso de la plataforma</li>
+            <li>Estadísticas comparativas entre empresas (para administradores)</li>
+          </ul>
 
-            <p className="font-semibold mt-4 mb-2">Comandos:</p>
-            <div className="bg-gray-800 text-white p-3 rounded-md">
-              <p># Instalar dependencias</p>
-              <p>npm install</p>
-              <p className="mt-2"># Iniciar en desarrollo</p>
-              <p>npm run dev</p>
-              <p className="mt-2"># Compilar</p>
-              <p>npm run build</p>
-              <p className="mt-2"># Iniciar en producción</p>
-              <p>npm run start</p>
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Panel de empresas</div>
+            <div className="p-3 bg-white space-y-3">
+              <div className="p-2.5 bg-blue-50 rounded-md flex justify-between">
+                <div className="flex items-center gap-2">
+                  <Globe className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <div className="text-sm font-medium">Agua Moya</div>
+                    <div className="text-xs text-gray-500">15 usuarios • Plan Empresarial</div>
+                  </div>
+                </div>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full self-center">Activo</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="p-2 bg-gray-50 rounded-md text-center">
+                  <div className="text-xs text-gray-500">Clientes</div>
+                  <div className="text-sm font-bold">124</div>
+                </div>
+                <div className="p-2 bg-gray-50 rounded-md text-center">
+                  <div className="text-xs text-gray-500">Vehículos</div>
+                  <div className="text-sm font-bold">8</div>
+                </div>
+                <div className="p-2 bg-gray-50 rounded-md text-center">
+                  <div className="text-xs text-gray-500">Productos</div>
+                  <div className="text-sm font-bold">12</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="my-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+            <p className="text-sm text-blue-700">Nueva función: Los administradores de plataforma ahora pueden migrar datos entre empresas y crear plantillas predefinidas para nuevos tenants.</p>
+          </div>
+        </div>
+      ),
+      icon: <Globe className="h-6 w-6" />
+    },
+    {
+      title: "Configuración Avanzada",
+      description: "Personalización completa del sistema",
+      content: (
+        <div className="space-y-4">
+          <p>Las nuevas opciones de configuración incluyen:</p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Personalización completa de interfaz y marca</li>
+            <li>Configuración de impuestos y normativas locales</li>
+            <li>Integración con servicios externos (APIs)</li>
+            <li>Respaldo automático de datos en la nube</li>
+            <li>Plantillas personalizables para documentos y reportes</li>
+          </ul>
+
+          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
+            <div className="bg-gray-100 p-2 text-sm font-medium">Panel de configuración</div>
+            <div className="p-3 bg-white">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-2 bg-blue-50 rounded-md flex flex-col items-center">
+                  <Settings className="h-8 w-8 text-blue-500 mb-1" />
+                  <span className="text-xs font-medium">General</span>
+                </div>
+                <div className="p-2 bg-green-50 rounded-md flex flex-col items-center">
+                  <Globe className="h-8 w-8 text-green-500 mb-1" />
+                  <span className="text-xs font-medium">Ubicación</span>
+                </div>
+                <div className="p-2 bg-yellow-50 rounded-md flex flex-col items-center">
+                  <FileText className="h-8 w-8 text-yellow-500 mb-1" />
+                  <span className="text-xs font-medium">Facturación</span>
+                </div>
+                <div className="p-2 bg-purple-50 rounded-md flex flex-col items-center">
+                  <UserCog className="h-8 w-8 text-purple-500 mb-1" />
+                  <span className="text-xs font-medium">Usuarios</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="my-4 p-4 bg-green-50 rounded-md border border-green-200">
-            <p className="text-sm text-green-700">La aplicación estará disponible en http://localhost:5000</p>
+            <p className="text-sm text-green-700">Nueva función: Ahora puedes crear campos personalizados para clientes, productos y vehículos según las necesidades específicas de tu negocio.</p>
           </div>
         </div>
       ),
@@ -263,12 +517,12 @@ const TutorialPage = () => {
         ))}
       </div>
 
-      <Card className="mb-8">
-        <CardHeader>
+      <Card className="mb-8 shadow-sm border-blue-100">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/30">
           <CardTitle>{tutorialSteps[currentStep].title}</CardTitle>
           <CardDescription>{tutorialSteps[currentStep].description}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {tutorialSteps[currentStep].content}
         </CardContent>
       </Card>
@@ -278,6 +532,7 @@ const TutorialPage = () => {
           variant="outline"
           onClick={handlePrevious}
           disabled={currentStep === 0}
+          className="border-blue-200 hover:bg-blue-50"
         >
           <ChevronLeft className="mr-2 h-4 w-4" /> {t("Anterior")}
         </Button>
@@ -289,6 +544,7 @@ const TutorialPage = () => {
         <Button
           onClick={handleNext}
           disabled={currentStep === tutorialSteps.length - 1}
+          className="bg-blue-600 hover:bg-blue-700"
         >
           {t("Siguiente")} <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
