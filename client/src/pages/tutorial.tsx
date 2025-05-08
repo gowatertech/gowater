@@ -68,7 +68,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <Home className="h-6 w-6" />
+      icon: <Home className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Panel de Control",
@@ -116,7 +116,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <LayoutDashboard className="h-6 w-6" />
+      icon: <LayoutDashboard className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Gestión de Clientes",
@@ -168,7 +168,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <Users className="h-6 w-6" />
+      icon: <Users className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Rutas y Entregas",
@@ -212,7 +212,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <Route className="h-6 w-6" />
+      icon: <Route className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Inventario y Envases",
@@ -257,7 +257,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <Package className="h-6 w-6" />
+      icon: <Package className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Facturación y Pagos",
@@ -305,7 +305,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <FileText className="h-6 w-6" />
+      icon: <FileText className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Usuarios y Permisos",
@@ -507,21 +507,32 @@ const TutorialPage = () => {
   };
 
   // Renderizar estado de carga si es necesario
+  useEffect(() => {
+    // Cerrar el menú lateral cuando se carga la página de tutorial
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    const menuContainer = document.querySelector('.sidebar-container');
+    
+    // Si el menú está abierto (en dispositivos móviles), cerrarlo
+    if (menuContainer && menuContainer.classList.contains('open')) {
+      menuToggle?.click();
+    }
+  }, []);
+  
   if (loading) {
     return (
-      <div className="container max-w-4xl mx-auto py-4 md:py-8 px-2 md:px-4 flex flex-col items-center justify-center min-h-[50vh]">
-        <div className="animate-pulse flex flex-col items-center gap-4">
+      <div className="w-full max-w-full mx-auto py-4 md:py-8 px-2 md:px-4 flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="animate-pulse flex flex-col items-center gap-4 w-full">
           <div className="h-8 w-48 bg-gray-200 rounded-md"></div>
           <div className="h-4 w-32 bg-gray-100 rounded-md"></div>
-          <div className="h-64 w-full max-w-lg bg-gray-100 rounded-lg"></div>
+          <div className="h-64 w-full max-w-full bg-gray-100 rounded-lg"></div>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="w-full max-w-4xl mx-auto py-2 md:py-8 px-2 md:px-4 overflow-hidden">
-      <h1 className="text-xl md:text-3xl font-bold mb-3 md:mb-8 text-center">{t("Tutorial Interactivo - GoWater")}</h1>
+    <div className="w-full max-w-full md:max-w-4xl mx-auto py-2 md:py-8 px-2 md:px-4 overflow-hidden">
+      <h1 className="text-lg md:text-3xl font-bold mb-3 md:mb-8 text-center">{t("Tutorial Interactivo - GoWater")}</h1>
       
       {/* Banner informativo sobre la versión de demostración */}
       <div className="mb-3 p-2 md:p-3 bg-yellow-50 rounded-md border border-yellow-200 flex items-center gap-2">
@@ -538,17 +549,17 @@ const TutorialPage = () => {
             <div
               key={index}
               onClick={() => handleStepClick(index)}
-              className={`flex items-center justify-center h-8 md:h-10 mx-1 rounded-full cursor-pointer transition-all
+              className={`flex items-center justify-center h-9 md:h-10 mx-1 rounded-full cursor-pointer transition-all
                 ${index === currentStep 
-                  ? "bg-blue-500 text-white min-w-[36px] md:min-w-[40px] md:px-2"
+                  ? "bg-blue-500 text-white min-w-[40px] md:min-w-[46px] md:px-2"
                   : index < currentStep
-                    ? "bg-green-100 text-green-800 border border-green-300 min-w-[30px] md:min-w-[40px]"
-                    : "bg-gray-100 text-gray-500 min-w-[30px] md:min-w-[40px]"}
+                    ? "bg-green-100 text-green-800 border border-green-300 min-w-[40px] md:min-w-[46px]"
+                    : "bg-gray-100 text-gray-500 min-w-[40px] md:min-w-[46px]"}
               `}
             >
               <div className="flex items-center justify-center w-full h-full px-2">
-                <span className="md:hidden">{index + 1}</span>
-                <span className="hidden md:block">{step.icon}</span>
+                {step.icon}
+                <span className="sr-only md:not-sr-only md:ml-1 text-xs font-medium">{index + 1}</span>
               </div>
             </div>
           ))}
