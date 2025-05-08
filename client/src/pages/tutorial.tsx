@@ -353,7 +353,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <UserCog className="h-6 w-6" />
+      icon: <UserCog className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Aplicación Móvil",
@@ -390,7 +390,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <PhoneIcon className="h-6 w-6" />
+      icon: <PhoneIcon className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Multi-Tenancy",
@@ -441,7 +441,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <Globe className="h-6 w-6" />
+      icon: <Globe className="h-4 w-4 md:h-5 md:w-5" />
     },
     {
       title: "Configuración Avanzada",
@@ -486,7 +486,7 @@ const TutorialPage = () => {
           </div>
         </div>
       ),
-      icon: <Settings className="h-6 w-6" />
+      icon: <Settings className="h-4 w-4 md:h-5 md:w-5" />
     }
   ];
 
