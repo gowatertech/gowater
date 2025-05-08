@@ -48,18 +48,18 @@ const TutorialPage = () => {
           <p>Esta guía interactiva te ayudará a familiarizarte con las principales características de GoWater.</p>
           <p>Navega por los pasos para aprender a utilizar cada módulo del sistema actualizado.</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
-            <div className="p-4 bg-blue-50 rounded-lg flex flex-col items-center">
-              <BarChart3 className="h-10 w-10 text-blue-500 mb-3" />
-              <span className="text-sm font-medium text-center">Estadísticas en tiempo real</span>
+          <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 my-4 md:my-6">
+            <div className="p-2 md:p-4 bg-blue-50 rounded-lg flex flex-col items-center">
+              <BarChart3 className="h-8 w-8 md:h-10 md:w-10 text-blue-500 mb-1 md:mb-3" />
+              <span className="text-xs md:text-sm font-medium text-center">Estadísticas en tiempo real</span>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg flex flex-col items-center">
-              <Map className="h-10 w-10 text-green-500 mb-3" />
-              <span className="text-sm font-medium text-center">Optimización de rutas</span>
+            <div className="p-2 md:p-4 bg-green-50 rounded-lg flex flex-col items-center">
+              <Map className="h-8 w-8 md:h-10 md:w-10 text-green-500 mb-1 md:mb-3" />
+              <span className="text-xs md:text-sm font-medium text-center">Optimización de rutas</span>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg flex flex-col items-center">
-              <Zap className="h-10 w-10 text-purple-500 mb-3" />
-              <span className="text-sm font-medium text-center">Operación multi-idioma</span>
+            <div className="p-2 md:p-4 bg-purple-50 rounded-lg flex flex-col items-center xs:col-span-2 md:col-span-1">
+              <Zap className="h-8 w-8 md:h-10 md:w-10 text-purple-500 mb-1 md:mb-3" />
+              <span className="text-xs md:text-sm font-medium text-center">Operación multi-idioma</span>
             </div>
           </div>
           
@@ -84,29 +84,29 @@ const TutorialPage = () => {
             <li>Métricas de eficiencia operativa</li>
           </ul>
           
-          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
-            <div className="bg-gray-100 p-2 text-sm font-medium">Dashboard actualizado</div>
-            <div className="p-4 bg-white">
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-blue-50 p-3 rounded-md">
-                  <div className="text-sm text-gray-600">Ventas totales</div>
-                  <div className="text-xl font-bold text-blue-800">$0.00</div>
+          <div className="border border-gray-200 rounded-md overflow-hidden my-4 md:my-6">
+            <div className="bg-gray-100 p-2 text-xs md:text-sm font-medium">Dashboard actualizado</div>
+            <div className="p-2 md:p-4 bg-white">
+              <div className="grid grid-cols-2 gap-2 md:gap-3 mb-3 md:mb-4">
+                <div className="bg-blue-50 p-2 md:p-3 rounded-md">
+                  <div className="text-xs md:text-sm text-gray-600">Ventas totales</div>
+                  <div className="text-base md:text-xl font-bold text-blue-800">$0.00</div>
                 </div>
-                <div className="bg-green-50 p-3 rounded-md">
-                  <div className="text-sm text-gray-600">Órdenes pendientes</div>
-                  <div className="text-xl font-bold text-green-800">2</div>
+                <div className="bg-green-50 p-2 md:p-3 rounded-md">
+                  <div className="text-xs md:text-sm text-gray-600">Órdenes pendientes</div>
+                  <div className="text-base md:text-xl font-bold text-green-800">2</div>
                 </div>
-                <div className="bg-yellow-50 p-3 rounded-md">
-                  <div className="text-sm text-gray-600">Rutas activas</div>
-                  <div className="text-xl font-bold text-yellow-800">0</div>
+                <div className="bg-yellow-50 p-2 md:p-3 rounded-md">
+                  <div className="text-xs md:text-sm text-gray-600">Rutas activas</div>
+                  <div className="text-base md:text-xl font-bold text-yellow-800">0</div>
                 </div>
-                <div className="bg-purple-50 p-3 rounded-md">
-                  <div className="text-sm text-gray-600">Devoluciones pendientes</div>
-                  <div className="text-xl font-bold text-purple-800">0</div>
+                <div className="bg-purple-50 p-2 md:p-3 rounded-md">
+                  <div className="text-xs md:text-sm text-gray-600">Devoluciones</div>
+                  <div className="text-base md:text-xl font-bold text-purple-800">0</div>
                 </div>
               </div>
-              <div className="h-20 bg-gray-100 rounded-md flex items-center justify-center">
-                <span className="text-sm text-gray-500">Gráfico de tendencias</span>
+              <div className="h-16 md:h-20 bg-gray-100 rounded-md flex items-center justify-center">
+                <span className="text-xs md:text-sm text-gray-500">Gráfico de tendencias</span>
               </div>
             </div>
           </div>
@@ -132,31 +132,31 @@ const TutorialPage = () => {
             <li>Gestión de múltiples ubicaciones por cliente</li>
           </ul>
 
-          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
-            <div className="bg-gray-100 p-2 text-sm font-medium">Vista de cliente</div>
-            <div className="p-3 bg-white">
+          <div className="border border-gray-200 rounded-md overflow-hidden my-4 md:my-6">
+            <div className="bg-gray-100 p-2 text-xs md:text-sm font-medium">Vista de cliente</div>
+            <div className="p-2 md:p-3 bg-white">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 p-2 bg-indigo-50 rounded-md">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                    <Users className="h-4 w-4 text-indigo-500" />
+                  <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                    <Users className="h-3 w-3 md:h-4 md:w-4 text-indigo-500" />
                   </div>
                   <div>
-                    <div className="text-sm font-medium">Cliente Ejemplo</div>
-                    <div className="text-xs text-gray-500">Zona Central • Cliente Frecuente</div>
+                    <div className="text-xs md:text-sm font-medium">Cliente Ejemplo</div>
+                    <div className="text-[10px] md:text-xs text-gray-500">Zona Central • Cliente Frecuente</div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2 bg-gray-50 rounded-md text-xs">
+                  <div className="p-1.5 md:p-2 bg-gray-50 rounded-md text-[10px] md:text-xs">
                     <div className="text-gray-500">Última compra</div>
                     <div className="font-medium">Hoy, 10:00 AM</div>
                   </div>
-                  <div className="p-2 bg-gray-50 rounded-md text-xs">
-                    <div className="text-gray-500">Devoluciones pendientes</div>
+                  <div className="p-1.5 md:p-2 bg-gray-50 rounded-md text-[10px] md:text-xs">
+                    <div className="text-gray-500">Devoluciones</div>
                     <div className="font-medium">0 envases</div>
                   </div>
                 </div>
-                <div className="p-2 bg-blue-50 rounded-md flex justify-between items-center">
-                  <span className="text-xs font-medium text-blue-700">Ver detalles completos</span>
+                <div className="p-1.5 md:p-2 bg-blue-50 rounded-md flex justify-between items-center">
+                  <span className="text-[10px] md:text-xs font-medium text-blue-700">Ver detalles completos</span>
                   <ChevronRight className="h-3 w-3 text-blue-700" />
                 </div>
               </div>
@@ -184,25 +184,25 @@ const TutorialPage = () => {
             <li>Alertas automáticas de retrasos y cambios</li>
           </ul>
 
-          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
-            <div className="bg-gray-100 p-2 text-sm font-medium">Visor de rutas</div>
-            <div className="p-3 bg-white">
-              <div className="h-32 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
-                <Map className="h-10 w-10 text-blue-300" />
+          <div className="border border-gray-200 rounded-md overflow-hidden my-4 md:my-6">
+            <div className="bg-gray-100 p-2 text-xs md:text-sm font-medium">Visor de rutas</div>
+            <div className="p-2 md:p-3 bg-white">
+              <div className="h-24 md:h-32 bg-blue-50 rounded-lg flex items-center justify-center mb-2 md:mb-3">
+                <Map className="h-8 w-8 md:h-10 md:w-10 text-blue-300" />
               </div>
               <div className="grid grid-cols-2 gap-2 mb-2">
-                <div className="flex items-center gap-1.5 p-2 bg-green-50 rounded-md">
-                  <TruckIcon className="h-4 w-4 text-green-500" />
-                  <span className="text-xs font-medium">2 rutas completadas</span>
+                <div className="flex items-center gap-1 md:gap-1.5 p-1.5 md:p-2 bg-green-50 rounded-md">
+                  <TruckIcon className="h-3 w-3 md:h-4 md:w-4 text-green-500" />
+                  <span className="text-[10px] md:text-xs font-medium">2 rutas completadas</span>
                 </div>
-                <div className="flex items-center gap-1.5 p-2 bg-yellow-50 rounded-md">
-                  <Package className="h-4 w-4 text-yellow-500" />
-                  <span className="text-xs font-medium">8 pedidos entregados</span>
+                <div className="flex items-center gap-1 md:gap-1.5 p-1.5 md:p-2 bg-yellow-50 rounded-md">
+                  <Package className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
+                  <span className="text-[10px] md:text-xs font-medium">8 pedidos entregados</span>
                 </div>
               </div>
-              <div className="p-2 bg-gray-50 rounded-md flex justify-between items-center">
-                <span className="text-xs font-medium">Eficiencia promedio</span>
-                <span className="text-xs font-bold">95%</span>
+              <div className="p-1.5 md:p-2 bg-gray-50 rounded-md flex justify-between items-center">
+                <span className="text-[10px] md:text-xs font-medium">Eficiencia promedio</span>
+                <span className="text-[10px] md:text-xs font-bold">95%</span>
               </div>
             </div>
           </div>
@@ -228,25 +228,25 @@ const TutorialPage = () => {
             <li>Balance en tiempo real de inventario físico vs. sistema</li>
           </ul>
 
-          <div className="border border-gray-200 rounded-md overflow-hidden my-6">
-            <div className="bg-gray-100 p-2 text-sm font-medium">Control de envases</div>
-            <div className="p-3 bg-white space-y-3">
+          <div className="border border-gray-200 rounded-md overflow-hidden my-4 md:my-6">
+            <div className="bg-gray-100 p-2 text-xs md:text-sm font-medium">Control de envases</div>
+            <div className="p-2 md:p-3 bg-white space-y-2 md:space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-2 bg-purple-50 rounded-md">
-                  <div className="text-xs text-gray-600">Envases entregados</div>
-                  <div className="text-lg font-bold text-purple-700">248</div>
+                <div className="p-1.5 md:p-2 bg-purple-50 rounded-md">
+                  <div className="text-[10px] md:text-xs text-gray-600">Envases entregados</div>
+                  <div className="text-base md:text-lg font-bold text-purple-700">248</div>
                 </div>
-                <div className="p-2 bg-blue-50 rounded-md">
-                  <div className="text-xs text-gray-600">Devoluciones pendientes</div>
-                  <div className="text-lg font-bold text-blue-700">42</div>
+                <div className="p-1.5 md:p-2 bg-blue-50 rounded-md">
+                  <div className="text-[10px] md:text-xs text-gray-600">Devoluciones pendientes</div>
+                  <div className="text-base md:text-lg font-bold text-blue-700">42</div>
                 </div>
               </div>
-              <div className="p-2 bg-yellow-50 rounded-md">
-                <div className="text-xs text-gray-600">Devoluciones atrasadas (+30 días)</div>
-                <div className="text-sm font-bold text-yellow-700">12 envases (5 clientes)</div>
+              <div className="p-1.5 md:p-2 bg-yellow-50 rounded-md">
+                <div className="text-[10px] md:text-xs text-gray-600">Devoluciones atrasadas (+30d)</div>
+                <div className="text-xs md:text-sm font-bold text-yellow-700">12 envases (5 clientes)</div>
               </div>
-              <div className="p-2 bg-green-50 rounded-md flex justify-between items-center">
-                <span className="text-xs font-medium text-green-700">Generar reporte detallado</span>
+              <div className="p-1.5 md:p-2 bg-green-50 rounded-md flex justify-between items-center">
+                <span className="text-[10px] md:text-xs font-medium text-green-700">Generar reporte detallado</span>
                 <FileText className="h-3 w-3 text-green-700" />
               </div>
             </div>
@@ -520,46 +520,47 @@ const TutorialPage = () => {
   }
   
   return (
-    <div className="container max-w-4xl mx-auto py-4 md:py-8 px-2 md:px-4">
-      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8 text-center">{t("Tutorial Interactivo - GoWater")}</h1>
+    <div className="w-full max-w-4xl mx-auto py-2 md:py-8 px-2 md:px-4 overflow-hidden">
+      <h1 className="text-xl md:text-3xl font-bold mb-3 md:mb-8 text-center">{t("Tutorial Interactivo - GoWater")}</h1>
       
       {/* Banner informativo sobre la versión de demostración */}
-      <div className="mb-4 p-2 md:p-3 bg-yellow-50 rounded-md border border-yellow-200 flex items-center gap-2">
-        <Info className="h-5 w-5 text-yellow-500 shrink-0" />
+      <div className="mb-3 p-2 md:p-3 bg-yellow-50 rounded-md border border-yellow-200 flex items-center gap-2">
+        <Info className="h-4 w-4 md:h-5 md:w-5 text-yellow-500 shrink-0" />
         <p className="text-xs md:text-sm text-yellow-800">
           Este tutorial muestra ejemplos con datos demostrativos. La interfaz real reflejará tus datos reales.
         </p>
       </div>
 
-      {/* Navegación de pasos mejorada para móviles */}
-      <div className="flex mb-4 md:mb-6 overflow-x-auto pb-2 px-1 no-scrollbar -mx-1 md:mx-0">
-        {tutorialSteps.map((step, index) => (
-          <div
-            key={index}
-            onClick={() => handleStepClick(index)}
-            className={`flex items-center justify-center min-w-[40px] h-8 md:h-10 mx-1 rounded-full cursor-pointer transition-all
-              ${currentStep === index
-                ? "bg-blue-500 text-white"
-                : index < currentStep
-                  ? "bg-green-100 text-green-800 border border-green-300"
-                  : "bg-gray-100 text-gray-500"}
-            `}
-          >
-            <div className="flex items-center justify-center w-full h-full px-2 md:px-3">
-              {step.icon}
-              {/* Mostrar el número en lugar del icono en dispositivos muy pequeños */}
-              <span className="sr-only md:not-sr-only md:ml-1 text-xs font-medium">{index + 1}</span>
+      {/* Navegación de pasos mejorada para móviles - con scroll horizontal */}
+      <div className="w-full overflow-x-auto pb-2 mb-3 md:mb-6 -mx-1 px-1 md:mx-0 scrollbar-hide">
+        <div className="flex min-w-max">
+          {tutorialSteps.map((step, index) => (
+            <div
+              key={index}
+              onClick={() => handleStepClick(index)}
+              className={`flex items-center justify-center h-8 md:h-10 mx-1 rounded-full cursor-pointer transition-all
+                ${index === currentStep 
+                  ? "bg-blue-500 text-white min-w-[36px] md:min-w-[40px] md:px-2"
+                  : index < currentStep
+                    ? "bg-green-100 text-green-800 border border-green-300 min-w-[30px] md:min-w-[40px]"
+                    : "bg-gray-100 text-gray-500 min-w-[30px] md:min-w-[40px]"}
+              `}
+            >
+              <div className="flex items-center justify-center w-full h-full px-2">
+                <span className="md:hidden">{index + 1}</span>
+                <span className="hidden md:block">{step.icon}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       <Card className="mb-4 md:mb-8 shadow-sm border-blue-100 overflow-hidden">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/30 p-4 md:p-6">
-          <CardTitle className="text-lg md:text-xl">{tutorialSteps[currentStep].title}</CardTitle>
-          <CardDescription className="text-sm md:text-base">{tutorialSteps[currentStep].description}</CardDescription>
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/30 p-3 md:p-6">
+          <CardTitle className="text-base md:text-xl">{tutorialSteps[currentStep].title}</CardTitle>
+          <CardDescription className="text-xs md:text-base">{tutorialSteps[currentStep].description}</CardDescription>
         </CardHeader>
-        <CardContent className="pt-4 md:pt-6 p-4 md:p-6">
+        <CardContent className="pt-3 md:pt-6 p-3 md:p-6 overflow-x-auto max-w-full">
           {tutorialSteps[currentStep].content}
         </CardContent>
       </Card>
@@ -569,23 +570,23 @@ const TutorialPage = () => {
           variant="outline"
           onClick={handlePrevious}
           disabled={currentStep === 0}
-          className="border-blue-200 hover:bg-blue-50 px-2 md:px-4 h-9"
+          className="border-blue-200 hover:bg-blue-50 px-2 md:px-4 h-8 md:h-9 text-xs md:text-sm"
           size="sm"
         >
-          <ChevronLeft className="md:mr-2 h-4 w-4" /> <span className="hidden md:inline">{t("Anterior")}</span>
+          <ChevronLeft className="h-4 w-4" /> <span className="ml-0 md:ml-1">{t("Anterior")}</span>
         </Button>
 
-        <div className="text-sm text-gray-500">
+        <div className="text-xs md:text-sm text-gray-500">
           {currentStep + 1} / {tutorialSteps.length}
         </div>
 
         <Button
           onClick={handleNext}
           disabled={currentStep === tutorialSteps.length - 1}
-          className="bg-blue-600 hover:bg-blue-700 px-2 md:px-4 h-9"
+          className="bg-blue-600 hover:bg-blue-700 px-2 md:px-4 h-8 md:h-9 text-xs md:text-sm"
           size="sm"
         >
-          <span className="hidden md:inline">{t("Siguiente")}</span> <ChevronRight className="md:ml-2 h-4 w-4" />
+          <span className="mr-0 md:mr-1">{t("Siguiente")}</span> <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
     </div>
