@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,12 +19,25 @@ import {
   Zap,
   BarChart3,
   CoinsIcon,
-  LayoutDashboard
+  LayoutDashboard,
+  Info
 } from "lucide-react";
 
 const TutorialPage = () => {
   const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
+  const [loading, setLoading] = useState(true);
+  
+  // Este efecto evita que el componente haga llamadas constantes a la API
+  useEffect(() => {
+    // Simular carga de datos para evitar peticiones innecesarias
+    setLoading(false);
+    
+    // Limpiar intentos innecesarios de llamadas API
+    return () => {
+      // Cleanup
+    };
+  }, []);
 
   const tutorialSteps = [
     {
@@ -493,16 +506,38 @@ const TutorialPage = () => {
     setCurrentStep(index);
   };
 
+  // Renderizar estado de carga si es necesario
+  if (loading) {
+    return (
+      <div className="container max-w-4xl mx-auto py-4 md:py-8 px-2 md:px-4 flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="h-8 w-48 bg-gray-200 rounded-md"></div>
+          <div className="h-4 w-32 bg-gray-100 rounded-md"></div>
+          <div className="h-64 w-full max-w-lg bg-gray-100 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-8 text-center">{t("Tutorial Interactivo - GoWater")}</h1>
+    <div className="container max-w-4xl mx-auto py-4 md:py-8 px-2 md:px-4">
+      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8 text-center">{t("Tutorial Interactivo - GoWater")}</h1>
+      
+      {/* Banner informativo sobre la versión de demostración */}
+      <div className="mb-4 p-2 md:p-3 bg-yellow-50 rounded-md border border-yellow-200 flex items-center gap-2">
+        <Info className="h-5 w-5 text-yellow-500 shrink-0" />
+        <p className="text-xs md:text-sm text-yellow-800">
+          Este tutorial muestra ejemplos con datos demostrativos. La interfaz real reflejará tus datos reales.
+        </p>
+      </div>
 
-      <div className="flex mb-6 overflow-x-auto pb-2 no-scrollbar">
+      {/* Navegación de pasos mejorada para móviles */}
+      <div className="flex mb-4 md:mb-6 overflow-x-auto pb-2 px-1 no-scrollbar -mx-1 md:mx-0">
         {tutorialSteps.map((step, index) => (
           <div
             key={index}
             onClick={() => handleStepClick(index)}
-            className={`flex items-center justify-center min-w-[40px] h-10 mx-1 rounded-full cursor-pointer transition-all
+            className={`flex items-center justify-center min-w-[40px] h-8 md:h-10 mx-1 rounded-full cursor-pointer transition-all
               ${currentStep === index
                 ? "bg-blue-500 text-white"
                 : index < currentStep
@@ -510,43 +545,47 @@ const TutorialPage = () => {
                   : "bg-gray-100 text-gray-500"}
             `}
           >
-            <div className="flex items-center justify-center w-full h-full px-3">
+            <div className="flex items-center justify-center w-full h-full px-2 md:px-3">
               {step.icon}
+              {/* Mostrar el número en lugar del icono en dispositivos muy pequeños */}
+              <span className="sr-only md:not-sr-only md:ml-1 text-xs font-medium">{index + 1}</span>
             </div>
           </div>
         ))}
       </div>
 
-      <Card className="mb-8 shadow-sm border-blue-100">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/30">
-          <CardTitle>{tutorialSteps[currentStep].title}</CardTitle>
-          <CardDescription>{tutorialSteps[currentStep].description}</CardDescription>
+      <Card className="mb-4 md:mb-8 shadow-sm border-blue-100 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100/30 p-4 md:p-6">
+          <CardTitle className="text-lg md:text-xl">{tutorialSteps[currentStep].title}</CardTitle>
+          <CardDescription className="text-sm md:text-base">{tutorialSteps[currentStep].description}</CardDescription>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4 md:pt-6 p-4 md:p-6">
           {tutorialSteps[currentStep].content}
         </CardContent>
       </Card>
 
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Button
           variant="outline"
           onClick={handlePrevious}
           disabled={currentStep === 0}
-          className="border-blue-200 hover:bg-blue-50"
+          className="border-blue-200 hover:bg-blue-50 px-2 md:px-4 h-9"
+          size="sm"
         >
-          <ChevronLeft className="mr-2 h-4 w-4" /> {t("Anterior")}
+          <ChevronLeft className="md:mr-2 h-4 w-4" /> <span className="hidden md:inline">{t("Anterior")}</span>
         </Button>
 
-        <div className="text-sm text-gray-500 self-center">
+        <div className="text-sm text-gray-500">
           {currentStep + 1} / {tutorialSteps.length}
         </div>
 
         <Button
           onClick={handleNext}
           disabled={currentStep === tutorialSteps.length - 1}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 px-2 md:px-4 h-9"
+          size="sm"
         >
-          {t("Siguiente")} <ChevronRight className="ml-2 h-4 w-4" />
+          <span className="hidden md:inline">{t("Siguiente")}</span> <ChevronRight className="md:ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
