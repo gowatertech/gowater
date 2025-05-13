@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from 'wouter';
 import { format } from 'date-fns';
@@ -111,14 +111,35 @@ const RecurringOrdersPage: React.FC = () => {
     }
   };
 
+  // Usar useEffect para registrar valores de orden
+  useEffect(() => {
+    if (recurringOrders && recurringOrders.length > 0) {
+      console.log("Tipos de ID de pedidos recurrentes:", recurringOrders.map(order => ({
+        id: order.id,
+        tipo: typeof order.id,
+        esNumero: !isNaN(Number(order.id)),
+        esEntero: Number.isInteger(Number(order.id))
+      })));
+    }
+  }, [recurringOrders]);
+
   const handleGenerateOrder = async (orderId: number) => {
+    // Conversión explícita a número para manejar casos donde el ID podría ser string o bigint
+    const numericOrderId = Number(orderId);
+    
+    console.log("handleGenerateOrder - ID original:", orderId, "tipo:", typeof orderId);
+    console.log("handleGenerateOrder - ID convertido:", numericOrderId, "tipo:", typeof numericOrderId);
+    
     // Validación estricta: garantiza que el ID sea un número entero positivo
-    if (!orderId || orderId <= 0 || isNaN(orderId) || !Number.isInteger(orderId)) {
+    if (!numericOrderId || numericOrderId <= 0 || isNaN(numericOrderId) || !Number.isFinite(numericOrderId)) {
       console.error("Error: ID de pedido recurrente inválido", { 
         orderId, 
+        numericOrderId,
         tipo: typeof orderId, 
-        esEntero: Number.isInteger(orderId),
-        esPositivo: orderId > 0
+        tipoConvertido: typeof numericOrderId,
+        esEntero: Number.isInteger(numericOrderId),
+        esFinito: Number.isFinite(numericOrderId),
+        esPositivo: numericOrderId > 0
       });
       toast({
         title: t('generateError'),
@@ -129,7 +150,7 @@ const RecurringOrdersPage: React.FC = () => {
     }
     
     // Asegurar que el orderId es un número entero antes de usarlo en la URL
-    const safeOrderId = Math.floor(orderId);
+    const safeOrderId = Math.floor(numericOrderId);
     setGeneratingOrderId(safeOrderId);
     
     try {
