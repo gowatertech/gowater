@@ -317,19 +317,37 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Generar orden a partir de un pedido recurrente
   router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id) || id <= 0) {
-        console.error("Error: ID de pedido recurrente inválido", { id: req.params.id, parsed: id });
+      // Validación estricta: verificar que el ID sea un número y convertirlo a entero
+      const idParam = req.params.id;
+      // Convertimos a número usando parseFloat primero para manejar casos como "123.45"
+      const parsedId = parseFloat(idParam);
+      
+      // Verificación más rigurosa
+      if (isNaN(parsedId) || parsedId <= 0 || !Number.isFinite(parsedId)) {
+        console.error("Error: ID de pedido recurrente inválido en formato", { 
+          idParam, 
+          parsedId, 
+          type: typeof parsedId,
+          isNumber: !isNaN(parsedId),
+          isPositive: parsedId > 0,
+          isFinite: Number.isFinite(parsedId)
+        });
         return res.status(400).json({ error: "ID de pedido recurrente inválido" });
       }
-
-      console.log(`Iniciando generación de pedido desde pedido recurrente #${id}`);
-      const generatedOrder = await storage.generateOrderFromRecurring(id);
-      console.log(`Pedido generado exitosamente desde recurrente #${id}`, generatedOrder);
+      
+      // Garantizar que sea un entero
+      const safeId = Math.floor(parsedId);
+      
+      console.log(`Iniciando generación de pedido desde pedido recurrente #${safeId} (original: ${idParam})`);
+      const generatedOrder = await storage.generateOrderFromRecurring(safeId);
+      console.log(`Pedido generado exitosamente desde recurrente #${safeId}`, generatedOrder);
       res.status(201).json(generatedOrder);
     } catch (error) {
       console.error("Error al generar orden desde pedido recurrente:", error);
-      res.status(500).json({ error: "Error al generar orden desde pedido recurrente" });
+      res.status(500).json({ 
+        error: "Error al generar orden desde pedido recurrente",
+        message: error instanceof Error ? error.message : 'Error desconocido'
+      });
     }
   });
 };
