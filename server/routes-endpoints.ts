@@ -57,9 +57,14 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
     try {
       console.log("Recibiendo solicitud para crear pedido recurrente:", req.body);
 
+      // Importar getCurrentCompanyId para obtener el companyId de la sesión actual
+      const { getCurrentCompanyId } = await import('./company-db');
+      const companyId = req.body.companyId || (req as any).companyId || getCurrentCompanyId() || 1;
+
       // Asegurar que los campos numéricos sean realmente números
       const validatedData = {
         ...req.body,
+        companyId, // Asegurar que el companyId esté presente
         customerId: Number(req.body.customerId) || 0,
         dayOfWeek: req.body.dayOfWeek ? Number(req.body.dayOfWeek) || 0 : null,
         dayOfMonth: req.body.dayOfMonth ? Number(req.body.dayOfMonth) || 0 : null,
@@ -193,9 +198,14 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
         return res.status(404).json({ error: "Pedido recurrente no encontrado" });
       }
 
+      // Importar getCurrentCompanyId para obtener el companyId de la sesión actual
+      const { getCurrentCompanyId } = await import('./company-db');
+      const companyId = req.body.companyId || (req as any).companyId || getCurrentCompanyId() || 1;
+      
       // Validar el item y asegurar que los campos numéricos sean números
       const itemData = {
         ...req.body,
+        companyId, // Asegurar que el companyId esté presente
         recurringOrderId,
         productId: Number(req.body.productId) || 0,
         quantity: Number(req.body.quantity) || 1
@@ -329,13 +339,40 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
         });
       }
       
-      console.log(`Iniciando generación de pedido desde pedido recurrente #${recurringOrderId}`);
+      // Asegurar que el companyId esté presente para el contexto de la operación
+      const { getCurrentCompanyId } = await import('./company-db');
+      const companyId = (req as any).companyId || getCurrentCompanyId() || 1;
+      
+      // Establecer temporalmente el companyId en el contexto antes de la operación
+      if (!getCurrentCompanyId()) {
+        const { setCurrentCompanyId } = await import('./company-db');
+        setCurrentCompanyId(companyId);
+      }
+      
+      console.log(`Iniciando generación de pedido desde pedido recurrente #${recurringOrderId} (companyId: ${companyId})`);
       const generatedOrder = await storage.generateOrderFromRecurring(recurringOrderId);
+      
+      // Limpiar el contexto si lo establecimos temporalmente
+      if (!req.body.companyId && !(req as any).companyId) {
+        const { setCurrentCompanyId } = await import('./company-db');
+        setCurrentCompanyId(undefined);
+      }
       
       console.log(`Pedido generado exitosamente desde recurrente #${recurringOrderId}`, generatedOrder);
       res.status(201).json(generatedOrder);
     } catch (error) {
       console.error("Error al generar orden desde pedido recurrente:", error);
+      
+      // Limpiar el contexto incluso en caso de error si lo establecimos temporalmente
+      if (!req.body.companyId && !(req as any).companyId) {
+        try {
+          const { setCurrentCompanyId } = await import('./company-db');
+          setCurrentCompanyId(undefined);
+        } catch (cleanupError) {
+          console.error("Error al limpiar el contexto:", cleanupError);
+        }
+      }
+      
       res.status(500).json({ 
         error: "Error al generar orden desde pedido recurrente",
         message: error instanceof Error ? error.message : 'Error desconocido'
