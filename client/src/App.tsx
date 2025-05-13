@@ -34,8 +34,9 @@ import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
 import ProductionRegistration from "@/pages/inventory/production";
-import RecurringOrdersPage from "@/pages/recurring-orders";
-import RecurringOrderForm from "@/pages/recurring-orders/[id]";
+// Removidos pedidos recurrentes
+// import RecurringOrdersPage from "@/pages/recurring-orders";
+// import RecurringOrderForm from "@/pages/recurring-orders/[id]";
 import DriverView from "@/pages/drivers/DriverView";
 import CommissionsPage from "@/pages/commissions";
 import SimpleCommissionsPage from "@/pages/commissions/simple";
@@ -414,9 +415,7 @@ function Router() {
         <Route path="/bottles/assign-responsibility" component={AsignarResponsabilidad} />
 
         {/* Rutas para pedidos recurrentes */}
-        <Route path="/recurring-orders/new" component={RecurringOrderForm} />
-        <Route path="/recurring-orders/:id" component={RecurringOrderForm} />
-        <Route path="/recurring-orders" component={RecurringOrdersPage} />
+        {/* Rutas de pedidos recurrentes removidas según solicitud */}
         
         {/* Rutas para comisiones */}
         <Route path="/commissions/details/:id" component={ResponsiveCommissionDetailsPage} />
