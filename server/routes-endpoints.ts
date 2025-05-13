@@ -35,6 +35,25 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Obtener un pedido recurrente específico
   router.get("/api/recurring-orders/:id", async (req, res) => {
     try {
+      // Verificar si es el ID especial 'new'
+      if (req.params.id === 'new') {
+        // Para la ruta 'new', devolvemos un objeto vacío compatible con el formulario
+        return res.json({
+          id: null,
+          customerId: 0,
+          name: '',
+          frequency: 'weekly',
+          dayOfWeek: 1,
+          dayOfMonth: null,
+          startDate: new Date().toISOString(),
+          endDate: null,
+          paymentMethod: 'cash',
+          status: 'active',
+          totalAmount: '0.00',
+          companyId: (req as any).companyId || 15,
+        });
+      }
+
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ error: "ID inválido" });
@@ -171,6 +190,13 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Obtener items de un pedido recurrente
   router.get("/api/recurring-orders/:id/items", async (req, res) => {
     try {
+      // Verificar si es el ID especial 'new'
+      if (req.params.id === 'new') {
+        // Para la ruta 'new', devolvemos un array vacío
+        console.log("GET /api/recurring-orders/new/items - Devolviendo array vacío para new");
+        return res.json([]);
+      }
+      
       const recurringOrderId = parseInt(req.params.id);
       if (isNaN(recurringOrderId)) {
         return res.status(400).json({ error: "ID inválido" });

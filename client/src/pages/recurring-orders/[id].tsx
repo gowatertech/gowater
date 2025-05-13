@@ -260,12 +260,30 @@ const RecurringOrderForm: React.FC = () => {
 
       // Si es un nuevo pedido, necesitamos crear los items
       if (id === 'new') {
+        // Verificar que el servidor haya devuelto un objeto con ID
+        if (!savedOrder || !savedOrder.id) {
+          console.error("Error: El servidor no devolvió un ID válido para el pedido recurrente:", savedOrder);
+          toast({
+            title: "Error al crear el pedido recurrente",
+            description: "No se pudo obtener un ID válido del servidor",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
         // Asegurar que savedOrder.id sea un número válido
         const safeOrderId = typeof savedOrder.id === 'string' ? parseInt(savedOrder.id, 10) : Number(savedOrder.id);
         
         if (isNaN(safeOrderId) || safeOrderId <= 0) {
           console.error(`Error: ID de pedido recurrente inválido al crear items: ${savedOrder.id}`);
-          throw new Error("ID de pedido recurrente inválido al crear items");
+          toast({
+            title: "Error al crear los items",
+            description: "El servidor devolvió un ID de pedido recurrente inválido",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
         }
         
         console.log("Creando items para el nuevo pedido:", safeOrderId);
@@ -289,6 +307,11 @@ const RecurringOrderForm: React.FC = () => {
             if (!response.ok) {
               const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
               console.error(`Error al crear item para pedido ${safeOrderId}:`, errorData);
+              toast({
+                title: "Error al crear item",
+                description: errorData.error || "No se pudo crear el item para el pedido recurrente",
+                variant: "destructive",
+              });
             }
           } catch (itemError) {
             console.error(`Error al procesar item para pedido ${safeOrderId}:`, itemError);
@@ -311,12 +334,30 @@ const RecurringOrderForm: React.FC = () => {
               }),
             });
           } else {
+            // Verificar que el servidor haya devuelto un objeto con ID
+            if (!savedOrder || !savedOrder.id) {
+              console.error("Error: El servidor no devolvió un ID válido para el pedido recurrente:", savedOrder);
+              toast({
+                title: "Error al actualizar el pedido recurrente",
+                description: "No se pudo obtener un ID válido del servidor",
+                variant: "destructive",
+              });
+              setIsSubmitting(false);
+              return;
+            }
+            
             // Crear nuevo item - asegurar que el ID sea válido
             const safeOrderId = typeof savedOrder.id === 'string' ? parseInt(savedOrder.id, 10) : Number(savedOrder.id);
             
             if (isNaN(safeOrderId) || safeOrderId <= 0) {
               console.error(`Error: ID de pedido recurrente inválido al actualizar items: ${savedOrder.id}`);
-              throw new Error("ID de pedido recurrente inválido al actualizar items");
+              toast({
+                title: "Error al crear los nuevos items",
+                description: "El servidor devolvió un ID de pedido recurrente inválido",
+                variant: "destructive",
+              });
+              setIsSubmitting(false);
+              return;
             }
             
             try {
@@ -336,6 +377,11 @@ const RecurringOrderForm: React.FC = () => {
               if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
                 console.error(`Error al crear nuevo item para pedido existente ${safeOrderId}:`, errorData);
+                toast({
+                  title: "Error al crear nuevo item",
+                  description: errorData.error || "No se pudo crear el nuevo item para el pedido recurrente",
+                  variant: "destructive",
+                });
               }
             } catch (itemError) {
               console.error(`Error al procesar nuevo item para pedido existente ${safeOrderId}:`, itemError);
