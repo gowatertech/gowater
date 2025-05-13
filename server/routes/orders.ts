@@ -1,16 +1,32 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
-import { getCurrentCompanyId } from '../company-db';
+import { getCurrentCompanyId, setCurrentCompanyId } from '../company-db';
 
 // Router para manejar órdenes
 const ordersRouter = express.Router();
 
-// Middleware para verificar autenticación
+// Middleware para verificar autenticación de manera más robusta
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  console.log("🔒 Verificando autenticación en orden - Sesión:", req.session && !!req.session.user);
+  
+  // 1. Verificar si hay un usuario en la sesión
   if (!req.session?.user) {
-    console.log("❌ Acceso denegado: Usuario no autenticado");
+    console.log("❌ Acceso denegado: Usuario no autenticado en la sesión");
     return res.status(401).json({ success: false, message: "No autenticado" });
   }
+  
+  // 2. Verificar que exista un companyId en el contexto o en la sesión
+  const companyId = getCurrentCompanyId() || req.session.user.companyId || req.session.companyId;
+  
+  if (!companyId) {
+    console.log("❌ Acceso denegado: No se encontró el ID de la compañía");
+    return res.status(401).json({ success: false, message: "Empresa no identificada" });
+  }
+  
+  // 3. Establecer explícitamente el companyId en el contexto
+  setCurrentCompanyId(companyId);
+  console.log(`✅ Usuario autenticado correctamente con companyId=${companyId}`);
+  
   next();
 };
 

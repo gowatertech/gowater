@@ -1,12 +1,38 @@
-import { Router, Express } from "express";
+import { Router, Express, Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import { insertRecurringOrderSchema, insertRecurringOrderItemSchema } from "../shared/schema";
+import { getCurrentCompanyId, setCurrentCompanyId } from "./company-db";
 // Nota: Los endpoints de órdenes están ahora directamente en ordersRouter en ./routes/orders.ts
+
+// Middleware de autenticación para pedidos recurrentes
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  console.log("🔒 Verificando autenticación para pedido recurrente - Sesión:", req.session && !!req.session.user);
+  
+  // 1. Verificar si hay un usuario en la sesión
+  if (!req.session?.user) {
+    console.log("❌ Acceso denegado: Usuario no autenticado en la sesión");
+    return res.status(401).json({ success: false, message: "No autenticado" });
+  }
+  
+  // 2. Verificar que exista un companyId en el contexto o en la sesión
+  const companyId = getCurrentCompanyId() || req.session.user.companyId || req.session.companyId;
+  
+  if (!companyId) {
+    console.log("❌ Acceso denegado: No se encontró el ID de la compañía");
+    return res.status(401).json({ success: false, message: "Empresa no identificada" });
+  }
+  
+  // 3. Establecer explícitamente el companyId en el contexto
+  setCurrentCompanyId(companyId);
+  console.log(`✅ Usuario autenticado correctamente con companyId=${companyId} para pedido recurrente`);
+  
+  next();
+};
 
 // Función para crear endpoints de pedidos recurrentes
 export const createRecurringOrdersEndpoints = (router: Router) => {
   // Obtener todos los pedidos recurrentes
-  router.get("/api/recurring-orders", async (req, res) => {
+  router.get("/api/recurring-orders", authMiddleware, async (req: Request, res: Response) => {
     try {
       const recurringOrders = await storage.listRecurringOrders();
       res.json(recurringOrders);
