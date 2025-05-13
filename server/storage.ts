@@ -979,7 +979,7 @@ export class DatabaseStorage implements IStorage {
       
       // Verificación básica
       if (!numericId || numericId <= 0) {
-        throw new Error("ID de pedido recurrente inválido");
+        throw new Error("ID de pedido recurrente inválido paso 3");
       }
       
       // Importar el servicio de órdenes recurrentes

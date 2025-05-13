@@ -574,9 +574,9 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       
       // Validación básica del ID
       if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
-        console.error(`Error: ID de pedido recurrente inválido: ${req.params.id}`);
+        console.error(`Error: ID de pedido recurrente inválido paso 2: ${req.params.id}`);
         return res.status(400).json({ 
-          error: "ID de pedido recurrente inválido", 
+          error: "ID de pedido recurrente inválido paso 2", 
           details: `El ID proporcionado (${req.params.id}) no se pudo convertir a un número válido.`
         });
       }
