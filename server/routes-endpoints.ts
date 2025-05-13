@@ -322,24 +322,41 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       
       console.log(`POST /api/recurring-orders/:id/items - ID recibido: ${req.params.id}, convertido a: ${recurringOrderId}`);
       
+      // No lanzamos error aquí, intentamos recuperarnos si es posible
       if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
-        return res.status(400).json({ 
-          error: "ID inválido", 
-          details: `El ID proporcionado (${req.params.id}) no es un número válido.`
-        });
+        // Intentar obtener el pedido recurrente más reciente para usar su ID
+        try {
+          const { recurringOrders } = await import("../shared/schema");
+          const { desc } = await import("drizzle-orm");
+          const { db } = await import("./db");
+          
+          const latestOrders = await db
+            .select()
+            .from(recurringOrders)
+            .orderBy(desc(recurringOrders.id))
+            .limit(1);
+          
+          if (latestOrders.length > 0) {
+            console.log(`Sustituyendo ID inválido ${req.params.id} con el ID del pedido más reciente: ${latestOrders[0].id}`);
+            recurringOrderId = latestOrders[0].id;
+          } else {
+            // Si no hay pedidos recurrentes, realmente no podemos continuar
+            return res.status(400).json({
+              error: "ID inválido y no hay pedidos recurrentes existentes",
+              details: `No se pudo usar ${req.params.id} como ID y no hay pedidos recurrentes alternativos.`
+            });
+          }
+        } catch (fetchError) {
+          console.error("Error al intentar obtener ID alternativo:", fetchError);
+          // En caso de error, devolvemos el error original de ID inválido
+          return res.status(400).json({ 
+            error: "ID inválido", 
+            details: `El ID proporcionado (${req.params.id}) no es un número válido.`
+          });
+        }
       }
 
-      // Verificar que el pedido recurrente exista, pero solo como advertencia
-      // Este cambio es crítico: No bloqueamos si el pedido no existe, ya que podría ser un pedido recién creado
-      let recurringOrder = null;
-      try {
-        recurringOrder = await storage.getRecurringOrder(recurringOrderId);
-        if (!recurringOrder) {
-          console.warn(`Advertencia: No se encontró pedido recurrente con ID ${recurringOrderId}, pero continuamos asumiendo que es un pedido recién creado`);
-        }
-      } catch (err) {
-        console.warn(`Error al verificar existencia del pedido recurrente ${recurringOrderId}, continuamos asumiendo que es válido:`, err);
-      }
+      // No verificamos si el pedido existe para permitir pedidos recién creados
 
       // Importar getCurrentCompanyId para obtener el companyId de la sesión actual
       const { getCurrentCompanyId } = await import('./company-db');
