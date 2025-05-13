@@ -22,10 +22,10 @@ class RecurringOrdersService {
       console.error(`Error: ID de pedido recurrente inválido paso 1: ${id}`);
       throw new Error("ID de pedido recurrente inválido paso 1");
     }
-    
+
     console.log(`RecurringOrdersService.getRecurringOrder - Buscando pedido recurrente con ID: ${safeId}`);
     const [recurringOrder] = await db.select().from(recurringOrders).where(eq(recurringOrders.id, safeId));
-    
+
     if (!recurringOrder) {
       console.log(`RecurringOrdersService.getRecurringOrder - Pedido recurrente no encontrado con ID: ${safeId}`);
     }
@@ -44,7 +44,7 @@ class RecurringOrdersService {
         .from(recurringOrders)
         .orderBy(desc(recurringOrders.id))
         .limit(1);
-      
+
       return newestOrder || null;
     } catch (error) {
       console.error('Error al obtener el pedido recurrente más reciente:', error);
@@ -69,15 +69,15 @@ class RecurringOrdersService {
   async createRecurringOrder(recurringOrder: InsertRecurringOrder): Promise<RecurringOrder> {
     try {
       console.log("RecurringOrdersService.createRecurringOrder - Datos recibidos:", recurringOrder);
-      
+
       if (!recurringOrder.customerId || recurringOrder.customerId <= 0) {
         throw new Error("Se requiere un cliente válido");
       }
-      
+
       if (!recurringOrder.frequency) {
         throw new Error("Se requiere una frecuencia válida");
       }
-      
+
       const totalAmount = parseFloat(recurringOrder.totalAmount);
       if (isNaN(totalAmount)) {
         throw new Error("El monto total debe ser un número válido");
@@ -87,7 +87,7 @@ class RecurringOrdersService {
       const dayOfWeek = recurringOrder.dayOfWeek !== undefined ? 
         (typeof recurringOrder.dayOfWeek === 'string' ? 
           parseInt(recurringOrder.dayOfWeek) : recurringOrder.dayOfWeek) : null;
-      
+
       const dayOfMonth = recurringOrder.dayOfMonth !== undefined ? 
         (typeof recurringOrder.dayOfMonth === 'string' ? 
           parseInt(recurringOrder.dayOfMonth) : recurringOrder.dayOfMonth) : null;
@@ -95,11 +95,11 @@ class RecurringOrdersService {
       // Importar la función para obtener el companyId actual
       const { getCurrentCompanyId } = await import('./company-db');
       const companyId = (recurringOrder as any).companyId || getCurrentCompanyId() || 1;
-      
+
       // Obtener el siguiente ID
       const nextId = await this.getNextRecurringOrderId();
       console.log("RecurringOrdersService.createRecurringOrder - Siguiente ID:", nextId);
-      
+
       const recurringOrderData = {
         id: nextId, // Usar el siguiente ID secuencial
         ...recurringOrder,
@@ -129,7 +129,7 @@ class RecurringOrdersService {
       console.log("RecurringOrdersService.createRecurringOrder - Insertando en la base de datos");
       const [newRecurringOrder] = await db.insert(recurringOrders).values(recurringOrderData as any).returning();
       console.log("RecurringOrdersService.createRecurringOrder - Orden creada:", newRecurringOrder);
-      
+
       return newRecurringOrder;
     } catch (error) {
       console.error('Error en createRecurringOrder:', error);
@@ -139,40 +139,40 @@ class RecurringOrdersService {
 
   async listRecurringOrders(): Promise<RecurringOrder[]> {
     console.log("RecurringOrdersService.listRecurringOrders - Obteniendo todos los pedidos recurrentes");
-    
+
     // Importaciones necesarias
     const { getCurrentCompanyId } = await import('./company-db');
     const { customers } = await import('../shared/schema');
-    
+
     const companyId = getCurrentCompanyId();
     console.log(`RecurringOrdersService.listRecurringOrders - CompanyId en contexto: ${companyId}`);
-    
+
     try {
       // Obtener todos los pedidos recurrentes para diagnosticar
       const allOrders = await db.select().from(recurringOrders);
       console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${allOrders.length} pedidos recurrentes en total`);
-      
+
       // Mostrar todos los pedidos recurrentes para depuración
       console.log("Lista completa de pedidos recurrentes:");
       allOrders.forEach(order => {
         console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, Cliente: ${order.customerId}, CompanyId: ${order.companyId}`);
       });
-      
+
       // Filtrar por companyId si existe
       if (companyId) {
         const filteredOrders = await db
           .select()
           .from(recurringOrders)
           .where(eq(recurringOrders.companyId, companyId));
-        
+
         console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${filteredOrders.length} pedidos para empresa ${companyId}`);
-        
+
         // Mostrar pedidos filtrados para depuración
         console.log("Lista de pedidos recurrentes filtrados por compañía:");
         filteredOrders.forEach(order => {
           console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, Cliente: ${order.customerId}, CompanyId: ${order.companyId}`);
         });
-        
+
         // Agregar info de clientes para el frontend
         const ordersWithCustomerInfo = await Promise.all(
           filteredOrders.map(async (order) => {
@@ -182,9 +182,9 @@ class RecurringOrdersService {
                 .select()
                 .from(customers)
                 .where(eq(customers.id, order.customerId));
-              
+
               const customer = customerResults.length > 0 ? customerResults[0] : null;
-              
+
               // Agregar información del cliente al pedido recurrente
               return {
                 ...order,
@@ -199,11 +199,11 @@ class RecurringOrdersService {
             }
           })
         );
-        
+
         console.log(`RecurringOrdersService.listRecurringOrders - Preparados ${ordersWithCustomerInfo.length} pedidos con info de clientes`);
         return ordersWithCustomerInfo as RecurringOrder[];
       }
-      
+
       return allOrders;
     } catch (error) {
       console.error("Error al listar pedidos recurrentes:", error);
@@ -235,7 +235,7 @@ class RecurringOrdersService {
     // Convertir fechas si se proporcionan
     if (data.startDate) {
       updateData.startDate = new Date(data.startDate);
-      
+
       // Recalcular la próxima fecha de generación si cambia la fecha de inicio
       const nextGenDate = this.calculateNextGenerationDate(
         new Date(data.startDate),
@@ -243,7 +243,7 @@ class RecurringOrdersService {
         data.dayOfWeek !== undefined ? data.dayOfWeek : recurringOrder.dayOfWeek,
         data.dayOfMonth !== undefined ? data.dayOfMonth : recurringOrder.dayOfMonth
       );
-      
+
       updateData.nextGenerationDate = nextGenDate;
     }
 
@@ -306,10 +306,10 @@ class RecurringOrdersService {
     try {
       // Importar la función para obtener el companyId actual
       const { getCurrentCompanyId } = await import('./company-db');
-      
+
       // Validar y asegurar que el ID del pedido recurrente sea un número válido
       let recurringOrderId: number;
-      
+
       // Nueva implementación más tolerante para convertir recurringOrderId a número
       if (typeof item.recurringOrderId === 'number') {
         recurringOrderId = item.recurringOrderId;
@@ -335,7 +335,7 @@ class RecurringOrdersService {
       } else {
         recurringOrderId = Number(item.recurringOrderId);
       }
-      
+
       // Validación más permisiva - Si tenemos un valor NaN, usamos un valor predeterminado
       // para permitir la creación de items incluso cuando hay problemas con el ID
       if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
@@ -346,7 +346,7 @@ class RecurringOrdersService {
             .from(recurringOrders)
             .orderBy(desc(recurringOrders.id))
             .limit(1);
-          
+
           if (allOrders.length > 0 && allOrders[0].id) {
             console.log(`Sustituyendo ID inválido con el ID del pedido más reciente: ${allOrders[0].id}`);
             recurringOrderId = allOrders[0].id;
@@ -364,23 +364,23 @@ class RecurringOrdersService {
           console.warn("Error al consultar la base de datos. Usando ID predeterminado = 1");
         }
       }
-      
+
       // Asegurar que el item tenga companyId y usar el ID validado numéricamente
       const itemWithCompanyId = {
         ...item,
         recurringOrderId: recurringOrderId, // Usar el ID validado y transformado
         companyId: (item as any).companyId || getCurrentCompanyId() || 1
       };
-      
+
       console.log("RecurringOrdersService.createRecurringOrderItem - Item a insertar:", itemWithCompanyId);
-      
+
       try {
         const [newItem] = await db.insert(recurringOrderItems).values(itemWithCompanyId as any).returning();
         console.log("RecurringOrdersService.createRecurringOrderItem - Item creado con éxito:", newItem);
         return newItem;
       } catch (dbError) {
         console.error("RecurringOrdersService.createRecurringOrderItem - Error al insertar en la base de datos:", dbError);
-        
+
         // Proporcionar un mensaje de error más detallado
         if (dbError instanceof Error) {
           throw new Error(`Error al crear item: ${dbError.message}`);
@@ -418,9 +418,9 @@ class RecurringOrdersService {
 
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando con ID: ${recurringOrderId}`);
-    
+
     let safeId: number;
-    
+
     try {
       // Simplificar la validación del ID
       if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
@@ -441,15 +441,15 @@ class RecurringOrdersService {
           throw new Error("No se pudo obtener un ID válido");
         }
       }
-    
+
     // Última verificación - solo validamos que sea un número válido mayor que 0
     if (isNaN(safeId) || safeId <= 0) {
       console.error(`Error: ID de pedido recurrente inválido paso 1: ${recurringOrderId} (convertido a ${safeId})`);
       throw new Error("ID de pedido recurrente inválido paso 1");
     }
-    
+
     console.log(`RecurringOrdersService - Usando ID normalizado: ${safeId}`)
-    
+
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
       .select()
@@ -479,9 +479,9 @@ class RecurringOrdersService {
     // Importar la función para obtener el companyId actual
     const { getCurrentCompanyId } = await import('./company-db');
     const companyId = recurringOrder.companyId || getCurrentCompanyId() || 1;
-    
+
     console.log(`RecurringOrdersService - Usando companyId:`, companyId);
-    
+
     // Crear un nuevo pedido usando nomenclatura camelCase
     const newOrderData = {
       customerId: recurringOrder.customerId,
@@ -502,7 +502,7 @@ class RecurringOrdersService {
 
     // Insertar el nuevo pedido
     const [order] = await db.insert(orders).values([newOrderData]).returning();
-    
+
     console.log(`RecurringOrdersService - Pedido creado:`, order);
 
     // Insertar los items del pedido con nomenclatura camelCase
@@ -515,7 +515,7 @@ class RecurringOrdersService {
         companyId: companyId,
         total: (parseFloat(item.price) * item.quantity).toFixed(2),
       };
-      
+
       console.log(`RecurringOrdersService - Creando item para el pedido:`, orderItemData);
       await db.insert(orderItems).values([orderItemData]);
     }
@@ -530,7 +530,7 @@ class RecurringOrdersService {
     );
 
     console.log(`RecurringOrdersService - Actualizando fechas para el pedido recurrente #${safeId}`);
-    
+
     await db
       .update(recurringOrders)
       .set({ 
@@ -541,7 +541,7 @@ class RecurringOrdersService {
       .where(eq(recurringOrders.id, safeId));
 
     console.log(`RecurringOrdersService - Proceso completado exitosamente`);
-    
+
     return order;
   }
 
@@ -553,12 +553,12 @@ class RecurringOrdersService {
     dayOfMonth?: number | null
   ): Date {
     const nextDate = new Date(startDate);
-    
+
     switch (frequency) {
       case "daily":
         nextDate.setDate(nextDate.getDate() + 1);
         break;
-      
+
       case "weekly":
         if (dayOfWeek !== undefined && dayOfWeek !== null) {
           // Establecer al próximo día de la semana especificado
@@ -570,7 +570,7 @@ class RecurringOrdersService {
           nextDate.setDate(nextDate.getDate() + 7);
         }
         break;
-      
+
       case "biweekly":
         if (dayOfWeek !== undefined && dayOfWeek !== null) {
           // Primero ajustar al día de la semana correcto
@@ -584,7 +584,7 @@ class RecurringOrdersService {
           nextDate.setDate(nextDate.getDate() + 14);
         }
         break;
-      
+
       case "monthly":
         if (dayOfMonth !== undefined && dayOfMonth !== null) {
           // Avanzar al mes siguiente
@@ -598,12 +598,12 @@ class RecurringOrdersService {
           nextDate.setMonth(nextDate.getMonth() + 1);
         }
         break;
-      
+
       default:
         // Para cualquier otro caso, simplemente devolver la fecha de inicio
         return startDate;
     }
-    
+
     return nextDate;
   }
 }
