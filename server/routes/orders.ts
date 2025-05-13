@@ -1,56 +1,17 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
-import { getCurrentCompanyId, setCurrentCompanyId } from '../company-db';
+import { getCurrentCompanyId } from '../company-db';
 
 // Router para manejar órdenes
 const ordersRouter = express.Router();
 
-// Middleware para verificar autenticación de manera más robusta
+// Middleware para verificar autenticación
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  console.log("🔒 Verificando autenticación en orden - Sesión:", req.session && !!req.session.user);
-  console.log("📦 Datos de sesión:", {
-    sessionId: req.sessionID,
-    userExists: !!req.session?.user,
-    userId: req.session?.user?.id || "No disponible",
-    companyIdFromUser: req.session?.user?.companyId || "No disponible",
-    companyIdFromSession: req.session?.companyId || "No disponible",
-    companyIdFromContext: getCurrentCompanyId() || "No disponible"
-  });
-  
-  // Verificar autenticación de manera permisiva: si hay cualquier indicador de autenticación, permitir
-  if (req.session?.user || req.user || req.isAuthenticated?.()) {
-    console.log("✅ Usuario autenticado encontrado");
-    
-    // Obtener companyId de cualquier fuente disponible
-    let companyId = getCurrentCompanyId() || 
-                   req.session?.user?.companyId || 
-                   req.session?.companyId || 
-                   (req.user as any)?.companyId;
-    
-    // Si no hay companyId pero tenemos usuario, asignar un valor por defecto para desarrollo
-    if (!companyId && (req.session?.user || req.user)) {
-      companyId = 15; // Usar un ID de compañía por defecto para desarrollo
-      console.log("⚠️ Usando companyId por defecto:", companyId);
-    }
-    
-    if (companyId) {
-      // Establecer explícitamente el companyId en el contexto y en la sesión
-      setCurrentCompanyId(companyId);
-      if (req.session) {
-        req.session.companyId = companyId;
-        // Asegurarse de que el usuario tenga companyId
-        if (req.session.user && !req.session.user.companyId) {
-          req.session.user.companyId = companyId;
-        }
-      }
-      console.log(`✅ Usuario autenticado correctamente con companyId=${companyId}`);
-      return next();
-    }
+  if (!req.session?.user) {
+    console.log("❌ Acceso denegado: Usuario no autenticado");
+    return res.status(401).json({ success: false, message: "No autenticado" });
   }
-  
-  // Si llegamos aquí, no hay autenticación
-  console.log("❌ Acceso denegado: Usuario no autenticado en la sesión");
-  return res.status(401).json({ success: false, message: "No autenticado" });
+  next();
 };
 
 // Endpoint para listar todas las órdenes
@@ -279,11 +240,6 @@ ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Reque
 ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Response) => {
   console.log("🔴 INICIO /api/orders - Intento de crear pedido");
   console.log("📣 POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
-  console.log("🔑 Headers de la petición:", JSON.stringify({
-    contentType: req.headers['content-type'],
-    xDebugCompanyId: req.headers['x-debug-companyid'],
-    xDebugTimestamp: req.headers['x-debug-timestamp'],
-  }, null, 2));
   
   // Extraer items para procesarlos después
   const orderItemsData = req.body.items || [];
@@ -302,32 +258,8 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
     await client.query('BEGIN');
     console.log("🔄 Transacción iniciada");
     
-    // Obtener el ID de la empresa del contexto o de los headers para debugging
-    let companyId = getCurrentCompanyId();
-    
-    // Si viene en los headers de debug, lo usamos (solo para desarrollo/pruebas)
-    if (req.headers['x-debug-companyid']) {
-      companyId = parseInt(req.headers['x-debug-companyid'] as string);
-      console.log(`🔧 Usando companyId=${companyId} desde X-Debug-CompanyId header`);
-    }
-    
-    // Si aún no hay companyId, intentar obtenerlo de la sesión
-    if (!companyId && req.session?.user?.companyId) {
-      companyId = req.session.user.companyId;
-      console.log(`🔧 Usando companyId=${companyId} desde session.user.companyId`);
-    }
-    
-    // Si aún no hay companyId, intentar obtenerlo de la sesión directamente
-    if (!companyId && req.session?.companyId) {
-      companyId = req.session.companyId;
-      console.log(`🔧 Usando companyId=${companyId} desde session.companyId`);
-    }
-    
-    // No usamos valores por defecto para evitar problemas de seguridad e integridad
-    // Simplemente reportamos el error en caso de que falte el companyId
-    if (!companyId) {
-      console.log(`⚠️ No se encontró un valor válido para companyId`);
-    }
+    // Obtener el ID de la empresa del contexto
+    const companyId = getCurrentCompanyId();
     
     if (!companyId) {
       console.error("❌ ERROR: No se encontró companyId en el contexto para crear pedido");

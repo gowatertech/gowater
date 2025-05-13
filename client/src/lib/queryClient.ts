@@ -56,33 +56,21 @@ export async function apiRequest(
   console.log(`[apiRequest] Iniciando ${method} a ${fullUrl}`, 
     data ? JSON.stringify(data, null, 2) : 'Sin datos');
 
-  // Añadir un timestamp para evitar cachés
-  const urlWithTimestamp = `${fullUrl}${fullUrl.includes('?') ? '&' : '?'}_=${Date.now()}`;
-  
-  console.log(`🔐 [apiRequest] Estado de la sesión antes de fetch:`, {
-    sessionActive: document.cookie.includes('connect.sid'),
-    cookieStr: document.cookie
-  });
-  
   try {
-    const res = await fetch(urlWithTimestamp, {
+    const res = await fetch(fullUrl, {
       method,
       headers: {
         ...(data ? { "Content-Type": "application/json" } : {}),
-        "Accept": "application/json",
-        // Añadir headers para debugging
-        "X-Debug-CompanyId": "15",
-        "X-Debug-Timestamp": Date.now().toString()
+        "Accept": "application/json"
       },
       body: data ? JSON.stringify(data) : undefined,
       credentials: "include",
     });
     
-    console.log(`✅ [apiRequest] Respuesta recibida de ${urlWithTimestamp}:`, {
+    console.log(`[apiRequest] Respuesta recibida de ${fullUrl}:`, {
       status: res.status,
       statusText: res.statusText,
       headers: Object.fromEntries([...res.headers]),
-      cookies: document.cookie
     });
 
     if (!res.ok) {

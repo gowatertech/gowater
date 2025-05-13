@@ -1,61 +1,12 @@
-import { Router, Express, Request, Response, NextFunction } from "express";
+import { Router, Express } from "express";
 import { storage } from "./storage";
 import { insertRecurringOrderSchema, insertRecurringOrderItemSchema } from "../shared/schema";
-import { getCurrentCompanyId, setCurrentCompanyId } from "./company-db";
 // Nota: Los endpoints de órdenes están ahora directamente en ordersRouter en ./routes/orders.ts
-
-// Middleware de autenticación para pedidos recurrentes
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  console.log("🔒 Verificando autenticación para pedido recurrente - Sesión:", req.session && !!req.session.user);
-  console.log("📦 Datos de sesión (pedido recurrente):", {
-    sessionId: req.sessionID,
-    userExists: !!req.session?.user,
-    userId: req.session?.user?.id || "No disponible",
-    companyIdFromUser: req.session?.user?.companyId || "No disponible",
-    companyIdFromSession: req.session?.companyId || "No disponible",
-    companyIdFromContext: getCurrentCompanyId() || "No disponible"
-  });
-  
-  // Verificar autenticación de manera permisiva: si hay cualquier indicador de autenticación, permitir
-  if (req.session?.user || req.user || req.isAuthenticated?.()) {
-    console.log("✅ Usuario autenticado encontrado (pedido recurrente)");
-    
-    // Obtener companyId de cualquier fuente disponible
-    let companyId = getCurrentCompanyId() || 
-                   req.session?.user?.companyId || 
-                   req.session?.companyId || 
-                   (req.user as any)?.companyId;
-    
-    // Si no hay companyId pero tenemos usuario, asignar un valor por defecto para desarrollo
-    if (!companyId && (req.session?.user || req.user)) {
-      companyId = 15; // Usar un ID de compañía por defecto para desarrollo
-      console.log("⚠️ Usando companyId por defecto para pedido recurrente:", companyId);
-    }
-    
-    if (companyId) {
-      // Establecer explícitamente el companyId en el contexto y en la sesión
-      setCurrentCompanyId(companyId);
-      if (req.session) {
-        req.session.companyId = companyId;
-        // Asegurarse de que el usuario tenga companyId
-        if (req.session.user && !req.session.user.companyId) {
-          req.session.user.companyId = companyId;
-        }
-      }
-      console.log(`✅ Usuario autenticado correctamente para pedido recurrente con companyId=${companyId}`);
-      return next();
-    }
-  }
-  
-  // Si llegamos aquí, no hay autenticación
-  console.log("❌ Acceso denegado (pedido recurrente): Usuario no autenticado en la sesión");
-  return res.status(401).json({ success: false, message: "No autenticado" });
-};
 
 // Función para crear endpoints de pedidos recurrentes
 export const createRecurringOrdersEndpoints = (router: Router) => {
   // Obtener todos los pedidos recurrentes
-  router.get("/api/recurring-orders", authMiddleware, async (req: Request, res: Response) => {
+  router.get("/api/recurring-orders", async (req, res) => {
     try {
       const recurringOrders = await storage.listRecurringOrders();
       res.json(recurringOrders);
@@ -66,7 +17,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Obtener pedidos recurrentes por cliente
-  router.get("/api/customers/:customerId/recurring-orders", authMiddleware, async (req: Request, res: Response) => {
+  router.get("/api/customers/:customerId/recurring-orders", async (req, res) => {
     try {
       const customerId = parseInt(req.params.customerId);
       if (isNaN(customerId)) {
@@ -82,7 +33,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Obtener un pedido recurrente específico
-  router.get("/api/recurring-orders/:id", authMiddleware, async (req: Request, res: Response) => {
+  router.get("/api/recurring-orders/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -102,7 +53,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Crear un nuevo pedido recurrente
-  router.post("/api/recurring-orders", authMiddleware, async (req: Request, res: Response) => {
+  router.post("/api/recurring-orders", async (req, res) => {
     try {
       console.log("Recibiendo solicitud para crear pedido recurrente:", req.body);
 
@@ -138,7 +89,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Actualizar un pedido recurrente
-  router.patch("/api/recurring-orders/:id", authMiddleware, async (req: Request, res: Response) => {
+  router.patch("/api/recurring-orders/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -174,7 +125,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Actualizar el estado de un pedido recurrente
-  router.patch("/api/recurring-orders/:id/status", authMiddleware, async (req: Request, res: Response) => {
+  router.patch("/api/recurring-orders/:id/status", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -195,7 +146,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Eliminar un pedido recurrente
-  router.delete("/api/recurring-orders/:id", authMiddleware, async (req: Request, res: Response) => {
+  router.delete("/api/recurring-orders/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -213,7 +164,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // ======================= ITEMS DE PEDIDOS RECURRENTES =======================
 
   // Obtener items de un pedido recurrente
-  router.get("/api/recurring-orders/:id/items", authMiddleware, async (req: Request, res: Response) => {
+  router.get("/api/recurring-orders/:id/items", async (req, res) => {
     try {
       const recurringOrderId = parseInt(req.params.id);
       if (isNaN(recurringOrderId)) {
@@ -229,7 +180,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Añadir un item a un pedido recurrente
-  router.post("/api/recurring-orders/:id/items", authMiddleware, async (req: Request, res: Response) => {
+  router.post("/api/recurring-orders/:id/items", async (req, res) => {
     try {
       const recurringOrderId = parseInt(req.params.id);
       if (isNaN(recurringOrderId)) {
@@ -279,7 +230,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Actualizar un item de un pedido recurrente
-  router.patch("/api/recurring-order-items/:id", authMiddleware, async (req: Request, res: Response) => {
+  router.patch("/api/recurring-order-items/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -326,7 +277,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Eliminar un item de un pedido recurrente
-  router.delete("/api/recurring-order-items/:id", authMiddleware, async (req: Request, res: Response) => {
+  router.delete("/api/recurring-order-items/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -364,7 +315,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Generar orden a partir de un pedido recurrente
-  router.post("/api/recurring-orders/:id/generate", authMiddleware, async (req: Request, res: Response) => {
+  router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
