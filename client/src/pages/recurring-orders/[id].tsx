@@ -146,8 +146,24 @@ const RecurringOrderForm: React.FC = () => {
     const selectedProduct = products?.find((p: any) => p.id === productId);
     if (selectedProduct) {
       const price = selectedProduct.price;
+      
+      // Actualizar los valores en el formulario
       form.setValue(`items.${index}.price`, price);
+      form.setValue(`items.${index}.productId`, productId);
+      
+      // Propagar cambios y recalcular total
+      form.trigger(`items.${index}.productId`);
       calculateTotal();
+      
+      // Forzar regeneración del valor en el UI si es necesario
+      setTimeout(() => {
+        // Forzar re-renderizado del componente Select
+        const event = new Event('change', { bubbles: true });
+        const inputElement = document.querySelector(`input[name="items.${index}.productId"]`);
+        if (inputElement) {
+          inputElement.dispatchEvent(event);
+        }
+      }, 50);
     }
   };
 
@@ -840,13 +856,17 @@ const RecurringOrderForm: React.FC = () => {
                             form.setValue(`items.${index}.productId`, Number(value));
                             handleProductChange(index, Number(value));
                           }}
+                          defaultValue={form.getValues(`items.${index}.productId`)?.toString() || '0'}
                         >
                           <SelectTrigger className="w-full">
-                            <SelectValue>
-                              {isLoadingProducts 
-                                ? t('loadingProducts')
-                                : products?.find(p => p.id === form.getValues(`items.${index}.productId`))?.name || t('selectProduct')
-                              }
+                            <SelectValue placeholder={t('selectProduct')}>
+                              {(() => {
+                                const productId = form.getValues(`items.${index}.productId`);
+                                const product = products?.find(p => p.id === productId);
+                                return isLoadingProducts 
+                                  ? t('loadingProducts')
+                                  : product ? product.name : t('selectProduct');
+                              })()}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>

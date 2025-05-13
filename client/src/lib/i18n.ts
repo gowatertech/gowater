@@ -168,6 +168,7 @@ const resources = {
       productsDescription: "Add products to this recurring order",
       orderProduct: "Product",
       selectOrderProduct: "Select a product",
+      loadingProducts: "Loading products...",
       orderQuantity: "Quantity",
       orderPrice: "Price",
       orderTotal: "Total",
