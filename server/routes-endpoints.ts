@@ -17,21 +17,80 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       console.log(`GET /api/recurring-orders - Usuario en sesión: ${JSON.stringify(sessionUser || 'No hay sesión')}`);
       console.log(`GET /api/recurring-orders - CompanyId en sesión: ${companyId || 'No definido'}`);
       
-      // Consulta directa a la base de datos para verificar datos
-      console.log("Realizando consulta directa para diagnóstico:");
-      const db = await import('./db');
-      const { eq } = await import('drizzle-orm');
-      const { recurringOrders } = await import('../shared/schema');
-      
+      // Mejorar los datos para el frontend haciendo una consulta directa
       if (companyId) {
-        const directResults = await db.db.select().from(recurringOrders).where(eq(recurringOrders.companyId, companyId));
-        console.log(`Consulta directa encontró ${directResults.length} pedidos para compañía ${companyId}:`);
-        directResults.forEach(order => {
-          console.log(`- DB #${order.id}: ${order.name}, Cliente: ${order.customerId}, Compañía: ${order.companyId}`);
-        });
+        try {
+          // Consulta directa para obtener los pedidos con información de clientes
+          const { pool } = await import('./db-connect');
+          
+          // Consulta combinada para obtener datos de cliente junto con el pedido
+          const query = `
+            SELECT 
+              ro.id, 
+              ro.customer_id as "customerId", 
+              ro.name, 
+              ro.frequency, 
+              ro.day_of_week as "dayOfWeek", 
+              ro.day_of_month as "dayOfMonth", 
+              ro.start_date as "startDate", 
+              ro.end_date as "endDate", 
+              ro.payment_method as "paymentMethod",
+              ro.status, 
+              ro.total_amount as "totalAmount", 
+              ro.created_at as "createdAt",
+              ro.last_generated_date as "lastGeneratedDate", 
+              ro.next_generation_date as "nextGenerationDate", 
+              ro.notes, 
+              ro.updated_at as "updatedAt", 
+              ro.company_id as "companyId",
+              c.id as "customer.id", 
+              c.businessname as "customer.name" 
+            FROM recurring_orders ro
+            LEFT JOIN customers c ON ro.customer_id = c.id AND c.company_id = $1
+            WHERE ro.company_id = $1
+            ORDER BY ro.id DESC
+          `;
+
+          const client = await pool.connect();
+          
+          try {
+            const result = await client.query(query, [companyId]);
+            
+            // Procesar resultados para crear objetos anidados
+            const formattedOrders = result.rows.map(row => {
+              // Crear objeto cliente si existe
+              const customer = row['customer.id'] ? {
+                id: row['customer.id'],
+                name: row['customer.name']
+              } : undefined;
+              
+              // Eliminar propiedades de cliente del objeto principal
+              const { 'customer.id': _, 'customer.name': __, ...orderData } = row;
+              
+              // Devolver el objeto combinado
+              return {
+                ...orderData,
+                customer
+              };
+            });
+            
+            console.log(`GET /api/recurring-orders - Consulta directa encontró ${formattedOrders.length} pedidos`);
+            formattedOrders.forEach(order => {
+              console.log(`- DB Direct #${order.id}: ${order.name}, Cliente: ${order.customer?.name || 'Sin cliente'}`);
+            });
+            
+            // Devolver directamente los resultados formateados
+            return res.json(formattedOrders);
+          } finally {
+            client.release();
+          }
+        } catch (dbError) {
+          console.error("Error en consulta directa:", dbError);
+          // Si falla, continuar con el método normal
+        }
       }
       
-      // Continuar con el flujo normal
+      // Si no se pudo usar la consulta directa, continuar con el flujo normal
       const recurringOrdersList = await storage.listRecurringOrders();
       console.log(`GET /api/recurring-orders - Storage retornó ${recurringOrdersList.length} pedidos recurrentes`);
       
