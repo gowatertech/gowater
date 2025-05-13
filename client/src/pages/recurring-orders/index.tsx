@@ -292,13 +292,7 @@ const RecurringOrdersPage: React.FC = () => {
       return (
         <div className="flex flex-col items-center justify-center p-8 text-center">
           <p className="text-muted-foreground mb-4">{t('noRecurringOrders')}</p>
-          <Button
-            variant="outline"
-            onClick={() => setLocation('/recurring-orders/new')}
-          >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {t('createNewRecurringOrder')}
-          </Button>
+          {/* Botón eliminado según solicitud del usuario */}
         </div>
       );
     }
@@ -389,10 +383,7 @@ const RecurringOrdersPage: React.FC = () => {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">{t('recurringOrdersTitle')}</h1>
-        <Button onClick={() => setLocation('/recurring-orders/new')}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          {t('createNewRecurringOrder')}
-        </Button>
+        {/* Botón para nueva página eliminado según solicitud del usuario */}
       </div>
 
       <Card>
