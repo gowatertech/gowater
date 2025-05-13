@@ -349,8 +349,8 @@ app.use((req, res, next) => {
     // Start server
     const port = process.env.PORT || 5000;
     server.listen(Number(port), "0.0.0.0", () => {
-      log(`Server started successfully on port ${port} and bound to 0.0.0.0`);
-      log(`Environment: ${process.env.NODE_ENV}`);
+      console.log(`⭐️ Servidor iniciado en http://0.0.0.0:${port}`);
+      console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     });
 
   } catch (error) {
