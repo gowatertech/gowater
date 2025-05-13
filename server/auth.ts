@@ -9,6 +9,8 @@ import { eq, and } from 'drizzle-orm';
 import { setCurrentCompanyId } from './company-db';
 import connectPg from 'connect-pg-simple';
 import { pool } from './db';
+// @ts-ignore - Ignoramos el error de tipado para csurf
+import csurf from 'csurf';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -51,6 +53,40 @@ export function setupAuth(app: Express) {
 
   // Configurar middleware de sesión
   app.use(session(sessionOptions));
+  
+  // Configurar protección CSRF
+  const csrfProtection = csurf({ 
+    cookie: { 
+      sameSite: 'lax',
+      secure: false // Para entorno de desarrollo 
+    } 
+  });
+  
+  // Aplicar protección CSRF a todas las rutas POST/PUT/DELETE excepto algunas específicas
+  app.use((req, res, next) => {
+    // Excluir rutas específicas de la protección CSRF
+    const excludedPaths = [
+      '/api/login',
+      '/api/mobile/login',
+      '/api/platform-login',
+      '/api/webhooks'
+    ];
+    
+    if (
+      excludedPaths.some(path => req.path.startsWith(path)) || 
+      req.method === 'GET'
+    ) {
+      return next();
+    }
+    
+    // Aplicar protección CSRF
+    csrfProtection(req, res, next);
+  });
+  
+  // Endpoint para obtener el token CSRF
+  app.get('/api/csrf-token', csrfProtection, (req: any, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+  });
   app.use(passport.initialize());
   app.use(passport.session());
 
