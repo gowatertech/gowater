@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import { 
   recurringOrders, 
@@ -18,6 +18,20 @@ class RecurringOrdersService {
   async getRecurringOrder(id: number): Promise<RecurringOrder | undefined> {
     const [recurringOrder] = await db.select().from(recurringOrders).where(eq(recurringOrders.id, id));
     return recurringOrder;
+  }
+
+  /**
+   * Obtiene el siguiente ID para un pedido recurrente
+   * @returns Número entero que representa el próximo ID disponible
+   */
+  async getNextRecurringOrderId(): Promise<number> {
+    const orders = await db
+      .select({ id: recurringOrders.id })
+      .from(recurringOrders)
+      .orderBy(desc(recurringOrders.id))
+      .limit(1);
+
+    return orders.length > 0 ? orders[0].id + 1 : 1;
   }
 
   async createRecurringOrder(recurringOrder: InsertRecurringOrder): Promise<RecurringOrder> {
@@ -50,7 +64,12 @@ class RecurringOrdersService {
       const { getCurrentCompanyId } = await import('./company-db');
       const companyId = (recurringOrder as any).companyId || getCurrentCompanyId() || 1;
       
+      // Obtener el siguiente ID
+      const nextId = await this.getNextRecurringOrderId();
+      console.log("RecurringOrdersService.createRecurringOrder - Siguiente ID:", nextId);
+      
       const recurringOrderData = {
+        id: nextId, // Usar el siguiente ID secuencial
         ...recurringOrder,
         companyId, // Asegurar que exista companyId
         dayOfWeek: dayOfWeek,
