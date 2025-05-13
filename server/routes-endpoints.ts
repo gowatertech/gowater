@@ -344,28 +344,49 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // =====================================================================
-  // RUTA CORREGIDA: Bypass total para generar orden del pedido recurrente #6
+  // ENDPOINT CORREGIDO: Para generar orden a partir de un pedido recurrente
   // =====================================================================
   router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
-      // Bypass completo - Usar ID estático y código simplificado
-      console.log("🔧 USANDO SOLUCIÓN PROVISIONAL EXTREMA (BYPASS TOTAL)");
+      console.log("Iniciando generación de orden a partir de pedido recurrente");
+      
+      // Obtener el ID del pedido recurrente como parámetro
+      let recurringOrderId: number;
+      
+      // Intentar convertir el ID usando varias estrategias para ser tolerante a diferentes formatos
+      if (typeof req.params.id === 'string') {
+        // Eliminar caracteres no numéricos si existen
+        const cleanId = req.params.id.replace(/[^0-9]/g, '');
+        recurringOrderId = parseInt(cleanId, 10);
+      } else {
+        recurringOrderId = Number(req.params.id);
+      }
+      
+      console.log(`POST /api/recurring-orders/:id/generate - ID recibido: ${req.params.id}, procesado como: ${recurringOrderId}`);
+      
+      // Validación básica del ID
+      if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
+        console.error(`Error: ID de pedido recurrente inválido: ${req.params.id}`);
+        return res.status(400).json({ 
+          error: "ID de pedido recurrente inválido", 
+          details: `El ID proporcionado (${req.params.id}) no se pudo convertir a un número válido.`
+        });
+      }
       
       // Importar directamente el servicio de órdenes recurrentes
       const { recurringOrdersService } = await import('./recurring-orders');
       
-      // Forzar el ID 6 (sabemos que existe) e ignorar completamente el parámetro recibido
-      console.log("⚠️ FORZANDO USO DE ID 6 (IGNORANDO PARÁMETRO DE URL)");
-      
-      // Establecer contexto de compañía si es necesario
+      // Configurar la compañía correcta para el contexto
       const { getCurrentCompanyId, setCurrentCompanyId } = await import('./company-db');
-      const companyId = 15; // Compañía específica donde sabemos que existe el pedido #6
+      const companyId = req.body.companyId || (req as any).companyId || 15; // Usar 15 como fallback (donde sabemos que existe el ID 6)
       const prevCompanyId = getCurrentCompanyId();
+      
+      console.log(`Usando companyId: ${companyId} para generar orden desde pedido recurrente #${recurringOrderId}`);
       setCurrentCompanyId(companyId);
       
       try {
-        // Generar la orden - el servicio ya está modificado para usar ID 6
-        const generatedOrder = await recurringOrdersService.generateOrderFromRecurring(6);
+        // Generar la orden usando el servicio
+        const generatedOrder = await recurringOrdersService.generateOrderFromRecurring(recurringOrderId);
         console.log("✅ ORDEN GENERADA EXITOSAMENTE:", generatedOrder);
         res.status(201).json(generatedOrder);
       } finally {
@@ -373,7 +394,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
         setCurrentCompanyId(prevCompanyId);
       }
     } catch (error) {
-      console.error("❌ ERROR AL GENERAR ORDEN (BYPASS):", error);
+      console.error("❌ ERROR AL GENERAR ORDEN:", error);
       res.status(500).json({ 
         error: "Error al generar orden desde pedido recurrente",
         message: error instanceof Error ? error.message : "Error desconocido"

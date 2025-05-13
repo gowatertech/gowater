@@ -278,21 +278,11 @@ class RecurringOrdersService {
   }
 
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
-    console.log(`RecurringOrdersService.generateOrderFromRecurring - DIAGNÓSTICO COMPLETO:`, {
-      idRecibido: recurringOrderId,
-      tipo: typeof recurringOrderId,
-      stringValue: String(recurringOrderId),
-      numberValue: Number(recurringOrderId),
-      isNaN: isNaN(Number(recurringOrderId))
-    });
+    console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando con ID: ${recurringOrderId}`);
     
-    // CORRECCIÓN EXTREMA: Forzar el uso del ID 6 para pruebas
-    console.log("⚠️ FORZANDO USO DE ID 6 PARA PEDIDO RECURRENTE (DIAGNÓSTICO)");
-    let safeId = 6;
-    
-    // En modo normal, descomentar este bloque:
-    /*
     // Ser extremadamente permisivo con el formato de ID (acepta string, number, e incluso objetos con .toString)
+    let safeId: number;
+    
     // Si viene un objeto que tiene un campo ID, intentar usarlo también
     if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
       // Intentar acceder a 'id' si existe, pero con comprobación segura
@@ -303,7 +293,13 @@ class RecurringOrdersService {
         safeId = Number(recurringOrderId);
       }
     } else {
-      safeId = Number(recurringOrderId);
+      // Eliminar posibles caracteres no numéricos si es string
+      if (typeof recurringOrderId === 'string') {
+        const cleanId = recurringOrderId.replace(/[^0-9]/g, '');
+        safeId = parseInt(cleanId, 10);
+      } else {
+        safeId = Number(recurringOrderId);
+      }
     }
     
     // Última verificación - solo validamos que sea un número válido mayor que 0
@@ -311,7 +307,8 @@ class RecurringOrdersService {
       console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId} (convertido a ${safeId})`);
       throw new Error("ID de pedido recurrente inválido");
     }
-    */
+    
+    console.log(`RecurringOrdersService - Usando ID normalizado: ${safeId}`)
     
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
@@ -346,18 +343,20 @@ class RecurringOrdersService {
     console.log(`RecurringOrdersService - Usando companyId:`, companyId);
     
     // Crear un nuevo pedido directamente con DB en lugar de usar storage
+    // Adaptado para que coincida con la estructura real de la tabla orders
     const newOrder = {
-      customerId: recurringOrder.customerId,
-      companyId: companyId,
+      customer_id: recurringOrder.customerId, // Usamos snake_case para campos de BD
+      company_id: companyId, // Usamos snake_case para campos de BD
       total: recurringOrder.totalAmount,
       status: "pending" as const,
-      paymentMethod: recurringOrder.paymentMethod,
+      payment_method: recurringOrder.paymentMethod, // Usamos snake_case para campos de BD
       date: new Date(), // Usar Date directamente en lugar de string
-      routeId: null, // No asignado a una ruta inicialmente
+      route_id: null, // No asignado a una ruta inicialmente
       notes: `Pedido generado automáticamente desde pedido recurrente #${safeId}: ${recurringOrder.name}`,
-      cashCollected: "0.00",
-      driverCommission: "0.00",
-      assistantCommission: "0.00",
+      cash_collected: "0.00", // Usamos snake_case para campos de BD
+      driver_commission: "0.00", // Usamos snake_case para campos de BD
+      assistant_commission: "0.00", // Usamos snake_case para campos de BD
+      recurring_order_id: safeId, // Añadimos la referencia al pedido recurrente
     };
 
     console.log(`RecurringOrdersService - Creando nuevo pedido:`, newOrder);
@@ -370,11 +369,11 @@ class RecurringOrdersService {
     // Insertar los items del pedido directamente con DB
     for (const item of recurringItems) {
       const orderItem = {
-        orderId: order.id,
-        productId: item.productId,
+        order_id: order.id, // Usamos snake_case para campos de BD
+        product_id: item.productId, // Usamos snake_case para campos de BD
         quantity: item.quantity,
         price: item.price.toString(),
-        companyId: companyId,
+        company_id: companyId, // Usamos snake_case para campos de BD
         total: (parseFloat(item.price) * item.quantity).toFixed(2), // Calcular el total
       };
       
