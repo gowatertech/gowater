@@ -128,53 +128,46 @@ const RecurringOrdersPage: React.FC = () => {
   }, [recurringOrders]);
 
   const handleGenerateOrder = async (orderId: any) => {
-    console.log("=================== DIAGNÓSTICO DETALLADO ===================");
-    console.log("DIAGNÓSTICO - handleGenerateOrder INICIO con ID:", orderId, 
-                "tipo:", typeof orderId, 
-                "representación string:", String(orderId), 
-                "JSON stringify:", JSON.stringify(orderId));
+    console.log("Iniciando generación de pedido a partir de pedido recurrente:", orderId);
     
-    console.log("DIAGNÓSTICO - Inspección detallada del objeto orderId:", {
-      valor: orderId,
-      tipo: typeof orderId,
-      prototype: orderId ? Object.getPrototypeOf(orderId) : null,
-      propiedades: orderId ? Object.getOwnPropertyNames(orderId) : [],
-      esNumero: typeof orderId === 'number',
-      esString: typeof orderId === 'string',
-      esEntero: Number.isInteger(Number(orderId)),
-      convertidoANumero: Number(orderId),
-      convertidoAString: String(orderId),
-      parseIntBase10: parseInt(String(orderId), 10),
-      isNaN: isNaN(Number(orderId)),
-    });
-    
-    // Validación y conversión rigurosa - SIMPLIFICADA
+    // Simplificar la validación
     let safeOrderId: number;
     
-    // Enfoque simple y directo
-    const numericId = Number(orderId);
-    if (isNaN(numericId) || numericId <= 0 || !Number.isInteger(numericId)) {
-      console.error(`DIAGNÓSTICO - ID inválido: ${orderId}, convertido a: ${numericId}`);
+    try {
+      // Manejar diferentes tipos de datos
+      if (typeof orderId === 'object' && orderId !== null && 'id' in orderId) {
+        safeOrderId = Number(orderId.id);
+      } else if (typeof orderId === 'string') {
+        // Limpiar el string de caracteres no numéricos
+        const cleanId = orderId.replace(/[^0-9]/g, '');
+        safeOrderId = parseInt(cleanId, 10);
+      } else {
+        safeOrderId = Number(orderId);
+      }
       
+      console.log(`ID convertido a: ${safeOrderId}, tipo: ${typeof safeOrderId}`);
+      
+      // Validación básica - más permisiva
+      if (isNaN(safeOrderId)) {
+        throw new Error("ID inválido - no es un número");
+      }
+    } catch (error) {
+      console.error(`Error al procesar ID: ${orderId}`, error);
       toast({
         title: t('generateError'),
-        description: "ID de pedido recurrente inválido paso 4 o no reconocido",
+        description: "No se pudo identificar el pedido recurrente",
         variant: "destructive",
       });
       return;
     }
     
-    safeOrderId = numericId;
-    console.log(`DIAGNÓSTICO - ID validado correctamente: ${safeOrderId}`);
-    
     // Mostrar el URL exacto que vamos a llamar
     const url = `/api/recurring-orders/${safeOrderId}/generate`;
-    console.log(`DIAGNÓSTICO - URL a llamar: ${url}`);
+    console.log(`Llamando endpoint: ${url}`);
     
     setGeneratingOrderId(safeOrderId);
     
     try {
-      console.log("DIAGNÓSTICO - Enviando petición POST sin cuerpo");
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -182,13 +175,21 @@ const RecurringOrdersPage: React.FC = () => {
         },
       });
 
+      // Manejar errores HTTP
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        console.error("Error en respuesta del servidor:", errorData);
-        throw new Error(errorData.error || 'Error al generar pedido');
+        try {
+          const errorData = await response.json();
+          console.error("Error del servidor:", errorData);
+          throw new Error(errorData.error || errorData.message || `Error ${response.status}`);
+        } catch (jsonError) {
+          // Si no podemos analizar el JSON, usar el texto bruto
+          const errorText = await response.text();
+          throw new Error(`Error ${response.status}: ${errorText}`);
+        }
       }
 
       const data = await response.json();
+      console.log("Pedido generado correctamente:", data);
 
       // Invalidar la consulta para refrescar la lista
       queryClient.invalidateQueries({ queryKey: ['/api/recurring-orders'] });
@@ -202,7 +203,7 @@ const RecurringOrdersPage: React.FC = () => {
       console.error('Error al generar pedido:', error);
       toast({
         title: t('generateError'),
-        description: t('generateErrorDescription'),
+        description: error instanceof Error ? error.message : t('generateErrorDescription'),
         variant: 'destructive',
       });
     } finally {
