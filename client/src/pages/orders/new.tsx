@@ -172,8 +172,8 @@ export default function NewOrder() {
         date: dateStr, // Formato ISO completo
         routeId: null,
         notes: notes || "",
-        items: formattedItems, // Incluir los items directamente en el payload
-        companyId: 1 // Usar el ID de compañía por defecto para evitar problemas de contexto
+        items: formattedItems // Incluir los items directamente en el payload
+        // Eliminar companyId estático para que el backend lo obtenga del contexto de sesión
       };
 
       console.log("Datos completos del pedido a enviar:", JSON.stringify(completeOrderData, null, 2));
