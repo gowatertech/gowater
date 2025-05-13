@@ -120,62 +120,75 @@ class RecurringOrdersService {
   async listRecurringOrders(): Promise<RecurringOrder[]> {
     console.log("RecurringOrdersService.listRecurringOrders - Obteniendo todos los pedidos recurrentes");
     
-    // Importar getCurrentCompanyId para verificar contexto actual
+    // Importaciones necesarias
     const { getCurrentCompanyId } = await import('./company-db');
-    const companyId = getCurrentCompanyId();
+    const { customers } = await import('../shared/schema');
     
+    const companyId = getCurrentCompanyId();
     console.log(`RecurringOrdersService.listRecurringOrders - CompanyId en contexto: ${companyId}`);
     
-    // Obtener todos los pedidos recurrentes para diagnosticar
-    const allOrders = await db.select().from(recurringOrders);
-    console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${allOrders.length} pedidos recurrentes en total`);
-    
-    // Mostrar todos los pedidos recurrentes para depuración
-    console.log("Lista completa de pedidos recurrentes:");
-    allOrders.forEach(order => {
-      console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, Cliente: ${order.customerId}, CompanyId: ${order.companyId}`);
-    });
-    
-    // Filtrar por companyId si existe
-    if (companyId) {
-      const filteredOrders = await db
-        .select()
-        .from(recurringOrders)
-        .where(eq(recurringOrders.companyId, companyId));
+    try {
+      // Obtener todos los pedidos recurrentes para diagnosticar
+      const allOrders = await db.select().from(recurringOrders);
+      console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${allOrders.length} pedidos recurrentes en total`);
       
-      console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${filteredOrders.length} pedidos para empresa ${companyId}`);
-      
-      // Mostrar pedidos filtrados para depuración
-      console.log("Lista de pedidos recurrentes filtrados por compañía:");
-      filteredOrders.forEach(order => {
+      // Mostrar todos los pedidos recurrentes para depuración
+      console.log("Lista completa de pedidos recurrentes:");
+      allOrders.forEach(order => {
         console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, Cliente: ${order.customerId}, CompanyId: ${order.companyId}`);
       });
       
-      // Agregar info de clientes para el frontend
-      const ordersWithCustomers = await Promise.all(
-        filteredOrders.map(async (order) => {
-          try {
-            const [customer] = await db
-              .select()
-              .from(customers)
-              .where(eq(customers.id, order.customerId));
-            
-            return {
-              ...order,
-              customer: customer ? { id: customer.id, name: customer.businessname } : undefined
-            };
-          } catch (error) {
-            console.error(`Error al obtener cliente para pedido ${order.id}:`, error);
-            return order;
-          }
-        })
-      );
+      // Filtrar por companyId si existe
+      if (companyId) {
+        const filteredOrders = await db
+          .select()
+          .from(recurringOrders)
+          .where(eq(recurringOrders.companyId, companyId));
+        
+        console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${filteredOrders.length} pedidos para empresa ${companyId}`);
+        
+        // Mostrar pedidos filtrados para depuración
+        console.log("Lista de pedidos recurrentes filtrados por compañía:");
+        filteredOrders.forEach(order => {
+          console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, Cliente: ${order.customerId}, CompanyId: ${order.companyId}`);
+        });
+        
+        // Agregar info de clientes para el frontend
+        const ordersWithCustomerInfo = await Promise.all(
+          filteredOrders.map(async (order) => {
+            try {
+              // Buscar el cliente asociado
+              const customerResults = await db
+                .select()
+                .from(customers)
+                .where(eq(customers.id, order.customerId));
+              
+              const customer = customerResults.length > 0 ? customerResults[0] : null;
+              
+              // Agregar información del cliente al pedido recurrente
+              return {
+                ...order,
+                customer: customer ? { 
+                  id: customer.id, 
+                  name: customer.businessname 
+                } : undefined
+              };
+            } catch (error) {
+              console.error(`Error al obtener cliente para pedido ${order.id}:`, error);
+              return order;
+            }
+          })
+        );
+        
+        console.log(`RecurringOrdersService.listRecurringOrders - Preparados ${ordersWithCustomerInfo.length} pedidos con info de clientes`);
+        return ordersWithCustomerInfo as RecurringOrder[];
+      }
       
-      console.log(`RecurringOrdersService.listRecurringOrders - Preparados ${ordersWithCustomers.length} pedidos con info de clientes`);
-      return ordersWithCustomers as RecurringOrder[];
+      return allOrders;
+    } catch (error) {
+      console.error("Error al listar pedidos recurrentes:", error);
+      throw error;
     }
-    
-    return allOrders;
   }
 
   async listCustomerRecurringOrders(customerId: number): Promise<RecurringOrder[]> {

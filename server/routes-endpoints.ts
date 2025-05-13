@@ -9,18 +9,43 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   router.get("/api/recurring-orders", async (req, res) => {
     try {
       console.log("GET /api/recurring-orders - Endpoint llamado desde cliente");
-      const recurringOrders = await storage.listRecurringOrders();
-      console.log(`GET /api/recurring-orders - Retornando ${recurringOrders.length} pedidos recurrentes`);
       
-      // Agregar registro para depuración
-      if (recurringOrders && recurringOrders.length > 0) {
-        console.log("Lista de pedidos recurrentes encontrados:");
-        recurringOrders.forEach(order => {
-          console.log(`- Pedido #${order.id}: ${order.name}, Cliente: ${order.customerId}, Compañía: ${order.companyId}`);
+      // Identificar información de la sesión para depuración
+      const sessionUser = (req.session as any)?.user;
+      const companyId = (req.session as any)?.companyId || sessionUser?.companyId;
+      
+      console.log(`GET /api/recurring-orders - Usuario en sesión: ${JSON.stringify(sessionUser || 'No hay sesión')}`);
+      console.log(`GET /api/recurring-orders - CompanyId en sesión: ${companyId || 'No definido'}`);
+      
+      // Consulta directa a la base de datos para verificar datos
+      console.log("Realizando consulta directa para diagnóstico:");
+      const db = await import('./db');
+      const { eq } = await import('drizzle-orm');
+      const { recurringOrders } = await import('../shared/schema');
+      
+      if (companyId) {
+        const directResults = await db.db.select().from(recurringOrders).where(eq(recurringOrders.companyId, companyId));
+        console.log(`Consulta directa encontró ${directResults.length} pedidos para compañía ${companyId}:`);
+        directResults.forEach(order => {
+          console.log(`- DB #${order.id}: ${order.name}, Cliente: ${order.customerId}, Compañía: ${order.companyId}`);
         });
       }
       
-      res.json(recurringOrders);
+      // Continuar con el flujo normal
+      const recurringOrdersList = await storage.listRecurringOrders();
+      console.log(`GET /api/recurring-orders - Storage retornó ${recurringOrdersList.length} pedidos recurrentes`);
+      
+      // Agregar registro para depuración
+      if (recurringOrdersList && recurringOrdersList.length > 0) {
+        console.log("Lista de pedidos recurrentes desde Storage:");
+        recurringOrdersList.forEach(order => {
+          console.log(`- Storage #${order.id}: ${order.name}, Cliente: ${order.customerId}, Compañía: ${order.companyId}`);
+        });
+      } else {
+        console.log("No se encontraron pedidos recurrentes en Storage");
+      }
+      
+      res.json(recurringOrdersList);
     } catch (error) {
       console.error("Error al obtener pedidos recurrentes:", error);
       res.status(500).json({ error: "Error al obtener pedidos recurrentes" });
