@@ -835,14 +835,19 @@ const RecurringOrderForm: React.FC = () => {
                         </Label>
                         <Select
                           disabled={isLoadingProducts}
-                          value={form.getValues(`items.${index}.productId`).toString() || '0'}
+                          value={form.getValues(`items.${index}.productId`)?.toString() || '0'}
                           onValueChange={(value) => {
                             form.setValue(`items.${index}.productId`, Number(value));
                             handleProductChange(index, Number(value));
                           }}
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('selectProduct')} />
+                          <SelectTrigger className="w-full">
+                            <SelectValue>
+                              {isLoadingProducts 
+                                ? t('loadingProducts')
+                                : products?.find(p => p.id === form.getValues(`items.${index}.productId`))?.name || t('selectProduct')
+                              }
+                            </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
                             {isLoadingProducts ? (
