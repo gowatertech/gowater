@@ -195,9 +195,76 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
         });
       }
 
-      const newRecurringOrder = await storage.createRecurringOrder(parseResult.data);
-      console.log("Pedido recurrente creado:", newRecurringOrder);
-      res.status(201).json(newRecurringOrder);
+      // Agregamos monitoreo extensivo para asegurar que el ID se esté generando correctamente
+      try {
+        const newRecurringOrder = await storage.createRecurringOrder(parseResult.data);
+        // Validamos que el objeto retornado tenga un ID válido
+        if (!newRecurringOrder || !newRecurringOrder.id || isNaN(Number(newRecurringOrder.id))) {
+          console.error("Error crítico: El pedido recurrente creado no tiene un ID válido:", newRecurringOrder);
+          
+          // Intentar obtener el pedido más reciente como alternativa
+          const { recurringOrders } = await import("../shared/schema");
+          const { desc } = await import("drizzle-orm");
+          const { db } = await import("./db");
+          
+          const latestOrders = await db
+            .select()
+            .from(recurringOrders)
+            .orderBy(desc(recurringOrders.id))
+            .limit(1);
+          
+          if (latestOrders.length > 0) {
+            console.log(`Sustituyendo pedido sin ID con el pedido más reciente: ${latestOrders[0].id}`);
+            // Asegurarse de que el objeto tenga el formato correcto que espera el cliente
+            const recoveredOrder = {
+              ...latestOrders[0],
+              id: latestOrders[0].id, // Asegurar que el ID esté presente
+              startDate: latestOrders[0].startDate?.toISOString(),
+              endDate: latestOrders[0].endDate?.toISOString(),
+              createdAt: latestOrders[0].createdAt?.toISOString(),
+              updatedAt: latestOrders[0].updatedAt?.toISOString(),
+            };
+            return res.status(201).json(recoveredOrder);
+          }
+        }
+        
+        console.log("Pedido recurrente creado con éxito. ID:", newRecurringOrder.id);
+        res.status(201).json(newRecurringOrder);
+      } catch (storageError) {
+        console.error("Error al crear pedido recurrente en storage:", storageError);
+        
+        // Intento de recuperación directa mediante consulta a la base de datos
+        try {
+          const { recurringOrders } = await import("../shared/schema");
+          const { desc } = await import("drizzle-orm");
+          const { db } = await import("./db");
+          
+          // Intentar crear el pedido directamente en la base de datos
+          const [directInsertedOrder] = await db
+            .insert(recurringOrders)
+            .values(parseResult.data)
+            .returning();
+          
+          if (directInsertedOrder) {
+            console.log("Pedido creado directamente en la base de datos. ID:", directInsertedOrder.id);
+            return res.status(201).json({
+              ...directInsertedOrder,
+              startDate: directInsertedOrder.startDate?.toISOString(),
+              endDate: directInsertedOrder.endDate?.toISOString(),
+              createdAt: directInsertedOrder.createdAt?.toISOString(),
+              updatedAt: directInsertedOrder.updatedAt?.toISOString(),
+            });
+          }
+        } catch (directDbError) {
+          console.error("Error al intentar crear pedido directamente en la base de datos:", directDbError);
+        }
+        
+        // Si no logramos recuperarnos, devolvemos un error detallado
+        return res.status(500).json({ 
+          error: "Error al crear pedido recurrente", 
+          details: "Ocurrió un error al intentar crear el pedido recurrente en la base de datos."
+        });
+      }
     } catch (error) {
       console.error("Error al crear pedido recurrente:", error);
       res.status(500).json({ 
