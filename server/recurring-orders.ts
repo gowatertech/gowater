@@ -217,9 +217,27 @@ class RecurringOrdersService {
       // Importar la función para obtener el companyId actual
       const { getCurrentCompanyId } = await import('./company-db');
       
+      // Validar y asegurar que el ID del pedido recurrente sea un número válido
+      let recurringOrderId = item.recurringOrderId;
+      
+      // Verificar que recurringOrderId sea un número válido
+      if (typeof recurringOrderId === 'string') {
+        recurringOrderId = parseInt(recurringOrderId, 10);
+      } else if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
+        recurringOrderId = Number(recurringOrderId.id);
+      } else {
+        recurringOrderId = Number(recurringOrderId);
+      }
+      
+      if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
+        console.error(`Error: ID de pedido recurrente inválido para item: ${JSON.stringify(item)}`);
+        throw new Error("ID de pedido recurrente inválido");
+      }
+      
       // Asegurar que el item tenga companyId
       const itemWithCompanyId = {
         ...item,
+        recurringOrderId: recurringOrderId, // Usar el ID validado
         companyId: (item as any).companyId || getCurrentCompanyId() || 1
       };
       
@@ -264,11 +282,19 @@ class RecurringOrdersService {
       isNaN: isNaN(Number(recurringOrderId))
     });
     
-    // Simplificar al máximo - cualquier valor es aceptable si se puede convertir a número
-    const safeId = Number(recurringOrderId);
+    // Ser extremadamente permisivo con el formato de ID (acepta string, number, e incluso objetos con .toString)
+    // Si viene un objeto que tiene un campo ID, intentar usarlo también
+    let safeId: number;
     
+    if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
+      safeId = Number(recurringOrderId.id);
+    } else {
+      safeId = Number(recurringOrderId);
+    }
+    
+    // Última verificación - solo validamos que sea un número válido mayor que 0
     if (isNaN(safeId) || safeId <= 0) {
-      console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId}`);
+      console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId} (convertido a ${safeId})`);
       throw new Error("ID de pedido recurrente inválido");
     }
     

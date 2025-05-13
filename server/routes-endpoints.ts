@@ -187,15 +187,34 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Añadir un item a un pedido recurrente
   router.post("/api/recurring-orders/:id/items", async (req, res) => {
     try {
-      const recurringOrderId = parseInt(req.params.id);
-      if (isNaN(recurringOrderId)) {
-        return res.status(400).json({ error: "ID inválido" });
+      // Manejo más flexible del ID
+      let recurringOrderId: number;
+      
+      // Intentar convertir usando varias estrategias
+      if (typeof req.params.id === 'string') {
+        // Eliminar caracteres no numéricos si existen
+        const cleanId = req.params.id.replace(/[^0-9]/g, '');
+        recurringOrderId = parseInt(cleanId, 10);
+      } else {
+        recurringOrderId = Number(req.params.id);
+      }
+      
+      console.log(`POST /api/recurring-orders/:id/items - ID recibido: ${req.params.id}, convertido a: ${recurringOrderId}`);
+      
+      if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
+        return res.status(400).json({ 
+          error: "ID inválido", 
+          details: `El ID proporcionado (${req.params.id}) no es un número válido.`
+        });
       }
 
       // Verificar que el pedido recurrente exista
       const recurringOrder = await storage.getRecurringOrder(recurringOrderId);
       if (!recurringOrder) {
-        return res.status(404).json({ error: "Pedido recurrente no encontrado" });
+        return res.status(404).json({ 
+          error: "Pedido recurrente no encontrado", 
+          details: `No existe un pedido recurrente con ID ${recurringOrderId}`
+        });
       }
 
       // Importar getCurrentCompanyId para obtener el companyId de la sesión actual
