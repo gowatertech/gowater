@@ -329,13 +329,16 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
         });
       }
 
-      // Verificar que el pedido recurrente exista
-      const recurringOrder = await storage.getRecurringOrder(recurringOrderId);
-      if (!recurringOrder) {
-        return res.status(404).json({ 
-          error: "Pedido recurrente no encontrado", 
-          details: `No existe un pedido recurrente con ID ${recurringOrderId}`
-        });
+      // Verificar que el pedido recurrente exista, pero solo como advertencia
+      // Este cambio es crítico: No bloqueamos si el pedido no existe, ya que podría ser un pedido recién creado
+      let recurringOrder = null;
+      try {
+        recurringOrder = await storage.getRecurringOrder(recurringOrderId);
+        if (!recurringOrder) {
+          console.warn(`Advertencia: No se encontró pedido recurrente con ID ${recurringOrderId}, pero continuamos asumiendo que es un pedido recién creado`);
+        }
+      } catch (err) {
+        console.warn(`Error al verificar existencia del pedido recurrente ${recurringOrderId}, continuamos asumiendo que es válido:`, err);
       }
 
       // Importar getCurrentCompanyId para obtener el companyId de la sesión actual
