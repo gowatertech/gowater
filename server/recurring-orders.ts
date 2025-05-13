@@ -3,14 +3,16 @@ import { db } from "./db";
 import { 
   recurringOrders, 
   recurringOrderItems,
+  orders,
+  orderItems,
   InsertRecurringOrder, 
   RecurringOrder, 
   RecurringOrderItem, 
   InsertRecurringOrderItem,
   InsertOrder,
-  Order
+  Order,
+  InsertOrderItem
 } from "../shared/schema";
-import { storage } from "./storage";
 
 class RecurringOrdersService {
   async getRecurringOrder(id: number): Promise<RecurringOrder | undefined> {
@@ -46,10 +48,11 @@ class RecurringOrdersService {
 
       // Importar la función para obtener el companyId actual
       const { getCurrentCompanyId } = await import('./company-db');
+      const companyId = (recurringOrder as any).companyId || getCurrentCompanyId() || 1;
       
       const recurringOrderData = {
         ...recurringOrder,
-        companyId: recurringOrder.companyId || getCurrentCompanyId() || 1, // Asegurar que exista companyId
+        companyId, // Asegurar que exista companyId
         dayOfWeek: dayOfWeek,
         dayOfMonth: dayOfMonth,
         startDate: new Date(recurringOrder.startDate),
@@ -73,7 +76,7 @@ class RecurringOrdersService {
       (recurringOrderData as any).nextGenerationDate = nextGenDate;
 
       console.log("RecurringOrdersService.createRecurringOrder - Insertando en la base de datos");
-      const [newRecurringOrder] = await db.insert(recurringOrders).values(recurringOrderData).returning();
+      const [newRecurringOrder] = await db.insert(recurringOrders).values(recurringOrderData as any).returning();
       console.log("RecurringOrdersService.createRecurringOrder - Orden creada:", newRecurringOrder);
       
       return newRecurringOrder;
@@ -186,10 +189,11 @@ class RecurringOrdersService {
       // Asegurar que el item tenga companyId
       const itemWithCompanyId = {
         ...item,
-        companyId: item.companyId || getCurrentCompanyId() || 1
+        companyId: (item as any).companyId || getCurrentCompanyId() || 1
       };
       
-      const [newItem] = await db.insert(recurringOrderItems).values(itemWithCompanyId).returning();
+      console.log("RecurringOrdersService.createRecurringOrderItem - Item a insertar:", itemWithCompanyId);
+      const [newItem] = await db.insert(recurringOrderItems).values(itemWithCompanyId as any).returning();
       return newItem;
     } catch (error) {
       console.error('Error en createRecurringOrderItem:', error);
@@ -221,10 +225,13 @@ class RecurringOrdersService {
   }
 
   async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
-    // Solo validación básica, ya que las capas superiores ya han validado
+    // Validación básica del ID - mantener simple
     if (!recurringOrderId || recurringOrderId <= 0) {
+      console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId}`);
       throw new Error("ID de pedido recurrente inválido");
     }
+    
+    console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando generación con ID: ${recurringOrderId}`);
     
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
@@ -237,6 +244,8 @@ class RecurringOrdersService {
       throw new Error("Pedido recurrente no encontrado");
     }
 
+    console.log(`RecurringOrdersService - Pedido recurrente encontrado:`, recurringOrder);
+
     // Obtener los items del pedido recurrente
     const recurringItems = await db
       .select()
@@ -244,20 +253,26 @@ class RecurringOrdersService {
       .where(eq(recurringOrderItems.recurringOrderId, recurringOrderId));
 
     if (recurringItems.length === 0) {
+      console.error(`Error: El pedido recurrente #${recurringOrderId} no tiene productos`);
       throw new Error("El pedido recurrente no tiene productos");
     }
 
+    console.log(`RecurringOrdersService - Items del pedido recurrente:`, recurringItems);
+
     // Importar la función para obtener el companyId actual
     const { getCurrentCompanyId } = await import('./company-db');
+    const companyId = recurringOrder.companyId || getCurrentCompanyId() || 1;
     
-    // Crear un nuevo pedido
-    const newOrder: InsertOrder = {
+    console.log(`RecurringOrdersService - Usando companyId:`, companyId);
+    
+    // Crear un nuevo pedido directamente con DB en lugar de usar storage
+    const newOrder = {
       customerId: recurringOrder.customerId,
-      companyId: recurringOrder.companyId || getCurrentCompanyId() || 1, // Asegurar que exista companyId
+      companyId: companyId,
       total: recurringOrder.totalAmount,
-      status: "pending",
+      status: "pending" as const,
       paymentMethod: recurringOrder.paymentMethod,
-      date: new Date().toISOString(),
+      date: new Date(), // Usar Date directamente en lugar de string
       routeId: null, // No asignado a una ruta inicialmente
       notes: `Pedido generado automáticamente desde pedido recurrente #${recurringOrderId}: ${recurringOrder.name}`,
       cashCollected: "0.00",
@@ -265,17 +280,26 @@ class RecurringOrdersService {
       assistantCommission: "0.00",
     };
 
-    // Insertar el nuevo pedido
-    const order = await storage.createOrder(newOrder);
+    console.log(`RecurringOrdersService - Creando nuevo pedido:`, newOrder);
 
-    // Insertar los items del pedido
+    // Insertar el nuevo pedido directamente con DB
+    const [order] = await db.insert(orders).values(newOrder).returning();
+    
+    console.log(`RecurringOrdersService - Pedido creado:`, order);
+
+    // Insertar los items del pedido directamente con DB
     for (const item of recurringItems) {
-      await storage.createOrderItem({
+      const orderItem = {
         orderId: order.id,
         productId: item.productId,
         quantity: item.quantity,
         price: item.price.toString(),
-      });
+        companyId: companyId,
+        total: (parseFloat(item.price) * item.quantity).toFixed(2), // Calcular el total
+      };
+      
+      console.log(`RecurringOrdersService - Creando item para el pedido:`, orderItem);
+      await db.insert(orderItems).values(orderItem);
     }
 
     // Actualizar la fecha de última generación y próxima generación
@@ -287,6 +311,8 @@ class RecurringOrdersService {
       recurringOrder.dayOfMonth
     );
 
+    console.log(`RecurringOrdersService - Actualizando fechas para el pedido recurrente #${recurringOrderId}`);
+    
     await db
       .update(recurringOrders)
       .set({ 
@@ -296,6 +322,8 @@ class RecurringOrdersService {
       })
       .where(eq(recurringOrders.id, recurringOrderId));
 
+    console.log(`RecurringOrdersService - Proceso completado exitosamente`);
+    
     return order;
   }
 
