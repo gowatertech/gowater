@@ -372,7 +372,7 @@ export default function RecurringOrdersPage() {
 
   // Filtrar pedidos según la pestaña activa
   const filteredOrders = () => {
-    if (!recurringOrders) return [];
+    if (!recurringOrders || !Array.isArray(recurringOrders)) return [];
     
     switch(activeTab) {
       case "active":
