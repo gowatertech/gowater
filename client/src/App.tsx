@@ -34,9 +34,9 @@ import AsignarResponsabilidad from "@/pages/envases/asignar-responsabilidad";
 import InventoryPage from "@/pages/inventory";
 import WarehousesPage from "@/pages/inventory/warehouses";
 import ProductionRegistration from "@/pages/inventory/production";
-// Removidos pedidos recurrentes
-// import RecurringOrdersPage from "@/pages/recurring-orders";
-// import RecurringOrderForm from "@/pages/recurring-orders/[id]";
+// Pedidos recurrentes
+import RecurringOrdersPage from "@/pages/recurring-orders";
+import RecurringOrderForm from "@/pages/recurring-orders/[id]";
 import DriverView from "@/pages/drivers/DriverView";
 import CommissionsPage from "@/pages/commissions";
 import SimpleCommissionsPage from "@/pages/commissions/simple";
