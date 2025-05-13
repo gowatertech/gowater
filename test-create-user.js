@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 // Datos de prueba para crear un usuario
 const testUserData = {
@@ -17,8 +17,8 @@ async function testCreateUser() {
       password: '[REDACTED]'
     });
 
-    // URL del servidor - se ejecuta localmente
-    const response = await fetch('http://localhost:3000/api/users', {
+    // Vamos a usar localhost directamente
+    const response = await fetch('http://localhost:4000/api/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
