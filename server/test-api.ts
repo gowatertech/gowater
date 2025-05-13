@@ -25,28 +25,33 @@ export function registerTestAPIRoutes(router: Router) {
           });
         }
         
-        // Configurar la sesión
-        req.session.user = {
-          id: user.id,
-          name: user.name,
-          role: user.role,
-          companyId: user.companyId,
-          email: user.email,
-          username: user.username
-        };
+        // Preparar el objeto de usuario sin la contraseña
+        const { password: _pwd, ...userWithoutPassword } = user;
         
-        req.session.companyId = user.companyId;
-        
-        // También configurar el companyId en el contexto
-        setCurrentCompanyId(user.companyId);
-        
-        console.log(`[TEST] Login de prueba exitoso para admin@gowater.com (ID: ${user.id}, Empresa: ${user.companyId})`);
-        
-        res.json({ 
-          success: true, 
-          message: "Login de prueba exitoso",
-          user: req.session.user,
-          companyId: user.companyId
+        // Usar el método login de Passport para autenticar correctamente
+        req.login(userWithoutPassword, (err) => {
+          if (err) {
+            console.error("Error al iniciar sesión de prueba:", err);
+            return res.status(500).json({ 
+              success: false, 
+              message: "Error al iniciar sesión de prueba" 
+            });
+          }
+          
+          // Establecer companyId en la sesión
+          req.session.companyId = user.companyId;
+          
+          // También configurar el companyId en el contexto
+          setCurrentCompanyId(user.companyId);
+          
+          console.log(`[TEST] Login de prueba exitoso para admin@gowater.com (ID: ${user.id}, Empresa: ${user.companyId})`);
+          
+          res.json({ 
+            success: true, 
+            message: "Login de prueba exitoso",
+            user: userWithoutPassword,
+            companyId: user.companyId
+          });
         });
       } catch (error) {
         console.error("Error en login de prueba:", error);
