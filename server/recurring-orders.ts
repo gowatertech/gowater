@@ -129,8 +129,11 @@ class RecurringOrdersService {
     // Obtener todos los pedidos recurrentes para diagnosticar
     const allOrders = await db.select().from(recurringOrders);
     console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${allOrders.length} pedidos recurrentes en total`);
+    
+    // Mostrar todos los pedidos recurrentes para depuración
+    console.log("Lista completa de pedidos recurrentes:");
     allOrders.forEach(order => {
-      console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, CompanyId: ${order.companyId}`);
+      console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, Cliente: ${order.customerId}, CompanyId: ${order.companyId}`);
     });
     
     // Filtrar por companyId si existe
@@ -141,7 +144,35 @@ class RecurringOrdersService {
         .where(eq(recurringOrders.companyId, companyId));
       
       console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${filteredOrders.length} pedidos para empresa ${companyId}`);
-      return filteredOrders;
+      
+      // Mostrar pedidos filtrados para depuración
+      console.log("Lista de pedidos recurrentes filtrados por compañía:");
+      filteredOrders.forEach(order => {
+        console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, Cliente: ${order.customerId}, CompanyId: ${order.companyId}`);
+      });
+      
+      // Agregar info de clientes para el frontend
+      const ordersWithCustomers = await Promise.all(
+        filteredOrders.map(async (order) => {
+          try {
+            const [customer] = await db
+              .select()
+              .from(customers)
+              .where(eq(customers.id, order.customerId));
+            
+            return {
+              ...order,
+              customer: customer ? { id: customer.id, name: customer.businessname } : undefined
+            };
+          } catch (error) {
+            console.error(`Error al obtener cliente para pedido ${order.id}:`, error);
+            return order;
+          }
+        })
+      );
+      
+      console.log(`RecurringOrdersService.listRecurringOrders - Preparados ${ordersWithCustomers.length} pedidos con info de clientes`);
+      return ordersWithCustomers as RecurringOrder[];
     }
     
     return allOrders;
