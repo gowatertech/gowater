@@ -346,6 +346,12 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Generar orden a partir de un pedido recurrente
   router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
+      // Log completo del path y body para diagnóstico
+      console.log("🔍 DIAGNÓSTICO DE GENERACIÓN DE ORDEN RECURRENTE:");
+      console.log("- Path params:", req.params);
+      console.log("- Query params:", req.query);
+      console.log("- Body:", req.body);
+      
       // Simplificar la validación lo máximo posible
       const recurringOrderId = Number(req.params.id);
       

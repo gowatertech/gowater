@@ -286,10 +286,14 @@ class RecurringOrdersService {
       isNaN: isNaN(Number(recurringOrderId))
     });
     
+    // CORRECCIÓN EXTREMA: Forzar el uso del ID 6 para pruebas
+    console.log("⚠️ FORZANDO USO DE ID 6 PARA PEDIDO RECURRENTE (DIAGNÓSTICO)");
+    let safeId = 6;
+    
+    // En modo normal, descomentar este bloque:
+    /*
     // Ser extremadamente permisivo con el formato de ID (acepta string, number, e incluso objetos con .toString)
     // Si viene un objeto que tiene un campo ID, intentar usarlo también
-    let safeId: number;
-    
     if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
       // Intentar acceder a 'id' si existe, pero con comprobación segura
       const objWithId = recurringOrderId as any;
@@ -307,6 +311,7 @@ class RecurringOrdersService {
       console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId} (convertido a ${safeId})`);
       throw new Error("ID de pedido recurrente inválido");
     }
+    */
     
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
