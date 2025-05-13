@@ -297,7 +297,7 @@ export const orders = pgTable("orders", {
   cashCollected: decimal("cash_collected", { precision: 10, scale: 2 }).default("0.00"),
   driverCommission: decimal("driver_commission", { precision: 10, scale: 2 }).default("0.00"),
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).default("0.00"),
-  // Campo recurrente eliminado
+  recurringOrderId: integer("recurring_order_id"),
 });
 
 export const orderItems = pgTable("order_items", {
@@ -319,6 +319,10 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   route: one(routes, {
     fields: [orders.routeId],
     references: [routes.id],
+  }),
+  recurringOrder: one(recurringOrders, {
+    fields: [orders.recurringOrderId],
+    references: [recurringOrders.id],
   }),
   items: many(orderItems),
 }));
@@ -350,6 +354,7 @@ export const insertOrderSchema = z.object({
   cashCollected: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   driverCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
   assistantCommission: z.string().regex(/^\d+\.\d{2}$/).default("0.00"),
+  recurringOrderId: z.number().optional().nullable(),
 });
 
 export const insertOrderItemSchema = z.object({
@@ -1002,6 +1007,7 @@ export const recurringOrdersRelations = relations(recurringOrders, ({ one, many 
     references: [customers.id],
   }),
   items: many(recurringOrderItems),
+  orders: many(orders),
 }));
 
 export const recurringOrderItemsRelations = relations(recurringOrderItems, ({ one }) => ({
