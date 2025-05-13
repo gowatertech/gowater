@@ -317,70 +317,28 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Generar orden a partir de un pedido recurrente
   router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
-      // Obtener el ID en formato string y registrarlo primero
       const idParam = req.params.id;
-      console.log("DIAGNÓSTICO ENDPOINT - ID recibido:", idParam, "tipo:", typeof idParam);
       
-      // Intentar analizar el ID directamente como un entero
-      let safeId: number;
+      // Validación simplificada del ID
+      const recurringOrderId = parseInt(idParam, 10);
       
-      try {
-        // Primero probar parseInt con validación de resultado
-        const parsed = parseInt(idParam, 10);
-        
-        if (isNaN(parsed) || parsed <= 0 || !Number.isFinite(parsed) || parsed.toString() !== idParam.trim()) {
-          // Si parseInt falla o produce un resultado diferente del string original, intentar con parseFloat
-          const parsedFloat = parseFloat(idParam);
-          
-          if (isNaN(parsedFloat) || parsedFloat <= 0 || !Number.isFinite(parsedFloat)) {
-            throw new Error("Conversión a número fallida");
-          }
-          
-          safeId = Math.floor(parsedFloat);
-        } else {
-          safeId = parsed;
-        }
-      } catch (parseError) {
-        // Registro detallado del error de conversión
-        console.error("Error de conversión de ID en el endpoint:", { 
-          idParam, 
-          error: parseError instanceof Error ? parseError.message : String(parseError)
-        });
+      if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
         return res.status(400).json({ 
           error: "ID de pedido recurrente inválido", 
-          detail: "El formato del ID no es válido"
-        });
-      }
-      
-      // Registro detallado después de la conversión exitosa
-      console.log("DIAGNÓSTICO ENDPOINT - ID convertido:", safeId, 
-                 "tipo:", typeof safeId, 
-                 "esEntero:", Number.isInteger(safeId),
-                 "esPositivo:", safeId > 0);
-      
-      // Verificación final antes de proceder
-      if (!safeId || safeId <= 0 || !Number.isInteger(safeId)) {
-        console.error("Error: ID de pedido recurrente inválido en formato", { 
-          idParam, 
-          safeId, 
-          tipo: typeof safeId
-        });
-        return res.status(400).json({ 
-          error: "ID de pedido recurrente inválido",
           detail: "El ID debe ser un número entero positivo"
         });
       }
       
-      console.log(`Iniciando generación de pedido desde pedido recurrente #${safeId} (original: ${idParam})`);
-      const generatedOrder = await storage.generateOrderFromRecurring(safeId);
-      console.log(`Pedido generado exitosamente desde recurrente #${safeId}`, generatedOrder);
+      console.log(`Iniciando generación de pedido desde pedido recurrente #${recurringOrderId}`);
+      const generatedOrder = await storage.generateOrderFromRecurring(recurringOrderId);
+      
+      console.log(`Pedido generado exitosamente desde recurrente #${recurringOrderId}`, generatedOrder);
       res.status(201).json(generatedOrder);
     } catch (error) {
       console.error("Error al generar orden desde pedido recurrente:", error);
       res.status(500).json({ 
         error: "Error al generar orden desde pedido recurrente",
-        message: error instanceof Error ? error.message : 'Error desconocido',
-        stack: process.env.NODE_ENV !== 'production' && error instanceof Error ? error.stack : undefined
+        message: error instanceof Error ? error.message : 'Error desconocido'
       });
     }
   });
