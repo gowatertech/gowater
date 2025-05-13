@@ -27,10 +27,9 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
                    req.session?.companyId || 
                    (req.user as any)?.companyId;
     
-    // Si no hay companyId pero tenemos usuario, asignar un valor por defecto para desarrollo
+    // Solo registramos el error, sin asignar valores por defecto para mantener la integridad
     if (!companyId && (req.session?.user || req.user)) {
-      companyId = 15; // Usar un ID de compañía por defecto para desarrollo
-      console.log("⚠️ Usando companyId por defecto:", companyId);
+      console.log("⚠️ Error: Usuario autenticado sin companyId asociado");
     }
     
     if (companyId) {
@@ -323,10 +322,10 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
       console.log(`🔧 Usando companyId=${companyId} desde session.companyId`);
     }
     
-    // Para desarrollo, si aún no hay id de compañía pero tenemos sesión, usar un valor por defecto
-    if (!companyId && req.session?.user) {
-      companyId = 15; // Valor por defecto para desarrollo
-      console.log(`⚠️ Usando companyId=${companyId} valor por DEFECTO`);
+    // No usamos valores por defecto para evitar problemas de seguridad e integridad
+    // Simplemente reportamos el error en caso de que falte el companyId
+    if (!companyId) {
+      console.log(`⚠️ No se encontró un valor válido para companyId`);
     }
     
     if (!companyId) {

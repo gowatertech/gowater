@@ -26,10 +26,9 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
                    req.session?.companyId || 
                    (req.user as any)?.companyId;
     
-    // Si no hay companyId pero tenemos usuario, asignar un valor por defecto para desarrollo
+    // Solo registramos el error, sin asignar valores por defecto para mantener la integridad
     if (!companyId && (req.session?.user || req.user)) {
-      companyId = 15; // Usar un ID de compañía por defecto para desarrollo
-      console.log("⚠️ Usando companyId por defecto para pedido recurrente:", companyId);
+      console.log("⚠️ Error: Usuario autenticado sin companyId asociado en pedido recurrente");
     }
     
     if (companyId) {
