@@ -111,46 +111,73 @@ const RecurringOrdersPage: React.FC = () => {
     }
   };
 
-  // Usar useEffect para registrar valores de orden
+  // Usar useEffect para diagnosticar posibles problemas con IDs
   useEffect(() => {
     if (recurringOrders && recurringOrders.length > 0) {
-      console.log("Tipos de ID de pedidos recurrentes:", recurringOrders.map(order => ({
+      // Diagnóstico detallado para identificar el problema
+      console.log("DIAGNÓSTICO - Pedidos recurrentes IDs:", recurringOrders.map(order => ({
         id: order.id,
+        idToString: String(order.id),
+        idToJSON: JSON.stringify(order.id),
         tipo: typeof order.id,
         esNumero: !isNaN(Number(order.id)),
-        esEntero: Number.isInteger(Number(order.id))
+        esEntero: Number.isInteger(Number(order.id)),
+        valorConvertido: Number(order.id)
       })));
     }
   }, [recurringOrders]);
 
-  const handleGenerateOrder = async (orderId: number) => {
-    // Conversión explícita a número para manejar casos donde el ID podría ser string o bigint
-    const numericOrderId = Number(orderId);
+  const handleGenerateOrder = async (orderId: any) => {
+    console.log("DIAGNÓSTICO - handleGenerateOrder INICIO con ID:", orderId, 
+                "tipo:", typeof orderId, 
+                "representación string:", String(orderId), 
+                "JSON stringify:", JSON.stringify(orderId));
     
-    console.log("handleGenerateOrder - ID original:", orderId, "tipo:", typeof orderId);
-    console.log("handleGenerateOrder - ID convertido:", numericOrderId, "tipo:", typeof numericOrderId);
+    // Validación y conversión rigurosa
+    let safeOrderId: number;
     
-    // Validación estricta: garantiza que el ID sea un número entero positivo
-    if (!numericOrderId || numericOrderId <= 0 || isNaN(numericOrderId) || !Number.isFinite(numericOrderId)) {
-      console.error("Error: ID de pedido recurrente inválido", { 
+    try {
+      // Intentar diferentes estrategias de conversión
+      if (typeof orderId === 'string') {
+        // Si es un string, usar parseInt con base explícita
+        const parsed = parseInt(orderId, 10);
+        if (isNaN(parsed) || parsed <= 0) {
+          throw new Error("ID inválido (string)");
+        }
+        safeOrderId = parsed;
+      } else if (typeof orderId === 'number') {
+        // Si ya es número, asegurar que sea entero positivo
+        if (orderId <= 0 || !Number.isFinite(orderId)) {
+          throw new Error("ID inválido (number)");
+        }
+        safeOrderId = Math.floor(orderId);
+      } else {
+        // Intento final con conversión genérica
+        const numericOrderId = Number(orderId);
+        if (!numericOrderId || numericOrderId <= 0 || !Number.isFinite(numericOrderId)) {
+          throw new Error("ID inválido (conversión fallida)");
+        }
+        safeOrderId = Math.floor(numericOrderId);
+      }
+      
+      console.log("DIAGNÓSTICO - ID validado y convertido:", safeOrderId, 
+                 "tipo:", typeof safeOrderId,
+                 "entero:", Number.isInteger(safeOrderId));
+    } catch (error) {
+      console.error("Error al validar ID de pedido recurrente:", { 
         orderId, 
-        numericOrderId,
-        tipo: typeof orderId, 
-        tipoConvertido: typeof numericOrderId,
-        esEntero: Number.isInteger(numericOrderId),
-        esFinito: Number.isFinite(numericOrderId),
-        esPositivo: numericOrderId > 0
+        tipo: typeof orderId,
+        error: error instanceof Error ? error.message : String(error)
       });
+      
       toast({
         title: t('generateError'),
-        description: "ID de pedido recurrente inválido",
+        description: "ID de pedido recurrente inválido o no reconocido",
         variant: "destructive",
       });
       return;
     }
     
-    // Asegurar que el orderId es un número entero antes de usarlo en la URL
-    const safeOrderId = Math.floor(numericOrderId);
     setGeneratingOrderId(safeOrderId);
     
     try {

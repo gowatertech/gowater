@@ -973,8 +973,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
-    const { recurringOrdersService } = await import('./recurring-orders');
-    return recurringOrdersService.generateOrderFromRecurring(recurringOrderId);
+    try {
+      // Validación estricta y conversión explícita del ID
+      const numericId = Number(recurringOrderId);
+      
+      console.log("Storage.generateOrderFromRecurring - ID original:", recurringOrderId, 
+                 "tipo:", typeof recurringOrderId);
+      console.log("Storage.generateOrderFromRecurring - ID convertido:", numericId, 
+                 "tipo:", typeof numericId, 
+                 "esValido:", Boolean(numericId) && numericId > 0 && Number.isFinite(numericId));
+      
+      if (!numericId || numericId <= 0 || !Number.isFinite(numericId)) {
+        console.error("Error en storage.generateOrderFromRecurring: ID inválido", {
+          original: recurringOrderId,
+          convertido: numericId,
+          tipo: typeof recurringOrderId,
+          tipoConvertido: typeof numericId
+        });
+        throw new Error("ID de pedido recurrente inválido (storage layer)");
+      }
+      
+      // Asegurar que sea un entero antes de pasarlo al servicio
+      const safeId = Math.floor(numericId);
+      
+      // Importar el servicio de órdenes recurrentes
+      const { recurringOrdersService } = await import('./recurring-orders');
+      return recurringOrdersService.generateOrderFromRecurring(safeId);
+    } catch (error) {
+      console.error("Error en storage.generateOrderFromRecurring:", error);
+      throw error;
+    }
   }
 }
 
