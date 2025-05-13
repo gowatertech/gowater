@@ -58,17 +58,15 @@ async function getNextOrderId() {
   return maxId + 1;
 }
 
-// Función para crear un nuevo pedido
+// Función para crear un nuevo pedido (corregida según la estructura real de la tabla)
 async function createOrder(orderData) {
   const {
-    name,
     customer_id,
-    delivery_address,
     status,
-    total_amount,
+    total_amount,  // Usaremos esto como "total"
     company_id,
-    address_details,
-    recurring_order_id
+    recurring_order_id,
+    delivery_coordinates
   } = orderData;
 
   const date = new Date();
@@ -77,12 +75,12 @@ async function createOrder(orderData) {
   
   const insertResult = await query(
     `INSERT INTO orders (
-      name, date, customer_id, delivery_address, status, 
-      company_id, total_amount, address_details, recurring_order_id
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      customer_id, date, status, total, 
+      company_id, recurring_order_id, delivery_coordinates
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
     [
-      name, date, customer_id, delivery_address, status, 
-      company_id, total_amount, address_details, recurring_order_id
+      customer_id, date, status, total_amount, 
+      company_id, recurring_order_id, delivery_coordinates
     ]
   );
   
@@ -128,21 +126,14 @@ async function generateOrderFromRecurring(recurringOrderId) {
     const customer = await getCustomer(recurringOrder.customer_id);
     console.log('Cliente asociado:', customer);
     
-    // Paso 4: Crear nuevo pedido
+    // Paso 4: Crear nuevo pedido (adaptado a la estructura real de la tabla)
     const newOrderData = {
-      name: `Pedido desde recurrente: ${recurringOrder.name}`,
       customer_id: recurringOrder.customer_id,
-      delivery_address: customer.street + ' ' + customer.streetnumber,
       status: 'pending',
       total_amount: recurringOrder.total_amount,
       company_id: 15, // Forzar companyId
-      address_details: JSON.stringify({
-        reference: customer.reference || '',
-        coordinates: customer.coordinates || null,
-        provinceid: customer.provinceid,
-        municipalityid: customer.municipalityid
-      }),
-      recurring_order_id: recurringOrderId
+      recurring_order_id: recurringOrderId,
+      delivery_coordinates: customer.coordinates || ''
     };
     
     const newOrder = await createOrder(newOrderData);
