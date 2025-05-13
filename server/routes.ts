@@ -146,8 +146,11 @@ export async function registerRoutes(router: express.Router) {
   registerRoutesEndpoints(router);
   
   // Registrar explícitamente endpoints de pedidos recurrentes
-  const { createRecurringOrdersEndpoints } = require('./routes-endpoints');
-  createRecurringOrdersEndpoints(router);
+  import('./routes-endpoints').then(module => {
+    const { createRecurringOrdersEndpoints } = module;
+    createRecurringOrdersEndpoints(router);
+    console.log("Endpoints de pedidos recurrentes registrados explícitamente");
+  });
   
   // Los endpoints de autenticación están configurados en server/auth.ts
   // Usando setupAuth(app) en el archivo index.ts
