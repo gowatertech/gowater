@@ -419,27 +419,28 @@ class RecurringOrdersService {
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando con ID: ${recurringOrderId}`);
     
-    // Ser extremadamente permisivo con el formato de ID (acepta string, number, e incluso objetos con .toString)
     let safeId: number;
     
-    // Si viene un objeto que tiene un campo ID, intentar usarlo también
-    if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
-      // Intentar acceder a 'id' si existe, pero con comprobación segura
-      const objWithId = recurringOrderId as any;
-      if (objWithId.id !== undefined) {
-        safeId = Number(objWithId.id);
+    try {
+      // Simplificar la validación del ID
+      if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
+        safeId = Number(recurringOrderId.id);
+      } else if (typeof recurringOrderId === 'string') {
+        safeId = parseInt(recurringOrderId.replace(/[^0-9]/g, ''), 10);
       } else {
         safeId = Number(recurringOrderId);
       }
-    } else {
-      // Eliminar posibles caracteres no numéricos si es string
-      if (typeof recurringOrderId === 'string') {
-        const cleanId = recurringOrderId.replace(/[^0-9]/g, '');
-        safeId = parseInt(cleanId, 10);
-      } else {
-        safeId = Number(recurringOrderId);
+
+      // Si el ID no es válido, intentar obtener el más reciente
+      if (isNaN(safeId) || safeId <= 0) {
+        const newestOrder = await this.getNewestRecurringOrder();
+        if (newestOrder && newestOrder.id) {
+          console.log(`Usando ID del pedido más reciente: ${newestOrder.id}`);
+          safeId = newestOrder.id;
+        } else {
+          throw new Error("No se pudo obtener un ID válido");
+        }
       }
-    }
     
     // Última verificación - solo validamos que sea un número válido mayor que 0
     if (isNaN(safeId) || safeId <= 0) {
