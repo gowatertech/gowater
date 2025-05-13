@@ -288,36 +288,70 @@ class RecurringOrdersService {
       const { getCurrentCompanyId } = await import('./company-db');
       
       // Validar y asegurar que el ID del pedido recurrente sea un número válido
-      let recurringOrderId = item.recurringOrderId;
+      let recurringOrderId: number;
       
-      // Verificar que recurringOrderId sea un número válido
-      if (typeof recurringOrderId === 'string') {
-        recurringOrderId = parseInt(recurringOrderId, 10);
-      } else if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
-        // Intentar acceder a 'id' si existe, pero con comprobación segura
-        const objWithId = recurringOrderId as any;
+      // Convertir recurringOrderId a número, sea cual sea su formato
+      if (typeof item.recurringOrderId === 'number') {
+        recurringOrderId = item.recurringOrderId;
+      } else if (typeof item.recurringOrderId === 'string') {
+        // Eliminar cualquier caracter no numérico
+        const cleanId = String(item.recurringOrderId).replace(/[^0-9]/g, '');
+        recurringOrderId = parseInt(cleanId, 10);
+      } else if (typeof item.recurringOrderId === 'object' && item.recurringOrderId !== null) {
+        // Intentar acceder a la propiedad 'id' si existe
+        const objWithId = item.recurringOrderId as any;
         if (objWithId.id !== undefined) {
-          recurringOrderId = Number(objWithId.id);
+          if (typeof objWithId.id === 'number') {
+            recurringOrderId = objWithId.id;
+          } else if (typeof objWithId.id === 'string') {
+            const cleanId = String(objWithId.id).replace(/[^0-9]/g, '');
+            recurringOrderId = parseInt(cleanId, 10);
+          } else {
+            recurringOrderId = Number(objWithId.id);
+          }
+        } else {
+          recurringOrderId = Number(item.recurringOrderId);
         }
       } else {
-        recurringOrderId = Number(recurringOrderId);
+        recurringOrderId = Number(item.recurringOrderId);
       }
       
+      // Última validación, sólo asegurarse que el ID sea mayor que 0
       if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
         console.error(`Error: ID de pedido recurrente inválido para item: ${JSON.stringify(item)}`);
         throw new Error("ID de pedido recurrente inválido");
       }
       
-      // Asegurar que el item tenga companyId
+      // Intentar verificar que el pedido recurrente exista
+      try {
+        const existing = await this.getRecurringOrder(recurringOrderId);
+        console.log(`Verificando existencia de pedido recurrente ${recurringOrderId}:`, existing ? "Existe" : "No existe");
+      } catch (error) {
+        console.warn(`No se pudo verificar la existencia del pedido recurrente ${recurringOrderId}, pero continuamos:`, error);
+      }
+      
+      // Asegurar que el item tenga companyId y usar el ID validado numéricamente
       const itemWithCompanyId = {
         ...item,
-        recurringOrderId: recurringOrderId, // Usar el ID validado
+        recurringOrderId: recurringOrderId, // Usar el ID validado y transformado
         companyId: (item as any).companyId || getCurrentCompanyId() || 1
       };
       
       console.log("RecurringOrdersService.createRecurringOrderItem - Item a insertar:", itemWithCompanyId);
-      const [newItem] = await db.insert(recurringOrderItems).values(itemWithCompanyId as any).returning();
-      return newItem;
+      
+      try {
+        const [newItem] = await db.insert(recurringOrderItems).values(itemWithCompanyId as any).returning();
+        console.log("RecurringOrdersService.createRecurringOrderItem - Item creado con éxito:", newItem);
+        return newItem;
+      } catch (dbError) {
+        console.error("RecurringOrdersService.createRecurringOrderItem - Error al insertar en la base de datos:", dbError);
+        
+        // Proporcionar un mensaje de error más detallado
+        if (dbError instanceof Error) {
+          throw new Error(`Error al crear item: ${dbError.message}`);
+        }
+        throw new Error("Error desconocido al crear item para pedido recurrente");
+      }
     } catch (error) {
       console.error('Error en createRecurringOrderItem:', error);
       throw error;
