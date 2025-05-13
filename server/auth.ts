@@ -34,12 +34,12 @@ export function setupAuth(app: Express) {
   // Configurar opciones de sesión
   const sessionOptions: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'gowater-dev-session-secret',
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 horas
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Cambiado para entorno de desarrollo
       sameSite: 'lax'
     },
     store: new PostgresSessionStore({
