@@ -436,7 +436,7 @@ const RecurringOrderForm: React.FC = () => {
           {t('back')}
         </Button>
         <h1 className="text-2xl font-bold">
-          {isNew ? t('createTitle') : t('editTitle')}
+          {id === 'new' ? "Crear Pedido Recurrente" : "Actualizar Pedido Recurrente"}
         </h1>
       </div>
 
@@ -869,7 +869,7 @@ const RecurringOrderForm: React.FC = () => {
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />
-              {isNew ? "Crear Pedido" : "Actualizar"}
+              {id === 'new' ? "Crear Pedido" : "Actualizar"}
             </Button>
           </div>
         </form>
