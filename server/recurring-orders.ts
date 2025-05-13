@@ -205,20 +205,29 @@ class RecurringOrdersService {
   async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
     console.log(`RecurringOrderService.generateOrderFromRecurring - ID recibido: ${recurringOrderId}, tipo: ${typeof recurringOrderId}`);
     
-    // Validar el ID de pedido recurrente
-    if (!recurringOrderId || recurringOrderId <= 0 || isNaN(recurringOrderId)) {
-      console.error("Error: ID de pedido recurrente inválido", { recurringOrderId });
+    // Validación más estricta del ID
+    if (!recurringOrderId || recurringOrderId <= 0 || isNaN(recurringOrderId) || !Number.isInteger(recurringOrderId)) {
+      console.error("Error: ID de pedido recurrente inválido", { 
+        recurringOrderId, 
+        tipo: typeof recurringOrderId,
+        esNumero: !isNaN(recurringOrderId),
+        esPositivo: recurringOrderId > 0,
+        esEntero: Number.isInteger(recurringOrderId)
+      });
       throw new Error("ID de pedido recurrente inválido");
     }
+    
+    // Asegurar que el ID sea un entero
+    const safeOrderId = Math.floor(recurringOrderId);
     
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
       .select()
       .from(recurringOrders)
-      .where(eq(recurringOrders.id, recurringOrderId));
+      .where(eq(recurringOrders.id, safeOrderId));
 
     if (!recurringOrder) {
-      console.error(`Error: Pedido recurrente #${recurringOrderId} no encontrado`);
+      console.error(`Error: Pedido recurrente #${safeOrderId} no encontrado`);
       throw new Error("Pedido recurrente no encontrado");
     }
 

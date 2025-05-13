@@ -112,9 +112,14 @@ const RecurringOrdersPage: React.FC = () => {
   };
 
   const handleGenerateOrder = async (orderId: number) => {
-    // Validar que el ID sea válido
-    if (!orderId || orderId <= 0 || isNaN(orderId)) {
-      console.error("Error: ID de pedido recurrente inválido", { orderId });
+    // Validación estricta: garantiza que el ID sea un número entero positivo
+    if (!orderId || orderId <= 0 || isNaN(orderId) || !Number.isInteger(orderId)) {
+      console.error("Error: ID de pedido recurrente inválido", { 
+        orderId, 
+        tipo: typeof orderId, 
+        esEntero: Number.isInteger(orderId),
+        esPositivo: orderId > 0
+      });
       toast({
         title: t('generateError'),
         description: "ID de pedido recurrente inválido",
@@ -123,11 +128,17 @@ const RecurringOrdersPage: React.FC = () => {
       return;
     }
     
-    setGeneratingOrderId(orderId);
+    // Asegurar que el orderId es un número entero antes de usarlo en la URL
+    const safeOrderId = Math.floor(orderId);
+    setGeneratingOrderId(safeOrderId);
+    
     try {
-      console.log("Generando pedido desde pedido recurrente:", orderId);
-      const response = await fetch(`/api/recurring-orders/${orderId}/generate`, {
+      console.log("Generando pedido desde pedido recurrente:", safeOrderId);
+      const response = await fetch(`/api/recurring-orders/${safeOrderId}/generate`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
       });
 
       if (!response.ok) {
