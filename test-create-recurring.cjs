@@ -38,13 +38,10 @@ async function createRecurringOrder() {
 
   console.log('Cliente encontrado:', customerRes.rows[0]);
 
-  // 2. Obtener el siguiente ID para el pedido recurrente
-  const nextIdRes = await query(
-    `SELECT nextval('recurring_orders_id_seq') as next_id`
-  );
-  
-  const nextId = nextIdRes.rows[0].next_id;
-  console.log('Siguiente ID para pedido recurrente:', nextId);
+  // 2. Usar un ID que sabemos que está disponible (9 o superior)
+  // En lugar de usar la secuencia, usamos un valor explícito para evitar conflictos
+  const nextId = 9;
+  console.log('ID elegido para el nuevo pedido recurrente:', nextId);
   
   // 2. Crear el pedido recurrente
   const recurringOrderData = {
