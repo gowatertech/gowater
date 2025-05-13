@@ -336,7 +336,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Eliminar un pedido recurrente
-  router.delete("/api/recurring-orders/:id", async (req, res) => {
+  router.delete("/api/recurring-orders/:id", requireAuth, companyDbMiddleware, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -354,7 +354,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // ======================= ITEMS DE PEDIDOS RECURRENTES =======================
 
   // Obtener items de un pedido recurrente
-  router.get("/api/recurring-orders/:id/items", async (req, res) => {
+  router.get("/api/recurring-orders/:id/items", requireAuth, companyDbMiddleware, async (req, res) => {
     try {
       // Verificar si es el ID especial 'new'
       if (req.params.id === 'new') {
@@ -377,7 +377,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Añadir un item a un pedido recurrente
-  router.post("/api/recurring-orders/:id/items", async (req, res) => {
+  router.post("/api/recurring-orders/:id/items", requireAuth, companyDbMiddleware, async (req, res) => {
     try {
       // Manejo más flexible del ID
       let recurringOrderId: number;
@@ -471,7 +471,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Actualizar un item de un pedido recurrente
-  router.patch("/api/recurring-order-items/:id", async (req, res) => {
+  router.patch("/api/recurring-order-items/:id", requireAuth, companyDbMiddleware, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -518,7 +518,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Eliminar un item de un pedido recurrente
-  router.delete("/api/recurring-order-items/:id", async (req, res) => {
+  router.delete("/api/recurring-order-items/:id", requireAuth, companyDbMiddleware, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -558,7 +558,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // =====================================================================
   // ENDPOINT CORREGIDO: Para generar orden a partir de un pedido recurrente
   // =====================================================================
-  router.post("/api/recurring-orders/:id/generate", async (req, res) => {
+  router.post("/api/recurring-orders/:id/generate", requireAuth, companyDbMiddleware, async (req, res) => {
     try {
       console.log("Iniciando generación de orden a partir de pedido recurrente");
       
