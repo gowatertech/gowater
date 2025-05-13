@@ -44,8 +44,12 @@ class RecurringOrdersService {
         (typeof recurringOrder.dayOfMonth === 'string' ? 
           parseInt(recurringOrder.dayOfMonth) : recurringOrder.dayOfMonth) : null;
 
+      // Importar la función para obtener el companyId actual
+      const { getCurrentCompanyId } = await import('./company-db');
+      
       const recurringOrderData = {
         ...recurringOrder,
+        companyId: recurringOrder.companyId || getCurrentCompanyId() || 1, // Asegurar que exista companyId
         dayOfWeek: dayOfWeek,
         dayOfMonth: dayOfMonth,
         startDate: new Date(recurringOrder.startDate),
@@ -175,8 +179,22 @@ class RecurringOrdersService {
 
   // Recurring Order Items Methods
   async createRecurringOrderItem(item: InsertRecurringOrderItem): Promise<RecurringOrderItem> {
-    const [newItem] = await db.insert(recurringOrderItems).values(item).returning();
-    return newItem;
+    try {
+      // Importar la función para obtener el companyId actual
+      const { getCurrentCompanyId } = await import('./company-db');
+      
+      // Asegurar que el item tenga companyId
+      const itemWithCompanyId = {
+        ...item,
+        companyId: item.companyId || getCurrentCompanyId() || 1
+      };
+      
+      const [newItem] = await db.insert(recurringOrderItems).values(itemWithCompanyId).returning();
+      return newItem;
+    } catch (error) {
+      console.error('Error en createRecurringOrderItem:', error);
+      throw error;
+    }
   }
 
   async listRecurringOrderItems(recurringOrderId: number): Promise<RecurringOrderItem[]> {
@@ -229,9 +247,13 @@ class RecurringOrdersService {
       throw new Error("El pedido recurrente no tiene productos");
     }
 
+    // Importar la función para obtener el companyId actual
+    const { getCurrentCompanyId } = await import('./company-db');
+    
     // Crear un nuevo pedido
     const newOrder: InsertOrder = {
       customerId: recurringOrder.customerId,
+      companyId: recurringOrder.companyId || getCurrentCompanyId() || 1, // Asegurar que exista companyId
       total: recurringOrder.totalAmount,
       status: "pending",
       paymentMethod: recurringOrder.paymentMethod,
