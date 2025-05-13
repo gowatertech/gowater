@@ -797,11 +797,22 @@ const RecurringOrderForm: React.FC = () => {
                             <SelectValue placeholder={t('selectProduct')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {products && products.map((product: any) => (
-                              <SelectItem key={product.id} value={product.id.toString()}>
-                                {product.name}
-                              </SelectItem>
-                            ))}
+                            {isLoadingProducts ? (
+                              <div className="flex items-center justify-center p-2">
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <span>Cargando productos...</span>
+                              </div>
+                            ) : !products || products.length === 0 ? (
+                              <div className="p-2 text-center text-muted-foreground">
+                                No hay productos disponibles
+                              </div>
+                            ) : (
+                              products.map((product: any) => (
+                                <SelectItem key={product.id} value={product.id.toString()}>
+                                  {product.name}
+                                </SelectItem>
+                              ))
+                            )}
                           </SelectContent>
                         </Select>
                       </div>
