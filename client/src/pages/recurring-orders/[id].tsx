@@ -260,20 +260,39 @@ const RecurringOrderForm: React.FC = () => {
 
       // Si es un nuevo pedido, necesitamos crear los items
       if (id === 'new') {
-        console.log("Creando items para el nuevo pedido:", savedOrder.id);
+        // Asegurar que savedOrder.id sea un número válido
+        const safeOrderId = typeof savedOrder.id === 'string' ? parseInt(savedOrder.id, 10) : Number(savedOrder.id);
+        
+        if (isNaN(safeOrderId) || safeOrderId <= 0) {
+          console.error(`Error: ID de pedido recurrente inválido al crear items: ${savedOrder.id}`);
+          throw new Error("ID de pedido recurrente inválido al crear items");
+        }
+        
+        console.log("Creando items para el nuevo pedido:", safeOrderId);
+        
         // Crear items para el nuevo pedido
         for (const item of data.items) {
-          await fetch(`/api/recurring-orders/${savedOrder.id}/items`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              productId: Number(item.productId),
-              quantity: Number(item.quantity),
-              price: typeof item.price === 'string' ? item.price : parseFloat(String(item.price)).toFixed(2),
-            }),
-          });
+          try {
+            const response = await fetch(`/api/recurring-orders/${safeOrderId}/items`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                recurringOrderId: safeOrderId, // Incluir explícitamente el ID
+                productId: Number(item.productId),
+                quantity: Number(item.quantity),
+                price: typeof item.price === 'string' ? item.price : parseFloat(String(item.price)).toFixed(2),
+              }),
+            });
+            
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+              console.error(`Error al crear item para pedido ${safeOrderId}:`, errorData);
+            }
+          } catch (itemError) {
+            console.error(`Error al procesar item para pedido ${safeOrderId}:`, itemError);
+          }
         }
       } else {
         // Actualizar los items existentes y crear nuevos si es necesario
@@ -292,18 +311,35 @@ const RecurringOrderForm: React.FC = () => {
               }),
             });
           } else {
-            // Crear nuevo item
-            await fetch(`/api/recurring-orders/${savedOrder.id}/items`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                productId: parseInt(String(item.productId)) || 0,
-                quantity: parseInt(String(item.quantity)) || 1,
-                price: typeof item.price === 'string' ? item.price : parseFloat(String(item.price)).toFixed(2),
-              }),
-            });
+            // Crear nuevo item - asegurar que el ID sea válido
+            const safeOrderId = typeof savedOrder.id === 'string' ? parseInt(savedOrder.id, 10) : Number(savedOrder.id);
+            
+            if (isNaN(safeOrderId) || safeOrderId <= 0) {
+              console.error(`Error: ID de pedido recurrente inválido al actualizar items: ${savedOrder.id}`);
+              throw new Error("ID de pedido recurrente inválido al actualizar items");
+            }
+            
+            try {
+              const response = await fetch(`/api/recurring-orders/${safeOrderId}/items`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  recurringOrderId: safeOrderId, // Incluir explícitamente el ID
+                  productId: parseInt(String(item.productId)) || 0,
+                  quantity: parseInt(String(item.quantity)) || 1,
+                  price: typeof item.price === 'string' ? item.price : parseFloat(String(item.price)).toFixed(2),
+                }),
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+                console.error(`Error al crear nuevo item para pedido existente ${safeOrderId}:`, errorData);
+              }
+            } catch (itemError) {
+              console.error(`Error al procesar nuevo item para pedido existente ${safeOrderId}:`, itemError);
+            }
           }
         }
 
