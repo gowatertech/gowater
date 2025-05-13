@@ -368,43 +368,42 @@ class RecurringOrdersService {
     
     console.log(`RecurringOrdersService - Usando companyId:`, companyId);
     
-    // Crear un nuevo pedido directamente con DB en lugar de usar storage
-    // Adaptado para que coincida con la estructura real de la tabla orders
-    const newOrder = {
-      customer_id: recurringOrder.customerId, // Usamos snake_case para campos de BD
-      company_id: companyId, // Usamos snake_case para campos de BD
+    // Crear un nuevo pedido usando nomenclatura camelCase
+    const newOrderData = {
+      customerId: recurringOrder.customerId,
+      companyId: companyId,
       total: recurringOrder.totalAmount,
       status: "pending" as const,
-      payment_method: recurringOrder.paymentMethod, // Usamos snake_case para campos de BD
-      date: new Date(), // Usar Date directamente en lugar de string
-      route_id: null, // No asignado a una ruta inicialmente
+      paymentMethod: recurringOrder.paymentMethod,
+      date: new Date(),
+      routeId: null,
       notes: `Pedido generado automáticamente desde pedido recurrente #${safeId}: ${recurringOrder.name}`,
-      cash_collected: "0.00", // Usamos snake_case para campos de BD
-      driver_commission: "0.00", // Usamos snake_case para campos de BD
-      assistant_commission: "0.00", // Usamos snake_case para campos de BD
-      recurring_order_id: safeId, // Añadimos la referencia al pedido recurrente
+      cashCollected: "0.00",
+      driverCommission: "0.00",
+      assistantCommission: "0.00",
+      recurringOrderId: safeId,
     };
 
-    console.log(`RecurringOrdersService - Creando nuevo pedido:`, newOrder);
+    console.log(`RecurringOrdersService - Creando nuevo pedido:`, newOrderData);
 
-    // Insertar el nuevo pedido directamente con DB
-    const [order] = await db.insert(orders).values(newOrder).returning();
+    // Insertar el nuevo pedido
+    const [order] = await db.insert(orders).values([newOrderData]).returning();
     
     console.log(`RecurringOrdersService - Pedido creado:`, order);
 
-    // Insertar los items del pedido directamente con DB
+    // Insertar los items del pedido con nomenclatura camelCase
     for (const item of recurringItems) {
-      const orderItem = {
-        order_id: order.id, // Usamos snake_case para campos de BD
-        product_id: item.productId, // Usamos snake_case para campos de BD
+      const orderItemData = {
+        orderId: order.id,
+        productId: item.productId,
         quantity: item.quantity,
         price: item.price.toString(),
-        company_id: companyId, // Usamos snake_case para campos de BD
-        total: (parseFloat(item.price) * item.quantity).toFixed(2), // Calcular el total
+        companyId: companyId,
+        total: (parseFloat(item.price) * item.quantity).toFixed(2),
       };
       
-      console.log(`RecurringOrdersService - Creando item para el pedido:`, orderItem);
-      await db.insert(orderItems).values(orderItem);
+      console.log(`RecurringOrdersService - Creando item para el pedido:`, orderItemData);
+      await db.insert(orderItems).values([orderItemData]);
     }
 
     // Actualizar la fecha de última generación y próxima generación

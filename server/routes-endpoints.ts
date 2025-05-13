@@ -8,7 +8,18 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Obtener todos los pedidos recurrentes
   router.get("/api/recurring-orders", async (req, res) => {
     try {
+      console.log("GET /api/recurring-orders - Endpoint llamado desde cliente");
       const recurringOrders = await storage.listRecurringOrders();
+      console.log(`GET /api/recurring-orders - Retornando ${recurringOrders.length} pedidos recurrentes`);
+      
+      // Agregar registro para depuración
+      if (recurringOrders && recurringOrders.length > 0) {
+        console.log("Lista de pedidos recurrentes encontrados:");
+        recurringOrders.forEach(order => {
+          console.log(`- Pedido #${order.id}: ${order.name}, Cliente: ${order.customerId}, Compañía: ${order.companyId}`);
+        });
+      }
+      
       res.json(recurringOrders);
     } catch (error) {
       console.error("Error al obtener pedidos recurrentes:", error);
