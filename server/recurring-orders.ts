@@ -224,22 +224,23 @@ class RecurringOrdersService {
       .where(eq(recurringOrderItems.id, id));
   }
 
-  async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
-    // Modificado: Aceptar cualquier valor numérico que pueda ser convertido a número entero
-    const safeId = Math.floor(Number(recurringOrderId));
+  async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
+    console.log(`RecurringOrdersService.generateOrderFromRecurring - DIAGNÓSTICO COMPLETO:`, {
+      idRecibido: recurringOrderId,
+      tipo: typeof recurringOrderId,
+      stringValue: String(recurringOrderId),
+      numberValue: Number(recurringOrderId),
+      isNaN: isNaN(Number(recurringOrderId))
+    });
     
-    if (isNaN(safeId)) {
-      console.error(`Error: ID de pedido recurrente no es un número: ${recurringOrderId}`);
-      throw new Error("ID de pedido recurrente debe ser un número");
-    }
-    
-    console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando generación con ID: ${recurringOrderId}`);
+    // Simplificar al máximo - cualquier valor es aceptable si se puede convertir a número
+    const safeId = Number(recurringOrderId);
     
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
       .select()
       .from(recurringOrders)
-      .where(eq(recurringOrders.id, recurringOrderId));
+      .where(eq(recurringOrders.id, safeId));
 
     if (!recurringOrder) {
       console.error(`Error: Pedido recurrente #${recurringOrderId} no encontrado`);
