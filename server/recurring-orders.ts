@@ -225,10 +225,12 @@ class RecurringOrdersService {
   }
 
   async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
-    // Validación básica del ID - mantener simple
-    if (!recurringOrderId || recurringOrderId <= 0) {
-      console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId}`);
-      throw new Error("ID de pedido recurrente inválido");
+    // Modificado: Aceptar cualquier valor numérico que pueda ser convertido a número entero
+    const safeId = Math.floor(Number(recurringOrderId));
+    
+    if (isNaN(safeId)) {
+      console.error(`Error: ID de pedido recurrente no es un número: ${recurringOrderId}`);
+      throw new Error("ID de pedido recurrente debe ser un número");
     }
     
     console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando generación con ID: ${recurringOrderId}`);

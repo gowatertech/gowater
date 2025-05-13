@@ -128,47 +128,33 @@ const RecurringOrdersPage: React.FC = () => {
   }, [recurringOrders]);
 
   const handleGenerateOrder = async (orderId: any) => {
+    console.log("=================== DIAGNÓSTICO DETALLADO ===================");
     console.log("DIAGNÓSTICO - handleGenerateOrder INICIO con ID:", orderId, 
                 "tipo:", typeof orderId, 
                 "representación string:", String(orderId), 
                 "JSON stringify:", JSON.stringify(orderId));
     
-    // Validación y conversión rigurosa
+    console.log("DIAGNÓSTICO - Inspección detallada del objeto orderId:", {
+      valor: orderId,
+      tipo: typeof orderId,
+      prototype: orderId ? Object.getPrototypeOf(orderId) : null,
+      propiedades: orderId ? Object.getOwnPropertyNames(orderId) : [],
+      esNumero: typeof orderId === 'number',
+      esString: typeof orderId === 'string',
+      esEntero: Number.isInteger(Number(orderId)),
+      convertidoANumero: Number(orderId),
+      convertidoAString: String(orderId),
+      parseIntBase10: parseInt(String(orderId), 10),
+      isNaN: isNaN(Number(orderId)),
+    });
+    
+    // Validación y conversión rigurosa - SIMPLIFICADA
     let safeOrderId: number;
     
-    try {
-      // Intentar diferentes estrategias de conversión
-      if (typeof orderId === 'string') {
-        // Si es un string, usar parseInt con base explícita
-        const parsed = parseInt(orderId, 10);
-        if (isNaN(parsed) || parsed <= 0) {
-          throw new Error("ID inválido (string)");
-        }
-        safeOrderId = parsed;
-      } else if (typeof orderId === 'number') {
-        // Si ya es número, asegurar que sea entero positivo
-        if (orderId <= 0 || !Number.isFinite(orderId)) {
-          throw new Error("ID inválido (number)");
-        }
-        safeOrderId = Math.floor(orderId);
-      } else {
-        // Intento final con conversión genérica
-        const numericOrderId = Number(orderId);
-        if (!numericOrderId || numericOrderId <= 0 || !Number.isFinite(numericOrderId)) {
-          throw new Error("ID inválido (conversión fallida)");
-        }
-        safeOrderId = Math.floor(numericOrderId);
-      }
-      
-      console.log("DIAGNÓSTICO - ID validado y convertido:", safeOrderId, 
-                 "tipo:", typeof safeOrderId,
-                 "entero:", Number.isInteger(safeOrderId));
-    } catch (error) {
-      console.error("Error al validar ID de pedido recurrente:", { 
-        orderId, 
-        tipo: typeof orderId,
-        error: error instanceof Error ? error.message : String(error)
-      });
+    // Enfoque simple y directo
+    const numericId = Number(orderId);
+    if (isNaN(numericId) || numericId <= 0 || !Number.isInteger(numericId)) {
+      console.error(`DIAGNÓSTICO - ID inválido: ${orderId}, convertido a: ${numericId}`);
       
       toast({
         title: t('generateError'),
@@ -178,11 +164,18 @@ const RecurringOrdersPage: React.FC = () => {
       return;
     }
     
+    safeOrderId = numericId;
+    console.log(`DIAGNÓSTICO - ID validado correctamente: ${safeOrderId}`);
+    
+    // Mostrar el URL exacto que vamos a llamar
+    const url = `/api/recurring-orders/${safeOrderId}/generate`;
+    console.log(`DIAGNÓSTICO - URL a llamar: ${url}`);
+    
     setGeneratingOrderId(safeOrderId);
     
     try {
-      console.log("Generando pedido desde pedido recurrente:", safeOrderId);
-      const response = await fetch(`/api/recurring-orders/${safeOrderId}/generate`, {
+      console.log("DIAGNÓSTICO - Enviando petición POST sin cuerpo");
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

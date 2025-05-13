@@ -327,36 +327,45 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // Generar orden a partir de un pedido recurrente
   router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
-      const idParam = req.params.id;
+      // Simplificar la validación lo máximo posible
+      const recurringOrderId = Number(req.params.id);
       
-      // Validación simplificada del ID
-      const recurringOrderId = parseInt(idParam, 10);
+      console.log(`Petición de generación recibida para pedido recurrente ID: ${req.params.id} (convertido a: ${recurringOrderId})`);
       
-      if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
-        return res.status(400).json({ 
-          error: "ID de pedido recurrente inválido", 
-          detail: "El ID debe ser un número entero positivo"
+      // Acceso a la base de datos directo para diagnosticar el problema
+      const { db } = await import('./db');  // Importar db directamente
+      const { eq } = await import('drizzle-orm');  // Importar eq directamente
+      const { recurringOrders } = await import('../shared/schema');  // Importar schema directamente
+      
+      // Verificar que el pedido recurrente existe antes de procesarlo
+      const recurringOrderResult = await db
+        .select()
+        .from(recurringOrders)
+        .where(eq(recurringOrders.id, recurringOrderId));
+      
+      if (recurringOrderResult.length === 0) {
+        console.error(`Error: Pedido recurrente #${recurringOrderId} no encontrado en la base de datos`);
+        return res.status(404).json({ 
+          error: "Pedido recurrente no encontrado", 
+          detail: `No existe un pedido recurrente con ID ${recurringOrderId}`
         });
       }
       
+      console.log(`✅ Pedido recurrente #${recurringOrderId} encontrado:`, recurringOrderResult[0]);
+      
       // Asegurar que el companyId esté presente para el contexto de la operación
-      const { getCurrentCompanyId } = await import('./company-db');
-      const companyId = (req as any).companyId || getCurrentCompanyId() || 1;
+      const { getCurrentCompanyId, setCurrentCompanyId } = await import('./company-db');
+      const companyId = (req as any).companyId || getCurrentCompanyId() || recurringOrderResult[0].companyId || 1;
       
       // Establecer temporalmente el companyId en el contexto antes de la operación
-      if (!getCurrentCompanyId()) {
-        const { setCurrentCompanyId } = await import('./company-db');
-        setCurrentCompanyId(companyId);
-      }
+      const prevCompanyId = getCurrentCompanyId();
+      setCurrentCompanyId(companyId);
       
       console.log(`Iniciando generación de pedido desde pedido recurrente #${recurringOrderId} (companyId: ${companyId})`);
       const generatedOrder = await storage.generateOrderFromRecurring(recurringOrderId);
       
-      // Limpiar el contexto si lo establecimos temporalmente
-      if (!req.body.companyId && !(req as any).companyId) {
-        const { setCurrentCompanyId } = await import('./company-db');
-        setCurrentCompanyId(undefined);
-      }
+      // Restaurar el contexto anterior
+      setCurrentCompanyId(prevCompanyId);
       
       console.log(`Pedido generado exitosamente desde recurrente #${recurringOrderId}`, generatedOrder);
       res.status(201).json(generatedOrder);
