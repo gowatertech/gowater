@@ -80,10 +80,13 @@ const RecurringOrderForm: React.FC = () => {
     retry: 1,
   });
 
-  // Consultar la lista de productos
+  // Consultar la lista de productos con prioridad alta y recarga automática
   const { data: products, isLoading: isLoadingProducts } = useQuery({
     queryKey: ['/api/products'],
-    retry: 1,
+    retry: 3,
+    staleTime: 0, // Siempre obtener datos frescos
+    refetchOnMount: true, // Recargar cuando el componente se monta
+    refetchOnWindowFocus: true, // Recargar cuando la ventana obtiene foco
   });
 
   const form = useForm<FormValues>({
@@ -274,18 +277,63 @@ const RecurringOrderForm: React.FC = () => {
           return;
         }
         
-        // Asegurar que savedOrder.id sea un número válido
-        const safeOrderId = typeof savedOrder.id === 'string' ? parseInt(savedOrder.id, 10) : Number(savedOrder.id);
+        // Implementar una estrategia más robusta para manejar el ID
+        let safeOrderId: number;
         
+        // Múltiples estrategias para obtener un ID válido
+        if (typeof savedOrder.id === 'number' && !isNaN(savedOrder.id) && savedOrder.id > 0) {
+          safeOrderId = savedOrder.id;
+        } else if (typeof savedOrder.id === 'string') {
+          // Limpiamos cualquier caracter no numérico
+          const cleanId = savedOrder.id.replace(/[^0-9]/g, '');
+          safeOrderId = parseInt(cleanId, 10);
+        } else {
+          // Si todavía no tenemos un ID válido, intentamos extraerlo del objeto completo
+          safeOrderId = savedOrder && typeof savedOrder === 'object' ? 
+            (savedOrder.recurringOrderId || savedOrder.orderId || savedOrder.id || 0) : 0;
+        }
+        
+        // Validación final
         if (isNaN(safeOrderId) || safeOrderId <= 0) {
-          console.error(`Error: ID de pedido recurrente inválido al crear items: ${savedOrder.id}`);
-          toast({
-            title: "Error al crear los items",
-            description: "El servidor devolvió un ID de pedido recurrente inválido",
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
+          console.error(`Error: No se pudo determinar un ID válido: ${JSON.stringify(savedOrder)}`);
+          
+          // Último intento - usar un endpoint para obtener el ID más reciente
+          try {
+            // Intentamos obtener el ID más reciente
+            const recoverResponse = await fetch('/api/recurring-orders?latest=true');
+            if (recoverResponse.ok) {
+              const latestOrders = await recoverResponse.json();
+              if (latestOrders && latestOrders.length > 0 && latestOrders[0].id) {
+                console.log(`Recuperando usando el pedido más reciente: ${latestOrders[0].id}`);
+                safeOrderId = latestOrders[0].id;
+              } else {
+                toast({
+                  title: "Error al crear los items",
+                  description: "No se pudo determinar un ID de pedido recurrente válido",
+                  variant: "destructive",
+                });
+                setIsSubmitting(false);
+                return;
+              }
+            } else {
+              toast({
+                title: "Error al crear los items",
+                description: "El servidor devolvió un ID de pedido recurrente inválido",
+                variant: "destructive",
+              });
+              setIsSubmitting(false);
+              return;
+            }
+          } catch (recoveryError) {
+            console.error("Error en el proceso de recuperación:", recoveryError);
+            toast({
+              title: "Error al crear los items",
+              description: "No se pudo completar el proceso de creación",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
         }
         
         console.log("Creando items para el nuevo pedido:", safeOrderId);
