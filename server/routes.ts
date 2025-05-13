@@ -1022,10 +1022,11 @@ export async function registerRoutes(router: express.Router) {
         hireDate: new Date()
       };
       
-      // Eliminar el campo email si existe para usar usersSimple
-      if (insertData.email) {
+      // Ya no eliminamos el campo email para mantener la compatibilidad con la validación
+      // Comentamos esta parte para que el email se incluya en la inserción del usuario
+      /*if (insertData.email) {
         delete insertData.email;
-      }
+      }*/
       
       console.log(`Creando nuevo usuario ${userData.username} para compañía ${userData.companyId} con contraseña hasheada`);
       

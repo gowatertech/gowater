@@ -4,13 +4,13 @@ import ws from "ws";
 import * as fullSchema from "@shared/schema";
 import { pgTable, text, serial, integer, timestamp, boolean } from "drizzle-orm/pg-core";
 
-// Crear un esquema simplificado sin la columna email para la consulta actual
-// hasta que se realice la migración para añadir email a la tabla
+// Actualizado para incluir el campo email y mantener la coherencia con el modelo completo
 export const usersSimple = pgTable("users", {
   id: serial("id").primaryKey(),
   companyId: integer("company_id").notNull(),
   name: text("name").notNull(),
   username: text("username").notNull(),
+  email: text("email"), // Añadimos campo email para mantener coherencia
   password: text("password").notNull(),
   role: text("role").notNull(),
   active: boolean("active").notNull().default(true),

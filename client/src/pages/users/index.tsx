@@ -268,8 +268,9 @@ export default function Users() {
       // Formatear los datos antes de enviar e incluir el companyId
       const formattedData = {
         ...data,
-        companyId: currentUser.companyId,
-        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
+        companyId: Number(currentUser.companyId), // Asegurar que companyId sea un número
+        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
+        active: true // Asegurar que el campo active esté presente
       };
 
       console.log("Enviando datos con companyId:", formattedData);
