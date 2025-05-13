@@ -435,7 +435,7 @@ export default function RecurringOrdersPage() {
                 </div>
               ))}
             </div>
-          ) : (recurringOrders && recurringOrders.length === 0) ? (
+          ) : (!recurringOrders || !Array.isArray(recurringOrders) || recurringOrders.length === 0) ? (
             <div className="text-center py-10">
               <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
               <h3 className="text-lg font-medium">{t("No hay pedidos recurrentes")}</h3>

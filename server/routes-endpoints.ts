@@ -1,6 +1,7 @@
 import { Router, Express } from "express";
 import { storage } from "./storage";
 import { insertRecurringOrderSchema, insertRecurringOrderItemSchema } from "../shared/schema";
+import { getCurrentCompanyId } from "./company-db";
 // Nota: Los endpoints de órdenes están ahora directamente en ordersRouter en ./routes/orders.ts
 
 // Importar middleware necesario para validar autenticación
@@ -244,9 +245,18 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
           const { db } = await import("./db");
           
           // Intentar crear el pedido directamente en la base de datos
+          // Asegurar que companyId está incluido en los datos
+          const companyId = getCurrentCompanyId() || req.session.companyId;
+          console.log("CompanyId para crear pedido recurrente:", companyId);
+          
+          const dataWithCompany = {
+            ...parseResult.data,
+            companyId: companyId
+          };
+          
           const [directInsertedOrder] = await db
             .insert(recurringOrders)
-            .values(parseResult.data)
+            .values(dataWithCompany)
             .returning();
           
           if (directInsertedOrder) {
