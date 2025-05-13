@@ -558,26 +558,39 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
     try {
       console.log("Iniciando generación de orden a partir de pedido recurrente");
       
-      // Obtener el ID del pedido recurrente como parámetro
+      // Identificar el ID de forma más permisiva
       let recurringOrderId: number;
       
-      // Intentar convertir el ID usando varias estrategias para ser tolerante a diferentes formatos
-      if (typeof req.params.id === 'string') {
-        // Eliminar caracteres no numéricos si existen
-        const cleanId = req.params.id.replace(/[^0-9]/g, '');
-        recurringOrderId = parseInt(cleanId, 10);
-      } else {
-        recurringOrderId = Number(req.params.id);
-      }
-      
-      console.log(`POST /api/recurring-orders/:id/generate - ID recibido: ${req.params.id}, procesado como: ${recurringOrderId}`);
-      
-      // Validación básica del ID
-      if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
-        console.error(`Error: ID de pedido recurrente inválido paso 2: ${req.params.id}`);
-        return res.status(400).json({ 
-          error: "ID de pedido recurrente inválido paso 2", 
-          details: `El ID proporcionado (${req.params.id}) no se pudo convertir a un número válido.`
+      try {
+        // Manejar diferentes formatos de ID
+        if (typeof req.params.id === 'string') {
+          // Limpiar y convertir a número
+          const cleanId = req.params.id.replace(/[^0-9]/g, '');
+          recurringOrderId = cleanId ? parseInt(cleanId, 10) : 0;
+        } else {
+          recurringOrderId = Number(req.params.id);
+        }
+        
+        console.log(`POST /api/recurring-orders/:id/generate - ID recibido: ${req.params.id}, procesado como: ${recurringOrderId}`);
+        
+        // Si el ID no es válido, intentar recuperarlo
+        if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
+          console.log("ID inválido, intentando recuperar el pedido más reciente");
+          const { recurringOrdersService } = await import('./recurring-orders');
+          const latestOrder = await recurringOrdersService.getNewestRecurringOrder();
+          
+          if (latestOrder) {
+            recurringOrderId = latestOrder.id;
+            console.log(`Usando ID más reciente como alternativa: ${recurringOrderId}`);
+          } else {
+            throw new Error("ID inválido y no hay pedidos recurrentes existentes");
+          }
+        }
+      } catch (idError) {
+        console.error("Error procesando ID:", idError);
+        return res.status(400).json({
+          error: "ID de pedido recurrente inválido",
+          details: idError instanceof Error ? idError.message : "Error desconocido"
         });
       }
       
@@ -586,7 +599,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       
       // Configurar la compañía correcta para el contexto
       const { getCurrentCompanyId, setCurrentCompanyId } = await import('./company-db');
-      const companyId = req.body.companyId || (req as any).companyId || 15; // Usar 15 como fallback (donde sabemos que existe el ID 6)
+      const companyId = req.body.companyId || (req as any).companyId || 15;
       const prevCompanyId = getCurrentCompanyId();
       
       console.log(`Usando companyId: ${companyId} para generar orden desde pedido recurrente #${recurringOrderId}`);

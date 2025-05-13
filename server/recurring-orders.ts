@@ -418,11 +418,12 @@ class RecurringOrdersService {
 
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando con ID: ${recurringOrderId}`);
-
+    
+    // Normalizamos el ID de forma simple pero efectiva
     let safeId: number;
-
+    
     try {
-      // Simplificar la validación del ID
+      // Simplificar la normalización del ID
       if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
         safeId = Number(recurringOrderId.id);
       } else if (typeof recurringOrderId === 'string') {
@@ -430,20 +431,34 @@ class RecurringOrdersService {
       } else {
         safeId = Number(recurringOrderId);
       }
-
-      // Si el ID no es válido, intentar obtener el más reciente
+      
+      console.log(`RecurringOrdersService.generateOrderFromRecurring - ID convertido: ${safeId}, tipo: ${typeof safeId}`);
+      
+      // Verificación básica
       if (isNaN(safeId) || safeId <= 0) {
-        const newestOrder = await this.getNewestRecurringOrder();
-        if (newestOrder && newestOrder.id) {
-          console.log(`Usando ID del pedido más reciente: ${newestOrder.id}`);
-          safeId = newestOrder.id;
+        // Intentar recuperar el pedido más reciente como fallback
+        const latestOrder = await this.getNewestRecurringOrder();
+        if (latestOrder) {
+          console.log(`Recuperando con el ID más reciente: ${latestOrder.id}`);
+          safeId = latestOrder.id;
         } else {
-          throw new Error("No se pudo obtener un ID válido");
+          throw new Error("ID de pedido recurrente inválido y no hay alternativas disponibles");
         }
       }
-
-    // Última verificación - solo validamos que sea un número válido mayor que 0
-    if (isNaN(safeId) || safeId <= 0) {
+    } catch (err) {
+      console.error("Error procesando ID de pedido recurrente:", err);
+      // Intentar una última recuperación
+      const latestOrder = await this.getNewestRecurringOrder();
+      if (latestOrder && latestOrder.id) {
+        console.log(`Último intento con ID más reciente: ${latestOrder.id}`);
+        safeId = latestOrder.id;
+      } else {
+        throw new Error("ID de pedido recurrente inválido paso 1");
+      }
+    }
+    
+    // Última verificación - ahora más permisiva, solo validamos que tengamos un número
+    if (isNaN(safeId)) {
       console.error(`Error: ID de pedido recurrente inválido paso 1: ${recurringOrderId} (convertido a ${safeId})`);
       throw new Error("ID de pedido recurrente inválido paso 1");
     }

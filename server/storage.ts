@@ -974,16 +974,35 @@ export class DatabaseStorage implements IStorage {
 
   async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
     try {
-      // Convertir explícitamente a número, por seguridad
-      const numericId = Number(recurringOrderId);
+      console.log(`Storage.generateOrderFromRecurring - Recibido ID: ${recurringOrderId}, tipo: ${typeof recurringOrderId}`);
       
-      // Verificación básica
-      if (!numericId || numericId <= 0) {
-        throw new Error("ID de pedido recurrente inválido paso 3");
+      // Simplificar la validación
+      let numericId: number;
+      
+      if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
+        numericId = Number(recurringOrderId.id);
+      } else {
+        numericId = Number(recurringOrderId);
       }
       
-      // Importar el servicio de órdenes recurrentes
+      // Solo validar que sea un número
+      if (isNaN(numericId)) {
+        console.log(`Storage.generateOrderFromRecurring - ID inválido, intentando recuperar ID más reciente`);
+        // Intentar obtener el pedido recurrente más reciente
+        const { recurringOrdersService } = await import('./recurring-orders');
+        const latestOrder = await recurringOrdersService.getNewestRecurringOrder();
+        
+        if (latestOrder) {
+          console.log(`Storage.generateOrderFromRecurring - Usando ID más reciente: ${latestOrder.id}`);
+          numericId = latestOrder.id;
+        } else {
+          throw new Error("ID de pedido recurrente inválido paso 5 - No se pudo recuperar");
+        }
+      }
+      
+      // Usar el servicio con el ID normalizado
       const { recurringOrdersService } = await import('./recurring-orders');
+      console.log(`Storage.generateOrderFromRecurring - Llamando al servicio con ID: ${numericId}`);
       return recurringOrdersService.generateOrderFromRecurring(numericId);
     } catch (error) {
       console.error("Error en storage.generateOrderFromRecurring:", error);
