@@ -252,14 +252,42 @@ const RecurringOrderForm: React.FC = () => {
         const { items, ...orderData } = submitData; // No actualizamos items en la entidad principal
         
         // Asegurar que el id sea un número válido para la actualización
-        const numericId = parseInt(id);
-        if (isNaN(numericId) || numericId <= 0) {
+        // Mejorar la robustez de la validación para diferentes formatos
+        let numericId: number;
+        
+        try {
+          // Limpiar el ID si viene como string (eliminar caracteres no numéricos)
+          if (typeof id === 'string') {
+            const cleanId = id.replace(/[^\d]/g, '');
+            numericId = cleanId ? parseInt(cleanId, 10) : 0;
+          } 
+          // Si es un objeto con propiedad 'id', usar esa propiedad
+          else if (id && typeof id === 'object' && 'id' in id) {
+            numericId = parseInt(String(id.id), 10);
+          }
+          // Intentar convertir directamente
+          else {
+            numericId = parseInt(String(id), 10);
+          }
+          
+          console.log("DIAGNÓSTICO ID paso 5:", { id, tipoOriginal: typeof id, numericId });
+          
+          // Validar el resultado final
+          if (isNaN(numericId) || numericId <= 0) {
+            throw new Error("ID no válido después de conversión");
+          }
+        } catch (error) {
           toast({
             title: "Error",
             description: "ID de pedido recurrente inválido paso 5",
             variant: "destructive",
           });
-          console.error("Error de validación: ID de pedido recurrente inválido paso 5", { id, numericId });
+          console.error("Error de validación: ID de pedido recurrente inválido paso 5", { 
+            id, 
+            tipoOriginal: typeof id, 
+            numericId,
+            error: error instanceof Error ? error.message : String(error)
+          });
           setIsSubmitting(false);
           return;
         }
@@ -332,6 +360,14 @@ const RecurringOrderForm: React.FC = () => {
                 return;
               }
             } else {
+              // Obtener detalles del error para diagnóstico
+              const errorText = await recoverResponse.text();
+              console.error("Error al recuperar pedido más reciente. Paso 6:", { 
+                status: recoverResponse.status, 
+                statusText: recoverResponse.statusText,
+                errorBody: errorText
+              });
+              
               toast({
                 title: "Error al crear los items",
                 description: "El servidor devolvió un ID de pedido recurrente inválido paso 6",
