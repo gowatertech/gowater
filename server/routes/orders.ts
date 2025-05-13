@@ -5,12 +5,29 @@ import { getCurrentCompanyId } from '../company-db';
 // Router para manejar órdenes
 const ordersRouter = express.Router();
 
-// Middleware para verificar autenticación
+// Middleware para verificar autenticación y establecer companyId
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Verificar si hay una cookie de sesión
+  if (!req.sessionID) {
+    console.log("❌ Acceso denegado: No hay sessionID");
+    return res.status(401).json({ success: false, message: "No autenticado - Sesión no encontrada" });
+  }
+  
+  // Verificar autenticación con Passport
   if (!req.isAuthenticated()) {
-    console.log("❌ Acceso denegado: Usuario no autenticado");
+    // Intentar recuperar información aunque no esté autenticado con Passport
+    if (req.session && req.session.companyId) {
+      console.log(`⚠️ No autenticado con Passport pero hay companyId en sesión: ${req.session.companyId}`);
+      next();
+      return;
+    }
+    
+    console.log(`❌ Acceso denegado: Usuario no autenticado. SessionID: ${req.sessionID}`);
     return res.status(401).json({ success: false, message: "No autenticado" });
   }
+  
+  // Si llegamos aquí, el usuario está autenticado
+  console.log(`✅ Usuario autenticado: ${(req.user as any)?.id}`);
   next();
 };
 
