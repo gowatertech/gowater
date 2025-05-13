@@ -190,7 +190,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // ======================= ITEMS DE PEDIDOS RECURRENTES =======================
 
   // Obtener items de un pedido recurrente
-  router.get("/api/recurring-orders/:id/items", async (req, res) => {
+  router.get("/api/recurring-orders/:id/items", authMiddleware, async (req: Request, res: Response) => {
     try {
       const recurringOrderId = parseInt(req.params.id);
       if (isNaN(recurringOrderId)) {
@@ -206,7 +206,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Añadir un item a un pedido recurrente
-  router.post("/api/recurring-orders/:id/items", async (req, res) => {
+  router.post("/api/recurring-orders/:id/items", authMiddleware, async (req: Request, res: Response) => {
     try {
       const recurringOrderId = parseInt(req.params.id);
       if (isNaN(recurringOrderId)) {
@@ -256,7 +256,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Actualizar un item de un pedido recurrente
-  router.patch("/api/recurring-order-items/:id", async (req, res) => {
+  router.patch("/api/recurring-order-items/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -303,7 +303,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Eliminar un item de un pedido recurrente
-  router.delete("/api/recurring-order-items/:id", async (req, res) => {
+  router.delete("/api/recurring-order-items/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -341,7 +341,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   });
 
   // Generar orden a partir de un pedido recurrente
-  router.post("/api/recurring-orders/:id/generate", async (req, res) => {
+  router.post("/api/recurring-orders/:id/generate", authMiddleware, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
