@@ -258,25 +258,6 @@ app.use((req, res, next) => {
       log("Test API routes registered successfully");
     }
     
-    // Configurar endpoint directo para generar órdenes a partir de pedidos recurrentes
-    // Este endpoint está fuera del middleware de Vite para evitar problemas de formato
-    const { generateFromRecurringOrder } = await import('./direct-api');
-    app.post("/direct-api/recurring-orders/:id/generate", generateFromRecurringOrder);
-    
-    // Importar el middleware y controlador de API JSON directa
-    const { jsonResponseMiddleware, GenericAPIController } = await import('./direct-json-api');
-    
-    // Crear una instancia del controlador genérico
-    const genericController = new GenericAPIController();
-    
-    // Configurar un endpoint de ejemplo usando el controlador genérico
-    app.post("/direct-api/generic/:action", jsonResponseMiddleware, 
-      (req, res) => genericController.handleRequest(req, res));
-    
-    // Puedes registrar cualquier endpoint adicional aquí usando el mismo patrón
-    
-    log("Direct API endpoints registered successfully");
-    
     // Crear servidor HTTP
     server = createServer(app);
     

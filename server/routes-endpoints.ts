@@ -554,15 +554,9 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   // =====================================================================
   // ENDPOINT CORREGIDO: Para generar orden a partir de un pedido recurrente
   // =====================================================================
-  router.post("/api/recurring-orders/:id/generate", async (req, res, next) => {
-    // Establecer cabeceras de inmediato para evitar que sean sobrescritas
-    res.removeHeader('Content-Type');
-    res.setHeader('Content-Type', 'application/json');
-    
+  router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
-      console.log("=== INICIO DE GENERACIÓN DE ORDEN RECURRENTE ===");
       console.log("Iniciando generación de orden a partir de pedido recurrente");
-      console.log("Headers actuales:", JSON.stringify(res.getHeaders()));
       
       // Obtener el ID del pedido recurrente como parámetro
       let recurringOrderId: number;
@@ -582,7 +576,6 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
         console.error(`Error: ID de pedido recurrente inválido paso 2: ${req.params.id}`);
         return res.status(400).json({ 
-          success: false,
           error: "ID de pedido recurrente inválido paso 2", 
           details: `El ID proporcionado (${req.params.id}) no se pudo convertir a un número válido.`
         });
@@ -600,87 +593,17 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       setCurrentCompanyId(companyId);
       
       try {
-        // Obtener datos de la orden recurrente para verificar su existencia
-        const recurringOrderData = await recurringOrdersService.getRecurringOrder(recurringOrderId);
-        if (!recurringOrderData) {
-          console.error(`Error: Pedido recurrente #${recurringOrderId} no encontrado en la base de datos`);
-          return res.status(404).json({
-            success: false,
-            error: "Pedido recurrente no encontrado",
-            details: `No existe un pedido recurrente con ID ${recurringOrderId}`
-          });
-        }
-        
-        console.log(`Verificado: Pedido recurrente #${recurringOrderId} existe en la base de datos:`, JSON.stringify(recurringOrderData));
-        
-        // Verificar si hay items asociados al pedido recurrente
-        const recurringItems = await recurringOrdersService.listRecurringOrderItems(recurringOrderId);
-        if (!recurringItems || recurringItems.length === 0) {
-          console.error(`Error: Pedido recurrente #${recurringOrderId} no tiene ítems asociados`);
-          return res.status(400).json({
-            success: false,
-            error: "Pedido recurrente sin ítems",
-            details: `El pedido recurrente #${recurringOrderId} no tiene ítems asociados`
-          });
-        }
-        
-        console.log(`Verificado: Pedido recurrente #${recurringOrderId} tiene ${recurringItems.length} ítems asociados`);
-        
         // Generar la orden usando el servicio
-        console.log(`Generando orden a partir del pedido recurrente #${recurringOrderId}`);
         const generatedOrder = await recurringOrdersService.generateOrderFromRecurring(recurringOrderId);
-        console.log("✅ ORDEN GENERADA EXITOSAMENTE:", JSON.stringify(generatedOrder));
-        
-        // Verificar cabeceras antes de responder
-        console.log("Headers antes de responder:", JSON.stringify(res.getHeaders()));
-        
-        // Verificar que no haya sido enviada la respuesta
-        if (res.headersSent) {
-          console.error("❌ ADVERTENCIA: Los headers ya fueron enviados antes de la respuesta JSON");
-          return;
-        }
-        
-        // Asegurarnos de establecer explícitamente el tipo de contenido a JSON una vez más
-        res.setHeader('Content-Type', 'application/json');
-        
-        // Enviar la respuesta exitosa
-        const responseData = {
-          success: true,
-          message: `Pedido generado exitosamente desde pedido recurrente #${recurringOrderId}`,
-          order: generatedOrder
-        };
-        
-        console.log("Enviando respuesta exitosa:", JSON.stringify(responseData));
-        return res.status(201).json(responseData);
+        console.log("✅ ORDEN GENERADA EXITOSAMENTE:", generatedOrder);
+        res.status(201).json(generatedOrder);
       } finally {
         // Restaurar el contexto original
         setCurrentCompanyId(prevCompanyId);
-        console.log("=== FIN DE GENERACIÓN DE ORDEN RECURRENTE ===");
       }
     } catch (error) {
       console.error("❌ ERROR AL GENERAR ORDEN:", error);
-      
-      // Verificar que no haya sido enviada la respuesta
-      if (res.headersSent) {
-        console.error("❌ ADVERTENCIA: Los headers ya fueron enviados antes de la respuesta de error");
-        return next(error);
-      }
-      
-      // Asegurarnos de establecer explícitamente el tipo de contenido a JSON
-      res.setHeader('Content-Type', 'application/json');
-      
-      if (error instanceof Error && error.message.includes("pedido recurrente inválido")) {
-        // Devolver un error específico para problemas con el ID
-        return res.status(400).json({
-          success: false,
-          error: "ID de pedido recurrente inválido",
-          message: error.message,
-          details: "El ID proporcionado no es válido o no se pudo procesar correctamente."
-        });
-      }
-      
-      return res.status(500).json({ 
-        success: false,
+      res.status(500).json({ 
         error: "Error al generar orden desde pedido recurrente",
         message: error instanceof Error ? error.message : "Error desconocido"
       });
