@@ -223,8 +223,12 @@ class RecurringOrdersService {
       // Verificar que recurringOrderId sea un número válido
       if (typeof recurringOrderId === 'string') {
         recurringOrderId = parseInt(recurringOrderId, 10);
-      } else if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
-        recurringOrderId = Number(recurringOrderId.id);
+      } else if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
+        // Intentar acceder a 'id' si existe, pero con comprobación segura
+        const objWithId = recurringOrderId as any;
+        if (objWithId.id !== undefined) {
+          recurringOrderId = Number(objWithId.id);
+        }
       } else {
         recurringOrderId = Number(recurringOrderId);
       }
@@ -286,8 +290,14 @@ class RecurringOrdersService {
     // Si viene un objeto que tiene un campo ID, intentar usarlo también
     let safeId: number;
     
-    if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
-      safeId = Number(recurringOrderId.id);
+    if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
+      // Intentar acceder a 'id' si existe, pero con comprobación segura
+      const objWithId = recurringOrderId as any;
+      if (objWithId.id !== undefined) {
+        safeId = Number(objWithId.id);
+      } else {
+        safeId = Number(recurringOrderId);
+      }
     } else {
       safeId = Number(recurringOrderId);
     }
