@@ -57,7 +57,29 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
           <FileBarChart className="h-4 w-4 mr-1" />
           <span className="hidden xs:inline">{t("Reportes")}</span>
         </Button>
-        <Button variant="outline" size="sm" onClick={() => navigateTo("/auth/logout")}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={async () => {
+            try {
+              const response = await fetch("/api/logout", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                credentials: "include",
+              });
+              
+              if (!response.ok) {
+                throw new Error("Error al cerrar sesión");
+              }
+              
+              window.location.href = "/auth/login";
+            } catch (error) {
+              console.error("Error al cerrar sesión:", error);
+            }
+          }}
+        >
           <LogOut className="h-4 w-4 mr-1" />
           <span className="hidden xs:inline">{t("Cerrar sesión")}</span>
         </Button>
