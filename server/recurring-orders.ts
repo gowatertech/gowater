@@ -19,8 +19,8 @@ class RecurringOrdersService {
     // Validar y convertir el ID para asegurar que sea un número entero válido
     const safeId = Number(id);
     if (isNaN(safeId) || safeId <= 0) {
-      console.error(`Error: ID de pedido recurrente inválido: ${id}`);
-      throw new Error("ID de pedido recurrente inválido");
+      console.error(`Error: ID de pedido recurrente inválido paso 1: ${id}`);
+      throw new Error("ID de pedido recurrente inválido paso 1");
     }
     
     console.log(`RecurringOrdersService.getRecurringOrder - Buscando pedido recurrente con ID: ${safeId}`);
@@ -443,8 +443,8 @@ class RecurringOrdersService {
     
     // Última verificación - solo validamos que sea un número válido mayor que 0
     if (isNaN(safeId) || safeId <= 0) {
-      console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId} (convertido a ${safeId})`);
-      throw new Error("ID de pedido recurrente inválido");
+      console.error(`Error: ID de pedido recurrente inválido paso 1: ${recurringOrderId} (convertido a ${safeId})`);
+      throw new Error("ID de pedido recurrente inválido paso 1");
     }
     
     console.log(`RecurringOrdersService - Usando ID normalizado: ${safeId}`)
