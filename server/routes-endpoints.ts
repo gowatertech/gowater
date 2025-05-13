@@ -596,14 +596,36 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
         // Generar la orden usando el servicio
         const generatedOrder = await recurringOrdersService.generateOrderFromRecurring(recurringOrderId);
         console.log("✅ ORDEN GENERADA EXITOSAMENTE:", generatedOrder);
-        res.status(201).json(generatedOrder);
+        
+        // Asegurarnos de establecer explícitamente el tipo de contenido a JSON
+        res.setHeader('Content-Type', 'application/json');
+        res.status(201).json({
+          success: true,
+          message: `Pedido generado exitosamente desde pedido recurrente #${recurringOrderId}`,
+          order: generatedOrder
+        });
       } finally {
         // Restaurar el contexto original
         setCurrentCompanyId(prevCompanyId);
       }
     } catch (error) {
       console.error("❌ ERROR AL GENERAR ORDEN:", error);
+      
+      // Asegurarnos de establecer explícitamente el tipo de contenido a JSON
+      res.setHeader('Content-Type', 'application/json');
+      
+      if (error instanceof Error && error.message.includes("pedido recurrente inválido")) {
+        // Devolver un error específico para problemas con el ID
+        return res.status(400).json({
+          success: false,
+          error: "ID de pedido recurrente inválido",
+          message: error.message,
+          details: "El ID proporcionado no es válido o no se pudo procesar correctamente."
+        });
+      }
+      
       res.status(500).json({ 
+        success: false,
         error: "Error al generar orden desde pedido recurrente",
         message: error instanceof Error ? error.message : "Error desconocido"
       });
