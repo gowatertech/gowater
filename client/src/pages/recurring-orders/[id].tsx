@@ -55,7 +55,9 @@ const RecurringOrderForm: React.FC = () => {
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  console.log("ID ACTUAL:", id, "Tipo:", typeof id);
   const isNew = id === 'new';
+  console.log("Es nuevo pedido?", isNew);
   const orderId = isNew ? null : parseInt(id);
 
   // Consultar datos del pedido si estamos editando
