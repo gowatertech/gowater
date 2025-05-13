@@ -255,6 +255,11 @@ class RecurringOrdersService {
     // Simplificar al máximo - cualquier valor es aceptable si se puede convertir a número
     const safeId = Number(recurringOrderId);
     
+    if (isNaN(safeId) || safeId <= 0) {
+      console.error(`Error: ID de pedido recurrente inválido: ${recurringOrderId}`);
+      throw new Error("ID de pedido recurrente inválido");
+    }
+    
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
       .select()
@@ -262,20 +267,20 @@ class RecurringOrdersService {
       .where(eq(recurringOrders.id, safeId));
 
     if (!recurringOrder) {
-      console.error(`Error: Pedido recurrente #${recurringOrderId} no encontrado`);
+      console.error(`Error: Pedido recurrente #${safeId} no encontrado`);
       throw new Error("Pedido recurrente no encontrado");
     }
 
     console.log(`RecurringOrdersService - Pedido recurrente encontrado:`, recurringOrder);
 
-    // Obtener los items del pedido recurrente
+    // Obtener los items del pedido recurrente usando el safeId
     const recurringItems = await db
       .select()
       .from(recurringOrderItems)
-      .where(eq(recurringOrderItems.recurringOrderId, recurringOrderId));
+      .where(eq(recurringOrderItems.recurringOrderId, safeId));
 
     if (recurringItems.length === 0) {
-      console.error(`Error: El pedido recurrente #${recurringOrderId} no tiene productos`);
+      console.error(`Error: El pedido recurrente #${safeId} no tiene productos`);
       throw new Error("El pedido recurrente no tiene productos");
     }
 
@@ -296,7 +301,7 @@ class RecurringOrdersService {
       paymentMethod: recurringOrder.paymentMethod,
       date: new Date(), // Usar Date directamente en lugar de string
       routeId: null, // No asignado a una ruta inicialmente
-      notes: `Pedido generado automáticamente desde pedido recurrente #${recurringOrderId}: ${recurringOrder.name}`,
+      notes: `Pedido generado automáticamente desde pedido recurrente #${safeId}: ${recurringOrder.name}`,
       cashCollected: "0.00",
       driverCommission: "0.00",
       assistantCommission: "0.00",
@@ -333,7 +338,7 @@ class RecurringOrdersService {
       recurringOrder.dayOfMonth
     );
 
-    console.log(`RecurringOrdersService - Actualizando fechas para el pedido recurrente #${recurringOrderId}`);
+    console.log(`RecurringOrdersService - Actualizando fechas para el pedido recurrente #${safeId}`);
     
     await db
       .update(recurringOrders)
@@ -342,7 +347,7 @@ class RecurringOrdersService {
         nextGenerationDate: nextGenDate,
         updatedAt: new Date()
       })
-      .where(eq(recurringOrders.id, recurringOrderId));
+      .where(eq(recurringOrders.id, safeId));
 
     console.log(`RecurringOrdersService - Proceso completado exitosamente`);
     
