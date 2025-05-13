@@ -118,7 +118,33 @@ class RecurringOrdersService {
   }
 
   async listRecurringOrders(): Promise<RecurringOrder[]> {
-    return db.select().from(recurringOrders);
+    console.log("RecurringOrdersService.listRecurringOrders - Obteniendo todos los pedidos recurrentes");
+    
+    // Importar getCurrentCompanyId para verificar contexto actual
+    const { getCurrentCompanyId } = await import('./company-db');
+    const companyId = getCurrentCompanyId();
+    
+    console.log(`RecurringOrdersService.listRecurringOrders - CompanyId en contexto: ${companyId}`);
+    
+    // Obtener todos los pedidos recurrentes para diagnosticar
+    const allOrders = await db.select().from(recurringOrders);
+    console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${allOrders.length} pedidos recurrentes en total`);
+    allOrders.forEach(order => {
+      console.log(`Pedido recurrente ID: ${order.id}, Nombre: ${order.name}, CompanyId: ${order.companyId}`);
+    });
+    
+    // Filtrar por companyId si existe
+    if (companyId) {
+      const filteredOrders = await db
+        .select()
+        .from(recurringOrders)
+        .where(eq(recurringOrders.companyId, companyId));
+      
+      console.log(`RecurringOrdersService.listRecurringOrders - Encontrados ${filteredOrders.length} pedidos para empresa ${companyId}`);
+      return filteredOrders;
+    }
+    
+    return allOrders;
   }
 
   async listCustomerRecurringOrders(customerId: number): Promise<RecurringOrder[]> {
