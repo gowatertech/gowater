@@ -180,16 +180,27 @@ export default function NewOrder() {
 
       // 4. Enviar la orden completa (con items) en una sola llamada
       try {
+        console.log("🔍 Enviando pedido al servidor con datos:", completeOrderData);
+        console.log("🔍 Estado de la sesión antes de enviar:", {
+          sessionActive: document.cookie.includes('connect.sid'),
+          cookieStr: document.cookie
+        });
+        
         const orderResponse = await apiRequest({
           method: "POST",
           url: "/api/orders",
           data: completeOrderData
         });
         
-        console.log("Respuesta del servidor:", orderResponse);
+        console.log("✅ Respuesta exitosa del servidor:", orderResponse);
         return orderResponse;
-      } catch (error) {
-        console.error("Error al crear el pedido:", error);
+      } catch (error: any) {
+        console.error("❌ Error al crear el pedido:", error);
+        console.error("Mensaje:", error.message);
+        console.error("Estado de la sesión en error:", {
+          sessionActive: document.cookie.includes('connect.sid'),
+          cookieStr: document.cookie
+        });
         throw error;
       }
     },
