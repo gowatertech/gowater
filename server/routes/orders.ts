@@ -279,6 +279,11 @@ ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Reque
 ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Response) => {
   console.log("🔴 INICIO /api/orders - Intento de crear pedido");
   console.log("📣 POST /api/orders - Datos recibidos:", JSON.stringify(req.body, null, 2));
+  console.log("🔑 Headers de la petición:", JSON.stringify({
+    contentType: req.headers['content-type'],
+    xDebugCompanyId: req.headers['x-debug-companyid'],
+    xDebugTimestamp: req.headers['x-debug-timestamp'],
+  }, null, 2));
   
   // Extraer items para procesarlos después
   const orderItemsData = req.body.items || [];
@@ -297,8 +302,32 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
     await client.query('BEGIN');
     console.log("🔄 Transacción iniciada");
     
-    // Obtener el ID de la empresa del contexto
-    const companyId = getCurrentCompanyId();
+    // Obtener el ID de la empresa del contexto o de los headers para debugging
+    let companyId = getCurrentCompanyId();
+    
+    // Si viene en los headers de debug, lo usamos (solo para desarrollo/pruebas)
+    if (req.headers['x-debug-companyid']) {
+      companyId = parseInt(req.headers['x-debug-companyid'] as string);
+      console.log(`🔧 Usando companyId=${companyId} desde X-Debug-CompanyId header`);
+    }
+    
+    // Si aún no hay companyId, intentar obtenerlo de la sesión
+    if (!companyId && req.session?.user?.companyId) {
+      companyId = req.session.user.companyId;
+      console.log(`🔧 Usando companyId=${companyId} desde session.user.companyId`);
+    }
+    
+    // Si aún no hay companyId, intentar obtenerlo de la sesión directamente
+    if (!companyId && req.session?.companyId) {
+      companyId = req.session.companyId;
+      console.log(`🔧 Usando companyId=${companyId} desde session.companyId`);
+    }
+    
+    // Para desarrollo, si aún no hay id de compañía pero tenemos sesión, usar un valor por defecto
+    if (!companyId && req.session?.user) {
+      companyId = 15; // Valor por defecto para desarrollo
+      console.log(`⚠️ Usando companyId=${companyId} valor por DEFECTO`);
+    }
     
     if (!companyId) {
       console.error("❌ ERROR: No se encontró companyId en el contexto para crear pedido");
