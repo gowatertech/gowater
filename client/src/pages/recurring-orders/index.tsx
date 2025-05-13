@@ -158,7 +158,7 @@ const RecurringOrdersPage: React.FC = () => {
       
       toast({
         title: t('generateError'),
-        description: "ID de pedido recurrente inválido o no reconocido",
+        description: "ID de pedido recurrente inválido paso 4 o no reconocido",
         variant: "destructive",
       });
       return;

@@ -256,10 +256,10 @@ const RecurringOrderForm: React.FC = () => {
         if (isNaN(numericId) || numericId <= 0) {
           toast({
             title: "Error",
-            description: "ID de pedido recurrente inválido",
+            description: "ID de pedido recurrente inválido paso 5",
             variant: "destructive",
           });
-          console.error("Error de validación: ID de pedido recurrente inválido", { id, numericId });
+          console.error("Error de validación: ID de pedido recurrente inválido paso 5", { id, numericId });
           setIsSubmitting(false);
           return;
         }
@@ -334,7 +334,7 @@ const RecurringOrderForm: React.FC = () => {
             } else {
               toast({
                 title: "Error al crear los items",
-                description: "El servidor devolvió un ID de pedido recurrente inválido",
+                description: "El servidor devolvió un ID de pedido recurrente inválido paso 6",
                 variant: "destructive",
               });
               setIsSubmitting(false);
@@ -416,10 +416,10 @@ const RecurringOrderForm: React.FC = () => {
             const safeOrderId = typeof savedOrder.id === 'string' ? parseInt(savedOrder.id, 10) : Number(savedOrder.id);
             
             if (isNaN(safeOrderId) || safeOrderId <= 0) {
-              console.error(`Error: ID de pedido recurrente inválido al actualizar items: ${savedOrder.id}`);
+              console.error(`Error: ID de pedido recurrente inválido paso 7 al actualizar items: ${savedOrder.id}`);
               toast({
                 title: "Error al crear los nuevos items",
-                description: "El servidor devolvió un ID de pedido recurrente inválido",
+                description: "El servidor devolvió un ID de pedido recurrente inválido paso 7",
                 variant: "destructive",
               });
               setIsSubmitting(false);
