@@ -16,7 +16,19 @@ import {
 
 class RecurringOrdersService {
   async getRecurringOrder(id: number): Promise<RecurringOrder | undefined> {
-    const [recurringOrder] = await db.select().from(recurringOrders).where(eq(recurringOrders.id, id));
+    // Validar y convertir el ID para asegurar que sea un número entero válido
+    const safeId = Number(id);
+    if (isNaN(safeId) || safeId <= 0) {
+      console.error(`Error: ID de pedido recurrente inválido: ${id}`);
+      throw new Error("ID de pedido recurrente inválido");
+    }
+    
+    console.log(`RecurringOrdersService.getRecurringOrder - Buscando pedido recurrente con ID: ${safeId}`);
+    const [recurringOrder] = await db.select().from(recurringOrders).where(eq(recurringOrders.id, safeId));
+    
+    if (!recurringOrder) {
+      console.log(`RecurringOrdersService.getRecurringOrder - Pedido recurrente no encontrado con ID: ${safeId}`);
+    }
     return recurringOrder;
   }
 
