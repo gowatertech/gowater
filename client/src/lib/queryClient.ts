@@ -70,8 +70,7 @@ export async function apiRequest(
       headers: {
         ...(data ? { "Content-Type": "application/json" } : {}),
         "Accept": "application/json",
-        // Añadir headers para debugging
-        "X-Debug-CompanyId": "15",
+        // Añadir timestamp para debugging
         "X-Debug-Timestamp": Date.now().toString()
       },
       body: data ? JSON.stringify(data) : undefined,
