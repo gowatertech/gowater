@@ -203,13 +203,24 @@ class RecurringOrdersService {
   }
 
   async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
+    console.log(`RecurringOrderService.generateOrderFromRecurring - ID recibido: ${recurringOrderId}, tipo: ${typeof recurringOrderId}`);
+    
+    // Validar el ID de pedido recurrente
+    if (!recurringOrderId || recurringOrderId <= 0 || isNaN(recurringOrderId)) {
+      console.error("Error: ID de pedido recurrente inválido", { recurringOrderId });
+      throw new Error("ID de pedido recurrente inválido");
+    }
+    
     // Obtener el pedido recurrente
     const [recurringOrder] = await db
       .select()
       .from(recurringOrders)
       .where(eq(recurringOrders.id, recurringOrderId));
 
-    if (!recurringOrder) throw new Error("Pedido recurrente no encontrado");
+    if (!recurringOrder) {
+      console.error(`Error: Pedido recurrente #${recurringOrderId} no encontrado`);
+      throw new Error("Pedido recurrente no encontrado");
+    }
 
     // Obtener los items del pedido recurrente
     const recurringItems = await db

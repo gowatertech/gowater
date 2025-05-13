@@ -230,14 +230,15 @@ const RecurringOrderForm: React.FC = () => {
         console.log("Actualizando pedido recurrente existente:", id);
         const { items, ...orderData } = submitData; // No actualizamos items en la entidad principal
         
-        // Asegurar que el id sea un número para la actualización
+        // Asegurar que el id sea un número válido para la actualización
         const numericId = parseInt(id);
-        if (isNaN(numericId)) {
+        if (isNaN(numericId) || numericId <= 0) {
           toast({
             title: "Error",
             description: "ID de pedido recurrente inválido",
             variant: "destructive",
           });
+          console.error("Error de validación: ID de pedido recurrente inválido", { id, numericId });
           setIsSubmitting(false);
           return;
         }

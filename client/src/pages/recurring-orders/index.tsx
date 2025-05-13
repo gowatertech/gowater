@@ -112,14 +112,28 @@ const RecurringOrdersPage: React.FC = () => {
   };
 
   const handleGenerateOrder = async (orderId: number) => {
+    // Validar que el ID sea válido
+    if (!orderId || orderId <= 0 || isNaN(orderId)) {
+      console.error("Error: ID de pedido recurrente inválido", { orderId });
+      toast({
+        title: t('generateError'),
+        description: "ID de pedido recurrente inválido",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setGeneratingOrderId(orderId);
     try {
+      console.log("Generando pedido desde pedido recurrente:", orderId);
       const response = await fetch(`/api/recurring-orders/${orderId}/generate`, {
         method: 'POST',
       });
 
       if (!response.ok) {
-        throw new Error('Error al generar pedido');
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+        console.error("Error en respuesta del servidor:", errorData);
+        throw new Error(errorData.error || 'Error al generar pedido');
       }
 
       const data = await response.json();

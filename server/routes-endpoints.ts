@@ -318,11 +318,14 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
   router.post("/api/recurring-orders/:id/generate", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: "ID inválido" });
+      if (isNaN(id) || id <= 0) {
+        console.error("Error: ID de pedido recurrente inválido", { id: req.params.id, parsed: id });
+        return res.status(400).json({ error: "ID de pedido recurrente inválido" });
       }
 
+      console.log(`Iniciando generación de pedido desde pedido recurrente #${id}`);
       const generatedOrder = await storage.generateOrderFromRecurring(id);
+      console.log(`Pedido generado exitosamente desde recurrente #${id}`, generatedOrder);
       res.status(201).json(generatedOrder);
     } catch (error) {
       console.error("Error al generar orden desde pedido recurrente:", error);
