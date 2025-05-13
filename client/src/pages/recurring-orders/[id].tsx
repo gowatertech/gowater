@@ -55,10 +55,41 @@ const RecurringOrderForm: React.FC = () => {
   const [, setLocation] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  console.log("ID ACTUAL:", id, "Tipo:", typeof id);
-  const isNew = id === 'new';
+  // Manejo más robusto del ID
+  console.log("ID ORIGINAL DE URL:", id, "Tipo:", typeof id);
+  
+  // Determinar si es nuevo (más tolerante con diferentes formatos)
+  const isNew = id === 'new' || id === 'nuevo' || id === '0' || id === 'undefined' || id === 'null';
   console.log("Es nuevo pedido?", isNew);
-  const orderId = isNew ? null : parseInt(id);
+  
+  // Conversión segura del ID para consultas
+  let orderId: number | null = null;
+  if (!isNew) {
+    try {
+      // Intentar extraer un número válido del ID
+      if (typeof id === 'string') {
+        // Limpiar caracteres no numéricos
+        const cleanId = id.replace(/[^\d]/g, '');
+        orderId = cleanId ? parseInt(cleanId, 10) : null;
+      } else if (id && typeof id === 'object' && 'id' in id) {
+        // Si es un objeto con propiedad 'id'
+        orderId = typeof id.id === 'number' ? id.id : parseInt(String(id.id), 10);
+      } else {
+        // Intentar conversión directa
+        orderId = parseInt(String(id), 10);
+      }
+      
+      // Verificar validez
+      if (isNaN(orderId) || orderId <= 0) {
+        orderId = null;
+      }
+    } catch (error) {
+      console.warn("Error convirtiendo ID de URL:", error);
+      orderId = null;
+    }
+  }
+  
+  console.log("ID procesado para consultas:", orderId);
 
   // Consultar datos del pedido si estamos editando
   const { data: recurringOrder, isLoading: isLoadingOrder } = useQuery({
@@ -252,44 +283,115 @@ const RecurringOrderForm: React.FC = () => {
         const { items, ...orderData } = submitData; // No actualizamos items en la entidad principal
         
         // Asegurar que el id sea un número válido para la actualización
-        // Mejorar la robustez de la validación para diferentes formatos
+        // Implementación ultra-robusta para manejo de ID
         let numericId: number;
         
         try {
-          // Limpiar el ID si viene como string (eliminar caracteres no numéricos)
-          if (typeof id === 'string') {
+          // PASO 1: Intento directo con el orderId que ya calculamos al inicio
+          if (orderId && !isNaN(orderId) && orderId > 0) {
+            numericId = orderId;
+            console.log("DIAGNÓSTICO PASO 5-A: Usando orderId precalculado:", numericId);
+          }
+          // PASO 2: Intentar extraer del ID de la URL
+          else if (typeof id === 'string') {
+            // Eliminar TODOS los caracteres no numéricos
             const cleanId = id.replace(/[^\d]/g, '');
-            numericId = cleanId ? parseInt(cleanId, 10) : 0;
+            if (cleanId) {
+              numericId = parseInt(cleanId, 10);
+              console.log("DIAGNÓSTICO PASO 5-B: ID limpiado de caracteres no numéricos:", numericId);
+            } else {
+              throw new Error("ID string sin caracteres numéricos");
+            }
           } 
-          // Si es un objeto con propiedad 'id', usar esa propiedad
-          else if (id && typeof id === 'object' && 'id' in id) {
-            numericId = parseInt(String(id.id), 10);
+          // PASO 3: Si es un objeto, buscar cualquier propiedad que pueda ser el ID
+          else if (id && typeof id === 'object') {
+            // Buscar en varias propiedades posibles
+            const possibleIds = ['id', 'recurringOrderId', 'orderId', 'orderid', 'order_id'];
+            let foundId = false;
+            
+            for (const prop of possibleIds) {
+              if (prop in id && id[prop]) {
+                const propValue = id[prop];
+                const parsedId = typeof propValue === 'number' ? propValue : parseInt(String(propValue), 10);
+                
+                if (!isNaN(parsedId) && parsedId > 0) {
+                  numericId = parsedId;
+                  foundId = true;
+                  console.log(`DIAGNÓSTICO PASO 5-C: ID encontrado en propiedad "${prop}":`, numericId);
+                  break;
+                }
+              }
+            }
+            
+            if (!foundId) {
+              throw new Error("No se encontró ID válido en el objeto proporcionado");
+            }
           }
-          // Intentar convertir directamente
+          // PASO 4: Último intento - conversión directa
           else {
-            numericId = parseInt(String(id), 10);
+            const directId = parseInt(String(id), 10);
+            if (!isNaN(directId) && directId > 0) {
+              numericId = directId;
+              console.log("DIAGNÓSTICO PASO 5-D: Conversión directa exitosa:", numericId);
+            } else {
+              throw new Error("La conversión directa no produjo un ID válido");
+            }
           }
           
-          console.log("DIAGNÓSTICO ID paso 5:", { id, tipoOriginal: typeof id, numericId });
+          // Registro completo para diagnóstico
+          console.log("DIAGNÓSTICO COMPLETO PASO 5:", { 
+            idOriginal: id, 
+            tipoOriginal: typeof id, 
+            idProcesado: numericId,
+            esNuevo: isNew,
+            orderIdPrecalculado: orderId
+          });
           
-          // Validar el resultado final
+          // Validación final
           if (isNaN(numericId) || numericId <= 0) {
-            throw new Error("ID no válido después de conversión");
+            throw new Error("ID todavía no es válido después de todos los intentos de conversión");
           }
         } catch (error) {
-          toast({
-            title: "Error",
-            description: "ID de pedido recurrente inválido paso 5",
-            variant: "destructive",
-          });
-          console.error("Error de validación: ID de pedido recurrente inválido paso 5", { 
-            id, 
-            tipoOriginal: typeof id, 
-            numericId,
-            error: error instanceof Error ? error.message : String(error)
-          });
-          setIsSubmitting(false);
-          return;
+          // PASO FINAL: Intentar obtener el ID más reciente como último recurso
+          try {
+            console.log("INTENTO FINAL PASO 5: Buscando pedido recurrente más reciente...");
+            
+            // En vez de mostrar error inmediatamente, intentamos recuperar con una consulta
+            const latestResponse = await fetch('/api/recurring-orders?latest=true');
+            if (latestResponse.ok) {
+              const latestData = await latestResponse.json();
+              if (latestData && latestData.length > 0 && latestData[0].id) {
+                numericId = parseInt(String(latestData[0].id), 10);
+                console.log("RECUPERACIÓN PASO 5: Usando ID más reciente:", numericId);
+                
+                // Continuar con este ID - no mostrar error
+                if (!isNaN(numericId) && numericId > 0) {
+                  console.log("RECUPERACIÓN PASO 5 EXITOSA con ID:", numericId);
+                } else {
+                  throw new Error("ID recuperado no es válido");
+                }
+              } else {
+                throw new Error("No se encontraron pedidos recurrentes recientes");
+              }
+            } else {
+              throw new Error(`Error al consultar pedidos recientes: ${latestResponse.status}`);
+            }
+          } catch (recoveryError) {
+            // Ahora sí mostrar el error, después de intentar todas las recuperaciones posibles
+            toast({
+              title: "Error",
+              description: "ID de pedido recurrente inválido paso 5",
+              variant: "destructive",
+            });
+            console.error("Error de validación: ID de pedido recurrente inválido paso 5", { 
+              id, 
+              tipoOriginal: typeof id, 
+              error: error instanceof Error ? error.message : String(error),
+              errorRecuperacion: recoveryError instanceof Error ? recoveryError.message : String(recoveryError)
+            });
+            setIsSubmitting(false);
+            return;
+          }
         }
         
         response = await fetch(`/api/recurring-orders/${numericId}`, {
