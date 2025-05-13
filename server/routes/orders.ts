@@ -7,7 +7,7 @@ const ordersRouter = express.Router();
 
 // Middleware para verificar autenticación
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  if (!req.session?.user) {
+  if (!req.isAuthenticated()) {
     console.log("❌ Acceso denegado: Usuario no autenticado");
     return res.status(401).json({ success: false, message: "No autenticado" });
   }

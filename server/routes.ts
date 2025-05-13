@@ -32,6 +32,21 @@ const upload = multer({
 });
 
 export async function registerRoutes(router: express.Router) {
+  // Endpoint de prueba de autenticación
+  router.get("/api/authtest", (req, res) => {
+    console.log("⚠️ Prueba de autenticación:");
+    console.log(`   - req.isAuthenticated(): ${req.isAuthenticated()}`);
+    console.log(`   - req.user: ${req.user ? JSON.stringify(req.user) : 'undefined'}`);
+    console.log(`   - req.session.user: ${req.session?.user ? JSON.stringify(req.session.user) : 'undefined'}`);
+    console.log(`   - req.session.companyId: ${req.session?.companyId}`);
+    
+    res.json({
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user,
+      sessionUser: req.session?.user,
+      companyId: req.session?.companyId
+    });
+  });
   // Registrar las rutas de carga de vehículo y cuadre
   await registerVehicleLoadingRoutes(router);
   await registerRouteSettlements(router);
