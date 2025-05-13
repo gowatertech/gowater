@@ -558,24 +558,23 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
     try {
       console.log("Iniciando generación de orden a partir de pedido recurrente");
       
-      // Identificar el ID de forma más permisiva
-      let recurringOrderId: number;
+      // Aceptamos el ID en varios formatos - será procesado en profundidad por los servicios
+      // Solo hacemos una validación mínima aquí
+      let recurringOrderId: any = req.params.id;
       
+      console.log(`POST /api/recurring-orders/:id/generate - ID recibido: ${JSON.stringify(recurringOrderId)}, tipo: ${typeof recurringOrderId}`);
+      
+      // Verificamos si viene algo en el body que podría contener un ID alternativo
+      if (req.body && (req.body.id || req.body.recurringOrderId)) {
+        console.log(`También se encontró ID en el body: ${JSON.stringify(req.body)}`);
+        recurringOrderId = req.body.id || req.body.recurringOrderId || recurringOrderId;
+      }
+      
+      // No hacemos conversión aquí - dejamos que las capas internas manejen todos los formatos posibles
       try {
-        // Manejar diferentes formatos de ID
-        if (typeof req.params.id === 'string') {
-          // Limpiar y convertir a número
-          const cleanId = req.params.id.replace(/[^0-9]/g, '');
-          recurringOrderId = cleanId ? parseInt(cleanId, 10) : 0;
-        } else {
-          recurringOrderId = Number(req.params.id);
-        }
-        
-        console.log(`POST /api/recurring-orders/:id/generate - ID recibido: ${req.params.id}, procesado como: ${recurringOrderId}`);
-        
-        // Si el ID no es válido, intentar recuperarlo
-        if (isNaN(recurringOrderId) || recurringOrderId <= 0) {
-          console.log("ID inválido, intentando recuperar el pedido más reciente");
+        // Simplemente verificamos que NO sea indefinido o null
+        if (recurringOrderId === undefined || recurringOrderId === null) {
+          console.warn("ID no definido, intentando recuperar el pedido más reciente");
           const { recurringOrdersService } = await import('./recurring-orders');
           const latestOrder = await recurringOrdersService.getNewestRecurringOrder();
           
@@ -583,11 +582,12 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
             recurringOrderId = latestOrder.id;
             console.log(`Usando ID más reciente como alternativa: ${recurringOrderId}`);
           } else {
-            throw new Error("ID inválido y no hay pedidos recurrentes existentes");
+            // Si no hay pedidos recurrentes, no tiene sentido continuar
+            throw new Error("No hay pedidos recurrentes existentes en el sistema");
           }
         }
       } catch (idError) {
-        console.error("Error procesando ID:", idError);
+        console.error("Error obteniendo pedido recurrente:", idError);
         return res.status(400).json({
           error: "ID de pedido recurrente inválido",
           details: idError instanceof Error ? idError.message : "Error desconocido"

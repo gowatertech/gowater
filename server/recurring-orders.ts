@@ -419,45 +419,105 @@ class RecurringOrdersService {
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando con ID: ${recurringOrderId}`);
     
-    // Normalizamos el ID de forma simple pero efectiva
+    // Normalizamos el ID con lógica mejorada y más robusta
     let safeId: number;
     
     try {
-      // Simplificar la normalización del ID
-      if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
-        safeId = Number(recurringOrderId.id);
+      // Normalización mejorada del ID
+      if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
+        // Buscar el ID en diferentes propiedades del objeto
+        if ('id' in recurringOrderId) {
+          safeId = Number(recurringOrderId.id);
+        } else if ('recurringOrderId' in recurringOrderId) {
+          safeId = Number(recurringOrderId.recurringOrderId);
+        } else if ('orderId' in recurringOrderId) {
+          safeId = Number(recurringOrderId.orderId);
+        } else {
+          // Intentar extraer cualquier propiedad numérica
+          const numberProps = Object.entries(recurringOrderId)
+            .filter(([_, value]) => !isNaN(Number(value)) && typeof value !== 'boolean')
+            .map(([_, value]) => Number(value));
+          
+          if (numberProps.length > 0) {
+            safeId = Math.max(...numberProps); // Usamos el valor numérico más alto
+          } else {
+            console.log("No se encontraron propiedades numéricas en el objeto", recurringOrderId);
+            safeId = NaN;
+          }
+        }
       } else if (typeof recurringOrderId === 'string') {
-        safeId = parseInt(recurringOrderId.replace(/[^0-9]/g, ''), 10);
+        // Manejar diferentes formatos de string
+        const trimmedId = recurringOrderId.trim();
+        
+        if (/^\d+$/.test(trimmedId)) {
+          // Es un string numérico puro
+          safeId = parseInt(trimmedId, 10);
+        } else {
+          // Extraer todos los dígitos del string
+          const digits = trimmedId.replace(/[^0-9]/g, '');
+          if (digits) {
+            safeId = parseInt(digits, 10);
+          } else {
+            safeId = NaN;
+          }
+        }
       } else {
+        // Número u otro tipo
         safeId = Number(recurringOrderId);
       }
       
       console.log(`RecurringOrdersService.generateOrderFromRecurring - ID convertido: ${safeId}, tipo: ${typeof safeId}`);
       
-      // Verificación básica
+      // Mecanismo de recuperación si el ID no es válido
       if (isNaN(safeId) || safeId <= 0) {
-        // Intentar recuperar el pedido más reciente como fallback
-        const latestOrder = await this.getNewestRecurringOrder();
-        if (latestOrder) {
-          console.log(`Recuperando con el ID más reciente: ${latestOrder.id}`);
-          safeId = latestOrder.id;
-        } else {
-          throw new Error("ID de pedido recurrente inválido y no hay alternativas disponibles");
+        console.log("ID inválido, iniciando proceso de recuperación");
+        
+        // Primera estrategia: buscar todos los pedidos recurrentes y usar el más reciente
+        try {
+          const latestOrders = await db
+            .select()
+            .from(recurringOrders)
+            .orderBy(desc(recurringOrders.id))
+            .limit(1);
+            
+          if (latestOrders.length > 0) {
+            safeId = latestOrders[0].id;
+            console.log(`Recuperación exitosa con ID: ${safeId}`);
+          } else {
+            // Segunda estrategia: usar el método existente
+            const latestOrder = await this.getNewestRecurringOrder();
+            if (latestOrder) {
+              console.log(`Recuperando con el ID más reciente (método alternativo): ${latestOrder.id}`);
+              safeId = latestOrder.id;
+            } else {
+              console.error("No se pudo recuperar ningún pedido recurrente");
+              throw new Error("No existen pedidos recurrentes en el sistema");
+            }
+          }
+        } catch (recoveryError) {
+          console.error("Error durante la recuperación del ID:", recoveryError);
+          throw new Error("Error en proceso de recuperación del ID de pedido recurrente");
         }
       }
     } catch (err) {
-      console.error("Error procesando ID de pedido recurrente:", err);
-      // Intentar una última recuperación
-      const latestOrder = await this.getNewestRecurringOrder();
-      if (latestOrder && latestOrder.id) {
-        console.log(`Último intento con ID más reciente: ${latestOrder.id}`);
-        safeId = latestOrder.id;
-      } else {
-        throw new Error("ID de pedido recurrente inválido paso 1");
+      console.error("Error crítico procesando ID de pedido recurrente:", err);
+      
+      // Último intento de recuperación
+      try {
+        const latestOrder = await this.getNewestRecurringOrder();
+        if (latestOrder && latestOrder.id) {
+          console.log(`Último intento de recuperación con ID: ${latestOrder.id}`);
+          safeId = latestOrder.id;
+        } else {
+          throw new Error("Imposible recuperar información de pedidos recurrentes");
+        }
+      } catch (finalError) {
+        console.error("Error fatal:", finalError);
+        throw new Error("No se pudo procesar el pedido recurrente - verificar el sistema");
       }
     }
     
-    // Última verificación - ahora más permisiva, solo validamos que tengamos un número
+    // Verificación final simplificada
     if (isNaN(safeId)) {
       console.error(`Error: ID de pedido recurrente inválido paso 1: ${recurringOrderId} (convertido a ${safeId})`);
       throw new Error("ID de pedido recurrente inválido paso 1");

@@ -972,31 +972,69 @@ export class DatabaseStorage implements IStorage {
     return recurringOrdersService.deleteRecurringOrderItem(id);
   }
 
-  async generateOrderFromRecurring(recurringOrderId: number): Promise<Order> {
+  async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     try {
       console.log(`Storage.generateOrderFromRecurring - Recibido ID: ${recurringOrderId}, tipo: ${typeof recurringOrderId}`);
       
-      // Simplificar la validación
+      // Normalización mejorada del ID
       let numericId: number;
       
-      if (typeof recurringOrderId === 'object' && recurringOrderId !== null && 'id' in recurringOrderId) {
-        numericId = Number(recurringOrderId.id);
-      } else {
+      // Caso 1: El ID es un objeto con propiedad 'id'
+      if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
+        if ('id' in recurringOrderId) {
+          numericId = Number(recurringOrderId.id);
+        } else if ('recurringOrderId' in recurringOrderId) {
+          numericId = Number(recurringOrderId.recurringOrderId);
+        } else {
+          // Buscar cualquier propiedad que contenga un número como valor
+          const numberProps = Object.entries(recurringOrderId)
+            .filter(([_, value]) => !isNaN(Number(value)))
+            .map(([_, value]) => Number(value));
+            
+          numericId = numberProps.length > 0 ? numberProps[0] : NaN;
+        }
+      } 
+      // Caso 2: El ID es un string (posiblemente con caracteres no numéricos)
+      else if (typeof recurringOrderId === 'string') {
+        // Extraer todos los dígitos del string
+        const cleanId = recurringOrderId.replace(/[^0-9]/g, '');
+        numericId = cleanId ? parseInt(cleanId, 10) : NaN;
+      } 
+      // Caso 3: Es un número o cualquier otro tipo
+      else {
         numericId = Number(recurringOrderId);
       }
       
-      // Solo validar que sea un número
-      if (isNaN(numericId)) {
-        console.log(`Storage.generateOrderFromRecurring - ID inválido, intentando recuperar ID más reciente`);
-        // Intentar obtener el pedido recurrente más reciente
-        const { recurringOrdersService } = await import('./recurring-orders');
-        const latestOrder = await recurringOrdersService.getNewestRecurringOrder();
+      console.log(`Storage.generateOrderFromRecurring - ID normalizado a: ${numericId}`);
+      
+      // Validación más permisiva: si es NaN o <= 0, intentamos recuperar
+      if (isNaN(numericId) || numericId <= 0) {
+        console.log(`Storage.generateOrderFromRecurring - ID inválido (${numericId}), intentando recuperar ID más reciente`);
         
-        if (latestOrder) {
-          console.log(`Storage.generateOrderFromRecurring - Usando ID más reciente: ${latestOrder.id}`);
-          numericId = latestOrder.id;
-        } else {
-          throw new Error("ID de pedido recurrente inválido paso 5 - No se pudo recuperar");
+        try {
+          // Obtener todos los pedidos recurrentes y usar el más reciente
+          const { recurringOrdersService } = await import('./recurring-orders');
+          const allRecurringOrders = await this.listRecurringOrders();
+          
+          if (allRecurringOrders && allRecurringOrders.length > 0) {
+            // Ordenar por ID descendente (suponiendo que IDs más altos son más recientes)
+            const sortedOrders = [...allRecurringOrders].sort((a, b) => b.id - a.id);
+            numericId = sortedOrders[0].id;
+            console.log(`Storage.generateOrderFromRecurring - Usando el ID más reciente encontrado: ${numericId}`);
+          } else {
+            // Segunda alternativa: usar el método de servicio
+            const latestOrder = await recurringOrdersService.getNewestRecurringOrder();
+            if (latestOrder) {
+              numericId = latestOrder.id;
+              console.log(`Storage.generateOrderFromRecurring - Usando ID más reciente del servicio: ${numericId}`);
+            } else {
+              console.error(`No se encontraron pedidos recurrentes en el sistema`);
+              throw new Error("No se encontraron pedidos recurrentes en el sistema");
+            }
+          }
+        } catch (recoveryError) {
+          console.error("Error al intentar recuperar pedido recurrente:", recoveryError);
+          throw new Error("ID de pedido recurrente inválido - No hay pedidos disponibles");
         }
       }
       
