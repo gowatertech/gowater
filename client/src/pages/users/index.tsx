@@ -239,7 +239,7 @@ export default function Users() {
         // Preparar datos para la actualización e incluir el companyId
         const updateData = {
           ...data,
-          companyId: currentUser.companyId,
+          companyId: Number(currentUser.companyId), // Asegurar que companyId sea un número
           licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
         };
         console.log("🔍 onSubmit - Datos de actualización preparados:", updateData);
@@ -258,15 +258,17 @@ export default function Users() {
         return;
       }
 
+      // CREACIÓN DE NUEVO USUARIO
+      
       // Verificar si el usuario ya existe antes de crear
-      console.log("🔍 onSubmit - Verificando si usuario existe:", data.username, "en", users.length, "usuarios");
+      console.log("🔍 onSubmit - Verificando si username existe:", data.username, "en", users.length, "usuarios");
       const existingUser = users.find(u => u.username === data.username);
       if (existingUser) {
-        console.log("🔍 onSubmit - Error: Usuario ya existe:", existingUser);
+        console.log("🔍 onSubmit - Error: Username ya existe:", existingUser);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Este usuario ya existe"
+          description: "Este nombre de usuario ya existe"
         });
         return;
       }
@@ -283,23 +285,75 @@ export default function Users() {
         return;
       }
 
+      // Datos obligatorios según insertUserSchema
+      if (!data.name || !data.username || !data.password || !data.role) {
+        console.log("🔍 onSubmit - Error: Faltan campos obligatorios:", data);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Faltan campos obligatorios: nombre, usuario, contraseña o rol"
+        });
+        return;
+      }
+      
       // Formatear los datos antes de enviar e incluir el companyId
       const formattedData = {
-        ...data,
+        name: data.name,
+        username: data.username,
+        password: data.password,
+        email: data.email || undefined, // Usar undefined si no hay email
+        role: data.role,
         companyId: Number(currentUser.companyId), // Asegurar que companyId sea un número
+        phone: data.phone || undefined,
+        license: data.license || undefined,
         licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
+        emergencyContact: data.emergencyContact || undefined,
         active: true // Asegurar que el campo active esté presente
       };
 
       console.log("🔍 onSubmit - Enviando datos con companyId:", formattedData);
       
-      // Si no existe, crear el usuario
+      // Crear el usuario explícitamente a través de la API
       try {
-        console.log("🔍 onSubmit - Llamando a createUserMutation.mutateAsync");
-        const respuesta = await createUserMutation.mutateAsync(formattedData);
-        console.log("🔍 onSubmit - Respuesta de createUserMutation:", respuesta);
+        console.log("🔍 onSubmit - Iniciando petición POST a /api/users");
+        
+        const response = await fetch("/api/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify(formattedData),
+          credentials: "include"
+        });
+        
+        console.log("🔍 onSubmit - Respuesta status:", response.status);
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error("🔍 onSubmit - Error en respuesta:", errorData);
+          throw new Error(`Error ${response.status}: ${errorData}`);
+        }
+        
+        const respuestaJson = await response.json();
+        console.log("🔍 onSubmit - Respuesta exitosa:", respuestaJson);
+        
+        // Refrescar la lista de usuarios
+        queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+        
+        toast({
+          title: "Éxito",
+          description: "Usuario creado correctamente"
+        });
+        
+        return respuestaJson;
       } catch (err) {
-        console.error("🔍 onSubmit - Error en createUserMutation:", err);
+        console.error("🔍 onSubmit - Error en petición:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: err instanceof Error ? err.message : "Error al crear usuario"
+        });
         throw err; // Re-lanzar para que el catch externo lo maneje
       }
     } catch (error) {
@@ -814,6 +868,11 @@ export default function Users() {
                       type="submit"
                       size="sm"
                       className="h-8 text-xs sm:text-sm px-2 sm:h-9 sm:px-4"
+                      onClick={(e) => {
+                        console.log("🔔 Botón enviar clickeado!", e);
+                        // El botón ya tiene type="submit", así que el formulario se enviará automáticamente
+                        // Este onClick es solo para el log de debugging
+                      }}
                     >
                       {editingUser 
                         ? <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> 
