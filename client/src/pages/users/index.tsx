@@ -69,14 +69,23 @@ export default function Users() {
   // Consulta de usuarios
   const { data: usersResponse = [], isLoading, error: usersError } = useQuery({
     queryKey: ["/api/users"],
-    onSuccess: (data) => {
-      console.log("✅ Datos de usuarios recibidos:", data);
-    },
-    onError: (error) => {
-      console.error("❌ Error al cargar usuarios:", error);
-    },
-    retry: 1 // Reducir reintentos para ver errores más rápido
+    retry: 1, // Reducir reintentos para ver errores más rápido
+    staleTime: 30000, // Datos válidos por 30 segundos
+    refetchOnWindowFocus: false
   });
+
+  // Registrar resultados de la consulta con useEffect
+  useEffect(() => {
+    if (usersResponse) {
+      console.log("✅ Datos de usuarios recibidos:", usersResponse);
+    }
+  }, [usersResponse]);
+
+  useEffect(() => {
+    if (usersError) {
+      console.error("❌ Error al cargar usuarios:", usersError);
+    }
+  }, [usersError]);
   
   // Asegurarnos de que siempre tenemos un array de usuarios
   // La API puede devolver directamente el array o un objeto con formato { success, data }
@@ -296,20 +305,20 @@ export default function Users() {
         return;
       }
       
-      // Formatear los datos antes de enviar e incluir el companyId
-      // Sólo incluir los campos definidos en el esquema insertUserSchema
+      // Formatear los datos según la estructura exacta del insertUserSchema en shared/schema.ts
       const formattedData = {
         name: data.name,
         username: data.username,
         password: data.password,
-        email: data.email || undefined, // Usar undefined si no hay email
+        email: data.email || undefined,
         role: data.role,
-        companyId: Number(currentUser.companyId), // Asegurar que companyId sea un número
+        companyId: Number(currentUser.companyId), // Asegurarnos de usar un número
         phone: data.phone || undefined,
         license: data.license || undefined,
-        licenseExpiry: data.licenseExpiry || undefined, // No convertir a Date aquí
+        // Importante: Solo enviar campo licenseExpiry si tiene valor
+        ...(data.licenseExpiry ? { licenseExpiry: data.licenseExpiry } : {}),
         emergencyContact: data.emergencyContact || undefined,
-        active: true // Asegurar que el campo active esté presente
+        active: true
       };
       
       console.log("⚠️ Datos sin filtrar:", data);
@@ -334,27 +343,41 @@ export default function Users() {
         
         console.log("🔍 onSubmit - Respuesta status:", response.status);
         
-        // Intentamos leer la respuesta como JSON primero
+        // Manejo mejorado de respuestas y errores
         let respuestaJson;
         const contentType = response.headers.get("content-type");
         
-        if (contentType && contentType.includes("application/json")) {
-          respuestaJson = await response.json();
-          console.log("🔍 onSubmit - Respuesta JSON:", respuestaJson);
-        } else {
-          const text = await response.text();
-          console.log("🔍 onSubmit - Respuesta texto:", text);
-          try {
-            // Intentar parsear por si el contentType está mal configurado
-            respuestaJson = JSON.parse(text);
-          } catch (e) {
-            respuestaJson = { message: text };
+        try {
+          if (contentType && contentType.includes("application/json")) {
+            respuestaJson = await response.json();
+            console.log("🔍 onSubmit - Respuesta JSON:", respuestaJson);
+          } else {
+            const text = await response.text();
+            console.log("🔍 onSubmit - Respuesta texto:", text);
+            try {
+              // Intentar parsear por si el contentType está mal configurado
+              respuestaJson = JSON.parse(text);
+            } catch (e) {
+              respuestaJson = { message: text };
+            }
           }
-        }
-        
-        if (!response.ok) {
-          console.error("🔍 onSubmit - Error en respuesta:", respuestaJson);
-          throw new Error(respuestaJson.error || `Error ${response.status}`);
+          
+          if (!response.ok) {
+            console.error("🔍 onSubmit - Error en respuesta HTTP:", response.status, response.statusText);
+            console.error("🔍 onSubmit - Datos de error:", respuestaJson);
+            
+            // Construir un mensaje de error más detallado
+            let errorMsg = `Error ${response.status}`;
+            if (respuestaJson.error) errorMsg += `: ${respuestaJson.error}`;
+            if (respuestaJson.message) errorMsg += ` - ${respuestaJson.message}`;
+            
+            throw new Error(errorMsg);
+          }
+        } catch (error) {
+          // Manejar cualquier tipo de error al procesar la respuesta
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+          console.error("🔍 onSubmit - Error procesando respuesta:", errorMessage);
+          throw new Error(`Error procesando respuesta: ${errorMessage}`);
         }
         
         console.log("🔍 onSubmit - Respuesta exitosa:", respuestaJson);
