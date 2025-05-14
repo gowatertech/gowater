@@ -115,26 +115,36 @@ export default function Users() {
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log("createUserMutation - Datos del formulario:", data);
+      console.log("⭐⭐⭐ createUserMutation - Datos del formulario:", data);
       
       // Asegurarse que el companyId esté presente incluso si no viene del formulario
       if (!data.companyId && currentUser?.companyId) {
         data.companyId = currentUser.companyId;
-        console.log("createUserMutation - Añadiendo companyId:", data.companyId);
+        console.log("⭐⭐⭐ createUserMutation - Añadiendo companyId:", data.companyId);
       }
       
       // Verificación final de companyId antes de enviar
       if (!data.companyId) {
-        console.error("Error: No se pudo determinar el companyId");
+        console.error("⭐⭐⭐ Error: No se pudo determinar el companyId");
         throw new Error("No se pudo determinar el ID de la compañía para crear el usuario");
       }
       
-      // Utilizar directamente apiRequest que ya maneja la lógica de errores y JSON
-      return apiRequest({
-        url: "/api/users",
-        method: "POST",
-        data: data
-      });
+      try {
+        console.log("⭐⭐⭐ createUserMutation - Datos antes de apiRequest:", JSON.stringify(data));
+        
+        // Utilizar directamente apiRequest que ya maneja la lógica de errores y JSON
+        const response = await apiRequest({
+          url: "/api/users",
+          method: "POST",
+          data: data
+        });
+        
+        console.log("⭐⭐⭐ createUserMutation - Respuesta:", response);
+        return response;
+      } catch (error) {
+        console.error("⭐⭐⭐ createUserMutation - Error en apiRequest:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -210,11 +220,14 @@ export default function Users() {
 
   // Actualizar la función onSubmit
   const onSubmit = async (data: any) => {
+    console.log("🔍 onSubmit INICIADO - Datos recibidos:", data);
     try {
       // Si estamos editando, proceder con la actualización
       if (editingUser) {
+        console.log("🔍 onSubmit - Modo edición para usuario:", editingUser);
         // Obtener el companyId del usuario actual
         if (!currentUser?.companyId) {
+          console.log("🔍 onSubmit - Error: No hay companyId en currentUser:", currentUser);
           toast({
             variant: "destructive",
             title: "Error",
@@ -229,6 +242,7 @@ export default function Users() {
           companyId: currentUser.companyId,
           licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
         };
+        console.log("🔍 onSubmit - Datos de actualización preparados:", updateData);
 
         // Si la contraseña está vacía, eliminarla del objeto para no actualizarla
         if (!updateData.password) {
@@ -245,8 +259,10 @@ export default function Users() {
       }
 
       // Verificar si el usuario ya existe antes de crear
+      console.log("🔍 onSubmit - Verificando si usuario existe:", data.username, "en", users.length, "usuarios");
       const existingUser = users.find(u => u.username === data.username);
       if (existingUser) {
+        console.log("🔍 onSubmit - Error: Usuario ya existe:", existingUser);
         toast({
           variant: "destructive",
           title: "Error",
@@ -256,7 +272,9 @@ export default function Users() {
       }
 
       // Obtener el companyId del usuario actual
+      console.log("🔍 onSubmit - Obteniendo companyId del currentUser:", currentUser);
       if (!currentUser?.companyId) {
+        console.log("🔍 onSubmit - Error: No hay companyId en currentUser:", currentUser);
         toast({
           variant: "destructive",
           title: "Error",
@@ -273,10 +291,17 @@ export default function Users() {
         active: true // Asegurar que el campo active esté presente
       };
 
-      console.log("Enviando datos con companyId:", formattedData);
+      console.log("🔍 onSubmit - Enviando datos con companyId:", formattedData);
       
       // Si no existe, crear el usuario
-      await createUserMutation.mutateAsync(formattedData);
+      try {
+        console.log("🔍 onSubmit - Llamando a createUserMutation.mutateAsync");
+        const respuesta = await createUserMutation.mutateAsync(formattedData);
+        console.log("🔍 onSubmit - Respuesta de createUserMutation:", respuesta);
+      } catch (err) {
+        console.error("🔍 onSubmit - Error en createUserMutation:", err);
+        throw err; // Re-lanzar para que el catch externo lo maneje
+      }
     } catch (error) {
       toast({
         variant: "destructive",

@@ -969,15 +969,21 @@ export async function registerRoutes(router: express.Router) {
     try {
       const userData = req.body;
       
+      console.log("⚠️ /api/users POST - Datos recibidos:", JSON.stringify(userData));
+      
       // Verificar y obtener el companyId, ya sea del cuerpo de la solicitud o del contexto
       // Esta línea es crítica - el ID de la compañía debe estar presente
       if (!userData.companyId) {
+        console.log("⚠️ /api/users POST - No se recibió companyId en datos, intentando obtener del contexto");
         // Intentar obtener el companyId del contexto o la sesión
         if (req.companyId) {
           userData.companyId = req.companyId;
+          console.log("⚠️ /api/users POST - Usando companyId del contexto:", req.companyId);
         } else if (req.session?.user?.companyId) {
           userData.companyId = req.session.user.companyId;
+          console.log("⚠️ /api/users POST - Usando companyId de la sesión:", req.session.user.companyId);
         } else {
+          console.log("⚠️ /api/users POST - No se encontró companyId en contexto ni sesión");
           return res.status(400).json({
             error: "No se proporcionó un ID de compañía",
             message: "El ID de compañía es obligatorio para crear un usuario"
@@ -985,12 +991,19 @@ export async function registerRoutes(router: express.Router) {
         }
       }
       
-      console.log(`Intento de creación de usuario con companyId: ${userData.companyId}`);
+      console.log(`⚠️ /api/users POST - Intento de creación de usuario con companyId: ${userData.companyId}`);
+      
+      // Asegurar que companyId sea un número
+      if (typeof userData.companyId === 'string') {
+        userData.companyId = parseInt(userData.companyId, 10);
+        console.log(`⚠️ /api/users POST - Convertido companyId a número: ${userData.companyId}`);
+      }
       
       // Validar el formato de los datos
+      console.log("⚠️ /api/users POST - Validando datos con schema");
       const result = insertUserSchema.safeParse(userData);
       if (!result.success) {
-        console.error("Error de validación:", result.error.format());
+        console.error("⚠️ /api/users POST - Error de validación:", result.error.format());
         return res.status(400).json({ 
           error: "Datos de usuario inválidos", 
           details: result.error.format() 
@@ -998,6 +1011,7 @@ export async function registerRoutes(router: express.Router) {
       }
       
       // Verificar si el username ya existe para esta compañía
+      console.log(`⚠️ /api/users POST - Verificando si username ${userData.username} ya existe para compañía ${userData.companyId}`);
       const existingUser = await db
         .select()
         .from(usersSimple)
@@ -1005,12 +1019,14 @@ export async function registerRoutes(router: express.Router) {
         .where(eq(usersSimple.companyId, userData.companyId));
         
       if (existingUser.length > 0) {
+        console.log("⚠️ /api/users POST - Error: Username ya existe");
         return res.status(400).json({ 
           error: "Este nombre de usuario ya existe en esta compañía" 
         });
       }
       
       // Hash de la contraseña usando bcrypt antes de guardarla
+      console.log("⚠️ /api/users POST - Hasheando contraseña");
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       
       // Preparar los datos para la inserción con licenseExpiry en formato Date
@@ -1028,17 +1044,24 @@ export async function registerRoutes(router: express.Router) {
         delete insertData.email;
       }*/
       
-      console.log(`Creando nuevo usuario ${userData.username} para compañía ${userData.companyId} con contraseña hasheada`);
+      console.log(`⚠️ /api/users POST - Datos preparados para inserción:`, JSON.stringify(insertData, (k, v) => k === 'password' ? '[REDACTED]' : v));
       
       // Crear el usuario usando usersSimple en lugar de users
-      const [newUser] = await db
-        .insert(usersSimple)
-        .values(insertData)
-        .returning();
-      
-      res.status(201).json(newUser);
+      try {
+        console.log(`⚠️ /api/users POST - Intentando insertar usuario ${userData.username} para compañía ${userData.companyId}`);
+        const [newUser] = await db
+          .insert(usersSimple)
+          .values(insertData)
+          .returning();
+        
+        console.log(`⚠️ /api/users POST - Usuario creado exitosamente:`, JSON.stringify(newUser, (k, v) => k === 'password' ? '[REDACTED]' : v));
+        res.status(201).json(newUser);
+      } catch (insertError) {
+        console.error("⚠️ /api/users POST - Error durante la inserción:", insertError);
+        throw insertError;
+      }
     } catch (error) {
-      console.error("Error al crear usuario:", error);
+      console.error("⚠️ /api/users POST - Error al crear usuario:", error);
       res.status(500).json({ error: String(error) });
     }
   });
