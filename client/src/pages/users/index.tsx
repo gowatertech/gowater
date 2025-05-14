@@ -580,10 +580,22 @@ export default function Users() {
               </h2>
               
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(async (data) => {
-                  await onSubmit(data);
-                  handleFormSuccess();
-                })} className="space-y-4 sm:space-y-6">
+                <form onSubmit={(e) => {
+                  console.log("🚨 SUBMIT EVENT CAPTURADO", e);
+                  // Prevenir la acción predeterminada para manejar manualmente
+                  e.preventDefault();
+                  
+                  console.log("🚨 Llamando a form.handleSubmit");
+                  form.handleSubmit(async (data) => {
+                    console.log("🚨 Dentro del manejador handleSubmit con datos:", data);
+                    try {
+                      await onSubmit(data);
+                      handleFormSuccess();
+                    } catch (err) {
+                      console.error("🚨 Error en manejador onSubmit:", err);
+                    }
+                  })(e); // Llamada manual al handler con el evento
+                }} className="space-y-4 sm:space-y-6">
                   {/* Sección de información básica */}
                   <div className="bg-muted/30 p-2 sm:p-3 md:p-4 rounded-md space-y-2 sm:space-y-3">
                     <h3 className="font-medium text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{t("basicInfo")}</h3>
