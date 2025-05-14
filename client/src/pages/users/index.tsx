@@ -297,6 +297,7 @@ export default function Users() {
       }
       
       // Formatear los datos antes de enviar e incluir el companyId
+      // Sólo incluir los campos definidos en el esquema insertUserSchema
       const formattedData = {
         name: data.name,
         username: data.username,
@@ -306,15 +307,19 @@ export default function Users() {
         companyId: Number(currentUser.companyId), // Asegurar que companyId sea un número
         phone: data.phone || undefined,
         license: data.license || undefined,
-        licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined,
+        licenseExpiry: data.licenseExpiry || undefined, // No convertir a Date aquí
         emergencyContact: data.emergencyContact || undefined,
         active: true // Asegurar que el campo active esté presente
       };
+      
+      console.log("⚠️ Datos sin filtrar:", data);
+      console.log("⚠️ Datos formateados para enviar:", formattedData);
 
       console.log("🔍 onSubmit - Enviando datos con companyId:", formattedData);
       
-      // Crear el usuario explícitamente a través de la API
+      // Intentar primero con apiRequest para debugging
       try {
+        // Intentar crear usuario directamente a través de fetch
         console.log("🔍 onSubmit - Iniciando petición POST a /api/users");
         
         const response = await fetch("/api/users", {
@@ -330,9 +335,9 @@ export default function Users() {
         console.log("🔍 onSubmit - Respuesta status:", response.status);
         
         if (!response.ok) {
-          const errorData = await response.text();
-          console.error("🔍 onSubmit - Error en respuesta:", errorData);
-          throw new Error(`Error ${response.status}: ${errorData}`);
+          const errorText = await response.text();
+          console.error("🔍 onSubmit - Error en respuesta:", errorText);
+          throw new Error(`Error ${response.status}: ${errorText}`);
         }
         
         const respuestaJson = await response.json();
