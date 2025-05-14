@@ -334,13 +334,29 @@ export default function Users() {
         
         console.log("🔍 onSubmit - Respuesta status:", response.status);
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("🔍 onSubmit - Error en respuesta:", errorText);
-          throw new Error(`Error ${response.status}: ${errorText}`);
+        // Intentamos leer la respuesta como JSON primero
+        let respuestaJson;
+        const contentType = response.headers.get("content-type");
+        
+        if (contentType && contentType.includes("application/json")) {
+          respuestaJson = await response.json();
+          console.log("🔍 onSubmit - Respuesta JSON:", respuestaJson);
+        } else {
+          const text = await response.text();
+          console.log("🔍 onSubmit - Respuesta texto:", text);
+          try {
+            // Intentar parsear por si el contentType está mal configurado
+            respuestaJson = JSON.parse(text);
+          } catch (e) {
+            respuestaJson = { message: text };
+          }
         }
         
-        const respuestaJson = await response.json();
+        if (!response.ok) {
+          console.error("🔍 onSubmit - Error en respuesta:", respuestaJson);
+          throw new Error(respuestaJson.error || `Error ${response.status}`);
+        }
+        
         console.log("🔍 onSubmit - Respuesta exitosa:", respuestaJson);
         
         // Refrescar la lista de usuarios
@@ -351,21 +367,24 @@ export default function Users() {
           description: "Usuario creado correctamente"
         });
         
+        // Limpiar formulario y cambiar pestaña
+        handleFormSuccess();
+        
         return respuestaJson;
       } catch (err) {
         console.error("🔍 onSubmit - Error en petición:", err);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: err instanceof Error ? err.message : "Error al crear usuario"
+          title: "Error al crear usuario",
+          description: err instanceof Error ? err.message : "Error en la comunicación con el servidor"
         });
-        throw err; // Re-lanzar para que el catch externo lo maneje
       }
     } catch (error) {
+      console.error("🔍 onSubmit - Error no controlado:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Error desconocido'
+        title: "Error inesperado",
+        description: error instanceof Error ? error.message : 'Error desconocido en el procesamiento'
       });
     }
   };
