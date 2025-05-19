@@ -439,11 +439,29 @@ class RecurringOrdersService {
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando con ID: ${recurringOrderId}`);
     
-    // Convertir el ID a número, sin importar su formato original
-    let safeId = Number(recurringOrderId);
+    // Mejora de la conversión del ID a número
+    let safeId;
+    
+    // Si es un objeto, intentar extraer el ID
+    if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
+      if ('id' in recurringOrderId) {
+        safeId = Number(recurringOrderId.id);
+      } else {
+        safeId = Number(recurringOrderId);
+      }
+    } 
+    // Si es un string, extraer cualquier número que contenga
+    else if (typeof recurringOrderId === 'string') {
+      const matches = recurringOrderId.match(/\d+/);
+      safeId = matches ? Number(matches[0]) : NaN;
+    } 
+    // Cualquier otro caso
+    else {
+      safeId = Number(recurringOrderId);
+    }
     
     if (isNaN(safeId) || safeId <= 0) {
-      console.error(`ID de pedido recurrente inválido: ${recurringOrderId}`);
+      console.error(`ID de pedido recurrente inválido: ${JSON.stringify(recurringOrderId)}`);
       throw new Error("ID pedido recurrente inválido paso 5");
     }
 
