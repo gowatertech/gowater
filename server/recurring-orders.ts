@@ -439,103 +439,62 @@ class RecurringOrdersService {
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     console.log(`RecurringOrdersService.generateOrderFromRecurring - Iniciando con ID: ${recurringOrderId}`);
     
-    // Medidas de seguridad iniciales para prevenir fallos catastróficos
-    if (recurringOrderId === null || recurringOrderId === undefined) {
-      console.warn("ID recibido es null o undefined, intentando recuperación automática");
-      // Obtener el pedido recurrente más reciente directamente y usarlo
-      const newestOrder = await this.getNewestRecurringOrder();
-      if (newestOrder) {
-        recurringOrderId = newestOrder.id;
-        console.log(`Usando ID recuperado automáticamente: ${recurringOrderId}`);
-      } else {
-        throw new Error("No hay pedidos recurrentes disponibles para generar órdenes");
-      }
-    }
+    let safeId = 0;
     
-    // Nueva versión simplificada pero más robusta para extraer IDs
-    let safeId: number;
-    
+    // Paso 1: Normalizar el ID según el tipo de entrada
     try {
-      // Paso 1: Intentar extraer el ID numérico usando el método más apropiado según el tipo
       if (typeof recurringOrderId === 'number') {
-        // Si ya es un número, usarlo directamente
         safeId = recurringOrderId;
       } else if (typeof recurringOrderId === 'string') {
-        // Para strings, extraer cualquier secuencia numérica
+        // Extraer dígitos del string
         const match = recurringOrderId.match(/\d+/);
-        safeId = match ? parseInt(match[0], 10) : NaN;
+        if (match) {
+          safeId = parseInt(match[0], 10);
+        }
       } else if (typeof recurringOrderId === 'object' && recurringOrderId !== null) {
-        // Para objetos, buscar propiedades con valores numéricos
-        if ('id' in recurringOrderId && !isNaN(Number(recurringOrderId.id))) {
+        // Buscar en propiedades comunes del objeto
+        if ('id' in recurringOrderId) {
           safeId = Number(recurringOrderId.id);
-        } else if ('recurringOrderId' in recurringOrderId && !isNaN(Number(recurringOrderId.recurringOrderId))) {
+        } else if ('recurringOrderId' in recurringOrderId) {
           safeId = Number(recurringOrderId.recurringOrderId);
-        } else {
-          // Intentar encontrar cualquier propiedad con valor numérico
-          for (const key in recurringOrderId) {
-            const val = recurringOrderId[key];
-            if (!isNaN(Number(val)) && typeof val !== 'boolean') {
-              safeId = Number(val);
-              break;
-            }
-          }
         }
       } else {
-        // Para cualquier otro caso, intentar convertir directamente
-        safeId = Number(recurringOrderId);
-      }
-      
-      console.log(`ID extraído (primera fase): ${safeId}, tipo: ${typeof safeId}`);
-      
-      // Paso 2: Validación y recuperación si es necesario
-      if (isNaN(safeId) || safeId <= 0) {
-        console.log("ID inválido o no encontrado, iniciando recuperación");
-        
-        // Estrategia 1: Buscar los pedidos recurrentes directamente
-        try {
-          // Importar la función para obtener el companyId actual
-          const { getCurrentCompanyId } = await import('./company-db');
-          const companyId = getCurrentCompanyId();
-          
-          // Consulta optimizada para encontrar el pedido más reciente
-          const query = companyId
-            ? db.select().from(recurringOrders)
-                .where(eq(recurringOrders.companyId, companyId))
-                .orderBy(desc(recurringOrders.id))
-                .limit(1)
-            : db.select().from(recurringOrders)
-                .orderBy(desc(recurringOrders.id))
-                .limit(1);
-          
-          const latestOrders = await query;
-          
-          if (latestOrders.length > 0) {
-            safeId = latestOrders[0].id;
-            console.log(`Recuperado exitosamente ID: ${safeId}`);
-          } else {
-            throw new Error("No se encontraron pedidos recurrentes");
-          }
-        } catch (recoveryError) {
-          console.error("Error en primera estrategia de recuperación:", recoveryError);
-          
-          // Estrategia 2: Usar el método existente como respaldo
-          try {
-            const latestOrder = await this.getNewestRecurringOrder();
-            if (latestOrder && latestOrder.id) {
-              safeId = latestOrder.id;
-              console.log(`Recuperado con estrategia alternativa ID: ${safeId}`);
-            } else {
-              throw new Error("No se encontraron pedidos recurrentes disponibles");
-            }
-          } catch (fallbackError) {
-            console.error("Error en segunda estrategia de recuperación:", fallbackError);
-            throw new Error("No se pudieron encontrar pedidos recurrentes para procesar");
-          }
+        // Intentar conversión genérica
+        const tempId = Number(recurringOrderId);
+        if (!isNaN(tempId)) {
+          safeId = tempId;
         }
       }
-    } catch (generalError) {
-      console.error("Error general en procesamiento de ID:", generalError);
-      throw new Error("Error al procesar el ID del pedido recurrente");
+      
+      console.log(`ID convertido: ${safeId}, tipo: ${typeof safeId}`);
+      
+      // Paso 2: Validar el ID y recuperar si es necesario
+      if (isNaN(safeId) || safeId <= 0) {
+        console.log("ID inválido, buscando alternativa...");
+        
+        // Importar la función para obtener el companyId actual
+        const { getCurrentCompanyId } = await import('./company-db');
+        const companyId = getCurrentCompanyId();
+        
+        // Buscar el pedido recurrente más reciente para esta compañía
+        const latestOrders = await db
+          .select()
+          .from(recurringOrders)
+          .where(companyId ? eq(recurringOrders.companyId, companyId) : undefined)
+          .orderBy(desc(recurringOrders.id))
+          .limit(1);
+          
+        if (latestOrders.length > 0) {
+          safeId = latestOrders[0].id;
+          console.log(`Usando ID alternativo: ${safeId}`);
+        } else {
+          console.error("No se encontraron pedidos recurrentes");
+          throw new Error("No hay pedidos recurrentes disponibles en el sistema");
+        }
+      }
+    } catch (error) {
+      console.error("Error al procesar ID:", error);
+      throw new Error("ID pedido recurrente inválido");
     }
 
     console.log(`RecurringOrdersService - Usando ID normalizado: ${safeId}`)
