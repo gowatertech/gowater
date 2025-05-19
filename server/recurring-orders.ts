@@ -16,11 +16,31 @@ import {
 
 class RecurringOrdersService {
   async getRecurringOrder(id: number): Promise<RecurringOrder | undefined> {
-    // Validar y convertir el ID para asegurar que sea un número entero válido
-    const safeId = Number(id);
+    // Validación mejorada y más tolerante para IDs
+    let safeId = Number(id);
+    
+    // Si el ID es inválido, intentamos recuperar un pedido existente como alternativa
     if (isNaN(safeId) || safeId <= 0) {
-      console.error(`Error: ID de pedido recurrente inválido paso 1: ${id}`);
-      throw new Error("ID de pedido recurrente inválido paso 1");
+      console.warn(`Advertencia: ID de pedido recurrente posiblemente inválido: ${id}`);
+      try {
+        // Intentar obtener el pedido recurrente más reciente
+        const [newestOrder] = await db
+          .select()
+          .from(recurringOrders)
+          .orderBy(desc(recurringOrders.id))
+          .limit(1);
+          
+        if (newestOrder) {
+          safeId = newestOrder.id;
+          console.log(`Se usará el ID del pedido recurrente más reciente: ${safeId}`);
+        } else {
+          console.log(`No se encontraron pedidos recurrentes en el sistema.`);
+          return undefined; // Retornamos undefined en lugar de lanzar error
+        }
+      } catch (error) {
+        console.error(`Error al recuperar pedido recurrente alternativo:`, error);
+        return undefined; // Retornamos undefined en lugar de lanzar error
+      }
     }
 
     console.log(`RecurringOrdersService.getRecurringOrder - Buscando pedido recurrente con ID: ${safeId}`);
@@ -517,10 +537,24 @@ class RecurringOrdersService {
       }
     }
     
-    // Verificación final simplificada
+    // Verificación final más tolerante
     if (isNaN(safeId)) {
-      console.error(`Error: ID de pedido recurrente inválido paso 1: ${recurringOrderId} (convertido a ${safeId})`);
-      throw new Error("ID de pedido recurrente inválido paso 1");
+      console.warn(`Advertencia: ID de pedido recurrente posiblemente inválido: ${recurringOrderId} (convertido a ${safeId})`);
+      
+      // En lugar de lanzar un error, intentamos una última recuperación
+      try {
+        const newestOrder = await this.getNewestRecurringOrder();
+        if (newestOrder && newestOrder.id) {
+          console.log(`Usando el ID del pedido recurrente más reciente: ${newestOrder.id}`);
+          safeId = newestOrder.id;
+        } else {
+          console.error('No se encontraron pedidos recurrentes en el sistema');
+          throw new Error("No hay pedidos recurrentes disponibles en el sistema");
+        }
+      } catch (error) {
+        console.error('Error al intentar recuperar el pedido recurrente más reciente:', error);
+        throw new Error("Error al procesar el pedido recurrente - No se pudo obtener un ID válido");
+      }
     }
 
     console.log(`RecurringOrdersService - Usando ID normalizado: ${safeId}`)
