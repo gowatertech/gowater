@@ -11,7 +11,6 @@ import { format } from "date-fns";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { getPendingOrdersByZone } from './GetPendingOrdersByZone';
 
 // UI Components
 import {
@@ -197,8 +196,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     queryKey: ["/api/trucks"],
   });
   
-  // Usamos la función auxiliar importada arriba
-  
   // Obtener todos los pedidos pendientes sin filtrar por zona
   const { data: pendingOrders = [], isLoading: isLoadingPendingOrders } = useQuery<any[]>({
     queryKey: ["/api/orders/pending"],
@@ -206,21 +203,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       console.log("🔍 Obteniendo todos los pedidos pendientes");
       
       try {
-        // Si tenemos un companyId válido, usarlo directamente
-        const effectiveCompanyId = derivedCompanyId || 
-                               (authUser?.companyId ? Number(authUser.companyId) : null);
-        
-        if (!effectiveCompanyId) {
-          console.error("❌ No se pudo determinar el companyId para obtener pedidos pendientes");
-          setPendingOrdersLoaded(true);
-          return [];
-        }
-        
-        console.log(`🏢 Usando companyId: ${effectiveCompanyId} para obtener pedidos pendientes`);
-        
         // Obtener todos los pedidos pendientes
         const response = await apiRequest({
-          url: `/api/orders/pending?companyId=${effectiveCompanyId}`,
+          url: "/api/orders/pending",
           method: "GET"
         });
         
@@ -275,9 +260,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
             // Asegurar estado
             status: order.status || "pending",
             // Asegurar total como número
-            total: totalNumber,
-            // Asegurar companyId
-            companyId: order.companyId || effectiveCompanyId
+            total: totalNumber
           };
         }).filter(Boolean); // Remover posibles nulos
         
@@ -297,88 +280,54 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     },
   });
   
-  // Filtrar pedidos por zona seleccionada con enfoque mejorado para multitenant
+  // Filtrar pedidos por zona seleccionada
   useEffect(() => {
-    // Función asíncrona para obtener pedidos por zona
-    const fetchOrdersByZone = async () => {
-      // Determinar el companyId efectivo
-      const effectiveCompanyId = derivedCompanyId || 
-                            (authUser?.companyId ? Number(authUser.companyId) : null);
-      
-      if (!effectiveCompanyId) {
-        console.error("❌ No se pudo determinar el companyId para filtrar pedidos por zona");
-        setFilteredPendingOrders([]);
-        return;
-      }
-      
-      // Siempre manejar pendingOrders como un array
-      const safeOrders = Array.isArray(pendingOrders) ? pendingOrders : [];
-      
-      console.log(`🔄 Actualizando pedidos filtrados - Total: ${safeOrders.length}, Zona: ${selectedZoneId}, CompanyId: ${effectiveCompanyId}`);
-      
-      try {
-        if (selectedZoneId) {
-          console.log(`🔎 Obteniendo pedidos específicamente para zona ID: ${selectedZoneId} y compañía ${effectiveCompanyId}`);
+    // Siempre manejar pendingOrders como un array, incluso si llega null o undefined
+    const safeOrders = Array.isArray(pendingOrders) ? pendingOrders : [];
+    
+    console.log(`🔄 Actualizando pedidos filtrados - Total: ${safeOrders.length}, Zona: ${selectedZoneId}, Cargados: ${pendingOrdersLoaded}`);
+    
+    try {
+      if (pendingOrdersLoaded && selectedZoneId) {
+        console.log(`🔎 Filtrando pedidos para zona ID: ${selectedZoneId}`);
+        
+        // Verificar que pendingOrders sea un array antes de filtrar
+        const ordersInZone = safeOrders.filter(order => {
+          if (!order) return false;
           
-          // Usar getPendingOrdersByZone directamente en lugar de filtrar localmente
-          const zoneOrders = await getPendingOrdersByZone(selectedZoneId, effectiveCompanyId);
+          // Comprobar múltiples formatos posibles de zoneId
+          const orderZoneId = order.zoneId || order.zoneid || order.zone_id;
+          const numericZoneId = Number(orderZoneId);
+          const numericSelectedZoneId = Number(selectedZoneId);
           
-          // Si encontramos pedidos específicos para la zona, usarlos
-          if (Array.isArray(zoneOrders) && zoneOrders.length > 0) {
-            console.log(`✅ Encontrados ${zoneOrders.length} pedidos directamente desde API para zona ${selectedZoneId}`);
-            
-            // Normalizar los datos recibidos
-            const normalizedOrders = zoneOrders.map(order => ({
-              ...order,
-              id: order.id || Math.random().toString(36).substring(7),
-              coordinates: order.deliveryCoordinates || order.coordinates || null,
-              customerName: order.customerName || "Cliente sin nombre",
-              zoneId: selectedZoneId, // Garantizar que zoneid es correcto
-              companyId: effectiveCompanyId // Garantizar que companyId es correcto
-            }));
-            
-            setFilteredPendingOrders(normalizedOrders);
-          } 
-          // Si la API no devuelve pedidos, intentamos filtrar localmente como respaldo
-          else {
-            console.log(`⚠️ No se encontraron pedidos vía API, intentando filtrado local`);
-            
-            // Filtrar localmente los pedidos pendientes por zona como método alternativo
-            const ordersInZone = safeOrders.filter(order => {
-              if (!order) return false;
-              
-              // Comprobar múltiples formatos posibles de zoneId
-              const orderZoneId = order.zoneId || order.zoneid || order.zone_id;
-              const numericZoneId = Number(orderZoneId);
-              const numericSelectedZoneId = Number(selectedZoneId);
-              
-              return !isNaN(numericZoneId) && !isNaN(numericSelectedZoneId) && 
-                    numericZoneId === numericSelectedZoneId;
-            });
-            
-            console.log(`✅ Encontrados ${ordersInZone.length} pedidos por filtrado local en zona ${selectedZoneId}`);
-            setFilteredPendingOrders(ordersInZone);
+          // Verificar que ambos sean números válidos
+          if (isNaN(numericZoneId) || isNaN(numericSelectedZoneId)) {
+            console.log(`⚠️ ID de zona inválido para pedido ${order.id}: ${orderZoneId}`);
+            return false;
           }
           
-          // Siempre limpiar selección al cambiar de zona
-          setSelectedOrders([]);
-        } else {
-          // Sin zona seleccionada, mostrar todos los pedidos disponibles
-          console.log(`ℹ️ No hay zona seleccionada - mostrando todos los pedidos (${safeOrders.length})`);
-          setFilteredPendingOrders(safeOrders);
-        }
-      } catch (error) {
-        console.error("❌ Error al obtener pedidos para zona:", error);
-        // En caso de error, mantener pedidos sin filtrar
+          return numericZoneId === numericSelectedZoneId;
+        });
+        
+        console.log(`✅ Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
+        
+        // Siempre actualizar el estado, incluso si no hay pedidos
+        setFilteredPendingOrders(ordersInZone);
+        
+        // Limpiar la selección de pedidos anterior al cambiar de zona
+        setSelectedOrders([]);
+      } else {
+        // Si no hay zona seleccionada o los pedidos aún no se han cargado,
+        // usar un array vacío para evitar errores
+        console.log(`ℹ️ No hay filtro de zona - mostrando todos los pedidos (${safeOrders.length})`);
         setFilteredPendingOrders(safeOrders);
       }
-    };
-    
-    // Ejecutar la función asíncrona
-    if (pendingOrdersLoaded) {
-      fetchOrdersByZone();
+    } catch (error) {
+      console.error("❌ Error al filtrar pedidos:", error);
+      // En caso de error, establecer un array vacío para evitar errores de renderizado
+      setFilteredPendingOrders([]);
     }
-  }, [pendingOrders, selectedZoneId, pendingOrdersLoaded, derivedCompanyId, authUser]);
+  }, [pendingOrders, selectedZoneId, pendingOrdersLoaded]);
   
   // Función para obtener el centro del mapa basado en las coordenadas de los puntos
   const getMapCenter = (orders: any[]): [number, number] => {
