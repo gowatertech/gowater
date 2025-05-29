@@ -181,7 +181,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     form.setValue("companyId", effectiveCompanyId);
     console.log(`✅ CompanyId ${effectiveCompanyId} asignado al formulario`);
     
-  }, [authCompanyId, authUser, pendingOrdersUserData, form, toast]);
+  }, [authCompanyId, authUser, pendingOrdersUserData]);
   
   // Queries para cargar datos necesarios
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({

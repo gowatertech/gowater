@@ -62,7 +62,7 @@ const formSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z
     .string()
-    .min(6, "La contraseña debe tener al menos 6 caracteres")
+    .min(8, "La contraseña debe tener al menos 8 caracteres")
     .optional(), // Opcional para edición
   role: z.enum(["platform_admin", "company_admin"], {
     required_error: "El rol es requerido",
