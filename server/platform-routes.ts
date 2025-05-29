@@ -4,11 +4,9 @@ import {
   insertCompanySchema, 
   insertPlanSchema, 
   insertMembershipInvoiceSchema,
-  insertPlatformUserSchema,
   insertCompanySettingsSchema,
   insertUserCompanySchema,
   companies,
-  platformUsers,
   userCompanies,
   companySettings,
   membershipInvoices,
@@ -16,6 +14,10 @@ import {
   platformGeneralSettingsSchema,
   platformEmailSettingsSchema
 } from "../shared/platform-schema";
+import { 
+  insertPlatformUserSchema,
+  platformUsers
+} from "../shared/platform-users-schema";
 import bcrypt from "bcrypt";
 import { db } from "./db";
 import { platformDb } from "./platform-db";

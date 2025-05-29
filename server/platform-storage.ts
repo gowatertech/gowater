@@ -4,7 +4,6 @@ import {
   companies,
   plans,
   membershipInvoices,
-  platformUsers,
   userCompanies,
   companySettings,
   Company,
@@ -13,13 +12,16 @@ import {
   InsertPlan,
   MembershipInvoice,
   InsertMembershipInvoice,
-  PlatformUser,
-  InsertPlatformUser,
   UserCompany,
   InsertUserCompany,
   CompanySettings,
   InsertCompanySettings,
 } from "../shared/platform-schema";
+import {
+  platformUsers,
+  PlatformUser,
+  InsertPlatformUser,
+} from "../shared/platform-users-schema";
 
 // Interfaz para el almacenamiento de la plataforma
 export interface IPlatformStorage {
