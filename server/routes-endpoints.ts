@@ -21,7 +21,8 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       if (companyId) {
         try {
           // Consulta directa para obtener los pedidos con información de clientes
-          const { pool } = await import('./db-connect');
+          const dbConnect: any = await import('./db-connect');
+          const pool = dbConnect.pool;
           
           // Consulta combinada para obtener datos de cliente junto con el pedido
           const query = `
@@ -240,9 +241,19 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
           const { db } = await import("./db");
           
           // Intentar crear el pedido directamente en la base de datos
+          const { getCurrentCompanyId } = await import('./company-db');
+          const fallbackCompanyId = getCurrentCompanyId() || 1;
+          
+          const dataToInsert: any = {
+            ...parseResult.data,
+            companyId: fallbackCompanyId,
+            startDate: parseResult.data.startDate ? new Date(parseResult.data.startDate) : new Date(),
+            endDate: parseResult.data.endDate ? new Date(parseResult.data.endDate) : null
+          };
+          
           const [directInsertedOrder] = await db
             .insert(recurringOrders)
-            .values([parseResult.data])
+            .values([dataToInsert])
             .returning();
           
           if (directInsertedOrder) {

@@ -209,27 +209,24 @@ export const companyDb = {
   // Sobreescribir funciones select, insert, update, delete
   
   // Select con filtro automático por companyId
-  select: function() {
+  select: function(...args: any[]): any {
     try {
-      // Capturar los argumentos y pasarlos a db.select
-      const args = Array.from(arguments);
-      
       // Implementar lógicamente el método select para evitar errores
-      let query;
+      let query: any;
       if (args.length === 0) {
         query = db.select();
-      } else if (args.length === 1) {
-        query = db.select(args[0]);
       } else {
-        // Usar apply() en lugar de spread para evitar errores de tipo
-        query = db.select.apply(db, args);
+        query = (db.select as any)(...args);
       }
       
       return withCompany(query);
     } catch (error) {
       console.error("Error en companyDb.select:", error);
-      // En caso de error, usar el método original sin filtrado pero con apply
-      return db.select.apply(db, Array.from(arguments));
+      // En caso de error, usar el método original sin filtrado
+      if (args.length === 0) {
+        return db.select();
+      }
+      return (db.select as any)(...args);
     }
   },
   
