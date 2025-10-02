@@ -717,6 +717,8 @@ export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Route = typeof routes.$inferSelect;
 export type InsertRoute = z.infer<typeof insertRouteSchema>;
+// Extended type for routes with order IDs (returned by API)
+export type RouteWithOrders = Route & { orderIds: number[] };
 export type Order = typeof orders.$inferSelect;
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type OrderItem = typeof orderItems.$inferSelect;

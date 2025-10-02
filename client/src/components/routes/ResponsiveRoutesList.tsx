@@ -24,10 +24,10 @@ import {
 import { Truck, Calendar, MapPin, Eye, ArrowRight, X, Route as RouteIcon } from "lucide-react";
 
 // Tipos
-import { Route } from "@shared/schema";
+import { RouteWithOrders } from "@shared/schema";
 
 interface ResponsiveRoutesListProps {
-  routes: Route[];
+  routes: RouteWithOrders[];
   isActive?: boolean; // si es true, solo muestra rutas activas, si es false, completadas
 }
 

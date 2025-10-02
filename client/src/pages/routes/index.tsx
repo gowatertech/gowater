@@ -48,7 +48,7 @@ const DriverView = () => <div>Vista de conductor</div>;
 const DeliveryTracking = () => <div>Seguimiento de entrega</div>;
 
 // Types
-import { Route } from "@shared/schema";
+import { Route, RouteWithOrders } from "@shared/schema";
 
 // Componente para una tarjeta de estadísticas
 interface StatsCardProps {
@@ -88,7 +88,7 @@ export default function RoutesPage() {
   const { user } = useCurrentUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-  const [routes, setRoutes] = useState<Route[]>([]);
+  const [routes, setRoutes] = useState<RouteWithOrders[]>([]);
   const [selectedTab, setSelectedTab] = useState<"dashboard" | "routes" | "create">("dashboard");
   const [routeStatusTab, setRouteStatusTab] = useState<"active" | "completed">("active");
   
