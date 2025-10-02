@@ -1,6 +1,5 @@
 // Módulo para conectarse a la base de datos
 import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/postgres-js';
 import { getCurrentCompanyId, setCurrentCompanyId } from './company-db.js';
 
 // Configuración de conexión a la BD
