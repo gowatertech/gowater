@@ -110,14 +110,32 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const authCompanyId = authUser?.companyId || null;
   const { settings } = useCompanySettings();
   
-  // Determinar companyId
-  const [derivedCompanyId, setDerivedCompanyId] = useState<number | null>(null);
-  
   // Obtener datos de usuarios para los pendingOrders
   const { data: pendingOrdersUserData } = useQuery({
     queryKey: ["/api/user"],
     enabled: !authUser, // Solo ejecutar si no tenemos authUser
   });
+  
+  // Usar useMemo para calcular el companyId de forma derivada, evitando re-renders
+  const derivedCompanyId = React.useMemo(() => {
+    let effectiveCompanyId: number | null = null;
+    
+    // Prioridad 1: Auth Context (más confiable)
+    if (authCompanyId !== null && authCompanyId !== undefined && !isNaN(Number(authCompanyId))) {
+      effectiveCompanyId = Number(authCompanyId);
+    } 
+    // Prioridad 2: Usuario autenticado
+    else if (authUser?.companyId && !isNaN(Number(authUser.companyId))) {
+      effectiveCompanyId = Number(authUser.companyId);
+    } 
+    // Prioridad 3: Datos de pedidos pendientes
+    else if (pendingOrdersUserData && typeof pendingOrdersUserData === 'object' && 'companyId' in pendingOrdersUserData && 
+             !isNaN(Number((pendingOrdersUserData as any).companyId))) {
+      effectiveCompanyId = Number((pendingOrdersUserData as any).companyId);
+    }
+    
+    return effectiveCompanyId;
+  }, [authCompanyId, authUser, pendingOrdersUserData]);
   
   // Definición del formulario con validación
   const form = useForm({
@@ -139,57 +157,25 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       status: "pending" as const,
       isCompleted: false,
       stops: [] as string[],
-      companyId: undefined, // Se obtendrá del contexto de autenticación
-      zoneId: undefined // Se seleccionará por el usuario
+      companyId: derivedCompanyId || undefined,
+      zoneId: undefined
     } as any,
   });
   
-  // Determinar companyId y asignarlo al formulario
+  // Efecto para actualizar companyId solo cuando cambia de null a un valor válido
   useEffect(() => {
-    console.log("🔄 DIAGNÓSTICO INICIAL - StepRouteForm montado");
-    
-    // Obtener el companyId de manera dinámica del contexto de autenticación
-    let effectiveCompanyId: number | null = null;
-    let source = "";
-    
-    // Prioridad 1: Auth Context (más confiable)
-    if (authCompanyId !== null && authCompanyId !== undefined && !isNaN(Number(authCompanyId))) {
-      effectiveCompanyId = Number(authCompanyId);
-      source = "Auth Context";
-    } 
-    // Prioridad 2: Usuario autenticado
-    else if (authUser?.companyId && !isNaN(Number(authUser.companyId))) {
-      effectiveCompanyId = Number(authUser.companyId);
-      source = "Auth User";
-    } 
-    // Prioridad 3: Datos de pedidos pendientes (asumiendo que puede ser cualquier objeto con propiedad companyId)
-    else if (pendingOrdersUserData && typeof pendingOrdersUserData === 'object' && 'companyId' in pendingOrdersUserData && 
-             !isNaN(Number((pendingOrdersUserData as any).companyId))) {
-      effectiveCompanyId = Number((pendingOrdersUserData as any).companyId);
-      source = "Pending Orders Data";
-    } 
-    
-    console.log(`🏢 CompanyId determinado: ${effectiveCompanyId} (fuente: ${source})`);
-    
-    // Verificar si el companyId es válido
-    if (effectiveCompanyId === null || effectiveCompanyId === undefined || isNaN(effectiveCompanyId)) {
-      console.error("❌ No se pudo determinar un companyId válido. Es necesario para crear rutas.");
-      toast({
-        title: "Error de configuración",
-        description: "No se pudo determinar la empresa. Por favor, inicie sesión nuevamente.",
-        variant: "destructive"
-      });
-      return;
+    if (derivedCompanyId && derivedCompanyId > 0) {
+      const currentCompanyId = form.getValues("companyId");
+      
+      // Solo actualizar si es diferente al valor actual
+      if (currentCompanyId !== derivedCompanyId) {
+        console.log(`✅ CompanyId ${derivedCompanyId} asignado al formulario`);
+        form.setValue("companyId", derivedCompanyId, { shouldValidate: false });
+      }
+    } else if (derivedCompanyId === null) {
+      console.error("❌ No se pudo determinar un companyId válido");
     }
-    
-    // Actualizar el estado de companyId derivado
-    setDerivedCompanyId(effectiveCompanyId);
-    
-    // Asignar al formulario
-    form.setValue("companyId", effectiveCompanyId);
-    console.log(`✅ CompanyId ${effectiveCompanyId} asignado al formulario`);
-    
-  }, [authCompanyId, authUser, pendingOrdersUserData]);
+  }, [derivedCompanyId]); // Solo depende de derivedCompanyId
   
   // Queries para cargar datos necesarios
   const { data: zones = [], isLoading: isLoadingZones } = useQuery<any[]>({
@@ -273,22 +259,22 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         }).filter(Boolean); // Remover posibles nulos
         
         console.log(`✅ Procesados ${transformedOrders.length} pedidos pendientes válidos`);
-        setPendingOrdersLoaded(true);
         return transformedOrders;
       } catch (error) {
         console.error("❌ Error al obtener pedidos pendientes:", error);
-        toast({
-          title: "Error al cargar pedidos",
-          description: "No se pudieron cargar los pedidos pendientes. Inténtalo de nuevo.",
-          variant: "destructive"
-        });
-        setPendingOrdersLoaded(true);
         return [];
       }
     },
   });
   
-  // Filtrar pedidos por zona seleccionada
+  // Actualizar estado de carga cuando los pedidos estén listos
+  useEffect(() => {
+    if (!isLoadingPendingOrders && pendingOrders) {
+      setPendingOrdersLoaded(true);
+    }
+  }, [isLoadingPendingOrders, pendingOrders]);
+  
+  // Usar useMemo para filtrar pedidos, evitando re-renders innecesarios
   useEffect(() => {
     // Siempre manejar pendingOrders como un array, incluso si llega null o undefined
     const safeOrders = Array.isArray(pendingOrders) ? pendingOrders : [];
@@ -302,7 +288,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         // Verificar que pendingOrders sea un array antes de filtrar
         const ordersInZone = safeOrders.filter(order => {
           if (!order || typeof order !== 'object') {
-            console.log(`⚠️ Pedido inválido:`, order);
             return false;
           }
           
@@ -311,7 +296,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           
           // Si no hay zoneId, no incluir el pedido
           if (orderZoneId === undefined || orderZoneId === null) {
-            console.log(`⚠️ Pedido ${order.id || 'sin ID'} no tiene zoneId`);
             return false;
           }
           
@@ -320,7 +304,6 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           
           // Verificar que ambos sean números válidos
           if (isNaN(numericZoneId) || isNaN(numericSelectedZoneId)) {
-            console.log(`⚠️ ID de zona inválido para pedido ${order.id || 'sin ID'}: ${orderZoneId}`);
             return false;
           }
           
@@ -337,22 +320,15 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       } else {
         // Si no hay zona seleccionada o los pedidos aún no se han cargado,
         // usar un array vacío para evitar errores
-        console.log(`ℹ️ No hay filtro de zona - mostrando todos los pedidos (${safeOrders.length})`);
-        setFilteredPendingOrders(safeOrders || []);
+        console.log(`ℹ️ No hay filtro de zona - mostrando lista vacía`);
+        setFilteredPendingOrders([]);
       }
     } catch (error) {
       console.error("❌ Error al filtrar pedidos:", error);
       // En caso de error, establecer un array vacío para evitar errores de renderizado
       setFilteredPendingOrders([]);
-      
-      // Mostrar toast de error al usuario
-      toast({
-        title: "Error al filtrar pedidos",
-        description: "Hubo un problema al cargar los pedidos. Por favor, inténtalo de nuevo.",
-        variant: "destructive"
-      });
     }
-  }, [pendingOrders, selectedZoneId, pendingOrdersLoaded, toast]);
+  }, [pendingOrders, selectedZoneId, pendingOrdersLoaded]); // Removido toast de las dependencias
   
   // Función para obtener el centro del mapa basado en las coordenadas de los puntos
   const getMapCenter = (orders: any[]): [number, number] => {
@@ -658,12 +634,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     setSearchQuery(e.target.value);
   };
   
-  // Función para calcular y formatear el tiempo estimado de la ruta
-  const calculateEstimatedTime = (): string => {
+  // Usar useMemo para calcular el tiempo y distancia estimados sin actualizar estado durante el render
+  const routeEstimation = React.useMemo(() => {
     try {
       if (optimizedSequence.length <= 1) {
-        setTotalDistanceKm(0);
-        return "0min";
+        return { time: "0min", distance: 0 };
       }
       
       let estimatedTime = 0;
@@ -741,13 +716,10 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         estimatedTime += 5;
       }
       
-      // Actualizar el estado de la distancia total (redondeada a 1 decimal)
-      if (!isNaN(totalDistance) && isFinite(totalDistance)) {
-        setTotalDistanceKm(Math.round(totalDistance * 10) / 10);
-      } else {
-        console.warn("Distancia total inválida:", totalDistance);
-        setTotalDistanceKm(0);
-      }
+      // Calcular distancia redondeada
+      const distanceKm = !isNaN(totalDistance) && isFinite(totalDistance) 
+        ? Math.round(totalDistance * 10) / 10 
+        : 0;
       
       // Redondear a minutos enteros
       estimatedTime = !isNaN(estimatedTime) ? Math.round(estimatedTime) : 0;
@@ -755,14 +727,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       // Convertir a formato horas:minutos
       const hours = Math.floor(estimatedTime / 60);
       const minutes = estimatedTime % 60;
+      const timeFormatted = `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
       
-      return `${hours > 0 ? hours + 'h ' : ''}${minutes}min`;
+      return { time: timeFormatted, distance: distanceKm };
     } catch (error) {
       console.error("Error general al calcular tiempo estimado:", error);
-      setTotalDistanceKm(0);
-      return "0min";
+      return { time: "0min", distance: 0 };
     }
-  };
+  }, [optimizedSequence]);
   
   // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
   const filteredOrders = React.useMemo(() => {
@@ -846,9 +818,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     // Crear la secuencia de entrega, asegurando que incluimos la empresa como punto 0
     const sequence = optimizedSequence.map(order => order.id);
     
-    // Calcular y mostrar el tiempo estimado de la ruta
-    const estimatedTimeFormatted = calculateEstimatedTime();
-    console.log(`Tiempo estimado de la ruta: ${estimatedTimeFormatted}`);
+    // Obtener el tiempo estimado de la ruta
+    console.log(`Tiempo estimado de la ruta: ${routeEstimation.time}, Distancia: ${routeEstimation.distance} km`);
     
     // Agregar información de la empresa en los datos del formulario
     const companyInfo = optimizedSequence.find(order => order.isCompany);
@@ -1228,11 +1199,11 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                       <div className="flex gap-2">
                         <Badge variant="outline" className="text-xs">
                           <Clock className="mr-1 h-3 w-3" />
-                          <span>Tiempo: {calculateEstimatedTime()}</span>
+                          <span>Tiempo: {routeEstimation.time}</span>
                         </Badge>
                         <Badge variant="outline" className="text-xs">
                           <MapIcon className="mr-1 h-3 w-3" />
-                          <span>Distancia: {totalDistanceKm} km</span>
+                          <span>Distancia: {routeEstimation.distance} km</span>
                         </Badge>
                       </div>
                     )}

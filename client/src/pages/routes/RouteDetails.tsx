@@ -22,6 +22,7 @@ import { getStatusLabel, getStatusColor } from "@/lib/status-colors";
 // Interfaz para adaptar los tipos esperados por los componentes
 interface RouteComponent {
   id: number;
+  companyId: number;
   name: string;
   driverId: number;
   assistantId: number | null;
@@ -46,6 +47,7 @@ interface RouteComponent {
   endTime: Date | null;
   totalRevenue: string | null;
   comments: string | null;
+  orderIds: number[];
 }
 
 // Función adaptadora para convertir los tipos
@@ -53,6 +55,7 @@ function adaptRouteForComponent(route: RouteDetails): RouteComponent {
   // Crear una versión segura con campos obligatorios explícitamente definidos
   return {
     id: route.id,
+    companyId: (route as any).companyId || 1, // Usar companyId de la ruta o valor por defecto
     name: route.name,
     driverId: route.driverId,
     assistantId: route.assistantId,
@@ -77,6 +80,7 @@ function adaptRouteForComponent(route: RouteDetails): RouteComponent {
     endTime: route.endTime,
     totalRevenue: route.totalRevenue || "0.00",
     comments: route.comments,
+    orderIds: (route as any).orderIds || [],
   };
 }
 
