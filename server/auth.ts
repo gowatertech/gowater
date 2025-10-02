@@ -19,7 +19,7 @@ declare global {
       id: number;
       name: string;
       username?: string;
-      email?: string;
+      email?: string | null;
       role: string;
       companyId: number;
       active?: boolean;
@@ -170,7 +170,7 @@ export function setupAuth(app: Express) {
   
   // Login
   app.post('/api/login', (req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+    passport.authenticate('local', (err: any, user: Express.User | false, info: any) => {
       if (err) {
         console.error('Error en autenticación:', err);
         return res.status(500).json({
@@ -213,7 +213,7 @@ export function setupAuth(app: Express) {
   
   // Login para la aplicación móvil
   app.post('/api/mobile/login', (req, res, next) => {
-    passport.authenticate('local', (err, user, info) => {
+    passport.authenticate('local', (err: any, user: Express.User | false, info: any) => {
       if (err) {
         console.error('Error en autenticación móvil:', err);
         return res.status(500).json({
