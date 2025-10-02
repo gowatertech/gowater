@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { getStatusColor, getStatusLabel } from "@/lib/status-colors";
 
 // Componentes UI
 import { Card } from "@/components/ui/card";
@@ -120,12 +121,9 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
                 </span>
               </div>
               <Badge
-                variant={route.driverStartedAt ? (route.isCompleted ? "default" : "secondary") : "outline"}
-                className="text-xs py-0 h-5"
+                className={`text-xs py-0 h-5 ${getStatusColor(route.status)}`}
               >
-                {route.isCompleted 
-                  ? t("completed") 
-                  : (route.driverStartedAt ? t("inProgress") : t("notStarted"))}
+                {getStatusLabel(route.status)}
               </Badge>
             </div>
             
@@ -219,14 +217,9 @@ export function ResponsiveRoutesList({ routes, isActive = true }: ResponsiveRout
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge
-                    variant={route.driverStartedAt 
-                      ? (route.isCompleted ? "default" : "secondary") 
-                      : "outline"}
-                    className="text-xs py-0 h-5"
+                    className={`text-xs py-0 h-5 ${getStatusColor(route.status)}`}
                   >
-                    {route.isCompleted 
-                      ? t("completed") 
-                      : (route.driverStartedAt ? t("inProgress") : t("notStarted"))}
+                    {getStatusLabel(route.status)}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">

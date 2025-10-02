@@ -6,6 +6,7 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
+import { getStatusColor, getStatusLabel } from "@/lib/status-colors";
 
 // Components
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
@@ -244,15 +245,9 @@ export default function RoutesPage() {
                             </div>
                           </div>
                           <Badge
-                            variant={route.isCompleted ? "default" : 
-                                    route.status === "in_progress" ? "secondary" : "outline"}
-                            className="text-xs"
+                            className={`text-xs ${getStatusColor(route.status)}`}
                           >
-                            {route.isCompleted 
-                              ? "Completada" 
-                              : route.status === "in_progress" 
-                                ? "En Progreso" 
-                                : "Pendiente"}
+                            {getStatusLabel(route.status)}
                           </Badge>
                         </div>
                       ))}

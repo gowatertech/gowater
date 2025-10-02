@@ -16,7 +16,7 @@ import RouteMap from "@/components/routes/RouteMap";
 import RouteStats from "@/components/routes/RouteStats";
 import RouteTimeline from "@/components/routes/RouteTimeline";
 import RouteSummary from "@/components/routes/RouteSummary";
-import { getStatusLabel } from "@/lib/status-colors";
+import { getStatusLabel, getStatusColor } from "@/lib/status-colors";
 
 // Define la interfaz para la ruta con información extendida
 // Interfaz para adaptar los tipos esperados por los componentes
@@ -204,14 +204,7 @@ export default function RouteDetails() {
 
   // Función para mostrar el estado con el color adecuado
   const getStatusBadge = () => {
-    switch (route.status) {
-      case "in_progress":
-        return <Badge className="bg-green-500 hover:bg-green-600 text-white">{t("inProgress")}</Badge>;
-      case "completed":
-        return <Badge className="bg-green-700 hover:bg-green-800 text-white">{t("completed")}</Badge>;
-      default:
-        return <Badge className="bg-green-100 text-green-700">{t("notStarted")}</Badge>;
-    }
+    return <Badge className={getStatusColor(route.status)}>{getStatusLabel(route.status)}</Badge>;
   };
 
   return (
