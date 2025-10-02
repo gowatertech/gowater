@@ -235,6 +235,14 @@ app.use((req, res, next) => {
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
     
+    // Configure static file serving BEFORE mounting API routers (production only)
+    if (process.env.NODE_ENV === "production") {
+      log("Production mode: Setting up static file serving");
+      const distPath = path.resolve(process.cwd(), 'dist', 'public');
+      app.use(express.static(distPath));
+      log(`Static files will be served from: ${distPath}`);
+    }
+    
     // Montamos los routers en sus respectivas rutas DESPUÉS de registrar las rutas
     app.use("/api/platform", platformApiRouter);
     app.use("/api/geo", geoDataApiRouter);
@@ -317,21 +325,17 @@ app.use((req, res, next) => {
       });
     });
 
-    // Configure static file serving and client-side routing
+    // Client-side routing and development setup
     if (process.env.NODE_ENV === "production") {
-      log("Production mode: Setting up static file serving");
-      const distPath = path.resolve(process.cwd(), 'dist', 'public');
-
-      // Handle static files
-      app.use(express.static(distPath));
-
       // Client-side routing - send index.html for non-API routes
+      const distPath = path.resolve(process.cwd(), 'dist', 'public');
       app.get('*', (req, res, next) => {
         if (req.path.startsWith('/api/')) {
           return next();
         }
         res.sendFile(path.join(distPath, 'index.html'));
       });
+      log("Production mode: SPA routing configured");
     } else {
       // Development mode - use Vite
       await setupVite(app, server);
