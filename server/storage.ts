@@ -135,12 +135,8 @@ export class DatabaseStorage implements IStorage {
     
     // Si no se encuentra por email, intentar por username para compatibilidad
     if (!user && email.includes('@')) {
-      console.log(`Usuario no encontrado por email: ${email}, intentando por username`);
       const username = email.split('@')[0]; // Tomar la parte antes del @
       [user] = await db.select().from(users).where(eq(users.username, username));
-      if (user) {
-        console.log(`Usuario encontrado por username: ${username}`);
-      }
     }
     
     return user;
@@ -195,7 +191,6 @@ export class DatabaseStorage implements IStorage {
     // Utilizamos la función withCompany para asegurar que se aplique el filtro de compañía
     // Esto garantiza que solo se devuelvan los clientes de la compañía actual
     const companyId = getCurrentCompanyId();
-    console.log(`listCustomers() - Obteniendo clientes para compañía: ${companyId}`);
     
     return db.select()
       .from(customers)
@@ -353,7 +348,6 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
       
       if (!existingRoute) {
-        console.log(`No se encontró la ruta con ID ${id} para eliminar`);
         return undefined;
       }
       
@@ -363,15 +357,12 @@ export class DatabaseStorage implements IStorage {
         .set({ routeId: null })
         .where(eq(orders.routeId, id));
       
-      console.log(`Órdenes desvinculadas de la ruta ${id}`);
-      
       // Eliminamos la ruta
       const [deletedRoute] = await db
         .delete(routes)
         .where(eq(routes.id, id))
         .returning();
       
-      console.log(`Ruta ${id} eliminada correctamente`);
       return deletedRoute;
     } catch (error) {
       console.error(`Error al eliminar la ruta ${id}:`, error);
@@ -420,28 +411,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.id, id));
 
     if (!order) throw new Error("Order not found");
-    
-    console.log(`Actualizando pedido ${id} al estado '${status}'`);
 
     // Obtenemos el companyId del contexto
     const companyId = getCurrentCompanyId();
-    console.log(`CompanyId del contexto: ${companyId}`);
-
-    // Método directo usando la sintaxis más simple
-    console.log(`Ejecutando actualización: UPDATE orders SET status = '${status}' WHERE id = ${id} AND companyId = ${companyId}`);
     
-    // Primero verificamos el SQL que se va a ejecutar
-    const query = db
+    // Actualizar el estado del pedido
+    const [updatedOrder] = await db
       .update(orders)
       .set({ status })
       .where(eq(orders.id, id))
-      .where(eq(orders.companyId, companyId || 0));
-    
-    console.log("Query SQL a ejecutar:", query);
-    
-    const [updatedOrder] = await query.returning();
-    
-    console.log(`Pedido ${id} actualizado a '${status}'`, updatedOrder);
+      .where(eq(orders.companyId, companyId || 0))
+      .returning();
 
     return updatedOrder;
   }
@@ -553,8 +533,6 @@ export class DatabaseStorage implements IStorage {
   // Settings
   async getSettings(companyId: number): Promise<Settings | undefined> {
     try {
-      console.log(`Storage - getSettings: Consultando configuración para compañía ${companyId}`);
-      
       if (!companyId) {
         console.error("Storage - getSettings: No se proporcionó un ID de compañía válido");
         throw new Error("Se requiere un ID de compañía válido");
@@ -568,9 +546,6 @@ export class DatabaseStorage implements IStorage {
         .from(settings)
         .where(eq(settings.companyId, companyId));
       
-      console.log(`Storage - getSettings: Resultado para compañía ${companyId}:`, 
-        result.length > 0 ? "Configuración encontrada" : "Configuración no encontrada");
-      
       return result.length > 0 ? result[0] : undefined;
     } catch (error) {
       console.error(`Storage - getSettings: Error al obtener configuración para compañía ${companyId}:`, error);
@@ -580,44 +555,33 @@ export class DatabaseStorage implements IStorage {
   
   async createDefaultSettings(companyId: number, companyName: string): Promise<Settings | undefined> {
     try {
-      console.log(`Storage - createDefaultSettings: Creando configuración por defecto para compañía ${companyId}: ${companyName}`);
-      
       // Acceder a tablas directamente desde el schema compartido
       const { settings, provinces, municipalities } = await import('@shared/schema');
       
       // Establecer companyId en el contexto para asegurar filtrado correcto
-      const { getCurrentCompanyId, setCurrentCompanyId } = await import('./company-db');
-      const companyIdBeforeOperation = getCurrentCompanyId();
-      console.log(`CompanyId actual: ${companyIdBeforeOperation}, estableciendo a: ${companyId}`);
+      const { setCurrentCompanyId } = await import('./company-db');
       setCurrentCompanyId(companyId);
       
       // Las provincias y municipios son datos geográficos que aplican para todo el país
       // No están filtrados por compañía
       
-      console.log('Buscando provincias disponibles...');
-      // Buscar la primera provincia disponible
       // Buscar la primera provincia disponible sin filtrar por compañía
       const provincesResult = await db.select().from(provinces).limit(1);
-      console.log('Provincias encontradas:', provincesResult);
       
       if (!provincesResult || provincesResult.length === 0) {
         console.error("No se encontraron provincias en la base de datos");
         return undefined;
       }
       
-      console.log('Buscando municipios para provincia:', provincesResult[0].id);
       // Buscar el primer municipio disponible para esa provincia
       const municipalitiesResult = await db.select().from(municipalities)
         .where(eq(municipalities.provinceId, provincesResult[0].id))
         .limit(1);
-      console.log('Municipios encontrados:', municipalitiesResult);
       
       if (!municipalitiesResult || municipalitiesResult.length === 0) {
         console.error("No se encontraron municipios para la provincia");
         return undefined;
       }
-      
-      console.log(`Insertando configuración para compañía ${companyId} con provincia=${provincesResult[0].id} y municipio=${municipalitiesResult[0].id}`);
       
       // Crear configuración mínima con sólo el ID y nombre de la empresa
       const [newSettings] = await db
@@ -636,7 +600,6 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
       
-      console.log(`Configuración por defecto creada para compañía ${companyId}`);
       return newSettings;
     } catch (error) {
       console.error(`Storage - createDefaultSettings: Error al crear configuración para compañía ${companyId}:`, error);
@@ -649,18 +612,10 @@ export class DatabaseStorage implements IStorage {
     try {
       // Obtener companyId de los datos o del contexto
       const companyId = settingsData.companyId;
-      console.log(`Storage - updateSettings: Datos recibidos para compañía ${companyId}:`, settingsData);
       
       if (!companyId) {
         console.error("Storage - updateSettings: No se proporcionó un ID de compañía válido");
         throw new Error("Se requiere un ID de compañía válido para actualizar la configuración");
-      }
-
-      // Verificación adicional para municipalityId
-      if (settingsData.municipalityId) {
-        console.log("Storage - Verificando municipalityId:", settingsData.municipalityId);
-      } else {
-        console.log("Storage - ADVERTENCIA: municipalityId no presente");
       }
 
       // Importar tabla de settings
@@ -673,7 +628,6 @@ export class DatabaseStorage implements IStorage {
         .where(eq(settings.companyId, companyId));
 
       if (existingSettings) {
-        console.log(`Storage - updateSettings: Actualizando configuración existente para compañía ${companyId}`);
         
         // Actualizar asegurando que solo se modifique la configuración de esta compañía
         const [updatedSettings] = await db
@@ -684,7 +638,6 @@ export class DatabaseStorage implements IStorage {
           
         return updatedSettings;
       } else {
-        console.log(`Storage - updateSettings: Creando nueva configuración para compañía ${companyId}`);
         
         // Crear nueva configuración para esta compañía específica
         const [newSettings] = await db
@@ -816,7 +769,6 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
     
-    console.log(`Storage - listTrucks: Buscando camiones para compañía ${effectiveCompanyId}`);
     return db
       .select()
       .from(trucks)
@@ -844,8 +796,6 @@ export class DatabaseStorage implements IStorage {
   // Payment methods
   async registerPayment(payment: InsertPayment): Promise<Payment> {
     try {
-      console.log("Storage - registerPayment: Registrando pago:", payment);
-      
       // Obtener el companyId del contexto o del pago
       const companyId = payment.companyId || getCurrentCompanyId();
       
@@ -890,7 +840,6 @@ export class DatabaseStorage implements IStorage {
           )
         ); // Asegurar que solo se actualice la factura de la misma empresa
       
-      console.log("Storage - registerPayment: Pago registrado con ID:", newPayment.id);
       return newPayment;
     } catch (error) {
       console.error("Storage - registerPayment: Error al registrar pago:", error);
@@ -900,14 +849,11 @@ export class DatabaseStorage implements IStorage {
   
   async getPaymentsByInvoice(invoiceId: number): Promise<Payment[]> {
     try {
-      console.log("Storage - getPaymentsByInvoice: Consultando pagos para factura:", invoiceId);
-      
       const result = await db
         .select()
         .from(payments)
         .where(eq(payments.invoiceId, invoiceId));
       
-      console.log(`Storage - getPaymentsByInvoice: ${result.length} pagos encontrados`);
       return result;
     } catch (error) {
       console.error("Storage - getPaymentsByInvoice: Error al consultar pagos:", error);
@@ -974,8 +920,6 @@ export class DatabaseStorage implements IStorage {
 
   async generateOrderFromRecurring(recurringOrderId: any): Promise<Order> {
     try {
-      console.log(`Storage.generateOrderFromRecurring - Recibido ID: ${recurringOrderId}, tipo: ${typeof recurringOrderId}`);
-      
       // Normalización mejorada del ID
       let numericId: number;
       
@@ -1005,12 +949,8 @@ export class DatabaseStorage implements IStorage {
         numericId = Number(recurringOrderId);
       }
       
-      console.log(`Storage.generateOrderFromRecurring - ID normalizado a: ${numericId}`);
-      
       // Validación más permisiva: si es NaN o <= 0, intentamos recuperar
       if (isNaN(numericId) || numericId <= 0) {
-        console.log(`Storage.generateOrderFromRecurring - ID inválido (${numericId}), intentando recuperar ID más reciente`);
-        
         try {
           // Obtener todos los pedidos recurrentes y usar el más reciente
           const { recurringOrdersService } = await import('./recurring-orders');
@@ -1020,13 +960,11 @@ export class DatabaseStorage implements IStorage {
             // Ordenar por ID descendente (suponiendo que IDs más altos son más recientes)
             const sortedOrders = [...allRecurringOrders].sort((a, b) => b.id - a.id);
             numericId = sortedOrders[0].id;
-            console.log(`Storage.generateOrderFromRecurring - Usando el ID más reciente encontrado: ${numericId}`);
           } else {
             // Segunda alternativa: usar el método de servicio
             const latestOrder = await recurringOrdersService.getNewestRecurringOrder();
             if (latestOrder) {
               numericId = latestOrder.id;
-              console.log(`Storage.generateOrderFromRecurring - Usando ID más reciente del servicio: ${numericId}`);
             } else {
               console.error(`No se encontraron pedidos recurrentes en el sistema`);
               throw new Error("No se encontraron pedidos recurrentes en el sistema");
@@ -1040,7 +978,6 @@ export class DatabaseStorage implements IStorage {
       
       // Usar el servicio con el ID normalizado
       const { recurringOrdersService } = await import('./recurring-orders');
-      console.log(`Storage.generateOrderFromRecurring - Llamando al servicio con ID: ${numericId}`);
       return recurringOrdersService.generateOrderFromRecurring(numericId);
     } catch (error) {
       console.error("Error en storage.generateOrderFromRecurring:", error);
