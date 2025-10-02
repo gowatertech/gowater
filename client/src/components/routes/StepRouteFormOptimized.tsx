@@ -925,7 +925,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                     </div>
                   ))}
                 </div>
-              ) : !filteredOrders || filteredOrders.length === 0 ? (
+              ) : !filteredPendingOrders || filteredPendingOrders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-8 text-center">
                   <Package className="h-10 w-10 text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">No hay pedidos pendientes en esta zona</p>
@@ -971,7 +971,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                 </div>
               ) : (
                 <div className="p-3 space-y-2">
-                  {filteredOrders.map(order => (
+                  {filteredPendingOrders.map(order => (
                     <div
                       key={order.id}
                       className={`p-3 border rounded-md cursor-pointer transition-all ${
