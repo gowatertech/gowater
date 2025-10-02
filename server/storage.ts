@@ -183,7 +183,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    const [newCustomer] = await db.insert(customers).values(customer).returning();
+    const [newCustomer] = await db.insert(customers).values([customer]).returning();
     return newCustomer;
   }
 
@@ -223,7 +223,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
+    const [newProduct] = await db.insert(products).values([product]).returning();
     return newProduct;
   }
 
@@ -419,8 +419,7 @@ export class DatabaseStorage implements IStorage {
     const [updatedOrder] = await db
       .update(orders)
       .set({ status })
-      .where(eq(orders.id, id))
-      .where(eq(orders.companyId, companyId || 0))
+      .where(and(eq(orders.id, id), eq(orders.companyId, companyId || 0)))
       .returning();
 
     return updatedOrder;
@@ -428,7 +427,7 @@ export class DatabaseStorage implements IStorage {
 
   // Order Items
   async createOrderItem(orderItem: InsertOrderItem): Promise<OrderItem> {
-    const [newOrderItem] = await db.insert(orderItems).values(orderItem).returning();
+    const [newOrderItem] = await db.insert(orderItems).values([orderItem]).returning();
     return newOrderItem;
   }
 
@@ -450,7 +449,7 @@ export class DatabaseStorage implements IStorage {
   async createCustomerOrder(customerOrder: InsertCustomerOrders): Promise<CustomerOrders> {
     const [newCustomerOrder] = await db
       .insert(customerOrders)
-      .values({
+      .values([{
         customerId: customerOrder.customerId,
         orderType: customerOrder.orderType,
         frequency: customerOrder.frequency,
@@ -460,7 +459,7 @@ export class DatabaseStorage implements IStorage {
         notes: customerOrder.notes,
         lastOrderDate: customerOrder.lastOrderDate ? new Date(customerOrder.lastOrderDate) : null,
         preferredPaymentMethod: customerOrder.preferredPaymentMethod
-      })
+      }])
       .returning();
     return newCustomerOrder;
   }
@@ -767,7 +766,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTruck(truck: InsertTruck): Promise<Truck> {
-    const [newTruck] = await db.insert(trucks).values(truck).returning();
+    const [newTruck] = await db.insert(trucks).values([truck]).returning();
     return newTruck;
   }
 
