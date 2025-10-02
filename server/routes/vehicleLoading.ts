@@ -209,18 +209,38 @@ export async function registerVehicleLoadingRoutes(app: Express) {
       // Validar y verificar los campos antes de crear la carga
       console.log("POST /api/vehicle-loading - Body recibido:", req.body);
 
-      // Asegurarse de que routeId sea un número o null (no undefined)
+      // Validar y convertir los IDs numéricos
+      const truckId = Number(req.body.truckId);
+      const driverId = Number(req.body.driverId);
+      
+      if (isNaN(truckId) || truckId <= 0) {
+        return res.status(400).json({ error: "ID de camión inválido" });
+      }
+      
+      if (isNaN(driverId) || driverId <= 0) {
+        return res.status(400).json({ error: "ID de conductor inválido" });
+      }
+      
+      const assistantId = req.body.assistantId ? Number(req.body.assistantId) : null;
+      if (assistantId !== null && (isNaN(assistantId) || assistantId <= 0)) {
+        return res.status(400).json({ error: "ID de asistente inválido" });
+      }
+      
       const routeId = req.body.routeId !== undefined && req.body.routeId !== null 
         ? Number(req.body.routeId) 
         : null;
       
-      console.log(`routeId recibido: ${req.body.routeId}, convertido a: ${routeId}`);
+      if (routeId !== null && (isNaN(routeId) || routeId <= 0)) {
+        return res.status(400).json({ error: "ID de ruta inválido" });
+      }
+      
+      console.log(`IDs validados - truck: ${truckId}, driver: ${driverId}, assistant: ${assistantId}, route: ${routeId}`);
       
       const [loading] = await db.insert(vehicleLoading).values({
-        truckId: Number(req.body.truckId),
-        driverId: Number(req.body.driverId),
-        assistantId: req.body.assistantId ? Number(req.body.assistantId) : null,
-        routeId: routeId,
+        truckId,
+        driverId,
+        assistantId,
+        routeId,
         status: "pending",
         initialCash: req.body.initialCash,
         notes: req.body.notes,
