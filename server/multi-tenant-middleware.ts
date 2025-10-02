@@ -38,15 +38,10 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
   if (!req.session.companyId) {
     // Para rutas de API que requieren autenticación, devolver error
     if (req.path.startsWith('/api/') && !req.path.startsWith('/api/public/')) {
-      console.log(`[Tenant Middleware] No hay companyId en sesión para ruta de API: ${req.path}`);
       return res.status(401).json({ message: "No autenticado" });
     }
-    
-    // Para rutas de páginas, seguir sin companyId (se manejará por otra vía)
-    console.log(`[Tenant Middleware] No hay companyId en sesión. Continuando sin empresa.`);
   } else {
     // IMPORTANTE: Sincronizar el companyId con el asyncLocalStorage para getCurrentCompanyId()
-    console.log(`[Tenant Middleware] Usando companyId de sesión: ${req.session.companyId}`);
     setCurrentCompanyId(req.session.companyId);
   }
   
@@ -66,7 +61,6 @@ export function checkRoleMiddleware(allowedRoles: string[]) {
     
     // Verificar si el rol del usuario está permitido
     if (!allowedRoles.includes(req.session.user.role)) {
-      console.log(`Auth middleware: Rol no permitido: ${req.session.user.role}`);
       return res.status(403).json({ message: "Acceso denegado - Rol no autorizado" });
     }
     

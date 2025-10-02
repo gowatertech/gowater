@@ -13,10 +13,8 @@ export function getCurrentCompanyId(): number | undefined {
 // Helper para configurar el companyId en el contexto
 export function setCurrentCompanyId(companyId: number | undefined): void {
   if (companyId === undefined) {
-    console.log(`Limpiando companyId del contexto`);
     asyncLocalStorage.delete('companyId');
   } else {
-    console.log(`Configurando companyId=${companyId} en el contexto`);
     asyncLocalStorage.set('companyId', companyId);
   }
 }
@@ -78,8 +76,6 @@ export function withCompany(query: any): any {
       console.warn("No se pudo determinar el nombre de la tabla:", tableError);
     }
     
-    console.log(`SELECT en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
-    
     // Verificar si la consulta tiene el método where
     if (typeof query.where !== 'function') {
       console.warn(`Advertencia: La consulta no tiene método where() disponible. Tipo de consulta: ${typeof query}`);
@@ -131,19 +127,13 @@ export function withCompanyInsert(table: any, values: any | any[]): any {
     return db.insert(table).values(values);
   }
   
-  // Obtener el nombre de la tabla para los logs
-  const tableName = table?.config?.name || 'unknown_table';
-  console.log(`INSERT en tabla ${tableName} - Aplicando companyId = ${companyId}`);
-  
   try {
     // Añadir companyId a cada valor a insertar
     if (Array.isArray(values)) {
       // Para inserciones múltiples
-      console.log(`Inserción múltiple (${values.length} registros) con companyId = ${companyId}`);
       const valuesWithCompany = values.map(value => {
         // No sobrescribir companyId si ya viene en los datos
         if (value.companyId !== undefined) {
-          console.log(`AVISO: companyId ya viene en los datos de inserción: ${value.companyId}`);
           return value;
         }
         return { ...value, companyId };
@@ -153,13 +143,12 @@ export function withCompanyInsert(table: any, values: any | any[]): any {
       // Para inserción simple
       // No sobrescribir companyId si ya viene en los datos
       if (values.companyId !== undefined) {
-        console.log(`AVISO: companyId ya viene en los datos de inserción: ${values.companyId}`);
         return db.insert(table).values(values);
       }
-      console.log(`Inserción simple con companyId = ${companyId}`);
       return db.insert(table).values({ ...values, companyId });
     }
   } catch (error) {
+    const tableName = table?.config?.name || 'unknown_table';
     console.error(`Error en withCompanyInsert para tabla ${tableName}:`, error);
     // En caso de error, intentar la inserción sin modificar
     return db.insert(table).values(values);
@@ -175,10 +164,6 @@ export function withCompanyUpdate(table: any, values: any): any {
     return db.update(table).set(values);
   }
   
-  // Obtener el nombre de la tabla para los logs
-  const tableName = table?.config?.name || 'unknown_table';
-  console.log(`UPDATE en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
-  
   try {
     // No sobrescribir companyId si ya viene en los datos (generalmente no debería ocurrir en updates)
     if (values.companyId !== undefined && values.companyId !== companyId) {
@@ -191,6 +176,7 @@ export function withCompanyUpdate(table: any, values: any): any {
     // Retornar la consulta de actualización, pero limitada a la compañía actual
     return db.update(table).set(values).where(sql`company_id = ${companyId}`);
   } catch (error) {
+    const tableName = table?.config?.name || 'unknown_table';
     console.error(`Error en withCompanyUpdate para tabla ${tableName}:`, error);
     // En caso de error, intentar la actualización sin filtro
     return db.update(table).set(values);
@@ -206,14 +192,11 @@ export function withCompanyDelete(table: any): any {
     return db.delete(table);
   }
   
-  // Obtener el nombre de la tabla para los logs
-  const tableName = table?.config?.name || 'unknown_table';
-  console.log(`DELETE en tabla ${tableName} - Aplicando filtro companyId = ${companyId}`);
-  
   try {
     // Retornar la consulta de eliminación, pero limitada a la compañía actual
     return db.delete(table).where(sql`company_id = ${companyId}`);
   } catch (error) {
+    const tableName = table?.config?.name || 'unknown_table';
     console.error(`Error en withCompanyDelete para tabla ${tableName}:`, error);
     // En caso de error, intentar la eliminación sin filtro
     return db.delete(table);
@@ -230,7 +213,6 @@ export const companyDb = {
     try {
       // Capturar los argumentos y pasarlos a db.select
       const args = Array.from(arguments);
-      console.log("companyDb.select - argumentos:", args.length);
       
       // Implementar lógicamente el método select para evitar errores
       let query;
