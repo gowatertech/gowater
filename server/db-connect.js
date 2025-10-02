@@ -1,5 +1,6 @@
 // Módulo para conectarse a la base de datos
-import { Pool } from 'pg';
+import pg from 'pg';
+const { Pool } = pg;
 import { getCurrentCompanyId, setCurrentCompanyId } from './company-db.js';
 
 // Configuración de conexión a la BD
