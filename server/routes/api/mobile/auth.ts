@@ -105,10 +105,13 @@ export function createMobileAuthRoutes(): Router {
       }
       
       // Crear objeto de usuario sin la contraseña para la sesión
-      const { password: pwd, ...userWithoutPassword } = user;
+      const { password: pwd, email, ...userWithoutPassword } = user;
       
       // Guardar información del usuario y companyId en la sesión
-      req.session.user = userWithoutPassword;
+      req.session.user = {
+        ...userWithoutPassword,
+        email: email || undefined
+      };
       // Asegurar que usamos la propiedad correcta para el ID de empresa
       // En la DB es company_id pero en el esquema es companyId
       req.session.companyId = user.companyId || (user as any).company_id;

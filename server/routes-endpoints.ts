@@ -57,7 +57,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
             const result = await client.query(query, [companyId]);
             
             // Procesar resultados para crear objetos anidados
-            const formattedOrders = result.rows.map(row => {
+            const formattedOrders = result.rows.map((row: any) => {
               // Crear objeto cliente si existe
               const customer = row['customer.id'] ? {
                 id: row['customer.id'],
@@ -75,7 +75,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
             });
             
             console.log(`GET /api/recurring-orders - Consulta directa encontró ${formattedOrders.length} pedidos`);
-            formattedOrders.forEach(order => {
+            formattedOrders.forEach((order: any) => {
               console.log(`- DB Direct #${order.id}: ${order.name}, Cliente: ${order.customer?.name || 'Sin cliente'}`);
             });
             
@@ -242,7 +242,7 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
           // Intentar crear el pedido directamente en la base de datos
           const [directInsertedOrder] = await db
             .insert(recurringOrders)
-            .values(parseResult.data)
+            .values([parseResult.data])
             .returning();
           
           if (directInsertedOrder) {

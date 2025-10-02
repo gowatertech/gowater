@@ -5,10 +5,10 @@ declare module 'express-session' {
     user?: {
       id: number;
       name: string;
-      email: string;
+      email?: string;
       role: string;
-      companyId: number;
-      active: boolean;
+      companyId?: number;
+      isPlatformUser?: boolean;
       username?: string;
       // Otros campos del usuario (sin contraseña)
     };

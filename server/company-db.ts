@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import { db } from './db';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 
 // Contexto para guardar el companyId de la sesión actual
 const asyncLocalStorage = new Map<string, number>();
