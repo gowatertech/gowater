@@ -56,7 +56,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
       console.log("Submitting data:", data);
-      // Usar el nuevo formato de apiRequest con objeto
+      // No enviar companyId - el servidor lo obtendrá de la sesión
       return await apiRequest({
         method: "POST", 
         url: "/api/routes", 
@@ -67,8 +67,7 @@ export default function NewRouteForm({ onRouteCreated }: NewRouteFormProps) {
           zoneId: Number(data.zoneId),
           truckId: 1,
           status: "pending",
-          isCompleted: false,
-          companyId: 0 // Este valor será sobrescrito por el backend
+          isCompleted: false
         }
       });
     },

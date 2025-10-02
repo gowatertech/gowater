@@ -32,11 +32,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
-// Definición del esquema para validación
+// Definición del esquema para validación (sin companyId, se obtiene del servidor)
 const routeSchema = z.object({
   name: z.string().min(1, "Nombre es requerido"),
   driverId: z.coerce.number().positive("Conductor es requerido"),
-  companyId: z.coerce.number().positive("Compañía es requerida"),
   zoneId: z.coerce.number().positive("Zona es requerida"),
   assistantId: z.union([z.coerce.number(), z.literal(null)]).nullable(),
   truckId: z.union([z.coerce.number(), z.literal(null)]).nullable(),
@@ -78,14 +77,13 @@ export default function RouteFormFixed({ onRouteCreated }: RouteFormFixedProps) 
     queryKey: ["/api/trucks"],
   });
   
-  // Inicializar formulario
+  // Inicializar formulario (sin companyId)
   const form = useForm<RouteFormValues>({
     resolver: zodResolver(routeSchema),
     defaultValues: {
       name: `Ruta ${new Date().toLocaleDateString()}`,
       driverId: 0,
       assistantId: null,
-      companyId: 15, // Valor predeterminado
       zoneId: 0,
       truckId: null,
       date: new Date(),
