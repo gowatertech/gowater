@@ -78,12 +78,20 @@ const formatTimeDifference = (startDate: Date, endDate: Date): string => {
   const diffInMs = endDate.getTime() - startDate.getTime();
   const diffInMin = Math.floor(diffInMs / 60000);
   
+  if (diffInMin <= 0) {
+    return '0 min';
+  }
+  
   if (diffInMin < 60) {
     return `${diffInMin} min`;
   }
   
   const hours = Math.floor(diffInMin / 60);
   const minutes = diffInMin % 60;
+  
+  if (minutes === 0) {
+    return `${hours}h`;
+  }
   
   return `${hours}h ${minutes}m`;
 };

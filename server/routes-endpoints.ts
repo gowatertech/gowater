@@ -17,6 +17,11 @@ export const createRecurringOrdersEndpoints = (router: Router) => {
       console.log(`GET /api/recurring-orders - Usuario en sesión: ${JSON.stringify(sessionUser || 'No hay sesión')}`);
       console.log(`GET /api/recurring-orders - CompanyId en sesión: ${companyId || 'No definido'}`);
       
+      // Verificar que tengamos un companyId válido para multi-tenancy
+      if (!companyId) {
+        console.warn(`GET /api/recurring-orders - ADVERTENCIA: No se encontró companyId en la sesión. Esto podría causar problemas de aislamiento de datos.`);
+      }
+      
       // Mejorar los datos para el frontend haciendo una consulta directa
       if (companyId) {
         try {
