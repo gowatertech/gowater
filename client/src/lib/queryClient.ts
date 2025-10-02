@@ -70,7 +70,7 @@ export async function apiRequest(
     console.log(`[apiRequest] Respuesta recibida de ${fullUrl}:`, {
       status: res.status,
       statusText: res.statusText,
-      headers: Object.fromEntries([...res.headers]),
+      contentType: res.headers.get('content-type'),
     });
 
     if (!res.ok) {
@@ -87,13 +87,16 @@ export async function apiRequest(
       }
     }
     
-    // Intentar analizar la respuesta como JSON, si falla, devolver la respuesta directa
+    // Leer la respuesta como texto primero para evitar el error "body stream already read"
+    const textResponse = await res.text();
+    
+    // Intentar analizar la respuesta como JSON
     try {
-      const jsonResponse = await res.json();
+      const jsonResponse = JSON.parse(textResponse);
       console.log(`[apiRequest] Respuesta JSON de ${fullUrl}:`, jsonResponse);
       return jsonResponse;
     } catch (e) {
-      const textResponse = await res.text();
+      // Si no es JSON válido, devolver el texto tal cual
       console.log(`[apiRequest] Respuesta texto de ${fullUrl}:`, 
         textResponse.length > 100 ? `${textResponse.substring(0, 100)}...` : textResponse);
       return textResponse;
