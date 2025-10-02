@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
 import { getCurrentCompanyId } from '../company-db';
+import { safeParseInt, isPositiveInteger } from '../utils/validation';
 
 // Router para manejar órdenes
 const ordersRouter = express.Router();
@@ -75,7 +76,7 @@ ordersRouter.get("/api/orders", authMiddleware, async (req: Request, res: Respon
       paymentMethod: order.payment_method,
       date: order.date,
       notes: order.notes,
-      itemsCount: parseInt(order.items_count || '0')
+      itemsCount: safeParseInt(order.items_count, 0)
     }));
     
     res.json(orders);
@@ -87,9 +88,9 @@ ordersRouter.get("/api/orders", authMiddleware, async (req: Request, res: Respon
 
 // Endpoint para obtener una orden específica con sus detalles
 ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, res: Response) => {
-  const orderId = parseInt(req.params.orderId);
+  const orderId = safeParseInt(req.params.orderId, -1);
   
-  if (!orderId || isNaN(orderId)) {
+  if (!isPositiveInteger(orderId)) {
     return res.status(400).json({ error: "ID de orden inválido" });
   }
   
@@ -192,9 +193,9 @@ ordersRouter.get("/api/orders/:orderId", authMiddleware, async (req: Request, re
 
 // Endpoint para obtener items de una orden específica
 ordersRouter.get("/api/orders/:orderId/items", authMiddleware, async (req: Request, res: Response) => {
-  const orderId = parseInt(req.params.orderId);
+  const orderId = safeParseInt(req.params.orderId, -1);
   
-  if (!orderId || isNaN(orderId)) {
+  if (!isPositiveInteger(orderId)) {
     return res.status(400).json({ error: "ID de orden inválido" });
   }
   
@@ -283,8 +284,13 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
       throw new Error("Autenticación requerida: Debe iniciar sesión para crear pedidos");
     }
     
+    const customerId = safeParseInt(req.body.customerId, -1);
+    if (!isPositiveInteger(customerId)) {
+      throw new Error("ID de cliente inválido");
+    }
+    
     const orderData = {
-      customerId: parseInt(req.body.customerId),
+      customerId,
       total: req.body.total,
       status: req.body.status || "pending",
       paymentMethod: req.body.paymentMethod || "cash",

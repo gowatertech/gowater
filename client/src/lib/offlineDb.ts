@@ -109,6 +109,14 @@ export async function initDatabase(): Promise<void> {
 
 // Guardar un elemento en un store
 export async function saveItem(storeName: string, item: any): Promise<any> {
+  if (!storeName || typeof storeName !== 'string') {
+    throw new Error('El nombre del store es requerido');
+  }
+  
+  if (!item) {
+    throw new Error('El elemento a guardar es requerido');
+  }
+  
   await initDatabase();
   
   return new Promise((resolve, reject) => {
@@ -120,6 +128,16 @@ export async function saveItem(storeName: string, item: any): Promise<any> {
     try {
       const transaction = db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);
+      
+      transaction.onerror = () => {
+        console.error(`Error en transacción para ${storeName}`);
+        reject(new Error(`Error en transacción para ${storeName}`));
+      };
+      
+      transaction.onabort = () => {
+        console.error(`Transacción abortada para ${storeName}`);
+        reject(new Error(`Transacción abortada para ${storeName}`));
+      };
       
       const request = store.put(item);
       
@@ -140,6 +158,14 @@ export async function saveItem(storeName: string, item: any): Promise<any> {
 
 // Obtener un elemento por su ID
 export async function getItem(storeName: string, id: number | string): Promise<any> {
+  if (!storeName || typeof storeName !== 'string') {
+    throw new Error('El nombre del store es requerido');
+  }
+  
+  if (id === null || id === undefined) {
+    throw new Error('El ID es requerido');
+  }
+  
   await initDatabase();
   
   return new Promise((resolve, reject) => {
@@ -151,6 +177,11 @@ export async function getItem(storeName: string, id: number | string): Promise<a
     try {
       const transaction = db.transaction(storeName, 'readonly');
       const store = transaction.objectStore(storeName);
+      
+      transaction.onerror = () => {
+        console.error(`Error en transacción para ${storeName}`);
+        reject(new Error(`Error en transacción para ${storeName}`));
+      };
       
       const request = store.get(id);
       
@@ -171,6 +202,14 @@ export async function getItem(storeName: string, id: number | string): Promise<a
 
 // Eliminar un elemento
 export async function deleteItem(storeName: string, id: number | string): Promise<void> {
+  if (!storeName || typeof storeName !== 'string') {
+    throw new Error('El nombre del store es requerido');
+  }
+  
+  if (id === null || id === undefined) {
+    throw new Error('El ID es requerido');
+  }
+  
   await initDatabase();
   
   return new Promise((resolve, reject) => {
@@ -182,6 +221,16 @@ export async function deleteItem(storeName: string, id: number | string): Promis
     try {
       const transaction = db.transaction(storeName, 'readwrite');
       const store = transaction.objectStore(storeName);
+      
+      transaction.onerror = () => {
+        console.error(`Error en transacción para ${storeName}`);
+        reject(new Error(`Error en transacción para ${storeName}`));
+      };
+      
+      transaction.onabort = () => {
+        console.error(`Transacción abortada para ${storeName}`);
+        reject(new Error(`Transacción abortada para ${storeName}`));
+      };
       
       const request = store.delete(id);
       
@@ -202,6 +251,10 @@ export async function deleteItem(storeName: string, id: number | string): Promis
 
 // Obtener todos los elementos de un store
 export async function getAllItems(storeName: string): Promise<any[]> {
+  if (!storeName || typeof storeName !== 'string') {
+    throw new Error('El nombre del store es requerido');
+  }
+  
   await initDatabase();
   
   return new Promise((resolve, reject) => {
@@ -213,6 +266,11 @@ export async function getAllItems(storeName: string): Promise<any[]> {
     try {
       const transaction = db.transaction(storeName, 'readonly');
       const store = transaction.objectStore(storeName);
+      
+      transaction.onerror = () => {
+        console.error(`Error en transacción para ${storeName}`);
+        reject(new Error(`Error en transacción para ${storeName}`));
+      };
       
       const request = store.getAll();
       
