@@ -1,16 +1,84 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
+import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { ChevronLeft, Calendar, User, Truck, MapPin } from "lucide-react";
+import { ChevronLeft, Milestone, Timer, Map as MapIcon, LineChart, Route as RouteIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
+import RouteMap from "@/components/routes/RouteMap";
+import RouteStats from "@/components/routes/RouteStats";
+import RouteTimeline from "@/components/routes/RouteTimeline";
+import RouteSummary from "@/components/routes/RouteSummary";
 import { getStatusLabel, getStatusColor } from "@/lib/status-colors";
+
+// Define la interfaz para la ruta con información extendida
+// Interfaz para adaptar los tipos esperados por los componentes
+interface RouteComponent {
+  id: number;
+  name: string;
+  driverId: number;
+  assistantId: number | null;
+  truckId: number | null;
+  zoneId: number | null;
+  isCompleted: boolean;
+  date: Date;
+  status: "pending" | "in_progress" | "completed";
+  currentLocation: string | null;
+  lastUpdate: Date | null;
+  deliverySequence: string[] | null;
+  estimatedDuration: number | null;
+  actualDuration: number | null;
+  totalDistance: string | null;
+  completion: number | null;
+  orderUpdates: string[] | null;
+  stops: string[] | null;
+  driverStartedAt: Date | null;
+  driverCompletedAt: Date | null;
+  driverEndedAt: Date | null;  // Campo necesario para compatibilidad con componentes
+  startTime: Date | null;
+  endTime: Date | null;
+  totalRevenue: string | null;
+  comments: string | null;
+}
+
+// Función adaptadora para convertir los tipos
+function adaptRouteForComponent(route: RouteDetails): RouteComponent {
+  // Crear una versión segura con campos obligatorios explícitamente definidos
+  return {
+    id: route.id,
+    name: route.name,
+    driverId: route.driverId,
+    assistantId: route.assistantId,
+    truckId: route.truckId,
+    zoneId: route.zoneId,
+    isCompleted: route.isCompleted,
+    date: route.date,
+    status: route.status,
+    currentLocation: route.currentLocation,
+    lastUpdate: route.lastUpdate,
+    deliverySequence: route.deliverySequence,
+    estimatedDuration: route.estimatedDuration,
+    actualDuration: route.actualDuration,
+    totalDistance: route.totalDistance ? String(route.totalDistance) : "0",
+    completion: route.completion,
+    orderUpdates: route.orderUpdates,
+    stops: route.stops,
+    driverStartedAt: route.driverStartedAt,
+    driverCompletedAt: route.driverCompletedAt,
+    driverEndedAt: route.driverCompletedAt, // Campo para compatibilidad
+    startTime: route.startTime,
+    endTime: route.endTime,
+    totalRevenue: route.totalRevenue || "0.00",
+    comments: route.comments,
+  };
+}
 
 interface RouteDetails {
   id: number;
@@ -22,21 +90,33 @@ interface RouteDetails {
   truckId: number | null;
   truckDetails?: string | null;
   zoneId: number | null;
-  zoneName?: string | null;
   isCompleted: boolean;
   date: Date;
   status: "pending" | "in_progress" | "completed";
-  stops: string[] | null;
+  currentLocation: string | null;
+  lastUpdate: Date | null;
+  deliverySequence: string[] | null; // Cambiado de number[] para compatibilidad
+  estimatedDuration: number | null;
+  actualDuration: number | null;
   totalDistance: number | null;
+  completion: number | null;
+  orderUpdates: string[] | null;
+  stops: string[] | null;
   driverStartedAt: Date | null;
   driverCompletedAt: Date | null;
+  // Campos adicionales que necesitan los componentes
+  startTime: Date | null;
+  endTime: Date | null;
+  totalRevenue: string | null;
   comments: string | null;
 }
 
 export default function RouteDetails() {
+  const { t } = useTranslation();
   const [, setLocation] = useLocation();
   const { id } = useParams();
   const routeId = parseInt(id || "0");
+  const [activeTab, setActiveTab] = useState("map");
   
   // Redireccionar si el ID no es válido
   useEffect(() => {
@@ -54,189 +134,245 @@ export default function RouteDetails() {
         throw new Error("Error al cargar los detalles de la ruta");
       }
       const data = await response.json();
+      // Convertir deliverySequence a string[] si viene como number[]
+      let formattedData = { ...data };
+      if (Array.isArray(data.deliverySequence)) {
+        formattedData.deliverySequence = data.deliverySequence.map(String);
+      }
 
       return {
-        ...data,
+        ...formattedData,
         date: new Date(data.date),
+        lastUpdate: data.lastUpdate ? new Date(data.lastUpdate) : null,
         driverStartedAt: data.driverStartedAt ? new Date(data.driverStartedAt) : null,
         driverCompletedAt: data.driverCompletedAt ? new Date(data.driverCompletedAt) : null,
+        // Campos adicionales necesarios para los componentes
+        startTime: data.driverStartedAt ? new Date(data.driverStartedAt) : null,
+        endTime: data.driverCompletedAt ? new Date(data.driverCompletedAt) : null,
+        // Asegurar que totalRevenue siempre tenga un valor válido con formato adecuado
+        totalRevenue: data.totalRevenue ? Number(data.totalRevenue).toFixed(2) : "0.00",
+        comments: data.comments,
       };
     },
     enabled: routeId > 0,
   });
 
-  // Estado de carga
+  // Renderizar estado de carga
   if (isLoading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="container p-4">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <Skeleton className="h-8 w-32 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <div className="space-y-4">
+          <Skeleton className="h-64 w-full rounded-lg" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Error
+  // Renderizar error
   if (error || !route) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-12 text-center">
-            <p className="text-destructive mb-4">
-              {error instanceof Error ? error.message : "Error al cargar la ruta"}
-            </p>
-            <Button variant="outline" asChild>
-              <Link href="/routes">
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Volver
-              </Link>
-            </Button>
-          </CardContent>
+      <div className="container p-4">
+        <Card className="p-6">
+          <CardTitle className="text-xl mb-2">{t("error")}</CardTitle>
+          <CardDescription>
+            {error instanceof Error ? error.message : t("errorLoadingRoute")}
+          </CardDescription>
+          <Button 
+            variant="secondary" 
+            onClick={() => setLocation("/routes")}
+            className="mt-4"
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            {t("back")}
+          </Button>
         </Card>
       </div>
     );
   }
 
+  // Función para mostrar el estado con el color adecuado
+  const getStatusBadge = () => {
+    return <Badge className={getStatusColor(route.status)}>{getStatusLabel(route.status)}</Badge>;
+  };
+
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-start">
+    <div className="container p-4">
+      {/* Encabezado */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold mb-2">{route.name}</h1>
-          <div className="flex items-center gap-3">
-            <Badge className={getStatusColor(route.status)}>
-              {getStatusLabel(route.status)}
-            </Badge>
-            <span className="text-muted-foreground">ID: #{route.id}</span>
+          <h1 className="text-2xl font-bold mb-1">{route.name} <span className="text-lg text-muted-foreground">#{route.id}</span></h1>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RouteIcon className="h-4 w-4" />
+            <span>{t("driver")}: <strong>{route.driverName || "-"}</strong></span>
+            {route.assistantName && (
+              <>
+                <span>•</span>
+                <span>{t("assistant")}: <strong>{route.assistantName}</strong></span>
+              </>
+            )}
+            {route.truckDetails && (
+              <>
+                <span>•</span>
+                <span>{t("vehicle")}: <strong>{route.truckDetails}</strong></span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <Milestone className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {format(new Date(route.date), "dd/MM/yyyy")}
+            </span>
+            <span className="ml-2">{getStatusBadge()}</span>
+            {route.driverStartedAt && (
+              <span className="text-xs text-muted-foreground ml-2">
+                {t("started")}: {format(new Date(route.driverStartedAt), "HH:mm")}
+              </span>
+            )}
           </div>
         </div>
         <Button variant="outline" asChild>
           <Link href="/routes">
             <ChevronLeft className="h-4 w-4 mr-2" />
-            Volver
+            {t("back")}
           </Link>
         </Button>
       </div>
-
-      {/* Información principal */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Fecha */}
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/10 rounded-full">
-                <Calendar className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Fecha</p>
-                <p className="font-semibold">
-                  {format(new Date(route.date), 'dd/MM/yyyy', { locale: es })}
-                </p>
-              </div>
-            </div>
-
-            {/* Conductor */}
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-primary/10 rounded-full">
-                <User className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Conductor</p>
-                <p className="font-semibold">{route.driverName || `ID: ${route.driverId}`}</p>
-              </div>
-            </div>
-
-            {/* Asistente */}
-            {route.assistantId && (
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <User className="h-5 w-5 text-primary" />
+      
+      {/* Pestañas */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="map" className="gap-2">
+            <MapIcon className="h-4 w-4" />
+            <span>{t("map")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="stats" className="gap-2">
+            <LineChart className="h-4 w-4" />
+            <span>{t("statistics")}</span>
+          </TabsTrigger>
+          <TabsTrigger value="timeline" className="gap-2">
+            <Timer className="h-4 w-4" />
+            <span>{t("timeline")}</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        {/* Contenido de Mapa */}
+        <TabsContent value="map" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("map")}</CardTitle>
+              <CardDescription>
+                {route.stops?.length 
+                  ? t("stops") + ": " + route.stops.length
+                  : t("noStopsPlanned")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RouteMap 
+                route={adaptRouteForComponent(route)} 
+                className="h-[60vh]" 
+              />
+            </CardContent>
+          </Card>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{t("totalDistance")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {route.totalDistance ? `${(route.totalDistance / 1000).toFixed(2)} km` : '0.00 km'}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Asistente</p>
-                  <p className="font-semibold">{route.assistantName || `ID: ${route.assistantId}`}</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{t("estimatedDuration")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {route.estimatedDuration 
+                    ? `${Math.floor(route.estimatedDuration / 60)}h ${route.estimatedDuration % 60}m` 
+                    : '0h 0m'}
                 </div>
-              </div>
-            )}
-
-            {/* Vehículo */}
-            {route.truckId && (
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <Truck className="h-5 w-5 text-primary" />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{t("actualDuration")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {route.actualDuration 
+                    ? `${Math.floor(route.actualDuration / 60)}h ${route.actualDuration % 60}m` 
+                    : '0h 0m'}
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Vehículo</p>
-                  <p className="font-semibold">{route.truckDetails || `ID: ${route.truckId}`}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Paradas */}
-            {route.stops && route.stops.length > 0 && (
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <MapPin className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Paradas</p>
-                  <p className="font-semibold">{route.stops.length} paradas</p>
-                </div>
-              </div>
-            )}
-
-            {/* Distancia */}
-            {route.totalDistance && (
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <MapPin className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Distancia Total</p>
-                  <p className="font-semibold">{route.totalDistance} km</p>
-                </div>
-              </div>
-            )}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Tiempos */}
-      {(route.driverStartedAt || route.driverCompletedAt) && (
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-4">Tiempos</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {route.driverStartedAt && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Inicio</p>
-                  <p className="font-semibold">
-                    {format(new Date(route.driverStartedAt), 'dd/MM/yyyy HH:mm', { locale: es })}
-                  </p>
-                </div>
-              )}
-              {route.driverCompletedAt && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Finalización</p>
-                  <p className="font-semibold">
-                    {format(new Date(route.driverCompletedAt), 'dd/MM/yyyy HH:mm', { locale: es })}
-                  </p>
-                </div>
-              )}
+        </TabsContent>
+        
+        {/* Contenido de Estadísticas */}
+        <TabsContent value="stats" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("routeStatistics")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RouteStats 
+                route={adaptRouteForComponent(route)} 
+                className="h-[40vh]" 
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Contenido de Línea de Tiempo */}
+        <TabsContent value="timeline" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("deliveryTimeline")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RouteTimeline 
+                    route={adaptRouteForComponent(route)} 
+                    className="h-[50vh]" 
+                  />
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Comentarios */}
-      {route.comments && (
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-2">Comentarios</h3>
-            <p className="text-muted-foreground">{route.comments}</p>
-          </CardContent>
-        </Card>
-      )}
+            
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("routeSummary")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RouteSummary
+                    route={adaptRouteForComponent(route)}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
