@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
@@ -13,6 +13,8 @@ import {
 
 export function LandingHeader() {
   const [location] = useLocation();
+  const [isAccesosOpen, setIsAccesosOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Helper function to determine if a link is active
   const isActive = (path: string) => {
@@ -20,6 +22,23 @@ export function LandingHeader() {
     if (path !== "/" && location.startsWith(path)) return true;
     return false;
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsAccesosOpen(false);
+      }
+    };
+
+    if (isAccesosOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isAccesosOpen]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -147,33 +166,52 @@ export function LandingHeader() {
 
         {/* Action buttons */}
         <div className="hidden md:flex gap-4 items-center">
-          <div className="relative group">
-            <Button variant="ghost" className="group-hover:bg-accent">
+          <div className="relative" ref={dropdownRef}>
+            <Button 
+              variant="ghost" 
+              className={isAccesosOpen ? "bg-accent" : ""}
+              onClick={() => setIsAccesosOpen(!isAccesosOpen)}
+              data-testid="button-accesos"
+            >
               Accesos <ChevronDown className="ml-1 h-4 w-4 opacity-70" />
             </Button>
-            <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-md opacity-0 -translate-y-1 invisible group-hover:opacity-100 group-hover:translate-y-0 group-hover:visible transition-all duration-200 py-1">
-              <Link href="/auth/login">
-                <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer">
-                  <Building2 className="h-4 w-4 text-primary" />
-                  <span>Iniciar sesión</span>
-                </div>
-              </Link>
-              <Link href="/platform/login">
-                <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer">
-                  <ServerCog className="h-4 w-4 text-amber-600" />
-                  <span>Administración</span>
-                </div>
-              </Link>
-              <Link href="/mobile-app/login">
-                <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer">
-                  <Smartphone className="h-4 w-4 text-emerald-600" />
-                  <span>App Móvil</span>
-                </div>
-              </Link>
-            </div>
+            {isAccesosOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-border bg-card shadow-md py-1 animate-in fade-in-0 zoom-in-95 slide-in-from-top-2">
+                <Link href="/auth/login">
+                  <div 
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                    onClick={() => setIsAccesosOpen(false)}
+                    data-testid="link-iniciar-sesion"
+                  >
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span>Iniciar sesión</span>
+                  </div>
+                </Link>
+                <Link href="/platform/login">
+                  <div 
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                    onClick={() => setIsAccesosOpen(false)}
+                    data-testid="link-administracion"
+                  >
+                    <ServerCog className="h-4 w-4 text-amber-600" />
+                    <span>Administración</span>
+                  </div>
+                </Link>
+                <Link href="/mobile-app/login">
+                  <div 
+                    className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                    onClick={() => setIsAccesosOpen(false)}
+                    data-testid="link-app-movil"
+                  >
+                    <Smartphone className="h-4 w-4 text-emerald-600" />
+                    <span>App Móvil</span>
+                  </div>
+                </Link>
+              </div>
+            )}
           </div>
           <Link href="/register-interest">
-            <Button>Registrar interés</Button>
+            <Button data-testid="button-registrar-interes">Registrar interés</Button>
           </Link>
         </div>
       </div>
