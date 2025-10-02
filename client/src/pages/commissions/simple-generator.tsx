@@ -40,7 +40,11 @@ const SimpleCommissionGenerator = () => {
       };
       
       if (userId) {
-        data.userId = parseInt(userId);
+        const parsedUserId = parseInt(userId, 10);
+        if (isNaN(parsedUserId)) {
+          throw new Error('ID de usuario inválido');
+        }
+        data.userId = parsedUserId;
       }
       
       console.log('Datos a enviar:', data);
@@ -54,7 +58,12 @@ const SimpleCommissionGenerator = () => {
         body: JSON.stringify(data)
       });
       
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        throw new Error('Respuesta del servidor inválida');
+      }
       
       // Manejar la respuesta
       if (!response.ok) {

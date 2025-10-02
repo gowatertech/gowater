@@ -88,12 +88,22 @@ const formatTimeDifference = (startDate: Date, endDate: Date): string => {
   return `${hours}h ${minutes}m`;
 };
 
-// Conversor string a número
-const toNumber = (value: string | number): number => {
-  if (typeof value === 'string') {
-    return parseFloat(value) || 0;
+// Conversor string a número con validación robusta
+const toNumber = (value: string | number | null | undefined): number => {
+  if (value === null || value === undefined) {
+    return 0;
   }
-  return value;
+  
+  if (typeof value === 'number') {
+    return isNaN(value) ? 0 : value;
+  }
+  
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  
+  return 0;
 };
 
 export default function DriverRoute() {

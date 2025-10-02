@@ -29,7 +29,11 @@ export default function BasicCommissionForm() {
       
       // Añadir userId si está presente
       if (userId) {
-        data.userId = parseInt(userId);
+        const parsedUserId = parseInt(userId, 10);
+        if (isNaN(parsedUserId)) {
+          throw new Error('ID de usuario inválido');
+        }
+        data.userId = parsedUserId;
       }
       
       console.log('Enviando datos:', data);
@@ -44,7 +48,12 @@ export default function BasicCommissionForm() {
       });
       
       // Procesar respuesta
-      const resultData = await response.json();
+      let resultData;
+      try {
+        resultData = await response.json();
+      } catch (jsonError) {
+        throw new Error('Respuesta del servidor inválida');
+      }
       console.log('Respuesta recibida:', resultData);
       
       if (!response.ok) {
