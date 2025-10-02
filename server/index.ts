@@ -186,11 +186,6 @@ companyApiRouter.use(consolidatedCompanyMiddleware);
 // Nuestro nuevo middleware de autenticación de compañía
 companyApiRouter.use(companyAuthMiddleware);
 
-// Montamos los routers en sus respectivas rutas
-app.use("/api/platform", platformApiRouter);
-app.use("/api/geo", geoDataApiRouter); // Para datos geográficos sin autenticación
-app.use("/api", companyApiRouter);
-
 // Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -239,6 +234,12 @@ app.use((req, res, next) => {
     // Register regular API routes for company operations
     await registerRoutes(companyApiRouter);
     log("Company routes registered successfully");
+    
+    // Montamos los routers en sus respectivas rutas DESPUÉS de registrar las rutas
+    app.use("/api/platform", platformApiRouter);
+    app.use("/api/geo", geoDataApiRouter);
+    app.use("/api", companyApiRouter);
+    log("All routers mounted successfully");
     
     // Usar el router de órdenes personalizado con el middleware consolidado
     app.use(consolidatedCompanyMiddleware, ordersRouter);
