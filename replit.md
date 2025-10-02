@@ -6,6 +6,25 @@ GoWater is a comprehensive multi-tenant water delivery management system that ha
 
 The application is built as a full-stack TypeScript solution with a React frontend and Express backend, using PostgreSQL as the primary database with Drizzle ORM for type-safe database operations.
 
+## Recent Changes
+
+### User Creation Email Validation Fix (October 2025)
+**Issue**: User creation form silently failed when email field was left empty due to Zod validation rejecting empty strings with `.email().optional()`.
+
+**Solution**: 
+- Updated `insertUserSchema` email field to use `z.union([z.string().email(), z.literal("")]).optional()` which properly validates:
+  - Empty strings (`""`) ✓
+  - Valid email addresses ✓
+  - Rejects invalid formats ✗
+- Frontend converts empty email strings to `undefined` before API submission for proper handling
+- Removed all sensitive console logging that exposed user credentials (security vulnerability)
+
+**Files Modified**:
+- `shared/schema.ts` - Email validation schema update
+- `client/src/pages/users/index.tsx` - Email normalization and security cleanup
+
+**Testing**: Verified user creation with empty email (user ID 16 in database confirms functionality).
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

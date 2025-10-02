@@ -77,7 +77,7 @@ export default function Users() {
   // Registrar resultados de la consulta con useEffect
   useEffect(() => {
     if (usersResponse) {
-      console.log("✅ Datos de usuarios recibidos:", usersResponse);
+      // Usuarios cargados exitosamente
     }
   }, [usersResponse]);
 
@@ -124,23 +124,17 @@ export default function Users() {
   // Mutaciones
   const createUserMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log("⭐⭐⭐ createUserMutation - Datos del formulario:", data);
-      
       // Asegurarse que el companyId esté presente incluso si no viene del formulario
       if (!data.companyId && currentUser?.companyId) {
         data.companyId = currentUser.companyId;
-        console.log("⭐⭐⭐ createUserMutation - Añadiendo companyId:", data.companyId);
       }
       
       // Verificación final de companyId antes de enviar
       if (!data.companyId) {
-        console.error("⭐⭐⭐ Error: No se pudo determinar el companyId");
         throw new Error("No se pudo determinar el ID de la compañía para crear el usuario");
       }
       
       try {
-        console.log("⭐⭐⭐ createUserMutation - Datos antes de apiRequest:", JSON.stringify(data));
-        
         // Utilizar directamente apiRequest que ya maneja la lógica de errores y JSON
         const response = await apiRequest({
           url: "/api/users",
@@ -148,10 +142,9 @@ export default function Users() {
           data: data
         });
         
-        console.log("⭐⭐⭐ createUserMutation - Respuesta:", response);
         return response;
       } catch (error) {
-        console.error("⭐⭐⭐ createUserMutation - Error en apiRequest:", error);
+        console.error("Error al crear usuario:", error);
         throw error;
       }
     },
@@ -229,14 +222,11 @@ export default function Users() {
 
   // Actualizar la función onSubmit
   const onSubmit = async (data: any) => {
-    console.log("🔍 onSubmit INICIADO - Datos recibidos:", data);
     try {
       // Si estamos editando, proceder con la actualización
       if (editingUser) {
-        console.log("🔍 onSubmit - Modo edición para usuario:", editingUser);
         // Obtener el companyId del usuario actual
         if (!currentUser?.companyId) {
-          console.log("🔍 onSubmit - Error: No hay companyId en currentUser:", currentUser);
           toast({
             variant: "destructive",
             title: "Error",
@@ -248,17 +238,14 @@ export default function Users() {
         // Preparar datos para la actualización e incluir el companyId
         const updateData = {
           ...data,
-          companyId: Number(currentUser.companyId), // Asegurar que companyId sea un número
+          companyId: Number(currentUser.companyId),
           licenseExpiry: data.licenseExpiry ? new Date(data.licenseExpiry).toISOString() : undefined
         };
-        console.log("🔍 onSubmit - Datos de actualización preparados:", updateData);
 
         // Si la contraseña está vacía, eliminarla del objeto para no actualizarla
         if (!updateData.password) {
           delete updateData.password;
         }
-
-        console.log("Enviando datos de actualización con companyId:", updateData);
 
         await updateUserMutation.mutateAsync({
           id: editingUser.id,
@@ -270,10 +257,8 @@ export default function Users() {
       // CREACIÓN DE NUEVO USUARIO
       
       // Verificar si el usuario ya existe antes de crear
-      console.log("🔍 onSubmit - Verificando si username existe:", data.username, "en", users.length, "usuarios");
       const existingUser = users.find(u => u.username === data.username);
       if (existingUser) {
-        console.log("🔍 onSubmit - Error: Username ya existe:", existingUser);
         toast({
           variant: "destructive",
           title: "Error",
@@ -283,9 +268,7 @@ export default function Users() {
       }
 
       // Obtener el companyId del usuario actual
-      console.log("🔍 onSubmit - Obteniendo companyId del currentUser:", currentUser);
       if (!currentUser?.companyId) {
-        console.log("🔍 onSubmit - Error: No hay companyId en currentUser:", currentUser);
         toast({
           variant: "destructive",
           title: "Error",
@@ -296,7 +279,6 @@ export default function Users() {
 
       // Datos obligatorios según insertUserSchema
       if (!data.name || !data.username || !data.password || !data.role) {
-        console.log("🔍 onSubmit - Error: Faltan campos obligatorios:", data);
         toast({
           variant: "destructive",
           title: "Error",
@@ -310,27 +292,18 @@ export default function Users() {
         name: data.name,
         username: data.username,
         password: data.password,
-        email: data.email || undefined,
+        email: data.email || undefined, // Convertir string vacío a undefined
         role: data.role,
-        companyId: Number(currentUser.companyId), // Asegurarnos de usar un número
+        companyId: Number(currentUser.companyId),
         phone: data.phone || undefined,
         license: data.license || undefined,
-        // Importante: Solo enviar campo licenseExpiry si tiene valor
         ...(data.licenseExpiry ? { licenseExpiry: data.licenseExpiry } : {}),
         emergencyContact: data.emergencyContact || undefined,
         active: true
       };
       
-      console.log("⚠️ Datos sin filtrar:", data);
-      console.log("⚠️ Datos formateados para enviar:", formattedData);
-
-      console.log("🔍 onSubmit - Enviando datos con companyId:", formattedData);
-      
-      // Intentar primero con apiRequest para debugging
+      // Crear usuario
       try {
-        // Intentar crear usuario directamente a través de fetch
-        console.log("🔍 onSubmit - Iniciando petición POST a /api/users");
-        
         const response = await fetch("/api/users", {
           method: "POST",
           headers: {
@@ -341,21 +314,16 @@ export default function Users() {
           credentials: "include"
         });
         
-        console.log("🔍 onSubmit - Respuesta status:", response.status);
-        
-        // Manejo mejorado de respuestas y errores
+        // Manejo de respuestas y errores
         let respuestaJson;
         const contentType = response.headers.get("content-type");
         
         try {
           if (contentType && contentType.includes("application/json")) {
             respuestaJson = await response.json();
-            console.log("🔍 onSubmit - Respuesta JSON:", respuestaJson);
           } else {
             const text = await response.text();
-            console.log("🔍 onSubmit - Respuesta texto:", text);
             try {
-              // Intentar parsear por si el contentType está mal configurado
               respuestaJson = JSON.parse(text);
             } catch (e) {
               respuestaJson = { message: text };
@@ -363,10 +331,6 @@ export default function Users() {
           }
           
           if (!response.ok) {
-            console.error("🔍 onSubmit - Error en respuesta HTTP:", response.status, response.statusText);
-            console.error("🔍 onSubmit - Datos de error:", respuestaJson);
-            
-            // Construir un mensaje de error más detallado
             let errorMsg = `Error ${response.status}`;
             if (respuestaJson.error) errorMsg += `: ${respuestaJson.error}`;
             if (respuestaJson.message) errorMsg += ` - ${respuestaJson.message}`;
@@ -374,13 +338,9 @@ export default function Users() {
             throw new Error(errorMsg);
           }
         } catch (error) {
-          // Manejar cualquier tipo de error al procesar la respuesta
           const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-          console.error("🔍 onSubmit - Error procesando respuesta:", errorMessage);
           throw new Error(`Error procesando respuesta: ${errorMessage}`);
         }
-        
-        console.log("🔍 onSubmit - Respuesta exitosa:", respuestaJson);
         
         // Refrescar la lista de usuarios
         queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -395,7 +355,6 @@ export default function Users() {
         
         return respuestaJson;
       } catch (err) {
-        console.error("🔍 onSubmit - Error en petición:", err);
         toast({
           variant: "destructive",
           title: "Error al crear usuario",
@@ -403,7 +362,6 @@ export default function Users() {
         });
       }
     } catch (error) {
-      console.error("🔍 onSubmit - Error no controlado:", error);
       toast({
         variant: "destructive",
         title: "Error inesperado",
@@ -682,20 +640,15 @@ export default function Users() {
               
               <Form {...form}>
                 <form onSubmit={(e) => {
-                  console.log("🚨 SUBMIT EVENT CAPTURADO", e);
-                  // Prevenir la acción predeterminada para manejar manualmente
                   e.preventDefault();
-                  
-                  console.log("🚨 Llamando a form.handleSubmit");
                   form.handleSubmit(async (data) => {
-                    console.log("🚨 Dentro del manejador handleSubmit con datos:", data);
                     try {
                       await onSubmit(data);
                       handleFormSuccess();
                     } catch (err) {
-                      console.error("🚨 Error en manejador onSubmit:", err);
+                      console.error("Error en manejador onSubmit:", err);
                     }
-                  })(e); // Llamada manual al handler con el evento
+                  })(e);
                 }} className="space-y-4 sm:space-y-6">
                   {/* Sección de información básica */}
                   <div className="bg-muted/30 p-2 sm:p-3 md:p-4 rounded-md space-y-2 sm:space-y-3">
@@ -916,9 +869,7 @@ export default function Users() {
                       size="sm"
                       className="h-8 text-xs sm:text-sm px-2 sm:h-9 sm:px-4"
                       onClick={(e) => {
-                        console.log("🔔 Botón enviar clickeado!", e);
                         // El botón ya tiene type="submit", así que el formulario se enviará automáticamente
-                        // Este onClick es solo para el log de debugging
                       }}
                     >
                       {editingUser 
