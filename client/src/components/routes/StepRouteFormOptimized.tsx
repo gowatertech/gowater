@@ -301,16 +301,26 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         // Verificar que pendingOrders sea un array antes de filtrar
         const ordersInZone = safeOrders.filter(order => {
-          if (!order) return false;
+          if (!order || typeof order !== 'object') {
+            console.log(`⚠️ Pedido inválido:`, order);
+            return false;
+          }
           
           // Comprobar múltiples formatos posibles de zoneId
           const orderZoneId = order.zoneId || order.zoneid || order.zone_id;
+          
+          // Si no hay zoneId, no incluir el pedido
+          if (orderZoneId === undefined || orderZoneId === null) {
+            console.log(`⚠️ Pedido ${order.id || 'sin ID'} no tiene zoneId`);
+            return false;
+          }
+          
           const numericZoneId = Number(orderZoneId);
           const numericSelectedZoneId = Number(selectedZoneId);
           
           // Verificar que ambos sean números válidos
           if (isNaN(numericZoneId) || isNaN(numericSelectedZoneId)) {
-            console.log(`⚠️ ID de zona inválido para pedido ${order.id}: ${orderZoneId}`);
+            console.log(`⚠️ ID de zona inválido para pedido ${order.id || 'sin ID'}: ${orderZoneId}`);
             return false;
           }
           
@@ -320,7 +330,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         console.log(`✅ Encontrados ${ordersInZone.length} pedidos en la zona ${selectedZoneId}`);
         
         // Siempre actualizar el estado, incluso si no hay pedidos
-        setFilteredPendingOrders(ordersInZone);
+        setFilteredPendingOrders(ordersInZone || []);
         
         // Limpiar la selección de pedidos anterior al cambiar de zona
         setSelectedOrders([]);
@@ -328,14 +338,21 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         // Si no hay zona seleccionada o los pedidos aún no se han cargado,
         // usar un array vacío para evitar errores
         console.log(`ℹ️ No hay filtro de zona - mostrando todos los pedidos (${safeOrders.length})`);
-        setFilteredPendingOrders(safeOrders);
+        setFilteredPendingOrders(safeOrders || []);
       }
     } catch (error) {
       console.error("❌ Error al filtrar pedidos:", error);
       // En caso de error, establecer un array vacío para evitar errores de renderizado
       setFilteredPendingOrders([]);
+      
+      // Mostrar toast de error al usuario
+      toast({
+        title: "Error al filtrar pedidos",
+        description: "Hubo un problema al cargar los pedidos. Por favor, inténtalo de nuevo.",
+        variant: "destructive"
+      });
     }
-  }, [pendingOrders, selectedZoneId, pendingOrdersLoaded]);
+  }, [pendingOrders, selectedZoneId, pendingOrdersLoaded, toast]);
   
   // Función para obtener el centro del mapa basado en las coordenadas de los puntos
   const getMapCenter = (orders: any[]): [number, number] => {
@@ -748,21 +765,36 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   };
   
   // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
-  const filteredOrders = searchQuery 
-    ? filteredPendingOrders.filter(order => {
+  const filteredOrders = React.useMemo(() => {
+    // Asegurar que filteredPendingOrders siempre sea un array
+    const safeFilteredOrders = Array.isArray(filteredPendingOrders) ? filteredPendingOrders : [];
+    
+    if (!searchQuery || searchQuery.trim() === '') {
+      return safeFilteredOrders;
+    }
+    
+    try {
+      return safeFilteredOrders.filter(order => {
         // Validar que el pedido tenga los campos necesarios para evitar errores
-        if (!order || typeof order !== 'object') return false;
+        if (!order || typeof order !== 'object') {
+          console.warn('⚠️ Pedido inválido en filteredOrders:', order);
+          return false;
+        }
         
         const customerName = order.customerName || '';
         const customerAddress = order.customerAddress || '';
         const orderId = order.id ? order.id.toString() : '';
-        const query = searchQuery ? searchQuery.toLowerCase() : '';
+        const query = searchQuery.toLowerCase().trim();
         
         return customerName.toLowerCase().includes(query) ||
                customerAddress.toLowerCase().includes(query) ||
                orderId.includes(query);
-      })
-    : filteredPendingOrders;
+      });
+    } catch (error) {
+      console.error('❌ Error al filtrar pedidos por búsqueda:', error);
+      return safeFilteredOrders;
+    }
+  }, [filteredPendingOrders, searchQuery]);
   
   // Función para enviar el formulario y crear la ruta
   const onSubmit = (values: any) => {
@@ -946,10 +978,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                     </div>
                   ))}
                 </div>
-              ) : !filteredPendingOrders || filteredPendingOrders.length === 0 ? (
+              ) : !Array.isArray(filteredOrders) || filteredOrders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-8 text-center">
                   <Package className="h-10 w-10 text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">No hay pedidos pendientes en esta zona</p>
+                  <p className="text-muted-foreground">
+                    {searchQuery 
+                      ? "No se encontraron pedidos con ese criterio de búsqueda" 
+                      : "No hay pedidos pendientes en esta zona"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-2">
                     {selectedZoneId ? (
                       <>La zona {zones.find(z => z.id === selectedZoneId)?.name || `#${selectedZoneId}`} no tiene pedidos pendientes.</>
@@ -992,48 +1028,56 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                 </div>
               ) : (
                 <div className="p-3 space-y-2">
-                  {filteredPendingOrders.map(order => (
-                    <div
-                      key={order.id}
-                      className={`p-3 border rounded-md cursor-pointer transition-all ${
-                        selectedOrders.some(o => o.id === order.id)
-                          ? 'border-primary bg-primary/5'
-                          : 'hover:border-muted-foreground'
-                      }`}
-                      onClick={() => toggleOrderSelection(order)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center">
-                            <h4 className="text-sm font-medium">
-                              Pedido #{order.id}
-                            </h4>
-                            {selectedOrders.some(o => o.id === order.id) && (
-                              <Check className="ml-2 h-4 w-4 text-primary" />
-                            )}
+                  {filteredOrders.map(order => {
+                    // Validación adicional para cada pedido
+                    if (!order || typeof order !== 'object' || !order.id) {
+                      console.warn('⚠️ Pedido inválido en el renderizado:', order);
+                      return null;
+                    }
+                    
+                    return (
+                      <div
+                        key={`order-${order.id}`}
+                        className={`p-3 border rounded-md cursor-pointer transition-all ${
+                          selectedOrders.some(o => o.id === order.id)
+                            ? 'border-primary bg-primary/5'
+                            : 'hover:border-muted-foreground'
+                        }`}
+                        onClick={() => toggleOrderSelection(order)}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="flex items-center">
+                              <h4 className="text-sm font-medium">
+                                Pedido #{order.id}
+                              </h4>
+                              {selectedOrders.some(o => o.id === order.id) && (
+                                <Check className="ml-2 h-4 w-4 text-primary" />
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              {order.customerName || 'Cliente sin nombre'}
+                            </p>
+                            <div className="flex items-center text-xs text-muted-foreground">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {order.customerAddress || 'Sin dirección'}
+                            </div>
+                            <div className="flex items-center text-xs text-muted-foreground mt-1">
+                              <Clock className="h-3 w-3 mr-1" />
+                              {order.date ? format(new Date(order.date), 'dd/MM/yyyy') : 'Sin fecha'}
+                              <DollarSign className="h-3 w-3 ml-2 mr-1" />
+                              ${typeof order.total === 'number' ? order.total.toFixed(2) : 
+                                 order.total ? String(order.total) : '0.00'}
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            {order.customerName}
-                          </p>
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            {order.customerAddress}
-                          </div>
-                          <div className="flex items-center text-xs text-muted-foreground mt-1">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {format(new Date(order.date), 'dd/MM/yyyy')}
-                            <DollarSign className="h-3 w-3 ml-2 mr-1" />
-                            ${typeof order.total === 'number' ? order.total.toFixed(2) : 
-                               order.total ? String(order.total) : '0.00'}
-                          </div>
+                          
+                          <Badge variant={order.status === 'pending' ? 'outline' : 'secondary'} className="text-xs">
+                            {order.status === 'pending' ? 'Pendiente' : 'En proceso'}
+                          </Badge>
                         </div>
-                        
-                        <Badge variant={order.status === 'pending' ? 'outline' : 'secondary'} className="text-xs">
-                          {order.status === 'pending' ? 'Pendiente' : 'En proceso'}
-                        </Badge>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
