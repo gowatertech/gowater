@@ -437,57 +437,74 @@ export function registerPlatformRoutes(router: Router) {
   // Rutas para la gestión de planes
   router.get("/plans", async (req: Request, res: Response) => {
     try {
-      console.log("Solicitud de listado de planes recibida");
+      console.log("[PLANS API] Solicitud de listado de planes recibida");
+      console.log("[PLANS API] Environment:", process.env.NODE_ENV);
+      console.log("[PLANS API] Database URL configured:", !!process.env.DATABASE_URL);
+      console.log("[PLANS API] Platform Database URL configured:", !!process.env.PLATFORM_DATABASE_URL);
+      
       let plans = await platformStorage.listPlans();
+      console.log("[PLANS API] Planes encontrados:", plans?.length || 0);
       
       // Si no hay planes, insertamos los planes predeterminados
       if (!plans || plans.length === 0) {
-        console.log("No se encontraron planes, insertando planes predeterminados");
+        console.log("[PLANS API] No se encontraron planes, insertando planes predeterminados");
         
-        // Insertar plan básico
-        await platformStorage.createPlan({
-          name: 'Plan Básico',
-          price: 99.99,
-          description: 'Plan básico para pequeñas empresas',
-          maxUsers: 5,
-          maxTrucks: 3,
-          features: ['Gestión de usuarios', 'Rutas básicas', 'Reportes básicos'],
-          isActive: true
-        });
-        
-        // Insertar plan profesional
-        await platformStorage.createPlan({
-          name: 'Plan Profesional',
-          price: 199.99,
-          description: 'Plan profesional con características avanzadas',
-          maxUsers: 15,
-          maxTrucks: 10,
-          features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST'],
-          isActive: true
-        });
-        
-        // Insertar plan empresarial
-        await platformStorage.createPlan({
-          name: 'Plan Empresarial',
-          price: 299.99,
-          description: 'Plan empresarial con todas las características',
-          maxUsers: 50,
-          maxTrucks: 30,
-          features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST', 'Soporte 24/7', 'Personalización'],
-          isActive: true
-        });
+        try {
+          // Insertar plan básico
+          await platformStorage.createPlan({
+            name: 'Plan Básico',
+            price: 99.99,
+            description: 'Plan básico para pequeñas empresas',
+            maxUsers: 5,
+            maxTrucks: 3,
+            features: ['Gestión de usuarios', 'Rutas básicas', 'Reportes básicos'],
+            isActive: true
+          });
+          
+          // Insertar plan profesional
+          await platformStorage.createPlan({
+            name: 'Plan Profesional',
+            price: 199.99,
+            description: 'Plan profesional con características avanzadas',
+            maxUsers: 15,
+            maxTrucks: 10,
+            features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST'],
+            isActive: true
+          });
+          
+          // Insertar plan empresarial
+          await platformStorage.createPlan({
+            name: 'Plan Empresarial',
+            price: 299.99,
+            description: 'Plan empresarial con todas las características',
+            maxUsers: 50,
+            maxTrucks: 30,
+            features: ['Gestión de usuarios', 'Rutas avanzadas', 'Reportes avanzados', 'Optimización de rutas', 'API REST', 'Soporte 24/7', 'Personalización'],
+            isActive: true
+          });
+          
+          console.log("[PLANS API] Planes predeterminados insertados correctamente");
+        } catch (insertError) {
+          console.error("[PLANS API] Error al insertar planes predeterminados:", insertError);
+          // Continuar aunque falle la inserción, tal vez ya existen
+        }
         
         // Obtener los planes recién creados
         plans = await platformStorage.listPlans();
-        console.log("Planes creados correctamente:", plans);
+        console.log("[PLANS API] Planes después de inserción:", plans?.length || 0);
       }
       
       // Enviamos los datos en el formato que espera el frontend
-      console.log("Enviando planes al frontend:", { data: plans });
-      res.json({ data: plans });
-    } catch (error) {
-      console.error("Error al listar planes:", error);
-      res.status(500).json({ message: "Error al obtener planes" });
+      console.log("[PLANS API] Enviando", plans?.length || 0, "planes al frontend");
+      res.json({ data: plans || [] });
+    } catch (error: any) {
+      console.error("[PLANS API] Error al listar planes:", error);
+      console.error("[PLANS API] Error stack:", error?.stack);
+      console.error("[PLANS API] Error message:", error?.message);
+      res.status(500).json({ 
+        message: "Error al obtener planes",
+        error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+      });
     }
   });
 
