@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 // Components
 import {
@@ -18,54 +19,88 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-// Esquema de validación simplificado para la prueba
+// Esquema de validación sin companyId (se obtiene del servidor desde la sesión)
 const routeSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
   driverId: z.coerce.number().positive("Se requiere un conductor"),
-  companyId: z.coerce.number().positive("Se requiere una compañía"),
+  date: z.string().optional(),
+  zoneId: z.coerce.number().optional(),
+  assistantId: z.coerce.number().optional(),
+  truckId: z.coerce.number().optional(),
 });
 
 export default function SimpleRouteForm() {
   const { toast } = useToast();
+  const { user } = useCurrentUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Estado de debug
-  const [formValues, setFormValues] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Obtener conductores y vehículos
+  const { data: drivers = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+  });
   
-  // Inicializar formulario
+  const { data: trucks = [] } = useQuery<any[]>({
+    queryKey: ["/api/trucks"],
+  });
+  
+  const { data: zones = [] } = useQuery<any[]>({
+    queryKey: ["/api/zones"],
+  });
+  
+  // Filtrar solo conductores y asistentes
+  const availableDrivers = drivers.filter(d => d.role === "driver" || d.role === "assistant");
+  
+  // Inicializar formulario sin companyId
   const form = useForm({
     resolver: zodResolver(routeSchema),
     defaultValues: {
-      name: "Ruta de prueba",
-      driverId: 1, // Valor predeterminado
-      companyId: 15, // Valor predeterminado para pruebas
+      name: "",
+      driverId: undefined,
+      date: new Date().toISOString().split('T')[0],
+      zoneId: undefined,
+      assistantId: undefined,
+      truckId: undefined,
     },
   });
   
   // Crear mutación para enviar los datos
   const createRouteMutation = useMutation({
     mutationFn: async (data: any) => {
-      setError(null);
       setIsSubmitting(true);
       
       try {
-        const response = await apiRequest({
-          url: "/api/routes",
-          method: "POST",
-          data,
-        });
+        // No enviar companyId - el servidor lo obtendrá de la sesión
+        const routeData = {
+          name: data.name,
+          driverId: data.driverId,
+          date: data.date || new Date().toISOString(),
+          zoneId: data.zoneId || null,
+          assistantId: data.assistantId || null,
+          truckId: data.truckId || null,
+        };
         
-        return response;
-      } catch (err: any) {
-        setError(err.message || "Error al crear la ruta");
-        throw err;
+        const response = await apiRequest("POST", "/api/routes", routeData);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Error al crear la ruta");
+        }
+        
+        return await response.json();
       } finally {
         setIsSubmitting(false);
       }
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/routes"] });
       toast({
         title: "Ruta creada",
         description: "La ruta se creó correctamente.",
@@ -83,14 +118,13 @@ export default function SimpleRouteForm() {
   
   // Función para manejar el envío del formulario
   const onSubmit = (data: any) => {
-    setFormValues(data);
     createRouteMutation.mutate(data);
   };
   
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardHeader>
-        <CardTitle>Formulario Simplificado de Ruta</CardTitle>
+        <CardTitle>Crear Nueva Ruta</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -102,7 +136,29 @@ export default function SimpleRouteForm() {
                 <FormItem>
                   <FormLabel>Nombre de la Ruta</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input 
+                      {...field} 
+                      placeholder="Ej: Ruta Centro" 
+                      data-testid="input-route-name"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      {...field} 
+                      data-testid="input-route-date"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -114,10 +170,24 @@ export default function SimpleRouteForm() {
               name="driverId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID del Conductor</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} />
-                  </FormControl>
+                  <FormLabel>Conductor</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                    value={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-driver">
+                        <SelectValue placeholder="Seleccionar conductor" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {availableDrivers.filter(d => d.role === "driver").map((driver) => (
+                        <SelectItem key={driver.id} value={driver.id.toString()}>
+                          {driver.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -125,45 +195,101 @@ export default function SimpleRouteForm() {
             
             <FormField
               control={form.control}
-              name="companyId"
+              name="assistantId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>ID de la Compañía</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={(e) => field.onChange(parseInt(e.target.value))} />
-                  </FormControl>
+                  <FormLabel>Asistente (Opcional)</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
+                    value={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-assistant">
+                        <SelectValue placeholder="Seleccionar asistente" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Ninguno</SelectItem>
+                      {availableDrivers.filter(d => d.role === "assistant").map((assistant) => (
+                        <SelectItem key={assistant.id} value={assistant.id.toString()}>
+                          {assistant.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Enviando..." : "Crear Ruta"}
+            <FormField
+              control={form.control}
+              name="truckId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Vehículo (Opcional)</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
+                    value={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-truck">
+                        <SelectValue placeholder="Seleccionar vehículo" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Ninguno</SelectItem>
+                      {trucks.map((truck) => (
+                        <SelectItem key={truck.id} value={truck.id.toString()}>
+                          {truck.plate} - {truck.brand} {truck.model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="zoneId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Zona (Opcional)</FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} 
+                    value={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-zone">
+                        <SelectValue placeholder="Seleccionar zona" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">Ninguna</SelectItem>
+                      {zones.map((zone) => (
+                        <SelectItem key={zone.id} value={zone.id.toString()}>
+                          {zone.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <Button 
+              type="submit" 
+              disabled={isSubmitting} 
+              className="w-full"
+              data-testid="button-create-route"
+            >
+              {isSubmitting ? "Creando..." : "Crear Ruta"}
             </Button>
           </form>
         </Form>
-        
-        {/* Sección de depuración */}
-        {formValues && (
-          <div className="mt-6 p-4 border rounded bg-slate-50">
-            <h3 className="font-medium mb-2">Datos enviados:</h3>
-            <pre className="text-xs bg-slate-100 p-2 rounded">
-              {JSON.stringify(formValues, null, 2)}
-            </pre>
-          </div>
-        )}
-        
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700">
-            {error}
-          </div>
-        )}
-        
-        {createRouteMutation.isError && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-700">
-            Error de mutación: {(createRouteMutation.error as Error).message}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
