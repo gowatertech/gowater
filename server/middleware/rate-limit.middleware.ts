@@ -32,19 +32,23 @@ const LOGIN_BLOCK_DURATION = isDevelopment ? 1 * 60 * 1000 : 15 * 60 * 1000;  //
 
 // Limpiar entradas expiradas periódicamente
 setInterval(() => {
-  const now = Date.now();
-  rateLimitByIP.forEach((entry, key) => {
-    if (entry.resetTime < now && !entry.blockedUntil) {
-      rateLimitByIP.delete(key);
-    }
-  });
-  
-  rateLimitByPath.forEach((entry, key) => {
-    if ((entry.resetTime < now && !entry.blockedUntil) || 
-        (entry.blockedUntil && entry.blockedUntil < now)) {
-      rateLimitByPath.delete(key);
-    }
-  });
+  try {
+    const now = Date.now();
+    rateLimitByIP.forEach((entry, key) => {
+      if (entry.resetTime < now && !entry.blockedUntil) {
+        rateLimitByIP.delete(key);
+      }
+    });
+    
+    rateLimitByPath.forEach((entry, key) => {
+      if ((entry.resetTime < now && !entry.blockedUntil) || 
+          (entry.blockedUntil && entry.blockedUntil < now)) {
+        rateLimitByPath.delete(key);
+      }
+    });
+  } catch (error) {
+    console.error('Error during rate limit cleanup:', error);
+  }
 }, 10 * 60 * 1000); // Limpiar cada 10 minutos
 
 /**
