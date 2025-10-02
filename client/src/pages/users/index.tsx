@@ -639,17 +639,7 @@ export default function Users() {
               </h2>
               
               <Form {...form}>
-                <form onSubmit={(e) => {
-                  e.preventDefault();
-                  form.handleSubmit(async (data) => {
-                    try {
-                      await onSubmit(data);
-                      handleFormSuccess();
-                    } catch (err) {
-                      console.error("Error en manejador onSubmit:", err);
-                    }
-                  })(e);
-                }} className="space-y-4 sm:space-y-6">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
                   {/* Sección de información básica */}
                   <div className="bg-muted/30 p-2 sm:p-3 md:p-4 rounded-md space-y-2 sm:space-y-3">
                     <h3 className="font-medium text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">{t("basicInfo")}</h3>
