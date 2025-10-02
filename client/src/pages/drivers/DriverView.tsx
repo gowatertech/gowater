@@ -294,7 +294,7 @@ export default function DriverView() {
   // Actions
   const completeDeliveryMutation = useMutation({
     mutationFn: async (id: number) => {
-      return apiRequest("POST", `/api/driver/deliveries/${id}/complete`, {});
+      return apiRequest(`/api/driver/deliveries/${id}/complete`, { method: 'POST', data: {} });
     },
     onSuccess: () => {
       toast({
@@ -369,10 +369,13 @@ export default function DriverView() {
     if (!selectedDelivery) return;
     
     try {
-      await apiRequest("POST", `/api/driver/deliveries/${selectedDelivery.id}/payment`, {
-        amount: paymentAmount,
-        method: paymentMethod,
-        returnedContainers: returnedContainers
+      await apiRequest(`/api/driver/deliveries/${selectedDelivery.id}/payment`, {
+        method: 'POST',
+        data: {
+          amount: paymentAmount,
+          method: paymentMethod,
+          returnedContainers: returnedContainers
+        }
       });
       
       toast({
@@ -396,7 +399,7 @@ export default function DriverView() {
     if (!selectedDelivery) return;
     
     try {
-      await apiRequest("POST", `/api/driver/deliveries/${selectedDelivery.id}/invoice`, {});
+      await apiRequest(`/api/driver/deliveries/${selectedDelivery.id}/invoice`, { method: 'POST', data: {} });
       
       toast({
         title: 'Factura creada',
@@ -417,10 +420,13 @@ export default function DriverView() {
     if (!selectedDelivery || !newOrderDate) return;
     
     try {
-      await apiRequest("POST", `/api/driver/customers/${selectedDelivery.customerId}/future-order`, {
-        scheduledDate: newOrderDate,
-        products: newOrderProducts,
-        notes: newOrderNotes
+      await apiRequest(`/api/driver/customers/${selectedDelivery.customerId}/future-order`, {
+        method: 'POST',
+        data: {
+          scheduledDate: newOrderDate,
+          products: newOrderProducts,
+          notes: newOrderNotes
+        }
       });
       
       toast({
