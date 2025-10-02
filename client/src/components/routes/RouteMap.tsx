@@ -39,27 +39,30 @@ export default function RouteMap({ route, className }: RouteMapProps) {
   }
 
   // Parsear coordenadas de los pedidos
-  const stopCoordinates = (orders || []).map((order: any) => {
-    try {
-      if (!order.coordinates) return null;
-      
-      if (typeof order.coordinates === 'string') {
-        const parts = order.coordinates.split(',');
-        if (parts.length !== 2) return null;
+  const ordersArray = Array.isArray(orders) ? orders : [];
+  const stopCoordinates = ordersArray
+    .map((order: any) => {
+      try {
+        if (!order.coordinates) return null;
         
-        const lat = parseFloat(parts[0]);
-        const lng = parseFloat(parts[1]);
-        
-        if (isNaN(lat) || isNaN(lng)) return null;
-        
-        return { position: [lat, lng] as [number, number], order };
+        if (typeof order.coordinates === 'string') {
+          const parts = order.coordinates.split(',');
+          if (parts.length !== 2) return null;
+          
+          const lat = parseFloat(parts[0]);
+          const lng = parseFloat(parts[1]);
+          
+          if (isNaN(lat) || isNaN(lng)) return null;
+          
+          return { position: [lat, lng] as [number, number], order };
+        }
+        return null;
+      } catch (error) {
+        console.error('Error parsing order coordinates:', error, order);
+        return null;
       }
-      return null;
-    } catch (error) {
-      console.error('Error parsing order coordinates:', error, order);
-      return null;
-    }
-  }).filter(item => item !== null);
+    })
+    .filter((item): item is { position: [number, number]; order: any } => item !== null);
 
   if (stopCoordinates.length === 0) {
     return (
@@ -72,8 +75,8 @@ export default function RouteMap({ route, className }: RouteMapProps) {
   }
 
   // Calcular centro del mapa basado en el primer punto
-  const mapCenter = stopCoordinates[0]?.position || [18.4955, -69.8734]; // Default: Santo Domingo
-  const positions = stopCoordinates.map(item => item.position);
+  const mapCenter = stopCoordinates[0]?.position || [18.4955, -69.8734] as [number, number];
+  const positions = stopCoordinates.map((item) => item.position);
 
   return (
     <div className={className}>
@@ -98,7 +101,7 @@ export default function RouteMap({ route, className }: RouteMapProps) {
           )}
           
           {/* Mostrar marcadores para cada parada */}
-          {stopCoordinates.map(({ position, order }, index) => {
+          {stopCoordinates.map(({ position, order }, index: number) => {
             // Crear un icono personalizado con el número de parada
             const customIcon = new L.DivIcon({
               html: `<div class="flex items-center justify-center bg-blue-600 text-white rounded-full w-6 h-6 text-sm font-semibold">${index + 1}</div>`,
