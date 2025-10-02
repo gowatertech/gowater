@@ -330,9 +330,25 @@ export default function DriverView() {
   const [newOrderNotes, setNewOrderNotes] = useState('');
 
   const startNavigation = (delivery: Delivery) => {
-    // Esta función abriría la navegación en Google Maps o similar
-    const [lat, lng] = delivery.coordinates;
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+    try {
+      const [lat, lng] = delivery.coordinates;
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      const newWindow = window.open(url, '_blank');
+      
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        toast({
+          title: 'Navegación bloqueada',
+          description: 'Por favor permite las ventanas emergentes para abrir el navegador.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error al abrir navegación',
+        description: `No se pudo abrir Google Maps: ${(error as Error).message}`,
+        variant: 'destructive',
+      });
+    }
   };
   
   const handleOpenDetail = (delivery: Delivery) => {
