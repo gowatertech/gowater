@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { pool } from '../db';
 import { getCurrentCompanyId } from '../company-db';
-import { safeParseInt, isPositiveInteger } from '../utils/validation';
+import { safeParseInt, safeParseFloat, isPositiveInteger } from '../utils/validation';
 
 // Router para manejar órdenes
 const ordersRouter = express.Router();
@@ -338,27 +338,35 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
     
     // 2. Crear los items de la orden
     const createdItems: any[] = [];
+    const invalidItems: any[] = [];
     
     if (orderItemsData && orderItemsData.length > 0) {
       console.log(`🔄 Procesando ${orderItemsData.length} items para la orden #${order.id}`);
       
       for (const item of orderItemsData) {
         // Validar item (soportamos tanto productId como code para compatibilidad)
-        const productId = parseInt(item.productId || item.code);
+        const productId = safeParseInt(item.productId || item.code, -1);
         
-        if (!productId || isNaN(productId)) {
-          console.warn("⚠️ Item sin ID de producto válido, saltando:", item);
+        if (!isPositiveInteger(productId)) {
+          console.warn("⚠️ Item sin ID de producto válido:", item);
+          invalidItems.push({ item, reason: 'ID de producto inválido' });
           continue;
         }
         
-        const quantity = parseInt(item.quantity) || 1;
+        const quantity = safeParseInt(item.quantity, -1);
+        if (!isPositiveInteger(quantity)) {
+          console.warn("⚠️ Item con cantidad inválida:", item);
+          invalidItems.push({ item, reason: 'Cantidad inválida' });
+          continue;
+        }
+        
         // Asegurar que price y total son strings formateados correctamente
         const price = typeof item.price === 'string' ? item.price : 
                      (typeof item.price === 'number' ? item.price.toFixed(2) : '0.00');
         
         const total = typeof item.total === 'string' ? item.total : 
                      (typeof item.total === 'number' ? item.total.toFixed(2) : 
-                     (parseFloat(price) * quantity).toFixed(2));
+                     (safeParseFloat(price, 0) * quantity).toFixed(2));
         
         const itemQuery = `
           INSERT INTO order_items (
@@ -396,6 +404,31 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
       }
     } else {
       console.warn(`⚠️ No hay items para procesar en la orden #${order.id}`);
+    }
+    
+    // Validar que se hayan creado items válidos y que no haya items inválidos
+    if (createdItems.length === 0) {
+      await client.query('ROLLBACK');
+      console.error("❌ No se pudieron crear items válidos para la orden, abortando transacción");
+      return res.status(400).json({ 
+        error: "No se pudieron procesar items válidos para la orden",
+        details: "Todos los items proporcionados tienen datos inválidos (productId o quantity inválidos)",
+        invalidItems: invalidItems
+      });
+    }
+    
+    // Rechazar el pedido si hay items inválidos (incluso si hay algunos válidos)
+    if (invalidItems.length > 0) {
+      await client.query('ROLLBACK');
+      console.error(`❌ Se encontraron ${invalidItems.length} items inválidos, abortando transacción`);
+      return res.status(400).json({ 
+        error: "El pedido contiene items con datos inválidos",
+        details: `Se encontraron ${invalidItems.length} items inválidos de ${orderItemsData.length} items totales`,
+        invalidItems: invalidItems.map(inv => ({
+          item: inv.item,
+          reason: inv.reason
+        }))
+      });
     }
     
     // Confirmar la transacción
