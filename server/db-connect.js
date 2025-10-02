@@ -17,7 +17,6 @@ export const pool = new Pool({
 // Promesa para verificar la conexión
 export const poolPromise = pool.connect()
   .then(client => {
-    console.log("Conexión a la base de datos establecida correctamente");
     client.release();
     return pool;
   })
@@ -28,7 +27,6 @@ export const poolPromise = pool.connect()
 
 // Configurar el contexto de la compañía para pruebas
 setCurrentCompanyId(15); // Establecer la compañía 15 para pruebas
-console.log(`Contexto de compañía configurado: companyId=${getCurrentCompanyId()}`);
 
 export default {
   pool,
