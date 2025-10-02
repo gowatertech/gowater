@@ -22,6 +22,7 @@ import { registerTestSessionRoutes } from "./test-session";
 import { createUpdateOrderStatusEndpoint } from "./routes/update-order-status";
 import { calculateOptimalRoute } from './services/routeOptimizer';
 import { companyAuthMiddleware, requireCompanyId } from './middleware/company-auth.middleware';
+import { safeParseInt, isPositiveInteger } from './utils/validation';
 
 // Configurar multer para manejar la carga de archivos
 const upload = multer({
@@ -164,8 +165,8 @@ export async function registerRoutes(router: express.Router) {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
       
       // Parse zoneId una sola vez aquí
-      const zoneId = parseInt(req.params.id);
-      if (isNaN(zoneId)) {
+      const zoneId = safeParseInt(req.params.id, -1);
+      if (!isPositiveInteger(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
@@ -178,8 +179,8 @@ export async function registerRoutes(router: express.Router) {
       let companyIdSource = "";
       
       if (req.query.companyId) {
-        const queryCompanyId = parseInt(req.query.companyId as string);
-        if (!isNaN(queryCompanyId)) {
+        const queryCompanyId = safeParseInt(req.query.companyId as string, -1);
+        if (isPositiveInteger(queryCompanyId)) {
           companyId = queryCompanyId;
           companyIdSource = "query string";
           console.log("🔄 CompanyId obtenido del query string:", companyId);
@@ -595,8 +596,8 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/zones/:id", async (req, res) => {
     try {
-      const zoneId = parseInt(req.params.id);
-      if (isNaN(zoneId)) {
+      const zoneId = safeParseInt(req.params.id, -1);
+      if (!isPositiveInteger(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
 
@@ -634,8 +635,8 @@ export async function registerRoutes(router: express.Router) {
       console.log("🔍 Iniciando búsqueda de pedidos pendientes por zona...");
       
       // Parse zoneId una sola vez aquí
-      const zoneId = parseInt(req.params.id);
-      if (isNaN(zoneId)) {
+      const zoneId = safeParseInt(req.params.id, -1);
+      if (!isPositiveInteger(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
       
@@ -678,8 +679,8 @@ export async function registerRoutes(router: express.Router) {
       
       // Si está en el query string, intentar usarlo como fuente adicional
       if (req.query.companyId) {
-        const queryCompanyId = parseInt(req.query.companyId as string);
-        if (!isNaN(queryCompanyId)) {
+        const queryCompanyId = safeParseInt(req.query.companyId as string, -1);
+        if (isPositiveInteger(queryCompanyId)) {
           companyId = queryCompanyId;
           companyIdSource = "query string";
           console.log("🔄 CompanyId obtenido del query string:", companyId);
@@ -866,8 +867,8 @@ export async function registerRoutes(router: express.Router) {
 
   router.patch("/zones/:id", async (req, res) => {
     try {
-      const zoneId = parseInt(req.params.id);
-      if (isNaN(zoneId)) {
+      const zoneId = safeParseInt(req.params.id, -1);
+      if (!isPositiveInteger(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
 
@@ -905,8 +906,8 @@ export async function registerRoutes(router: express.Router) {
 
   router.delete("/zones/:id", async (req, res) => {
     try {
-      const zoneId = parseInt(req.params.id);
-      if (isNaN(zoneId)) {
+      const zoneId = safeParseInt(req.params.id, -1);
+      if (!isPositiveInteger(zoneId)) {
         return res.status(400).json({ error: "ID de zona inválido" });
       }
 

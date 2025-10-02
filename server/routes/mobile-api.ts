@@ -7,6 +7,7 @@ import {
 } from '@shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { companyDb, getCurrentCompanyId } from '../company-db';
+import { safeParseInt, isPositiveInteger } from '../utils/validation';
 
 /**
  * Crea y registra los endpoints específicos para la aplicación móvil
@@ -41,8 +42,9 @@ export function createMobileApiEndpoints(): Router {
         eq(routes.status, req.query.status as string) : undefined;
         
       // Filtrar por chofer si se proporciona
-      const driverFilter = req.query.driverId ? 
-        eq(routes.driverId, parseInt(req.query.driverId as string)) : undefined;
+      const driverId = req.query.driverId ? safeParseInt(req.query.driverId as string, -1) : -1;
+      const driverFilter = isPositiveInteger(driverId) ? 
+        eq(routes.driverId, driverId) : undefined;
       
       // Construir el filtro completo
       let filter;
@@ -107,8 +109,9 @@ export function createMobileApiEndpoints(): Router {
         eq(orders.status, req.query.status as string) : undefined;
         
       // Filtrar por ruta si se proporciona
-      const routeFilter = req.query.routeId ? 
-        eq(orders.routeId, parseInt(req.query.routeId as string)) : undefined;
+      const routeId = req.query.routeId ? safeParseInt(req.query.routeId as string, -1) : -1;
+      const routeFilter = isPositiveInteger(routeId) ? 
+        eq(orders.routeId, routeId) : undefined;
       
       // Construir el filtro completo
       let filter;
