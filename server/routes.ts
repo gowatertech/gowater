@@ -1169,8 +1169,23 @@ export async function registerRoutes(router: express.Router) {
       // Ordenar por fecha, más recientes primero
       const allRoutes = await query.orderBy(desc(routes.date));
       
-      console.log(`GET /api/routes - Total de rutas: ${allRoutes.length}`);
-      res.json(allRoutes);
+      // Para cada ruta, obtener los IDs de pedidos asociados
+      const routesWithOrders = await Promise.all(
+        allRoutes.map(async (route) => {
+          const routeOrders = await db
+            .select({ id: orders.id })
+            .from(orders)
+            .where(eq(orders.routeId, route.id));
+          
+          return {
+            ...route,
+            orderIds: routeOrders.map(order => order.id)
+          };
+        })
+      );
+      
+      console.log(`GET /api/routes - Total de rutas: ${routesWithOrders.length}`);
+      res.json(routesWithOrders);
     } catch (error) {
       console.error("Error al obtener rutas:", error);
       res.status(500).json({ error: String(error) });
@@ -1204,8 +1219,23 @@ export async function registerRoutes(router: express.Router) {
         )
         .orderBy(routes.date);
       
-      console.log(`GET /api/routes/active - Retornando ${activeRoutes.length} rutas activas para compañía ${companyId}`);
-      res.json(activeRoutes);
+      // Para cada ruta, obtener los IDs de pedidos asociados
+      const routesWithOrders = await Promise.all(
+        activeRoutes.map(async (route) => {
+          const routeOrders = await db
+            .select({ id: orders.id })
+            .from(orders)
+            .where(eq(orders.routeId, route.id));
+          
+          return {
+            ...route,
+            orderIds: routeOrders.map(order => order.id)
+          };
+        })
+      );
+      
+      console.log(`GET /api/routes/active - Retornando ${routesWithOrders.length} rutas activas para compañía ${companyId}`);
+      res.json(routesWithOrders);
     } catch (error) {
       console.error("Error al obtener rutas activas:", error);
       res.status(500).json({ error: String(error) });
@@ -1421,12 +1451,19 @@ export async function registerRoutes(router: express.Router) {
         }
       }
       
+      // Obtener los IDs de pedidos asociados a esta ruta
+      const routeOrders = await db
+        .select({ id: orders.id })
+        .from(orders)
+        .where(eq(orders.routeId, route.id));
+      
       // Devolver la ruta con información adicional
       res.json({
         ...route,
         driverName,
         assistantName,
-        truckDetails
+        truckDetails,
+        orderIds: routeOrders.map(order => order.id)
       });
     } catch (error) {
       console.error("Error al obtener detalles de ruta:", error);
