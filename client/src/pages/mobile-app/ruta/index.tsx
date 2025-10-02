@@ -146,11 +146,20 @@ export default function DriverRoute() {
     // Usamos la API de Google Maps para navegación
     const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}&travelmode=driving`;
     // Abrimos en una nueva pestaña
-    window.open(url, '_blank');
-    toast({
-      title: "Navegando a destino",
-      description: `Abriendo navegación a ${address}`,
-    });
+    const newWindow = window.open(url, '_blank');
+    
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      toast({
+        title: "Navegación bloqueada",
+        description: "Por favor, permite ventanas emergentes para abrir el mapa de navegación",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Navegando a destino",
+        description: `Abriendo navegación a ${address}`,
+      });
+    }
   };
   
   // Cargar datos de la ruta activa

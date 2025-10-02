@@ -522,7 +522,18 @@ export class DatabaseStorage implements IStorage {
       return null;
     }
 
-    const [latitude, longitude] = user.currentLocation.split(',').map(Number);
+    const locationParts = user.currentLocation.split(',');
+    if (locationParts.length !== 2) {
+      console.warn(`Invalid location format for driver ${driverId}: ${user.currentLocation}`);
+      return null;
+    }
+
+    const [latitude, longitude] = locationParts.map(Number);
+    if (isNaN(latitude) || isNaN(longitude)) {
+      console.warn(`Invalid location coordinates for driver ${driverId}: ${user.currentLocation}`);
+      return null;
+    }
+
     return {
       latitude,
       longitude,
