@@ -519,6 +519,18 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       console.log(`✅ ${selectedOrders.length} pedidos seleccionados, avanzando a optimización`);
       
       try {
+        // Verificar que hay pedidos seleccionados
+        if (!Array.isArray(selectedOrders) || selectedOrders.length === 0) {
+          throw new Error("No hay pedidos seleccionados");
+        }
+        
+        // Verificar que los pedidos tengan coordenadas
+        const ordersWithoutCoords = selectedOrders.filter(o => !o.coordinates);
+        if (ordersWithoutCoords.length > 0) {
+          console.error("❌ Pedidos sin coordenadas:", ordersWithoutCoords);
+          throw new Error(`${ordersWithoutCoords.length} pedidos no tienen coordenadas asignadas. Por favor, verifica la información de los clientes.`);
+        }
+        
         // Añadir el punto de la empresa como primer punto (índice 0)
         const companyCoordinates = settings?.latitude && settings?.longitude 
           ? `${settings.latitude},${settings.longitude}` 
@@ -602,6 +614,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
           description: "Hubo un problema al preparar la ruta. Por favor, inténtalo de nuevo.",
           variant: "destructive"
         });
+        return; // No avanzar al siguiente paso si hay error
       }
     }
     else if (pasoActual === pasos.OPTIMIZAR_RUTA) {
