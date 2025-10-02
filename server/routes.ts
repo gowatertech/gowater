@@ -81,7 +81,15 @@ export async function registerRoutes(router: express.Router) {
 
   router.get("/api/diagnostic/pending-orders", async (req, res) => {
     try {
-      const companyId = parseInt(req.query.companyId as string) || 15; // Default a 15 si no se especifica
+      // Obtener companyId de la query o de la sesión
+      const companyId = parseInt(req.query.companyId as string) || req.session.companyId || req.session.user?.companyId;
+      
+      if (!companyId) {
+        return res.status(400).json({ 
+          error: "companyId requerido",
+          message: "Debe proporcionar companyId como parámetro de consulta o tener una sesión activa"
+        });
+      }
       
       console.log(`🔍 Diagnóstico: Buscando pedidos pendientes para compañía ${companyId}`);
       

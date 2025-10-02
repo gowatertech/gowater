@@ -226,13 +226,12 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         pendingOrdersCompanyId: `${pendingOrdersUserData?.companyId} (${typeof pendingOrdersUserData?.companyId})`
       });
       
-      // Establecer un valor por defecto en caso de error (15 para pruebas)
-      try {
-        console.log("⚠️ Estableciendo valor por defecto companyId=15 como fallback");
-        form.setValue("companyId", 15); // Valor de prueba como último recurso
-      } catch (error) {
-        console.error("Error al establecer valor por defecto para companyId:", error);
-      }
+      // Mostrar mensaje de error al usuario
+      toast({
+        title: "Error de configuración",
+        description: "No se pudo determinar la empresa. Por favor, cierra sesión e inicia sesión nuevamente.",
+        variant: "destructive"
+      });
     }
     
     // Log de diagnóstico completo
