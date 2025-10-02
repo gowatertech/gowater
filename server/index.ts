@@ -25,6 +25,9 @@ import { registerGeoDataRoutes } from "./routes/geo-data";
 
 const app = express();
 
+// Trust proxy - necesario para Cloud Run y dominios personalizados
+app.set('trust proxy', 1);
+
 // Basic middleware for parsing JSON and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
