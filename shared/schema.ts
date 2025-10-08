@@ -39,7 +39,6 @@ export const insertUserSchema = z.object({
   emergencyContact: z.string().optional(),
   currentLocation: z.string().regex(/^-?\d+\.\d+,-?\d+\.\d+$/).optional(),
   active: z.boolean().default(true),
-  hire_date: z.date().optional(),
 });
 
 // Products
