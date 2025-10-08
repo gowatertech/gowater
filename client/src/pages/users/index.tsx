@@ -858,9 +858,6 @@ export default function Users() {
                       type="submit"
                       size="sm"
                       className="h-8 text-xs sm:text-sm px-2 sm:h-9 sm:px-4"
-                      onClick={(e) => {
-                        // El botón ya tiene type="submit", así que el formulario se enviará automáticamente
-                      }}
                     >
                       {editingUser 
                         ? <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> 
