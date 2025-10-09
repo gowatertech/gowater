@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { FileBarChart, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useCompanySettings } from "@/hooks/use-company-settings";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardHeaderProps {
   title: string;
@@ -14,6 +15,7 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
   const { t } = useTranslation();
   const [_, navigate] = useLocation();
   const { settings } = useCompanySettings();
+  const { toast } = useToast();
   
   // Consulta para obtener información del usuario y compañía
   const { data: userData } = useQuery<{
@@ -31,6 +33,33 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
   // Función para navegar a otras secciones 
   const navigateTo = (path: string) => {
     navigate(path);
+  };
+
+  // Función para cerrar sesión
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/logout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Error al cerrar sesión");
+      }
+      
+      // Redirigir al login
+      window.location.href = "/auth/login";
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar la sesión. Intenta nuevamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -57,7 +86,7 @@ export function DashboardHeader({ title }: DashboardHeaderProps) {
           <FileBarChart className="h-4 w-4 mr-1" />
           <span className="hidden xs:inline">{t("Reportes")}</span>
         </Button>
-        <Button variant="outline" size="sm" onClick={() => navigateTo("/auth/logout")}>
+        <Button variant="outline" size="sm" onClick={handleLogout} data-testid="button-logout-header">
           <LogOut className="h-4 w-4 mr-1" />
           <span className="hidden xs:inline">{t("Cerrar sesión")}</span>
         </Button>
