@@ -8,6 +8,17 @@ GoWater is a comprehensive multi-tenant water delivery management system designe
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### October 2025 - Security & Authentication Fixes
+- **Multi-Tenant Security Hardening**: Added companyId filtering to all critical API endpoints (startRoute, vehicleLoading, commissions) to prevent cross-company data leaks
+- **Authentication Fix**: Implemented `normalizeLoginFields` middleware to support both username and email login formats, ensuring compatibility between mobile app (sends username) and web app (sends email)
+- **Input Validation**: Added NaN checks after parseInt/Number conversions to prevent invalid data processing
+- **Sync Service Fix**: Corrected syncInProgress flag reset using finally block to prevent stuck sync state
+- **LocalStorage Error Handling**: Added comprehensive error handling with safe helper functions for localStorage operations in mobile app
+- **Database Context Fix**: Removed hardcoded companyId from db-connect.js to ensure proper multi-tenant context
+- **Test Accounts**: Created test users for e2e testing (alvinleandro for company 1, conductor_test_15 for company 15)
+
 ## System Architecture
 
 ### Multi-Tenancy Design
