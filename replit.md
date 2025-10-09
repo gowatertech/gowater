@@ -10,16 +10,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### October 2025 - Security & Authentication Fixes
+### October 2025 - Route Optimization & Security Enhancements
+- **Mandatory Route Optimization**: Implemented required optimization step in route creation wizard
+  - Continue button disabled until route is optimized (enforced via UI state)
+  - Visual warning displayed: "⚠️ Debes optimizar la ruta antes de continuar"
+  - Backend calculates optimal sequence and distance using Haversine formula
+  - Frontend persists optimized distance from backend response to database
+  - Double validation prevents bypassing optimization requirement
+- **Distance Persistence Fix**: Corrected route creation flow to save optimized totalDistance to database
+  - Frontend captures distance from POST /api/routes/optimize response
+  - Distance included in create route payload and persisted to routes.total_distance column
+  - Verified with e2e tests: distance correctly saved (e.g., 49.70 km for test route)
 - **Multi-Tenant Security Hardening**: Added companyId filtering to all critical API endpoints (startRoute, vehicleLoading, commissions) to prevent cross-company data leaks
 - **Authentication Fix**: Implemented `normalizeLoginFields` middleware to support both username and email login formats, ensuring compatibility between mobile app (sends username) and web app (sends email)
 - **Input Validation**: Added NaN checks after parseInt/Number conversions to prevent invalid data processing
 - **Sync Service Fix**: Corrected syncInProgress flag reset using finally block to prevent stuck sync state
 - **LocalStorage Error Handling**: Added comprehensive error handling with safe helper functions for localStorage operations in mobile app
 - **Database Context Fix**: Removed hardcoded companyId from db-connect.js to ensure proper multi-tenant context
-- **Test Accounts**: Created test users for e2e testing (alvinleandro for company 1, conductor_test_15 for company 15)
+- **Test Accounts**: Created test users for e2e testing (alvinleandro for company 1, conductor_test_15 for company 15, aguamoya@gmail.com for company 15)
 - **Route Details Fix**: Fixed RouteMap component to properly fetch route orders using correct queryFn endpoint
-- **Distance Calculation Fix**: Fixed route creation to include totalDistance in payload, ensuring distance is calculated and persisted in database
 
 ## System Architecture
 

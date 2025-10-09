@@ -104,6 +104,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isRouteOptimized, setIsRouteOptimized] = useState(false);
   
   // Hooks
   const { toast } = useToast();
@@ -599,6 +600,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         console.log(`🚀 Secuencia optimizada creada con ${sequence.length} puntos (incluyendo empresa)`);
         
+        // Resetear el estado de optimización al entrar al paso
+        setIsRouteOptimized(false);
+        
         // Cambiar al siguiente paso solo después de procesar todo correctamente
         setPasoActual(pasos.OPTIMIZAR_RUTA);
       } catch (error) {
@@ -624,6 +628,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     }
     else if (pasoActual === pasos.OPTIMIZAR_RUTA) {
       setPasoActual(pasos.SELECCIONAR_PEDIDOS);
+      // Resetear el estado de optimización al volver
+      setIsRouteOptimized(false);
     }
     else if (pasoActual === pasos.COMPLETAR_DATOS) {
       setPasoActual(pasos.OPTIMIZAR_RUTA);
@@ -636,6 +642,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   };
   
   // Función para optimizar la ruta usando el backend
+  // MANDATORY OPTIMIZATION: Esta función marca isRouteOptimized=true al completar
   const handleOptimizeRoute = async () => {
     if (selectedOrders.length === 0) {
       toast({
@@ -685,6 +692,15 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
         
         // Actualizar la secuencia optimizada
         setOptimizedSequence([companyPoint, ...optimizedOrders]);
+        
+        // Actualizar la distancia total desde la respuesta del backend
+        if (response.totalDistance && !isNaN(Number(response.totalDistance))) {
+          setTotalDistanceKm(Number(response.totalDistance));
+          console.log(`✅ Distancia optimizada guardada: ${response.totalDistance} km`);
+        }
+        
+        // Marcar la ruta como optimizada
+        setIsRouteOptimized(true);
         
         toast({
           title: "Ruta optimizada",
@@ -1347,11 +1363,33 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Volver
               </Button>
-              <Button onClick={avanzarPaso}>
+              <Button 
+                onClick={() => {
+                  console.log(`🔍 CLICK CONTINUAR - isRouteOptimized: ${isRouteOptimized}, totalDistanceKm: ${totalDistanceKm}`);
+                  if (!isRouteOptimized) {
+                    toast({
+                      title: "Optimización requerida",
+                      description: "Debes optimizar la ruta antes de continuar.",
+                      variant: "destructive"
+                    });
+                    return;
+                  }
+                  avanzarPaso();
+                }}
+                disabled={!isRouteOptimized}
+                data-testid="button-continue-optimized"
+                aria-label={isRouteOptimized ? "Continuar a completar datos" : "Optimización requerida"}
+              >
                 Continuar
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
+            
+            {!isRouteOptimized && (
+              <p className="text-sm text-yellow-600 dark:text-yellow-500 text-center mt-2">
+                ⚠️ Debes optimizar la ruta antes de continuar
+              </p>
+            )}
           </div>
         );
         
