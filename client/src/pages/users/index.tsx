@@ -99,15 +99,11 @@ export default function Users() {
   }, [usersResponse]);
 
   // Formulario con esquema de validación condicional
-  // Hacer companyId opcional para el formulario ya que se añade automáticamente
   const formSchema = editingUser
     ? insertUserSchema.extend({
         password: insertUserSchema.shape.password.optional(),
-        companyId: insertUserSchema.shape.companyId.optional(),
       })
-    : insertUserSchema.extend({
-        companyId: insertUserSchema.shape.companyId.optional(),
-      });
+    : insertUserSchema;
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -117,6 +113,7 @@ export default function Users() {
       email: "", // Añadido campo de email
       password: "",
       role: "admin",
+      companyId: currentUser?.companyId || 0, // Añadir companyId del usuario actual
       phone: "",
       license: "",
       licenseExpiry: "",
@@ -124,6 +121,13 @@ export default function Users() {
       active: true,
     },
   });
+  
+  // Actualizar companyId cuando currentUser cambie
+  useEffect(() => {
+    if (currentUser?.companyId) {
+      form.setValue('companyId', currentUser.companyId);
+    }
+  }, [currentUser, form]);
 
   // Mutaciones
   const createUserMutation = useMutation({
