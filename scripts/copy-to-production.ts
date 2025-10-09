@@ -1,5 +1,5 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { platformUsers, plans } from "../shared/platform-schema";
 import { eq } from "drizzle-orm";
 
@@ -27,11 +27,11 @@ if (devDatabaseUrl === prodDatabaseUrl) {
   process.exit(1);
 }
 
-const devSql = neon(devDatabaseUrl);
-const devDb = drizzle(devSql);
+const devPool = new Pool({ connectionString: devDatabaseUrl });
+const devDb = drizzle(devPool);
 
-const prodSql = neon(prodDatabaseUrl);
-const prodDb = drizzle(prodSql);
+const prodPool = new Pool({ connectionString: prodDatabaseUrl });
+const prodDb = drizzle(prodPool);
 
 async function copySuperAdminToProduction() {
   console.log("\n🔐 Copiando Super Admin a producción...");
@@ -141,7 +141,13 @@ async function main() {
     console.log("  🔑 Contraseña: SuperAdmin123");
   } catch (error) {
     console.error("\n❌ Error durante el proceso:", error);
+    await devPool.end();
+    await prodPool.end();
     process.exit(1);
+  } finally {
+    // Cerrar conexiones
+    await devPool.end();
+    await prodPool.end();
   }
 }
 
