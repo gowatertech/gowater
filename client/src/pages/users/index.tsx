@@ -99,11 +99,15 @@ export default function Users() {
   }, [usersResponse]);
 
   // Formulario con esquema de validación condicional
+  // Hacer companyId opcional para el formulario ya que se añade automáticamente
   const formSchema = editingUser
     ? insertUserSchema.extend({
         password: insertUserSchema.shape.password.optional(),
+        companyId: insertUserSchema.shape.companyId.optional(),
       })
-    : insertUserSchema;
+    : insertUserSchema.extend({
+        companyId: insertUserSchema.shape.companyId.optional(),
+      });
 
   const form = useForm({
     resolver: zodResolver(formSchema),
