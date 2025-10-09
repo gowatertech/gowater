@@ -1423,11 +1423,8 @@ export function registerPlatformRoutes(router: Router) {
     try {
       const { email, password } = req.body;
       
-      console.log(`[PLATFORM LOGIN] Intento de login con email/username: ${email}`);
-      
       // Buscar usuario por email O por nombre
       let user = await platformStorage.getPlatformUserByEmail(email);
-      console.log(`[PLATFORM LOGIN] Búsqueda por email: ${user ? 'Encontrado' : 'No encontrado'}`);
       
       // Si no se encuentra por email, buscar por nombre (username)
       if (!user) {
@@ -1436,24 +1433,16 @@ export function registerPlatformRoutes(router: Router) {
           .from(platformUsers)
           .where(eq(platformUsers.name, email)); // 'email' contiene el username ingresado
         
-        console.log(`[PLATFORM LOGIN] Búsqueda por nombre: ${users.length > 0 ? 'Encontrado' : 'No encontrado'}`);
-        
         if (users.length > 0) {
           user = users[0];
-          console.log(`[PLATFORM LOGIN] Usuario encontrado por nombre: ${user.name}, Role: ${user.role}`);
         }
-      } else {
-        console.log(`[PLATFORM LOGIN] Usuario encontrado por email: ${user.name}, Role: ${user.role}`);
       }
       
       if (!user) {
-        console.log(`[PLATFORM LOGIN] Usuario no encontrado con: ${email}`);
         return res.status(401).json({ message: "Credenciales inválidas" });
       }
       
-      console.log(`[PLATFORM LOGIN] Verificando contraseña para usuario: ${user.name}`);
       const validPassword = await bcrypt.compare(password, user.password);
-      console.log(`[PLATFORM LOGIN] Contraseña válida: ${validPassword}`);
       if (!validPassword) {
         return res.status(401).json({ message: "Credenciales inválidas" });
       }
