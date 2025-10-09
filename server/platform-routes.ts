@@ -124,17 +124,11 @@ async function createCompanyUserFromPlatformUser(
 export function registerPlatformRoutes(router: Router) {
   // Middleware de autenticación para endpoints de plataforma
   const requirePlatformAdmin = (req: Request, res: Response, next: any) => {
-    // Para propósitos de demostración, permitimos el acceso sin verificar autenticación
-    next();
-    
-    // Código original (descomentar para producción)
-    /*
     // Verificar si el usuario es administrador de plataforma
     if (!req.session || !req.session.user || req.session.user.role !== 'platform_admin') {
       return res.status(403).json({ message: 'Acceso denegado' });
     }
     next();
-    */
   };
 
   const requireCompanyAdmin = (req: Request, res: Response, next: any) => {

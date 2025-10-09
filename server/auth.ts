@@ -21,8 +21,9 @@ declare global {
       username?: string;
       email?: string | null;
       role: string;
-      companyId: number;
+      companyId?: number | null;
       active?: boolean;
+      isPlatformUser?: boolean;
     }
   }
 }
@@ -80,15 +81,53 @@ export function setupAuth(app: Express) {
     passwordField: 'password'  // Campo de contraseña estándar
   }, async (email, password, done) => {
     try {
-      // Buscar usuario por email (que podría ser username o email real)
+      // Primero, buscar en la tabla users (usuarios de compañía)
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.email, email));
       
+      // Si no se encuentra en users, buscar en platform_users
       if (!user) {
-        console.log(`Intento de login fallido: Usuario con email ${email} no encontrado`);
-        return done(null, false, { message: 'Usuario no encontrado' });
+        const { platformDb } = await import('./platform-db');
+        const { platformUsers } = await import('@shared/platform-schema');
+        
+        const [platformUser] = await platformDb
+          .select()
+          .from(platformUsers)
+          .where(eq(platformUsers.email, email));
+        
+        if (!platformUser) {
+          console.log(`Intento de login fallido: Usuario con email ${email} no encontrado`);
+          return done(null, false, { message: 'Usuario no encontrado' });
+        }
+        
+        // Usuario de plataforma encontrado - procesarlo
+        if (!platformUser.active) {
+          console.log(`Intento de login fallido: Usuario de plataforma con email ${email} inactivo`);
+          return done(null, false, { message: 'Usuario inactivo' });
+        }
+        
+        // Verificar la contraseña del usuario de plataforma
+        let isPasswordValid = false;
+        try {
+          isPasswordValid = await bcrypt.compare(password, platformUser.password);
+        } catch (error) {
+          console.log(`Error al comparar contraseñas de plataforma:`, error);
+          isPasswordValid = false;
+        }
+        
+        if (!isPasswordValid) {
+          console.log(`Intento de login fallido: Contraseña incorrecta para usuario de plataforma ${email}`);
+          return done(null, false, { message: 'Contraseña incorrecta' });
+        }
+        
+        // Login exitoso para usuario de plataforma
+        console.log(`✅ Login exitoso (Platform) - Usuario: ${email}, ID: ${platformUser.id}, Role: ${platformUser.role}`);
+        
+        // Devolver el usuario sin la contraseña, agregando un flag para identificar que es de plataforma
+        const { password: _pwd, ...userWithoutPassword } = platformUser;
+        return done(null, { ...userWithoutPassword, isPlatformUser: true });
       }
       
       if (!user.active) {
@@ -142,13 +181,40 @@ export function setupAuth(app: Express) {
   }));
   
   // Serializar usuario (guardar en sesión)
-  passport.serializeUser((user, done) => {
-    done(null, user.id);
+  passport.serializeUser((user: any, done) => {
+    // Si es un usuario de plataforma, guardar también el flag
+    if (user.isPlatformUser) {
+      done(null, { id: user.id, isPlatformUser: true });
+    } else {
+      done(null, user.id);
+    }
   });
   
   // Deserializar usuario (recuperar de sesión)
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (data: any, done) => {
     try {
+      // Si data es un objeto con isPlatformUser, es un usuario de plataforma
+      if (typeof data === 'object' && data.isPlatformUser) {
+        const { platformDb } = await import('./platform-db');
+        const { platformUsers } = await import('@shared/platform-schema');
+        
+        const [platformUser] = await platformDb
+          .select()
+          .from(platformUsers)
+          .where(eq(platformUsers.id, data.id));
+        
+        if (!platformUser) {
+          return done(null, false);
+        }
+        
+        // Devolver el usuario de plataforma sin la contraseña
+        const { password: _pwd, ...userWithoutPassword } = platformUser;
+        return done(null, { ...userWithoutPassword, isPlatformUser: true });
+      }
+      
+      // Si es un número, es un ID de usuario regular
+      const id = typeof data === 'number' ? data : data.id;
+      
       const [user] = await db
         .select()
         .from(users)
