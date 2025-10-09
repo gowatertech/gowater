@@ -189,6 +189,16 @@ companyApiRouter.use(consolidatedCompanyMiddleware);
 // Nuestro nuevo middleware de autenticación de compañía
 companyApiRouter.use(companyAuthMiddleware);
 
+// Endpoint de prueba de autenticación (ANTES de Vite para que funcione en desarrollo)
+app.get("/api/authtest", (req, res) => {
+  res.json({
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user,
+    sessionUser: req.session?.user,
+    companyId: req.session?.companyId
+  });
+});
+
 // Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();

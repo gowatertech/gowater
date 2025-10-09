@@ -230,6 +230,11 @@ export default function Users() {
 
   // Actualizar la función onSubmit
   const onSubmit = async (data: any) => {
+    console.log('=== onSubmit EJECUTADO ===');
+    console.log('Datos del formulario:', data);
+    console.log('data.companyId:', data.companyId);
+    console.log('currentUser:', currentUser);
+    
     try {
       // Si estamos editando, proceder con la actualización
       if (editingUser) {
@@ -275,22 +280,22 @@ export default function Users() {
         return;
       }
 
-      // Obtener el companyId del usuario actual
-      if (!currentUser?.companyId) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudo obtener el ID de la compañía actual"
-        });
-        return;
-      }
-
       // Datos obligatorios según insertUserSchema
       if (!data.name || !data.username || !data.password || !data.role) {
         toast({
           variant: "destructive",
           title: "Error",
           description: "Faltan campos obligatorios: nombre, usuario, contraseña o rol"
+        });
+        return;
+      }
+
+      // Verificar que companyId esté presente en los datos del formulario
+      if (!data.companyId) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No se pudo obtener el ID de la compañía"
         });
         return;
       }
@@ -302,7 +307,7 @@ export default function Users() {
         password: data.password,
         email: data.email || undefined, // Convertir string vacío a undefined
         role: data.role,
-        companyId: Number(currentUser.companyId),
+        companyId: Number(data.companyId), // Usar el companyId del formulario
         phone: data.phone || undefined,
         license: data.license || undefined,
         ...(data.licenseExpiry ? { licenseExpiry: data.licenseExpiry } : {}),
