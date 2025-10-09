@@ -715,6 +715,16 @@ export function registerPlatformRoutes(router: Router) {
   router.put("/platform-users/:id", requirePlatformAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Protección: Verificar si se intenta modificar el super admin
+      const existingUser = await platformStorage.getPlatformUser(id);
+      if (existingUser && existingUser.email === 'superadmin@gowater.com') {
+        return res.status(403).json({ 
+          message: "No se puede modificar el super administrador de la plataforma",
+          error: "SUPER_ADMIN_PROTECTED" 
+        });
+      }
+      
       const userData = { ...req.body };
       
       // Si se actualiza la contraseña, hacer hash
@@ -748,6 +758,14 @@ export function registerPlatformRoutes(router: Router) {
       const user = await platformStorage.getPlatformUser(id);
       if (!user) {
         return res.status(404).json({ message: "Usuario no encontrado" });
+      }
+      
+      // Protección: Verificar si se intenta eliminar el super admin
+      if (user.email === 'superadmin@gowater.com') {
+        return res.status(403).json({ 
+          message: "No se puede eliminar el super administrador de la plataforma",
+          error: "SUPER_ADMIN_PROTECTED" 
+        });
       }
       
       console.log(`[DELETE USER] Eliminando usuario de plataforma ID=${id}, email=${user.email}`);
