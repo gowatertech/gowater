@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { ResponsiveMapContainer } from '@/components/ui/responsive-map-container';
+import { useCompanySettings } from '@/hooks/use-company-settings';
 
 interface RouteMapProps {
   route: RouteWithOrders;
@@ -11,6 +12,8 @@ interface RouteMapProps {
 }
 
 export default function RouteMap({ route, className }: RouteMapProps) {
+  const { settings } = useCompanySettings();
+  
   // Obtener los datos de los pedidos usando el endpoint correcto
   const { data: orders, isLoading } = useQuery({
     queryKey: ['/api/routes', route.id, 'orders'],
@@ -81,9 +84,25 @@ export default function RouteMap({ route, className }: RouteMapProps) {
     );
   }
 
-  // Calcular centro del mapa basado en el primer punto
-  const mapCenter = stopCoordinates[0]?.position || [18.4955, -69.8734] as [number, number];
-  const positions = stopCoordinates.map((item) => item.position);
+  // Obtener coordenadas del almacén desde settings
+  const depotPosition: [number, number] | null = 
+    settings?.latitude && settings?.longitude
+      ? [parseFloat(settings.latitude), parseFloat(settings.longitude)]
+      : null;
+
+  // Calcular centro del mapa basado en el almacén o primer punto
+  const mapCenter = depotPosition || stopCoordinates[0]?.position || [18.4955, -69.8734] as [number, number];
+  
+  // Crear array de posiciones para las líneas de ruta (almacén -> paradas -> almacén)
+  const routePositions: [number, number][] = [];
+  if (depotPosition) {
+    routePositions.push(depotPosition);
+    stopCoordinates.forEach(({ position }) => routePositions.push(position));
+    routePositions.push(depotPosition); // Regresar al almacén
+  } else {
+    // Si no hay almacén, solo conectar las paradas
+    stopCoordinates.forEach(({ position }) => routePositions.push(position));
+  }
 
   return (
     <div className={className}>
@@ -98,23 +117,47 @@ export default function RouteMap({ route, className }: RouteMapProps) {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
           
-          {/* Dibujar línea entre paradas para mostrar la ruta */}
-          {positions.length > 1 && (
+          {/* Dibujar línea de ruta desde almacén a paradas y vuelta al almacén */}
+          {routePositions.length > 1 && (
             <Polyline 
-              positions={positions} 
-              color="blue" 
+              positions={routePositions} 
+              color="#2563eb" 
               weight={3}
+              dashArray="5, 10"
             />
+          )}
+          
+          {/* Marcador del almacén/depósito */}
+          {depotPosition && (
+            <Marker
+              position={depotPosition}
+              icon={new L.DivIcon({
+                html: `<div class="flex items-center justify-center bg-green-600 text-white rounded-lg w-8 h-8 text-sm font-semibold shadow-lg">🏢</div>`,
+                className: 'custom-depot-icon',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+              })}
+            >
+              <Popup>
+                <div>
+                  <strong>Almacén</strong>
+                  <div>{settings?.name || 'Punto de partida'}</div>
+                  <div className="text-xs text-gray-500">
+                    {depotPosition[0].toFixed(6)}, {depotPosition[1].toFixed(6)}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
           )}
           
           {/* Mostrar marcadores para cada parada */}
           {stopCoordinates.map(({ position, order }, index: number) => {
             // Crear un icono personalizado con el número de parada
             const customIcon = new L.DivIcon({
-              html: `<div class="flex items-center justify-center bg-blue-600 text-white rounded-full w-6 h-6 text-sm font-semibold">${index + 1}</div>`,
+              html: `<div class="flex items-center justify-center bg-blue-600 text-white rounded-full w-8 h-8 text-sm font-semibold shadow-md">${index + 1}</div>`,
               className: 'custom-number-icon',
-              iconSize: [24, 24],
-              iconAnchor: [12, 12]
+              iconSize: [32, 32],
+              iconAnchor: [16, 16]
             });
             
             return (

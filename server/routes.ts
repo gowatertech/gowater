@@ -1,7 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
@@ -1580,6 +1580,25 @@ export async function registerRoutes(router: express.Router) {
         return res.status(400).json({ error: "Se requiere un array de IDs de pedidos" });
       }
       
+      // Obtener coordenadas del almacén desde settings
+      const [companySettings] = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.companyId, companyId))
+        .limit(1);
+      
+      let depotCoordinates: { latitude: number; longitude: number } | undefined;
+      
+      if (companySettings?.latitude && companySettings?.longitude) {
+        const lat = parseFloat(companySettings.latitude as string);
+        const lng = parseFloat(companySettings.longitude as string);
+        
+        if (!isNaN(lat) && !isNaN(lng)) {
+          depotCoordinates = { latitude: lat, longitude: lng };
+          console.log("📍 Coordenadas del almacén obtenidas de settings:", depotCoordinates);
+        }
+      }
+      
       // Obtener las órdenes completas basadas en los IDs recibidos, filtrando por companyId
       const ordersToOptimize = await db
         .select()
@@ -1595,8 +1614,8 @@ export async function registerRoutes(router: express.Router) {
         return res.status(404).json({ error: "No se encontraron pedidos con los IDs proporcionados" });
       }
       
-      // Calcular la ruta óptima usando el servicio de optimización
-      const optimizedRoute = calculateOptimalRoute(ordersToOptimize);
+      // Calcular la ruta óptima usando el servicio de optimización con coordenadas del almacén
+      const optimizedRoute = calculateOptimalRoute(ordersToOptimize, depotCoordinates);
       
       // Agregar información de vehículo y ayudante si se proporcionaron
       if (truckId) {

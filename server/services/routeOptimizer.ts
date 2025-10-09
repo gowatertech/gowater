@@ -26,10 +26,19 @@ interface OptimizedRoute {
 
 const AVERAGE_SPEED = 30; // km/h
 const DELIVERY_TIME = 10; // minutos por entrega
-const DEPOT_COORDINATES: [number, number] = [-69.8734, 18.4955]; // Santo Domingo
 
-export function calculateOptimalRoute(orders: Order[]): OptimizedRoute {
+export function calculateOptimalRoute(
+  orders: Order[], 
+  depotCoordinates?: { latitude: number; longitude: number }
+): OptimizedRoute {
   console.log("Optimizando ruta para pedidos:", orders.map(o => ({ id: o.id, coords: o.deliveryCoordinates })));
+
+  // Usar coordenadas del almacén proporcionadas o coordenadas por defecto
+  const DEPOT_COORDINATES: [number, number] = depotCoordinates 
+    ? [depotCoordinates.longitude, depotCoordinates.latitude] 
+    : [-69.8734, 18.4955]; // Santo Domingo por defecto
+
+  console.log("📍 Coordenadas del almacén:", DEPOT_COORDINATES);
 
   // Convertir órdenes a puntos para el cálculo
   const points: Point[] = orders.map(order => {
