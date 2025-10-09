@@ -846,6 +846,9 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       return;
     }
     
+    // Extraer los IDs de las órdenes seleccionadas
+    const orderIds = selectedOrders.map(order => order.id);
+    
     // Asegurar que todos los IDs son números
     const routeData = {
       ...values,
@@ -860,6 +863,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       companyCoordinates: companyInfo?.coordinates || null,
       // Incluir la distancia total calculada
       totalDistance: totalDistanceKm > 0 ? totalDistanceKm : null,
+      // Incluir los IDs de las órdenes para que el servidor las asigne a la ruta
+      orderIds: orderIds,
     };
     
     console.log("Datos a enviar:", routeData);
