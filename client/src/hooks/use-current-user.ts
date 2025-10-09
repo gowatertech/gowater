@@ -78,14 +78,14 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
       
       // Intentar primero con el endpoint regular
       try {
-        await apiRequest('POST', '/api/logout');
+        await apiRequest({ url: '/api/logout', method: 'POST' });
       } catch {
         // Si falla, intentar con el endpoint móvil
         try {
-          await apiRequest('POST', '/api/mobile/logout');
+          await apiRequest({ url: '/api/mobile/logout', method: 'POST' });
         } catch {
           // Si también falla, intentar con el endpoint de platform
-          await apiRequest('POST', '/api/platform/platform-logout');
+          await apiRequest({ url: '/api/platform/platform-logout', method: 'POST' });
         }
       }
       
