@@ -113,7 +113,7 @@ export default function Users() {
       email: "", // Añadido campo de email
       password: "",
       role: "admin",
-      companyId: currentUser?.companyId || 0, // Añadir companyId del usuario actual
+      companyId: currentUser?.companyId || undefined, // Usar undefined en lugar de 0
       phone: "",
       license: "",
       licenseExpiry: "",
@@ -391,6 +391,7 @@ export default function Users() {
       email: user.email || "", // Añadido email para edición
       password: "",
       role: user.role,
+      companyId: currentUser?.companyId, // Incluir companyId al editar
       phone: user.phone || "",
       license: user.license || "",
       licenseExpiry: user.licenseExpiry ? format(new Date(user.licenseExpiry), "yyyy-MM-dd") : "",
@@ -414,14 +415,38 @@ export default function Users() {
   
   // Reset del formulario y regreso a la lista
   const handleCancel = () => {
-    form.reset();
+    form.reset({
+      name: "",
+      username: "",
+      email: "",
+      password: "",
+      role: "admin",
+      companyId: currentUser?.companyId,
+      phone: "",
+      license: "",
+      licenseExpiry: "",
+      emergencyContact: "",
+      active: true,
+    });
     setEditingUser(null);
     setActiveTab("list");
   };
 
   // Después de crear o actualizar un usuario, regresar a la lista
   const handleFormSuccess = () => {
-    form.reset();
+    form.reset({
+      name: "",
+      username: "",
+      email: "",
+      password: "",
+      role: "admin",
+      companyId: currentUser?.companyId,
+      phone: "",
+      license: "",
+      licenseExpiry: "",
+      emergencyContact: "",
+      active: true,
+    });
     setEditingUser(null);
     setActiveTab("list");
   };
@@ -489,7 +514,19 @@ export default function Users() {
         <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{t("users")}</h1>
         <Button 
           onClick={() => {
-            form.reset();
+            form.reset({
+              name: "",
+              username: "",
+              email: "",
+              password: "",
+              role: "admin",
+              companyId: currentUser?.companyId,
+              phone: "",
+              license: "",
+              licenseExpiry: "",
+              emergencyContact: "",
+              active: true,
+            });
             setEditingUser(null);
             setActiveTab("form");
           }}
@@ -856,6 +893,23 @@ export default function Users() {
                     </div>
                   )}
 
+                  {/* Campo oculto para companyId */}
+                  <FormField
+                    control={form.control}
+                    name="companyId"
+                    render={({ field }) => (
+                      <FormItem className="hidden">
+                        <FormControl>
+                          <Input 
+                            type="hidden" 
+                            {...field} 
+                            value={field.value ? String(field.value) : ''}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="flex items-center justify-end gap-2 pt-4">
                     <Button 
                       variant="outline" 
@@ -871,6 +925,7 @@ export default function Users() {
                       type="submit"
                       size="sm"
                       className="h-8 text-xs sm:text-sm px-2 sm:h-9 sm:px-4"
+                      disabled={!currentUser?.companyId}
                     >
                       {editingUser 
                         ? <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" /> 
