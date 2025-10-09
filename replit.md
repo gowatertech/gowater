@@ -18,6 +18,8 @@ Preferred communication style: Simple, everyday language.
 - **LocalStorage Error Handling**: Added comprehensive error handling with safe helper functions for localStorage operations in mobile app
 - **Database Context Fix**: Removed hardcoded companyId from db-connect.js to ensure proper multi-tenant context
 - **Test Accounts**: Created test users for e2e testing (alvinleandro for company 1, conductor_test_15 for company 15)
+- **Route Details Fix**: Fixed RouteMap component to properly fetch route orders using correct queryFn endpoint
+- **Distance Calculation Fix**: Fixed route creation to include totalDistance in payload, ensuring distance is calculated and persisted in database
 
 ## System Architecture
 

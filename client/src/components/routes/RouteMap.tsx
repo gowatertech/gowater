@@ -11,9 +11,16 @@ interface RouteMapProps {
 }
 
 export default function RouteMap({ route, className }: RouteMapProps) {
-  // Obtener los datos de los pedidos usando los orderIds
+  // Obtener los datos de los pedidos usando el endpoint correcto
   const { data: orders, isLoading } = useQuery({
     queryKey: ['/api/routes', route.id, 'orders'],
+    queryFn: async () => {
+      const response = await fetch(`/api/routes/${route.id}/orders`);
+      if (!response.ok) {
+        throw new Error("Error al cargar las órdenes de la ruta");
+      }
+      return response.json();
+    },
     enabled: !!route.orderIds && route.orderIds.length > 0
   });
 

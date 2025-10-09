@@ -858,6 +858,8 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       stops: stops,
       deliverySequence: sequence,
       companyCoordinates: companyInfo?.coordinates || null,
+      // Incluir la distancia total calculada
+      totalDistance: totalDistanceKm > 0 ? totalDistanceKm : null,
     };
     
     console.log("Datos a enviar:", routeData);
