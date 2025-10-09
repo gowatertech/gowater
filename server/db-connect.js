@@ -26,8 +26,8 @@ export const poolPromise = pool.connect()
     throw err;
   });
 
-// Configurar el contexto de la compañía para pruebas
-setCurrentCompanyId(15); // Establecer la compañía 15 para pruebas
+// NOTE: companyId should be set dynamically based on user's session/authentication
+// Never use hardcoded values in production to prevent multi-tenant data leaks
 
 export default {
   pool,

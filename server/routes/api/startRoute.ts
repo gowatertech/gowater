@@ -4,8 +4,9 @@
  */
 
 import { Express, Request, Response } from "express";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { db } from "../../db";
+import { getCurrentCompanyId } from "../../company-db";
 import { routes, orders } from "../../../shared/schema";
 
 /**
@@ -24,13 +25,28 @@ export function registerStartRouteEndpoint(app: Express) {
         });
       }
       
-      console.log(`POST /api/routes/${routeId}/start - Iniciando ruta...`);
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
       
-      // Obtener la ruta que se quiere iniciar
+      if (!companyId) {
+        return res.status(403).json({
+          success: false,
+          message: "No se pudo determinar el contexto de la empresa"
+        });
+      }
+      
+      console.log(`POST /api/routes/${routeId}/start - Iniciando ruta para compañía ${companyId}...`);
+      
+      // Obtener la ruta que se quiere iniciar (filtrada por compañía)
       const [route] = await db
         .select()
         .from(routes)
-        .where(eq(routes.id, routeId));
+        .where(
+          and(
+            eq(routes.id, routeId),
+            eq(routes.companyId, companyId)
+          )
+        );
       
       if (!route) {
         return res.status(404).json({ 
@@ -64,8 +80,9 @@ export function registerStartRouteEndpoint(app: Express) {
           and(
             eq(routes.driverId, driverId),
             eq(routes.status, "in_progress"),
+            eq(routes.companyId, companyId),
             // Excluir la ruta actual
-            route.id ? (routes.id != routeId) : undefined
+            ne(routes.id, routeId)
           )
         );
       
@@ -87,14 +104,24 @@ export function registerStartRouteEndpoint(app: Express) {
       const [updatedRoute] = await db
         .update(routes)
         .set({ status: "in_progress" })
-        .where(eq(routes.id, routeId))
+        .where(
+          and(
+            eq(routes.id, routeId),
+            eq(routes.companyId, companyId)
+          )
+        )
         .returning();
       
-      // Actualizar también los pedidos asociados a la ruta
+      // Actualizar también los pedidos asociados a la ruta (filtrados por compañía)
       await db
         .update(orders)
         .set({ status: "in_transit" })
-        .where(eq(orders.routeId, routeId));
+        .where(
+          and(
+            eq(orders.routeId, routeId),
+            eq(orders.companyId, companyId)
+          )
+        );
       
       console.log(`Ruta #${routeId} iniciada exitosamente`);
       

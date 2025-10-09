@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { eq, and } from "drizzle-orm";
 import { db } from "../db";
+import { getCurrentCompanyId } from "../company-db";
 import { vehicleLoading, vehicleLoadingItems, products } from "@shared/schema";
 
 export async function registerVehicleLoadingRoutes(app: Express) {
@@ -13,23 +14,38 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         return res.status(400).json({ error: 'ID de carga inválido' });
       }
       
-      // Verificar si la carga existe
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
+      // Verificar si la carga existe (filtrada por compañía)
       const loading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.id, loadingId)
+        where: and(
+          eq(vehicleLoading.id, loadingId),
+          eq(vehicleLoading.companyId, companyId)
+        )
       });
       
       if (!loading) {
         return res.status(404).json({ error: 'Carga no encontrada' });
       }
       
-      // Actualizar el estado de la carga a "completed"
+      // Actualizar el estado de la carga a "completed" (filtrado por compañía)
       await db
         .update(vehicleLoading)
         .set({
           status: 'completed',
           completedAt: new Date().toISOString()
         })
-        .where(eq(vehicleLoading.id, loadingId));
+        .where(
+          and(
+            eq(vehicleLoading.id, loadingId),
+            eq(vehicleLoading.companyId, companyId)
+          )
+        );
       
       console.log(`Carga #${loadingId} marcada como completada`);
       
@@ -55,9 +71,19 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         return res.status(400).json({ error: "ID de ruta inválido" });
       }
 
-      // Verificar si la carga existe
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+
+      // Verificar si la carga existe (filtrada por compañía)
       const loading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.id, loadingId)
+        where: and(
+          eq(vehicleLoading.id, loadingId),
+          eq(vehicleLoading.companyId, companyId)
+        )
       });
       
       if (!loading) {
@@ -72,10 +98,15 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         });
       }
       
-      // Actualizar la carga con el ID de la ruta
+      // Actualizar la carga con el ID de la ruta (filtrado por compañía)
       const [updatedLoading] = await db.update(vehicleLoading)
         .set({ routeId: Number(routeId) })
-        .where(eq(vehicleLoading.id, loadingId))
+        .where(
+          and(
+            eq(vehicleLoading.id, loadingId),
+            eq(vehicleLoading.companyId, companyId)
+          )
+        )
         .returning();
       
       res.status(200).json(updatedLoading);
@@ -89,9 +120,19 @@ export async function registerVehicleLoadingRoutes(app: Express) {
     try {
       const loadingId = parseInt(req.params.id);
       
-      // Verificar si la carga existe
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
+      // Verificar si la carga existe (filtrada por compañía)
       const loading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.id, loadingId)
+        where: and(
+          eq(vehicleLoading.id, loadingId),
+          eq(vehicleLoading.companyId, companyId)
+        )
       });
       
       if (!loading) {
@@ -114,11 +155,16 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         });
       }
       
-      // Primero eliminar los items de la carga
+      // Primero eliminar los items de la carga (filtrados por compañía a través de la carga)
       await db.delete(vehicleLoadingItems).where(eq(vehicleLoadingItems.loadingId, loadingId));
       
-      // Luego eliminar la carga
-      await db.delete(vehicleLoading).where(eq(vehicleLoading.id, loadingId));
+      // Luego eliminar la carga (filtrada por compañía)
+      await db.delete(vehicleLoading).where(
+        and(
+          eq(vehicleLoading.id, loadingId),
+          eq(vehicleLoading.companyId, companyId)
+        )
+      );
       
       res.status(200).json({ success: true, message: "Carga eliminada correctamente" });
     } catch (error) {
@@ -129,7 +175,15 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   // Get all vehicle loadings
   app.get("/api/vehicle-loading", async (_req: Request, res: Response) => {
     try {
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
       const loadings = await db.query.vehicleLoading.findMany({
+        where: eq(vehicleLoading.companyId, companyId),
         with: {
           items: {
             with: {
@@ -153,8 +207,18 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   // Get pending vehicle loadings
   app.get("/api/vehicle-loading/pending", async (_req: Request, res: Response) => {
     try {
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
       const loadings = await db.query.vehicleLoading.findMany({
-        where: eq(vehicleLoading.status, "pending"),
+        where: and(
+          eq(vehicleLoading.status, "pending"),
+          eq(vehicleLoading.companyId, companyId)
+        ),
         with: {
           items: {
             with: {
@@ -178,8 +242,18 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   // Get specific vehicle loading with items
   app.get("/api/vehicle-loading/:id", async (req: Request, res: Response) => {
     try {
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
       const loading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.id, parseInt(req.params.id)),
+        where: and(
+          eq(vehicleLoading.id, parseInt(req.params.id)),
+          eq(vehicleLoading.companyId, companyId)
+        ),
         with: {
           items: {
             with: {
@@ -206,6 +280,13 @@ export async function registerVehicleLoadingRoutes(app: Express) {
   // Create new vehicle loading with items
   app.post("/api/vehicle-loading", async (req: Request, res: Response) => {
     try {
+      // Get company ID from context for multi-tenant security
+      const companyId = getCurrentCompanyId();
+      
+      if (!companyId) {
+        return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+      }
+      
       // Validar y verificar los campos antes de crear la carga
       console.log("POST /api/vehicle-loading - Body recibido:", req.body);
 
@@ -234,19 +315,20 @@ export async function registerVehicleLoadingRoutes(app: Express) {
         return res.status(400).json({ error: "ID de ruta inválido" });
       }
       
-      console.log(`IDs validados - truck: ${truckId}, driver: ${driverId}, assistant: ${assistantId}, route: ${routeId}`);
+      console.log(`IDs validados - truck: ${truckId}, driver: ${driverId}, assistant: ${assistantId}, route: ${routeId}, companyId: ${companyId}`);
       
       const [loading] = await db.insert(vehicleLoading).values({
         truckId,
         driverId,
         assistantId,
         routeId,
+        companyId,
         status: "pending",
         initialCash: req.body.initialCash,
         notes: req.body.notes,
       }).returning();
 
-      console.log(`Carga creada con ID: ${loading.id}, routeId: ${loading.routeId}`);
+      console.log(`Carga creada con ID: ${loading.id}, routeId: ${loading.routeId}, companyId: ${companyId}`);
 
       if (req.body.items && req.body.items.length > 0) {
         const itemsToInsert = req.body.items.map((item: any) => ({
@@ -262,7 +344,10 @@ export async function registerVehicleLoadingRoutes(app: Express) {
       }
 
       const completeLoading = await db.query.vehicleLoading.findFirst({
-        where: eq(vehicleLoading.id, loading.id),
+        where: and(
+          eq(vehicleLoading.id, loading.id),
+          eq(vehicleLoading.companyId, companyId)
+        ),
         with: {
           items: {
             with: {

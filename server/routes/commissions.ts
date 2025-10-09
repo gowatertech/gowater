@@ -1,5 +1,6 @@
 import express, { Router, Request, Response } from 'express';
 import { db } from '../db';
+import { getCurrentCompanyId } from '../company-db';
 import { commissions, commissionItems, users, products, orders, routes, orderItems } from '@shared/schema';
 import { z } from 'zod';
 import { eq, and, between, like, sql, asc, desc, or, inArray } from 'drizzle-orm';
@@ -26,6 +27,13 @@ const updateCommissionStatusSchema = z.object({
 // Obtener comisiones con filtros
 router.get('/', async (req, res) => {
   try {
+    // Get company ID from context for multi-tenant security
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+    }
+    
     // Parsear parámetros de consulta
     const { status, userRole, startDate, endDate, userId } = req.query;
     
@@ -49,8 +57,8 @@ router.get('/', async (req, res) => {
     .leftJoin(users, eq(commissions.userId, users.id))
     .leftJoin(routes, eq(commissions.routeId, routes.id));
     
-    // Aplicar filtros según los parámetros recibidos
-    const conditions = [];
+    // Aplicar filtros según los parámetros recibidos (always include companyId)
+    const conditions = [eq(commissions.companyId, companyId)];
     
     if (status) {
       conditions.push(eq(commissions.status, status as "pending" | "paid" | "cancelled"));
@@ -72,10 +80,8 @@ router.get('/', async (req, res) => {
       conditions.push(sql`${commissions.weekEndDate} <= ${endDate}`);
     }
     
-    // Aplicar condiciones a la consulta
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
-    }
+    // Aplicar condiciones a la consulta (always has companyId filter)
+    query = query.where(and(...conditions)) as any;
     
     // Ejecutar consulta con ordenamiento por fecha descendente
     const result = await query.orderBy(desc(commissions.weekStartDate));
@@ -92,7 +98,14 @@ router.get('/:id', async (req, res) => {
   try {
     const commissionId = parseInt(req.params.id);
     
-    // Obtener datos de la comisión
+    // Get company ID from context for multi-tenant security
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+    }
+    
+    // Obtener datos de la comisión (filtrada por compañía)
     const [commission] = await db.select({
       id: commissions.id,
       userId: commissions.userId,
@@ -112,7 +125,10 @@ router.get('/:id', async (req, res) => {
     .from(commissions)
     .leftJoin(users, eq(commissions.userId, users.id))
     .leftJoin(routes, eq(commissions.routeId, routes.id))
-    .where(eq(commissions.id, commissionId));
+    .where(and(
+      eq(commissions.id, commissionId),
+      eq(commissions.companyId, companyId)
+    ));
     
     if (!commission) {
       return res.status(404).json({ error: 'Comisión no encontrada' });
@@ -154,25 +170,41 @@ router.delete('/:id', async (req, res) => {
   try {
     const commissionId = parseInt(req.params.id);
     
-    // Verificar que la comisión existe
+    // Get company ID from context for multi-tenant security
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+    }
+    
+    // Verificar que la comisión existe (filtrada por compañía)
     const [existingCommission] = await db
       .select()
       .from(commissions)
-      .where(eq(commissions.id, commissionId));
+      .where(and(
+        eq(commissions.id, commissionId),
+        eq(commissions.companyId, companyId)
+      ));
     
     if (!existingCommission) {
       return res.status(404).json({ error: 'Comisión no encontrada' });
     }
     
-    // Primero eliminar todos los items relacionados
+    // Primero eliminar todos los items relacionados (filtrados por compañía)
     await db
       .delete(commissionItems)
-      .where(eq(commissionItems.commissionId, commissionId));
+      .where(and(
+        eq(commissionItems.commissionId, commissionId),
+        eq(commissionItems.companyId, companyId)
+      ));
     
-    // Luego eliminar la comisión
+    // Luego eliminar la comisión (filtrada por compañía)
     const [deletedCommission] = await db
       .delete(commissions)
-      .where(eq(commissions.id, commissionId))
+      .where(and(
+        eq(commissions.id, commissionId),
+        eq(commissions.companyId, companyId)
+      ))
       .returning();
     
     res.json({ 
@@ -190,6 +222,13 @@ router.patch('/:id/status', async (req, res) => {
   try {
     const commissionId = parseInt(req.params.id);
     
+    // Get company ID from context for multi-tenant security
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+    }
+    
     // Validar los datos de entrada
     const result = updateCommissionStatusSchema.safeParse(req.body);
     if (!result.success) {
@@ -201,11 +240,14 @@ router.patch('/:id/status', async (req, res) => {
     
     const { status, paymentDate, paymentReference, notes } = result.data;
     
-    // Verificar que la comisión existe
+    // Verificar que la comisión existe (filtrada por compañía)
     const [existingCommission] = await db
       .select()
       .from(commissions)
-      .where(eq(commissions.id, commissionId));
+      .where(and(
+        eq(commissions.id, commissionId),
+        eq(commissions.companyId, companyId)
+      ));
     
     if (!existingCommission) {
       return res.status(404).json({ error: 'Comisión no encontrada' });
@@ -226,11 +268,14 @@ router.patch('/:id/status', async (req, res) => {
       updateData.notes = notes;
     }
     
-    // Actualizar la comisión
+    // Actualizar la comisión (filtrada por compañía)
     const [updatedCommission] = await db
       .update(commissions)
       .set(updateData)
-      .where(eq(commissions.id, commissionId))
+      .where(and(
+        eq(commissions.id, commissionId),
+        eq(commissions.companyId, companyId)
+      ))
       .returning();
     
     res.json(updatedCommission);
@@ -243,6 +288,13 @@ router.patch('/:id/status', async (req, res) => {
 // Verificar si ya existe una comisión para un rango de fechas
 router.post('/check-existing', async (req, res) => {
   try {
+    // Get company ID from context for multi-tenant security
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+    }
+    
     // Validar los datos de entrada
     const result = generateCommissionsSchema.safeParse(req.body);
     if (!result.success) {
@@ -263,7 +315,19 @@ router.post('/check-existing', async (req, res) => {
       return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
     }
 
-    // Construir la consulta para buscar comisiones existentes
+    // Construir la consulta para buscar comisiones existentes (filtradas por compañía)
+    const conditions = [
+      eq(commissions.companyId, companyId),
+      eq(commissions.userRole, userRole),
+      sql`${commissions.weekStartDate} = ${startDate}`,
+      sql`${commissions.weekEndDate} = ${endDate}`
+    ];
+    
+    // Filtrar por userId si se proporciona
+    if (userId) {
+      conditions.push(eq(commissions.userId, userId));
+    }
+    
     let query = db.select({
       id: commissions.id,
       status: commissions.status,
@@ -276,18 +340,7 @@ router.post('/check-existing', async (req, res) => {
     })
     .from(commissions)
     .leftJoin(users, eq(commissions.userId, users.id))
-    .where(
-      and(
-        eq(commissions.userRole, userRole),
-        sql`${commissions.weekStartDate} = ${startDate}`,
-        sql`${commissions.weekEndDate} = ${endDate}`
-      )
-    );
-    
-    // Filtrar por userId si se proporciona
-    if (userId) {
-      query = query.where(eq(commissions.userId, userId));
-    }
+    .where(and(...conditions));
     
     const existingCommissions = await query;
     
@@ -316,6 +369,13 @@ router.post('/check-existing', async (req, res) => {
 // Generar comisiones para un período
 router.post('/generate', async (req, res) => {
   try {
+    // Get company ID from context for multi-tenant security
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      return res.status(403).json({ error: 'No se pudo determinar el contexto de la empresa' });
+    }
+    
     // Validar los datos de entrada
     const result = generateCommissionsSchema.safeParse(req.body);
     if (!result.success) {
@@ -336,14 +396,14 @@ router.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'La fecha de inicio debe ser anterior a la fecha de fin' });
     }
     
-    // Construir la consulta para obtener usuarios según los filtros
+    // Construir la consulta para obtener usuarios según los filtros (filtrados por compañía)
     // Vamos a mapear los roles del frontend a los roles de la base de datos
     
     // Si viene el rol "helper" del frontend, buscar usuarios con rol "assistant" en BD
     // Aquí definimos el mapeo entre roles del frontend y roles de la BD
     // Mantener consistencia usando 'helper' en toda la aplicación
     const roleValue = userRole;
-    console.log(`Rol a usar: "${roleValue}"`);
+    console.log(`Rol a usar: "${roleValue}" para compañía ${companyId}`);
     
     // Consulta inicial con tipado seguro
     let usersQuery;
@@ -355,7 +415,10 @@ router.post('/generate', async (req, res) => {
     usersQuery = db
       .select()
       .from(users)
-      .where(eq(users.role, dbRole));
+      .where(and(
+        eq(users.role, dbRole),
+        eq(users.companyId, companyId)
+      ));
     
     // Filtrar por ID de usuario si se proporciona
     if (userId) {
@@ -378,7 +441,7 @@ router.post('/generate', async (req, res) => {
       // Buscar órdenes entregadas en el período especificado por este usuario
       let deliveredOrders;
       
-      // Consulta personalizada según el rol del usuario
+      // Consulta personalizada según el rol del usuario (filtrada por compañía)
       if (userRole === 'driver') {
         // Para conductores, buscar órdenes donde son conductores
         deliveredOrders = await db
@@ -394,6 +457,8 @@ router.post('/generate', async (req, res) => {
           .where(
             and(
               eq(orders.status, 'delivered'),
+              eq(orders.companyId, companyId),
+              eq(routes.companyId, companyId),
               // Ajustamos el rango para incluir todo el día de la fecha final
               sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < ${endDate}::timestamp + INTERVAL '1 day'`,
               eq(routes.driverId, user.id)
@@ -414,6 +479,8 @@ router.post('/generate', async (req, res) => {
           .where(
             and(
               eq(orders.status, 'delivered'),
+              eq(orders.companyId, companyId),
+              eq(routes.companyId, companyId),
               // Ajustamos el rango para incluir todo el día de la fecha final
               sql`${orders.actualDeliveryTime} >= ${startDate} AND ${orders.actualDeliveryTime} < ${endDate}::timestamp + INTERVAL '1 day'`,
               and(
@@ -457,7 +524,7 @@ router.post('/generate', async (req, res) => {
       // Ejecutar la consulta para productos comisionables
       let orderProductItems: any[] = [];
       
-      // Consultas separadas para cada rol
+      // Consultas separadas para cada rol (filtradas por compañía)
       if (userRole === 'driver') {
         // Si no hay orderIds, devolvemos un array vacío directamente
         if (orderIds.length === 0) {
@@ -478,6 +545,8 @@ router.post('/generate', async (req, res) => {
             .where(
               and(
                 inArray(orderItems.orderId, orderIds),
+                eq(products.companyId, companyId),
+                eq(orders.companyId, companyId),
                 eq(products.isCommissionable, true),
                 sql`COALESCE(${products.driverCommissionValue}, 0) > 0`
               )
@@ -512,6 +581,8 @@ router.post('/generate', async (req, res) => {
             .where(
               and(
                 inArray(orderItems.orderId, orderIds),
+                eq(products.companyId, companyId),
+                eq(orders.companyId, companyId),
                 eq(products.isCommissionable, true),
                 sql`${products.helperCommissionValue} IS NOT NULL`,
                 sql`CAST(${products.helperCommissionValue} AS DECIMAL) > 0`
@@ -615,6 +686,7 @@ router.post('/generate', async (req, res) => {
           and(
             eq(commissions.userId, user.id),
             eq(commissions.userRole, searchRoleValue),
+            eq(commissions.companyId, companyId),
             sql`${commissions.weekStartDate} = ${startDate}`,
             sql`${commissions.weekEndDate} = ${endDate}`
           )
@@ -630,7 +702,7 @@ router.post('/generate', async (req, res) => {
         continue;
       }
       
-      // Crear una nueva comisión
+      // Crear una nueva comisión (con companyId para multi-tenant security)
       // Mantener el rol del frontend para comisiones en BD
       const commissionRole = userRole;
       
@@ -639,6 +711,7 @@ router.post('/generate', async (req, res) => {
         .values({
           userId: user.id,
           userRole: commissionRole, // Guardamos el rol como lo espera la BD
+          companyId: companyId,
           weekStartDate: startDate,
           weekEndDate: endDate,
           productCount: commissionItemsData.length,
@@ -649,20 +722,21 @@ router.post('/generate', async (req, res) => {
         })
         .returning();
       
-      // Agregar ítems de comisión
+      // Agregar ítems de comisión (con companyId)
       for (const itemData of commissionItemsData) {
         await db
           .insert(commissionItems)
           .values({
             ...itemData,
             commissionId: newCommission.id,
+            companyId: companyId,
           });
       }
       
       generatedCommissions.push(newCommission);
     }
     
-    // Obtener comisiones para asegurar que se devuelven con todos los datos relacionados
+    // Obtener comisiones para asegurar que se devuelven con todos los datos relacionados (filtradas por compañía)
     let generatedCommissionsWithDetails = [];
     
     if (generatedCommissions.length > 0) {
@@ -685,9 +759,12 @@ router.post('/generate', async (req, res) => {
       .leftJoin(users, eq(commissions.userId, users.id))
       .leftJoin(routes, eq(commissions.routeId, routes.id))
       .where(
-        inArray(
-          commissions.id, 
-          generatedCommissions.map(c => c.id)
+        and(
+          inArray(
+            commissions.id, 
+            generatedCommissions.map(c => c.id)
+          ),
+          eq(commissions.companyId, companyId)
         )
       );
     } else {

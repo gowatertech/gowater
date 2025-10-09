@@ -61,6 +61,26 @@ interface Order {
   }>;
 }
 
+// Helper functions for safe localStorage access
+const safeLocalStorageGet = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.error(`Error reading from localStorage (key: ${key}):`, error);
+    return null;
+  }
+};
+
+const safeLocalStorageSet = (key: string, value: string): boolean => {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.error(`Error writing to localStorage (key: ${key}):`, error);
+    return false;
+  }
+};
+
 export default function MobilePendingRoutes() {
   const { isDarkMode } = useMobile();
   const [, setLocation] = useLocation();
@@ -113,8 +133,8 @@ export default function MobilePendingRoutes() {
         // Saltar rutas completadas
         if (route.status === "completed") return;
         
-        // Verificar estado en localStorage
-        const savedStatus = localStorage.getItem(`routeStatus_${route.id}`);
+        // Verificar estado en localStorage con manejo de errores
+        const savedStatus = safeLocalStorageGet(`routeStatus_${route.id}`);
         
         // Clasificar la ruta según su estado
         if (savedStatus === 'in_progress' || route.status === "in_progress") {
@@ -226,7 +246,7 @@ export default function MobilePendingRoutes() {
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
     if (!isStandalone) {
-      const hasPromptBeenShown = localStorage.getItem('pwaPromptShown');
+      const hasPromptBeenShown = safeLocalStorageGet('pwaPromptShown');
       if (!hasPromptBeenShown) {
         setShowInstallPrompt(true);
       }
@@ -235,8 +255,8 @@ export default function MobilePendingRoutes() {
 
   // Manejar inicio de ruta
   const handleStartRoute = (routeId: number) => {
-    // Comprobar si hay un estado guardado para esta ruta en localStorage
-    const savedRouteStatus = localStorage.getItem(`routeStatus_${routeId}`);
+    // Comprobar si hay un estado guardado para esta ruta en localStorage con manejo de errores
+    const savedRouteStatus = safeLocalStorageGet(`routeStatus_${routeId}`);
     console.log(`Verificando estado guardado para ruta ${routeId}: ${savedRouteStatus}`);
     
     // Si la ruta está en progreso o pausada, redirigimos directamente sin llamar a la API
@@ -276,10 +296,10 @@ export default function MobilePendingRoutes() {
           console.error("Error al actualizar estado de pedidos:", err);
         });
         
-        // Guardar el estado como 'in_progress' en localStorage
-        localStorage.setItem(`routeStatus_${routeId}`, 'in_progress');
+        // Guardar el estado como 'in_progress' en localStorage con manejo de errores
+        safeLocalStorageSet(`routeStatus_${routeId}`, 'in_progress');
         // También guardar el estado general para compatibilidad
-        localStorage.setItem('routeStatus', 'in_progress');
+        safeLocalStorageSet('routeStatus', 'in_progress');
         setLocation(`/mobile-app/ruta?routeId=${routeId}`);
       } else if (data.activeRouteId) {
         // El servidor detectó que el conductor ya tiene una ruta activa
@@ -481,7 +501,7 @@ export default function MobilePendingRoutes() {
       {showInstallPrompt && (
         <InstallPrompt onClose={() => {
           setShowInstallPrompt(false);
-          localStorage.setItem('pwaPromptShown', 'true');
+          safeLocalStorageSet('pwaPromptShown', 'true');
         }} />
       )}
       

@@ -123,7 +123,6 @@ export async function syncPendingItems() {
     
     if (pendingItems.length === 0) {
       console.log('No hay elementos pendientes para sincronizar');
-      syncInProgress = false;
       
       // Emitir evento de finalización
       const emptyCompleteEvent = new CustomEvent(EVENTS.SYNC_COMPLETE, { 
@@ -225,7 +224,6 @@ export async function syncPendingItems() {
     
     console.log(`Sincronización completada: ${successCount} exitosos, ${errorCount} fallidos, ${pendingItemsCount} pendientes`);
     
-    syncInProgress = false;
     return (errorCount === 0);
     
   } catch (error) {
@@ -237,8 +235,10 @@ export async function syncPendingItems() {
     });
     eventTarget.dispatchEvent(errorEvent);
     
-    syncInProgress = false;
     return false;
+  } finally {
+    // Always reset syncInProgress flag to prevent stuck sync state
+    syncInProgress = false;
   }
 }
 
