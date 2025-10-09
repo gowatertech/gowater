@@ -5,19 +5,34 @@ import * as platformSchema from "@shared/platform-schema";
 
 neonConfig.webSocketConstructor = ws;
 
-if (!process.env.PLATFORM_DATABASE_URL) {
-  console.warn(
-    "PLATFORM_DATABASE_URL not set, falling back to DATABASE_URL for platform operations",
-  );
-}
+// Determinar la URL de la base de datos de plataforma según el entorno
+let platformDbUrl: string;
 
-// Si no está disponible PLATFORM_DATABASE_URL, usar la misma de la empresa (DATABASE_URL)
-const platformDbUrl = process.env.PLATFORM_DATABASE_URL || process.env.DATABASE_URL;
+const isProduction = process.env.NODE_ENV === 'production';
 
-if (!platformDbUrl) {
-  throw new Error(
-    "No database connection URL available. Make sure either DATABASE_URL or PLATFORM_DATABASE_URL is set.",
-  );
+if (isProduction) {
+  // En producción, usar DATABASE_URL que Replit configura para producción
+  // La plataforma usa la misma DB que las operaciones de la empresa
+  platformDbUrl = process.env.DATABASE_URL!;
+  
+  if (!platformDbUrl) {
+    throw new Error(
+      "DATABASE_URL not set in production for platform operations. Ensure database is enabled in deployment.",
+    );
+  }
+  
+  console.log("🟢 [PRODUCTION] Platform using production database");
+} else {
+  // En desarrollo, usar PLATFORM_DATABASE_URL si existe, sino DATABASE_URL local
+  platformDbUrl = process.env.PLATFORM_DATABASE_URL || process.env.DATABASE_URL!;
+  
+  if (!platformDbUrl) {
+    throw new Error(
+      "No database connection URL available for platform operations. Make sure DATABASE_URL is set.",
+    );
+  }
+  
+  console.log("🟡 [DEVELOPMENT] Platform using development database");
 }
 
 export const platformPool = new Pool({ connectionString: platformDbUrl });
