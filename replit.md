@@ -2,92 +2,7 @@
 
 ## Overview
 
-GoWater is a comprehensive multi-tenant water delivery management system that handles the complete lifecycle of water distribution operations. The system supports multiple companies (tenants) operating independently, with features including customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time location tracking, invoicing, and commission calculations.
-
-The application is built as a full-stack TypeScript solution with a React frontend and Express backend, using PostgreSQL as the primary database with Drizzle ORM for type-safe database operations.
-
-## Recent Changes
-
-### User Creation Form CompanyID Fix (October 2025)
-**Issue**: User creation form failed to submit because `currentUser` was not loading, preventing dynamic `companyId` injection into the form.
-
-**Root Cause**: 
-- `useCurrentUser` hook attempted to fetch from non-existent `/api/me` endpoint (returned 401/403)
-- Hook's `useEffect` had dependency issues causing it not to execute properly
-- Form validation failed because `companyId` was missing (required field)
-
-**Solution**:
-1. **Fixed useCurrentUser Hook** (`client/src/hooks/use-current-user.ts`):
-   - Changed endpoint from `/api/me` to `/api/authtest` (existing endpoint that returns user data)
-   - Fixed `useEffect` to run once on mount with empty dependency array
-   - Simplified user extraction: `const user = result.user || result.sessionUser`
-
-2. **Form CompanyID Injection** (already working correctly):
-   - Default values: `companyId: currentUser?.companyId || 0`
-   - UseEffect updates form when user loads: `form.setValue('companyId', currentUser.companyId)`
-   - **100% dynamic** - no hardcoded values, pulls from logged-in user's session
-
-**Files Modified**:
-- `client/src/hooks/use-current-user.ts` - Fixed endpoint and useEffect execution
-- `client/src/pages/users/index.tsx` - CompanyId injection logic (previously added)
-
-**Testing**: End-to-end test confirmed user creation works with dynamic `companyId=15` from logged-in user `aguamoya@gmail.com`.
-
-### User Creation Email Validation Fix (October 2025)
-**Issue**: User creation form silently failed when email field was left empty due to Zod validation rejecting empty strings with `.email().optional()`.
-
-**Solution**: 
-- Updated `insertUserSchema` email field to use `z.union([z.string().email(), z.literal("")]).optional()` which properly validates:
-  - Empty strings (`""`) ✓
-  - Valid email addresses ✓
-  - Rejects invalid formats ✗
-- Frontend converts empty email strings to `undefined` before API submission for proper handling
-- Removed all sensitive console logging that exposed user credentials (security vulnerability)
-
-**Files Modified**:
-- `shared/schema.ts` - Email validation schema update
-- `client/src/pages/users/index.tsx` - Email normalization and security cleanup
-
-**Testing**: Verified user creation with empty email (user ID 16 in database confirms functionality).
-
-### Production/Development Database Separation (October 2025)
-**Issue**: Deployment was using the same database for both development and production, causing test data to leak into production environment.
-
-**Root Cause**:
-- `server/db.ts` and `server/platform-db.ts` used fallback logic that pointed both environments to same DATABASE_URL
-- No environment detection, always used development database connection
-- Deployment uploaded test data to production
-
-**Solution**:
-1. **Environment-Aware Database Connections** (`server/db.ts`, `server/platform-db.ts`):
-   - Added `NODE_ENV` detection to determine environment
-   - Development: Uses local DATABASE_URL (with test data)
-   - Production: Uses Replit's production DATABASE_URL (separate, clean database)
-   - Explicit logging: `🟡 [DEVELOPMENT]` or `🟢 [PRODUCTION]` messages
-   - Fail-fast error handling if DATABASE_URL missing
-
-2. **Production Migration Script** (`scripts/migrate-production.ts`):
-   - Applies only schema (structure) to production database
-   - No data migration - production starts empty
-   - Safe execution with proper error handling and logging
-
-3. **Deployment Process**:
-   - Replit automatically creates separate production database when deployment is configured
-   - Production uses different DATABASE_URL from development
-   - Complete data isolation between environments
-
-**Files Modified**:
-- `server/db.ts` - Environment-aware database connection
-- `server/platform-db.ts` - Environment-aware platform database connection  
-- `scripts/migrate-production.ts` - Production-only migration script
-
-**Deployment Steps**:
-1. Enable database in Replit deployment settings
-2. Deploy app (Replit creates clean production database automatically)
-3. Production uses `NODE_ENV=production` → connects to production DATABASE_URL
-4. Create initial admin user and configure master data in production manually
-
-**Result**: Development and production databases are now completely separate. Test data stays in development, production starts clean.
+GoWater is a comprehensive multi-tenant water delivery management system designed to manage the entire lifecycle of water distribution operations. It supports multiple independent companies (tenants) and offers features such as customer management, route optimization, inventory tracking, recurring orders, driver coordination, real-time location tracking, invoicing, and commission calculations. The system aims to streamline water delivery logistics, improve operational efficiency, and provide a robust platform for businesses in the water distribution sector. It is built as a full-stack TypeScript application with a React frontend and an Express backend, utilizing PostgreSQL and Drizzle ORM.
 
 ## User Preferences
 
@@ -96,171 +11,58 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Multi-Tenancy Design
-
-The system implements a **shared database, shared schema** multi-tenancy pattern:
-
-- **Company Isolation**: All core tables include a `company_id` column for data segregation
-- **Session-Based Context**: Company context is established through Express sessions and maintained using AsyncLocalStorage
-- **Middleware Chain**: Multiple middleware layers (`tenantMiddleware`, `companyDbMiddleware`, `consolidatedCompanyMiddleware`) ensure proper company isolation
-- **Platform vs Company Data**: Separate logical domains for platform-level data (companies, plans, memberships) and company-specific operational data
-
-**Design Rationale**: This approach balances operational simplicity (single database) with data isolation requirements, though it requires careful middleware management to prevent cross-tenant data leakage.
+The system employs a **shared database, shared schema** multi-tenancy model. Data isolation per company is achieved using a `company_id` column in core tables, managed through Express sessions and `AsyncLocalStorage`. Middleware ensures proper company context and prevents cross-tenant data leakage. It distinguishes between platform-level data (companies, plans) and company-specific operational data.
 
 ### Authentication & Authorization
-
-- **Passport.js Local Strategy**: Username/password authentication with bcrypt hashing
-- **Session Management**: PostgreSQL-backed sessions using `connect-pg-simple`
-- **Dual User Systems**: 
-  - Platform users for system administration
-  - Company users for operational roles (admin, supervisor, cashier, driver, assistant)
-- **Role-Based Access Control**: Enforced at both route and component levels
-
-**Trade-off**: The dual user system adds complexity but enables both SaaS platform management and per-company user hierarchies.
+Authentication uses **Passport.js Local Strategy** with bcrypt hashing and PostgreSQL-backed sessions. There are dual user systems: Platform users for system administration and Company users with various operational roles (admin, supervisor, cashier, driver, assistant). **Role-Based Access Control (RBAC)** is enforced at both route and component levels.
 
 ### Database Architecture
-
-#### ORM & Migrations
-- **Drizzle ORM**: Type-safe database queries with schema-first design
-- **Migration Strategy**: Drizzle Kit for generating migrations, custom scripts for applying them
-- **Schema Location**: Centralized in `shared/schema.ts` for type sharing between frontend and backend
-
-#### Key Schema Patterns
-- **Soft Deletes**: Users marked as inactive rather than deleted
-- **Audit Fields**: `created_at`, `updated_at` timestamps on most entities
-- **Composite Keys**: Route-order relationships, invoice-payment linkages
-- **Denormalization**: Customer address data duplicated in orders for historical accuracy
+**Drizzle ORM** provides type-safe database queries and migrations. The schema is centralized in `shared/schema.ts`. Key patterns include soft deletes, `created_at`/`updated_at` audit fields, composite keys, and denormalization for historical data. PostgreSQL was chosen for its ACID compliance, geospatial capabilities, and multi-tenancy support, while Drizzle ORM was selected for its TypeScript inference, lightweight nature, and SQL-like syntax.
 
 ### Frontend Architecture
-
-#### Technology Stack
-- **React 18** with TypeScript
-- **React Router (Wouter)**: Lightweight routing
-- **TanStack Query (React Query)**: Server state management, caching, optimistic updates
-- **React Hook Form + Zod**: Form validation with type-safe schemas
-- **shadcn/ui + Tailwind CSS**: Component library and styling
-
-#### State Management Strategy
-- **Server State**: TanStack Query for all API data
-- **Local State**: React hooks for UI-specific state
-- **No Global State Library**: Avoided Redux/Zustand complexity by leveraging React Query's caching
-
-**Rationale**: React Query eliminates most needs for global state management while providing superior developer experience for async operations.
-
-#### Mobile-First Design
-- **Responsive Breakpoints**: Custom Tailwind configuration with xs-2xl breakpoints
-- **Mobile-Specific Routes**: Dedicated `/mobile-app/*` routes for driver interfaces
-- **Touch Optimization**: Larger touch targets, simplified navigation for field operations
+Built with **React 18** and TypeScript, using **Wouter** for routing, **TanStack Query** for server state management and caching, **React Hook Form + Zod** for type-safe form validation, and **shadcn/ui + Tailwind CSS** for UI components and styling. The state management strategy prioritizes TanStack Query for server state and React hooks for local UI state, avoiding global state libraries like Redux/Zustand. It features a **mobile-first design** with responsive breakpoints, mobile-specific routes, and touch optimization.
 
 ### Backend Architecture
-
-#### API Design
-- **RESTful Endpoints**: Organized by resource (`/api/customers`, `/api/orders`, etc.)
-- **Modular Routing**: Separate route files in `server/routes/` directory
-- **Platform vs Company APIs**: Distinct routing trees for platform management vs operational endpoints
-
-#### Key Services
-
-**Route Optimization Service** (`services/routeOptimizer.ts`)
-- Uses Turf.js for geospatial calculations
-- Implements nearest-neighbor algorithm for stop sequencing
-- Considers zone boundaries and delivery windows
-
-**Recurring Orders Service** (`recurring-orders.ts`)
-- Automated order generation based on frequency patterns (daily, weekly, monthly)
-- Tracks last and next generation dates
-- Handles partial fulfillment scenarios
-
-**Storage Service** (`storage.ts`)
-- Abstraction layer over database operations
-- Company-scoped queries enforced at this level
-- Centralized business logic for CRUD operations
+Features **RESTful API endpoints** organized by resource, with modular routing. It distinguishes between platform and company-specific APIs. Key services include a **Route Optimization Service** (using Turf.js for geospatial calculations and nearest-neighbor algorithm), a **Recurring Orders Service** for automated order generation, and a **Storage Service** abstracting database operations with company-scoped queries.
 
 ### Real-Time Features
-
-#### WebSocket Implementation
-- **Driver Location Tracking**: Real-time GPS updates from mobile devices
-- **Route Status Updates**: Live delivery progress notifications
-- **Connection Management**: Automatic reconnection with exponential backoff
-
-**Design Decision**: WebSocket chosen over polling for better mobile battery performance and reduced server load.
+**WebSockets** are implemented for real-time features like driver location tracking and route status updates, providing better performance and efficiency than polling.
 
 ### Geographic Data Management
-
-- **Hierarchical Address System**: Province → Municipality → Sector → Street
-- **Leaflet Maps Integration**: Interactive route planning and visualization
-- **Zone-Based Routing**: Geographic zones for driver assignment and route optimization
+Utilizes a **hierarchical address system** and **Leaflet Maps Integration** for interactive route planning and visualization, supporting zone-based routing.
 
 ### File Upload Handling
-
-- **Multer Middleware**: In-memory storage for temporary processing
-- **File Size Limits**: 5MB maximum to balance quality and performance
-- **Supported Use Cases**: Company logos, product images, user avatars
+Uses **Multer Middleware** for in-memory temporary storage with a 5MB file size limit, supporting company logos, product images, and user avatars.
 
 ### PDF Generation & Printing
+Employs a dual approach: **HTML-to-Canvas** (html2canvas + jsPDF) for complex layouts like invoices, and **Direct jsPDF Generation** for simpler documents and receipts, addressing mobile browser inconsistencies.
 
-Two approaches implemented:
-
-1. **HTML-to-Canvas Method**: Used for complex layouts (invoices)
-   - Libraries: html2canvas + jsPDF
-   - Better fidelity for styled components
-   
-2. **Direct jsPDF Generation**: Used for receipts and simple documents
-   - Faster performance
-   - Better cross-device compatibility
-
-**Challenge**: Mobile browser inconsistencies required dual implementation strategy.
+### Internationalization (i18n)
+Uses **react-i18next** to support Spanish and English, with translation keys in locale files and language persistence in user sessions.
 
 ## External Dependencies
 
 ### Core Infrastructure
-- **PostgreSQL Database**: Primary data store (Neon serverless recommended)
-- **Environment Variables Required**:
-  - `DATABASE_URL`: Main operational database connection
-  - `PLATFORM_DATABASE_URL`: Optional separate platform database
-  - `SESSION_SECRET`: Express session encryption key
+-   **PostgreSQL Database**: Primary data store (Neon serverless recommended).
+-   **Environment Variables**: `DATABASE_URL`, `PLATFORM_DATABASE_URL` (optional), `SESSION_SECRET`.
 
 ### Third-Party Services
 
 #### Map & Geolocation
-- **Leaflet.js**: Map rendering and interaction
-- **Turf.js**: Geospatial analysis and route calculations
-- No external map API dependencies (uses OpenStreetMap tiles)
+-   **Leaflet.js**: Map rendering.
+-   **Turf.js**: Geospatial analysis.
+-   **OpenStreetMap tiles**: Used for map data (no external map API dependency).
 
 #### Payment Processing
-- **Stripe Integration**: Partial implementation for membership billing
-- Libraries: `@stripe/stripe-js`, `@stripe/react-stripe-js`
-- Status: Framework present, not fully activated
+-   **Stripe Integration**: Partial implementation for membership billing (`@stripe/stripe-js`, `@stripe/react-stripe-js`).
 
 #### UI Component Libraries
-- **Radix UI**: Accessible component primitives (dialogs, dropdowns, etc.)
-- **Lucide React**: Icon system
-- **shadcn/ui**: Pre-composed component patterns
+-   **Radix UI**: Accessible component primitives.
+-   **Lucide React**: Icon system.
+-   **shadcn/ui**: Pre-composed component patterns.
 
 #### Development & Build Tools
-- **Vite**: Frontend build tool and dev server
-- **esbuild**: Backend bundling for production
-- **Drizzle Kit**: Database schema management
-- **tsx**: TypeScript execution for scripts
-
-### Notable Architectural Decisions
-
-#### Why PostgreSQL Over Other Databases
-- Robust ACID compliance for financial data (invoices, payments)
-- Excellent geospatial support (future enhancement path)
-- Strong multi-tenancy patterns with row-level security options
-
-#### Why Drizzle ORM Over Prisma/TypeORM
-- Better TypeScript inference
-- Lighter weight with less runtime overhead
-- SQL-like query syntax familiar to developers
-
-#### Why TanStack Query Over Traditional State Management
-- Built-in caching reduces API calls
-- Optimistic updates improve perceived performance
-- Automatic background refetching keeps data fresh
-- Eliminates boilerplate for loading/error states
-
-#### Internationalization (i18n)
-- **react-i18next**: Supports Spanish and English
-- Translation keys stored in frontend locale files
-- Language persistence in user session
+-   **Vite**: Frontend build tool and dev server.
+-   **esbuild**: Backend bundling.
+-   **Drizzle Kit**: Database schema management.
+-   **tsx**: TypeScript execution for scripts.
