@@ -1423,7 +1423,21 @@ export function registerPlatformRoutes(router: Router) {
     try {
       const { email, password } = req.body;
       
-      const user = await platformStorage.getPlatformUserByEmail(email);
+      // Buscar usuario por email O por nombre
+      let user = await platformStorage.getPlatformUserByEmail(email);
+      
+      // Si no se encuentra por email, buscar por nombre (username)
+      if (!user) {
+        const users = await platformDb
+          .select()
+          .from(platformUsers)
+          .where(eq(platformUsers.name, email)); // 'email' contiene el username ingresado
+        
+        if (users.length > 0) {
+          user = users[0];
+        }
+      }
+      
       if (!user) {
         return res.status(401).json({ message: "Credenciales inválidas" });
       }
