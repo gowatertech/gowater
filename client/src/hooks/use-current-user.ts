@@ -44,31 +44,15 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
   fetchUser: async () => {
     set({ isLoading: true, error: null });
     try {
-      // Intentar primero con el endpoint regular
-      let response = await apiRequest('GET', '/api/me');
-      
-      // Si el endpoint regular falla, intentar con el endpoint móvil
-      if (!response.ok) {
-        console.log('Intentando con endpoint móvil');
-        response = await apiRequest('GET', '/api/mobile/me');
-      }
-      
-      if (response.ok) {
-        const result = await response.json();
-        // Manejar ambos formatos de respuesta (objeto directo o { success: true, user: {...} })
-        const user = result.success && result.user ? result.user : result;
-        console.log('Usuario obtenido:', user);
+      const result = await apiRequest({ url: '/api/authtest', method: 'GET' });
+      // El endpoint authtest devuelve { user, sessionUser, companyId }
+      const user = result.user || result.sessionUser;
+      if (user) {
         set({ user, isLoading: false });
       } else {
-        console.error('Error al obtener usuario:', response.status);
-        set({ 
-          user: null, 
-          isLoading: false,
-          error: new Error(`Error al obtener usuario: ${response.status}`)
-        });
+        set({ user: null, isLoading: false, error: new Error('No autenticado') });
       }
     } catch (error) {
-      console.error('Error en fetch usuario:', error);
       set({ 
         user: null, 
         isLoading: false,
@@ -170,13 +154,15 @@ const useCurrentUserStore = create<CurrentUserStore>((set) => ({
 
 // Hook para usar en componentes
 export function useCurrentUser() {
-  const { user, isLoading, error, fetchUser, logout, login } = useCurrentUserStore();
+  const { user, isLoading, error, logout, login } = useCurrentUserStore();
+  const store = useCurrentUserStore();
   
   useEffect(() => {
-    if (!user && !isLoading && !error) {
-      fetchUser();
+    // Solo cargar si no hay usuario y no se está cargando
+    if (!user && !isLoading) {
+      store.fetchUser();
     }
-  }, [user, isLoading, error, fetchUser]);
+  }, []); // Ejecutar solo una vez al montar el componente
 
-  return { user, isLoading, error, fetchUser, logout, login };
+  return { user, isLoading, error, fetchUser: store.fetchUser, logout, login };
 }

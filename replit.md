@@ -8,6 +8,31 @@ The application is built as a full-stack TypeScript solution with a React fronte
 
 ## Recent Changes
 
+### User Creation Form CompanyID Fix (October 2025)
+**Issue**: User creation form failed to submit because `currentUser` was not loading, preventing dynamic `companyId` injection into the form.
+
+**Root Cause**: 
+- `useCurrentUser` hook attempted to fetch from non-existent `/api/me` endpoint (returned 401/403)
+- Hook's `useEffect` had dependency issues causing it not to execute properly
+- Form validation failed because `companyId` was missing (required field)
+
+**Solution**:
+1. **Fixed useCurrentUser Hook** (`client/src/hooks/use-current-user.ts`):
+   - Changed endpoint from `/api/me` to `/api/authtest` (existing endpoint that returns user data)
+   - Fixed `useEffect` to run once on mount with empty dependency array
+   - Simplified user extraction: `const user = result.user || result.sessionUser`
+
+2. **Form CompanyID Injection** (already working correctly):
+   - Default values: `companyId: currentUser?.companyId || 0`
+   - UseEffect updates form when user loads: `form.setValue('companyId', currentUser.companyId)`
+   - **100% dynamic** - no hardcoded values, pulls from logged-in user's session
+
+**Files Modified**:
+- `client/src/hooks/use-current-user.ts` - Fixed endpoint and useEffect execution
+- `client/src/pages/users/index.tsx` - CompanyId injection logic (previously added)
+
+**Testing**: End-to-end test confirmed user creation works with dynamic `companyId=15` from logged-in user `aguamoya@gmail.com`.
+
 ### User Creation Email Validation Fix (October 2025)
 **Issue**: User creation form silently failed when email field was left empty due to Zod validation rejecting empty strings with `.email().optional()`.
 
