@@ -50,6 +50,45 @@ The application is built as a full-stack TypeScript solution with a React fronte
 
 **Testing**: Verified user creation with empty email (user ID 16 in database confirms functionality).
 
+### Production/Development Database Separation (October 2025)
+**Issue**: Deployment was using the same database for both development and production, causing test data to leak into production environment.
+
+**Root Cause**:
+- `server/db.ts` and `server/platform-db.ts` used fallback logic that pointed both environments to same DATABASE_URL
+- No environment detection, always used development database connection
+- Deployment uploaded test data to production
+
+**Solution**:
+1. **Environment-Aware Database Connections** (`server/db.ts`, `server/platform-db.ts`):
+   - Added `NODE_ENV` detection to determine environment
+   - Development: Uses local DATABASE_URL (with test data)
+   - Production: Uses Replit's production DATABASE_URL (separate, clean database)
+   - Explicit logging: `🟡 [DEVELOPMENT]` or `🟢 [PRODUCTION]` messages
+   - Fail-fast error handling if DATABASE_URL missing
+
+2. **Production Migration Script** (`scripts/migrate-production.ts`):
+   - Applies only schema (structure) to production database
+   - No data migration - production starts empty
+   - Safe execution with proper error handling and logging
+
+3. **Deployment Process**:
+   - Replit automatically creates separate production database when deployment is configured
+   - Production uses different DATABASE_URL from development
+   - Complete data isolation between environments
+
+**Files Modified**:
+- `server/db.ts` - Environment-aware database connection
+- `server/platform-db.ts` - Environment-aware platform database connection  
+- `scripts/migrate-production.ts` - Production-only migration script
+
+**Deployment Steps**:
+1. Enable database in Replit deployment settings
+2. Deploy app (Replit creates clean production database automatically)
+3. Production uses `NODE_ENV=production` → connects to production DATABASE_URL
+4. Create initial admin user and configure master data in production manually
+
+**Result**: Development and production databases are now completely separate. Test data stays in development, production starts clean.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
