@@ -102,6 +102,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
   
   // Tracking UI state
   const [isCreatingRoute, setIsCreatingRoute] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   
   // Hooks
@@ -634,6 +635,74 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
     setSearchQuery(e.target.value);
   };
   
+  // Función para optimizar la ruta usando el backend
+  const handleOptimizeRoute = async () => {
+    if (selectedOrders.length === 0) {
+      toast({
+        title: "No hay pedidos",
+        description: "Debes seleccionar pedidos para optimizar la ruta.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsOptimizing(true);
+    
+    try {
+      console.log("🔄 Optimizando ruta con backend...");
+      
+      // Obtener los IDs de los pedidos seleccionados
+      const orderIds = selectedOrders.map(order => order.id);
+      
+      // Llamar al endpoint de optimización
+      const response = await apiRequest({
+        url: "/api/routes/optimize",
+        method: "POST",
+        data: { orderIds }
+      });
+      
+      console.log("✅ Respuesta de optimización:", response);
+      
+      // El backend devuelve una secuencia optimizada de IDs
+      if (response && response.sequence) {
+        // Reorganizar los pedidos según la secuencia optimizada
+        const optimizedOrders = response.sequence.map((orderId: number) => 
+          selectedOrders.find(order => order.id === orderId)
+        ).filter(Boolean);
+        
+        // Añadir el punto de la empresa como primer punto
+        const companyCoordinates = settings?.latitude && settings?.longitude 
+          ? `${settings.latitude},${settings.longitude}` 
+          : "19.432608,-99.133209";
+        
+        const companyPoint = {
+          id: "company",
+          customerName: `${settings?.name || "Empresa"} (Punto de partida)`,
+          customerAddress: `${settings?.street || ""} ${settings?.streetNumber || ""}`,
+          coordinates: companyCoordinates,
+          isCompany: true
+        };
+        
+        // Actualizar la secuencia optimizada
+        setOptimizedSequence([companyPoint, ...optimizedOrders]);
+        
+        toast({
+          title: "Ruta optimizada",
+          description: `La ruta ha sido optimizada. Distancia estimada: ${response.totalDistance} km`
+        });
+      }
+    } catch (error) {
+      console.error("Error al optimizar ruta:", error);
+      toast({
+        title: "Error al optimizar",
+        description: "No se pudo optimizar la ruta. Usando secuencia manual.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+  
   // Usar useMemo para calcular el tiempo y distancia estimados sin actualizar estado durante el render
   const routeEstimation = React.useMemo(() => {
     try {
@@ -735,6 +804,14 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       return { time: "0min", distance: 0 };
     }
   }, [optimizedSequence]);
+  
+  // Efecto para actualizar totalDistanceKm cuando cambie routeEstimation
+  useEffect(() => {
+    if (routeEstimation.distance > 0) {
+      setTotalDistanceKm(routeEstimation.distance);
+      console.log(`Distancia total actualizada: ${routeEstimation.distance} km`);
+    }
+  }, [routeEstimation]);
   
   // Filtrar pedidos por término de búsqueda (con validación para evitar errores)
   const filteredOrders = React.useMemo(() => {
@@ -1200,8 +1277,29 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
               {/* Lista de paradas */}
               <Card>
                 <CardHeader className="py-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm">Secuencia de entregas</CardTitle>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-sm">Secuencia de entregas</CardTitle>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={handleOptimizeRoute}
+                        disabled={isOptimizing}
+                        data-testid="button-optimize-route"
+                      >
+                        {isOptimizing ? (
+                          <>
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            Optimizando...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-3 w-3" />
+                            Optimizar Ruta
+                          </>
+                        )}
+                      </Button>
+                    </div>
                     {optimizedSequence.length > 1 && (
                       <div className="flex gap-2">
                         <Badge variant="outline" className="text-xs">

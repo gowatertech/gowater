@@ -1795,6 +1795,39 @@ export async function registerRoutes(router: express.Router) {
         });
       }
 
+      // VALIDACIÓN: Verificar que los pedidos no estén ya asignados a otra ruta
+      if (req.body.orderIds && Array.isArray(req.body.orderIds) && req.body.orderIds.length > 0) {
+        console.log(`Verificando disponibilidad de ${req.body.orderIds.length} pedidos...`);
+        
+        // Buscar pedidos que ya estén asignados a una ruta
+        const alreadyAssignedOrders = await db
+          .select({
+            id: orders.id,
+            routeId: orders.routeId
+          })
+          .from(orders)
+          .where(
+            and(
+              inArray(orders.id, req.body.orderIds.map(Number)),
+              eq(orders.companyId, numericCompanyId),
+              sql`${orders.routeId} IS NOT NULL` // Ya tiene una ruta asignada
+            )
+          );
+        
+        // Si hay pedidos ya asignados, devolver error
+        if (alreadyAssignedOrders.length > 0) {
+          console.error(`❌ Error: ${alreadyAssignedOrders.length} pedidos ya están asignados a otras rutas`);
+          return res.status(400).json({
+            error: "Pedidos ya asignados",
+            message: `${alreadyAssignedOrders.length} pedido(s) ya están asignados a otras rutas y no se pueden usar.`,
+            alreadyAssignedOrderIds: alreadyAssignedOrders.map(o => o.id),
+            details: alreadyAssignedOrders
+          });
+        }
+        
+        console.log(`✅ Todos los pedidos están disponibles para asignación`);
+      }
+      
       // Iniciar transacción para crear la ruta y asignar los pedidos
       const [route] = await db
         .insert(routes)
@@ -1813,7 +1846,8 @@ export async function registerRoutes(router: express.Router) {
             .where(
               and(
                 eq(orders.id, Number(orderId)),
-                eq(orders.companyId, numericCompanyId) // Usar el companyId convertido a número
+                eq(orders.companyId, numericCompanyId), // Usar el companyId convertido a número
+                sql`${orders.routeId} IS NULL` // Solo actualizar si aún no tiene ruta asignada
               )
             );
         }
