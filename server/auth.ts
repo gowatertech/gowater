@@ -74,25 +74,50 @@ export function setupAuth(app: Express) {
     next();
   });
   
+  // Middleware para normalizar campos de login (compatibilidad mobile/web)
+  const normalizeLoginFields = (req: Request, _res: Response, next: NextFunction) => {
+    // Si viene username pero no email, copiar username a email
+    if (req.body.username && !req.body.email) {
+      req.body.email = req.body.username;
+    }
+    // Si viene email pero no username, copiar email a username  
+    if (req.body.email && !req.body.username) {
+      req.body.username = req.body.email;
+    }
+    next();
+  };
+  
   // Configurar estrategia de autenticación local (username/email + password)
   passport.use(new LocalStrategy({
-    usernameField: 'email',    // Usar email como campo de usuario
-    passwordField: 'password'  // Campo de contraseña estándar
-  }, async (email, password, done) => {
+    usernameField: 'email',       // Usar email como campo principal
+    passwordField: 'password',    // Campo de contraseña estándar
+    passReqToCallback: true       // Habilitar acceso al request
+  }, async (req, email, password, done) => {
     try {
-      // Buscar usuario por email (que podría ser username o email real)
+      // Obtener credencial (ya normalizada por el middleware)
+      const credential = email;
+      
+      if (!credential || !password) {
+        return done(null, false, { message: 'Credenciales faltantes' });
+      }
+      
+      // Buscar usuario por username o email según el formato
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.email, email));
+        .where(
+          credential.includes('@') 
+            ? eq(users.email, credential)  // Si contiene @, buscar por email
+            : eq(users.username, credential) // Si no, buscar por username
+        );
       
       if (!user) {
-        console.log(`Intento de login fallido: Usuario con email ${email} no encontrado`);
+        console.log(`Intento de login fallido: Usuario ${credential} no encontrado`);
         return done(null, false, { message: 'Usuario no encontrado' });
       }
       
       if (!user.active) {
-        console.log(`Intento de login fallido: Usuario con email ${email} inactivo`);
+        console.log(`Intento de login fallido: Usuario ${credential} inactivo`);
         return done(null, false, { message: 'Usuario inactivo' });
       }
       
@@ -109,7 +134,7 @@ export function setupAuth(app: Express) {
           await db.update(users)
             .set({ password: hashedPassword })
             .where(eq(users.id, user.id));
-          console.log(`⚠️ Contraseña de ${email} actualizada de texto plano a hash`);
+          console.log(`⚠️ Contraseña de ${credential} actualizada de texto plano a hash`);
         } catch (error) {
           console.error(`Error al actualizar contraseña a hash:`, error);
         }
@@ -125,12 +150,12 @@ export function setupAuth(app: Express) {
       }
       
       if (!isPasswordValid) {
-        console.log(`Intento de login fallido: Contraseña incorrecta para ${email}`);
+        console.log(`Intento de login fallido: Contraseña incorrecta para ${credential}`);
         return done(null, false, { message: 'Contraseña incorrecta' });
       }
       
       // Registrar el login exitoso
-      console.log(`✅ Login exitoso - Usuario: ${email}, ID: ${user.id}, Empresa: ${user.companyId}`);
+      console.log(`✅ Login exitoso - Usuario: ${credential}, ID: ${user.id}, Empresa: ${user.companyId}`);
       
       // Devolver el usuario sin la contraseña
       const { password: _pwd, ...userWithoutPassword } = user;
@@ -169,7 +194,7 @@ export function setupAuth(app: Express) {
   // Rutas de autenticación
   
   // Login
-  app.post('/api/login', (req, res, next) => {
+  app.post('/api/login', normalizeLoginFields, (req, res, next) => {
     passport.authenticate('local', (err: any, user: Express.User | false, info: any) => {
       if (err) {
         console.error('Error en autenticación:', err);
@@ -212,7 +237,7 @@ export function setupAuth(app: Express) {
   });
   
   // Login para la aplicación móvil
-  app.post('/api/mobile/login', (req, res, next) => {
+  app.post('/api/mobile/login', normalizeLoginFields, (req, res, next) => {
     passport.authenticate('local', (err: any, user: Express.User | false, info: any) => {
       if (err) {
         console.error('Error en autenticación móvil:', err);
