@@ -965,7 +965,7 @@ export default function StepRouteForm({ onRouteCreated }: StepRouteFormProps) {
       // Solo convertir assistantId y truckId si no son nulos
       assistantId: values.assistantId ? Number(values.assistantId) : null,
       truckId: values.truckId ? Number(values.truckId) : null,
-      stops: stops,
+      stops: stops.map(stop => stop.coordinates),
       deliverySequence: sequence,
       companyCoordinates: companyInfo?.coordinates || null,
       // Incluir la distancia total calculada

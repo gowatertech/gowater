@@ -42,12 +42,7 @@ export default function RouteTimeline({ route, className }: RouteTimelineProps) 
 
   // Consultar las órdenes de la ruta
   const { data: orders = [] } = useQuery<RouteOrder[]>({
-    queryKey: ["/api/routes", route.id, "orders"],
-    queryFn: async () => {
-      const response = await fetch(`/api/routes/${route.id}/orders`);
-      if (!response.ok) throw new Error("Error al cargar órdenes");
-      return response.json();
-    },
+    queryKey: [`/api/routes/${route.id}/orders`],
     enabled: !!route.id,
   });
 
@@ -85,34 +80,27 @@ export default function RouteTimeline({ route, className }: RouteTimelineProps) 
     <div className={className}>
       <h3 className="font-medium mb-4">{t("timeline")}</h3>
       <div className="space-y-4">
+        {/* Punto de inicio - Almacén */}
+        <div className="flex items-start gap-2">
+          <div className="min-w-[24px] h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-xs">
+            0
+          </div>
+          <div className="flex-1">
+            <p className="font-medium">Punto de inicio (Almacén)</p>
+            {route.date && (
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(route.date), "dd MMM yyyy")}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Paradas de entrega */}
         {route.stops.map((stop, index) => {
-          // Para cada parada, mostrar su número de secuencia
-          let stopName = `Parada #${index + 1}`;
-          if (index === 0) {
-            stopName = "Punto de inicio (Almacén)";
-          }
-
-          // Punto de inicio no tiene entregas, solo mostrar la parada
-          if (index === 0) {
-            return (
-              <div key={index} className="flex items-start gap-2">
-                <div className="min-w-[24px] h-6 flex items-center justify-center rounded-full bg-green-100 text-green-600 text-xs">
-                  {index}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">{stopName}</p>
-                  {route.date && (
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(route.date), "dd MMM yyyy")}
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          }
-
-          // Para paradas normales (índice 1, 2, 3...), delivery_sequence también es 1, 2, 3...
-          const stopOrders = ordersBySequence.get(index) || [];
+          // route.stops[0] corresponde a deliverySequence=1, stops[1] a deliverySequence=2, etc.
+          const deliverySequence = index + 1;
+          const stopName = `Parada #${deliverySequence}`;
+          const stopOrders = ordersBySequence.get(deliverySequence) || [];
           const deliveryCount = stopOrders.length;
           
           // Obtener datos del primer pedido de la parada para mostrar cliente y dirección
@@ -120,10 +108,8 @@ export default function RouteTimeline({ route, className }: RouteTimelineProps) 
 
           return (
             <div key={index} className="flex items-start gap-3">
-              <div className={`min-w-[24px] h-6 flex items-center justify-center rounded-full ${
-                index === 0 ? "bg-green-100 text-green-600" : "bg-blue-100 text-blue-600"
-              } text-xs font-medium`}>
-                {index}
+              <div className="min-w-[24px] h-6 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 text-xs font-medium">
+                {deliverySequence}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-2">
@@ -144,7 +130,7 @@ export default function RouteTimeline({ route, className }: RouteTimelineProps) 
                     <button
                       onClick={() => handleDeliveryClick(stopOrders)}
                       className="flex items-center gap-1 px-2 py-1 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
-                      data-testid={`button-view-deliveries-${index}`}
+                      data-testid={`button-view-deliveries-${deliverySequence}`}
                     >
                       <Package className="h-4 w-4" />
                       <span>{deliveryCount} {deliveryCount === 1 ? 'entrega' : 'entregas'}</span>
