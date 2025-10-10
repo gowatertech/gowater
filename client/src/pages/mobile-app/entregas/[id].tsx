@@ -134,6 +134,13 @@ export default function DeliveryDetails() {
     }
   }, [autoEnterEditMode, delivery, isLoading]);
   
+  // Cargar datos cuando se monta el componente
+  useEffect(() => {
+    if (deliveryId) {
+      loadDeliveryDetails();
+    }
+  }, [deliveryId]);
+  
   // Alternar modo oscuro
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
