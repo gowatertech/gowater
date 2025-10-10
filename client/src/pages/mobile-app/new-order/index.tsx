@@ -31,10 +31,14 @@ interface Customer {
 
 interface Product {
   id: number;
-  code: string;
-  description: string;
-  price: number;
-  category: string;
+  name: string;
+  price: string;
+  stock: number;
+  icon: string;
+  isReturnable: boolean;
+  depositAmount: string;
+  hasCommission: boolean;
+  companyId: number;
 }
 
 interface OrderItem {
@@ -99,6 +103,8 @@ export default function NewOrder() {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
+    const productPrice = parseFloat(product.price);
+
     setOrderItems(prev => {
       const existing = prev.find(item => item.productId === productId);
       
@@ -115,10 +121,10 @@ export default function NewOrder() {
       } else if (delta > 0) {
         return [...prev, {
           productId: product.id,
-          name: product.description,
+          name: product.name,
           quantity: 1,
-          price: product.price,
-          total: product.price
+          price: productPrice,
+          total: productPrice
         }];
       }
       return prev;
@@ -315,6 +321,7 @@ export default function NewOrder() {
               <div className="space-y-2">
                 {products.map((product) => {
                   const quantity = getQuantity(product.id);
+                  const productPrice = parseFloat(product.price);
                   return (
                     <div
                       key={product.id}
@@ -323,12 +330,12 @@ export default function NewOrder() {
                       }`}
                     >
                       <div className="flex-1">
-                        <div className="font-medium text-sm">{product.description}</div>
+                        <div className="font-medium text-sm">{product.name}</div>
                         <div className="text-xs text-muted-foreground">
-                          RD$ {product.price.toFixed(2)}
+                          RD$ {productPrice.toFixed(2)}
                           {quantity > 0 && (
                             <span className="ml-2 font-medium text-primary">
-                              • Subtotal: RD$ {(quantity * product.price).toFixed(2)}
+                              • Subtotal: RD$ {(quantity * productPrice).toFixed(2)}
                             </span>
                           )}
                         </div>
