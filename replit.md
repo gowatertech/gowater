@@ -138,6 +138,34 @@ Preferred communication style: Simple, everyday language.
   - **Location**: `client/src/pages/mobile-app/ruta/index.tsx` (lines 264-269)
   - **Result**: Deliveries now maintain correct order regardless of backend response order
 
+#### Mobile Order Creation Flow (3-Step Wizard)
+- **Implemented step-by-step order creation** from mobile app for drivers
+  - **Dashboard change**: Replaced "Rutas Pendientes" button (white/outline) with "Crear Pedido" button with cart icon 🛒
+  - **Paso 1 - Seleccionar Cliente**: 
+    - Search box filters customers by name, phone, address (all fields)
+    - Touch-optimized cards display business name, manager, address, phone
+    - Customer stored in sessionStorage for next step
+  - **Paso 2 - Agregar Productos**:
+    - Large tactile +/- buttons (h-12 w-12) for quantity adjustment
+    - Real-time total calculation
+    - Subtotals displayed per product
+    - State persists when navigating back from Paso 3
+    - Footer shows order total and "Revisar Pedido" button
+  - **Paso 3 - Confirmar Pedido**:
+    - Shows customer info, product list, subtotal, ITBIS (18%), total
+    - Creates order via POST /api/orders
+    - Clears sessionStorage after successful creation
+    - Invalidates relevant queries and redirects to dashboard
+  - **Routes registered**: 
+    - `/mobile-app/nuevo-pedido/paso1` → Customer selection
+    - `/mobile-app/nuevo-pedido/paso2` → Add products
+    - `/mobile-app/nuevo-pedido/paso3` → Confirm order
+  - **Technical implementation**:
+    - Session persistence between steps using sessionStorage
+    - Hydration logic restores quantities when returning to Paso 2
+    - Comprehensive data-testid attributes for E2E testing
+    - Default values: payment method "cash", today's date
+
 ## System Architecture
 
 ### Multi-Tenancy Design
