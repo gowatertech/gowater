@@ -545,6 +545,184 @@ ordersRouter.get("/api/orders/:orderId/bottle-returns", authMiddleware, async (r
   }
 });
 
+// Endpoint para crear/actualizar retornos de botellas de una orden específica
+ordersRouter.post("/api/orders/:orderId/bottle-returns", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = safeParseInt(req.params.orderId, -1);
+  
+  if (!isPositiveInteger(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  try {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error(`❌ ERROR: No se encontró companyId en el contexto para crear retorno de orden #${orderId}`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para registrar retornos"
+      });
+    }
+    
+    console.log(`📦 POST /api/orders/${orderId}/bottle-returns - Registrando retorno de botellas`);
+    console.log(`📦 Datos recibidos:`, JSON.stringify(req.body, null, 2));
+    
+    const { 
+      productId, 
+      expectedQuantity, 
+      returnedQuantity, 
+      pendingQuantity,
+      returnDate,
+      status,
+      amountCharged,
+      depositAmount,
+      responsibleType,
+      chargeMethod,
+      automaticAlert,
+      manuallyAssigned
+    } = req.body;
+    
+    // Validar campos requeridos
+    if (!productId || expectedQuantity === undefined || returnedQuantity === undefined) {
+      return res.status(400).json({ 
+        error: "Faltan campos requeridos",
+        details: "Se requieren productId, expectedQuantity y returnedQuantity"
+      });
+    }
+    
+    // Verificar que la orden existe y pertenece a la compañía
+    const orderCheckQuery = `
+      SELECT id FROM orders 
+      WHERE id = $1 AND company_id = $2
+    `;
+    
+    const orderCheck = await pool.query(orderCheckQuery, [orderId, companyId]);
+    
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Orden no encontrada o sin permisos" });
+    }
+    
+    // Verificar si ya existe un retorno para este producto en esta orden
+    const checkExistingQuery = `
+      SELECT id, returned_quantity, pending_quantity 
+      FROM bottle_returns 
+      WHERE order_id = $1 AND product_id = $2 AND company_id = $3
+    `;
+    
+    const existingReturn = await pool.query(checkExistingQuery, [orderId, productId, companyId]);
+    
+    if (existingReturn.rows.length > 0) {
+      // Actualizar el retorno existente
+      const existing = existingReturn.rows[0];
+      const newReturnedQuantity = safeParseInt(existing.returned_quantity, 0) + safeParseInt(returnedQuantity, 0);
+      const newPendingQuantity = safeParseInt(expectedQuantity, 0) - newReturnedQuantity;
+      
+      // Validación de seguridad: prevenir cantidades negativas
+      if (newPendingQuantity < 0) {
+        return res.status(400).json({ 
+          error: "Cantidad inválida",
+          details: `No puedes devolver más envases de los esperados. Ya se devolvieron ${existing.returned_quantity}, solo faltan ${existing.pending_quantity}.`
+        });
+      }
+      
+      const newStatus = newPendingQuantity === 0 ? "complete" : "incomplete";
+      
+      const updateQuery = `
+        UPDATE bottle_returns 
+        SET 
+          returned_quantity = $1,
+          pending_quantity = $2,
+          status = $3,
+          return_date = $4
+        WHERE id = $5 AND company_id = $6
+        RETURNING *
+      `;
+      
+      const updateResult = await pool.query(updateQuery, [
+        newReturnedQuantity,
+        newPendingQuantity,
+        newStatus,
+        returnDate || new Date().toISOString(),
+        existing.id,
+        companyId
+      ]);
+      
+      console.log(`✅ Retorno actualizado exitosamente`);
+      
+      const updated = updateResult.rows[0];
+      res.json({
+        id: updated.id,
+        orderId: updated.order_id,
+        productId: updated.product_id,
+        expectedQuantity: safeParseInt(updated.expected_quantity, 0),
+        returnedQuantity: safeParseInt(updated.returned_quantity, 0),
+        pendingQuantity: safeParseInt(updated.pending_quantity, 0),
+        returnDate: updated.return_date,
+        status: updated.status,
+        amountCharged: updated.amount_charged || "0.00",
+        depositAmount: updated.deposit_amount || "0.00"
+      });
+    } else {
+      // Crear nuevo retorno
+      const insertQuery = `
+        INSERT INTO bottle_returns (
+          company_id,
+          order_id,
+          product_id,
+          expected_quantity,
+          returned_quantity,
+          pending_quantity,
+          return_date,
+          status,
+          amount_charged,
+          deposit_amount,
+          responsible_type,
+          charge_method,
+          automatic_alert,
+          manually_assigned
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        RETURNING *
+      `;
+      
+      const insertResult = await pool.query(insertQuery, [
+        companyId,
+        orderId,
+        productId,
+        expectedQuantity || 0,
+        returnedQuantity || 0,
+        pendingQuantity !== undefined ? pendingQuantity : (expectedQuantity - returnedQuantity),
+        returnDate || new Date().toISOString(),
+        status || "pending",
+        amountCharged || "0.00",
+        depositAmount || "0.00",
+        responsibleType || null,
+        chargeMethod || null,
+        automaticAlert || false,
+        manuallyAssigned || false
+      ]);
+      
+      console.log(`✅ Retorno creado exitosamente`);
+      
+      const created = insertResult.rows[0];
+      res.json({
+        id: created.id,
+        orderId: created.order_id,
+        productId: created.product_id,
+        expectedQuantity: safeParseInt(created.expected_quantity, 0),
+        returnedQuantity: safeParseInt(created.returned_quantity, 0),
+        pendingQuantity: safeParseInt(created.pending_quantity, 0),
+        returnDate: created.return_date,
+        status: created.status,
+        amountCharged: created.amount_charged || "0.00",
+        depositAmount: created.deposit_amount || "0.00"
+      });
+    }
+  } catch (error) {
+    console.error(`❌ Error al registrar retorno de botellas para orden ${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 // Endpoint para actualizar productos de una orden
 ordersRouter.patch("/api/orders/:orderId/products", authMiddleware, async (req: Request, res: Response) => {
   const orderId = safeParseInt(req.params.orderId, -1);

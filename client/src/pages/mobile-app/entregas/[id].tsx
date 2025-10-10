@@ -232,21 +232,61 @@ export default function DeliveryDetails() {
   const registerBottleReturn = async (productId: number, quantity: number) => {
     if (!deliveryId) return;
     
+    // Obtener la cantidad esperada del producto
+    const expectedQuantity = delivery?.products.find(p => p.id === productId)?.quantity || 0;
+    
+    // Verificar si ya existe un retorno previo para este producto
+    const existingReturn = delivery?.bottleReturns?.find(br => br.productId === productId);
+    const alreadyReturned = existingReturn?.returnedQuantity || 0;
+    const remainingAllowance = expectedQuantity - alreadyReturned;
+    
+    // Validación de cantidad
+    if (quantity <= 0) {
+      toast({
+        title: "Error",
+        description: "La cantidad debe ser mayor a 0",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (quantity > remainingAllowance) {
+      toast({
+        title: "Error",
+        description: `Solo puedes devolver ${remainingAllowance} envases adicionales. Ya se han devuelto ${alreadyReturned} de ${expectedQuantity}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       setIsLoading(true);
+      
+      // Calcular el nuevo total retornado y pendiente
+      const newReturnedTotal = alreadyReturned + quantity;
+      const newPendingQuantity = expectedQuantity - newReturnedTotal;
+      const newStatus = newPendingQuantity === 0 ? "complete" : "incomplete";
       
       const result = await apiRequest({
         url: `/api/orders/${deliveryId}/bottle-returns`,
         method: 'POST',
         data: {
+          orderId: deliveryId,
           productId: productId,
+          expectedQuantity: expectedQuantity,
           returnedQuantity: quantity,
-          expectedQuantity: delivery?.products.find(p => p.id === productId)?.quantity || 0
+          pendingQuantity: newPendingQuantity,
+          returnDate: new Date().toISOString(),
+          status: newStatus,
+          amountCharged: "0.00",
+          depositAmount: "0.00",
+          automaticAlert: false,
+          manuallyAssigned: false
         }
       });
       
       // Recargar los datos actualizados
-      loadDeliveryDetails();
+      await loadDeliveryDetails();
       
       toast({
         title: "Envases retornados",

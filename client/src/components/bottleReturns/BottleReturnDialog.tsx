@@ -33,16 +33,35 @@ const BottleReturnDialog: React.FC<BottleReturnDialogProps> = ({
   const { toast } = useToast();
 
   const handleBottleReturn = async () => {
-    if (!orderId || returnedBottlesCount <= 0) return;
+    if (!orderId || returnedBottlesCount <= 0) {
+      toast({
+        title: "Error",
+        description: "La cantidad debe ser mayor a 0",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       setLoading(true);
       
-      // Aquí iría la llamada a la API para registrar la devolución
+      // Nota: Esta función asume que el productId y expectedQuantity se pasan externamente
+      // o se obtienen del componente padre. Para una implementación completa, se necesitarían
+      // estos datos adicionales
       await apiRequest(`/api/orders/${orderId}/bottle-returns`, {
         method: "POST",
         body: JSON.stringify({
-          returnedQuantity: returnedBottlesCount
+          orderId: orderId,
+          productId: 1, // TODO: Pasar productId como prop
+          expectedQuantity: returnedBottlesCount, // TODO: Pasar expectedQuantity como prop
+          returnedQuantity: returnedBottlesCount,
+          pendingQuantity: 0,
+          returnDate: new Date().toISOString(),
+          status: "complete",
+          amountCharged: "0.00",
+          depositAmount: "0.00",
+          automaticAlert: false,
+          manuallyAssigned: false
         }),
         headers: {
           'Content-Type': 'application/json'
@@ -59,11 +78,12 @@ const BottleReturnDialog: React.FC<BottleReturnDialogProps> = ({
       }
       
       onOpenChange(false);
+      setReturnedBottlesCount(0);
     } catch (error) {
       console.error("Error al registrar devolución:", error);
       toast({
         title: "Error al registrar",
-        description: "No se pudo registrar la devolución de envases.",
+        description: error instanceof Error ? error.message : "No se pudo registrar la devolución de envases.",
         variant: "destructive"
       });
     } finally {
