@@ -258,8 +258,15 @@ export default function DriverRoute() {
       let orderedStops: RouteStop[] = [warehouseStop];
       
       if (response && Array.isArray(response)) {
+        // Ordenar las órdenes por deliverySequence antes de mapearlas
+        const sortedOrders = [...response].sort((a, b) => {
+          const seqA = a.deliverySequence || 999;
+          const seqB = b.deliverySequence || 999;
+          return seqA - seqB;
+        });
+        
         // Mapear las órdenes a paradas con la estructura correcta
-        const customerStops = response.map((order: any, index: number) => {
+        const customerStops = sortedOrders.map((order: any, index: number) => {
           // Encontrar el índice de la parada actual (la primera que no está completada)
           if (order.status !== "completed" && currentStopIndex === -1) {
             setCurrentStopIndex(index + 1); // +1 debido al almacén
