@@ -69,8 +69,13 @@ Preferred communication style: Simple, everyday language.
 
 #### Mobile Route Edit and Details Navigation
 - **Fixed edit and details buttons** in mobile route view (`/mobile-app/ruta`)
-  - **Problem**: Edit button tried to open a non-existent dialog (`showEditOrderDialog`)
-  - **Solution**: Changed both buttons to navigate to delivery details page (`/mobile-app/entregas/[id]`)
+  - **Root cause**: Dynamic route `/mobile-app/entregas/:id` was not registered in `App.tsx`
+  - **Problem 1**: Edit button tried to open a non-existent dialog (`showEditOrderDialog`)
+  - **Problem 2**: When navigation was implemented, page stayed blank because route wasn't registered
+  - **Solution**: 
+    - Changed both buttons to navigate to delivery details page (`/mobile-app/entregas/[id]`)
+    - Registered dynamic route in `App.tsx` with proper import and route configuration
+    - Ensured dynamic route appears before generic route for correct Wouter matching
   
 - **Implemented auto-edit mode** for seamless editing experience
   - Edit button navigates with `?edit=true` parameter
@@ -84,6 +89,11 @@ Preferred communication style: Simple, everyday language.
 - **Navigation patterns**:
   - Edit: `/mobile-app/entregas/{orderId}?routeId={routeId}&edit=true` → Opens in edit mode with products loaded
   - Details: `/mobile-app/entregas/{orderId}?routeId={routeId}` → Opens in read-only mode
+  
+- **Technical implementation**:
+  - Added import: `import MobileDeliveryDetails from "@/pages/mobile-app/entregas/[id]"`
+  - Registered route: `<Route path="/mobile-app/entregas/:id" component={MobileDeliveryDetails} />`
+  - Route order matters: Dynamic route must come before generic `/mobile-app/entregas` route
 
 ## System Architecture
 

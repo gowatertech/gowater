@@ -65,6 +65,7 @@ import PublicLocationCapture from "@/pages/public/LocationCapture";
 import MobileApp from "@/pages/mobile-app";
 import MobileRoute from "@/pages/mobile-app/ruta";
 import MobileDeliveries from "@/pages/mobile-app/entregas";
+import MobileDeliveryDetails from "@/pages/mobile-app/entregas/[id]";
 import MobilePendingRoutes from "@/pages/mobile-app/rutas-pendientes";
 import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
@@ -204,6 +205,7 @@ function Router() {
         </Route>
         <Route path="/mobile-app/rutas-pendientes" component={MobilePendingRoutes} />
         <Route path="/mobile-app/ruta" component={MobileRoute} />
+        <Route path="/mobile-app/entregas/:id" component={MobileDeliveryDetails} />
         <Route path="/mobile-app/entregas" component={MobileDeliveries} />
         <Route path="/mobile-app/envases" component={MobileBottleReturns} />
         <Route path="/mobile-app/pagos" component={MobilePayments} />
