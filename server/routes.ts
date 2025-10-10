@@ -1858,12 +1858,19 @@ export async function registerRoutes(router: express.Router) {
         console.log(`Asignando ${req.body.orderIds.length} pedidos a la ruta ${route.id}`);
         
         // Crear mapa de orderId -> delivery_sequence desde deliverySequence
+        // El deliverySequence puede contener "company" como primer elemento (warehouse), así que lo filtramos
         const deliverySequenceMap = new Map<number, number>();
         if (req.body.deliverySequence && Array.isArray(req.body.deliverySequence)) {
-          req.body.deliverySequence.forEach((orderId: any, index: number) => {
-            const numericOrderId = Number(orderId);
-            if (!isNaN(numericOrderId)) {
-              deliverySequenceMap.set(numericOrderId, index + 1); // Secuencia empieza en 1
+          let sequenceNumber = 0; // Contador para secuencia real (sin contar "company")
+          
+          req.body.deliverySequence.forEach((item: any) => {
+            // Ignorar "company" (warehouse) y solo procesar IDs de órdenes
+            if (item !== "company" && item !== "warehouse") {
+              const numericOrderId = Number(item);
+              if (!isNaN(numericOrderId)) {
+                sequenceNumber++;
+                deliverySequenceMap.set(numericOrderId, sequenceNumber);
+              }
             }
           });
           console.log(`📍 Mapa de delivery_sequence creado:`, Array.from(deliverySequenceMap.entries()));
