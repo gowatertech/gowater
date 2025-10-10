@@ -97,6 +97,9 @@ export function calculateOptimalRoute(
   const sequence = [0];
   let totalDistance = 0;
 
+  console.log("\n=== CÁLCULO DE DISTANCIA PASO A PASO ===");
+  console.log(`Punto inicial: Almacén (índice 0)`);
+
   while (visited.size < points.length - 1) {
     const last = sequence[sequence.length - 1];
     let nearest = -1;
@@ -113,12 +116,26 @@ export function calculateOptimalRoute(
       sequence.push(nearest);
       visited.add(nearest);
       totalDistance += minDist;
+      
+      const fromPoint = points[last];
+      const toPoint = points[nearest];
+      const fromLabel = fromPoint.properties.type === 'depot' ? 'Almacén' : `Pedido ${fromPoint.properties.id}`;
+      const toLabel = toPoint.properties.type === 'depot' ? 'Almacén' : `Pedido ${toPoint.properties.id}`;
+      
+      console.log(`  ${fromLabel} → ${toLabel}: ${minDist.toFixed(2)} km (Total acumulado: ${totalDistance.toFixed(2)} km)`);
     }
   }
 
   // Agregar regreso al depósito
   sequence.push(points.length - 1);
-  totalDistance += distances[sequence[sequence.length - 2]][points.length - 1];
+  const returnDistance = distances[sequence[sequence.length - 2]][points.length - 1];
+  totalDistance += returnDistance;
+  
+  const lastPoint = points[sequence[sequence.length - 2]];
+  const lastLabel = lastPoint.properties.type === 'depot' ? 'Almacén' : `Pedido ${lastPoint.properties.id}`;
+  console.log(`  ${lastLabel} → Almacén (regreso): ${returnDistance.toFixed(2)} km (Total acumulado: ${totalDistance.toFixed(2)} km)`);
+  console.log(`\n✅ DISTANCIA TOTAL: ${totalDistance.toFixed(2)} km`);
+  console.log("=== FIN CÁLCULO ===\n");
 
   // Calcular duración estimada
   const estimatedDuration = Math.ceil(
