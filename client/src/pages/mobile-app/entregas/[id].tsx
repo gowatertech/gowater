@@ -209,9 +209,11 @@ export default function DeliveryDetails() {
       setDelivery(deliveryData);
     } catch (error) {
       console.error('Error al cargar detalles de la entrega:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      console.error('Detalles del error:', errorMessage);
       toast({
         title: "Error",
-        description: "No se pudieron cargar los detalles de la entrega",
+        description: `No se pudieron cargar los detalles de la entrega: ${errorMessage}`,
         variant: "destructive"
       });
     } finally {
