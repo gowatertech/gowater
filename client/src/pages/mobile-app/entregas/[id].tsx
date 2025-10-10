@@ -190,17 +190,17 @@ export default function DeliveryDetails() {
         orderId: orderData.id,
         customerId: orderData.customerId,
         customerName: orderData.customerName,
-        address: orderData.customerAddress,
+        address: orderData.customerStreet || orderData.customerAddress || 'Dirección no disponible',
         status: orderData.status as "pending" | "in_progress" | "delivered" | "cancelled",
         scheduledTime: new Date(orderData.date).toLocaleTimeString('es-DO', {
           hour: '2-digit',
           minute: '2-digit'
         }),
-        products: orderData.products.map((product: any) => ({
-          id: product.productId,
-          name: product.name,
-          quantity: product.quantity,
-          price: parseFloat(product.price)
+        products: (orderData.items || []).map((item: any) => ({
+          id: item.productId,
+          name: item.product?.name || 'Producto',
+          quantity: item.quantity,
+          price: parseFloat(item.unitPrice || item.price || '0')
         })),
         total: parseFloat(orderData.total),
         bottleReturns: bottleReturnsData
