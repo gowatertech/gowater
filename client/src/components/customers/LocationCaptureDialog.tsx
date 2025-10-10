@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import LocationSelector from "@/components/map/LocationSelector";
+import { LocationSelector } from "@/components/map/LocationSelector";
 import { MapPin, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -45,8 +45,9 @@ export default function LocationCaptureDialog({
 
     setIsSubmitting(true);
     try {
-      await apiRequest("PATCH", `/api/customers/${customerId}`, {
-        coordinates,
+      await apiRequest(`/api/customers/${customerId}`, {
+        method: "PATCH",
+        data: { coordinates },
       });
 
       toast({
