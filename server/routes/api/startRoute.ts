@@ -126,10 +126,12 @@ export function registerStartRouteEndpoint(app: Express) {
       console.log(`Ruta #${routeId} iniciada exitosamente`);
       
       // Responder que todo fue exitoso
-      res.json({
+      const response = {
         success: true,
         route: updatedRoute
-      });
+      };
+      console.log(`Enviando respuesta:`, JSON.stringify(response));
+      res.json(response);
     } catch (error) {
       console.error("Error al iniciar ruta:", error);
       res.status(500).json({ 
