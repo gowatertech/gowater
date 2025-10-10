@@ -144,7 +144,7 @@ export default function PaymentsList() {
     return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [payments, searchTerm, filters]);
 
-  // Calcular estadísticas de pagos
+  // Calcular estadísticas de pagos basadas en los filtros aplicados
   const paymentsStats: PaymentsStats = useMemo(() => {
     if (!payments || payments.length === 0) {
       return {
@@ -163,11 +163,17 @@ export default function PaymentsList() {
     
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     
+    // Filtrar los pagos por método si hay un filtro aplicado
+    let paymentsToAnalyze = payments;
+    if (filters.method) {
+      paymentsToAnalyze = payments.filter(payment => payment.paymentMethod === filters.method);
+    }
+    
     let totalToday = 0;
     let totalWeek = 0;
     let totalMonth = 0;
     
-    payments.forEach(payment => {
+    paymentsToAnalyze.forEach(payment => {
       const paymentDate = new Date(payment.date);
       const amount = parseFloat(payment.amount);
       
@@ -193,7 +199,7 @@ export default function PaymentsList() {
       totalMonth,
       pendingAmount
     };
-  }, [payments]);
+  }, [payments, filters.method]);
 
   // Función para formatear moneda
   const formatCurrency = (value: number | string) => {
