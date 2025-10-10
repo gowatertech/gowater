@@ -534,33 +534,34 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Items de factura creados para la factura ${invoice.invoiceNumber}`);
       
-      // 5. Si es pago en efectivo, registrar el pago
-      if (paymentMethod === 'cash') {
-        // Formatear el monto para asegurar que tiene 2 decimales exactos
-        const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
-        
-        const paymentData = {
-          invoiceId: invoice.id,
-          customerId: order.customerId,
-          amount: formattedAmount,
-          paymentMethod: 'cash',
-          notes: `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`,
-          companyId: companyId // Agregar companyId para el multitenant
-        };
-        
-        // Validar datos con el esquema
-        const validPaymentData = insertPaymentSchema.parse(paymentData);
-        
-        const [payment] = await companyDb
-          .insert(payments)
-          .values({
-            ...validPaymentData,
-            date: today // La fecha se agrega manualmente porque no está en el esquema
-          })
-          .returning();
-        
-        console.log(`Pago registrado para la factura ${invoice.invoiceNumber}`);
-      }
+      // 5. Registrar el pago (tanto para efectivo como para crédito)
+      // Formatear el monto para asegurar que tiene 2 decimales exactos
+      const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
+      
+      const paymentData = {
+        invoiceId: invoice.id,
+        customerId: order.customerId,
+        amount: paymentMethod === 'cash' ? formattedAmount : '0.00',
+        paymentMethod: paymentMethod,
+        notes: paymentMethod === 'cash' 
+          ? `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`
+          : `Crédito pendiente de pago - Entrega en ruta ${order.routeId || 'N/A'}`,
+        companyId: companyId // Agregar companyId para el multitenant
+      };
+      
+      // Validar datos con el esquema
+      const validPaymentData = insertPaymentSchema.parse(paymentData);
+      
+      const [payment] = await companyDb
+        .insert(payments)
+        .values({
+          ...validPaymentData,
+          date: today // La fecha se agrega manualmente porque no está en el esquema
+        })
+        .returning();
+      
+      console.log(`Pago registrado para la factura ${invoice.invoiceNumber} (${paymentMethod})`);
+      
       
       // 6. Devolver respuesta exitosa
       res.json({
