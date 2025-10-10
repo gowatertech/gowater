@@ -545,4 +545,123 @@ ordersRouter.get("/api/orders/:orderId/bottle-returns", authMiddleware, async (r
   }
 });
 
+// Endpoint para actualizar productos de una orden
+ordersRouter.patch("/api/orders/:orderId/products", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = safeParseInt(req.params.orderId, -1);
+  
+  if (!isPositiveInteger(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  console.log(`PATCH /api/orders/${orderId}/products - Actualizando productos de la orden`);
+  
+  try {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error(`❌ ERROR: No se encontró companyId en el contexto`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para actualizar productos"
+      });
+    }
+    
+    const { products } = req.body;
+    
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: "Se requiere un array de productos válido" });
+    }
+    
+    // Verificar que la orden existe y pertenece a la compañía
+    const orderCheckQuery = `
+      SELECT id FROM orders 
+      WHERE id = $1 AND company_id = $2
+    `;
+    
+    const orderCheck = await pool.query(orderCheckQuery, [orderId, companyId]);
+    
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Orden no encontrada o sin permisos" });
+    }
+    
+    // Iniciar transacción
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Eliminar los order_items existentes
+      const deleteQuery = `
+        DELETE FROM order_items 
+        WHERE order_id = $1 AND company_id = $2
+      `;
+      
+      await client.query(deleteQuery, [orderId, companyId]);
+      console.log(`🗑️ Eliminados order_items existentes para orden ${orderId}`);
+      
+      // Insertar los nuevos order_items y calcular el total
+      let orderTotal = 0;
+      
+      for (const item of products) {
+        const productId = safeParseInt(item.id, -1);
+        const quantity = safeParseInt(item.quantity, 0);
+        const price = safeParseFloat(item.price, 0);
+        
+        if (!isPositiveInteger(productId) || !isPositiveInteger(quantity) || price <= 0) {
+          throw new Error(`Datos de producto inválidos: ${JSON.stringify(item)}`);
+        }
+        
+        const itemTotal = (price * quantity).toFixed(2);
+        orderTotal += parseFloat(itemTotal);
+        
+        const insertQuery = `
+          INSERT INTO order_items (
+            order_id, product_id, quantity, unit_price, total, company_id
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6
+          )
+        `;
+        
+        await client.query(insertQuery, [
+          orderId,
+          productId,
+          quantity,
+          price.toFixed(2),
+          itemTotal,
+          companyId
+        ]);
+      }
+      
+      // Actualizar el total de la orden
+      const updateOrderQuery = `
+        UPDATE orders 
+        SET total = $1 
+        WHERE id = $2 AND company_id = $3
+      `;
+      
+      await client.query(updateOrderQuery, [orderTotal.toFixed(2), orderId, companyId]);
+      
+      await client.query('COMMIT');
+      console.log(`✅ Productos actualizados exitosamente para orden ${orderId}, nuevo total: ${orderTotal.toFixed(2)}`);
+      
+      res.json({ 
+        success: true, 
+        message: "Productos actualizados correctamente",
+        total: orderTotal.toFixed(2)
+      });
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error(`❌ Error en transacción:`, error);
+      throw error;
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error(`❌ Error al actualizar productos de orden ${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 export default ordersRouter;
