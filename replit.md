@@ -10,6 +10,22 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 10, 2025 - Mobile Map Data Integrity Fix
+- **Coordinate Corruption Filtering**: Enhanced mobile map to handle legacy data issues
+  - Added validation to detect and filter corrupted coordinates stored as "[object Object]"
+  - Implemented parseCoordinate function with multiple validation checks
+  - Added comprehensive logging for diagnostics (warns about invalid coordinates)
+- **User Experience Improvements**:
+  - Informative message displayed when no active routes are available: "📍 No hay rutas activas en este momento"
+  - Console logging shows: "Rutas activas: X, Paradas válidas: Y" for easier debugging
+  - Map gracefully handles mixed data (valid and corrupted coordinates)
+- **Technical Implementation**:
+  - Filter logic: `if (coordStr === "[object Object]" || coordStr.includes("object")) return null`
+  - Validates numeric values after split: `if (isNaN(lat) || isNaN(lng)) return null`
+  - Only valid coordinates are rendered on map, preventing crashes
+- **Root Cause Addressed**: StepRouteFormOptimized.tsx already fixed (line 968) to send coordinate strings instead of objects for new routes
+- **Note**: Legacy routes created before fix will not display on map; new routes will work correctly
+
 ### October 2025 - Route Optimization & Security Enhancements
 - **Mandatory Route Optimization**: Implemented required optimization step in route creation wizard
   - Continue button disabled until route is optimized (enforced via UI state)
