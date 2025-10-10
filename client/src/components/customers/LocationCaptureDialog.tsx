@@ -91,10 +91,13 @@ export default function LocationCaptureDialog({
 
         <div className="space-y-4">
           <div className="h-[400px] border rounded-md overflow-hidden">
-            <LocationSelector
-              value={coordinates}
-              onChange={setCoordinates}
-            />
+            {open && (
+              <LocationSelector
+                key={`location-${customerId}-${open}`}
+                value={coordinates}
+                onChange={setCoordinates}
+              />
+            )}
           </div>
 
           {coordinates && (
