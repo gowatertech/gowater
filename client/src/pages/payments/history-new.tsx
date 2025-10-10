@@ -119,7 +119,7 @@ export default function PaymentsHistory() {
     
     // Filtrar por método de pago
     if (filters.method && filters.method !== 'all') {
-      result = result.filter(payment => payment.paymentMethod === filters.method);
+      result = result.filter(payment => payment.method === filters.method);
     }
     
     // Filtrar por rango de fecha
@@ -247,13 +247,13 @@ export default function PaymentsHistory() {
     payments.forEach(payment => {
       const amount = parseFloat(payment.amount);
       
-      if (payment.paymentMethod === 'cash') {
+      if (payment.method === 'cash') {
         methodStats.cash += amount;
-      } else if (payment.paymentMethod === 'credit') {
+      } else if (payment.method === 'credit') {
         methodStats.credit += amount;
-      } else if (payment.paymentMethod === 'card') {
+      } else if (payment.method === 'card') {
         methodStats.card += amount;
-      } else if (payment.paymentMethod === 'transfer') {
+      } else if (payment.method === 'transfer') {
         methodStats.transfer += amount;
       }
     });
