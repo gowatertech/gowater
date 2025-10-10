@@ -101,7 +101,7 @@ export default function PaymentsHistory() {
     to?: Date;
   }>({});
   const [filters, setFilters] = useState({
-    method: "" as "" | "cash" | "credit" | "card" | "transfer",
+    method: "all" as "all" | "cash" | "credit" | "card" | "transfer",
     customer: "",
   });
 
@@ -118,7 +118,7 @@ export default function PaymentsHistory() {
     let result = [...payments];
     
     // Filtrar por método de pago
-    if (filters.method) {
+    if (filters.method && filters.method !== 'all') {
       result = result.filter(payment => payment.paymentMethod === filters.method);
     }
     
@@ -600,11 +600,11 @@ export default function PaymentsHistory() {
               <SelectTrigger className="w-full h-9 text-sm">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
-                  <span>{filters.method ? `Método: ${filters.method === 'cash' ? 'Efectivo' : filters.method === 'card' ? 'Tarjeta' : filters.method === 'credit' ? 'Crédito' : 'Transferencia'}` : "Método de Pago"}</span>
+                  <span>{filters.method === 'all' ? "Método de Pago" : `Método: ${filters.method === 'cash' ? 'Efectivo' : filters.method === 'card' ? 'Tarjeta' : filters.method === 'credit' ? 'Crédito' : 'Transferencia'}`}</span>
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="cash">Efectivo</SelectItem>
                 <SelectItem value="card">Tarjeta</SelectItem>
                 <SelectItem value="credit">Crédito</SelectItem>
@@ -633,7 +633,7 @@ export default function PaymentsHistory() {
               variant="outline" 
               onClick={() => {
                 setSearchTerm("");
-                setFilters({method: "", customer: ""});
+                setFilters({method: "all", customer: ""});
                 setDateRange({});
                 setActiveTab("all");
               }}
