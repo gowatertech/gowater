@@ -221,12 +221,21 @@ export default function MobileMap() {
   const parseCoordinate = (coordStr: string): [number, number] | null => {
     if (!coordStr) return null;
     
+    // Filtrar coordenadas corruptas como "[object Object]"
+    if (coordStr === "[object Object]" || coordStr.includes("object")) {
+      console.warn("[Mapa] Coordenada corrupta detectada y filtrada:", coordStr);
+      return null;
+    }
+    
     try {
       const [lat, lng] = coordStr.split(',').map(Number);
-      if (isNaN(lat) || isNaN(lng)) return null;
+      if (isNaN(lat) || isNaN(lng)) {
+        console.warn("[Mapa] Coordenada inválida:", coordStr);
+        return null;
+      }
       return [lat, lng];
     } catch (e) {
-      console.error("Error al parsear coordenadas:", coordStr, e);
+      console.error("[Mapa] Error al parsear coordenadas:", coordStr, e);
       return null;
     }
   };
@@ -240,14 +249,19 @@ export default function MobileMap() {
     
     // Añadir todos los puntos de todas las rutas activas
     if (activeRoutes && activeRoutes.length > 0) {
+      let validStopsCount = 0;
       activeRoutes.forEach(route => {
         if (route.stops && Array.isArray(route.stops)) {
           route.stops.forEach(stopCoord => {
             const point = parseCoordinate(stopCoord);
-            if (point) points.push(point);
+            if (point) {
+              points.push(point);
+              validStopsCount++;
+            }
           });
         }
       });
+      console.log(`[Mapa] Rutas activas: ${activeRoutes.length}, Paradas válidas: ${validStopsCount}`);
     }
     
     return points;
@@ -319,7 +333,14 @@ export default function MobileMap() {
       />
       <main className="flex-1 flex flex-col pb-16">
         <div className="flex-1 relative">
-          {/* Se eliminó el nombre de la empresa de la parte superior izquierda */}
+          {/* Mensaje informativo si no hay rutas activas */}
+          {(!activeRoutes || activeRoutes.length === 0) && (
+            <div className="absolute top-4 left-4 right-4 z-[999] bg-blue-100 dark:bg-blue-900 border border-blue-300 dark:border-blue-700 rounded-lg p-3">
+              <p className="text-sm text-blue-900 dark:text-blue-100">
+                📍 No hay rutas activas en este momento
+              </p>
+            </div>
+          )}
           
           <ResponsiveMapContainer fullHeight>
             <MapContainer 
