@@ -56,6 +56,15 @@ interface Route {
   orders?: Order[];
 }
 
+interface OrderProduct {
+  id: number;
+  productId: number;
+  quantity: number;
+  price: string;
+  name: string;
+  isReturnable: boolean;
+}
+
 interface Order {
   id: number;
   routeId: number;
@@ -63,8 +72,11 @@ interface Order {
   status: string;
   total: string;
   customerName: string;
-  customerAddress: string;
+  street: string;
+  streetnumber: string;
+  deliverySequence: number | null;
   coordinates: string;
+  products: OrderProduct[];
 }
 
 interface MapLocation {
@@ -178,6 +190,37 @@ export default function MobileMap() {
   const { data: activeRoutes, isLoading: loadingRoutes, error: routeError } = useQuery<Route[]>({
     queryKey: ['/api/routes/active'],
     enabled: !!user
+  });
+
+  // Consulta para obtener las órdenes de todas las rutas activas
+  const routeIds = activeRoutes?.map(r => r.id) || [];
+  const { data: allRouteOrders = {} } = useQuery<Record<number, Order[]>>({
+    queryKey: ['/api/routes/orders/batch', routeIds],
+    queryFn: async () => {
+      if (!routeIds.length) return {};
+      
+      // Obtener órdenes para cada ruta
+      const ordersPromises = routeIds.map(async (routeId) => {
+        try {
+          const response = await fetch(`/api/routes/${routeId}/orders`);
+          if (!response.ok) return { routeId, orders: [] };
+          const orders = await response.json();
+          return { routeId, orders };
+        } catch (e) {
+          console.error(`Error obteniendo órdenes para ruta ${routeId}:`, e);
+          return { routeId, orders: [] };
+        }
+      });
+      
+      const results = await Promise.all(ordersPromises);
+      const ordersMap: Record<number, Order[]> = {};
+      results.forEach(({ routeId, orders }) => {
+        ordersMap[routeId] = orders;
+      });
+      
+      return ordersMap;
+    },
+    enabled: routeIds.length > 0,
   });
   
   // Consulta para obtener datos de conductores (desactivada)
@@ -378,6 +421,21 @@ export default function MobileMap() {
               {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route, routeIndex) => {
                 if (!route.stops || !Array.isArray(route.stops)) return null;
                 
+                // Obtener las órdenes de esta ruta
+                const routeOrders = allRouteOrders[route.id] || [];
+                
+                // Agrupar órdenes por secuencia de entrega
+                const ordersBySequence = new Map<number, Order[]>();
+                routeOrders.forEach(order => {
+                  if (order.deliverySequence !== null && order.deliverySequence !== undefined) {
+                    const seq = order.deliverySequence;
+                    if (!ordersBySequence.has(seq)) {
+                      ordersBySequence.set(seq, []);
+                    }
+                    ordersBySequence.get(seq)?.push(order);
+                  }
+                });
+                
                 // Crear un array de coordenadas para la ruta
                 const routePoints: [number, number][] = [];
                 route.stops.forEach((stopCoord) => {
@@ -409,8 +467,10 @@ export default function MobileMap() {
                     
                     {/* Mostrar marcadores para cada parada */}
                     {routePoints.map((point, index) => {
-                      // Definir índice mostrado en el mapa
-                      const displayIndex = index === 0 ? 0 : index;
+                      // route.stops[0] corresponde a deliverySequence=1
+                      const deliverySequence = index + 1;
+                      const stopOrders = ordersBySequence.get(deliverySequence) || [];
+                      const firstOrder = stopOrders[0];
                       
                       // Convertir el color de la ruta en clase tailwind equivalente para los marcadores
                       const routeColorClasses: Record<string, string> = {
@@ -434,15 +494,38 @@ export default function MobileMap() {
                           position={point}
                           icon={L.divIcon({
                             className: 'custom-div-icon',
-                            html: `<div class="${color} text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg">
-                                    <div class="h-6 w-6 flex items-center justify-center">
-                                      ${displayIndex}
+                            html: `<div class="${color} text-white w-8 h-8 flex items-center justify-center rounded-full shadow-lg border-2 border-white">
+                                    <div class="h-6 w-6 flex items-center justify-center font-bold">
+                                      ${deliverySequence}
                                     </div>
                                   </div>`,
                             iconSize: [32, 32],
                             iconAnchor: [16, 16],
                           })}
-                        />
+                        >
+                          {firstOrder && (
+                            <Popup>
+                              <div className="min-w-[200px]">
+                                <h3 className="font-bold text-sm mb-1">{route.name}</h3>
+                                <p className="text-xs text-gray-600 mb-2">Parada #{deliverySequence}</p>
+                                <div className="border-t pt-2">
+                                  <p className="font-semibold text-sm">{firstOrder.customerName}</p>
+                                  <p className="text-xs text-gray-600">
+                                    {firstOrder.street} {firstOrder.streetnumber}
+                                  </p>
+                                  {stopOrders.length > 1 && (
+                                    <p className="text-xs text-blue-600 mt-1">
+                                      +{stopOrders.length - 1} pedido(s) más
+                                    </p>
+                                  )}
+                                  <p className="text-xs font-semibold text-green-600 mt-2">
+                                    Total: ${firstOrder.total}
+                                  </p>
+                                </div>
+                              </div>
+                            </Popup>
+                          )}
+                        </Marker>
                       );
                     })}
                   </React.Fragment>
