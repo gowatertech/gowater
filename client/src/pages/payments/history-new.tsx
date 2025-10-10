@@ -189,7 +189,7 @@ export default function PaymentsHistory() {
 
   // Calcular estadísticas de pagos
   const paymentsStats: PaymentsStats = useMemo(() => {
-    if (!filteredPayments || filteredPayments.length === 0) {
+    if (!payments || payments.length === 0) {
       return {
         totalToday: 0,
         totalWeek: 0,
@@ -224,6 +224,7 @@ export default function PaymentsHistory() {
       transfer: 0
     };
     
+    // Calcular estadísticas de tiempo basadas en pagos filtrados
     filteredPayments.forEach(payment => {
       const paymentDate = new Date(payment.date);
       const amount = parseFloat(payment.amount);
@@ -240,8 +241,12 @@ export default function PaymentsHistory() {
       if (paymentDate >= monthStart) {
         totalMonth += amount;
       }
+    });
+    
+    // Calcular estadísticas por método de TODOS los pagos (sin filtros)
+    payments.forEach(payment => {
+      const amount = parseFloat(payment.amount);
       
-      // Acumular por método de pago
       if (payment.paymentMethod === 'cash') {
         methodStats.cash += amount;
       } else if (payment.paymentMethod === 'credit') {
@@ -261,7 +266,7 @@ export default function PaymentsHistory() {
       totalCount: filteredPayments.length,
       methodStats
     };
-  }, [filteredPayments]);
+  }, [filteredPayments, payments]);
 
   // Función para formatear moneda
   const formatCurrency = (value: number | string) => {
