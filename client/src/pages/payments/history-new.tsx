@@ -505,10 +505,10 @@ export default function PaymentsHistory() {
                 <div className="flex-1">
                   <p className="text-xs text-muted-foreground mb-1.5">Por Método</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5">
-                    <p className="text-[11px]">Efectivo: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.cash)}</span></p>
-                    <p className="text-[11px]">Tarjeta: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.card)}</span></p>
-                    <p className="text-[11px]">Crédito: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.credit)}</span></p>
-                    <p className="text-[11px]">Transfer.: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.transfer)}</span></p>
+                    <p className="text-[11px] whitespace-nowrap">Efectivo: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.cash)}</span></p>
+                    <p className="text-[11px] whitespace-nowrap">Tarjeta: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.card)}</span></p>
+                    <p className="text-[11px] whitespace-nowrap">Crédito: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.credit)}</span></p>
+                    <p className="text-[11px] whitespace-nowrap">Transfer.: <span className="font-semibold">{formatCurrency(paymentsStats.methodStats.transfer)}</span></p>
                   </div>
                 </div>
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 ml-2">
