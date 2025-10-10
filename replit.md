@@ -34,6 +34,21 @@ Preferred communication style: Simple, everyday language.
   - RouteTimeline fetches orders via GET /api/routes/:id/orders and groups by delivery_sequence
   - Timeline displays delivery counts per stop (e.g., "1 pedido", "2 pedidos") with Package icon
   - Verified with e2e tests: Route #57 correctly persists delivery_sequence 1,2 to orders
+- **Enhanced Route Timeline UI** (October 10, 2025):
+  - **Web Timeline Improvements**: Enhanced RouteTimeline.tsx to display complete customer information
+    - Shows customer name and full address (street + number) for each delivery stop
+    - Clickable delivery counter button opens dialog with detailed product information
+    - Dialog displays: customer info, order number, total amount, and itemized product list with quantities and prices
+    - Removed custom queryFn, now uses standard TanStack Query pattern
+  - **Critical Bug Fixes**:
+    - **Route Stops Data Corruption Fix**: Corrected StepRouteFormOptimized.tsx to send coordinate strings instead of objects
+      - Changed `stops: stops` to `stops: stops.map(stop => stop.coordinates)` (line 971)
+      - Prevents "[object Object]" corruption in database (verified: route #59 has valid coordinates vs route #57 with corrupted data)
+    - **Timeline Mapping Logic Fix**: Corrected RouteTimeline.tsx delivery sequence mapping
+      - route.stops[0] now correctly maps to deliverySequence=1 (not warehouse)
+      - Warehouse rendered separately before customer stops
+      - Fixed index-to-sequence alignment: stops[index] → deliverySequence = index + 1
+  - Mobile timeline component already had complete functionality (no changes needed)
 - **Multi-Tenant Security Hardening**: Added companyId filtering to all critical API endpoints (startRoute, vehicleLoading, commissions) to prevent cross-company data leaks
 - **Authentication Fix**: Implemented `normalizeLoginFields` middleware to support both username and email login formats, ensuring compatibility between mobile app (sends username) and web app (sends email)
 - **Input Validation**: Added NaN checks after parseInt/Number conversions to prevent invalid data processing
