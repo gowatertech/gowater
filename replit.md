@@ -17,10 +17,17 @@ Preferred communication style: Simple, everyday language.
   - **List View** (default): Shows all active routes with comprehensive information cards
   - **Map View**: Displays detailed interactive map for selected route only
   - Route cards display: name, driver, stop count, status badge (color-coded), distance, and date
-  - Status badges use intuitive colors: yellow (pending), blue (in progress), orange (paused), green (completed)
+  - Status badges use consistent green color for pending status to maintain visual homogeneity
+  - Status colors: green (pending/completed), blue (in progress), orange (paused)
   - Selecting a route transitions smoothly to focused map view
   - Back button returns to list view and clears selection
   - Header title dynamically updates to show route name when viewing specific route
+  
+- **Driver-specific route filtering**
+  - Implemented role-based route filtering using `driverRoutes` memoized filter
+  - Drivers only see routes assigned to them (filtered by `route.driverId === user.id`)
+  - Admin users see all routes
+  - Empty state message updated to "No tienes rutas asignadas" for better UX
   
 - **Route filtering on map view**
   - Map now displays only the selected route's stops and polyline

@@ -284,14 +284,25 @@ export default function MobileMap() {
     }
   };
 
+  // Filtrar rutas del conductor actual
+  const driverRoutes = useMemo(() => {
+    if (!activeRoutes || !user) return [];
+    // Si el usuario es conductor, solo mostrar sus rutas
+    if (user.role === 'driver') {
+      return activeRoutes.filter(r => r.driverId === user.id);
+    }
+    // Si es admin u otro rol, mostrar todas
+    return activeRoutes;
+  }, [activeRoutes, user]);
+
   // Filtrar rutas según selección
   const displayedRoutes = useMemo(() => {
-    if (!activeRoutes) return [];
+    if (!driverRoutes) return [];
     if (selectedRouteId) {
-      return activeRoutes.filter(r => r.id === selectedRouteId);
+      return driverRoutes.filter(r => r.id === selectedRouteId);
     }
-    return activeRoutes;
-  }, [activeRoutes, selectedRouteId]);
+    return driverRoutes;
+  }, [driverRoutes, selectedRouteId]);
 
   // Crear una colección de todos los puntos para el ajuste automático del zoom
   const allMapPoints = useMemo(() => {
@@ -399,12 +410,12 @@ export default function MobileMap() {
           companyName={companyName}
         />
         <main className="flex-1 p-4 pb-20">
-          {(!activeRoutes || activeRoutes.length === 0) ? (
+          {(!driverRoutes || driverRoutes.length === 0) ? (
             <div className="text-center py-10">
               <MapPin className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-              <h2 className="text-xl font-semibold mb-2">No hay rutas activas</h2>
+              <h2 className="text-xl font-semibold mb-2">No tienes rutas asignadas</h2>
               <p className="text-muted-foreground mb-6">
-                No hay rutas pendientes o en progreso en este momento.
+                No tienes rutas pendientes o en progreso en este momento.
               </p>
               <Button 
                 variant="outline" 
@@ -415,7 +426,7 @@ export default function MobileMap() {
             </div>
           ) : (
             <div className="space-y-3">
-              {activeRoutes.map((route) => {
+              {driverRoutes.map((route) => {
                 const routeOrders = allRouteOrders[route.id] || [];
                 const stopCount = routeOrders.filter(o => o.deliverySequence !== null).length;
                 
@@ -424,7 +435,7 @@ export default function MobileMap() {
                 
                 // Determinar color del estado
                 const statusColors: Record<string, string> = {
-                  pending: 'bg-yellow-500',
+                  pending: 'bg-green-500',
                   in_progress: 'bg-blue-500',
                   paused: 'bg-orange-500',
                   completed: 'bg-green-500'
