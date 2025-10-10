@@ -21,6 +21,12 @@ Preferred communication style: Simple, everyday language.
   - Frontend captures distance from POST /api/routes/optimize response
   - Distance included in create route payload and persisted to routes.total_distance column
   - Verified with e2e tests: distance correctly saved (e.g., 49.70 km for test route)
+- **Auto-Copy Customer Coordinates to Orders**: Orders now automatically inherit delivery coordinates from customer records
+  - POST /api/orders endpoint queries customer coordinates within transaction before order creation
+  - Coordinates persisted to orders.delivery_coordinates field for route optimization
+  - Transactional integrity ensures company isolation and data consistency
+  - Proper logging and null handling for customers without coordinates
+  - Verified with e2e tests: order creation correctly copies coordinates (e.g., order #82)
 - **Multi-Tenant Security Hardening**: Added companyId filtering to all critical API endpoints (startRoute, vehicleLoading, commissions) to prevent cross-company data leaks
 - **Authentication Fix**: Implemented `normalizeLoginFields` middleware to support both username and email login formats, ensuring compatibility between mobile app (sends username) and web app (sends email)
 - **Input Validation**: Added NaN checks after parseInt/Number conversions to prevent invalid data processing
