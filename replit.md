@@ -10,7 +10,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### October 10, 2025 - Mobile Map Coordinate Alignment Fix
+### October 10, 2025 - Mobile Map Enhancements
+
+#### Route List/Map Two-View System
+- **Implemented dual-view navigation** for mobile map interface
+  - **List View** (default): Shows all active routes with comprehensive information cards
+  - **Map View**: Displays detailed interactive map for selected route only
+  - Route cards display: name, driver, stop count, status badge (color-coded), distance, and date
+  - Status badges use intuitive colors: yellow (pending), blue (in progress), orange (paused), green (completed)
+  - Selecting a route transitions smoothly to focused map view
+  - Back button returns to list view and clears selection
+  - Header title dynamically updates to show route name when viewing specific route
+  
+- **Route filtering on map view**
+  - Map now displays only the selected route's stops and polyline
+  - Uses `displayedRoutes` memoized filter to optimize rendering
+  - Auto-zoom focuses on selected route's geographic bounds
+  - Eliminates visual clutter from showing all routes simultaneously
+
+#### Mobile Map Coordinate Alignment Fix
 - **Fixed customer location markers on mobile map**
   - **Root cause**: Mobile map used `route.stops` (stored route coordinates) which could be outdated or corrupted
   - **Solution**: Changed to use `order.coordinates` (actual customer location) directly from orders, matching web map behavior
