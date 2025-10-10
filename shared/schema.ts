@@ -179,6 +179,24 @@ export const insertCustomerSchema = z.object({
   companyId: z.number().int().positive().optional(), // Hacemos el companyId opcional en el frontend
 });
 
+// Location Capture Tokens (para captura de coordenadas por WhatsApp)
+export const locationCaptureTokens = pgTable("location_capture_tokens", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
+  companyId: integer("company_id").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertLocationCaptureTokenSchema = z.object({
+  token: z.string().uuid(),
+  customerId: z.number().int().positive(),
+  companyId: z.number().int().positive(),
+  expiresAt: z.date(),
+});
+
 // Trucks (Vehículos)
 export const trucks = pgTable("trucks", {
   id: serial("id").primaryKey(),
