@@ -109,7 +109,9 @@ export default function DriverDeliveries() {
           let bottleReturnsData: BottleReturn[] = [];
           
           try {
-            const bottleReturnsResponse = await fetch(`/api/orders/${order.id}/bottle-returns`);
+            const bottleReturnsResponse = await fetch(`/api/orders/${order.id}/bottle-returns`, {
+              credentials: 'include'
+            });
             if (bottleReturnsResponse.ok) {
               bottleReturnsData = await bottleReturnsResponse.json();
               console.log(`Retornos de botellas para orden ${order.id}:`, bottleReturnsData);
@@ -124,18 +126,13 @@ export default function DriverDeliveries() {
             orderId: order.id,
             customerId: order.customerId,
             customerName: order.customerName,
-            address: order.customerAddress,
+            address: order.address || '',
             status: order.status as "pending" | "in_progress" | "delivered" | "cancelled",
             scheduledTime: new Date(order.date).toLocaleTimeString('es-DO', {
               hour: '2-digit',
               minute: '2-digit'
             }),
-            products: order.products.map((product: any) => ({
-              id: product.productId,
-              name: product.name,
-              quantity: product.quantity,
-              price: parseFloat(product.price)
-            })),
+            products: [],
             total: parseFloat(order.total),
             bottleReturns: bottleReturnsData
           };

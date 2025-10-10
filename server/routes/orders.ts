@@ -488,4 +488,61 @@ ordersRouter.post("/api/orders", authMiddleware, async (req: Request, res: Respo
   }
 });
 
+// Endpoint para obtener retornos de botellas de una orden específica
+ordersRouter.get("/api/orders/:orderId/bottle-returns", authMiddleware, async (req: Request, res: Response) => {
+  const orderId = safeParseInt(req.params.orderId, -1);
+  
+  if (!isPositiveInteger(orderId)) {
+    return res.status(400).json({ error: "ID de orden inválido" });
+  }
+  
+  try {
+    const companyId = getCurrentCompanyId();
+    
+    if (!companyId) {
+      console.error(`❌ ERROR: No se encontró companyId en el contexto para obtener retornos de orden #${orderId}`);
+      return res.status(401).json({ 
+        error: "Autenticación requerida", 
+        details: "Debe iniciar sesión para ver retornos"
+      });
+    }
+    
+    console.log(`📦 Obteniendo retornos de botellas para orden ${orderId} de compañía ${companyId}`);
+    
+    // Query para obtener retornos de botellas con información del producto
+    const query = `
+      SELECT br.*, p.name as product_name
+      FROM bottle_returns br
+      LEFT JOIN products p ON br.product_id = p.id
+      WHERE br.order_id = $1 AND br.company_id = $2
+      ORDER BY br.id
+    `;
+    
+    const result = await pool.query(query, [orderId, companyId]);
+    console.log(`✅ Encontrados ${result.rows.length} retornos de botellas`);
+    
+    // Formatear la respuesta
+    const bottleReturns = result.rows.map(br => ({
+      id: br.id,
+      orderId: br.order_id,
+      productId: br.product_id,
+      productName: br.product_name,
+      expectedQuantity: safeParseInt(br.expected_quantity, 0),
+      returnedQuantity: safeParseInt(br.returned_quantity, 0),
+      pendingQuantity: safeParseInt(br.pending_quantity, 0),
+      returnDate: br.return_date,
+      status: br.status,
+      amountCharged: br.amount_charged || "0.00",
+      depositAmount: br.deposit_amount || "0.00",
+      responsibleType: br.responsible_type,
+      chargeMethod: br.charge_method
+    }));
+    
+    res.json(bottleReturns);
+  } catch (error) {
+    console.error(`❌ Error al obtener retornos de botellas para orden ${orderId}:`, error);
+    res.status(500).json({ error: String(error) });
+  }
+});
+
 export default ordersRouter;
