@@ -27,6 +27,13 @@ Preferred communication style: Simple, everyday language.
   - Transactional integrity ensures company isolation and data consistency
   - Proper logging and null handling for customers without coordinates
   - Verified with e2e tests: order creation correctly copies coordinates (e.g., order #82)
+- **Delivery Sequence Persistence**: Orders now receive delivery_sequence when routes are created
+  - POST /api/routes maps deliverySequence array to individual orders during route creation
+  - Backend filters warehouse tokens ("company"/"warehouse") before assigning sequences
+  - Sequence numbers assigned incrementally only to actual order IDs
+  - RouteTimeline fetches orders via GET /api/routes/:id/orders and groups by delivery_sequence
+  - Timeline displays delivery counts per stop (e.g., "1 pedido", "2 pedidos") with Package icon
+  - Verified with e2e tests: Route #57 correctly persists delivery_sequence 1,2 to orders
 - **Multi-Tenant Security Hardening**: Added companyId filtering to all critical API endpoints (startRoute, vehicleLoading, commissions) to prevent cross-company data leaks
 - **Authentication Fix**: Implemented `normalizeLoginFields` middleware to support both username and email login formats, ensuring compatibility between mobile app (sends username) and web app (sends email)
 - **Input Validation**: Added NaN checks after parseInt/Number conversions to prevent invalid data processing
