@@ -1857,21 +1857,41 @@ export async function registerRoutes(router: express.Router) {
       if (route && req.body.orderIds && Array.isArray(req.body.orderIds) && req.body.orderIds.length > 0) {
         console.log(`Asignando ${req.body.orderIds.length} pedidos a la ruta ${route.id}`);
         
-        // Actualizar cada pedido para asignarlo a esta ruta, asegurando que pertenezcan a la compañía actual
+        // Crear mapa de orderId -> delivery_sequence desde deliverySequence
+        const deliverySequenceMap = new Map<number, number>();
+        if (req.body.deliverySequence && Array.isArray(req.body.deliverySequence)) {
+          req.body.deliverySequence.forEach((orderId: any, index: number) => {
+            const numericOrderId = Number(orderId);
+            if (!isNaN(numericOrderId)) {
+              deliverySequenceMap.set(numericOrderId, index + 1); // Secuencia empieza en 1
+            }
+          });
+          console.log(`📍 Mapa de delivery_sequence creado:`, Array.from(deliverySequenceMap.entries()));
+        }
+        
+        // Actualizar cada pedido para asignarlo a esta ruta con su delivery_sequence
         for (const orderId of req.body.orderIds) {
+          const numericOrderId = Number(orderId);
+          const deliverySeq = deliverySequenceMap.get(numericOrderId) || null;
+          
           await db
             .update(orders)
-            .set({ routeId: route.id })
+            .set({ 
+              routeId: route.id,
+              deliverySequence: deliverySeq 
+            })
             .where(
               and(
-                eq(orders.id, Number(orderId)),
+                eq(orders.id, numericOrderId),
                 eq(orders.companyId, numericCompanyId), // Usar el companyId convertido a número
                 sql`${orders.routeId} IS NULL` // Solo actualizar si aún no tiene ruta asignada
               )
             );
+          
+          console.log(`  ✅ Pedido ${numericOrderId} asignado con delivery_sequence: ${deliverySeq}`);
         }
         
-        console.log(`Pedidos asignados a la ruta ${route.id}`);
+        console.log(`Pedidos asignados a la ruta ${route.id} con sus secuencias de entrega`);
       } else {
         console.log("No se proporcionaron IDs de pedidos para asignar a la ruta");
       }
