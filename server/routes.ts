@@ -1,7 +1,7 @@
 import type { Router } from "express";
 import multer from 'multer';
 import { storage } from "./storage";
-import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings } from "@shared/schema";
+import { zones, routes, users, provinces, cities, municipalities, sectors, insertZoneSchema, insertRouteSchema, customers, insertCustomerSchema, invoices, invoiceItems, insertInvoiceSchema, insertInvoiceItemSchema, products, payments, orders, orderItems, trucks, insertTruckSchema, bottleReturns, productionBatches, productionBatchItems, warehouses, insertWarehouseSchema, vehicleLoading, vehicleLoadingItems, insertVehicleLoadingSchema, insertProductionBatchSchema, insertProductionBatchItemSchema, insertUserSchema, insertOrderSchema, insertOrderItemSchema, insertPaymentSchema, settings, locationCaptureTokens } from "@shared/schema";
 import * as platformSchema from "@shared/schema";
 import { db, usersSimple } from './db';
 import { platformDb } from './platform-db';
@@ -2202,6 +2202,166 @@ export async function registerRoutes(router: express.Router) {
       res.json(updatedCustomer);
     } catch (error) {
       console.error("Error al actualizar cliente:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint para generar token de captura de ubicación (WhatsApp)
+  router.post("/customers/:id/request-location", async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const companyId = req.session.companyId;
+
+      if (!companyId) {
+        return res.status(403).json({ error: "No se encontró contexto de compañía" });
+      }
+
+      // Verificar que el cliente existe y pertenece a esta compañía
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(and(
+          eq(customers.id, customerId),
+          eq(customers.companyId, companyId)
+        ));
+
+      if (!customer) {
+        return res.status(404).json({ error: "Cliente no encontrado" });
+      }
+
+      // Generar token único
+      const { randomUUID } = await import('crypto');
+      const token = randomUUID();
+      
+      // Expira en 24 horas
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      // Guardar token en la base de datos
+      await db.insert(locationCaptureTokens).values({
+        token,
+        customerId,
+        companyId,
+        expiresAt,
+        used: false,
+      });
+
+      // Construir URL de captura
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+        : 'http://localhost:5000';
+      const captureUrl = `${baseUrl}/public/location/${token}`;
+
+      // Construir enlace de WhatsApp
+      const whatsappMessage = encodeURIComponent(
+        `Hola ${customer.managername}, por favor comparte tu ubicación usando este enlace: ${captureUrl}`
+      );
+      const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${whatsappMessage}`;
+
+      res.json({
+        token,
+        captureUrl,
+        whatsappUrl,
+        expiresAt,
+      });
+    } catch (error) {
+      console.error("Error al generar token de ubicación:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint público para obtener información del token
+  router.get("/public/location/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      const [tokenData] = await db
+        .select({
+          id: locationCaptureTokens.id,
+          customerId: locationCaptureTokens.customerId,
+          companyId: locationCaptureTokens.companyId,
+          expiresAt: locationCaptureTokens.expiresAt,
+          used: locationCaptureTokens.used,
+          customerName: customers.businessname,
+          customerAddress: customers.street,
+          currentCoordinates: customers.coordinates,
+        })
+        .from(locationCaptureTokens)
+        .innerJoin(customers, eq(locationCaptureTokens.customerId, customers.id))
+        .where(eq(locationCaptureTokens.token, token));
+
+      if (!tokenData) {
+        return res.status(404).json({ error: "Token no válido" });
+      }
+
+      // Verificar expiración
+      if (new Date() > new Date(tokenData.expiresAt)) {
+        return res.status(410).json({ error: "El enlace ha expirado" });
+      }
+
+      // Verificar si ya fue usado
+      if (tokenData.used) {
+        return res.status(410).json({ error: "Este enlace ya fue usado" });
+      }
+
+      res.json({
+        customerName: tokenData.customerName,
+        customerAddress: tokenData.customerAddress,
+        currentCoordinates: tokenData.currentCoordinates,
+      });
+    } catch (error) {
+      console.error("Error al validar token:", error);
+      res.status(500).json({ error: String(error) });
+    }
+  });
+
+  // Endpoint público para actualizar coordenadas
+  router.post("/public/location/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { coordinates } = req.body;
+
+      if (!coordinates || !/^-?\d+\.\d+,-?\d+\.\d+$/.test(coordinates)) {
+        return res.status(400).json({ error: "Coordenadas inválidas" });
+      }
+
+      const [tokenData] = await db
+        .select()
+        .from(locationCaptureTokens)
+        .where(eq(locationCaptureTokens.token, token));
+
+      if (!tokenData) {
+        return res.status(404).json({ error: "Token no válido" });
+      }
+
+      // Verificar expiración
+      if (new Date() > new Date(tokenData.expiresAt)) {
+        return res.status(410).json({ error: "El enlace ha expirado" });
+      }
+
+      // Verificar si ya fue usado
+      if (tokenData.used) {
+        return res.status(410).json({ error: "Este enlace ya fue usado" });
+      }
+
+      // Actualizar coordenadas del cliente
+      await db
+        .update(customers)
+        .set({ coordinates })
+        .where(eq(customers.id, tokenData.customerId));
+
+      // Marcar token como usado
+      await db
+        .update(locationCaptureTokens)
+        .set({ used: true })
+        .where(eq(locationCaptureTokens.token, token));
+
+      res.json({ 
+        success: true, 
+        message: "Ubicación actualizada correctamente" 
+      });
+    } catch (error) {
+      console.error("Error al actualizar ubicación:", error);
       res.status(500).json({ error: String(error) });
     }
   });
