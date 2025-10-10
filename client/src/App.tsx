@@ -71,6 +71,9 @@ import MobileRoutesInProgress from "@/pages/mobile-app/rutas-en-progreso";
 import MobileBottleReturns from "@/pages/mobile-app/envases";
 import MobilePayments from "@/pages/mobile-app/payments";
 import MobileProfile from "@/pages/mobile-app/perfil";
+import MobileNewOrderStep1 from "@/pages/mobile-app/nuevo-pedido/paso1";
+import MobileNewOrderStep2 from "@/pages/mobile-app/nuevo-pedido/paso2";
+import MobileNewOrderStep3 from "@/pages/mobile-app/nuevo-pedido/paso3";
 // Lazy loaded components
 const MobileMap = lazy(() => import("@/pages/mobile-app/mapa"));
 // El componente MobilePaymentsHistory no está disponible
@@ -211,6 +214,9 @@ function Router() {
         <Route path="/mobile-app/pagos" component={MobilePayments} />
         <Route path="/mobile-app/payments" component={MobilePayments} />
         <Route path="/mobile-app/perfil" component={MobileProfile} />
+        <Route path="/mobile-app/nuevo-pedido/paso1" component={MobileNewOrderStep1} />
+        <Route path="/mobile-app/nuevo-pedido/paso2" component={MobileNewOrderStep2} />
+        <Route path="/mobile-app/nuevo-pedido/paso3" component={MobileNewOrderStep3} />
         <Route path="/mobile-app/mapa">
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <MobileMap />
