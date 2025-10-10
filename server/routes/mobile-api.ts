@@ -513,14 +513,14 @@ export function createMobileApiEndpoints(): Router {
       for (const item of items) {
         // Calcular el total y asegurarnos de que tiene 2 decimales exactos
         const totalAmount = parseFloat(item.price) * item.quantity;
-        const formattedTotal = totalAmount.toFixed(2);
+        const itemTotal = totalAmount.toFixed(2);
         
         const invoiceItemData = {
           invoiceId: invoice.id,
           productId: item.productId,
           quantity: item.quantity,
           price: item.price,
-          total: formattedTotal,
+          total: itemTotal,
           companyId: companyId // Agregar companyId para el multitenant
         };
         
@@ -534,18 +534,23 @@ export function createMobileApiEndpoints(): Router {
       
       console.log(`Items de factura creados para la factura ${invoice.invoiceNumber}`);
       
-      // 5. Registrar el pago (tanto para efectivo como para crédito)
-      // Formatear el monto para asegurar que tiene 2 decimales exactos
+      // 5. Registrar el pago (tanto para efectivo, tarjeta, transferencia, como para crédito)
+      // Para crédito: registramos el monto total de la factura para que aparezca en reportes
+      // Para otros métodos: registramos el monto recibido
       const formattedAmount = parseFloat(amountPaid.toString()).toFixed(2);
+      const invoiceTotal = parseFloat(order.total).toFixed(2);
+      
+      // Para crédito usamos el total de la factura, para los demás el monto recibido
+      const paymentAmount = paymentMethod === 'credit' ? invoiceTotal : formattedAmount;
       
       const paymentData = {
         invoiceId: invoice.id,
         customerId: order.customerId,
-        amount: paymentMethod === 'cash' ? formattedAmount : '0.00',
+        amount: paymentAmount,
         paymentMethod: paymentMethod,
-        notes: paymentMethod === 'cash' 
-          ? `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`
-          : `Crédito pendiente de pago - Entrega en ruta ${order.routeId || 'N/A'}`,
+        notes: paymentMethod === 'credit' 
+          ? `Crédito pendiente de pago - Entrega en ruta ${order.routeId || 'N/A'} - Total adeudado: ${invoiceTotal}`
+          : `Pago recibido durante entrega en ruta ${order.routeId || 'N/A'}`,
         companyId: companyId // Agregar companyId para el multitenant
       };
       
