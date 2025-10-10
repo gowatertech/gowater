@@ -67,6 +67,24 @@ Preferred communication style: Simple, everyday language.
   - Shows count of additional orders when multiple deliveries exist at same stop
   - Mobile map now has information parity with web timeline view
 
+#### Mobile Route Edit and Details Navigation
+- **Fixed edit and details buttons** in mobile route view (`/mobile-app/ruta`)
+  - **Problem**: Edit button tried to open a non-existent dialog (`showEditOrderDialog`)
+  - **Solution**: Changed both buttons to navigate to delivery details page (`/mobile-app/entregas/[id]`)
+  
+- **Implemented auto-edit mode** for seamless editing experience
+  - Edit button navigates with `?edit=true` parameter
+  - Details button navigates without edit parameter (read-only mode)
+  - Auto-edit mode uses deferred initialization pattern:
+    1. URL parameter `edit=true` sets `autoEnterEditMode` flag
+    2. After delivery data loads, initializes `editedProducts` with delivery products
+    3. Then activates edit mode (`isEditing = true`)
+  - Ensures edit form loads with correct product data, matching manual edit flow
+  
+- **Navigation patterns**:
+  - Edit: `/mobile-app/entregas/{orderId}?routeId={routeId}&edit=true` → Opens in edit mode with products loaded
+  - Details: `/mobile-app/entregas/{orderId}?routeId={routeId}` → Opens in read-only mode
+
 ## System Architecture
 
 ### Multi-Tenancy Design
