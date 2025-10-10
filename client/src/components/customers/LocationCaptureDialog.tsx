@@ -30,6 +30,8 @@ export default function LocationCaptureDialog({
   useEffect(() => {
     if (open) {
       setCoordinates(currentCoordinates || "");
+    } else {
+      setCoordinates("");
     }
   }, [open, customerId, currentCoordinates]);
 
@@ -76,6 +78,10 @@ export default function LocationCaptureDialog({
     setCoordinates("");
   };
 
+  if (!open) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -91,13 +97,11 @@ export default function LocationCaptureDialog({
 
         <div className="space-y-4">
           <div className="h-[400px] border rounded-md overflow-hidden">
-            {open && (
-              <LocationSelector
-                key={`location-${customerId}-${open}`}
-                value={coordinates}
-                onChange={setCoordinates}
-              />
-            )}
+            <LocationSelector
+              key={`location-${customerId}`}
+              value={coordinates}
+              onChange={setCoordinates}
+            />
           </div>
 
           {coordinates && (
