@@ -82,6 +82,13 @@ Preferred communication style: Simple, everyday language.
     - Implemented handleClose function to clear local state
     - Parent component clears locationCaptureCustomer when dialog closes
     - Prevents coordinates from one customer being saved to another customer
+- **Location Dialog Cancel Bug Fix** (October 10, 2025):
+  - Fixed issue where canceling the map location capture dialog would inhibit/disable other customer menu options
+  - Root cause: Early return `if (!open) return null` prevented proper Dialog component cleanup
+  - Solution: Removed early return and `modal={false}` prop to allow React proper unmounting
+  - Dialog now stays mounted while closed, enabling ShadCN's internal cleanup to run correctly
+  - Prevents lingering focus trap that blocked other UI interactions after canceling
+  - Default modal behavior restored without affecting save/cancel or reopen functionality
 
 ## System Architecture
 
