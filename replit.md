@@ -95,6 +95,27 @@ Preferred communication style: Simple, everyday language.
   - Registered route: `<Route path="/mobile-app/entregas/:id" component={MobileDeliveryDetails} />`
   - Route order matters: Dynamic route must come before generic `/mobile-app/entregas` route
 
+#### Mobile Delivery Details Authentication Fix (Critical Bug Fix)
+- **Fixed authentication errors** in mobile delivery details page
+  - **Root cause**: All API calls used direct `fetch()` without `credentials: 'include'`, causing session cookies not to be sent
+  - **Impact**: Backend middleware rejected requests with "Unauthorized" errors, preventing data loading
+  - **Solution**: Replaced all 8 `fetch()` calls with `apiRequest()` helper that automatically includes credentials
+  - **Affected functions**:
+    1. `loadDeliveryDetails()` - Loading delivery data
+    2. `loadCompanySettings()` - Loading company settings for invoices
+    3. `loadBottleReturns()` - Loading bottle return history
+    4. `registerBottleReturn()` - Registering new bottle returns
+    5. `saveProductChanges()` - Updating order products (PATCH)
+    6. `processDelivery()` - Processing delivery and payment (POST)
+    7. `handlePrint()` - Loading order data for printing
+    8. `handleDownload()` - Loading order data for PDF generation
+  - **Technical details**:
+    - `apiRequest()` helper located in `client/src/lib/queryClient.ts`
+    - Automatically includes `credentials: 'include'` option
+    - Works with session-based authentication via `express-session`
+    - Backend uses `consolidatedCompanyMiddleware` that validates session and extracts `companyId`
+  - **Result**: All network calls now properly send session cookies, enabling authenticated access to API endpoints
+
 ## System Architecture
 
 ### Multi-Tenancy Design
