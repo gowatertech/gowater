@@ -314,6 +314,7 @@ export const orders = pgTable("orders", {
   cashCollected: decimal("cash_collected", { precision: 10, scale: 2 }).default("0.00"),
   driverCommission: decimal("driver_commission", { precision: 10, scale: 2 }).default("0.00"),
   assistantCommission: decimal("assistant_commission", { precision: 10, scale: 2 }).default("0.00"),
+  deliveredBy: integer("delivered_by"), // Usuario que procesó la entrega
   // Campo recurrente eliminado
 });
 

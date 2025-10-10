@@ -437,7 +437,8 @@ export function createMobileApiEndpoints(): Router {
         .set({ 
           status: "delivered",
           cashCollected: amountPaid.toString(),
-          actualDeliveryTime: new Date()
+          actualDeliveryTime: new Date(),
+          deliveredBy: userId || null // Guardar quién procesó la entrega
         })
         .where(and(
           eq(orders.id, orderId),

@@ -373,23 +373,21 @@ export default function DeliveryDetails() {
     setIsLoading(true);
     
     try {
-      // Preparar datos para la actualización
-      const updateData = {
-        orderId: delivery.orderId,
-        status: "delivered",
+      // Preparar datos para la actualización - usando el endpoint correcto
+      const requestBody = {
         paymentMethod: paymentMethod,
-        paymentAmount: paymentReceived,
-        updateCustomerBalance: updateCustomerBalance
+        amountPaid: paymentReceived,
+        userId: user?.id // Usuario que procesa la entrega
       };
 
-      console.log("Procesando entrega con datos:", JSON.stringify(updateData));
+      console.log("Procesando entrega con datos:", JSON.stringify(requestBody));
       console.log("Método de pago seleccionado:", paymentMethod);
       
-      // Enviar datos al servidor
+      // Enviar datos al servidor usando el endpoint correcto que crea la factura
       const responseData = await apiRequest({
-        url: `/api/orders/${delivery.orderId}/deliver`,
+        url: `/api/mobile/orders/${delivery.orderId}/deliver-and-invoice`,
         method: 'POST',
-        data: updateData
+        data: requestBody
       });
       
       // Actualizar datos locales
@@ -401,7 +399,7 @@ export default function DeliveryDetails() {
       // Mostrar mensaje de éxito
       toast({
         title: "Entrega procesada",
-        description: `Entrega marcada como completada. ${responseData.invoiceCreated ? 'Factura generada.' : ''}`
+        description: `Entrega marcada como completada. ${responseData.invoiceCreated ? 'Factura #' + responseData.invoiceNumber + ' generada.' : ''}`
       });
       
       // Cerrar diálogo
