@@ -77,6 +77,11 @@ Preferred communication style: Simple, everyday language.
     - PATCH /api/customers/:id updates customer including coordinates (auth required)
     - LocationSelector component reused across admin dialog and public page
     - Coordinates stored in "lat,lng" string format in customers table
+  - **Critical Bug Fix**: Resolved stale coordinate state in LocationCaptureDialog
+    - Added useEffect to reset coordinates when customerId, open, or currentCoordinates change
+    - Implemented handleClose function to clear local state
+    - Parent component clears locationCaptureCustomer when dialog closes
+    - Prevents coordinates from one customer being saved to another customer
 
 ## System Architecture
 
