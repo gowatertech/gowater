@@ -408,7 +408,8 @@ export default function Customers() {
       
       if (!res.ok) {
         if (popup) popup.close();
-        throw new Error("Error al generar enlace");
+        const errorData = await res.json().catch(() => ({ error: "Error al generar enlace" }));
+        throw new Error(errorData.error || "Error al generar enlace");
       }
       
       const { token, whatsappUrl } = await res.json();

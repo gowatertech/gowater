@@ -2253,10 +2253,24 @@ export async function registerRoutes(router: express.Router) {
       const captureUrl = `${baseUrl}/public/location/${token}`;
 
       // Construir enlace de WhatsApp
+      const cleanPhone = customer.phone.replace(/\D/g, '');
+      
+      // Validar que el número tenga al menos 10 dígitos
+      if (cleanPhone.length < 10) {
+        return res.status(400).json({ 
+          error: "El número de teléfono es demasiado corto. Debe incluir código de país (ej: 18095551234)" 
+        });
+      }
+      
       const whatsappMessage = encodeURIComponent(
         `Hola ${customer.managername}, por favor comparte tu ubicación usando este enlace: ${captureUrl}`
       );
-      const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${whatsappMessage}`;
+      const whatsappUrl = `https://wa.me/${cleanPhone}?text=${whatsappMessage}`;
+
+      console.log(`[WhatsApp] Generando enlace para cliente ${customer.businessname}`);
+      console.log(`[WhatsApp] Número original: ${customer.phone}`);
+      console.log(`[WhatsApp] Número limpio: ${cleanPhone}`);
+      console.log(`[WhatsApp] URL generada: ${whatsappUrl}`);
 
       res.json({
         token,
