@@ -388,6 +388,18 @@ export default function Customers() {
 
   const handleSendWhatsApp = async (customer: CustomerWithDetails) => {
     setOpenDropdownId(null);
+    
+    if (!customer.phone) {
+      toast({
+        title: "Error",
+        description: "El cliente no tiene un número de teléfono registrado",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const popup = window.open('', '_blank');
+    
     try {
       const res = await fetch(`/api/customers/${customer.id}/request-location`, {
         method: "POST",
@@ -395,18 +407,28 @@ export default function Customers() {
       });
       
       if (!res.ok) {
+        if (popup) popup.close();
         throw new Error("Error al generar enlace");
       }
       
       const { token, whatsappUrl } = await res.json();
       
-      window.open(whatsappUrl, '_blank');
-      
-      toast({
-        title: "Enlace generado",
-        description: "Se abrió WhatsApp con el mensaje. El enlace expira en 24 horas.",
-      });
+      if (popup) {
+        popup.location.href = whatsappUrl;
+        toast({
+          title: "Enlace generado",
+          description: "Se abrió WhatsApp con el mensaje. El enlace expira en 24 horas.",
+        });
+      } else {
+        toast({
+          title: "Popup bloqueado",
+          description: "Por favor permite popups y vuelve a intentar, o usa este enlace manualmente",
+          variant: "destructive",
+        });
+        console.log("WhatsApp URL:", whatsappUrl);
+      }
     } catch (error) {
+      if (popup) popup.close();
       console.error("Error al generar enlace:", error);
       toast({
         title: "Error",
