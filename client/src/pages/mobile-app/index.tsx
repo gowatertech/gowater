@@ -343,7 +343,7 @@ export default function GoWaterDriverApp() {
             <Button 
               variant="outline" 
               className="py-6 h-auto flex-col rounded-xl shadow-sm" 
-              onClick={() => setLocation("/mobile-app/nuevo-pedido/paso1")}
+              onClick={() => setLocation("/mobile-app/new-order")}
               data-testid="button-crear-pedido"
             >
               <ShoppingCart className="h-8 w-8 mb-2" />
