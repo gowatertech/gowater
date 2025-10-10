@@ -287,25 +287,26 @@ export default function MobileMap() {
       mapCenter
     ];
     
-    // Añadir todos los puntos de todas las rutas activas
+    // Añadir todos los puntos de todas las rutas activas usando las coordenadas de las órdenes
     if (activeRoutes && activeRoutes.length > 0) {
       let validStopsCount = 0;
       activeRoutes.forEach(route => {
-        if (route.stops && Array.isArray(route.stops)) {
-          route.stops.forEach(stopCoord => {
-            const point = parseCoordinate(stopCoord);
+        const routeOrders = allRouteOrders[route.id] || [];
+        routeOrders.forEach(order => {
+          if (order.coordinates) {
+            const point = parseCoordinate(order.coordinates);
             if (point) {
               points.push(point);
               validStopsCount++;
             }
-          });
-        }
+          }
+        });
       });
-      console.log(`[Mapa] Rutas activas: ${activeRoutes.length}, Paradas válidas: ${validStopsCount}`);
+      console.log(`[Mapa] Rutas activas: ${activeRoutes.length}, Paradas válidas (desde órdenes): ${validStopsCount}`);
     }
     
     return points;
-  }, [activeRoutes, mapCenter]);
+  }, [activeRoutes, allRouteOrders, mapCenter]);
 
   // Si está cargando
   if (loadingRoutes) {
@@ -428,10 +429,11 @@ export default function MobileMap() {
               
               {/* Renderizar rutas activas y sus paradas */}
               {activeRoutes && activeRoutes.length > 0 && activeRoutes.map((route, routeIndex) => {
-                if (!route.stops || !Array.isArray(route.stops)) return null;
-                
                 // Obtener las órdenes de esta ruta
                 const routeOrders = allRouteOrders[route.id] || [];
+                
+                // Si no hay órdenes, no renderizar nada
+                if (routeOrders.length === 0) return null;
                 
                 // Agrupar órdenes por secuencia de entrega
                 const ordersBySequence = new Map<number, Order[]>();
@@ -445,11 +447,17 @@ export default function MobileMap() {
                   }
                 });
                 
-                // Crear un array de coordenadas para la ruta
+                // Crear un array de coordenadas para la ruta usando las coordenadas de las órdenes
+                // (igual que el mapa web)
                 const routePoints: [number, number][] = [];
-                route.stops.forEach((stopCoord) => {
-                  const point = parseCoordinate(stopCoord);
-                  if (point) routePoints.push(point);
+                const sortedSequences = Array.from(ordersBySequence.keys()).sort((a, b) => a - b);
+                sortedSequences.forEach((seq) => {
+                  const orders = ordersBySequence.get(seq) || [];
+                  const firstOrder = orders[0];
+                  if (firstOrder && firstOrder.coordinates) {
+                    const point = parseCoordinate(firstOrder.coordinates);
+                    if (point) routePoints.push(point);
+                  }
                 });
                 
                 // Asignar un color diferente a cada ruta para distinguirlas mejor

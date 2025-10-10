@@ -10,7 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### October 10, 2025 - Mobile Map Warehouse Position Fix
+### October 10, 2025 - Mobile Map Coordinate Alignment Fix
+- **Fixed customer location markers on mobile map**
+  - **Root cause**: Mobile map used `route.stops` (stored route coordinates) which could be outdated or corrupted
+  - **Solution**: Changed to use `order.coordinates` (actual customer location) directly from orders, matching web map behavior
+  - Mobile map now shows correct customer locations instead of stale route stop coordinates
+  - Updated both marker rendering and zoom calculation to use order coordinates
+  - Eliminated discrepancy between marker positions and popup information
+  
 - **Fixed warehouse marker inconsistency** between web and mobile maps
   - **Root cause**: Mobile map used `useState` with initial value that locked coordinates before `settings` data loaded from API
   - **Solution**: Changed to reactive calculation like web map: `warehousePosition = settings?.latitude && settings?.longitude ? [lat, lng] : null`
@@ -20,6 +27,7 @@ Preferred communication style: Simple, everyday language.
     - Title: "Almacén"
     - Company name from settings
     - Exact GPS coordinates with 6 decimal precision
+    
 - **Customer Information Popups on Mobile Map**
   - Added interactive Popups to delivery stop markers
   - Each popup displays: route name, stop number, customer name, full address, and order total
