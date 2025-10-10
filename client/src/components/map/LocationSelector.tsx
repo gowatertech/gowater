@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
-import { LatLngExpression } from "leaflet";
+import { LatLngExpression, Icon, DivIcon } from "leaflet";
 import { AddressSearchBox } from "./AddressSearchBox";
 import { ResponsiveMapContainer } from "@/components/ui/responsive-map-container";
 import { useCompanySettings } from "@/hooks/use-company-settings";
@@ -16,6 +16,16 @@ interface MapControlProps {
   onChange: (lat: number, lng: number) => void;
 }
 
+// Icono personalizado más grande y visible para arrastrar
+const draggableIcon = new Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 // Componente para manejar el cambio de posición del marcador
 function DraggableMarker({ position, onChange }: MapControlProps) {
   const map = useMap();
@@ -29,10 +39,20 @@ function DraggableMarker({ position, onChange }: MapControlProps) {
     <Marker
       position={position}
       draggable={true}
+      icon={draggableIcon}
       eventHandlers={{
+        dragstart() {
+          console.log('[DraggableMarker] Drag started');
+        },
+        drag(e) {
+          const marker = e.target;
+          const position = marker.getLatLng();
+          console.log('[DraggableMarker] Dragging to:', position.lat, position.lng);
+        },
         dragend(e) {
           const marker = e.target;
           const position = marker.getLatLng();
+          console.log('[DraggableMarker] Drag ended at:', position.lat, position.lng);
           onChange(position.lat, position.lng);
         }
       }}

@@ -156,10 +156,16 @@ export default function PublicLocationCapture() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Por favor selecciona tu ubicación en el mapa. Puedes buscar tu dirección
-              o arrastrar el marcador a tu ubicación exacta.
-            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <p className="text-sm font-medium text-blue-900 mb-1">
+                📍 Cómo compartir tu ubicación:
+              </p>
+              <ol className="text-sm text-blue-800 space-y-1 ml-4 list-decimal">
+                <li>Busca tu dirección en el cuadro de búsqueda</li>
+                <li>O <strong>arrastra el marcador rojo</strong> a tu ubicación exacta en el mapa</li>
+                <li>Haz clic en "Compartir Mi Ubicación" cuando termines</li>
+              </ol>
+            </div>
 
             <div className="h-[400px] border rounded-md overflow-hidden">
               <LocationSelector
