@@ -71,7 +71,12 @@ export function LocationSelector({ value, onChange, initialCenter }: LocationSel
   useEffect(() => {
     if (value) {
       const [lat, lng] = value.split(',').map(parseFloat);
-      setPosition([lat, lng]);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        console.log('[LocationSelector] Actualizando posición desde value:', { lat, lng });
+        setPosition([lat, lng]);
+      } else {
+        console.warn('[LocationSelector] Coordenadas inválidas en value:', value);
+      }
     }
   }, [value]);
 

@@ -32,9 +32,13 @@ export default function PublicLocationCapture() {
         }
 
         const data = await response.json();
+        console.log('[PublicLocationCapture] Token data recibida:', data);
         setTokenData(data);
         if (data.currentCoordinates) {
+          console.log('[PublicLocationCapture] Estableciendo coordenadas:', data.currentCoordinates);
           setCoordinates(data.currentCoordinates);
+        } else {
+          console.log('[PublicLocationCapture] No hay coordenadas actuales');
         }
       } catch (err) {
         setError("Error al cargar la información");
