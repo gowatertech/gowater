@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   Smartphone,
+  Navigation,
   Package,
   CreditCard,
   Calendar,
@@ -200,6 +201,11 @@ export default function GoWaterDriverApp() {
     setShowInstallPrompt(false);
     localStorage.setItem('pwaPromptShown', 'true');
   };
+
+  // Redireccionar a las rutas pendientes
+  const goToPendingRoutes = () => {
+    setLocation("/mobile-app/rutas-pendientes");
+  };
   
   // Refrescar los datos
   const refreshData = async () => {
@@ -325,23 +331,23 @@ export default function GoWaterDriverApp() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <Button 
               className="py-6 h-auto flex-col rounded-xl shadow-sm" 
-              onClick={() => setLocation("/mobile-app/nuevo-pedido/paso1")}
-              data-testid="button-crear-pedido"
+              onClick={goToPendingRoutes}
             >
-              <ShoppingCart className="h-8 w-8 mb-2" />
-              <span className="text-sm">Crear Pedido</span>
+              <Navigation className="h-8 w-8 mb-2" />
+              <span className="text-sm">Rutas Pendientes</span>
+              {pendingRoutes.length > 0 && (
+                <Badge className="mt-1" variant="secondary">{pendingRoutes.length}</Badge>
+              )}
             </Button>
             
             <Button 
               variant="outline" 
               className="py-6 h-auto flex-col rounded-xl shadow-sm" 
-              onClick={() => setLocation("/mobile-app/entregas")}
+              onClick={() => setLocation("/mobile-app/nuevo-pedido/paso1")}
+              data-testid="button-crear-pedido"
             >
-              <Package className="h-8 w-8 mb-2" />
-              <span className="text-sm">Mis Entregas</span>
-              {assignedOrders.length > 0 && (
-                <Badge className="mt-1" variant="secondary">{assignedOrders.length}</Badge>
-              )}
+              <ShoppingCart className="h-8 w-8 mb-2" />
+              <span className="text-sm">Crear Pedido</span>
             </Button>
           </div>
           
